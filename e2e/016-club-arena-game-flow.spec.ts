@@ -43,12 +43,36 @@ test.describe('Club Arena — Engine Mutation Endpoints Fail Closed', () => {
     { path: '/api/poker/engine/connect', method: 'POST', name: 'Connect player' },
     { path: '/api/poker/engine/club-connect', method: 'POST', name: 'Club connect' },
     { path: '/api/poker/create-live-table', method: 'POST', name: 'Create live table' },
-    { path: '/api/club-arena/buyin', method: 'POST', name: 'Buy in' },
     { path: '/api/club-arena/cancel-my-cashout', method: 'POST', name: 'Cancel cashout' },
     { path: '/api/club-arena/anti-cheat', method: 'POST', name: 'Anti-cheat report' },
     { path: '/api/club-arena/approve-cashout', method: 'POST', name: 'Approve cashout' },
     { path: '/api/club-arena/clawback-chips', method: 'POST', name: 'Clawback chips' },
   ];
+
+  /* RETIRED, NOT UNPROTECTED. /api/club-arena/buyin answers 410 to every
+     caller since #1145: the RPC behind it had been a hard-fail stub since
+     April and the route only swallowed traffic. A retired route cannot sit in
+     the list above, because that list asserts an AUTH WALL and 410 is not one:
+     it is the same answer with or without a token, which is exactly right for
+     a door that no longer leads anywhere. It gets its own test instead, so the
+     retirement is pinned rather than merely tolerated. */
+  test('Buy in (POST /api/club-arena/buyin) is retired and says so, with or without a token', async ({ request }) => {
+    const anonymous = await request.post('/api/club-arena/buyin', { data: {}, failOnStatusCode: false });
+    expect(anonymous.status(), 'a retired route answers 410 Gone').toBe(410);
+
+    const withToken = await request.post('/api/club-arena/buyin', {
+      headers: { Authorization: 'Bearer not-a-real-jwt-token' },
+      data: {},
+      failOnStatusCode: false,
+    });
+    expect(withToken.status(), 'and it answers the same to a caller with a token').toBe(410);
+
+    const body = await anonymous.json();
+    expect(body.success).toBe(false);
+    expect(String(body.message || ''), 'it names where the two flows went').toMatch(
+      /atomic_table_buyin|fn_atomic_buyin/
+    );
+  });
 
   for (const ep of protectedMutationEndpoints) {
     test(`${ep.name} (${ep.method} ${ep.path}) rejects no-auth`, async ({ request }) => {
@@ -139,12 +163,14 @@ test.describe('Club Arena — Settlement + Money Endpoints', () => {
     expect([400, 401, 403, 405].includes(response.status())).toBe(true);
   });
 
-  test('club-arena/buyin rejects no-auth', async ({ request }) => {
+  test('club-arena/buyin moves no money because it is retired', async ({ request }) => {
     const response = await request.post('/api/club-arena/buyin', {
       data: { table_id: '00000000-0000-0000-0000-000000000000', amount: 1000 },
       failOnStatusCode: false
     });
-    expect([400, 401, 403, 405].includes(response.status())).toBe(true);
+    // 410, and never a 200: the strongest form of "this endpoint moves no
+    // money" is that it has no code left that could.
+    expect(response.status()).toBe(410);
   });
 });
 

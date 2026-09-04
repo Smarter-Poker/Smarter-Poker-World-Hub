@@ -1,9 +1,9 @@
 /**
- * 🟢 HORSE PRESENCE UTILITY (Client-Side)
+ * HORSE PRESENCE UTILITY (Client-Side)
  * ═══════════════════════════════════════════════════════════════════════════
  * Pure-math presence check for horse profiles.
  * Determines if a horse is "online" based on its deterministic schedule.
- * No DB calls — uses the same hash algorithm as HorseScheduler.js
+ * No DB calls - uses the same hash algorithm as HorseScheduler.js
  * ═══════════════════════════════════════════════════════════════════════════
  */
 

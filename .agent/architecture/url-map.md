@@ -1,6 +1,6 @@
 # Smarter.Poker URL → Repo → Push-path Map
 
-**Source of truth.** Maintained 2026-04-27. Updated by `~/Documents/SMARTER-POKER-PLATFORM-CONSOLIDATION.md` Phase 6 + Club Arena deep-verification 2026-04-27.
+**Source of truth.** Maintained 2026-04-27. Updated by `~/Documents/SMARTER-POKER-PLATFORM-CONSOLIDATION.md` Phase 6 + Club Arena deep-verification 2026-04-27. **Club Arena rows corrected 2026-09-03** to match `Smarter-Poker-Club-Arena/CLAUDE.md` section 1.1: the Vite bundle is published by `publish-club-arena.yml` to its own static origin (`ca-static.smarter.poker`, Caddy on the estate runner); this repo carries ONE rewrite to it and nothing is committed here. There is no `vercel --prod` step anywhere in Club Arena's path any more.
 
 This file answers exactly one question: **"I want to change behavior at URL X — which repo do I edit, and where does my push end up?"**
 
@@ -16,12 +16,12 @@ If your change isn't covered by a row below, STOP and ask before inventing a new
 | `smarter.poker/commander/*` (UI) | `Smarter-Poker/smarter-poker-commander` | `main` | git push → Vercel auto (`smarter-poker-commander`), proxied via World Hub rewrite | https://smarter.poker/commander/ |
 | `smarter.poker/api/commander/*` (Commander API) | `Smarter-Poker/smarter-poker-commander` | `main` | same as above (rewrite) | https://commander.smarter.poker/api/* |
 | **`smarter.poker/api/club-arena/*`** (67 endpoints — cashier, club admin, agent, union, marketplace, settlement, anti-cheat, BBJ) | **`Smarter-Poker/Smarter-Poker-World-Hub`** (Tier 3) | `main` | **git push → Vercel auto (`hub-vanguard`)** | https://smarter.poker/api/club-arena/* |
-| `smarter.poker/hub/club-arena/*` (Vite frontend assets) | `Smarter-Poker/Smarter-Poker-Club-Arena` (root) | `main` | git push + manual `vercel --prod` (project: `club-arena`, `git.deploymentEnabled: false`) | https://smarter.poker/hub/club-arena/ |
+| `smarter.poker/hub/club-arena/*` (Vite frontend assets) | `Smarter-Poker/Smarter-Poker-Club-Arena` (root) | `main` | push a branch -> autopilot merges -> `publish-club-arena.yml` rsyncs `dist/` to `ca-static.smarter.poker` (`/srv/club-arena/releases/<sha>/`, atomic `current` symlink). World Hub rewrites `/hub/club-arena/:path*` to that origin. Verify: `curl -s https://smarter.poker/hub/club-arena/build-info.json` -> `ca_sha` equals main. **No `vercel --prod`.** | https://smarter.poker/hub/club-arena/ |
 | `engine.smarter.poker` (WebSocket game server) | `Smarter-Poker/Smarter-Poker-Club-Arena` (`server/` dir) | `main` | git push + `bash server/deploy-hetzner.sh` | wss://engine.smarter.poker |
 | Cron handler logic | `Smarter-Poker/smarter-poker-workers` | `main` | git push → GitHub Action builds Docker image → systemd reload | Hetzner workers VM `178.104.180.220` |
 | Cron schedule | `Smarter-Poker/Smarter-Poker-World-Hub` (`scripts/openclaw-cron-dispatcher.py`) | `main` | git push + manual `systemctl reload openclaw.service` | Hetzner openclaw VM `178.104.160.250` |
 | `commander.smarter.poker` (direct domain) | `Smarter-Poker/smarter-poker-commander` | `main` | same as `/commander/*` row | https://commander.smarter.poker |
-| `club.smarter.poker` (vanity redirect) | `Smarter-Poker/Smarter-Poker-Club-Arena` (rewrite block in `vercel.json`) | `main` | manual `vercel --prod` | redirects to `smarter.poker/hub/club-arena/` |
+| `club.smarter.poker` (vanity redirect) | `Smarter-Poker/Smarter-Poker-Club-Arena` (rewrite block in `vercel.json`) | `main` | same publish path as the row above (the redirect config ships with the bundle) | redirects to `smarter.poker/hub/club-arena/` |
 
 ---
 
@@ -29,7 +29,7 @@ If your change isn't covered by a row below, STOP and ask before inventing a new
 
 ```
 TIER 1 — Realtime game engine:    Smarter-Poker-Club-Arena  (server/)  →  Hetzner CPX11
-TIER 2 — Player UI (Vite):        Smarter-Poker-Club-Arena  (src/)     →  Vercel club-arena project
+TIER 2 — Player UI (Vite):        Smarter-Poker-Club-Arena  (src/)     →  ca-static.smarter.poker (Caddy static origin, via World Hub rewrite)
 TIER 3 — Operations REST API:     Smarter-Poker-World-Hub   (pages/api/club-arena/*) → Vercel hub-vanguard
 ```
 
@@ -73,5 +73,5 @@ HTTP 405  https://smarter.poker/api/club-arena/buyin    (POST-only, correct)
 HTTP 200  https://commander.smarter.poker/              (Commander Orb)
 HTTP 200  https://engine.smarter.poker/health           (Hetzner game server)
 HTTP 307  https://club.smarter.poker/                   (vanity redirect)
-HTTP 308  https://smarter.poker/hub/club-arena/         (Vite static asset proxy)
+HTTP 308  https://smarter.poker/hub/club-arena/         (Vite static asset proxy -> ca-static.smarter.poker since 2026-09-02)
 ```

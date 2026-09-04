@@ -43,7 +43,18 @@ function resolveImport(importer, specifier) {
     ...SOURCE_EXTENSIONS.map((extension) => `${base}${extension}`),
     ...SOURCE_EXTENSIONS.map((extension) => join(base, `index${extension}`)),
   ];
-  return candidates.find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) || null;
+  // Only ever resolve to a SOURCE file. `base` is a candidate in its own
+  // right, so an explicit `./x.json` import resolved to the real .json and it
+  // was then handed to @babel/parser as JavaScript - which is a syntax error
+  // on line 2 of any object literal. src/config/world-footer-navigation.json
+  // arrived in #1125 and broke this script from that day; nothing noticed
+  // because the guard that runs it was never wired into CI (see #1312).
+  // The directory walk above already filters on SOURCE_EXTENSIONS; the
+  // resolver has to agree with it.
+  return candidates.find((candidate) =>
+    SOURCE_EXTENSIONS.includes(extname(candidate))
+    && existsSync(candidate)
+    && statSync(candidate).isFile()) || null;
 }
 
 function importsFor(file, source) {

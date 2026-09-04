@@ -1,5 +1,5 @@
 /**
- * 🛡️ ANTI-ABUSE UTILITIES
+ * ANTI-ABUSE UTILITIES
  * ═══════════════════════════════════════════════════════════════════════════
  * Email normalization, hashing, IP extraction, disposable email detection,
  * and device fingerprint storage for signup abuse prevention.
@@ -11,7 +11,7 @@ const crypto = require('crypto');
 // ═══════════════════════════════════════════════════════════════
 // DISPOSABLE EMAIL DOMAIN BLOCKLIST
 // Covers 60+ throwaway email providers. Users with these domains
-// will NOT receive the Welcome Package (500💎 + VIP).
+// will NOT receive the Welcome Package (500 Diamonds + VIP).
 // ═══════════════════════════════════════════════════════════════
 const DISPOSABLE_DOMAINS = new Set([
     'guerrillamail.com', 'guerrillamail.net', 'guerrillamail.org',
@@ -97,7 +97,7 @@ function extractClientIP(req) {
 /**
  * Log an admin action to the admin_audit_log table.
  *
- * Phase 6.1.8 — now routes through fn_log_admin_action (SECURITY DEFINER)
+ * Phase 6.1.8 - now routes through fn_log_admin_action (SECURITY DEFINER)
  * so callers don't need INSERT permission on admin_audit_log and the server
  * can capture actor_role, user_agent, and request_id from the request headers.
  *

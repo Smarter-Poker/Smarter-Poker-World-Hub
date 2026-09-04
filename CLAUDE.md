@@ -694,6 +694,58 @@ code fix that stops it recurring.
 
 ---
 
+## 10.9 NEVER SCHEDULE ANYTHING ON THE CLAUDE SCHEDULER (Dan, 2026-09-04, BINDING)
+
+**Dan, verbatim: "IF YOU ARE SCHEDULING ANYTHING TO 'RUN ON CLAUDE SCHEDULER'
+IT WON'T WORK OR SAVE, BECAUSE IM NEVER ON THE SAME ACCOUNT LONG ENOUGH" and
+"MAKE IT A HARD LAW THAT NO OTHER AGENT SCHEDULES ANY CRITICAL TASK, WATCH DOG
+OR ANYTHING ELSE THERE ... ALWAYS CREATE A REAL CRON USING OPEN CLAW".**
+
+An agent MUST NOT create a scheduled task with the Claude scheduled-tasks tool
+(`mcp__scheduled-tasks__create_scheduled_task`, the "Scheduled" panel). Not a
+watchdog, not a verification timer, not a follow-up check, not "I will look at
+this again in an hour". Section 11 below already says every scheduled
+application trigger goes through Open Claw; this closes the one loophole it did
+not name.
+
+### Why it fails silently
+
+Those tasks belong to ONE Claude account. Dan works across several, so a task
+installed from this session is unreachable from the next. It does not error and
+does not warn - it keeps reporting `enabled: true` and never fires again.
+
+Measured, not theoretical: `smarter-poker-cron-health` was scheduled every six
+hours, read `enabled: true`, and its `lastRunAt` was **2026-06-17** - dead for
+two and a half months while looking healthy. It also duplicated
+`.github/workflows/cron-health.yml`, which had been doing the job correctly the
+whole time. Deleted 2026-09-04.
+
+A scheduler that lies about running is worse than none, because somebody stops
+watching the thing it claimed to watch.
+
+### Where it goes instead
+
+- **Application logic on a schedule** -> Open Claw on Hetzner. Add the handler
+  under `pages/api/cron/<name>.js`, register it in
+  `scripts/openclaw-cron-dispatcher.py`, deploy with
+  `bash scripts/deploy-openclaw.sh`. Full procedure in section 11.2.
+- **CI-side work that genuinely needs GitHub's environment** -> a workflow
+  `schedule:` trigger, and only if it is on the section 11.4 allowlist.
+- **A follow-up you want to make personally** -> do it now, or open an issue.
+  Never a timer. Club Arena Playbook 7b already forbids sitting on CI.
+
+### What this does NOT forbid
+
+Dan installs tasks there himself, on every account at once, on purpose.
+`horse-daily-audit-analysis` is his: deliberately present on multiple accounts
+for redundancy, claiming a row in `horse_job_runs` so exactly one account runs
+it per day. That is his design, it works, and it stays.
+
+The ban is on AGENTS putting platform-critical work somewhere it will quietly
+vanish - not on Dan's own tooling.
+
+---
+
 ## 11. SCHEDULED JOBS / CRONS (binding — CI-enforced)
 
 **All new scheduled jobs go to Open Claw on Hetzner. Never to `vercel.json`.**

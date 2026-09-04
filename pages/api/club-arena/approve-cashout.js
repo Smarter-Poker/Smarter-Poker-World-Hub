@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 /**
  * POST /api/club-arena/approve-cashout
  * 
@@ -21,8 +22,18 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { loadOperatorPolicy } from '../../../src/lib/horses/operatorAuth.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
+import {
+  requireApproval,
+  markApprovalExecuted,
+  approvalPendingResponse,
+  cashoutAuthPath,
+} from '../../../src/lib/horses/approvals.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -37,11 +48,11 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
+  const supabaseAdmin = getSupabase(); // FIX: was undefined - alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    // CONCURRENCY: Idempotency guard — prevent double-tap cashout race
+    // CONCURRENCY: Idempotency guard - prevent double-tap cashout race
     if (checkIdempotency(req, res)) return;
 
     // ── RED TEAM: Payload size + field allowlist + UUID validation ──
@@ -73,11 +84,11 @@ export default async function handler(req, res) {
     // into club treasury (settling off-platform fiat downstream). Require
     // a fresh (within-5-min) MFA confirmation from the approving agent/
     // owner so a stolen 12h cookie can't drain accounts.
-    // Cancel action is reversible (chips return to balance) — we skip the
+    // Cancel action is reversible (chips return to balance) - we skip the
     // step-up gate for cancel so operators aren't friction-slowed on the
     // happy-path rollback.
     if (action === 'approve') {
-      // Only gate if the user has MFA enrolled — agents who haven't
+      // Only gate if the user has MFA enrolled - agents who haven't
       // enrolled fall back to the existing chip-velocity + audit-log
       // controls. (See Phase 6.1.28 follow-up: make MFA mandatory for
       // any agent handling cashouts.)
@@ -105,8 +116,8 @@ export default async function handler(req, res) {
 
     try {
       // ═════════════════════════════════════════════════════════════
-      // 1. Get cashout request — select ALL fields used downstream
-      //    BUG FIX: was .select('id') — cashout.club_id, .agent_id, .player_id,
+      // 1. Get cashout request - select ALL fields used downstream
+      //    BUG FIX: was .select('id') - cashout.club_id, .agent_id, .player_id,
       //    .amount were all undefined, breaking auth, chip transfer, and notifications
       // ═════════════════════════════════════════════════════════════
       const { data: cashout, error: coErr } = await getSupabase()
@@ -117,7 +128,7 @@ export default async function handler(req, res) {
 
       if (coErr || !cashout) return res.status(404).json({ success: false, error: 'Cashout request not found' });
 
-      // Settlement lock check — block during Monday 4:00-4:10 AM CST
+      // Settlement lock check - block during Monday 4:00-4:10 AM CST
       // Must happen BEFORE claiming status, otherwise a lock leaves it orphaned
       const lockCheck = await checkSettlementLock(supabaseAdmin, cashout.club_id);
       if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
@@ -130,12 +141,27 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // Platform staff are not members of every club whose cashouts they
       // action from /horses. Without this branch they were 403'd on all of them.
+      //
+      // WHO COUNTS AS PLATFORM STAFF HERE (re-verification M-3): whoever holds
+      // cashier.write, resolved the way the console resolves it. A legacy
+      // profile role carries the full set until enforcement is on, so nothing
+      // that works today changes; a granted finance operator whose
+      // profiles.role is `user` now holds it too, instead of approving in the
+      // Approvals tab and being 403'd on this screen; and a legacy account
+      // narrowed under enforce_named_roles no longer keeps a door the console
+      // already closed. The resolver fails open to the legacy set when its
+      // RPC is unreachable, and `platformGate.degraded` says when it did.
       const { data: callerProfile } = await getSupabase()
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .maybeSingle();
-      const isPlatformAdmin = ['admin', 'superadmin', 'god'].includes(callerProfile?.role);
+      const platformGate = await operatorHoldsPermission(
+        supabaseAdmin,
+        { userId: user.id, profileRole: callerProfile?.role || null },
+        PERMISSIONS.CASHIER_WRITE
+      );
+      const isPlatformAdmin = platformGate.ok === true;
 
       const { data: callerMember } = await getSupabase()
         .from('club_members')
@@ -146,10 +172,10 @@ export default async function handler(req, res) {
 
       const isAgent = cashout.agent_id === user.id;
       const isAdmin = ['owner', 'admin'].includes(callerMember?.role);
+      let unionAuth = false;
       if (!isPlatformAdmin && !isAgent && !isAdmin) {
         // Union admin fallback
         const { data: clubInfo } = await getSupabase().from('clubs').select('union_id').eq('id', cashout.club_id).maybeSingle();
-        let unionAuth = false;
         if (clubInfo?.union_id) {
           const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) {
@@ -181,8 +207,37 @@ export default async function handler(req, res) {
       const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
       // True only when NEITHER the club nor the agent relationship authorized
-      // this caller — i.e. the action went through purely on platform role.
-      const viaPlatformOverride = isPlatformAdmin && !isAgent && !isAdmin;
+      // this caller - i.e. the action went through purely on platform role.
+      // The audit rows below carry `auth_path` because "who approved this
+      // cashout" and "in what capacity" are different questions and the trail
+      // could only answer the first.
+      const { path: authPath, viaPlatformOverride } = cashoutAuthPath({
+        isPlatformAdmin,
+        isAgent,
+        isClubAdmin: isAdmin,
+        isUnionAdmin: unionAuth,
+      });
+
+      // The operator context the shared audit helper wants. Auth is unchanged
+      // above; this only gives the audit row the same actor, role, ip, user
+      // agent, request id and before/after stamp every other console write now
+      // carries.
+      // PHASE 2. The operator policy is also what requireApproval reads. It is
+      // cached 30s and falls back to the default (approvals OFF) whenever
+      // ca_operator_policy cannot be read, so a missing Phase 2 migration
+      // cannot stop a cashout that works today.
+      const cashoutPolicy = await loadOperatorPolicy(supabaseAdmin);
+
+      const auditOp = {
+        // The caller's REAL role, or null. `|| 'admin'` fabricated a platform
+        // privilege for every agent whose profiles.role is null - which is the
+        // common case for a club agent authorised through club_members.
+        user: { id: user.id },
+        role: callerProfile?.role || null,
+        db: supabaseAdmin,
+        policy: cashoutPolicy,
+        requestId: requestIdOf(req),
+      };
 
       // cashout.amount is nullable; .toLocaleString() on null throws.
       const amountText = Number(cashout.amount || 0).toLocaleString();
@@ -191,7 +246,94 @@ export default async function handler(req, res) {
       // APPROVE: Held chips → treasury (agent settles fiat off-platform)
       // ═════════════════════════════════════════════════════════════
       if (action === 'approve') {
+        // PHASE 2 MAKER-CHECKER, before any chips move. Only the APPROVE branch
+        // is gated: cancel returns held chips to the player, and putting a
+        // second operator in front of giving a player their own money back
+        // would be a narrowing, which PHASE2-CONTRACTS.md section 0 forbids.
+        //
+        // AND ONLY THE PLATFORM-OVERRIDE PATH IS GATED (review H-1).
+        //
+        // Maker-checker was bolted onto a route whose callers are mostly NOT
+        // platform staff. A club agent approving their own player's cashout,
+        // and a union admin doing the same, cannot see the Approvals queue
+        // (that needs console.read), cannot clear it (that needs
+        // cashier.write), and are not counted by
+        // fn_ca_operator_has_second_approver, so the alone rule never releases
+        // it either. With cashout_threshold at 0, turning approvals on would
+        // have frozen every cashout on the platform behind a queue invisible to
+        // the people who file them - the exact shape section 0 forbids. It also
+        // filed approval rows whose requested_by was not an operator at all.
+        //
+        // So the gate applies to the platform operator overriding from /horses
+        // and to nobody else. Everyone else keeps today's behaviour exactly,
+        // and the audit row below says which path was taken.
+        //
+        // The opId is derived from the cashout id, so a retry of the same
+        // cashout re-uses the same approval row rather than raising a second
+        // one - ca_operator_approvals.op_id is unique where not null.
+        let approval = {
+          required: false,
+          approvalId: null,
+          status: 'not_gated',
+          blockedReason: null,
+          recorded: false,
+          threshold: null,
+          policyReason: 'caller_is_not_a_platform_operator',
+        };
+        if (viaPlatformOverride) {
+          try {
+            approval = await requireApproval(auditOp, req, {
+              kind: 'cashout',
+              amount: Number(cashout.amount || 0),
+              asset: 'chips',
+              targetType: 'cashout_request',
+              targetId: cashoutId,
+              reason: note || 'Approved',
+              opId: `cashout:${cashoutId}`,
+              payload: {
+                cashoutId,
+                clubId: cashout.club_id,
+                playerId: cashout.player_id,
+                agentId: cashout.agent_id,
+                amount: cashout.amount,
+                note: note || null,
+              },
+            });
+          } catch (approvalErr) {
+            return res.status(approvalErr?.status || 503).json({
+              success: false,
+              error: approvalErr?.message || 'Approvals Are Unavailable',
+              code: approvalErr?.code || 'approval_unavailable',
+            });
+          }
+        }
+
+        if (approval.required) {
+          await auditOperatorAction(auditOp, req, {
+            action: 'cashout.request_approval',
+            targetType: 'cashout_request',
+            targetId: cashoutId,
+            before: { status: cashout.status },
+            after: { status: approval.status, approval_id: approval.approvalId },
+            details: {
+              amount: cashout.amount,
+              club_id: cashout.club_id,
+              threshold: approval.threshold,
+              auth_path: authPath,
+            },
+          });
+          return approvalPendingResponse(res, approval, {
+            requestId: auditOp.requestId,
+            message: 'Sent For Approval. Another Operator Must Approve This Cashout Before Any Chips Move',
+          });
+        }
+
         // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
+        // The service key is EXEMPT from zz_freeze_guard, so this route is the only
+        // thing standing between a player-initiated chip movement and a platform
+        // that everyone has been told is frozen (CLAUDE.md 13). Fails closed.
+        if (await refuseWhileFrozen(getSupabase(), res, { route: 'approve-cashout' })) return;
+
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_approve_cashout_atomic', {
           p_cashout_id: cashoutId,
           p_agent_id: user.id,
@@ -202,7 +344,62 @@ export default async function handler(req, res) {
           throw rpcErr || new Error(rpcResult?.error || 'Atomic approval failed');
         }
 
-        // Notify player: message + push
+        // THE CHIPS HAVE MOVED. Close the approval row and file the console
+        // audit row NOW, before any network call (re-verification M-6). These
+        // two used to run after notifyPlayer, whose push branch is a fetch to
+        // /api/notifications/send; a hang there could hit the Vercel timeout
+        // with the approval row still `approved` (re-drivable from the queue)
+        // and no cashout.approve row anywhere. Neither call throws.
+        //
+        // AND THE ANSWER IS READ (M-4). `refused: true` means
+        // fn_ca_operator_mark_executed would not close the row - chips moved
+        // against a row nobody approved, the H-2 shape - and that goes into the
+        // audit row and the response rather than a server log alone.
+        const mark = await markApprovalExecuted(auditOp, approval.approvalId, {
+          ok: true,
+          cashout_id: cashoutId,
+          amount: cashout.amount,
+          club_id: cashout.club_id,
+        });
+        const trailClosed = mark.ok === true;
+        const approvalStatusAfter = !approval.approvalId
+          ? approval.status
+          : trailClosed
+            ? 'executed'
+            : approval.status;
+
+        // Admin console audit trail. This moves real chips off a player
+        // balance into club treasury. auditOperatorAction swallows its own
+        // errors so it can never fail the request.
+        await auditOperatorAction(auditOp, req, {
+          action: 'cashout.approve',
+          targetType: 'cashout_request',
+          targetId: cashoutId,
+          details: {
+            amount: cashout.amount,
+            club_id: cashout.club_id,
+            player_id: cashout.player_id,
+            agent_id: cashout.agent_id,
+            agent_note: note || 'Approved',
+            platform_admin_override: viaPlatformOverride,
+            auth_path: authPath,
+            approval_gated: viaPlatformOverride,
+            approval_id: approval.approvalId,
+            approval_status: approvalStatusAfter,
+            approval_status_before: approval.status,
+            trail_closed: trailClosed,
+            mark_executed_refused: mark.refused === true,
+            mark_executed_reason: mark.reason ?? null,
+            platform_gate_degraded: platformGate.degraded === true,
+          },
+          before: { status: cashout.status },
+          after: { status: 'approved' },
+        });
+
+        logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
+
+        // Notify player: message + push. Last, because it is the one step
+        // here that waits on a network the platform does not own.
         await notifyPlayer(cashout, playerName, agentName,
           `[CASHOUT APPROVED]
 
@@ -211,34 +408,14 @@ export default async function handler(req, res) {
           'approve'
         );
 
-        logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
-
-        // Admin console audit trail — this moves real chips off a player
-        // balance into club treasury. logAdminAction swallows its own errors
-        // so it can never fail the request.
-        await logAdminAction(supabaseAdmin, {
-          admin_user_id: user.id,
-          action: 'cashout.approved',
-          target_type: 'cashout_request',
-          target_id: cashoutId,
-          details: {
-            amount: cashout.amount,
-            club_id: cashout.club_id,
-            player_id: cashout.player_id,
-            agent_id: cashout.agent_id,
-            agent_note: note || 'Approved',
-            platform_admin_override: viaPlatformOverride,
-          },
-          before: { status: cashout.status },
-          after: { status: 'approved' },
-          req,
-        });
-
         return res.status(200).json({
           success: true,
           action: 'approved',
           amount: cashout.amount,
           playerId: cashout.player_id,
+          approvalId: approval.approvalId,
+          approvalStatus: approvalStatusAfter,
+          trailClosed,
         });
       }
 
@@ -247,6 +424,10 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       if (action === 'cancel') {
         // Atomic cancellation (updates status + credits player chips + logs transaction)
+        // Both branches of this route move money; the cancel branch needs the
+        // same refusal as the approve branch. Service key, so no trigger backstop.
+        if (await refuseWhileFrozen(getSupabase(), res, { route: 'approve-cashout' })) return;
+
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
           p_cashout_id: cashoutId,
           p_user_id: user.id,
@@ -255,7 +436,19 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr || !rpcResult?.success) {
-          return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
+          // The database sentence is logged under the request id and never
+          // returned (re-verification L-5). rpcResult.error is the RPC's own
+          // reason code, not Postgres text; a raw Postgres error gets a
+          // scrubbed sentence.
+          if (rpcErr) {
+            console.error(`[approve-cashout] ${auditOp.requestId} fn_cancel_cashout_atomic failed:`, rpcErr.message || rpcErr);
+          }
+          return res.status(409).json({
+            success: false,
+            error: rpcErr ? 'The Cashout Could Not Be Cancelled' : rpcResult?.error || 'Cancellation failed',
+            code: rpcErr ? 'cancel_unavailable' : 'cancel_refused',
+            requestId: auditOp.requestId,
+          });
         }
 
         const playerNewBalance = rpcResult.new_balance;
@@ -271,12 +464,11 @@ export default async function handler(req, res) {
 
         logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent', platformAdminOverride: viaPlatformOverride } });
 
-        // Admin console audit trail — returns held chips to the player.
-        await logAdminAction(supabaseAdmin, {
-          admin_user_id: user.id,
-          action: 'cashout.cancelled',
-          target_type: 'cashout_request',
-          target_id: cashoutId,
+        // Admin console audit trail. Returns held chips to the player.
+        await auditOperatorAction(auditOp, req, {
+          action: 'cashout.cancel',
+          targetType: 'cashout_request',
+          targetId: cashoutId,
           details: {
             amount: cashout.amount,
             club_id: cashout.club_id,
@@ -286,10 +478,10 @@ export default async function handler(req, res) {
             player_new_balance: playerNewBalance,
             agent_note: note || 'Cancelled by agent',
             platform_admin_override: viaPlatformOverride,
+            auth_path: authPath,
           },
           before: { status: cashout.status },
           after: { status: 'cancelled' },
-          req,
         });
 
         return res.status(200).json({
@@ -334,7 +526,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
       console.warn('[approve-cashout] fn_get_or_create_conversation error:', convErr);
       return;
     }
-    // RPC returns jsonb { success, conversation_id, created } — not a UUID.
+    // RPC returns jsonb { success, conversation_id, created } - not a UUID.
     // Treating the whole jsonb as a UUID (the previous bug) made the
     // fn_send_message call fail with type-coercion 500.
     const convId = convResult?.success ? convResult.conversation_id : null;
@@ -375,6 +567,9 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
           message: pushText,
           url: '/hub/club-arena/cashier',
         }),
+        // Five seconds, as admin-reviews does for the same call. A hung
+        // notifications endpoint must not hold a completed cashout open.
+        signal: AbortSignal.timeout(5000),
       });
       if (!resp.ok) {
         const detail = await resp.text().catch(() => '');

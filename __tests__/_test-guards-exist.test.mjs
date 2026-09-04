@@ -50,10 +50,100 @@ import '../tests/no-stray-club-arena-build.test.mjs';
 import '../tests/one-build-command.test.mjs';
 import '../tests/spin-reserve-fund-contract.test.mjs';
 
+// ─────────────────────────────────────────────────────────────────────────
+// The 48 guards CI had never run.
+//
+// Found 2026-09-04 (#1312): build-safety-gate CHECK 8 runs an explicit
+// allowlist, and 52 of 177 files in this directory were named by no workflow,
+// no npm script and no import. They passed by hand and were invisible to every
+// pull request - the same shape as the healthcheck that pinged an
+// unauthenticated endpoint and let 58 cron jobs 401 for a full day.
+//
+// FOUR WERE FAILING when finally run, and each was a real defect:
+//   api-routes-exist             the resolver could not read `${expr}` inside a
+//                                path segment, so two live handlers read as
+//                                missing handlers.
+//   training-surface-inventory   fed a .json file to @babel/parser and died.
+//                                Broken since #1125 on 2026-08-31.
+//   news-intelligence-phase-7    three assertions pinned pre-Title-Case copy.
+//   club-arena-generation-budget its script was correctly deleted with #1274
+//                                when Club Arena moved to its own origin. The
+//                                guard was left behind. Deleted.
+//
+// Imported here rather than added to CHECK 8 because that list needs a token
+// with the `workflow` permission, which the automation PAT does not have.
+// node:test registers every case declared during module evaluation.
+//
+// THREE ARE DELIBERATELY NOT IMPORTED, and the meta-guard below allowlists
+// them by name with the reason. Two run their own harness and call
+// process.exit() on import, which would truncate this whole run; one asserts
+// that no Phase 2 training item is deferred, which is a roadmap state.
+import './api-routes-exist.test.mjs';
+import './bankroll-mobile-upgrades.test.mjs';
+import './club-stats-maintenance-runtime-budget.test.mjs';
+import './deployment-version-stamp.test.mjs';
+import './events-calendar-ssr-fallback.test.mjs';
+import './fallback-menu-safety.test.mjs';
+import './global-header-approved.test.mjs';
+import './horse-hand-reviews-panel.test.mjs';
+import './horses-console-phase1.test.mjs';
+import './horses-libs-review.test.mjs';
+import './horses-operator-foundation.test.mjs';
+import './horses-phase2-client.test.mjs';
+import './horses-phase2-migration.test.mjs';
+import './horses-phase2-server.test.mjs';
+import './horses-phase3-client.test.mjs';
+import './horses-phase3-migration.test.mjs';
+import './horses-phase3-reverify.test.mjs';
+import './horses-reverify-client.test.mjs';
+import './horses-reverify-panels.test.mjs';
+import './horses-reverify-routes.test.mjs';
+import './horses-routes-group-a.test.mjs';
+import './horses-routes-group-b.test.mjs';
+import './horses-subpages-phase1.test.mjs';
+import './login-painted-auth-state.test.mjs';
+import './messenger-prefs-sync.test.mjs';
+import './mobile-foundation.test.mjs';
+import './news-intelligence-phase-7.test.mjs';
+import './no-slide-to-see.law.test.mjs';
+import './overlays-leave-room-to-close.law.test.mjs';
+import './pa-closeout-hardening.test.mjs';
+import './preflop-accessibility-phase7.test.mjs';
+import './poker-near-me-sitemap-parity.test.mjs';
+import './poker-tours-hydration.test.mjs';
+import './pre-push-typescript-baseline-safety.test.mjs';
+import './safe-profile-columns-are-granted.test.mjs';
+import './store-commerce-hardening.test.mjs';
+import './training-arena-phase-5.test.mjs';
+import './training-card-visual-contract.test.mjs';
+import './training-hub-media-audit.test.mjs';
+import './training-immersive-gameplay.test.mjs';
+import './training-phase-3-closeout.test.mjs';
+import './training-phase6-release-harness.test.mjs';
+import './training-production-smoke-auth.test.mjs';
+import './training-production-smoke-contract.test.mjs';
+import './training-route-runtime-inventory.test.mjs';
+import './world-command-destinations.test.mjs';
+import './world-command-menu-law.test.mjs';
+import './world-command-navigation-state.test.mjs';
+import './world-copy-policy.test.mjs';
+
+// Open Claw cron auth guards, executed HERE for the same reason as the block
+// above: CHECK 8's list in build-safety-gate.yml is workflow-permission
+// territory. This suite pins the fix for the 2026-08-31 outage in which 58
+// scheduled jobs answered 401 for a full day behind a green healthcheck. It
+// had been sitting on disk unrun by CI since it was written - a guard nobody
+// executes is the same kind of decoration as a healthcheck that pings an
+// unauthenticated endpoint, which is the very failure it exists to prevent.
+import './openclaw-workers-secret.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
     '__tests__/auth-routes-exist.test.mjs',
+    // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
+    // it would silently un-protect the 2026-08-31 workers outage fix.
+    '__tests__/openclaw-workers-secret.test.mjs',
     '__tests__/signup-hardening.test.mjs',
     '__tests__/build-2-deliverables.test.mjs',
     '__tests__/sentry-coverage.test.mjs',
@@ -134,4 +224,56 @@ test('every signup-related guard test file is non-trivial (>500 bytes)', () => {
             `${rel} is suspiciously small (${size} bytes). Was it stubbed out / truncated?`,
         );
     }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// META-GUARD: no guard file may be unreachable by CI.
+//
+// This is the actual fix for #1312. Everything above it is paying down the
+// backlog so this can go green. A test nobody runs is worse than no test: it
+// reads as coverage on the directory listing and asserts nothing on any pull
+// request. Four of the 52 orphans found on 2026-09-04 were failing, and had
+// been for days.
+//
+// A guard counts as reachable when it is named in a workflow, named in
+// package.json, or imported by this file. Anything else must be allowlisted
+// here WITH A REASON, so the exclusion is a decision somebody wrote down
+// rather than an oversight nobody can see.
+// ─────────────────────────────────────────────────────────────────────────
+const CI_UNREACHABLE_ON_PURPOSE = {
+    // Run their own harness and call process.exit() on import, which would
+    // truncate this entire run and silently hide every case declared after
+    // them. They pass standalone; they are simply not importable suites.
+    'messenger-utils.test.mjs': 'self-executing harness, process.exit() on import',
+    'server-auth-asymmetric.test.mjs': 'self-executing harness, process.exit() on import',
+    // Asserts counts.functionPhaseReview === 0, i.e. that no Phase 2 training
+    // item is deferred. Six are, each dispositioned with a followUpPhase. That
+    // is a roadmap state, not a defect, and wiring it in would block every pull
+    // request on unfinished product work. Its CRASH is fixed (it fed a .json
+    // file to @babel/parser); re-enable when Phase 2 closes.
+    'training-surface-inventory.test.mjs': 'asserts zero deferred Phase 2 items - roadmap state, see #1312',
+};
+
+test('every guard in __tests__ is reachable by CI', () => {
+    const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
+    const workflows = fs.readdirSync(path.join(REPO, '.github', 'workflows'))
+        .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
+        .map((f) => fs.readFileSync(path.join(REPO, '.github', 'workflows', f), 'utf8'))
+        .join('\n');
+    const pkg = fs.readFileSync(path.join(REPO, 'package.json'), 'utf8');
+
+    const orphans = fs.readdirSync(path.join(REPO, '__tests__'))
+        .filter((f) => f.endsWith('.test.mjs'))
+        .filter((f) => f !== '_test-guards-exist.test.mjs')
+        .filter((f) => !(f in CI_UNREACHABLE_ON_PURPOSE))
+        .filter((f) => !workflows.includes(f) && !pkg.includes(f) && !here.includes(`'./${f}'`));
+
+    assert.deepEqual(
+        orphans,
+        [],
+        `${orphans.length} guard file(s) are executed by NOTHING - no workflow, no npm script, ` +
+        `no import. A test CI never runs asserts nothing. Either import it above, add it to a ` +
+        `workflow, or record it in CI_UNREACHABLE_ON_PURPOSE with a reason:\n  ` +
+        orphans.join('\n  '),
+    );
 });

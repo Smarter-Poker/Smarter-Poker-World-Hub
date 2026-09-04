@@ -12,33 +12,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
+import { T, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
+import { operatorGate } from '../../src/components/horses/operatorAdmin';
+import styles from './horses.module.css';
 
-/* smarter.poker palette. Mirrors pages/horses/horses.module.css and the Club
-   Arena design tokens (~/Documents/club-arena/src/styles/design-tokens.css).
+/* COLOUR. Every value is a token from T, resolved by the custom properties
+   horses.module.css declares on `.tokenScope` - which is on every root this
+   file can return, so a new root needs the class or it renders uncoloured.
+
    Dan 2026-08-26: no purples, no greens - cyan is the accent AND the
-   positive/win colour. This page used the zinc scale plus #10b981 for wins,
-   which matched nothing else on the platform. POSITIVE is deliberately an
-   alias of ACCENT so a later edit cannot reintroduce green by reaching for a
-   plausible "success" name. */
-const BG = '#0a0e17';
-const PANEL = '#111827';
-const SURFACE = '#1a2234';
-const INSET = '#0d1520';
-const BORDER = 'rgba(255,255,255,0.08)';
-const TEXT = '#f3f4f6';
-// #6b7280 measured 3.67:1 on the #111827 panel and failed WCAG AA for body
-// text, which is what it is used for throughout this file. #8b93a1 is 5.15:1
-// and matches the shared token in horses.module.css.
-const MUTED = '#8b93a1';
-const ACCENT = '#00d4ff';
-const ACCENT_SOFT = 'rgba(0,212,255,0.12)';
-const ACCENT_LINE = 'rgba(0,212,255,0.30)';
-const POSITIVE = ACCENT;
-const RED = '#ef4444';
-const RED_SOFT = 'rgba(239,68,68,0.12)';
-const AMBER = '#ffd700';
+   positive/win colour. This page used the zinc scale plus a green for wins,
+   which matched nothing else on the platform. T.positive is deliberately an
+   alias of T.accent in the stylesheet so a later edit cannot reintroduce
+   green by reaching for a plausible "success" name. T.muted replaces the old
+   body-copy grey, which measured 3.67:1 on the panel and failed WCAG AA. */
 
 // Screen-reader-only, for table captions and any label that must exist in the
 // accessibility tree without occupying layout.
@@ -74,7 +63,7 @@ const PAGE_CSS = `
 .hr-root button:focus-visible,
 .hr-root select:focus-visible,
 .hr-root input:focus-visible {
-  outline: 2px solid #00d4ff;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
@@ -87,11 +76,126 @@ const VARIANTS = ['', 'nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'pine
 const FORMATS = ['', 'cash', 'hu_cash', 'tournament'];
 const PAGE_SIZE = 50;
 
+// ── CSV export ─────────────────────────────────────────────────────────────
+/**
+ * Every table on this page can be taken out to a spreadsheet.
+ *
+ * Columns are declared as explicit [key, header] pairs rather than "whatever
+ * the RPC returned", so a new column appearing upstream cannot silently
+ * change the shape of a file someone has built a sheet around. The export is
+ * always of the rows the caller passes, which is the set on screen: a button
+ * that quietly exported something other than what is rendered would be worse
+ * than no button.
+ */
+function ExportCsvButton({ rows, columns, filePrefix, label }) {
+  const count = Array.isArray(rows) ? rows.length : 0;
+  return (
+    <button
+      type="button"
+      disabled={count === 0}
+      onClick={() => downloadCsv(stampedName(filePrefix), toCsv(rows, columns))}
+      style={{
+        background: count === 0 ? 'transparent' : T.accentSoft,
+        color: count === 0 ? T.muted : T.accent,
+        border: `1px solid ${count === 0 ? T.line : T.accentLine}`,
+        borderRadius: 4,
+        padding: '0.35rem 0.75rem',
+        minHeight: 44,
+        fontSize: '0.78rem',
+        fontWeight: 700,
+        cursor: count === 0 ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {label || `Export CSV (${count})`}
+    </button>
+  );
+}
+
+/** Objects and arrays flatten to JSON inside a cell; toCsv quotes them. */
+const AUDIT_COLUMNS = [
+  ['day', 'Day'],
+  ['findings', 'Findings'],
+  ['stats', 'Stats'],
+  ['agent_analysis', 'Claude Analysis'],
+  ['agent_analyzed_at', 'Claude Analyzed At'],
+];
+const TELEMETRY_COLUMNS = [
+  ['day', 'Day'],
+  ['feature', 'Layer'],
+  ['fires', 'Fires'],
+];
+const LEAGUE_COLUMNS = [
+  ['run_date', 'Run'],
+  ['matchup', 'Matchup'],
+  ['bb100', 'BB Per 100'],
+  ['stderr', 'Stderr'],
+  ['verdict', 'Verdict'],
+  ['illegal_actions', 'Illegal Actions'],
+];
+const TREND_COLUMNS = [
+  ['day', 'Day'],
+  ['tag', 'Tag'],
+  ['n', 'Tagged Hands'],
+  ['hands', 'Captured Hands'],
+  ['rate_per_1000', 'Rate Per 1000 Hands'],
+];
+const FLEET_COLUMNS = [
+  ['alias', 'Horse'],
+  ['horse_user_id', 'Horse User Id'],
+  ['big_wins', 'Big Wins'],
+  ['big_losses', 'Big Losses'],
+  ['sum_net_bb', 'Net BB'],
+  ['leak_counts', 'Leak Tags'],
+];
+const HAND_COLUMNS = [
+  ['played_at', 'When'],
+  ['horse_user_id', 'Horse User Id'],
+  ['game_variant', 'Variant'],
+  ['format', 'Format'],
+  ['net_bb', 'Net BB'],
+  ['big_blind', 'Big Blind'],
+  ['pot_size', 'Pot Size'],
+  ['hole_cards', 'Hole Cards'],
+  ['board', 'Board'],
+  ['leak_tags', 'Leak Tags'],
+  ['hand_id', 'Hand Id'],
+];
+
+/**
+ * The league card's verdict, in one place so the table and the CSV can never
+ * disagree.
+ *
+ * An INERT matchup is not an unresolved one. bb/100 of exactly 0 with a
+ * stderr of exactly 0 over a full sample does not mean "too close to call" -
+ * it means the two arms played IDENTICALLY, so the flag under test never
+ * changed a decision. That is how v18_squeeze_response read for six days
+ * while the layer it measures had never once fired, and it rendered as an
+ * unremarkable "Not Resolved".
+ *
+ * A zero stderr with a non-zero edge is also not certainty, it is a
+ * degenerate sample. Requiring a positive stderr keeps "Significant" meaning
+ * what the house rule says it means: the edge beats twice its own noise.
+ */
+function leagueState(m) {
+  const bb = Number(m.bb100);
+  const se = Number(m.stderr);
+  const inert = bb === 0 && se === 0;
+  const sig = !inert && se > 0 && Math.abs(bb) > 2 * se;
+  return { bb, se, inert, sig, pos: bb > 0 };
+}
+
+function leagueVerdict(m) {
+  const { inert, sig, pos } = leagueState(m);
+  if (inert) return 'Inert - Both Arms Identical';
+  if (!sig) return 'Not Resolved';
+  return pos ? 'Significant Positive' : 'Significant Negative';
+}
+
 const SUIT_GLYPH = { hearts: 'h', diamonds: 'd', clubs: 'c', spades: 's' };
 // Club Arena's canonical deck is two-colour (src/styles/club-engine.css:52-55).
 // The suit letter renders beside the rank, so hearts and diamonds stay
 // distinguishable without a third and fourth hue.
-const SUIT_COLOR = { hearts: RED, diamonds: RED, clubs: TEXT, spades: TEXT };
+const SUIT_COLOR = { hearts: T.danger, diamonds: T.danger, clubs: T.text, spades: T.text };
 
 function CardChip({ card }) {
   if (!card) return null;
@@ -108,13 +212,13 @@ function CardChip({ card }) {
     <span
       style={{
         display: 'inline-block',
-        background: INSET,
-        border: `1px solid ${BORDER}`,
+        background: T.inset,
+        border: `1px solid ${T.line}`,
         borderRadius: 4,
         padding: '2px 6px',
         marginRight: 4,
         fontWeight: 700,
-        color: SUIT_COLOR[suit] || TEXT,
+        color: SUIT_COLOR[suit] || T.text,
         fontSize: '0.85rem',
       }}
     >
@@ -131,9 +235,9 @@ function TagChip({ tag }) {
     <span
       style={{
         display: 'inline-block',
-        background: RED_SOFT,
-        color: RED,
-        border: '1px solid rgba(239,68,68,0.3)',
+        background: T.dangerWash,
+        color: T.danger,
+        border: `1px solid ${T.dangerLine}`,
         borderRadius: 4,
         padding: '2px 8px',
         marginRight: 4,
@@ -150,13 +254,13 @@ function HandDetail({ row }) {
   const actions = Array.isArray(row.actions) ? row.actions : [];
   const stages = ['preflop', 'flop', 'turn', 'river'];
   return (
-    <div style={{ background: INSET, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '0.75rem 1rem', margin: '0.5rem 0' }}>
+    <div style={{ background: T.inset, border: `1px solid ${T.line}`, borderRadius: 6, padding: '0.75rem 1rem', margin: '0.5rem 0' }}>
       <div style={{ marginBottom: 8 }}>
-        <span style={{ color: MUTED, marginRight: 8 }}>Hole Cards:</span>
+        <span style={{ color: T.muted, marginRight: 8 }}>Hole Cards:</span>
         {(row.hole_cards || []).map((c, i) => (
           <CardChip key={i} card={c} />
         ))}
-        <span style={{ color: MUTED, margin: '0 8px 0 16px' }}>Board:</span>
+        <span style={{ color: T.muted, margin: '0 8px 0 16px' }}>Board:</span>
         {(row.board || []).map((c, i) => (
           <CardChip key={i} card={c} />
         ))}
@@ -165,8 +269,8 @@ function HandDetail({ row }) {
         const acts = actions.filter((a) => a.stage === st);
         if (acts.length === 0) return null;
         return (
-          <div key={st} style={{ fontSize: '0.8rem', color: MUTED, marginBottom: 2 }}>
-            <span style={{ color: TEXT, fontWeight: 600, textTransform: 'capitalize', marginRight: 6 }}>{st}:</span>
+          <div key={st} style={{ fontSize: '0.8rem', color: T.muted, marginBottom: 2 }}>
+            <span style={{ color: T.text, fontWeight: 600, textTransform: 'capitalize', marginRight: 6 }}>{st}:</span>
             {acts
               .map(
                 (a) =>
@@ -176,7 +280,7 @@ function HandDetail({ row }) {
           </div>
         );
       })}
-      <div style={{ fontSize: '0.75rem', color: MUTED, marginTop: 6 }}>
+      <div style={{ fontSize: '0.75rem', color: T.muted, marginTop: 6 }}>
         Hand {row.hand_id} - Pot {row.pot_size ?? '?'} - BB {row.big_blind}
       </div>
     </div>
@@ -211,6 +315,12 @@ export default function HorseHandReviews() {
   const [tagTrendsError, setTagTrendsError] = useState(null);
   const [trendsOpen, setTrendsOpen] = useState(false);
 
+  // The fleet table used to render horses.slice(0, 40) with nothing to say a
+  // cap existed, so a fleet of 300 looked like a fleet of 40. The whole list
+  // is already in memory - the cap is only there to keep the first paint
+  // short - so Show All is a toggle, not another read.
+  const [showAllHorses, setShowAllHorses] = useState(false);
+
   const [filters, setFilters] = useState({ horse: '', variant: '', format: '', tag: '', win: '' });
   const [rows, setRows] = useState([]);
   const [rowsError, setRowsError] = useState(null);
@@ -223,29 +333,34 @@ export default function HorseHandReviews() {
     // argument-less client session call is banned repo-wide by pre-commit
     // CHECK C. This check is UX only; the RPCs are SECURITY DEFINER and
     // verify the caller's role server-side via fn_is_horse_admin().
+    //
+    // THE ROUTE DECIDES WHO IS AN OPERATOR, NOT THIS FILE. This page used to
+    // read profiles.role and admit three legacy strings, which is exactly the
+    // list Phase 2 made incomplete: requireOperator admits an active
+    // ca_operator_grants row too, so a granted operator was a real operator
+    // this page sent home. operatorGate asks GET operator-admin?section=policy
+    // with the bearer: 200 is an operator, 401/403 is a refusal, and anything
+    // else is "could not verify" - neither, and it gets the retry screen.
     const verify = async () => {
       const user = getAuthUser();
       if (!user?.id) {
         router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
-      const { data: profile, error: roleErr } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-      // A FAILED QUERY IS NOT A DENIAL. `error` was discarded, so a transient
-      // RLS or network failure made profile null and silently redirected a
-      // real admin to the home page with no message.
-      if (roleErr) {
-        setRoleError(roleErr.message || 'Role lookup failed');
-        setLoading(false);
+      const token = await getFreshAccessToken();
+      if (!token) {
+        router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
-      if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
+      const gate = await operatorGate(token);
+      if (gate.ok) {
         setIsAdmin(true);
-      } else {
+      } else if (gate.denied) {
         router.push('/');
+        return;
+      } else {
+        setRoleError(gate.error || 'The Operator Check Failed.');
+        setLoading(false);
         return;
       }
       setLoading(false);
@@ -330,7 +445,7 @@ export default function HorseHandReviews() {
 
   if (loading) {
     return (
-      <div style={{ background: BG, minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: MUTED }}>
+      <div className={styles.tokenScope} style={{ background: T.page, minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: T.muted }}>
         Authenticating...
       </div>
     );
@@ -340,13 +455,13 @@ export default function HorseHandReviews() {
   // explanation and nothing to click.
   if (roleError) {
     return (
-      <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, textAlign: 'center', color: TEXT }}>
-        <div role="alert" style={{ color: RED, fontWeight: 700, fontSize: 18 }}>Could Not Verify Your Role</div>
-        <div style={{ color: MUTED, fontSize: 14, maxWidth: 480 }}>
-          {roleError}. This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
+      <div className={styles.tokenScope} style={{ background: T.page, minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, textAlign: 'center', color: T.text }}>
+        <div role="alert" style={{ color: T.danger, fontWeight: 700, fontSize: 18 }}>Could Not Verify Your Role</div>
+        <div style={{ color: T.muted, fontSize: 14, maxWidth: 480 }}>
+          {roleError} This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
         </div>
-        <button onClick={() => router.reload()} style={{ background: ACCENT, color: BG, border: 'none',
+        <button onClick={() => router.reload()} style={{ background: T.accent, color: T.page, border: 'none',
           padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
       </div>
     );
@@ -355,6 +470,9 @@ export default function HorseHandReviews() {
 
   const horses = summary?.horses || [];
   const fleetLeaks = summary?.fleet_leaks || {};
+  const FLEET_PREVIEW = 40;
+  const fleetTruncated = horses.length > FLEET_PREVIEW;
+  const visibleHorses = showAllHorses ? horses : horses.slice(0, FLEET_PREVIEW);
   const setFilter = (k, v) => {
     setPage(0);
     setFilters((f) => ({ ...f, [k]: v }));
@@ -364,9 +482,9 @@ export default function HorseHandReviews() {
   // target. It is applied to the four filter selects, the Clear Filter button
   // and the Newer/Older pagination buttons, all of which shared ~31px.
   const inputStyle = {
-    background: INSET,
-    color: TEXT,
-    border: `1px solid ${BORDER}`,
+    background: T.inset,
+    color: T.text,
+    border: `1px solid ${T.line}`,
     borderRadius: 4,
     padding: '0.4rem 0.6rem',
     fontSize: '0.85rem',
@@ -374,17 +492,17 @@ export default function HorseHandReviews() {
   };
 
   return (
-    <div className="hr-root" style={{ background: BG, minHeight: '100vh', color: TEXT, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div className={`hr-root ${styles.tokenScope}`} style={{ background: T.page, minHeight: '100vh', color: T.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <Head>
         <title>Horse Hand Reviews | Smarter.Poker</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <style>{PAGE_CSS}</style>
       <div className="hr-page">
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: `1px solid ${BORDER}`, paddingBottom: '1rem' }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: `1px solid ${T.line}`, paddingBottom: '1rem' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: TEXT }}>Horse Hand Reviews</h1>
-            <p style={{ margin: '0.5rem 0 0 0', color: MUTED, fontSize: '0.875rem' }}>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: T.text }}>Horse Hand Reviews</h1>
+            <p style={{ margin: '0.5rem 0 0 0', color: T.muted, fontSize: '0.875rem' }}>
               Every Hand Where A Horse Won Or Lost 20bb+, Flagged At Settlement With Leak Tags. Raw Hands Kept 30 Days; Rollups Permanent.
             </p>
           </div>
@@ -396,14 +514,14 @@ export default function HorseHandReviews() {
                 loadSummary();
                 loadRows();
               }}
-              style={{ background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, padding: '0.5rem 1rem', minHeight: 44, borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+              style={{ background: T.surface, color: T.text, border: `1px solid ${T.line}`, padding: '0.5rem 1rem', minHeight: 44, borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
             >
               Refresh
             </button>
             <button
               type="button"
               onClick={() => router.push('/horses')}
-              style={{ background: BORDER, color: TEXT, border: 'none', padding: '0.5rem 1rem', minHeight: 44, borderRadius: 4, cursor: 'pointer' }}
+              style={{ background: T.line, color: T.text, border: 'none', padding: '0.5rem 1rem', minHeight: 44, borderRadius: 4, cursor: 'pointer' }}
             >
               Back To Stable
             </button>
@@ -411,19 +529,20 @@ export default function HorseHandReviews() {
         </header>
 
         {/* ── Daily Audit ── */}
-        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Daily Audit</h2>
-            <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+            <span style={{ color: T.muted, fontSize: '0.8rem' }}>
               Machine Findings Nightly (06:00 UTC) Plus The Daily Claude Analysis
             </span>
+            <ExportCsvButton rows={audits} columns={AUDIT_COLUMNS} filePrefix="horse-daily-audit" />
           </div>
-          {auditsError && <div style={{ color: RED, fontSize: '0.85rem' }}>{auditsError}</div>}
+          {auditsError && <div style={{ color: T.danger, fontSize: '0.85rem' }}>{auditsError}</div>}
           {audits.length === 0 && !auditsError && (
-            <div style={{ color: MUTED, fontSize: '0.85rem' }}>No Audit Rows Yet. The First Row Appears After The Next 06:00 UTC Engine Run.</div>
+            <div style={{ color: T.muted, fontSize: '0.85rem' }}>No Audit Rows Yet. The First Row Appears After The Next 06:00 UTC Engine Run.</div>
           )}
           {/* ── Brain Layer Fires: proof the deployed logic executes ── */}
-          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
             {/* A real <button>, for the same reason the audit rows are one:
                 a div with onClick answers to neither Enter nor Space and
                 reports no state to a screen reader. Three of these were left
@@ -437,18 +556,23 @@ export default function HorseHandReviews() {
               style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
             >
               <span style={{ fontWeight: 700 }}>Brain Layer Fires</span>
-              <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
                 Live-Table Execution Counts Per Layer. A Deployed Layer At Zero Is A Wiring Regression.
               </span>
-              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
-                {telemetryError ? 'Read Failed' : telemetry.length > 0 ? `${telemetry.length} rows` : 'No Data Yet'}
+              <span style={{ marginLeft: 'auto', color: T.positive, fontSize: '0.8rem' }}>
+                {telemetryError ? 'Read Failed' : telemetry.length > 0 ? `${telemetry.length} Rows` : 'No Data Yet'}
               </span>
             </button>
+            {telemetryOpen && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <ExportCsvButton rows={telemetry} columns={TELEMETRY_COLUMNS} filePrefix="horse-brain-telemetry" />
+              </div>
+            )}
             {telemetryOpen && (
               <div id="telemetry-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
-                    <tr style={{ color: MUTED, textAlign: 'left' }}>
+                    <tr style={{ color: T.muted, textAlign: 'left' }}>
                       <th style={{ padding: '0.3rem' }}>Day</th>
                       <th style={{ padding: '0.3rem' }}>Layer</th>
                       <th style={{ padding: '0.3rem' }}>Fires</th>
@@ -456,20 +580,20 @@ export default function HorseHandReviews() {
                   </thead>
                   <tbody>
                     {telemetry.map((t) => (
-                      <tr key={`${t.day}-${t.feature}`} style={{ borderTop: `1px solid ${BORDER}` }}>
+                      <tr key={`${t.day}-${t.feature}`} style={{ borderTop: `1px solid ${T.line}` }}>
                         <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{t.day}</td>
                         <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{t.feature}</td>
-                        <td style={{ padding: '0.3rem', color: Number(t.fires) > 0 ? POSITIVE : RED, fontWeight: 600 }}>
+                        <td style={{ padding: '0.3rem', color: Number(t.fires) > 0 ? T.positive : T.danger, fontWeight: 600 }}>
                           {Number(t.fires).toLocaleString()}
                         </td>
                       </tr>
                     ))}
                     {telemetry.length === 0 && (
                       <tr>
-                        <td colSpan={3} style={{ padding: '0.4rem', color: MUTED }}>
+                        <td colSpan={3} style={{ padding: '0.4rem', color: T.muted }}>
                           {telemetryError
-                            ? `The telemetry read FAILED (${telemetryError}). This is not evidence the engine is dark -- the query did not run. Fix the read before drawing any conclusion from this panel.`
-                            : 'Counters appear after the telemetry engine deploy. A telemetry_dark finding above means this is expected.'}
+                            ? `The Telemetry Read FAILED (${telemetryError}). This Is Not Evidence The Engine Is Dark, The Query Did Not Run. Fix The Read Before Drawing Any Conclusion From This Panel.`
+                            : 'Counters Appear After The Telemetry Engine Deploy. A Telemetry Dark Finding Above Means This Is Expected.'}
                         </td>
                       </tr>
                     )}
@@ -481,7 +605,7 @@ export default function HorseHandReviews() {
 
           {/* 2026-08-28: League Card - the nightly A/B card, the referee for
               every strategy change. Significant = |bb100| > 2*stderr. */}
-          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
             {/* A real <button>, for the same reason the audit rows are one:
                 a div with onClick answers to neither Enter nor Space and
                 reports no state to a screen reader. Three of these were left
@@ -495,13 +619,25 @@ export default function HorseHandReviews() {
               style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
             >
               <span style={{ fontWeight: 700 }}>League Card</span>
-              <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
                 Nightly Duplicate-Deal A/B Per Strategy Layer. Significant Means The Edge Beats Twice Its Own Noise.
               </span>
-              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
-                {leagueError ? 'Read Failed' : league.length > 0 ? `${league.length} rows` : 'No Data Yet'}
+              <span style={{ marginLeft: 'auto', color: T.positive, fontSize: '0.8rem' }}>
+                {leagueError ? 'Read Failed' : league.length > 0 ? `${league.length} Rows` : 'No Data Yet'}
               </span>
             </button>
+            {leagueOpen && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                {/* `verdict` is derived at render time, so the export builds
+                    it once here rather than shipping a file whose Verdict
+                    column is blank in every row. */}
+                <ExportCsvButton
+                  rows={league.map((m) => ({ ...m, verdict: leagueVerdict(m) }))}
+                  columns={LEAGUE_COLUMNS}
+                  filePrefix="horse-league-card"
+                />
+              </div>
+            )}
             {leagueOpen && (
               <div id="league-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
                 {/* HOW OLD IS THIS CARD (2026-09-01). The league lost three
@@ -525,17 +661,17 @@ export default function HorseHandReviews() {
                     <div
                       role="alert"
                       style={{
-                        background: INSET,
-                        border: `1px solid ${days >= 2 ? RED : AMBER}`,
+                        background: T.inset,
+                        border: `1px solid ${days >= 2 ? T.danger : T.warn}`,
                         borderRadius: 6,
                         padding: '0.5rem 0.75rem',
                         marginBottom: 8,
                         fontSize: '0.8rem',
-                        color: days >= 2 ? RED : AMBER,
+                        color: days >= 2 ? T.danger : T.warn,
                       }}
                     >
                       {`Stale Card: The Newest Run Is ${newest}, ${days} Day${days === 1 ? '' : 's'} Old. `}
-                      <span style={{ color: MUTED }}>
+                      <span style={{ color: T.muted }}>
                         These Verdicts Are Not Current. A Three Run Gate Cannot Be Satisfied By One
                         Surviving Run, So Do Not Ship A Default Flip On This Card Until The Runner
                         Is Healthy.
@@ -545,7 +681,7 @@ export default function HorseHandReviews() {
                 })()}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
-                    <tr style={{ color: MUTED, textAlign: 'left' }}>
+                    <tr style={{ color: T.muted, textAlign: 'left' }}>
                       <th style={{ padding: '0.3rem' }}>Run</th>
                       <th style={{ padding: '0.3rem' }}>Matchup</th>
                       <th style={{ padding: '0.3rem' }}>BB/100</th>
@@ -556,42 +692,22 @@ export default function HorseHandReviews() {
                   </thead>
                   <tbody>
                     {league.map((m) => {
-                      const bb = Number(m.bb100);
-                      const se = Number(m.stderr);
-                      /* An INERT matchup is not an unresolved one. bb/100 of
-                         exactly 0 with a stderr of exactly 0 over a full
-                         sample does not mean "too close to call" - it means
-                         the two arms played IDENTICALLY, so the flag under
-                         test never changed a decision. That is how
-                         v18_squeeze_response read for six days while the
-                         layer it measures had never once fired, and it
-                         rendered here as an unremarkable "Not Resolved".
-                         Reading it as inert is what makes it visible. */
-                      const inert = bb === 0 && se === 0;
-                      /* A zero stderr with a non-zero edge is also not
-                         certainty - it is a degenerate sample. Requiring a
-                         positive stderr keeps "Significant" meaning what the
-                         house rule says it means. */
-                      const sig = !inert && se > 0 && Math.abs(bb) > 2 * se;
-                      const pos = bb > 0;
+                      // leagueState / leagueVerdict live at module scope so
+                      // the CSV export renders the same verdict this table
+                      // does. See the comment on leagueState.
+                      const { inert, sig, pos } = leagueState(m);
                       return (
-                        <tr key={`${m.run_date}-${m.matchup}`} style={{ borderTop: `1px solid ${BORDER}` }}>
+                        <tr key={`${m.run_date}-${m.matchup}`} style={{ borderTop: `1px solid ${T.line}` }}>
                           <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{m.run_date}</td>
                           <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{m.matchup}</td>
-                          <td style={{ padding: '0.3rem', fontWeight: 600, color: inert ? AMBER : sig ? (pos ? POSITIVE : RED) : TEXT }}>
+                          <td style={{ padding: '0.3rem', fontWeight: 600, color: inert ? T.warn : sig ? (pos ? T.positive : T.danger) : T.text }}>
                             {m.bb100}
                           </td>
-                          <td style={{ padding: '0.3rem', color: MUTED }}>{m.stderr}</td>
-                          <td style={{ padding: '0.3rem', color: inert ? AMBER : sig ? (pos ? POSITIVE : RED) : MUTED }}>
-                            {inert
-                              ? 'Inert - Both Arms Identical'
-                              : sig
-                                ? pos
-                                  ? 'Significant Positive'
-                                  : 'Significant Negative'
-                                : 'Not Resolved'}
+                          <td style={{ padding: '0.3rem', color: T.muted }}>{m.stderr}</td>
+                          <td style={{ padding: '0.3rem', color: inert ? T.warn : sig ? (pos ? T.positive : T.danger) : T.muted }}>
+                            {leagueVerdict(m)}
                           </td>
-                          <td style={{ padding: '0.3rem', color: Number(m.illegal_actions) > 0 ? RED : MUTED }}>
+                          <td style={{ padding: '0.3rem', color: Number(m.illegal_actions) > 0 ? T.danger : T.muted }}>
                             {m.illegal_actions}
                           </td>
                         </tr>
@@ -599,10 +715,10 @@ export default function HorseHandReviews() {
                     })}
                     {league.length === 0 && (
                       <tr>
-                        <td colSpan={6} style={{ padding: '0.4rem', color: MUTED }}>
+                        <td colSpan={6} style={{ padding: '0.4rem', color: T.muted }}>
                           {leagueError
-                            ? `The league read FAILED (${leagueError}). Fix the read before drawing conclusions.`
-                            : 'No league runs recorded yet.'}
+                            ? `The League Read FAILED (${leagueError}). Fix The Read Before Drawing Conclusions.`
+                            : 'No League Runs Recorded Yet.'}
                         </td>
                       </tr>
                     )}
@@ -614,7 +730,7 @@ export default function HorseHandReviews() {
 
           {/* 2026-08-28: Leak-Tag Rates - per 1,000 captured hands, so fleet
               growth cannot masquerade as a regression. */}
-          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
             {/* A real <button>, for the same reason the audit rows are one:
                 a div with onClick answers to neither Enter nor Space and
                 reports no state to a screen reader. Three of these were left
@@ -628,10 +744,10 @@ export default function HorseHandReviews() {
               style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
             >
               <span style={{ fontWeight: 700 }}>Leak-Tag Rates</span>
-              <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
                 Tags Per 1,000 Captured Hands, Last 7 Days. Rates, Not Raw Counts.
               </span>
-              <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
+              <span style={{ marginLeft: 'auto', color: T.positive, fontSize: '0.8rem' }}>
                 {tagTrendsError ? 'Read Failed' : tagTrends.length > 0 ? 'Loaded' : 'No Data Yet'}
               </span>
             </button>
@@ -646,38 +762,54 @@ export default function HorseHandReviews() {
                 .map(([tag, byDay]) => ({ tag, byDay, latest: byDay[daysList[daysList.length - 1]] || 0 }))
                 .sort((a, b) => b.latest - a.latest);
               return (
-                <div id="trends-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                    <thead>
-                      <tr style={{ color: MUTED, textAlign: 'left' }}>
-                        <th style={{ padding: '0.3rem' }}>Tag</th>
-                        {daysList.map((d) => (
-                          <th key={d} style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{String(d).slice(5)}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.tag} style={{ borderTop: `1px solid ${BORDER}` }}>
-                          <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{r.tag}</td>
+                <div id="trends-panel" style={{ marginTop: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+                    {/* The table is a pivot (tag x day); the CSV stays long,
+                        one row per tag per day, which is what a spreadsheet
+                        can actually pivot for itself. The rate is computed
+                        here exactly as the cell computes it. */}
+                    <ExportCsvButton
+                      rows={tagTrends.map((t) => ({
+                        ...t,
+                        rate_per_1000: Number(t.hands) > 0 ? (Number(t.n) * 1000) / Number(t.hands) : 0,
+                      }))}
+                      columns={TREND_COLUMNS}
+                      filePrefix="horse-leak-tag-rates"
+                    />
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                      <thead>
+                        <tr style={{ color: T.muted, textAlign: 'left' }}>
+                          <th style={{ padding: '0.3rem' }}>Tag</th>
                           {daysList.map((d) => (
-                            <td key={d} style={{ padding: '0.3rem', fontFamily: 'monospace', color: r.byDay[d] == null ? MUTED : TEXT }}>
-                              {r.byDay[d] == null ? '-' : r.byDay[d].toFixed(1)}
-                            </td>
+                            <th key={d} style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{String(d).slice(5)}</th>
                           ))}
                         </tr>
-                      ))}
-                      {rows.length === 0 && (
-                        <tr>
-                          <td colSpan={1 + daysList.length} style={{ padding: '0.4rem', color: MUTED }}>
-                            {tagTrendsError
-                              ? `The trends read FAILED (${tagTrendsError}). Fix the read before drawing conclusions.`
-                              : 'No tagged hands in the window.'}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {rows.map((r) => (
+                          <tr key={r.tag} style={{ borderTop: `1px solid ${T.line}` }}>
+                            <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{r.tag}</td>
+                            {daysList.map((d) => (
+                              <td key={d} style={{ padding: '0.3rem', fontFamily: 'monospace', color: r.byDay[d] == null ? T.muted : T.text }}>
+                                {r.byDay[d] == null ? '-' : r.byDay[d].toFixed(1)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                        {rows.length === 0 && (
+                          <tr>
+                            <td colSpan={1 + daysList.length} style={{ padding: '0.4rem', color: T.muted }}>
+                              {tagTrendsError
+                                ? `The Trends Read FAILED (${tagTrendsError}). Fix The Read Before Drawing Conclusions.`
+                                : 'No Tagged Hands In The Window.'}
+                            </td>
+                          </tr>
+                        )}
+                        </tbody>
+                      </table>
+                  </div>
                 </div>
               );
             })()}
@@ -716,7 +848,7 @@ export default function HorseHandReviews() {
             );
             const open = auditOpen === a.day;
             return (
-              <div key={a.day} style={{ borderTop: `1px solid ${BORDER}` }}>
+              <div key={a.day} style={{ borderTop: `1px solid ${T.line}` }}>
                 {/* A real <button> so the expander answers to Enter AND Space,
                     and reports its state. A div with onClick answered to
                     neither. */}
@@ -728,52 +860,52 @@ export default function HorseHandReviews() {
                   onClick={() => setAuditOpen(open ? null : a.day)}
                   style={{ display: 'flex', gap: '0.5rem 1rem', alignItems: 'center', flexWrap: 'wrap', padding: '0.5rem 0.25rem', width: '100%', minHeight: 44 }}
                 >
-                  <span aria-hidden="true" style={{ color: MUTED, width: '0.8rem' }}>{open ? '-' : '+'}</span>
+                  <span aria-hidden="true" style={{ color: T.muted, width: '0.8rem' }}>{open ? '-' : '+'}</span>
                   <span style={{ fontWeight: 700, minWidth: 100 }}>{a.day}</span>
-                  <span style={{ color: crit > 0 ? RED : POSITIVE, fontWeight: 600 }}>{crit} Critical</span>
-                  <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
-                  <span style={{ color: MUTED }}>{info} Info</span>
-                  <span style={{ color: MUTED, fontSize: '0.8rem' }}>
+                  <span style={{ color: crit > 0 ? T.danger : T.positive, fontWeight: 600 }}>{crit} Critical</span>
+                  <span style={{ color: warn > 0 ? T.warn : T.muted }}>{warn} Warn</span>
+                  <span style={{ color: T.muted }}>{info} Info</span>
+                  <span style={{ color: T.muted, fontSize: '0.8rem' }}>
                     {a.stats?.flagged_hands ?? 0} Flagged Hands / Net {a.stats?.net_bb_sum ?? 0} BB
                   </span>
-                  <span className="hr-push" style={{ color: a.agent_analysis ? POSITIVE : MUTED, fontSize: '0.8rem' }}>
+                  <span className="hr-push" style={{ color: a.agent_analysis ? T.positive : T.muted, fontSize: '0.8rem' }}>
                     {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
                   </span>
                 </button>
                 {open && (
                   <div id={`audit-panel-${a.day}`} style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
-                    {groups.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No Findings. A Clean Day.</div>}
+                    {groups.length === 0 && <div style={{ color: T.muted, fontSize: '0.85rem' }}>No Findings. A Clean Day.</div>}
                     {groups.map((g, i) => {
                       const head = g.items[0];
                       const many = g.items.length > 1;
                       return (
-                        <div key={`${g.severity}-${g.code}-${i}`} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${g.severity === 'critical' ? RED : g.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
+                        <div key={`${g.severity}-${g.code}-${i}`} style={{ background: T.inset, border: `1px solid ${T.line}`, borderLeft: `3px solid ${g.severity === 'critical' ? T.danger : g.severity === 'warn' ? T.warn : T.line}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
                           <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 700 }}>{head.title}</span>
                             {many && (
-                              <span style={{ color: g.severity === 'critical' ? RED : AMBER, fontSize: '0.75rem', fontWeight: 700 }}>
+                              <span style={{ color: g.severity === 'critical' ? T.danger : T.warn, fontSize: '0.75rem', fontWeight: 700 }}>
                                 {`x${g.items.length}`}
                               </span>
                             )}
-                            <span style={{ color: MUTED, fontSize: '0.75rem', textTransform: 'uppercase' }}>{g.category} / {g.code}</span>
+                            <span style={{ color: T.muted, fontSize: '0.75rem', textTransform: 'uppercase' }}>{g.category} / {g.code}</span>
                           </div>
-                          <div style={{ color: MUTED, fontSize: '0.8rem', marginTop: 4 }}>{head.recommendation}</div>
+                          <div style={{ color: T.muted, fontSize: '0.8rem', marginTop: 4 }}>{head.recommendation}</div>
                           {/* The repeats keep their own titles. Folding them
                               must never hide which events were affected. */}
                           {many && (
-                            <ul style={{ margin: '6px 0 0', paddingLeft: '1.1rem', fontSize: '0.78rem', color: TEXT }}>
+                            <ul style={{ margin: '6px 0 0', paddingLeft: '1.1rem', fontSize: '0.78rem', color: T.text }}>
                               {g.items.map((f, j) => (
                                 <li key={j} style={{ marginBottom: 2 }}>
                                   {f.title}
                                   {f.evidence && (
-                                    <span style={{ color: MUTED }}> {JSON.stringify(f.evidence)}</span>
+                                    <span style={{ color: T.muted }}> {JSON.stringify(f.evidence)}</span>
                                   )}
                                 </li>
                               ))}
                             </ul>
                           )}
                           {!many && head.evidence && (
-                            <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: MUTED, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                            <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: T.muted, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                               {JSON.stringify(head.evidence)}
                             </pre>
                           )}
@@ -781,8 +913,8 @@ export default function HorseHandReviews() {
                       );
                     })}
                     {a.agent_analysis && (
-                      <div style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_LINE}`, borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 6, color: POSITIVE }}>
+                      <div style={{ background: T.accentSoft, border: `1px solid ${T.accentLine}`, borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 6, color: T.positive }}>
                           Claude Daily Analysis
                           {a.agent_analyzed_at ? ` (${new Date(a.agent_analyzed_at).toLocaleString()})` : ''}
                         </div>
@@ -792,18 +924,18 @@ export default function HorseHandReviews() {
                         {Array.isArray(a.agent_analysis?.flaws) &&
                           a.agent_analysis.flaws.map((fl, i) => (
                             <div key={i} style={{ fontSize: '0.8rem', marginBottom: 4 }}>
-                              <span style={{ color: fl.severity === 'critical' ? RED : AMBER, fontWeight: 600, marginRight: 6 }}>[{fl.severity || 'note'}]</span>
+                              <span style={{ color: fl.severity === 'critical' ? T.danger : T.warn, fontWeight: 600, marginRight: 6 }}>[{fl.severity || 'note'}]</span>
                               <span style={{ fontWeight: 600 }}>{fl.title}: </span>
-                              <span style={{ color: TEXT }}>{fl.detail}</span>
-                              {fl.action && <span style={{ color: POSITIVE }}> Action: {fl.action}</span>}
+                              <span style={{ color: T.text }}>{fl.detail}</span>
+                              {fl.action && <span style={{ color: T.positive }}> Action: {fl.action}</span>}
                             </div>
                           ))}
                         {Array.isArray(a.agent_analysis?.shipped) && a.agent_analysis.shipped.length > 0 && (
-                          <div style={{ fontSize: '0.8rem', color: MUTED, marginTop: 8 }}>
+                          <div style={{ fontSize: '0.8rem', color: T.muted, marginTop: 8 }}>
                             {/* join(', ') ran seven pull-request entries into
                                 one unreadable paragraph the first day this
                                 panel had more than one thing to report. */}
-                            <div style={{ fontWeight: 700, color: TEXT, marginBottom: 4 }}>
+                            <div style={{ fontWeight: 700, color: T.text, marginBottom: 4 }}>
                               {`Shipped (${a.agent_analysis.shipped.length})`}
                             </div>
                             <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
@@ -823,19 +955,30 @@ export default function HorseHandReviews() {
         </div>
 
         {/* ── Fleet summary ── */}
-        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Fleet Summary</h2>
-            <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={inputStyle} aria-label="Fleet summary time window">
-              <option value={1}>Last 24h</option>
-              <option value={7}>Last 7 Days</option>
-              <option value={30}>Last 30 Days</option>
-            </select>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={inputStyle} aria-label="Fleet Summary Time Window">
+                <option value={1}>Last 24h</option>
+                <option value={7}>Last 7 Days</option>
+                <option value={30}>Last 30 Days</option>
+              </select>
+              {/* Always the WHOLE fleet, never the 40 on screen: an export
+                  that silently matched the preview would be a quieter version
+                  of the bug this toggle exists to fix. */}
+              <ExportCsvButton
+                rows={horses}
+                columns={FLEET_COLUMNS}
+                filePrefix="horse-fleet-summary"
+                label={`Export CSV (All ${horses.length})`}
+              />
+            </div>
           </div>
-          {summaryError && <div style={{ color: RED, fontSize: '0.85rem' }}>{summaryError}</div>}
+          {summaryError && <div style={{ color: T.danger, fontSize: '0.85rem' }}>{summaryError}</div>}
           <div style={{ marginBottom: '0.75rem' }}>
-            <span style={{ color: MUTED, fontSize: '0.85rem', marginRight: 8 }}>Fleet Leak Tags:</span>
-            {Object.keys(fleetLeaks).length === 0 && <span style={{ color: MUTED, fontSize: '0.85rem' }}>None Recorded Yet</span>}
+            <span style={{ color: T.muted, fontSize: '0.85rem', marginRight: 8 }}>Fleet Leak Tags:</span>
+            {Object.keys(fleetLeaks).length === 0 && <span style={{ color: T.muted, fontSize: '0.85rem' }}>None Recorded Yet</span>}
             {Object.entries(fleetLeaks)
               .sort((a, b) => b[1] - a[1])
               .map(([k, v]) => (
@@ -844,7 +987,7 @@ export default function HorseHandReviews() {
                   type="button"
                   aria-pressed={filters.tag === k}
                   onClick={() => setFilter('tag', filters.tag === k ? '' : k)}
-                  style={{ background: filters.tag === k ? RED_SOFT : INSET, color: TEXT, border: `1px solid ${filters.tag === k ? RED : BORDER}`, borderRadius: 4, padding: '2px 10px', minHeight: 44, marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}
+                  style={{ background: filters.tag === k ? T.dangerWash : T.inset, color: T.text, border: `1px solid ${filters.tag === k ? T.danger : T.line}`, borderRadius: 4, padding: '2px 10px', minHeight: 44, marginRight: 6, marginBottom: 4, cursor: 'pointer', fontSize: '0.78rem' }}
                 >
                   {k}: {v}
                 </button>
@@ -856,7 +999,7 @@ export default function HorseHandReviews() {
                 Per-Horse Totals For The Selected Window. The Horse Name In Each Row Is A Button That Filters The Flagged Hands Table Below.
               </caption>
               <thead>
-                <tr style={{ color: MUTED, textAlign: 'left' }}>
+                <tr style={{ color: T.muted, textAlign: 'left' }}>
                   <th scope="col" style={{ padding: '0.4rem' }}>Horse</th>
                   <th scope="col" style={{ padding: '0.4rem' }}>Big Wins</th>
                   <th scope="col" style={{ padding: '0.4rem' }}>Big Losses</th>
@@ -865,12 +1008,12 @@ export default function HorseHandReviews() {
                 </tr>
               </thead>
               <tbody>
-                {horses.slice(0, 40).map((hRow) => (
+                {visibleHorses.map((hRow) => (
                   // The <tr> is inert: the activation lives on a real button in
                   // the first cell so it is reachable by keyboard.
                   <tr
                     key={hRow.horse_user_id}
-                    style={{ borderTop: `1px solid ${BORDER}`, background: filters.horse === hRow.horse_user_id ? ACCENT_SOFT : 'transparent' }}
+                    style={{ borderTop: `1px solid ${T.line}`, background: filters.horse === hRow.horse_user_id ? T.accentSoft : 'transparent' }}
                   >
                     <td style={{ padding: '0.4rem', fontWeight: 600 }}>
                       <button
@@ -883,9 +1026,9 @@ export default function HorseHandReviews() {
                         {hRow.alias || (hRow.horse_user_id ? String(hRow.horse_user_id).slice(0, 8) : 'unknown')}
                       </button>
                     </td>
-                    <td style={{ padding: '0.4rem', color: POSITIVE }}>{hRow.big_wins}</td>
-                    <td style={{ padding: '0.4rem', color: RED }}>{hRow.big_losses}</td>
-                    <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? POSITIVE : RED }}>{hRow.sum_net_bb}</td>
+                    <td style={{ padding: '0.4rem', color: T.positive }}>{hRow.big_wins}</td>
+                    <td style={{ padding: '0.4rem', color: T.danger }}>{hRow.big_losses}</td>
+                    <td style={{ padding: '0.4rem', color: Number(hRow.sum_net_bb) >= 0 ? T.positive : T.danger }}>{hRow.sum_net_bb}</td>
                     <td style={{ padding: '0.4rem' }}>
                       {Object.entries(hRow.leak_counts || {})
                         .sort((a, b) => b[1] - a[1])
@@ -897,7 +1040,7 @@ export default function HorseHandReviews() {
                 ))}
                 {horses.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '0.6rem', color: MUTED }}>
+                    <td colSpan={5} style={{ padding: '0.6rem', color: T.muted }}>
                       No Flagged Hands In This Window Yet. Rows Appear As Horses Win Or Lose 20bb+ Pots.
                     </td>
                   </tr>
@@ -905,46 +1048,66 @@ export default function HorseHandReviews() {
               </tbody>
             </table>
           </div>
+          {fleetTruncated && (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+              <span aria-live="polite" style={{ color: T.muted, fontSize: '0.8rem' }}>
+                {showAllHorses
+                  ? `Showing All ${horses.length} Horses`
+                  : `Showing Top ${FLEET_PREVIEW} Of ${horses.length} Horses`}
+              </span>
+              <button
+                type="button"
+                aria-expanded={showAllHorses}
+                onClick={() => setShowAllHorses(!showAllHorses)}
+                style={{ ...inputStyle, cursor: 'pointer', color: T.accent }}
+              >
+                {showAllHorses ? `Show Top ${FLEET_PREVIEW}` : `Show All ${horses.length}`}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Flagged hands ── */}
-        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '1rem' }}>
+        <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem', marginRight: 8 }}>Flagged Hands</h2>
-            <select value={filters.variant} onChange={(e) => setFilter('variant', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by game variant">
+            <select value={filters.variant} onChange={(e) => setFilter('variant', e.target.value)} style={inputStyle} aria-label="Filter Flagged Hands By Game Variant">
               {VARIANTS.map((v) => (
                 <option key={v} value={v}>
                   {v || 'All Variants'}
                 </option>
               ))}
             </select>
-            <select value={filters.format} onChange={(e) => setFilter('format', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by table format">
+            <select value={filters.format} onChange={(e) => setFilter('format', e.target.value)} style={inputStyle} aria-label="Filter Flagged Hands By Table Format">
               {FORMATS.map((v) => (
                 <option key={v} value={v}>
                   {v || 'All Formats'}
                 </option>
               ))}
             </select>
-            <select value={filters.win} onChange={(e) => setFilter('win', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by result">
+            <select value={filters.win} onChange={(e) => setFilter('win', e.target.value)} style={inputStyle} aria-label="Filter Flagged Hands By Result">
               <option value="">Wins And Losses</option>
               <option value="win">Wins Only</option>
               <option value="loss">Losses Only</option>
             </select>
             {(filters.horse || filters.tag) && (
-              <button type="button" onClick={() => setFilters({ horse: '', variant: filters.variant, format: filters.format, tag: '', win: filters.win })} style={{ ...inputStyle, cursor: 'pointer', color: AMBER }}>
+              <button type="button" onClick={() => setFilters({ horse: '', variant: filters.variant, format: filters.format, tag: '', win: filters.win })} style={{ ...inputStyle, cursor: 'pointer', color: T.warn }}>
                 Clear Horse/Tag Filter
               </button>
             )}
-            <span className="hr-push" aria-live="polite" style={{ color: MUTED, fontSize: '0.8rem' }}>{busy ? 'Loading...' : `${rows.length} rows`}</span>
+            <ExportCsvButton rows={rows} columns={HAND_COLUMNS} filePrefix="horse-flagged-hands" />
+            <span className="hr-push" aria-live="polite" style={{ color: T.muted, fontSize: '0.8rem' }}>
+              {busy ? 'Loading...' : `${rows.length} ${rows.length === 1 ? 'Row' : 'Rows'} On This Page`}
+            </span>
           </div>
-          {rowsError && <div style={{ color: RED, fontSize: '0.85rem', marginBottom: 8 }}>{rowsError}</div>}
+          {rowsError && <div style={{ color: T.danger, fontSize: '0.85rem', marginBottom: 8 }}>{rowsError}</div>}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <caption style={SR_ONLY}>
                 Hands Where A Horse Won Or Lost Twenty Big Blinds Or More. The Timestamp In Each Row Is A Button That Expands The Full Hand Detail.
               </caption>
               <thead>
-                <tr style={{ color: MUTED, textAlign: 'left' }}>
+                <tr style={{ color: T.muted, textAlign: 'left' }}>
                   <th scope="col" style={{ padding: '0.4rem' }}>When</th>
                   <th scope="col" style={{ padding: '0.4rem' }}>Variant</th>
                   <th scope="col" style={{ padding: '0.4rem' }}>Format</th>
@@ -959,7 +1122,7 @@ export default function HorseHandReviews() {
                   <React.Fragment key={r.id}>
                     {/* The <tr> is inert: the disclosure lives on a real button
                         in the first cell, so Enter and Space both work. */}
-                    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
+                    <tr style={{ borderTop: `1px solid ${T.line}` }}>
                       <td style={{ padding: '0.4rem', whiteSpace: 'nowrap' }}>
                         <button
                           type="button"
@@ -969,13 +1132,13 @@ export default function HorseHandReviews() {
                           onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                           style={{ minHeight: 44, whiteSpace: 'nowrap' }}
                         >
-                          <span aria-hidden="true" style={{ color: MUTED, marginRight: 6 }}>{expanded === r.id ? '-' : '+'}</span>
+                          <span aria-hidden="true" style={{ color: T.muted, marginRight: 6 }}>{expanded === r.id ? '-' : '+'}</span>
                           {new Date(r.played_at).toLocaleString()}
                         </button>
                       </td>
                       <td style={{ padding: '0.4rem' }}>{r.game_variant}</td>
                       <td style={{ padding: '0.4rem' }}>{r.format}</td>
-                      <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? POSITIVE : RED }}>
+                      <td style={{ padding: '0.4rem', fontWeight: 700, color: r.net_bb >= 0 ? T.positive : T.danger }}>
                         {r.net_bb >= 0 ? '+' : ''}
                         {r.net_bb}
                       </td>
@@ -1006,7 +1169,7 @@ export default function HorseHandReviews() {
                 ))}
                 {rows.length === 0 && !busy && (
                   <tr>
-                    <td colSpan={7} style={{ padding: '0.6rem', color: MUTED }}>
+                    <td colSpan={7} style={{ padding: '0.6rem', color: T.muted }}>
                       No Hands Match These Filters.
                     </td>
                   </tr>
@@ -1014,14 +1177,26 @@ export default function HorseHandReviews() {
               </tbody>
             </table>
           </div>
+          {/* HONEST PAGING. ca_horse_hand_reviews returns no total, so there
+              is no "Showing X Of Y" to be had and inventing one would be a
+              lie. A FULL page is the only evidence another page might exist,
+              so More is offered on exactly that condition and labelled More
+              rather than Older - it is a possibility, not a promise. The
+              position reads "Page N", which is all this page actually knows. */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
             <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} style={{ ...inputStyle, cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.5 : 1 }}>
-              Newer
+              Previous
             </button>
-            <button type="button" disabled={rows.length < PAGE_SIZE} onClick={() => setPage(page + 1)} style={{ ...inputStyle, cursor: rows.length < PAGE_SIZE ? 'default' : 'pointer', opacity: rows.length < PAGE_SIZE ? 0.5 : 1 }}>
-              Older
-            </button>
-            <span style={{ color: MUTED, fontSize: '0.8rem', alignSelf: 'center' }}>Page {page + 1}</span>
+            {rows.length === PAGE_SIZE && (
+              <button type="button" onClick={() => setPage(page + 1)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                More
+              </button>
+            )}
+            <span aria-live="polite" style={{ color: T.muted, fontSize: '0.8rem', alignSelf: 'center' }}>
+              {rows.length === PAGE_SIZE
+                ? `Page ${page + 1} (Full Page, There May Be More)`
+                : `Page ${page + 1} (Last Page)`}
+            </span>
           </div>
         </div>
       </div>

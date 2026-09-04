@@ -23,6 +23,7 @@
  */
 
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -85,6 +86,11 @@ export default async function handler(req, res) {
         if (!member || !['owner', 'admin'].includes(member.role)) {
             return res.status(403).json({ success: false, error: 'Admin access required' });
         }
+
+        // The service key is EXEMPT from zz_freeze_guard, so this route is the only
+        // thing standing between an owner-initiated chip movement and a platform
+        // that everyone has been told is frozen (CLAUDE.md 13). Fails closed.
+        if (await refuseWhileFrozen(getSupabase(), res, { route: 'refund-purchase' })) return;
 
         const { data: result, error: rpcErr } = await getSupabase().rpc('fn_refund_shop_purchase', {
             p_club_id: clubId,
