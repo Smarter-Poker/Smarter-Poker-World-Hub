@@ -842,6 +842,7 @@ jobs:
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
             __tests__/login-bridge-probe-relay.test.mjs \
+            __tests__/pull-to-refresh-no-transform-at-rest.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs \
             tests/the-from-scanner-is-fast-and-faithful.test.mjs \
