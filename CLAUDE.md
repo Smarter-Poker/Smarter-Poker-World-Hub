@@ -783,6 +783,14 @@ but NO new entries are permitted. The 16 overflow jobs are already on Hetzner.
    (script scp's the updated Python file, restarts systemd, and tails
    `journalctl -u openclaw` to verify the new job registered).
 4. Watch one fire-cycle in production before considering the job shipped.
+5. If the job's FAILURE is itself an incident (a probe, a watchdog, a
+   settlement), add it to `CRITICAL_JOBS` in the dispatcher with a
+   consecutive-failure threshold. The dispatcher then pages (SMS via the
+   existing `_alert()` path) after that many non-200s in a row and sends one
+   recovery when it is 200 again. A journal line nobody reads is not an
+   alert. Added 2026-09-04 with the Club Commander login-bridge probe as the
+   first entry; `__tests__/openclaw-critical-jobs.test.mjs` proves the
+   counting.
 
 ### 11.3 What is BANNED
 

@@ -831,6 +831,9 @@ jobs:
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
             __tests__/vercel-build-queue.test.mjs \
+            __tests__/openclaw-workers-secret.test.mjs \
+            __tests__/openclaw-critical-jobs.test.mjs \
+            __tests__/login-bridge-probe-relay.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs \
             tests/the-from-scanner-is-fast-and-faithful.test.mjs \
