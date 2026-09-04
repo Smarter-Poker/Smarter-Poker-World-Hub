@@ -384,6 +384,18 @@ ALL_CRONS = [
     # double-send, which makes the cadence safe to run often. Route lives
     # outside pages/api/cron/ for the same reason as the invoice job above.
     ('/api/messenger/dispatch-scheduled',         dict(minute='*/5')),
+    # Club Commander login-bridge probe (2026-09-04). The Smarter.Poker ->
+    # Commander handshake was broken for days on 2026-09-03 and nothing paged.
+    # This is the probe's PRIMARY schedule (hub CLAUDE.md 10.9: never the
+    # Claude scheduler; the GitHub cron in the commander repo is best-effort
+    # and files the issue). The path is the hub rewrite to
+    # commander.smarter.poker/api/internal/login-bridge-probe, which verifies
+    # the same CRON_SECRET bearer, runs both legs (structural + signed-in with
+    # the project's PROBE_LOGIN_* credentials), records its run in
+    # cron_execution_log as /commander/internal/login-bridge-probe, and sends
+    # commander.probe.login_bridge_failed to Sentry on any failure. 503 means
+    # CRON_SECRET is not yet set on the commander Vercel project (Dan-only).
+    ('/api/commander/internal/login-bridge-probe', dict(minute=22)),      # hourly at :22 - off the quarter-hours
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
     # RakebackSettlerService.runUnionWeeklyRakeback() calls
