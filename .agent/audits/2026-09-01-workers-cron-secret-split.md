@@ -102,3 +102,69 @@ key for it) and the current Vercel value, which is marked *sensitive* and
 cannot be read by any client. Until someone does that, the two-variable
 arrangement is what keeps both hops working — and it is the safer arrangement
 regardless, because it stops one host's rotation from silently killing the other.
+
+### RESOLVED 2026-09-04: two variables is the end state, not a workaround
+
+Closed as `completed` on issue #1306. The consolidation was argued against on
+safety grounds and the argument holds: a single shared value COUPLES the two
+auth surfaces, so rotating it on one host silently kills the other. That is not
+a hypothetical - it is exactly what happened on 2026-08-31, and the split is
+what makes each hop independently provable. `WORKERS_CRON_SECRET` still falls
+back to `CRON_SECRET` when unset, so a host where the two genuinely agree needs
+no configuration.
+
+### If anyone ever does want one secret, this is the procedure
+
+Recorded HERE because issue #1306 pointed at this file for it and it was not in
+it. Requires the VM address (Keychain, Hetzner id 127930016) and the current
+Vercel value; roughly five minutes.
+
+THE TWO HOPS PROVE THEMSELVES DIFFERENTLY. This is the detail that has now been
+got wrong twice, so it is written out in full:
+
+| hop | what to probe | accepted | rejected | other |
+|---|---|---|---|---|
+| Vercel | `/api/internal/cron-auth-probe` - dedicated, no side effects | **200** | 401 | 404 = probe endpoint not deployed |
+| workers | a route that does **not** exist | **404** | 401 | - |
+
+Vercel has a purpose-built no-side-effect endpoint (added 2026-08-16, see
+`2026-08-16-three-cleanup-items-and-a-deploy-blocker.md`) precisely so nobody
+has to probe a working route; it answers 200 when the secret is accepted. The
+workers service has no such endpoint, so its proof relies on the bearer
+middleware running BEFORE routing: a good secret on a path that does not exist
+answers 404, a bad one answers 401, and neither executes anything.
+
+```bash
+# 1. On the workers VM:
+docker ps                       # confirm the cron container is up
+
+# 2. Put Vercel's current CRON_SECRET into the workers compose env:
+docker compose up -d            # restart so the bearer middleware reads it
+
+# 3a. Prove the VERCEL hop - 200 means accepted:
+curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer <value>" \
+  https://smarter.poker/api/internal/cron-auth-probe
+
+# 3b. Prove the WORKERS hop - a route that does NOT exist, 404 means accepted:
+curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer <value>" \
+  http://10.0.0.3:8081/cron/does-not-exist
+#     Do NOT substitute a real /cron/* route here. The workers side has no
+#     dedicated probe, so a live route would EXECUTE the job.
+
+# 4. ONLY after 3a=200 AND 3b=404: unset WORKERS_CRON_SECRET in
+#    /etc/openclaw.env and /opt/openclaw/.env so fire_cron falls back to
+#    CRON_SECRET, then: systemctl restart openclaw
+```
+
+Step 4 last, and only on both gates. Unsetting while the values still differ
+recreates this incident - 58 routes silently 401ing with a green tick on every
+run.
+
+### Known gap left behind
+
+The workers hop still has no dedicated probe endpoint, so its verification is
+load-bearing on the ABSENCE of a route. A catch-all handler, a SPA fallback, or
+any 404 handler that starts answering 200 would make the watchdog report the
+workers secret as verified when it is not - silently, which is this incident's
+signature. Tracked separately.
+
