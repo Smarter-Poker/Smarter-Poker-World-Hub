@@ -164,7 +164,7 @@ export default async function handler(req, res) {
                 link_site_name: p.link_site_name || null,
                 metadata: meta,
                 author: {
-                    name: meta.page_name || profile?.display_name || profile?.full_name || profile?.username || 'Player',
+                    name: meta.page_name || profile?.full_name || profile?.display_name || profile?.username || 'Player',
                     username: profile?.username || null,
                     avatar: meta.page_avatar_url || profile?.avatar_url || null,
                 },

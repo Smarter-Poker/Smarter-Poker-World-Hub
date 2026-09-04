@@ -51,4 +51,15 @@ test('all 203 owned physical routes receive the shared copy boundary', () => {
   assert.match(policySource, /attributeFilter: COPY_ATTRIBUTES/);
   assert.match(policySource, /text-transform: capitalize !important/);
   assert.match(policySource, /data-preserve-case/);
+  assert.match(policySource, /data-user-content/);
+  assert.match(policySource, /data-post-content/);
+  assert.match(policySource, /post-content/);
+});
+
+test('user content, social posts, and comments are protected from title casing', () => {
+  assert.match(policySource, /data-user-content/);
+  assert.match(policySource, /data-post-card/);
+  assert.match(policySource, /data-post-content/);
+  assert.match(policySource, /data-comment-content/);
+  assert.match(policySource, /text-transform: none !important/);
 });

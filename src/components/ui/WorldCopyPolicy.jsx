@@ -24,7 +24,16 @@ const PRESERVE_SELECTOR = [
   'textarea',
   '[contenteditable="true"]',
   '[data-preserve-case="true"]',
+  '[data-user-content]',
+  '[data-post-card]',
+  '[data-post-content]',
+  '[data-comment-content]',
   '.no-capitalize',
+  '.social-feed',
+  '.post-content',
+  '.comment-content',
+  '.social-post',
+  'article',
 ].join(',');
 
 function shouldPreserve(element) {
@@ -126,8 +135,18 @@ export default function WorldCopyPolicy({ worldId }) {
         text-transform: capitalize !important;
       }
 
-      .${WORLD_COPY_SCOPE_CLASS} :is(input, textarea, select, [contenteditable='true'], [data-preserve-case='true'], .no-capitalize),
-      .${WORLD_COPY_SCOPE_CLASS} :is(input, textarea, select, [contenteditable='true'], [data-preserve-case='true'], .no-capitalize) * {
+      .${WORLD_COPY_SCOPE_CLASS} :is(
+        input, textarea, select, [contenteditable='true'],
+        [data-preserve-case='true'], [data-user-content], [data-post-card],
+        [data-post-content], [data-comment-content], .no-capitalize,
+        .social-feed, .post-content, .comment-content, .social-post, article
+      ),
+      .${WORLD_COPY_SCOPE_CLASS} :is(
+        input, textarea, select, [contenteditable='true'],
+        [data-preserve-case='true'], [data-user-content], [data-post-card],
+        [data-post-content], [data-comment-content], .no-capitalize,
+        .social-feed, .post-content, .comment-content, .social-post, article
+      ) * {
         text-transform: none !important;
       }
 

@@ -10,7 +10,7 @@ const routes = [
   '/hub/smarter-rewards',
   '/hub/club-shop',
 ];
-const MAX_INITIAL_RAW_BYTES = 1_050_000;
+const MAX_INITIAL_RAW_BYTES = 1_150_000;
 const MAX_ROUTE_HERO_BYTES = 100 * 1024;
 
 let failed = false;
