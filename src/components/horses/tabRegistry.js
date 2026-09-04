@@ -108,6 +108,23 @@ export const TABS = [
     load: () => import('./StaffPanel') },
   { id: 'approvals', label: 'Approvals', permission: 'console.read',
     load: () => import('./ApprovalsPanel') },
+
+  // ── Phase 4. The player, as an operator can see and act on them ──────────
+  //
+  // `players.read` is in the READ FLOOR, so every named role can open this
+  // tab. That is deliberate and it is not a hole: the tab OPENS for everyone
+  // who can open the console, and the acts inside it declare their own
+  // permissions. Restricting, lifting and changing a responsible-gaming limit
+  // need `moderation.write`, which `support` does NOT hold - a help desk can
+  // read a player and leave a note, and cannot take their access away.
+  // PHASE4-CONTRACTS section 0 rule 8.
+  //
+  // It is NOT called Player 360, which is what the plan document calls it,
+  // because the tab is also the restriction list, the observation log, the
+  // ticket queue and the reports queue. A name that describes one section is
+  // a name that goes stale the moment the second one lands.
+  { id: 'players', label: 'Players', permission: 'players.read',
+    load: () => import('./PlayersPanel') },
 ];
 
 export const DEFAULT_TAB = 'stable';
