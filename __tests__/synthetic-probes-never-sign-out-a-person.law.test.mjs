@@ -162,11 +162,22 @@ test('LAW 2 (behaviour): the guard accepts only @probe.smarter.poker', () => {
   assert.ok(m, 'guard source found');
   const fn = new Function(
     'PROBE_ACCOUNT_DOMAIN',
+    'PROBE_ALLOWED_ACCOUNTS',
     m[0].replace('export function isDedicatedProbeAccount', 'return function isDedicatedProbeAccount')
-  )('probe.smarter.poker');
+  )('probe.smarter.poker', Object.freeze(['daniel@smarter.poker']));
   assert.equal(fn('probe-login@probe.smarter.poker'), true);
   assert.equal(fn('  Probe-Login@PROBE.smarter.poker  '), true);
-  assert.equal(fn('daniel@bekavactrading.com'), false, "a person's account is refused");
+  // Dan, 2026-09-04: "USE THE OTHER 'GOD MODE ADMIN ACCOUNT' ... KEEP MY
+  // ACCOUNT CLEAN." The service identity is allowed; his own is not.
+  assert.equal(fn('daniel@smarter.poker'), true, 'the platform service account is allowed');
+  assert.equal(fn('Daniel@Smarter.Poker'), true);
+  assert.equal(fn('daniel@bekavactrading.com'), false, "Dan's personal account is refused");
+  assert.match(
+    LOGIN_PROBE,
+    /export const PROBE_ALLOWED_ACCOUNTS = Object\.freeze\(\['daniel@smarter\.poker'\]\)/,
+    'the allowlist is exactly the one service account - adding a person to it is the bug this law exists for'
+  );
+  assert.doesNotMatch(LOGIN_PROBE, /bekavactrading/i, "Dan's personal address never appears in the probe");
   assert.equal(fn('probe-login@smarter.poker'), false, 'the apex domain is not the probe domain');
   assert.equal(fn('x@probe.smarter.poker.evil.com'), false);
   assert.equal(fn(''), false);
