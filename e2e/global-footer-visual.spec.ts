@@ -191,7 +191,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(stage).toHaveCSS('overflow', 'hidden');
       await expect(artwork).toHaveCount(1);
       await expect(artwork).toBeVisible();
-      await expect(artwork).toHaveCSS('object-fit', 'contain');
+      await expect(artwork).toHaveCSS('object-fit', 'fill');
       await expect(artwork).toHaveCSS('filter', 'none');
       await artwork.evaluate(async (image: HTMLImageElement) => {
         if (!image.complete || image.naturalWidth === 0) await image.decode();
@@ -199,8 +199,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();
-      const displayBounds = definition!.artwork.contentBounds;
-      expect(Math.abs(stageBox!.width / stageBox!.height - displayBounds.width / displayBounds.height)).toBeLessThan(0.01);
+      // GOLD STANDARD (Dan, 2026-09-04): every world footer is Club Arena's
+      // footer by size and fit — full bleed edge to edge, and exactly
+      // `clamp(44px, 13.72vw, 132px)` tall. Fourteen aspect-derived heights is
+      // what this replaced.
+      expect(Math.abs(stageBox!.width - 320)).toBeLessThanOrEqual(1);
+      expect(Math.abs(stageBox!.height - expectedClubFooterHeight(320))).toBeLessThanOrEqual(3);
       expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
       expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
       expect(await artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([
@@ -262,6 +266,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       expect(Math.abs(navBox!.x)).toBeLessThanOrEqual(1);
       expect(Math.abs(navBox!.y + navBox!.height - viewport.height)).toBeLessThan(4);
       expect(navBox!.width).toBeLessThanOrEqual(viewport.width + 1);
+      // The Club Arena height token, at every supported width. This is the one
+      // assertion that keeps the estate looking like a single product.
+      expect(Math.abs(navBox!.height - expectedClubFooterHeight(viewport.width))).toBeLessThanOrEqual(3);
       expect(await nav.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 
       const links = nav.getByRole('link');

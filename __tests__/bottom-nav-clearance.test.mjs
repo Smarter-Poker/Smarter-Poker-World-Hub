@@ -253,7 +253,11 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   assert.match(nav, /className="bn-nav bn-artwork-nav"[\s\S]*pointerEvents: 'none'/);
   assert.match(nav, /className="bn-nav bn-artwork-nav"[\s\S]*padding: 0,[\s\S]*background: 'transparent'/);
   assert.match(nav, /className="bn-artwork-stage"[\s\S]*overflow: 'hidden'/);
-  assert.match(nav, /objectFit: 'contain'/);
+  // Club Arena's footer image carries no object-fit, which is `fill`: the frame
+  // is stretched to the clamped footer box. See FOOTER_ARTWORK_HEIGHT.
+  assert.match(nav, /objectFit: 'fill'/);
+  assert.match(nav, /FOOTER_ARTWORK_HEIGHT = 'clamp\(44px, 13\.72vw, 132px\)'/);
+  assert.match(nav, /height: FOOTER_ARTWORK_HEIGHT/);
   assert.match(nav, /gridTemplateColumns: `repeat\(\$\{items\.length\}, minmax\(0, 1fr\)\)`/);
   assert.match(nav, /overflow: 'hidden'/);
   assert.match(nav, /position: 'fixed'/);

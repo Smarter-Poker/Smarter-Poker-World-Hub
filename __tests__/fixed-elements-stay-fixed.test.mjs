@@ -102,21 +102,112 @@ test('the one deliberate scroller still declares itself', () => {
   }
 });
 
-test('the shared World Hub footer is welded to the viewport and never auto-hides', () => {
-  const nav = fs.readFileSync(
-    path.join(ROOT, 'src/components/ui/BottomNavBar.jsx'),
-    'utf8'
-  );
+const bottomNav = () =>
+  fs.readFileSync(path.join(ROOT, 'src/components/ui/BottomNavBar.jsx'), 'utf8');
+
+test('the shared World Hub footer is welded to the viewport bottom', () => {
+  const nav = bottomNav();
 
   assert.match(nav, /position:\s*'fixed',\s*bottom:\s*0,\s*left:\s*0,\s*right:\s*0/);
   assert.match(
     nav,
     /width:\s*'100%',\s*maxWidth:\s*'100vw',\s*margin:\s*0,[\s\S]*?overflow:\s*'hidden',\s*boxSizing:\s*'border-box'/
   );
+  // The legacy fallback footer keeps the original weld verbatim: no world owns
+  // it, nothing opts it into moving, and it must never acquire a transform.
   assert.match(
     nav,
     /transform:\s*'none',\s*translate:\s*'none',\s*transition:\s*'none',\s*animation:\s*'none'/
   );
+  // Nothing animates, ever. `translateY(110%)` in particular was an older
+  // auto-hide attempt that parked the bar somewhere it could not come back
+  // from; the sanctioned distance is exactly its own height.
+  assert.doesNotMatch(nav, /translateY\(110%\)|animation:\s*'(?!none)/);
+});
 
-  assert.doesNotMatch(nav, /autoHide|setHidden|addEventListener\(['"]scroll|translateY\(110%\)/);
+/**
+ * THE SOCIAL FOOTER HIDES WHILE YOU READ (Dan, 2026-09-04, binding).
+ *
+ * Dan, verbatim: "the footer on social media needs to disappear when you
+ * scroll up and reappear when you scroll down like it does on facebook. it
+ * needs to be real time instant change."
+ *
+ * This test REPLACES an assertion that read `assert.doesNotMatch(nav,
+ * /autoHide|setHidden|addEventListener\('scroll/)` — a blanket ban on the
+ * behaviour Dan has now asked for. That ban was written for a different
+ * failure: the bar coming UNSTUCK from the viewport on iOS because an
+ * ancestor had quietly become a scroll container. The test above still pins
+ * every part of that, and the ban is narrowed here rather than deleted:
+ * movement is opt-in per world, on one axis, by exactly one screen height,
+ * with no transition and no timer, and it always comes back.
+ *
+ * If you are here because this test went red: you did not break a rule about
+ * hiding, you broke one of those five conditions. Read which assertion failed.
+ */
+test('only worlds that opt in may hide on scroll, and they hide instantly and reversibly', () => {
+  const nav = bottomNav();
+  const registry = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'src/config/world-footer-navigation.json'), 'utf8')
+  );
+
+  const optedIn = registry.worlds.filter((world) => world.hideOnScroll);
+  assert.deepEqual(
+    optedIn.map((world) => world.id),
+    ['social-media'],
+    'hideOnScroll is opt-in and Dan asked for it on the social media world only'
+  );
+  for (const world of optedIn) {
+    assert.equal(world.hideOnScroll, true, `${world.id} must opt in with a literal true`);
+  }
+  assert.equal(
+    registry.fallback.hideOnScroll,
+    undefined,
+    'the legacy fallback footer never moves'
+  );
+
+  // One axis, one screen height, and only while the reader is travelling down.
+  assert.match(nav, /transform:\s*hidden\s*\?\s*'translateY\(100%\)'\s*:\s*'none'/);
+  assert.match(nav, /useHideOnScroll\(Boolean\(footer\.hideOnScroll\), path\)/);
+
+  const hook = nav.slice(
+    nav.indexOf('function useHideOnScroll'),
+    nav.indexOf('const artworkDisplayBounds')
+  );
+  assert.ok(hook.length > 0, 'useHideOnScroll must exist in BottomNavBar');
+  // "Real time instant change" is the requirement, so the transform may not be
+  // eased, delayed, or queued behind a timer.
+  assert.doesNotMatch(hook, /setTimeout|setInterval|transition|ease|duration/);
+  assert.match(hook, /requestAnimationFrame/);
+  // Visible by default, and restored on every route change, at the top of the
+  // document, and when keyboard focus reaches it.
+  assert.match(hook, /useState\(false\)/);
+  assert.match(hook, /\}, \[resetKey\]\)/);
+  assert.match(hook, /if \(y <= 0\) \{\s*setHidden\(false\);/);
+  assert.match(nav, /onFocusCapture=\{reveal\}/);
+  // The listener must not itself make scrolling expensive, and must be removed.
+  assert.match(hook, /addEventListener\('scroll', onScroll, \{ passive: true \}\)/);
+  assert.match(hook, /removeEventListener\('scroll', onScroll\)/);
+});
+
+/**
+ * THE CROPPED ARTWORK MUST OPT OUT OF THE GLOBAL IMAGE RESET.
+ *
+ * Each footer image is the whole source canvas, sized LARGER than its stage on
+ * purpose so the stage can crop the canvas margin away. A global
+ * `img, video { max-width: 100% }` clamped that width back down, and
+ * `object-fit: contain` then letterboxed the artwork inside its own box: the
+ * frame drew ~2.5% small and ~4px low, so the measured crop stopped lining up
+ * with the stage and left a black strip down the right edge and a shaved
+ * bottom bevel. Dan reported it as "the bottom of the footer seems distorted
+ * and pixelated now".
+ */
+test('the footer artwork is exempt from the global max-width reset', () => {
+  const nav = bottomNav();
+  const style = nav.slice(
+    nav.indexOf('const artworkImageStyle'),
+    nav.indexOf('export const BottomNavSpacer')
+  );
+  assert.ok(style.length > 0, 'artworkImageStyle must exist in BottomNavBar');
+  assert.match(style, /maxWidth:\s*'none'/);
+  assert.match(style, /maxHeight:\s*'none'/);
 });
