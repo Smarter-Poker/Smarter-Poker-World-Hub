@@ -92,6 +92,14 @@ for (const route of ROUTES) {
         const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
         if (el.closest('.approved-global-header, [data-artwork]')) continue; // artwork hit regions are measured by their own test
+        // A paint grid (Preflop Charts' 13x13 range matrix, mobile phase 2) is
+        // ONE control with 169 states, the way a colour picker or a slider is
+        // one control: the player drags across it, and a 44px cell would make
+        // it 628px wide at 375px. Its cells are role="gridcell", not buttons,
+        // so they never reach this loop; the attribute is here so a future
+        // control inside such a grid is judged the same way. The grid itself
+        // is measured for overflow above like everything else.
+        if (el.closest('[data-allow-small-target]')) continue;
         if (r.width < 44 || r.height < 44) tinyTargets += 1;
       }
       return { lcp, overflow, smallText, tinyTargets };

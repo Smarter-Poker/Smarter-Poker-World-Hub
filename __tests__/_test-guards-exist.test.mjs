@@ -124,6 +124,7 @@ import './overlays-leave-room-to-close.law.test.mjs';
 import './page-tutorials.test.mjs';
 import './pa-closeout-hardening.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
+import './preflop-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';

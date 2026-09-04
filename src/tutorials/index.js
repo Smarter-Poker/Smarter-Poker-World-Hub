@@ -23,11 +23,20 @@
  * the route list against the plan so a phase cannot ship without its tour.
  */
 import { BANKROLL_TUTORIAL } from './bankroll-manager';
+import { PREFLOP_TUTORIAL } from './preflop-charts';
 
 // Longest prefix wins. Keep re-exported aliases (preflop-charts -> memory-games)
 // as their own rows so the URL the player sees maps to a tour.
+//
+// `exact: true` limits a row to that one path: Preflop Charts has four
+// subpages (/stats, /leaderboard, /achievements, /tutorial) whose DOM carries
+// none of the tour's spotlight targets, so offering the game page's tour
+// there would show eight steps with no rings. The guide subpage links to
+// /hub/preflop-charts?tutorial=1 instead (TutorialProvider opens it there).
 const REGISTRY = [
   { prefix: '/hub/bankroll-manager', tutorial: BANKROLL_TUTORIAL },
+  { prefix: '/hub/preflop-charts', tutorial: PREFLOP_TUTORIAL, exact: true },
+  { prefix: '/hub/memory-games', tutorial: PREFLOP_TUTORIAL, exact: true },
 ];
 
 export const TUTORIAL_PROMPT_MS = 3000;
@@ -43,7 +52,7 @@ export function getTutorialForPath(asPath) {
   const path = normalisePath(asPath);
   let best = null;
   for (const row of REGISTRY) {
-    if (path === row.prefix || path.startsWith(`${row.prefix}/`)) {
+    if (path === row.prefix || (!row.exact && path.startsWith(`${row.prefix}/`))) {
       if (!best || row.prefix.length > best.prefix.length) best = row;
     }
   }

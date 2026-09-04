@@ -2,12 +2,28 @@
     PREFLOP CHARTS - THE GTO WIZARD KILLER
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
    Master GTO Preflop Ranges Through High-Pressure Training
+
+   Mobile phase 2 (docs/mobile-standard/ALWAYS-DISPLAYED-MOBILE-STANDARD.md,
+   changelog docs/changelog/2026-09-04-mobile-phase2-preflop-charts.md):
+   - HubPageShell owns the shell (100dvh, 100vw clamp, header, 900/768 block,
+     no page-owned bottom clearance).
+   - The mode picker is a wrapping grid, the subpage nav a wrapping row, the
+     leaderboard a ResponsiveTable, and the 13x13 matrix fits 375px with no
+     sideways scroll (PreflopRangeMatrix: one paint control, drag to paint).
+   - useLoadFailsafe / useInitialLoadRef on the first load with a menu
+     skeleton; useOnlineStatus guards every mutation; useHaptics on mode
+     picks, strokes, submit and results; PullToRefresh around the menu;
+     useModalHistory on every overlay the page opens.
+   - The page tutorial (src/tutorials/preflop-charts.js) is owned by the app
+     shell; this page only listens for TUTORIAL_WILL_OPEN_EVENT and returns
+     to the menu, where PreflopMatrixPrimer carries the matrix / legend /
+     submit spotlight targets. Nothing here auto-launches a tour.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -17,23 +33,30 @@ async function fireConfetti(opts) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD, GAME_COST } from '../../src/games/GameEngine';
-import { getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
+import { getScenariosByLevel, getLevelConfig, RANKS, getHandName, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
 
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import toast from '../../src/stores/toastStore';
+
+// Mobile phase 0a / 0c foundation
+import HubPageShell from '../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../src/components/ui/PullToRefresh';
+import ResponsiveTable from '../../src/components/ui/ResponsiveTable';
+import { useLoadFailsafe, useInitialLoadRef } from '../../src/hooks/useLoadFailsafe';
+import { useModalHistory } from '../../src/hooks/useModalHistory';
+import { useHaptics } from '../../src/hooks/useHaptics';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
+import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
-const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Diamonds DIAMOND ENGINE - Local storage with VIP check
-// ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// Diamonds DIAMOND ENGINE - Import Supabase-powered version
+// DIAMOND ENGINE - Import Supabase-powered version
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
@@ -46,30 +69,38 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 // busEmit not needed at page level - DiamondEngine auto-emits, useTrainingBus has own import
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 
-// New Game Mode Components (dynamic imports for code splitting)
-import dynamic from 'next/dynamic';
-const EnhancedReviewPanel = dynamic(() => import('../../src/components/memory-games/EnhancedReviewPanel'), { ssr: false });
+// Off-menu screens and overlays are lazy (mobile phase 2, perf): the menu
+// and the matrix are eager, everything else loads when it is opened.
+const LazyBlock = ({ height = 220 }) => <div className="preflop-skel" style={{ height }} aria-hidden="true" />;
+const lazyScreen = (loader, height) => dynamic(loader, { ssr: false, loading: () => <LazyBlock height={height} /> });
+const EnhancedReviewPanel = lazyScreen(() => import('../../src/components/memory-games/EnhancedReviewPanel'), 320);
 const JarvisExplanationDialog = dynamic(() => import('../../src/components/memory-games/JarvisExplanationDialog'), { ssr: false });
 const OutOfDiamondsModal = dynamic(() => import('../../src/components/gates/OutOfDiamondsModal'), { ssr: false });
-const DailyChallengeCard = dynamic(() => import('../../src/components/memory-games/DailyChallengeCard'), { ssr: false });
+const ScenarioFilterPanel = lazyScreen(() => import('../../src/games/ScenarioFilterPanel'), 260);
+const ComboPopup = dynamic(() => import('../../src/components/memory-games/modals/ComboPopup'), { ssr: false });
 
-const SpotTrainerGame = dynamic(() => import('../../src/games/SpotTrainerGame'), { ssr: false });
-const TournamentModeGame = dynamic(() => import('../../src/games/TournamentModeGame'), { ssr: false });
-const SpeedDrillGame = dynamic(() => import('../../src/games/SpeedDrillGame'), { ssr: false });
-const PressureCookerGame = dynamic(() => import('../../src/games/PressureCookerGame'), { ssr: false });
-const PatternRecognitionGame = dynamic(() => import('../../src/games/PatternRecognitionGame'), { ssr: false });
-const MixedStrategyGame = dynamic(() => import('../../src/games/MixedStrategyGame'), { ssr: false });
-import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
+const SpotTrainerGame = lazyScreen(() => import('../../src/games/SpotTrainerGame'), 420);
+const TournamentModeGame = lazyScreen(() => import('../../src/games/TournamentModeGame'), 420);
+const SpeedDrillGame = lazyScreen(() => import('../../src/games/SpeedDrillGame'), 420);
+const PressureCookerGame = lazyScreen(() => import('../../src/games/PressureCookerGame'), 420);
+const PatternRecognitionGame = lazyScreen(() => import('../../src/games/PatternRecognitionGame'), 420);
+const MixedStrategyGame = lazyScreen(() => import('../../src/games/MixedStrategyGame'), 420);
+
+import { filterScenarios } from '../../src/games/scenarioFilters';
 import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
+import PreflopMatrixPrimer from '../../src/components/memory-games/PreflopMatrixPrimer';
+import PreflopSubpageNav from '../../src/components/memory-games/PreflopSubpageNav';
+import DailyChallengeCard from '../../src/components/memory-games/DailyChallengeCard';
 import {
     accuracyToPercent,
     getUnlockedLevel,
     gradeUserGrid,
     normalizeMemoryDashboard,
+    normalizeRangeAction,
 } from '../../src/lib/preflopRangeLab';
-// 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
-import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Redo2, Trash2 } from 'lucide-react';
+// 2026-05-07 - Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
+import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Redo2, Trash2, RefreshCw, Flame, Medal } from 'lucide-react';
 
 const ALL_TRAINING_SCENARIOS = [
     ...LEVEL_1_SCENARIOS,
@@ -96,39 +127,121 @@ const ACTION_COLORS = {
     all_in: { bg: 'rgba(220, 38, 127, 0.6)', border: '#DC2680', label: 'ALL IN', key: '6' },
 };
 
+const LAZY_GAME_MODES = ['speed-drill', 'pressure-cooker', 'pattern-recognition', 'mixed-strategy', 'spot-trainer', 'tournament'];
 
-// SpeedDrillGame - extracted to src/games/SpeedDrillGame.js (dynamic import above)
-// PressureCookerGame - extracted to src/games/PressureCookerGame.js (dynamic import above)
-// PatternRecognitionGame - extracted to src/games/PatternRecognitionGame.js (dynamic import above)
-// MixedStrategyGame - extracted to src/games/MixedStrategyGame.js (dynamic import above)
+const MODES = [
+    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Core GTO Training' },
+    { key: 'speed',      label: 'Speed Drill',  Icon: Zap,            color: '#FFD700', desc: 'Beat The Clock' },
+    { key: 'pressure',   label: 'Pressure',     Icon: Bomb,           color: '#FF4444', desc: 'Defuse The Bomb' },
+    { key: 'pattern',    label: 'Pattern',      Icon: Puzzle,         color: '#3B82F6', desc: 'Read The Range' },
+    { key: 'mixed',      label: 'Mixed',        Icon: Dices,          color: '#A855F7', desc: 'Dial Frequencies' },
+    { key: 'spot',       label: 'Spot Trainer', Icon: Crosshair,      color: '#F97316', desc: 'Full Hand Trees' },
+    { key: 'tournament', label: 'VS Ranked',    Icon: Swords,         color: '#EC4899', desc: 'Climb The Ladder' },
+];
+const EXTRA_MODES = [
+    { key: 'daily',       label: 'Daily',    Icon: Calendar, color: '#00FF88', special: true },
+    { key: 'leaderboard', label: 'Rankings', Icon: Trophy,   color: '#FFD700', special: true },
+];
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 📊 ENHANCED REVIEW PANEL - GTO Wizard-Quality Post-Game Analysis
-// ═══════════════════════════════════════════════════════════════════════════
-/* EnhancedReviewPanel dynamically imported */
+const MODE_CARDS = {
+    speed: {
+        Icon: Zap, title: 'SPEED DRILL', color: '#FFD700', gradient: ['#FFD700', '#F59E0B'],
+        difficulty: 'INTERMEDIATE', diffColor: '#FFD700',
+        desc: 'Flash A Hand, Pick The Action, Build Streaks. Time Gets Shorter The Better You Do. Three Lives, Do Not Lose Them.',
+        stats: [{ label: 'FORMAT', value: '3 Lives' }, { label: 'SPEED', value: 'Accelerating' }, { label: 'REWARD', value: '15-50 Diamonds' }],
+        mode: 'speed-drill', btn: 'START SPEED DRILL',
+    },
+    pressure: {
+        Icon: Bomb, title: 'PRESSURE COOKER', color: '#FF4444', gradient: ['#FF4444', '#FF0066'],
+        difficulty: 'HARD', diffColor: '#FF4444',
+        desc: 'Answer 10 Hands Before The Clock Runs Out. Correct Answers Add Time, Wrong Answers Cost You. Can You Defuse The Bomb?',
+        stats: [{ label: 'FORMAT', value: '10 Hands' }, { label: 'CLOCK', value: '+/- 3-5 Sec' }, { label: 'REWARD', value: '20-60 Diamonds' }],
+        mode: 'pressure-cooker', btn: 'START PRESSURE COOKER',
+    },
+    pattern: {
+        Icon: Puzzle, title: 'PATTERN RECOGNITION', color: '#3B82F6', gradient: ['#3B82F6', '#0088ff'],
+        difficulty: 'ADVANCED', diffColor: '#3B82F6',
+        desc: 'See A Partial Range And Identify The Dominant Action. Is It A Raising, Calling, Or Folding Range? Train Your GTO Intuition.',
+        stats: [{ label: 'FORMAT', value: '8 Patterns' }, { label: 'SKILL', value: 'Range Reading' }, { label: 'REWARD', value: '20-50 Diamonds' }],
+        mode: 'pattern-recognition', btn: 'START PATTERN RECOGNITION',
+    },
+    mixed: {
+        Icon: Dices, title: 'MIXED STRATEGY', color: '#A855F7', gradient: ['#A855F7', '#D946EF'],
+        difficulty: 'EXPERT', diffColor: '#A855F7',
+        desc: 'Dial In The Exact Frequency For Complex GTO Spots. Should You Raise 30% Or 70%? Ten Rounds Of High-Precision Frequency Training.',
+        stats: [{ label: 'FORMAT', value: '10 Rounds' }, { label: 'SKILL', value: 'Frequencies' }, { label: 'REWARD', value: '25-75 Diamonds' }],
+        mode: 'mixed-strategy', btn: 'START MIXED TRAINER',
+    },
+    spot: {
+        Icon: Crosshair, title: 'SPOT TRAINER', color: '#F97316', gradient: ['#F97316', '#EA580C'],
+        difficulty: 'ADVANCED', diffColor: '#F97316',
+        desc: 'Play Through Entire Hand Trees From Preflop To River. Learn How Ranges Evolve On Each Street And Compare Your EV To Optimal GTO Play.',
+        stats: [{ label: 'FORMAT', value: 'Full Trees' }, { label: 'SKILL', value: 'EV Analysis' }, { label: 'REWARD', value: '30-80 Diamonds' }],
+        mode: 'spot-trainer', btn: 'START SPOT TRAINER',
+    },
+    tournament: {
+        Icon: Swords, title: 'VS RANKED', color: '#EC4899', gradient: ['#EC4899', '#DB2777'],
+        difficulty: 'COMPETITIVE', diffColor: '#EC4899',
+        desc: 'Head-To-Head GTO Challenges Against 300+ AI Opponents For ELO Ranking. Climb The Ladder And Prove You Are The Best.',
+        stats: [{ label: 'FORMAT', value: 'Best Of 10' }, { label: 'RANKING', value: 'ELO System' }, { label: 'REWARD', value: '40-100 Diamonds' }],
+        mode: 'tournament', btn: 'ENTER RANKED BATTLE',
+    },
+};
 
+const LEADERBOARD_MODES = [
+    { id: 'range-memory', label: 'Range', color: '#00D4FF' },
+    { id: 'speed-drill', label: 'Speed', color: '#FFD700' },
+    { id: 'pressure-cooker', label: 'Pressure', color: '#ff4444' },
+    { id: 'pattern-recognition', label: 'Pattern', color: '#3B82F6' },
+    { id: 'mixed-strategy', label: 'Mixed', color: '#A855F7' },
+    { id: 'spot-trainer', label: 'Spot', color: '#F97316' },
+    { id: 'tournament', label: 'Ranked', color: '#EC4899' },
+];
 
+const LEADERBOARD_COLUMNS = [
+    { key: 'rank', label: 'Rank', render: (row) => <span style={{ color: row.rank <= 3 ? '#FFD700' : '#fff', fontWeight: row.rank <= 3 ? 700 : 500 }}>#{row.rank}</span> },
+    { key: 'player', label: 'Player', render: (row) => row.display_name || 'Anonymous' },
+    { key: 'score', label: 'Score', align: 'right', render: (row) => <span style={{ color: '#00ff88', fontWeight: 600 }}>{Number(row.score || 0).toLocaleString()}</span> },
+    { key: 'streak', label: 'Streak', align: 'right', render: (row) => <span style={{ color: '#FF6B00' }}>{row.streak || 0}</span> },
+];
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 💎 OUT OF DIAMONDS MODAL
-// ═══════════════════════════════════════════════════════════════════════════
-/* OutOfDiamondsModal dynamically imported */
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 📅 DAILY CHALLENGE CARD
-// ═══════════════════════════════════════════════════════════════════════════
-/* DailyChallengeCard dynamically imported */
+// First-paint skeleton that mirrors the menu: hero, daily card, seven mode
+// cards, the level list. One class (.preflop-skel) and one keyframe in
+// src/styles/worlds/memory-games.css.
+function MenuSkeleton() {
+    return (
+        <div className="preflop-menu preflop-menu-skeleton" aria-busy="true" aria-label="Loading Preflop Charts">
+            <div className="preflop-skel" style={{ height: 230, marginBottom: 16 }} />
+            <div className="preflop-skel" style={{ height: 48, marginBottom: 14 }} />
+            <div className="preflop-skel" style={{ height: 120, marginBottom: 14 }} />
+            <div className="preflop-mode-rail" aria-hidden="true">
+                {Array.from({ length: 7 }, (_, i) => <div key={i} className="preflop-skel" style={{ height: 112 }} />)}
+            </div>
+            <div className="preflop-skel" style={{ height: 300, marginTop: 14 }} />
+        </div>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
-const ComboPopup = dynamic(() => import('../../src/components/memory-games/modals/ComboPopup'), { ssr: false });
 export default function MemoryGamesPage() {
     const router = useRouter();
     const { user } = useAvatar();
     useTrainingBus('preflop-charts');
     const userId = user?.id;
     const containerRef = useRef(null);
+    const labRef = useRef(null);
+    const haptic = useHaptics();
+    const online = useOnlineStatus();
+
+    // Offline: mutation buttons explain instead of firing (OfflineBar in
+    // pages/_app.js is the global banner; this is the per-action guard).
+    const requireOnline = useCallback(() => {
+        if (online) return true;
+        toast.error(OFFLINE_TOAST);
+        return false;
+    }, [online]);
 
     // Start leak analyzer for Jarvis integration - feeds into LeakService + Jarvis PA alerts
     useEffect(() => {
@@ -143,13 +256,9 @@ export default function MemoryGamesPage() {
     // Zustand Global State (replaces some local useState)
     const currentLevel = useMemoryStore((s) => s.currentLevel) || 1; // Fallback to level 1 if undefined
     const setCurrentLevel = useMemoryStore((s) => s.setCurrentLevel);
-    const currentView = useMemoryStore((s) => s.currentView);
-    const setCurrentView = useMemoryStore((s) => s.setCurrentView);
-    const currentMiniGame = useMemoryStore((s) => s.currentMiniGame);
-    const setCurrentMiniGame = useMemoryStore((s) => s.setCurrentMiniGame);
 
     // Game state (keep local for game session)
-    const [mode, setMode] = useState('menu'); // 'menu' | 'game' | 'result' | 'speed-drill'
+    const [mode, setMode] = useState('menu'); // 'menu' | 'game' | 'result' | 'speed-drill' | ...
     const [gameType, setGameType] = useState('range'); // 'range' | 'speed' | 'leaderboard' | 'daily'
     const [currentScenario, setCurrentScenario] = useState(null);
     const [userGrid, setUserGrid] = useState({});
@@ -157,8 +266,10 @@ export default function MemoryGamesPage() {
     const [gradeResult, setGradeResult] = useState(null);
     const [labStatus, setLabStatus] = useState('Raise selected. No hands marked.');
     const [gameNotice, setGameNotice] = useState(null);
+    const [lastTouchedHand, setLastTouchedHand] = useState(null);
     const gridHistoryRef = useRef([]);
     const gridRedoRef = useRef([]);
+    const strokeRef = useRef(null);
 
     // Hamburger and deep links use ?mode=. Hydrate that route contract once so
     // every advertised sub-function opens the matching game instead of landing
@@ -222,11 +333,14 @@ export default function MemoryGamesPage() {
 
     // Economy state - fetched from Supabase
     const [diamondBalance, setDiamondBalance] = useState(100);
-    // 2026-05-07 — single-call dashboard payload from /api/memory/dashboard
+    // 2026-05-07 - single-call dashboard payload from /api/memory/dashboard
     // RPC: public.rpc_memory_dashboard(uuid). Renders grade chip + per-level
     // mastery + daily-challenge state in one round-trip (replaces 5+ fetches).
     const [memoryDashboard, setMemoryDashboard] = useState(null);
     const [memoryDashboardLoading, setMemoryDashboardLoading] = useState(true);
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+    const isInitialLoad = useInitialLoadRef();
+    useLoadFailsafe(memoryDashboardLoading, setMemoryDashboardLoading);
     const [isVIP, setIsVIP] = useState(null); // null = loading, true = VIP, false = not VIP
 
     const [lastReward, setLastReward] = useState(null);
@@ -288,6 +402,7 @@ export default function MemoryGamesPage() {
     }, [userId]);
 
     const updatePreference = useCallback(async (key, value) => {
+        if (!requireOnline()) return;
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
@@ -298,7 +413,7 @@ export default function MemoryGamesPage() {
                 console.warn('Failed to save preference:', error);
             }
         }
-    }, [preferences, userId]);
+    }, [preferences, userId, requireOnline]);
 
     const menuConfig = getMenuConfig('preflop-charts', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
@@ -306,8 +421,6 @@ export default function MemoryGamesPage() {
         setShowTimer: (val) => updatePreference('showTimer', val),
         setVisualHints: (val) => updatePreference('visualHints', val)
     });
-
-    // Intro video removed — no longer shown on page load
 
     // Safe helper to get level config with fallback
     const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
@@ -335,7 +448,7 @@ export default function MemoryGamesPage() {
                 setIsVIP(vipStatus);
             } catch (e) {
                 console.warn('[MemoryGames] Failed to initialize DiamondEngine:', e);
-                // Fallback to localStorage — treat as non-VIP so gameplay is not blocked
+                // Fallback to localStorage - treat as non-VIP so gameplay is not blocked
                 await DiamondEngine.init(null);
                 const balance = await DiamondEngine.getBalance();
                 if (cancelled) return;
@@ -367,12 +480,14 @@ export default function MemoryGamesPage() {
             }, 1000);
         }
         return () => clearInterval(timerRef.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timerActive, preferences.soundEffects]);
 
     const handleActionSelect = useCallback((action) => {
+        haptic('light');
         setSelectedAction(action);
         setLabStatus(`${ACTION_COLORS[action]?.label || action} selected.`);
-    }, []);
+    }, [haptic]);
 
     const handleUndo = useCallback(() => {
         if (gradeResult || !timerActive) return;
@@ -408,6 +523,7 @@ export default function MemoryGamesPage() {
 
     const handleFillShape = useCallback((shape) => {
         if (gradeResult || !timerActive) return;
+        haptic('light');
         const hands = [];
         RANKS.forEach((_, row) => RANKS.forEach((__, col) => {
             if (shape === 'pairs' && row === col) hands.push(getHandName(row, col));
@@ -421,14 +537,59 @@ export default function MemoryGamesPage() {
         hands.forEach((hand) => { nextGrid[hand] = selectedAction; });
         setUserGrid(nextGrid);
         setLabStatus(`${shape} filled with ${ACTION_COLORS[selectedAction]?.label || selectedAction}. ${Object.keys(nextGrid).length} hands marked.`);
-    }, [gradeResult, selectedAction, timerActive, userGrid]);
+    }, [gradeResult, selectedAction, timerActive, userGrid, haptic]);
+
+    // ── Painting (mobile phase 2) ──
+    // One stroke = one history entry + one haptic, however many cells the
+    // finger crosses. The matrix reports strokes through these three
+    // callbacks; the grid itself never touches page state.
+    const handleStrokeStart = useCallback((hand) => {
+        if (gradeResult || !timerActive) return false;
+        const current = latestGridRef.current;
+        gridHistoryRef.current.push(current);
+        gridHistoryRef.current = gridHistoryRef.current.slice(-30);
+        gridRedoRef.current = [];
+        strokeRef.current = { erase: current[hand] === selectedAction, action: selectedAction, count: 0 };
+        haptic('light');
+        return true;
+    }, [gradeResult, timerActive, selectedAction, haptic]);
+
+    const handlePaintHand = useCallback((hand) => {
+        const stroke = strokeRef.current;
+        if (!stroke) return;
+        stroke.count += 1;
+        setLastTouchedHand(hand);
+        setUserGrid((prev) => {
+            if (stroke.erase) {
+                if (!(hand in prev)) return prev;
+                const { [hand]: _omit, ...rest } = prev;
+                return rest;
+            }
+            if (prev[hand] === stroke.action) return prev;
+            return { ...prev, [hand]: stroke.action };
+        });
+    }, []);
+
+    const handleStrokeEnd = useCallback(() => {
+        const stroke = strokeRef.current;
+        if (!stroke) return;
+        strokeRef.current = null;
+        const count = Object.keys(latestGridRef.current).length;
+        const verb = stroke.erase ? 'removed' : `set to ${ACTION_COLORS[stroke.action]?.label || stroke.action}`;
+        setLabStatus(`${stroke.count} hand${stroke.count === 1 ? '' : 's'} ${verb}. ${count} hand${count === 1 ? '' : 's'} marked.`);
+    }, []);
+
+    const handleHandFocus = useCallback((hand) => {
+        setLastTouchedHand(hand);
+    }, []);
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (mode !== 'game' || gradeResult || preferences.keyboardShortcuts === false) return;
             const target = e.target instanceof Element ? e.target : null;
-            const isInteractiveTarget = target?.closest('button, a, input, select, textarea, [contenteditable="true"]');
+            // The matrix is a focusable grid that owns Enter / Space itself.
+            const isInteractiveTarget = target?.closest('button, a, input, select, textarea, [contenteditable="true"], [role="grid"]');
             const isTextEntry = target?.closest('input, select, textarea, [contenteditable="true"]');
 
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
@@ -456,6 +617,7 @@ export default function MemoryGamesPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, gradeResult, userGrid, currentScenario, preferences.keyboardShortcuts, handleActionSelect, handleRedo, handleUndo]);
 
     // Reusable: Fresh DB balance check + DiamondEngine deduction
@@ -466,6 +628,7 @@ export default function MemoryGamesPage() {
     const checkAndDeductDiamonds = async () => {
         if (isVIP === true) return true;
         if (isVIP === null) return false;
+        if (!requireOnline()) return false;
         if (isStartingRef.current) return false;
         isStartingRef.current = true;
         try {
@@ -506,6 +669,12 @@ export default function MemoryGamesPage() {
             return;
         }
 
+        // A level that spends diamonds, or asks Jarvis for a scenario, needs the
+        // network before anything is charged.
+        if ((isVIP === false && Number(level) > 3) || useAIGeneration) {
+            if (!requireOnline()) return;
+        }
+
         const serverUnlockedLevel = getUnlockedLevel(memoryDashboard?.per_level_mastery || []);
         const sessionUnlockedLevel = Math.min(10, Math.floor(consecutivePasses / 5) + 1);
         const highestUnlocked = Math.max(serverUnlockedLevel, sessionUnlockedLevel);
@@ -516,7 +685,7 @@ export default function MemoryGamesPage() {
             });
             return;
         }
-        
+
         let scenario = null;
 
         // Use AI Generation if enabled (VIP feature)
@@ -591,11 +760,14 @@ export default function MemoryGamesPage() {
         // Get level-specific config for progressive difficulty
         const levelConfig = getLevelConfig(level) || { timer: 90, gridSize: 13, maxHands: 20 };
 
+        haptic('medium');
         setCurrentLevel(level);
         setCurrentScenario(scenario);
         setUserGrid({});
         gridHistoryRef.current = [];
         gridRedoRef.current = [];
+        strokeRef.current = null;
+        setLastTouchedHand(null);
         setGradeResult(null);
         setLabStatus(`${ACTION_COLORS[selectedAction]?.label || selectedAction} selected. No hands marked.`);
         setLastReward(null);
@@ -621,30 +793,14 @@ export default function MemoryGamesPage() {
         handleSubmit(true);
     };
 
-    // Cell click handler
-    const handleCellClick = useCallback((hand) => {
-        if (gradeResult || !timerActive) return;
-
-        gridHistoryRef.current.push(userGrid);
-        gridHistoryRef.current = gridHistoryRef.current.slice(-30);
-        gridRedoRef.current = [];
-        if (userGrid[hand] === selectedAction) {
-            const { [hand]: _, ...rest } = userGrid;
-            setUserGrid(rest);
-            setLabStatus(`${hand} removed. ${Object.keys(rest).length} hands marked.`);
-            return;
-        }
-        const nextGrid = { ...userGrid, [hand]: selectedAction };
-        setUserGrid(nextGrid);
-        setLabStatus(`${hand} set to ${ACTION_COLORS[selectedAction]?.label || selectedAction}. ${Object.keys(nextGrid).length} hands marked.`);
-    }, [gradeResult, selectedAction, timerActive, userGrid]);
-
     // Submit handler
     const handleSubmit = (timedOut = false) => {
         if (submissionLockedRef.current || !currentScenario) return;
         submissionLockedRef.current = true;
+        strokeRef.current = null;
         setTimerActive(false);
         clearInterval(timerRef.current);
+        haptic('medium');
 
         // Timer callbacks retain the render that started the interval. Refs
         // guarantee a timeout grades the player's latest grid and elapsed time.
@@ -672,6 +828,7 @@ export default function MemoryGamesPage() {
 
         if (passed) {
             // Success!
+            haptic('success');
             playSound('combo');
             triggerParticles();
 
@@ -710,6 +867,7 @@ export default function MemoryGamesPage() {
             }).catch(err => console.warn('[MemoryGames] Award failed:', err?.message || err));
         } else {
             // Failure
+            haptic('medium');
             playSound('wrong');
             triggerScreenShake();
             setCombo(0);
@@ -719,9 +877,11 @@ export default function MemoryGamesPage() {
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // 📊 PERSIST TO SUPABASE - Leaderboard, ELO, Daily Challenge
+        // PERSIST TO SUPABASE - Leaderboard, ELO, Daily Challenge
+        // The grade above is local and always shown; the writes need the
+        // network, so offline they are skipped with the standard toast.
         // ═══════════════════════════════════════════════════════════════════════════
-        if (user?.id) {
+        if (user?.id && requireOnline()) {
             const gameMode = gameType || 'range';
             const timeTaken = Math.max(0, Math.floor((safeLevelConfig.timer || 90) - submittedTime));
 
@@ -790,7 +950,7 @@ export default function MemoryGamesPage() {
 
             // 6. Check and unlock achievements
             const modesPlayed = Array.from(new Set([
-                ...(memoryDashboard?.per_mode_best || []).map(mode => mode.game_mode).filter(Boolean),
+                ...(memoryDashboard?.per_mode_best || []).map(modeRow => modeRow.game_mode).filter(Boolean),
                 gameMode,
             ]));
             achievementService.checkAndUnlock(user.id, {
@@ -835,7 +995,7 @@ export default function MemoryGamesPage() {
                     });
                 });
             }
-            // result.correctHands is a count (number), not an array — skip forEach loop
+            // result.correctHands is a count (number), not an array - skip forEach loop
 
             authedFetch('/api/jarvis/training-session', {
                 method: 'POST',
@@ -867,11 +1027,11 @@ export default function MemoryGamesPage() {
         let name = null;
         let mult = 1;
 
-        if (comboCount >= 20) { name = ' LEGENDARY!'; mult = 3.0; }
+        if (comboCount >= 20) { name = 'LEGENDARY!'; mult = 3.0; }
         else if (comboCount >= 15) { name = 'UNSTOPPABLE!'; mult = 2.5; }
-        else if (comboCount >= 10) { name = '++ ON FIRE!'; mult = 2.0; }
-        else if (comboCount >= 7) { name = ' DOMINATING!'; mult = 1.7; }
-        else if (comboCount >= 5) { name = ' HOT STREAK!'; mult = 1.5; }
+        else if (comboCount >= 10) { name = 'ON FIRE!'; mult = 2.0; }
+        else if (comboCount >= 7) { name = 'DOMINATING!'; mult = 1.7; }
+        else if (comboCount >= 5) { name = 'HOT STREAK!'; mult = 1.5; }
         else if (comboCount >= 3) { name = 'NICE!'; mult = 1.2; }
 
         setComboName(name);
@@ -889,12 +1049,16 @@ export default function MemoryGamesPage() {
         setTimeout(() => setScreenShake(false), 300);
     };
 
+    // The particle burst starts from the centre of the Range Lab section the
+    // player is looking at (ref-measured), never from a window-width guess.
     const triggerParticles = () => {
-        if (typeof window !== 'undefined') {
-            const x = window.innerWidth / 2;
-            const y = window.innerHeight / 2;
-            EffectsEngine.particles(x, y, 20, '#00ff88');
-        }
+        if (typeof document === 'undefined') return;
+        const rect = labRef.current ? labRef.current.getBoundingClientRect() : null;
+        const viewportW = document.documentElement.clientWidth || 0;
+        const viewportH = document.documentElement.clientHeight || 0;
+        const x = rect ? rect.left + rect.width / 2 : viewportW / 2;
+        const y = rect ? Math.max(40, Math.min(viewportH - 40, rect.top + Math.min(rect.height, viewportH) / 2)) : viewportH / 2;
+        EffectsEngine.particles(x, y, 20, '#00ff88');
     };
 
     // Next scenario
@@ -905,9 +1069,12 @@ export default function MemoryGamesPage() {
     const handleRetry = () => {
         if (!currentScenario) return;
         const levelConfig = getLevelConfig(currentLevel) || { timer: 90 };
+        haptic('light');
         setUserGrid({});
         gridHistoryRef.current = [];
         gridRedoRef.current = [];
+        strokeRef.current = null;
+        setLastTouchedHand(null);
         setGradeResult(null);
         setLastReward(null);
         setCoachAnalysis({ show: false, loading: false, analysis: null });
@@ -922,6 +1089,8 @@ export default function MemoryGamesPage() {
 
     // Fetch Jarvis explanation for a hand (with GTO panel image)
     const fetchJarvisExplanation = async (hand, correctAction, userAction) => {
+        if (!requireOnline()) return;
+        haptic('light');
         setExplainModal({
             show: true,
             hand,
@@ -982,15 +1151,17 @@ export default function MemoryGamesPage() {
     };
 
     // Fetch Jarvis post-game analysis
-    const fetchCoachAnalysis = async (gradeResult) => {
-        if (!gradeResult) return;
+    const fetchCoachAnalysis = async (gradeResultForCoach) => {
+        if (!gradeResultForCoach) return;
+        if (!requireOnline()) return;
+        haptic('light');
 
         // Build mistakes array
         const mistakes = [];
 
         // Wrong action hands
-        if (gradeResult.wrongActionHands) {
-            gradeResult.wrongActionHands.forEach(hand => {
+        if (gradeResultForCoach.wrongActionHands) {
+            gradeResultForCoach.wrongActionHands.forEach(hand => {
                 mistakes.push({
                     hand,
                     userAction: userGrid[hand] || 'fold',
@@ -1000,8 +1171,8 @@ export default function MemoryGamesPage() {
         }
 
         // Missed hands (should have selected but didn't)
-        if (gradeResult.missedHands) {
-            gradeResult.missedHands.forEach(hand => {
+        if (gradeResultForCoach.missedHands) {
+            gradeResultForCoach.missedHands.forEach(hand => {
                 mistakes.push({
                     hand,
                     userAction: 'fold',
@@ -1023,7 +1194,7 @@ export default function MemoryGamesPage() {
                 body: JSON.stringify({
                     mistakes,
                     scenario: currentScenario,
-                    finalScore: gradeResult.score,
+                    finalScore: gradeResultForCoach.score,
                     position: currentScenario?.position,
                     stackDepth: currentScenario?.stackDepth
                 })
@@ -1070,8 +1241,13 @@ export default function MemoryGamesPage() {
 
     // Start adaptive training targeting weaknesses
     const startAdaptiveTraining = async () => {
-        if (!userId) return;
+        if (!userId) {
+            router.push('/login?redirect=/hub/preflop-charts');
+            return;
+        }
+        if (!requireOnline()) return;
 
+        haptic('light');
         setAdaptiveLoading(true);
 
         try {
@@ -1092,6 +1268,8 @@ export default function MemoryGamesPage() {
                 setUserGrid({});
                 gridHistoryRef.current = [];
                 gridRedoRef.current = [];
+                strokeRef.current = null;
+                setLastTouchedHand(null);
                 setGradeResult(null);
                 setLastReward(null);
                 setCoachAnalysis({ show: false, loading: false, analysis: null });
@@ -1133,13 +1311,19 @@ export default function MemoryGamesPage() {
             fetchWeakSpots();
             fetchLobbySuggestions();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, mode]);
 
     const loadMemoryDashboard = useCallback(async (fresh = false) => {
         if (!userId) {
             setMemoryDashboardLoading(false);
+            isInitialLoad.current = false;
+            setHasLoadedOnce(true);
             return null;
         }
+        // Only the first load shows the skeleton; every refresh after it
+        // (a recorded session, pull-to-refresh) keeps the menu on screen.
+        if (isInitialLoad.current) setMemoryDashboardLoading(true);
         try {
             const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
             const suffix = fresh ? `?refresh=${Date.now()}` : '';
@@ -1158,9 +1342,11 @@ export default function MemoryGamesPage() {
             console.warn('[MemoryGames] dashboard fetch failed:', e?.message || e);
         } finally {
             setMemoryDashboardLoading(false);
+            isInitialLoad.current = false;
+            setHasLoadedOnce(true);
         }
         return null;
-    }, [userId]);
+    }, [userId, isInitialLoad]);
 
     // Load aggregated dashboard payload (real grade, per-level mastery, daily-challenge state)
     useEffect(() => {
@@ -1170,7 +1356,6 @@ export default function MemoryGamesPage() {
     }, [loadMemoryDashboard]);
 
     // Load leaderboard data
-
     const loadLeaderboard = useCallback(async () => {
         setLeaderboardLoading(true);
         try {
@@ -1235,31 +1420,39 @@ export default function MemoryGamesPage() {
         }
     }, [userId]);
 
-    // Submit score to leaderboard after game ends
-    const submitToLeaderboard = useCallback(async (gameMode, level, score, accuracy, timeTaken) => {
-        if (!userId) return; // Only logged-in users
+    // The daily card sits at the top of the menu, so today's assignment is
+    // loaded with the page instead of waiting for a tap on Daily.
+    useEffect(() => {
+        loadDailyChallenge();
+    }, [loadDailyChallenge]);
 
-        try {
-            const sessionId = crypto.randomUUID();
-            const result = await leaderboardService.updateLeaderboard(
-                userId, gameMode, level, score, accuracy, timeTaken, sessionId
-            );
+    // Pull-to-refresh reloads everything the menu shows.
+    const refreshMenu = useCallback(async () => {
+        await Promise.all([
+            loadMemoryDashboard(true),
+            loadDailyChallenge(),
+            gameType === 'leaderboard' ? loadLeaderboard() : Promise.resolve(),
+            fetchWeakSpots(),
+            fetchLobbySuggestions(),
+        ]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadMemoryDashboard, loadDailyChallenge, loadLeaderboard, gameType, userId]);
 
-            if (result.new_record) {
-                // Show celebration for new record
-                playSound('levelUp');
-                fireConfetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
-            }
-
-            return result;
-        } catch (error) {
-            console.warn('[MemoryGames] Failed to submit score:', error);
+    const startDailyChallenge = useCallback(() => {
+        if (!dailyChallenge) return;
+        if (!requireOnline()) return;
+        haptic('medium');
+        const challengeMode = dailyChallenge.game_mode;
+        if (!challengeMode || challengeMode === 'range-memory' || challengeMode === 'range') {
+            setCurrentLevel(dailyChallenge.level || 1);
+            startGame(dailyChallenge.level || 1);
+        } else if (LAZY_GAME_MODES.includes(challengeMode)) {
+            setMode(challengeMode);
+        } else {
+            startGame(dailyChallenge.level || 1);
         }
-    }, [userId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dailyChallenge, requireOnline, haptic, setCurrentLevel]);
 
     // Handle VIP upgrade - initiate Stripe checkout for VIP subscription
     const handleVipUpgrade = useCallback(async () => {
@@ -1267,6 +1460,7 @@ export default function MemoryGamesPage() {
             router.push('/login?redirect=/hub/preflop-charts');
             return;
         }
+        if (!requireOnline()) return;
 
         if (vipCheckoutRef.current) return;
         vipCheckoutRef.current = true;
@@ -1316,7 +1510,39 @@ export default function MemoryGamesPage() {
             vipCheckoutRef.current = false;
             setVipCheckoutPending(false);
         }
-    }, [router, userId]);
+    }, [router, userId, requireOnline]);
+
+    // ── Page tutorial hand-off (mobile phase 0c / 2) ──
+    // The app shell opens the tour; every spotlight target lives on the menu
+    // (PreflopMatrixPrimer holds the matrix / legend / submit ones), so the
+    // page returns there first unless a game is genuinely in progress: a
+    // live Range Lab timer, or any of the six lazy game screens.
+    const modeRef = useRef(mode);
+    modeRef.current = mode;
+    const timerActiveRef = useRef(timerActive);
+    timerActiveRef.current = timerActive;
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const onWillOpen = (e) => {
+            if (e && e.detail && e.detail.id && e.detail.id !== 'preflop-charts') return;
+            const current = modeRef.current;
+            const inProgress = (current === 'game' && timerActiveRef.current) || LAZY_GAME_MODES.includes(current);
+            if (inProgress) return;
+            if (current !== 'menu') setMode('menu');
+            setGameType('range');
+            setShowFilters(false);
+        };
+        window.addEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
+        return () => window.removeEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
+    }, []);
+
+    // Overlays the page owns: the phone back gesture closes them first. The
+    // filter panel is page state, so its history entry lives here; the
+    // Out Of Diamonds and Jarvis dialogs push their own (they mount only
+    // while open and call useModalHistory themselves).
+    const closeOutOfDiamonds = useCallback(() => setShowOutOfDiamondsModal(false), []);
+    const closeFilters = useCallback(() => setShowFilters(false), []);
+    useModalHistory(showFilters, closeFilters);
 
     // Timer color
     const getTimerColor = () => {
@@ -1335,10 +1561,29 @@ export default function MemoryGamesPage() {
     const highestUnlockedLevel = Math.max(serverUnlockedLevel, sessionUnlockedLevel);
     const markedHandCount = Object.keys(userGrid).length;
     const selectedActionCount = Object.values(userGrid).filter((action) => action === selectedAction).length;
+    const showMenuSkeleton = memoryDashboardLoading && !hasLoadedOnce;
+    const anySheetOpen = showOutOfDiamondsModal || explainModal.show || showFilters || aiGenerating || menuOpen;
+
+    // Readout above the matrix: the last hand touched, what it holds now, and
+    // (once graded) what the solver holds.
+    const touchedAction = lastTouchedHand ? userGrid[lastTouchedHand] : null;
+    const solverActionForTouched = lastTouchedHand && currentScenario?.solution
+        ? normalizeRangeAction(currentScenario.solution[lastTouchedHand])
+        : null;
+
+    const launchCard = MODE_CARDS[gameType] || null;
+    let personalBest = null;
+    if (launchCard && hasLoadedOnce) {
+        try {
+            const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`pb_${launchCard.mode}`) || 'null') : null;
+            if (stored && stored.score) personalBest = stored;
+        } catch (e) { console.warn('[App] Handled exception:', e); }
+    }
+
+    const leaderboardRows = leaderboardData.map((entry, idx) => ({ ...entry, id: entry.user_id || idx, rank: idx + 1 }));
 
     return (
         <PageTransition>
-            {/* Intro video removed */}
             <SEOHead
                 title="Preflop Charts - Master GTO Ranges"
                 description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
@@ -1347,6 +1592,7 @@ export default function MemoryGamesPage() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
             </SEOHead>
 
+            <HubPageShell className="preflop" maxWidth={1080} background="#02050a" onMenuClick={() => setMenuOpen(true)}>
             <div className="memory-games-page preflop-command-deck"
                 ref={containerRef}
                 style={{
@@ -1359,10 +1605,7 @@ export default function MemoryGamesPage() {
                 <div style={styles.bgGrid} />
                 <div style={styles.bgGlow} />
 
-                {/* Standard Hub Header - DO NOT MODIFY */}
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-
-                {/* Per-game cost popup (one-time) — only for confirmed non-VIP users */}
+                {/* Per-game cost popup (one-time) - only for confirmed non-VIP users */}
                 {userId && isVIP === false && (
                     <GameCostPopup userId={userId} featureKey="memory_games" isVip={isVIP} cost={10} />
                 )}
@@ -1380,16 +1623,19 @@ export default function MemoryGamesPage() {
                 />
 
                 {/* Combo Popup */}
-                            {showComboPopup && comboName && (
-                <ComboPopup
-                    comboName={comboName}
-                    multiplier={multiplier}
-                />
-            )}
+                {showComboPopup && comboName && (
+                    <ComboPopup
+                        comboName={comboName}
+                        multiplier={multiplier}
+                    />
+                )}
 
                 {/* Main Content */}
                 <div style={styles.content}>
-                    {mode === 'menu' && (
+                    {mode === 'menu' && showMenuSkeleton && <MenuSkeleton />}
+
+                    {mode === 'menu' && !showMenuSkeleton && (
+                    <PullToRefresh onRefresh={refreshMenu} disabled={anySheetOpen}>
                         <div className="preflop-menu">
                             {/* Title */}
                             <div className="preflop-hero">
@@ -1402,7 +1648,7 @@ export default function MemoryGamesPage() {
                                             <span>{memoryDashboard.current_grade}</span>
                                             <span>{memoryDashboard.rolling_accuracy_pct}% Across Last 30 Days</span>
                                             {memoryDashboard.mastered_levels_count > 0 && (
-                                                <span>· {memoryDashboard.mastered_levels_count}/10 Mastered</span>
+                                                <span>{memoryDashboard.mastered_levels_count}/10 Mastered</span>
                                             )}
                                         </div>
                                     )}
@@ -1410,7 +1656,7 @@ export default function MemoryGamesPage() {
                                     {isVIP !== null && (
                                         <div className="preflop-cost-chip">
                                             <Gem size={17} aria-hidden />
-                                            <span>{isVIP ? 'VIP: Unlimited Access' : `${GAME_COST} Diamonds per game`}</span>
+                                            <span>{isVIP ? 'VIP: Unlimited Access' : `${GAME_COST} Diamonds Per Game`}</span>
                                         </div>
                                     )}
                                 </div>
@@ -1424,30 +1670,27 @@ export default function MemoryGamesPage() {
                                 </div>
                             </div>
 
-                            {/* Daily Challenge Card */}
+                            {/* Section links: stats, ranks, awards, guide (tutorial target: subnav) */}
+                            <PreflopSubpageNav current="/hub/preflop-charts" sticky={false} tutorialTarget="subnav" />
+
+                            {/* Daily Challenge Card (tutorial target: daily) */}
                             <DailyChallengeCard
                                 challenge={dailyChallenge}
                                 streak={userStreak}
                                 completed={challengeCompleted}
-                                loading={challengeLoading}
-                                onPlay={() => {
-                                    if (dailyChallenge) {
-                                        setCurrentLevel(dailyChallenge.level || 1);
-                                        startGame(dailyChallenge.level || 1);
-                                    }
-                                }}
+                                loading={challengeLoading && !dailyChallenge}
+                                onPlay={startDailyChallenge}
                             />
 
-                            {/* Smart Practice Card - Adaptive Training */}
-                            {userId && (
-                                <section className="preflop-smart-practice" aria-labelledby="smart-practice-title">
-                                    <div className="preflop-jarvis-medallion" aria-hidden="true">
-                                        <img src="/images/jarvis-avatar-new.png" alt="" />
-                                    </div>
-                                    <div className="preflop-smart-copy">
-                                        <div className="preflop-panel-kicker"><BrainCircuit size={15} aria-hidden /> AI TRAINING LINK</div>
-                                        <h2 id="smart-practice-title">Smart Practice</h2>
-                                        <p>Jarvis Analyzes Your History And Creates Personalized Training.</p>
+                            {/* Smart Practice Card - Adaptive Training (tutorial target: jarvis) */}
+                            <section className="preflop-smart-practice" aria-labelledby="smart-practice-title" data-tutorial="jarvis">
+                                <div className="preflop-jarvis-medallion" aria-hidden="true">
+                                    <img src="/images/jarvis-avatar-new.png" alt="" />
+                                </div>
+                                <div className="preflop-smart-copy">
+                                    <div className="preflop-panel-kicker"><BrainCircuit size={15} aria-hidden /> AI TRAINING LINK</div>
+                                    <h2 id="smart-practice-title">Smart Practice</h2>
+                                    <p>{userId ? 'Jarvis Analyzes Your History And Creates Personalized Training.' : 'Sign In And Jarvis Analyzes Your History, Builds Personalized Drills And Explains Every Mistake.'}</p>
 
                                     {/* Weak Spots Display */}
                                     {weakSpots.length > 0 && (
@@ -1461,20 +1704,20 @@ export default function MemoryGamesPage() {
                                             ))}
                                         </div>
                                     )}
-                                    </div>
+                                </div>
 
-                                    <button
-                                        onClick={startAdaptiveTraining}
-                                        disabled={adaptiveLoading}
-                                        className="preflop-primary-cta"
-                                    >
-                                        <span>{adaptiveLoading ? 'Generating...' : weakSpots.length > 0
-                                            ? `Train ${weakSpots[0]?.area}`
-                                            : 'Start Smart Practice'}</span>
-                                        <ChevronRight size={20} aria-hidden />
-                                    </button>
-                                </section>
-                            )}
+                                <button
+                                    type="button"
+                                    onClick={startAdaptiveTraining}
+                                    disabled={adaptiveLoading}
+                                    className="preflop-primary-cta"
+                                >
+                                    <span>{adaptiveLoading ? 'Generating...' : !userId ? 'Sign In For Smart Practice' : weakSpots.length > 0
+                                        ? `Train ${weakSpots[0]?.area}`
+                                        : 'Start Smart Practice'}</span>
+                                    <ChevronRight size={20} aria-hidden />
+                                </button>
+                            </section>
 
                             {/* Jarvis Suggestions Panel */}
                             {userId && lobbySuggestions.length > 0 && (
@@ -1486,6 +1729,7 @@ export default function MemoryGamesPage() {
                                                 key={i}
                                                 type="button"
                                                 onClick={() => {
+                                                    haptic('light');
                                                     if (suggestion.actionType === 'daily_challenge') {
                                                         if (dailyChallenge) {
                                                             startGame(dailyChallenge.level || 1);
@@ -1517,410 +1761,167 @@ export default function MemoryGamesPage() {
                                 </section>
                             )}
 
-                            {/* Game Mode Selector */}
-                            {(() => {
-                                const MODES = [
-                                    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Core GTO Training' },
-                                    { key: 'speed',      label: 'Speed Drill',  Icon: Zap,            color: '#FFD700', desc: 'Beat the Clock' },
-                                    { key: 'pressure',   label: 'Pressure',     Icon: Bomb,           color: '#FF4444', desc: 'Defuse the Bomb' },
-                                    { key: 'pattern',    label: 'Pattern',      Icon: Puzzle,         color: '#3B82F6', desc: 'Read the Range' },
-                                    { key: 'mixed',      label: 'Mixed',        Icon: Dices,          color: '#A855F7', desc: 'Dial Frequencies' },
-                                    { key: 'spot',       label: 'Spot Trainer', Icon: Crosshair,      color: '#F97316', desc: 'Full Hand Trees' },
-                                    { key: 'tournament', label: 'VS Ranked',    Icon: Swords,         color: '#EC4899', desc: 'Climb the Ladder' },
-                                ];
-                                const EXTRA = [
-                                    { key: 'daily',       label: 'Daily',    Icon: Calendar, color: '#00FF88', special: true },
-                                    { key: 'leaderboard', label: 'Rankings', Icon: Trophy,   color: '#FFD700', special: true },
-                                ];
-                                return (
-                                    <>
-                                        {/* Primary Training Modes */}
-                                        <div className="preflop-mode-rail" aria-label="Training modes">
-                                            {MODES.map(m => {
-                                                const active = gameType === m.key;
-                                                return (
-                                                    <button
-                                                        key={m.key}
-                                                        onClick={() => setGameType(m.key)}
-                                                        className={`preflop-mode-card${active ? ' is-active' : ''}`}
-                                                        style={{ '--mode-accent': m.color }}
-                                                        aria-pressed={active}
-                                                    >
-                                                        <span className="preflop-mode-icon"><m.Icon size={23} aria-hidden /></span>
-                                                        <span className="preflop-mode-label">{m.label}</span>
-                                                        <span className="preflop-mode-desc">{m.desc}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Quick Access Row */}
-                                        <div className="preflop-quick-row">
-                                            {EXTRA.map(m => {
-                                                const active = gameType === m.key;
-                                                return (
-                                                    <button
-                                                        key={m.key}
-                                                        onClick={() => {
-                                                            setGameType(m.key);
-                                                            if (m.key === 'leaderboard') loadLeaderboard();
-                                                            if (m.key === 'daily') loadDailyChallenge();
-                                                        }}
-                                                        className={`preflop-quick-button${active ? ' is-active' : ''}`}
-                                                        style={{ '--mode-accent': m.color }}
-                                                        aria-pressed={active}
-                                                    >
-                                                        <m.Icon size={16} aria-hidden />
-                                                        <span>{m.label}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </>
-                                );
-                            })()}
-
-                            {/* ── Mode Launch Cards ── */}
-                            <AnimatePresence mode="wait">
-                            {(() => {
-                                const MODE_CARDS = {
-                                    speed: {
-                                        icon: '\u26A1', title: 'SPEED DRILL', color: '#FFD700', gradient: ['#FFD700', '#F59E0B'],
-                                        difficulty: 'INTERMEDIATE', diffColor: '#FFD700',
-                                        desc: 'Flash a hand \u2192 Pick the action \u2192 Build streaks! Time gets shorter the better you do. 3 lives \u2014 don\'t lose them!',
-                                        stats: [{ label: 'FORMAT', value: '3 Lives' }, { label: 'SPEED', value: 'Accelerating' }, { label: 'REWARD', value: '\uD83D\uDC8E 15-50' }],
-                                        mode: 'speed-drill', btn: 'START SPEED DRILL',
-                                    },
-                                    pressure: {
-                                        icon: '\uD83D\uDCA3', title: 'PRESSURE COOKER', color: '#FF4444', gradient: ['#FF4444', '#FF0066'],
-                                        difficulty: 'HARD', diffColor: '#FF4444',
-                                        desc: 'Answer 10 hands before the clock runs out! Correct answers add time, wrong answers cost you. Can you defuse the bomb?',
-                                        stats: [{ label: 'FORMAT', value: '10 Hands' }, { label: 'CLOCK', value: '\u00B13-5 sec' }, { label: 'REWARD', value: '\uD83D\uDC8E 20-60' }],
-                                        mode: 'pressure-cooker', btn: 'START PRESSURE COOKER',
-                                    },
-                                    pattern: {
-                                        icon: '\uD83E\uDDE9', title: 'PATTERN RECOGNITION', color: '#3B82F6', gradient: ['#3B82F6', '#0088ff'],
-                                        difficulty: 'ADVANCED', diffColor: '#3B82F6',
-                                        desc: 'See a partial range \u2192 Identify the dominant action. Is it a RAISING, CALLING, or FOLDING range? Train your GTO intuition.',
-                                        stats: [{ label: 'FORMAT', value: '8 Patterns' }, { label: 'SKILL', value: 'Range Reading' }, { label: 'REWARD', value: '\uD83D\uDC8E 20-50' }],
-                                        mode: 'pattern-recognition', btn: 'START PATTERN RECOGNITION',
-                                    },
-                                    mixed: {
-                                        icon: '\uD83C\uDFB0', title: 'MIXED STRATEGY', color: '#A855F7', gradient: ['#A855F7', '#D946EF'],
-                                        difficulty: 'EXPERT', diffColor: '#A855F7',
-                                        desc: 'Dial in the exact frequency for complex GTO spots. Should you Raise 30% or 70%? 10 rounds of high-precision frequency training.',
-                                        stats: [{ label: 'FORMAT', value: '10 Rounds' }, { label: 'SKILL', value: 'Frequencies' }, { label: 'REWARD', value: '\uD83D\uDC8E 25-75' }],
-                                        mode: 'mixed-strategy', btn: 'START MIXED TRAINER',
-                                    },
-                                    spot: {
-                                        icon: '\u25CE', title: 'SPOT TRAINER', color: '#F97316', gradient: ['#F97316', '#EA580C'],
-                                        difficulty: 'ADVANCED', diffColor: '#F97316',
-                                        desc: 'Play through entire hand trees from preflop to river. Learn how ranges evolve on each street and compare your EV to optimal GTO play.',
-                                        stats: [{ label: 'FORMAT', value: 'Full Trees' }, { label: 'SKILL', value: 'EV Analysis' }, { label: 'REWARD', value: '\uD83D\uDC8E 30-80' }],
-                                        mode: 'spot-trainer', btn: 'START SPOT TRAINER',
-                                    },
-                                    tournament: {
-                                        icon: '\u2694\uFE0F', title: 'VS RANKED', color: '#EC4899', gradient: ['#EC4899', '#DB2777'],
-                                        difficulty: 'COMPETITIVE', diffColor: '#EC4899',
-                                        desc: 'Head-to-head GTO challenges against 300+ AI opponents for ELO ranking. Climb the ladder and prove you\'re the best.',
-                                        stats: [{ label: 'FORMAT', value: 'Best of 10' }, { label: 'RANKING', value: 'ELO System' }, { label: 'REWARD', value: '\uD83D\uDC8E 40-100' }],
-                                        mode: 'tournament', btn: 'ENTER RANKED BATTLE',
-                                    },
-                                };
-
-                                const card = MODE_CARDS[gameType];
-                                if (!card) return null;
-
-                                // Personal best from localStorage
-                                let personalBest = null;
-                                try {
-                                    const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`pb_${card.mode}`) || 'null') : null;
-                                    if (stored && stored.score) personalBest = stored;
-                                } catch (e) { console.warn('[App] Handled exception:', e); }
-
-                                return (
-                                    <motion.div
-                                        key={gameType}
-                                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -15, scale: 0.97 }}
-                                        transition={{ duration: 0.25, ease: 'easeOut' }}
-                                        style={{
-                                            background: `linear-gradient(135deg, ${card.color}11, ${card.color}08)`,
-                                            border: `2px solid ${card.color}4D`,
-                                            borderRadius: 20,
-                                            padding: '32px 28px',
-                                            textAlign: 'center',
-                                            maxWidth: 520,
-                                            margin: '0 auto',
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                        }}>
-                                        {/* Difficulty Badge */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: 14,
-                                            right: 14,
-                                            padding: '4px 12px',
-                                            background: `${card.diffColor}22`,
-                                            border: `1px solid ${card.diffColor}66`,
-                                            borderRadius: 20,
-                                            fontSize: 10,
-                                            fontWeight: 800,
-                                            color: card.diffColor,
-                                            letterSpacing: 1.5,
-                                        }}>
-                                            {card.difficulty}
-                                        </div>
-
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>{card.icon}</div>
-                                        <h2 style={{
-                                            fontSize: 24,
-                                            fontWeight: 800,
-                                            color: card.color,
-                                            marginBottom: 10,
-                                            letterSpacing: 1,
-                                        }}>
-                                            {card.title}
-                                        </h2>
-
-                                        <p style={{
-                                            fontSize: 14,
-                                            color: 'rgba(255,255,255,0.65)',
-                                            marginBottom: 20,
-                                            lineHeight: 1.6,
-                                            maxWidth: 380,
-                                            margin: '0 auto 20px',
-                                        }}>
-                                            {card.desc}
-                                        </p>
-
-                                        {/* Stat Pills */}
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            gap: 12,
-                                            marginBottom: 24,
-                                            flexWrap: 'wrap',
-                                        }}>
-                                            {card.stats.map((s, i) => (
-                                                <div key={i} style={{
-                                                    background: 'rgba(0,0,0,0.3)',
-                                                    borderRadius: 10,
-                                                    padding: '8px 14px',
-                                                    textAlign: 'center',
-                                                    minWidth: 90,
-                                                }}>
-                                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>
-                                                        {s.label}
-                                                    </div>
-                                                    <div style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>
-                                                        {s.value}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Personal Best Badge */}
-                                        {personalBest && (
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-                                                background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)',
-                                                borderRadius: 10, padding: '8px 16px', marginBottom: 16,
-                                            }}>
-                                                <span style={{ fontSize: 14 }}>{'\uD83C\uDFC6'}</span>
-                                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>YOUR BEST</span>
-                                                <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 800, fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif" }}>{personalBest.score}</span>
-                                                {personalBest.grade && (
-                                                    <span style={{
-                                                        fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
-                                                        background: ({ S: '#FFD70022', A: '#22C55E22', B: '#3B82F622', C: '#F59E0B22', D: '#EF444422' })[personalBest.grade] || '#fff1',
-                                                        color: ({ S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' })[personalBest.grade] || '#fff',
-                                                    }}>{personalBest.grade}</span>
-                                                )}
-                                                {personalBest.plays && (
-                                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{personalBest.plays} Plays</span>
-                                                )}
-                                            </div>
-                                        )}
-
+                            {/* Game Mode Selector (tutorial target: mode-grid). A wrapping
+                                grid at every width: every mode card is always visible. */}
+                            <div className="preflop-mode-rail" aria-label="Training modes" data-tutorial="mode-grid">
+                                {MODES.map(m => {
+                                    const active = gameType === m.key;
+                                    return (
                                         <button
-                                            onClick={async () => {
-                                                const canPlay = await checkAndDeductDiamonds();
-                                                if (!canPlay) return;
-                                                setMode(card.mode);
-                                            }}
-                                            style={{
-                                                padding: '16px 48px',
-                                                fontSize: 16,
-                                                fontWeight: 800,
-                                                background: `linear-gradient(135deg, ${card.gradient[0]}, ${card.gradient[1]})`,
-                                                border: 'none',
-                                                borderRadius: 14,
-                                                color: '#fff',
-                                                cursor: 'pointer',
-                                                letterSpacing: 1,
-                                                transition: 'all 0.2s ease',
-                                                boxShadow: `0 4px 20px ${card.color}33`,
-                                            }}
+                                            key={m.key}
+                                            type="button"
+                                            onClick={() => { haptic('light'); setGameType(m.key); }}
+                                            className={`preflop-mode-card${active ? ' is-active' : ''}`}
+                                            style={{ '--mode-accent': m.color }}
+                                            aria-pressed={active}
                                         >
-                                            {card.btn}
+                                            <span className="preflop-mode-icon"><m.Icon size={23} aria-hidden /></span>
+                                            <span className="preflop-mode-label">{m.label}</span>
+                                            <span className="preflop-mode-desc">{m.desc}</span>
                                         </button>
-                                    </motion.div>
-                                );
-                            })()}
-                            </AnimatePresence>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Quick Access Row */}
+                            <div className="preflop-quick-row">
+                                {EXTRA_MODES.map(m => {
+                                    const active = gameType === m.key;
+                                    return (
+                                        <button
+                                            key={m.key}
+                                            type="button"
+                                            onClick={() => {
+                                                haptic('light');
+                                                setGameType(m.key);
+                                                if (m.key === 'leaderboard') loadLeaderboard();
+                                                if (m.key === 'daily') loadDailyChallenge();
+                                            }}
+                                            className={`preflop-quick-button${active ? ' is-active' : ''}`}
+                                            style={{ '--mode-accent': m.color }}
+                                            aria-pressed={active}
+                                        >
+                                            <m.Icon size={16} aria-hidden />
+                                            <span>{m.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Mode Launch Card (CSS enter animation keyed by mode) */}
+                            {launchCard && (
+                                <div
+                                    key={gameType}
+                                    className="preflop-launch-card"
+                                    style={{
+                                        '--launch-color': launchCard.color,
+                                        '--launch-from': launchCard.gradient[0],
+                                        '--launch-to': launchCard.gradient[1],
+                                    }}
+                                >
+                                    <div className="preflop-launch-difficulty" style={{ color: launchCard.diffColor, borderColor: `${launchCard.diffColor}66`, background: `${launchCard.diffColor}22` }}>
+                                        {launchCard.difficulty}
+                                    </div>
+                                    <div className="preflop-launch-icon" aria-hidden="true"><launchCard.Icon size={44} /></div>
+                                    <h2 className="preflop-launch-title">{launchCard.title}</h2>
+                                    <p className="preflop-launch-desc">{launchCard.desc}</p>
+
+                                    <div className="preflop-launch-stats">
+                                        {launchCard.stats.map((s, i) => (
+                                            <div key={i}>
+                                                <span>{s.label}</span>
+                                                <strong>{s.value}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {personalBest && (
+                                        <div className="preflop-launch-best">
+                                            <Medal size={16} aria-hidden />
+                                            <span>YOUR BEST</span>
+                                            <strong>{personalBest.score}</strong>
+                                            {personalBest.grade && (
+                                                <em style={{
+                                                    background: ({ S: '#FFD70022', A: '#22C55E22', B: '#3B82F622', C: '#F59E0B22', D: '#EF444422' })[personalBest.grade] || '#fff1',
+                                                    color: ({ S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' })[personalBest.grade] || '#fff',
+                                                }}>{personalBest.grade}</em>
+                                            )}
+                                            {personalBest.plays && <span>{personalBest.plays} Plays</span>}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        className="preflop-launch-button"
+                                        onClick={async () => {
+                                            if (!requireOnline()) return;
+                                            haptic('medium');
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
+                                            setMode(launchCard.mode);
+                                        }}
+                                    >
+                                        {launchCard.btn}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Leaderboard Section */}
                             {gameType === 'leaderboard' && (
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 140, 0, 0.05))',
-                                    border: '2px solid rgba(255, 215, 0, 0.3)',
-                                    borderRadius: 20,
-                                    padding: 24,
-                                    maxWidth: 800,
-                                    margin: '0 auto',
-                                }}>
-                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>{'\uD83C\uDFC6'}</div>
-                                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
-                                            GLOBAL LEADERBOARD
-                                        </h2>
-                                        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                                            Compete With Players Worldwide. Top Scores Win Prizes!
-                                        </p>
+                                <div className="preflop-board-panel is-gold">
+                                    <div className="preflop-board-heading">
+                                        <Trophy size={40} aria-hidden />
+                                        <h2>GLOBAL LEADERBOARD</h2>
+                                        <p>Compete With Players Worldwide. Top Scores Win Prizes!</p>
                                     </div>
 
-                                    {/* Mode Toggle */}
-                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
-                                        {[
-                                            { id: 'range-memory', label: '\uD83C\uDFAF Range', color: '#00D4FF' },
-                                            { id: 'speed-drill', label: '\u26A1 Speed', color: '#FFD700' },
-                                            { id: 'pressure-cooker', label: '\uD83D\uDCA3 Pressure', color: '#ff4444' },
-                                            { id: 'pattern-recognition', label: '\uD83E\uDDE9 Pattern', color: '#3B82F6' },
-                                            { id: 'mixed-strategy', label: '\uD83C\uDFB0 Mixed', color: '#A855F7' },
-                                            { id: 'spot-trainer', label: '\u25CE Spot', color: '#F97316' },
-                                            { id: 'tournament', label: '\u2694\uFE0F Ranked', color: '#EC4899' },
-                                        ].map(mode => (
+                                    {/* Mode Toggle: wrapping row */}
+                                    <div className="preflop-board-modes">
+                                        {LEADERBOARD_MODES.map(modeRow => (
                                             <button
-                                                key={mode.id}
+                                                key={modeRow.id}
+                                                type="button"
                                                 onClick={() => {
-                                                    setLeaderboardMode(mode.id);
+                                                    haptic('light');
+                                                    setLeaderboardMode(modeRow.id);
                                                     loadLeaderboard();
                                                 }}
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    fontSize: 12,
-                                                    fontWeight: 600,
-                                                    background: leaderboardMode === mode.id ? `${mode.color}22` : 'rgba(0,0,0,0.3)',
-                                                    border: `2px solid ${leaderboardMode === mode.id ? mode.color : 'rgba(255,255,255,0.1)'}`,
-                                                    borderRadius: 20,
-                                                    color: leaderboardMode === mode.id ? mode.color : 'rgba(255,255,255,0.5)',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                }}
+                                                aria-pressed={leaderboardMode === modeRow.id}
+                                                style={{ '--mode-accent': modeRow.color }}
                                             >
-                                                {mode.label}
+                                                {modeRow.label}
                                             </button>
                                         ))}
                                     </div>
 
                                     {/* User Rank Display */}
                                     {userRank && (
-                                        <div style={{
-                                            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(138, 43, 226, 0.15))',
-                                            border: '2px solid #00D4FF',
-                                            borderRadius: 12,
-                                            padding: 16,
-                                            marginBottom: 20,
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                        }}>
+                                        <div className="preflop-board-rank">
                                             <div>
-                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>YOUR RANK</div>
-                                                <div style={{ fontSize: 32, fontWeight: 900, color: '#00D4FF' }}>#{userRank.rank || '-'}</div>
+                                                <span>YOUR RANK</span>
+                                                <strong>#{userRank.rank || '-'}</strong>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>BEST SCORE</div>
-                                                <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{userRank.score || 0}</div>
+                                                <span>BEST SCORE</span>
+                                                <strong style={{ color: '#fff', fontSize: 24 }}>{userRank.score || 0}</strong>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Leaderboard Table */}
-                                    <div style={{
-                                        background: 'rgba(0,0,0,0.4)',
-                                        borderRadius: 12,
-                                        overflow: 'hidden',
-                                        maxHeight: 400,
-                                        overflowY: 'auto',
-                                    }}>
+                                    {/* Leaderboard: a table on desktop, one card per row on phones */}
+                                    <div className="preflop-board-table">
                                         {leaderboardLoading ? (
-                                            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-                                                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                                                Loading Rankings...
-                                            </div>
-                                        ) : leaderboardData.length === 0 ? (
-                                            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-                                                <div style={{ fontSize: 32, marginBottom: 12 }}></div>
-                                                No Rankings Yet. Be The First!
-                                            </div>
+                                            <div className="preflop-board-empty">Loading Rankings...</div>
+                                        ) : leaderboardRows.length === 0 ? (
+                                            <div className="preflop-board-empty">No Rankings Yet. Be The First!</div>
                                         ) : (
-                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                                <thead>
-                                                    <tr style={{ background: 'rgba(255,215,0,0.1)' }}>
-                                                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>RANK</th>
-                                                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>PLAYER</th>
-                                                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>SCORE</th>
-                                                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>STREAK</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {leaderboardData.map((entry, idx) => (
-                                                        <tr
-                                                            key={entry.user_id}
-                                                            style={{
-                                                                background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                                            }}
-                                                        >
-                                                            <td style={{ padding: '12px 16px', color: idx < 3 ? '#FFD700' : '#fff', fontSize: 14, fontWeight: idx < 3 ? 700 : 400 }}>
-                                                                {idx === 0 ? '' : idx === 1 ? '' : idx === 2 ? '' : `#${idx + 1}`}
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', color: '#fff', fontSize: 14 }}>
-                                                                {entry.display_name || 'Anonymous'}
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', color: '#00ff88', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>
-                                                                {entry.score?.toLocaleString()}
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', color: '#FF6B00', fontSize: 14, textAlign: 'right' }}>
-                                                                {entry.streak || 0}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            <ResponsiveTable columns={LEADERBOARD_COLUMNS} rows={leaderboardRows} keyField="id" caption="Global leaderboard" />
                                         )}
                                     </div>
 
-                                    {/* Refresh Button */}
-                                    <div style={{ textAlign: 'center', marginTop: 20 }}>
-                                        <button
-                                            onClick={loadLeaderboard}
-                                            disabled={leaderboardLoading}
-                                            style={{
-                                                padding: '12px 32px',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                background: 'rgba(255,255,255,0.1)',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                borderRadius: 30,
-                                                color: '#fff',
-                                                cursor: 'pointer',
-                                            }}
-                                        >
-                                            🔄 Refresh Rankings
+                                    <div className="preflop-board-actions">
+                                        <button type="button" onClick={() => { haptic('light'); loadLeaderboard(); }} disabled={leaderboardLoading}>
+                                            <RefreshCw size={16} aria-hidden /> Refresh Rankings
                                         </button>
                                     </div>
                                 </div>
@@ -1928,193 +1929,74 @@ export default function MemoryGamesPage() {
 
                             {/* Daily Challenge Section */}
                             {gameType === 'daily' && (
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 212, 255, 0.05))',
-                                    border: '2px solid rgba(0, 255, 136, 0.3)',
-                                    borderRadius: 20,
-                                    padding: 24,
-                                    maxWidth: 600,
-                                    margin: '0 auto',
-                                }}>
-                                    {/* Streak Display */}
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        gap: 32,
-                                        marginBottom: 24,
-                                    }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 48, marginBottom: 4 }}></div>
-                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#FF6B00' }}>{userStreak.current_streak || 0}</div>
-                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak</div>
+                                <div className="preflop-board-panel is-green">
+                                    <div className="preflop-board-streaks">
+                                        <div>
+                                            <Flame size={28} aria-hidden style={{ color: '#FF6B00' }} />
+                                            <strong style={{ color: '#FF6B00' }}>{userStreak.current_streak || 0}</strong>
+                                            <span>Current Streak</span>
                                         </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 48, marginBottom: 4 }}></div>
-                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#FFD700' }}>{userStreak.longest_streak || 0}</div>
-                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Best Streak</div>
+                                        <div>
+                                            <Trophy size={28} aria-hidden style={{ color: '#FFD700' }} />
+                                            <strong style={{ color: '#FFD700' }}>{userStreak.longest_streak || 0}</strong>
+                                            <span>Best Streak</span>
                                         </div>
                                     </div>
 
-                                    {/* Challenge Card */}
-                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>◉</div>
-                                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
-                                            DAILY CHALLENGE
-                                        </h2>
-                                        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>
-                                            Complete Today's Challenge To Keep Your Streak Alive!
-                                        </p>
+                                    <div className="preflop-board-heading">
+                                        <Calendar size={40} aria-hidden />
+                                        <h2 style={{ color: '#00ff88' }}>DAILY CHALLENGE</h2>
+                                        <p>Complete Today's Challenge To Keep Your Streak Alive!</p>
                                     </div>
 
                                     {challengeLoading ? (
-                                        <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-                                            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                                            Loading Today's Challenge...
-                                        </div>
+                                        <div className="preflop-board-empty">Loading Today's Challenge...</div>
                                     ) : challengeCompleted ? (
-                                        <div style={{
-                                            background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2))',
-                                            border: '2px solid #00ff88',
-                                            borderRadius: 16,
-                                            padding: 32,
-                                            textAlign: 'center',
-                                        }}>
-                                            <div style={{ fontSize: 64, marginBottom: 16, color: '#00ff88' }}>✓</div>
-                                            <h3 style={{ fontSize: 24, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
-                                                CHALLENGE COMPLETE!
-                                            </h3>
-                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
-                                                Come Back Tomorrow For A New Challenge!
-                                            </p>
-                                            <div style={{ marginTop: 20, fontSize: 18, color: '#FFD700' }}>
-                                                +{dailyChallenge?.diamond_reward || 50} Diamonds Earned!
-                                            </div>
+                                        <div className="preflop-board-complete">
+                                            <ShieldCheck size={48} aria-hidden />
+                                            <h3>CHALLENGE COMPLETE!</h3>
+                                            <p>Come Back Tomorrow For A New Challenge!</p>
+                                            <strong>+{dailyChallenge?.diamond_reward || 50} Diamonds Earned!</strong>
                                         </div>
                                     ) : dailyChallenge ? (
-                                        <div style={{
-                                            background: 'rgba(0,0,0,0.4)',
-                                            border: '1px solid rgba(255,255,255,0.1)',
-                                            borderRadius: 16,
-                                            padding: 24,
-                                        }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 16,
-                                                marginBottom: 16,
-                                                padding: '12px 16px',
-                                                background: 'rgba(0, 255, 136, 0.1)',
-                                                borderRadius: 12,
-                                            }}>
-                                                <div style={{ fontSize: 32 }}>
-                                                    {dailyChallenge.game_mode === 'range-memory' ? '\uD83C\uDFAF' :
-                                                        dailyChallenge.game_mode === 'speed-drill' ? '\u26A1' :
-                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '\uD83D\uDCA3' :
-                                                                dailyChallenge.game_mode === 'pattern-recognition' ? '\uD83E\uDDE9' :
-                                                                    dailyChallenge.game_mode === 'mixed-strategy' ? '\uD83C\uDFB0' :
-                                                                        dailyChallenge.game_mode === 'spot-trainer' ? '\u25CE' :
-                                                                            dailyChallenge.game_mode === 'tournament' ? '\u2694\uFE0F' : '\uD83C\uDFAF'}
-                                                </div>
+                                        <div className="preflop-board-challenge">
+                                            <div className="preflop-board-challenge-head">
+                                                <Target size={28} aria-hidden />
                                                 <div>
-                                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
-                                                        {dailyChallenge.title || 'Today\'s Challenge'}
-                                                    </div>
-                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                                                        Level {dailyChallenge.level || 1} • {dailyChallenge.game_mode?.replace('-', ' ').toUpperCase()}
-                                                    </div>
+                                                    <strong>{dailyChallenge.title || 'Today\'s Challenge'}</strong>
+                                                    <span>Level {dailyChallenge.level || 1} / {(dailyChallenge.game_mode || 'range').replace('-', ' ').toUpperCase()}</span>
                                                 </div>
                                             </div>
 
-                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                                {dailyChallenge.description || `Score ${accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}% or higher to complete the challenge.`}
+                                            <p>
+                                                {dailyChallenge.description || `Score ${accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}% Or Higher To Complete The Challenge.`}
                                             </p>
 
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                padding: '12px 16px',
-                                                background: 'rgba(255,215,0,0.1)',
-                                                borderRadius: 12,
-                                                marginBottom: 20,
-                                            }}>
+                                            <div className="preflop-board-challenge-meta">
                                                 <div>
-                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>TARGET SCORE</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</div>
+                                                    <span>TARGET SCORE</span>
+                                                    <strong style={{ color: '#00ff88' }}>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</strong>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>REWARD</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50}Diamonds</div>
+                                                    <span>REWARD</span>
+                                                    <strong style={{ color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50} Diamonds</strong>
                                                 </div>
                                             </div>
 
-                                            <button
-                                                onClick={() => {
-                                                    // Start the challenge based on game mode
-                                                    const mode = dailyChallenge.game_mode;
-                                                    if (mode === 'range-memory') {
-                                                        startGame(dailyChallenge.level || 1);
-                                                    } else if (mode === 'speed-drill') {
-                                                        setMode('speed-drill');
-                                                    } else if (mode === 'pressure-cooker') {
-                                                        setMode('pressure-cooker');
-                                                    } else if (mode === 'pattern-recognition') {
-                                                        setMode('pattern-recognition');
-                                                    } else if (mode === 'mixed-strategy') {
-                                                        setMode('mixed-strategy');
-                                                    } else if (mode === 'spot-trainer') {
-                                                        setMode('spot-trainer');
-                                                    } else if (mode === 'tournament') {
-                                                        setMode('tournament');
-                                                    }
-                                                }}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '16px 32px',
-                                                    fontSize: 18,
-                                                    fontWeight: 700,
-                                                    background: 'linear-gradient(135deg, #00ff88, #00D4FF)',
-                                                    color: '#000',
-                                                    border: 'none',
-                                                    borderRadius: 50,
-                                                    cursor: 'pointer',
-                                                    boxShadow: '0 0 30px rgba(0, 255, 136, 0.4)',
-                                                }}
-                                            >
+                                            <button type="button" className="preflop-board-start" onClick={startDailyChallenge}>
                                                 START DAILY CHALLENGE
                                             </button>
                                         </div>
                                     ) : (
-                                        <div style={{
-                                            background: 'rgba(255,165,0,0.1)',
-                                            border: '1px solid rgba(255,165,0,0.3)',
-                                            borderRadius: 16,
-                                            padding: 32,
-                                            textAlign: 'center',
-                                        }}>
-                                            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
-                                            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#FFA500', marginBottom: 8 }}>
-                                                No Challenge Available
-                                            </h3>
-                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                                                Check Back Soon For Today's Challenge!
-                                            </p>
+                                        <div className="preflop-board-empty is-warning">
+                                            <h3>No Challenge Available</h3>
+                                            <p>Check Back Soon For Today's Challenge!</p>
                                         </div>
                                     )}
 
-                                    {/* Streak Rewards Info */}
-                                    <div style={{
-                                        marginTop: 24,
-                                        padding: 16,
-                                        background: 'rgba(0,0,0,0.3)',
-                                        borderRadius: 12,
-                                        textAlign: 'center',
-                                    }}>
-                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#FFD700', marginBottom: 8 }}>
-                                            STREAK REWARDS
-                                        </div>
-                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-                                            7 Days: +100Diamonds Bonus • 30 Days: +500Diamonds Bonus • 100 Days: +2000Diamonds Bonus
-                                        </div>
+                                    <div className="preflop-board-note">
+                                        <strong>STREAK REWARDS</strong>
+                                        <span>7 Days: +100 Diamonds Bonus. 30 Days: +500 Diamonds Bonus. 100 Days: +2000 Diamonds Bonus.</span>
                                     </div>
                                 </div>
                             )}
@@ -2122,8 +2004,8 @@ export default function MemoryGamesPage() {
                             {/* Level Grid - Only show for Range Memory */}
                             {gameType === 'range' && (
                                 <>
-                                    {/* Filter Toggle Button + AI Generation Toggle */}
-                                    <div className="preflop-level-toolbar">
+                                    {/* Filter Toggle Button + AI Generation Toggle (tutorial target: scenario) */}
+                                    <div className="preflop-level-toolbar" data-tutorial="scenario">
                                         <div>
                                             <span className="preflop-panel-kicker">RANGE PROGRESSION</span>
                                             <h3>Select A Level</h3>
@@ -2131,38 +2013,40 @@ export default function MemoryGamesPage() {
                                         <div className="preflop-level-actions">
                                             {/* AI Generation Toggle (VIP Feature) */}
                                             <button
-                                                onClick={() => setUseAIGeneration(!useAIGeneration)}
+                                                type="button"
+                                                onClick={() => { haptic('light'); setUseAIGeneration(!useAIGeneration); }}
                                                 className={`preflop-tool-button${useAIGeneration ? ' is-active is-gold' : ''}`}
                                                 title="Generate Unique Scenarios Using Jarvis AI"
                                                 aria-pressed={useAIGeneration}
                                             >
-                                                <BrainCircuit size={15} aria-hidden />{useAIGeneration ? 'AI ON' : 'AI Mode'}
+                                                <BrainCircuit size={15} aria-hidden />{useAIGeneration ? 'AI On' : 'AI Mode'}
                                             </button>
 
                                             {/* Filter Toggle */}
                                             <button
-                                                onClick={() => setShowFilters(!showFilters)}
+                                                type="button"
+                                                onClick={() => { haptic('light'); setShowFilters(!showFilters); }}
                                                 className={`preflop-tool-button${showFilters ? ' is-active' : ''}`}
                                                 aria-expanded={showFilters}
                                             >
-                                                <Filter size={14} aria-hidden />{showFilters ? 'Hide filters' : 'Filter scenarios'}
-                                                {Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length > 0 && (
+                                                <Filter size={14} aria-hidden />{showFilters ? 'Hide Filters' : 'Filter Scenarios'}
+                                                {activeScenarioFilterCount > 0 && (
                                                     <span className="preflop-filter-count">
-                                                        {Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length}
+                                                        {activeScenarioFilterCount}
                                                     </span>
                                                 )}
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* Filter Panel */}
+                                    {/* Filter Panel (lazy; closes on the back gesture) */}
                                     {showFilters && (
                                         <ScenarioFilterPanel
                                             onFilterChange={setScenarioFilters}
-                                            onClose={() => setShowFilters(false)}
+                                            onClose={closeFilters}
                                             currentFilters={scenarioFilters}
                                             availableScenarios={ALL_TRAINING_SCENARIOS.length}
-                                            filteredCount={filterScenarios(ALL_TRAINING_SCENARIOS, scenarioFilters).length}
+                                            filteredCount={filteredScenarioCount}
                                         />
                                     )}
 
@@ -2190,14 +2074,14 @@ export default function MemoryGamesPage() {
                                             <ShieldCheck size={16} aria-hidden />
                                             <span>
                                                 <small>Next Mastery Gate</small>
-                                                <strong>Level {highestUnlockedLevel} Open <em>· {masteredLevelCount} Mastered</em></strong>
+                                                <strong>Level {highestUnlockedLevel} Open <em>{masteredLevelCount} Mastered</em></strong>
                                             </span>
                                         </div>
                                         <div className={`preflop-circuit-stat is-pool${activeScenarioFilterCount > 0 ? ' has-filters' : ''}`}>
                                             <Filter size={15} aria-hidden />
                                             <span>
                                                 <small>Practice Pool</small>
-                                                <strong>{filteredScenarioCount}/{ALL_TRAINING_SCENARIOS.length} <em>· {activeScenarioFilterCount > 0 ? `${activeScenarioFilterCount} active` : 'Full range'}</em></strong>
+                                                <strong>{filteredScenarioCount}/{ALL_TRAINING_SCENARIOS.length} <em>{activeScenarioFilterCount > 0 ? `${activeScenarioFilterCount} Active` : 'Full Range'}</em></strong>
                                             </span>
                                         </div>
                                     </div>
@@ -2227,7 +2111,7 @@ export default function MemoryGamesPage() {
                                                             : 'ready';
                                             const levelStateLabel = {
                                                 locked: 'Locked',
-                                                'no-match': 'No matches',
+                                                'no-match': 'No Matches',
                                                 mastered: 'Mastered',
                                                 current: 'Current',
                                                 ready: 'Ready',
@@ -2259,13 +2143,13 @@ export default function MemoryGamesPage() {
                                                     </div>
                                                     <div className="preflop-level-meta">
                                                         <span>{levelConfig.timer}s</span>
-                                                        <span><Gem size={13} aria-hidden />×{levelConfig.diamondMultiplier}</span>
+                                                        <span><Gem size={13} aria-hidden />x{levelConfig.diamondMultiplier}</span>
                                                         <span className={activeScenarioFilterCount > 0 ? 'is-filtered-count' : ''}>
-                                                            {matchingScenarioCount} {activeScenarioFilterCount > 0 ? 'matching' : `scenario${matchingScenarioCount !== 1 ? 's' : ''}`}
+                                                            {matchingScenarioCount} {activeScenarioFilterCount > 0 ? 'Matching' : `Scenario${matchingScenarioCount !== 1 ? 's' : ''}`}
                                                         </span>
                                                         <div className="preflop-level-locks">
                                                             {level.level > 3 && isVIP === false && (
-                                                                <span className="preflop-level-cost"><Gem size={11} aria-hidden />10</span>
+                                                                <span className="preflop-level-cost"><Gem size={12} aria-hidden />10</span>
                                                             )}
                                                             {level.level > 3 && isVIP && (
                                                                 <span className="preflop-level-vip">VIP</span>
@@ -2273,7 +2157,7 @@ export default function MemoryGamesPage() {
                                                             {!isUnlocked && <Lock size={12} aria-hidden style={{ color: 'rgba(255,255,255,0.45)' }} />}
                                                         </div>
                                                     </div>
-                                                    {/* 2026-05-07 — real progress from memoryDashboard.per_level_mastery */}
+                                                    {/* 2026-05-07 - real progress from memoryDashboard.per_level_mastery */}
                                                     {(() => {
                                                         const m = mastery;
                                                         if (!m || m.attempts === 0) return null;
@@ -2284,7 +2168,7 @@ export default function MemoryGamesPage() {
                                                                     <span>Best {pct}%</span>
                                                                     {m.mastered && (
                                                                         <span className="preflop-level-mastered-label">
-                                                                            <ShieldCheck size={10} aria-hidden /> Mastered
+                                                                            <ShieldCheck size={12} aria-hidden /> Mastered
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -2315,34 +2199,20 @@ export default function MemoryGamesPage() {
                                 </>
                             )}
 
+                            {/* How to read the matrix: the always-visible primer that carries the
+                                tutorial's matrix / legend / submit targets on the menu. */}
+                            <PreflopMatrixPrimer ranks={RANKS} getHandName={getHandName} actionColors={ACTION_COLORS} />
+
                             {/* Recent Sessions */}
                             {sessionHistory.length > 0 && (
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 41, 59, 0.4))',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    borderRadius: 16,
-                                    padding: 20,
-                                    marginTop: 24,
-                                    marginBottom: 16,
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                                        <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: 0.5 }}>
-                                            RECENT SESSIONS
-                                        </span>
-                                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-                                            Last {Math.min(sessionHistory.length, 8)}
-                                        </span>
+                                <div className="preflop-recent">
+                                    <div className="preflop-recent-head">
+                                        <span>RECENT SESSIONS</span>
+                                        <span>Last {Math.min(sessionHistory.length, 8)}</span>
                                     </div>
 
                                     {/* Mini Trend Chart */}
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'flex-end',
-                                        gap: 4,
-                                        height: 48,
-                                        marginBottom: 16,
-                                        padding: '0 4px',
-                                    }}>
+                                    <div className="preflop-recent-chart" aria-hidden="true">
                                         {sessionHistory.slice(-12).map((s, i, arr) => {
                                             const maxScore = Math.max(...arr.map(x => x.score || 0), 1);
                                             const pct = ((s.score || 0) / maxScore) * 100;
@@ -2357,63 +2227,35 @@ export default function MemoryGamesPage() {
                                                         : `${color}44`,
                                                     borderRadius: 3,
                                                     transition: 'height 0.3s ease',
-                                                    position: 'relative',
                                                 }} title={`Score: ${s.score || 0}%`} />
                                             );
                                         })}
                                     </div>
 
                                     {/* Session List */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <div className="preflop-recent-list">
                                         {sessionHistory.slice(-5).reverse().map((s, i) => {
-                                            const date = new Date(s.timestamp);
                                             const timeAgo = (() => {
                                                 const diff = Date.now() - s.timestamp;
                                                 const mins = Math.floor(diff / 60000);
-                                                if (mins < 60) return `${mins}m ago`;
+                                                if (mins < 60) return `${mins}m Ago`;
                                                 const hrs = Math.floor(mins / 60);
-                                                if (hrs < 24) return `${hrs}h ago`;
-                                                return `${Math.floor(hrs / 24)}d ago`;
+                                                if (hrs < 24) return `${hrs}h Ago`;
+                                                return `${Math.floor(hrs / 24)}d Ago`;
                                             })();
                                             const grade = (s.score || 0) >= 95 ? 'S' : (s.score || 0) >= 85 ? 'A' : (s.score || 0) >= 70 ? 'B' : (s.score || 0) >= 50 ? 'C' : 'D';
                                             const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
                                             return (
-                                                <div key={i} style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 10,
-                                                    padding: '8px 12px',
-                                                    background: 'rgba(0,0,0,0.2)',
-                                                    borderRadius: 10,
-                                                }}>
-                                                    <div style={{
-                                                        width: 28,
-                                                        height: 28,
-                                                        borderRadius: 6,
-                                                        background: `${gradeColor}22`,
-                                                        border: `1px solid ${gradeColor}55`,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: 13,
-                                                        fontWeight: 900,
-                                                        color: gradeColor,
-                                                        flexShrink: 0,
-                                                    }}>
+                                                <div key={i} className="preflop-recent-row">
+                                                    <div className="preflop-recent-grade" style={{ background: `${gradeColor}22`, border: `1px solid ${gradeColor}55`, color: gradeColor }}>
                                                         {grade}
                                                     </div>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                                                            Level {s.level || '?'} {s.position ? `\u2022 ${s.position}` : ''}
-                                                        </div>
+                                                    <div className="preflop-recent-copy">
+                                                        Level {s.level || '?'} {s.position ? `/ ${s.position}` : ''}
                                                     </div>
-                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                        <div style={{ fontSize: 13, fontWeight: 700, color: gradeColor }}>
-                                                            {s.score || 0}%
-                                                        </div>
-                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-                                                            {timeAgo}
-                                                        </div>
+                                                    <div className="preflop-recent-score">
+                                                        <strong style={{ color: gradeColor }}>{s.score || 0}%</strong>
+                                                        <span>{timeAgo}</span>
                                                     </div>
                                                 </div>
                                             );
@@ -2421,37 +2263,31 @@ export default function MemoryGamesPage() {
                                     </div>
 
                                     {/* Quick Stats Row */}
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-around',
-                                        marginTop: 14,
-                                        paddingTop: 14,
-                                        borderTop: '1px solid rgba(255,255,255,0.06)',
-                                    }}>
+                                    <div className="preflop-recent-stats">
                                         {[
                                             { label: 'SESSIONS', value: sessionHistory.length },
                                             { label: 'AVG SCORE', value: `${Math.round(sessionHistory.reduce((a, s) => a + (s.score || 0), 0) / sessionHistory.length)}%` },
                                             { label: 'BEST', value: `${Math.max(...sessionHistory.map(s => s.score || 0))}%` },
                                         ].map((stat, i) => (
-                                            <div key={i} style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{stat.value}</div>
-                                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: 600, letterSpacing: 1 }}>{stat.label}</div>
+                                            <div key={i}>
+                                                <strong>{stat.value}</strong>
+                                                <span>{stat.label}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* VIP Upsell — only for confirmed non-VIP users */}
+                            {/* VIP Upsell - only for confirmed non-VIP users */}
                             {isVIP === false && (
                                 <div className="preflop-vip-panel">
                                     <div className="preflop-vip-seal">VIP</div>
                                     <div className="preflop-vip-copy">
                                         <div>Go VIP - $19.99/Month</div>
-                                        <p>Unlimited Games • All Levels • No Diamond Cost • Exclusive Modes</p>
+                                        <p>Unlimited Games. All Levels. No Diamond Cost. Exclusive Modes.</p>
                                     </div>
-                                    <button type="button" onClick={handleVipUpgrade} disabled={vipCheckoutPending}>
-                                        {vipCheckoutPending ? 'Opening checkout…' : 'Upgrade to VIP'} <ChevronRight size={18} aria-hidden />
+                                    <button type="button" onClick={() => { haptic('light'); handleVipUpgrade(); }} disabled={vipCheckoutPending}>
+                                        {vipCheckoutPending ? 'Opening Checkout...' : 'Upgrade To VIP'} <ChevronRight size={18} aria-hidden />
                                     </button>
                                     {gameNotice?.context === 'checkout' && (
                                         <div className="preflop-vip-notice" role="status">
@@ -2462,6 +2298,7 @@ export default function MemoryGamesPage() {
                                 </div>
                             )}
                         </div>
+                    </PullToRefresh>
                     )}
 
                     {/* Speed Drill Mode - Full Implementation */}
@@ -2530,63 +2367,29 @@ export default function MemoryGamesPage() {
                         />
                     )}
 
-                    {/* Out of Diamonds Modal */}
-                    <OutOfDiamondsModal
-                        isOpen={showOutOfDiamondsModal}
-                        onClose={() => setShowOutOfDiamondsModal(false)}
-                        gameCost={GAME_COST}
-                        isVIP={isVIP}
-                    />
+                    {/* Out of Diamonds Modal (back gesture closes it: useModalHistory above) */}
+                    {showOutOfDiamondsModal && (
+                        <OutOfDiamondsModal
+                            isOpen={showOutOfDiamondsModal}
+                            onClose={closeOutOfDiamonds}
+                            gameCost={GAME_COST}
+                            isVIP={isVIP}
+                        />
+                    )}
 
                     {/* AI Generation Loading Overlay */}
                     {aiGenerating && (
-                        <div style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'rgba(0, 0, 0, 0.85)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 9999,
-                        }}>
-                            <div style={{
-                                fontSize: 48,
-                                marginBottom: 20,
-                                animation: 'pulse 1.5s infinite',
-                            }}>
-                                ◈
-                            </div>
-                            <div style={{
-                                fontSize: 20,
-                                fontWeight: 600,
-                                color: '#FFD700',
-                                marginBottom: 10,
-                            }}>
-                                Jarvis Is Generating Your Scenario...
-                            </div>
-                            <div style={{
-                                fontSize: 14,
-                                color: 'rgba(255, 255, 255, 0.6)',
-                            }}>
-                                Creating A Unique, Solver-Accurate Training Challenge
-                            </div>
-                            <style>{`
-                                @keyframes pulse {
-                                    0%, 100% { transform: scale(1); }
-                                    50% { transform: scale(1.15); }
-                                }
-                            `}</style>
+                        <div className="preflop-ai-overlay sp-fullscreen-overlay" role="status" aria-live="polite">
+                            <div className="preflop-ai-overlay-icon" aria-hidden="true"><BrainCircuit size={48} /></div>
+                            <div className="preflop-ai-overlay-title">Jarvis Is Generating Your Scenario...</div>
+                            <div className="preflop-ai-overlay-sub">Creating A Unique, Solver-Accurate Training Challenge</div>
                         </div>
                     )}
 
                     {(mode === 'game' || mode === 'result') && currentScenario && (
-                        <section className="preflop-range-lab" aria-labelledby="preflop-range-lab-title">
+                        <section className="preflop-range-lab" aria-labelledby="preflop-range-lab-title" ref={labRef}>
                             <p className="preflop-lab-live" aria-live="polite" aria-atomic="true">{labStatus}</p>
-                            <header className="preflop-lab-briefing">
+                            <header className="preflop-lab-briefing" data-tutorial="scenario">
                                 <div className="preflop-lab-briefing-copy">
                                     <div className="preflop-lab-kicker">
                                         <span>Range Lab</span>
@@ -2606,7 +2409,7 @@ export default function MemoryGamesPage() {
                                     {gradeResult ? (
                                         <>
                                             <strong data-pass={gradeResult.score >= MASTERY_THRESHOLD}>{gradeResult.score}%</strong>
-                                            <span>{gradeResult.score >= MASTERY_THRESHOLD ? 'Range passed' : 'Review required'}</span>
+                                            <span>{gradeResult.score >= MASTERY_THRESHOLD ? 'Range Passed' : 'Review Required'}</span>
                                         </>
                                     ) : preferences.showTimer !== false ? (
                                         <>
@@ -2642,9 +2445,9 @@ export default function MemoryGamesPage() {
                                         <span className="preflop-lab-section-index">01</span>
                                         <span>Choose Action</span>
                                     </div>
-                                    <span>{markedHandCount} hand{markedHandCount === 1 ? '' : 's'} Marked</span>
+                                    <span>{markedHandCount} Hand{markedHandCount === 1 ? '' : 's'} Marked</span>
                                 </div>
-                                <div className="preflop-lab-actions" aria-label="Range actions">
+                                <div className="preflop-lab-actions" aria-label="Range actions" data-tutorial="legend">
                                     {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
                                         <button
                                             key={action}
@@ -2668,6 +2471,12 @@ export default function MemoryGamesPage() {
                                 </div>
                             </div>
 
+                            {/* Sticky command strip. On phones it carries the six quick action
+                                buttons (a second way to pick the action, beside the full row
+                                above) and the edit tools; on desktop the quick buttons are hidden
+                                because the full action row is still on screen, and the marked /
+                                active counters take their place. The counters ARE shown on phones
+                                too (in the active-tool block), so nothing is culled. */}
                             <div
                                 className="preflop-lab-command-strip"
                                 style={{ '--selected-color': ACTION_COLORS[selectedAction]?.border, '--selected-fill': ACTION_COLORS[selectedAction]?.bg }}
@@ -2679,6 +2488,7 @@ export default function MemoryGamesPage() {
                                         <i aria-hidden />
                                         {ACTION_COLORS[selectedAction]?.label || selectedAction}
                                     </strong>
+                                    <em className="preflop-lab-active-counts">{markedHandCount} Marked / {selectedActionCount} Active</em>
                                 </div>
                                 <div className="preflop-lab-command-actions" aria-label="Quick action selector">
                                     {Object.entries(ACTION_COLORS).map(([action, { border, label }]) => (
@@ -2703,7 +2513,7 @@ export default function MemoryGamesPage() {
                                 <div className="preflop-lab-edit-tools">
                                     <button
                                         type="button"
-                                        onClick={handleUndo}
+                                        onClick={() => { haptic('light'); handleUndo(); }}
                                         disabled={!!gradeResult || !timerActive || gridHistoryRef.current.length === 0}
                                         aria-label="Undo last range edit"
                                     >
@@ -2712,7 +2522,7 @@ export default function MemoryGamesPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={handleRedo}
+                                        onClick={() => { haptic('light'); handleRedo(); }}
                                         disabled={!!gradeResult || !timerActive || gridRedoRef.current.length === 0}
                                         aria-label="Redo last undone range edit"
                                     >
@@ -2721,7 +2531,7 @@ export default function MemoryGamesPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={handleClearRange}
+                                        onClick={() => { haptic('light'); handleClearRange(); }}
                                         disabled={!!gradeResult || !timerActive || markedHandCount === 0}
                                         aria-label="Clear marked range"
                                     >
@@ -2737,8 +2547,37 @@ export default function MemoryGamesPage() {
                                         <span className="preflop-lab-section-index">02</span>
                                         <span>Build Your Range</span>
                                     </div>
-                                    <span>Tap A Hand To Apply {ACTION_COLORS[selectedAction]?.label || selectedAction}</span>
+                                    <span>Tap Or Drag To Apply {ACTION_COLORS[selectedAction]?.label || selectedAction}</span>
                                 </div>
+
+                                {/* Readout bar: always visible above the grid so a phone user sees
+                                    what they touched even when the cell has no room for a label. */}
+                                <div className="preflop-lab-touch-readout" aria-live="polite" aria-atomic="true">
+                                    {lastTouchedHand ? (
+                                        <>
+                                            <strong>{lastTouchedHand}</strong>
+                                            <span
+                                                className="preflop-lab-touch-action"
+                                                style={{ '--action-color': touchedAction ? ACTION_COLORS[touchedAction]?.border : 'rgba(129, 167, 194, 0.5)' }}
+                                            >
+                                                <i aria-hidden />
+                                                {touchedAction ? ACTION_COLORS[touchedAction]?.label : 'Not Marked'}
+                                            </span>
+                                            {gradeResult && (
+                                                <span
+                                                    className="preflop-lab-touch-action is-solver"
+                                                    style={{ '--action-color': solverActionForTouched && ACTION_COLORS[solverActionForTouched] ? ACTION_COLORS[solverActionForTouched].border : ACTION_COLORS.fold.border }}
+                                                >
+                                                    <i aria-hidden />
+                                                    Solver: {solverActionForTouched && ACTION_COLORS[solverActionForTouched] ? ACTION_COLORS[solverActionForTouched].label : 'FOLD'}
+                                                </span>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span className="preflop-lab-touch-hint">{gradeResult ? 'Tap A Hand To Compare It With The Solver' : 'Tap Or Drag To Paint Hands'}</span>
+                                    )}
+                                </div>
+
                                 <PreflopRangeMatrix
                                     ranks={RANKS}
                                     getHandName={getHandName}
@@ -2747,20 +2586,23 @@ export default function MemoryGamesPage() {
                                     gradeResult={gradeResult}
                                     scenario={currentScenario}
                                     timerActive={timerActive}
-                                    onCellClick={handleCellClick}
+                                    onStrokeStart={handleStrokeStart}
+                                    onPaintHand={handlePaintHand}
+                                    onStrokeEnd={handleStrokeEnd}
+                                    onHandFocus={handleHandFocus}
                                 />
                             </div>
 
                             <div className="preflop-lab-submit-panel">
                                 {!gradeResult ? (
-                                    <button type="button" onClick={() => handleSubmit()} className="preflop-lab-submit" disabled={!timerActive}>
+                                    <button type="button" onClick={() => handleSubmit()} className="preflop-lab-submit" disabled={!timerActive} data-tutorial="submit">
                                         <Send size={18} aria-hidden />
                                         <span>Submit Range</span>
                                         {preferences.keyboardShortcuts !== false && <kbd>Space</kbd>}
                                     </button>
                                 ) : (
-                                    <div className="preflop-lab-result-actions">
-                                        <button type="button" onClick={() => setMode('menu')}>
+                                    <div className="preflop-lab-result-actions" data-tutorial="submit">
+                                        <button type="button" onClick={() => { haptic('light'); setMode('menu'); }}>
                                             <RotateCcw size={17} aria-hidden />
                                             Training Menu
                                         </button>
@@ -2800,126 +2642,68 @@ export default function MemoryGamesPage() {
                                     {gradeResult.score >= 85 && lastReward && (
                                         <div className="preflop-lab-reward">
                                             <Gem size={17} aria-hidden />
-                                            +{lastReward.diamonds} Diamonds Earned · ×{multiplier} Multiplier
+                                            +{lastReward.diamonds} Diamonds Earned / x{multiplier} Multiplier
                                         </div>
                                     )}
 
-                                    {/* Ask Jarvis Why Button - shows when there are mistakes */}
+                                    {/* Ask Jarvis Why Button - shows when there are mistakes (tutorial target: jarvis) */}
                                     {(gradeResult.missedHands.length > 0 || gradeResult.wrongActionHands.length > 0) && (<>
                                         <button
+                                            type="button"
+                                            className="preflop-lab-jarvis-button"
+                                            data-tutorial="jarvis"
                                             onClick={() => {
                                                 const firstMistake = gradeResult.wrongActionHands[0] || gradeResult.missedHands[0];
                                                 const correctAction = currentScenario?.solution?.[firstMistake] || 'call';
                                                 const userAction = userGrid[firstMistake] || 'fold';
                                                 fetchJarvisExplanation(firstMistake, correctAction, userAction);
                                             }}
-                                            style={{
-                                                marginTop: 16,
-                                                padding: '12px 24px',
-                                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3))',
-                                                border: '1px solid rgba(139, 92, 246, 0.5)',
-                                                borderRadius: 12,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: 8,
-                                                width: '100%'
-                                            }}
                                         >
                                             Ask Jarvis: Why Was I Wrong?
                                         </button>
                                         <button
+                                            type="button"
+                                            className="preflop-lab-coach-button"
                                             onClick={() => fetchCoachAnalysis(gradeResult)}
-                                            style={{
-                                                marginTop: 8,
-                                                padding: '10px 20px',
-                                                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3))',
-                                                border: '1px solid rgba(16, 185, 129, 0.5)',
-                                                borderRadius: 12,
-                                                color: '#fff',
-                                                fontSize: 13,
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: 8,
-                                                width: '100%'
-                                            }}
                                         >
                                             Get Full Game Analysis
                                         </button>
                                     </>)}
 
-
                                     {/* Jarvis Coach Panel */}
                                     {coachAnalysis.show && (
-                                        <div style={{
-                                            marginTop: 16,
-                                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1))',
-                                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                                            borderRadius: 12,
-                                            padding: 16
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                                <span style={{ fontSize: 20, fontWeight: 'bold', color: '#10B981' }}>J</span>
-                                                <span style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 14, color: '#10B981' }}>Jarvis Analysis</span>
+                                        <div className="preflop-lab-coach">
+                                            <div className="preflop-lab-coach-head">
+                                                <span aria-hidden="true">J</span>
+                                                <span>Jarvis Analysis</span>
                                             </div>
 
                                             {coachAnalysis.loading ? (
-                                                <div style={{ textAlign: 'center', padding: 20, color: 'rgba(255, 255, 255, 0.6)' }}>
-                                                    <div style={{ marginBottom: 8 }}>...</div>
+                                                <div className="preflop-lab-coach-loading">
                                                     Jarvis Is Analyzing Your Game...
                                                 </div>
                                             ) : coachAnalysis.analysis ? (
                                                 <div>
-                                                    {/* Summary */}
-                                                    <div style={{
-                                                        color: 'rgba(255, 255, 255, 0.9)',
-                                                        lineHeight: 1.6,
-                                                        marginBottom: 12,
-                                                        fontSize: 14
-                                                    }}>
-                                                        {coachAnalysis.analysis.summary}
-                                                    </div>
+                                                    <p className="preflop-lab-coach-summary">{coachAnalysis.analysis.summary}</p>
 
-                                                    {/* Pattern Insights */}
                                                     {coachAnalysis.analysis.patternInsights?.length > 0 && (
-                                                        <div style={{ marginBottom: 12 }}>
-                                                            <div style={{ fontSize: 12, color: '#10B981', marginBottom: 6 }}>Patterns Detected</div>
+                                                        <div className="preflop-lab-coach-block">
+                                                            <div className="preflop-lab-coach-label">Patterns Detected</div>
                                                             {coachAnalysis.analysis.patternInsights.map((item, i) => (
-                                                                <div key={i} style={{
-                                                                    background: 'rgba(0, 0, 0, 0.2)',
-                                                                    borderRadius: 8,
-                                                                    padding: 8,
-                                                                    marginBottom: 6,
-                                                                    fontSize: 13
-                                                                }}>
+                                                                <div key={i} className="preflop-lab-coach-item">
                                                                     <span style={{ color: '#FFD700' }}>{item.pattern}:</span>{' '}
-                                                                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{item.insight}</span>
+                                                                    <span>{item.insight}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     )}
 
-                                                    {/* Recommendations */}
                                                     {coachAnalysis.analysis.recommendations?.length > 0 && (
-                                                        <div>
-                                                            <div style={{ fontSize: 12, color: '#06B6D4', marginBottom: 6 }}>Next Steps</div>
+                                                        <div className="preflop-lab-coach-block">
+                                                            <div className="preflop-lab-coach-label" style={{ color: '#06B6D4' }}>Next Steps</div>
                                                             {coachAnalysis.analysis.recommendations.map((rec, i) => (
-                                                                <div key={i} style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'flex-start',
-                                                                    gap: 8,
-                                                                    marginBottom: 4,
-                                                                    fontSize: 13,
-                                                                    color: 'rgba(255, 255, 255, 0.8)'
-                                                                }}>
-                                                                    <span>•</span>
+                                                                <div key={i} className="preflop-lab-coach-item is-step">
+                                                                    <span aria-hidden="true">-</span>
                                                                     <span>{rec}</span>
                                                                 </div>
                                                             ))}
@@ -2931,7 +2715,6 @@ export default function MemoryGamesPage() {
                                     )}
                                 </div>
                             )}
-
 
                             {/* ═══ ENHANCED REVIEW PANEL - GTO Wizard-Quality Analysis ═══ */}
                             {gradeResult && (
@@ -2945,40 +2728,40 @@ export default function MemoryGamesPage() {
                                 />
                             )}
 
-                            <JarvisExplanationDialog
-                                modal={explainModal}
-                                onClose={() => setExplainModal(prev => ({ ...prev, show: false }))}
-                            />
+                            {explainModal.show && (
+                                <JarvisExplanationDialog
+                                    modal={explainModal}
+                                    onClose={() => setExplainModal(prev => ({ ...prev, show: false }))}
+                                />
+                            )}
                         </section>
                     )}
                 </div>
-            </div >
-
+            </div>
+            </HubPageShell>
 
             {/* Inject shake animation */}
-            <style> {`
+            <style>{`
                 @keyframes shake {
                     0%, 100% { transform: translate(0, 0); }
                     25% { transform: translate(-5px, 5px); }
                     50% { transform: translate(5px, -5px); }
                     75% { transform: translate(-5px, -5px); }
                 }
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.1); }
-                }
-            `}</style >
-    </PageTransition >
+            `}</style>
+        </PageTransition>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STYLES
+// The shell (HubPageShell) owns 100dvh, the 100vw clamp, overflow and the
+// bottom clearance; the deck only sets what is its own.
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = {
     container: {
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-        background: '#0a0a12',
+        width: '100%',
+        boxSizing: 'border-box',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
         padding: '16px',
@@ -3002,447 +2785,8 @@ const styles = {
         background: 'radial-gradient(ellipse at center, rgba(0, 200, 255, 0.06), transparent 60%)',
         pointerEvents: 'none',
     },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-        position: 'relative',
-        zIndex: 10,
-    },
-    backButton: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '10px 16px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 8,
-        color: '#00D4FF',
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: 'pointer',
-    },
-    headerStats: {
-        display: 'flex',
-        gap: 10,
-        alignItems: 'center',
-    },
-    statBadge: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 14px',
-        background: 'rgba(0, 0, 0, 0.4)',
-        borderRadius: 20,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-    },
-    diamondBadge: {
-        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(138, 43, 226, 0.15))',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-    },
-    vipBadge: {
-        padding: '6px 12px',
-        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-        borderRadius: 20,
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#000',
-    },
-    comboBadge: {
-        padding: '6px 12px',
-        background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
-        borderRadius: 20,
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    statIcon: { fontSize: 16 },
-    statValue: { fontSize: 14, fontWeight: 600, color: '#fff' },
-    rewardPopup: {
-        position: 'absolute',
-        top: -35,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'linear-gradient(135deg, #00ff88, #00D4FF)',
-        padding: '6px 14px',
-        borderRadius: 20,
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#000',
-        whiteSpace: 'nowrap',
-        boxShadow: '0 4px 20px rgba(0, 255, 136, 0.5)',
-        animation: 'pulse 0.5s ease-out',
-    },
-    comboOverlay: {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        textAlign: 'center',
-        zIndex: 1000,
-        pointerEvents: 'none',
-    },
-    comboText: {
-        fontSize: 48,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-        fontWeight: 900,
-        color: '#fff',
-        textShadow: '0 0 40px rgba(255, 100, 0, 0.8), 0 0 80px rgba(255, 0, 100, 0.5)',
-        animation: 'pulse 0.5s ease-out',
-    },
-    multiplierText: {
-        fontSize: 24,
-        fontWeight: 700,
-        color: '#FFD700',
-        textShadow: '0 0 20px rgba(255, 215, 0, 0.8)',
-    },
     content: {
         maxWidth: 1180,
         margin: '0 auto',
-    },
-    titleSection: {
-        textAlign: 'center',
-        marginBottom: 40,
-    },
-    orbIcon: {
-        fontSize: 72,
-        marginBottom: 16,
-        animation: 'pulse 2s ease-in-out infinite',
-    },
-    title: {
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-        fontSize: 42,
-        fontWeight: 900,
-        color: '#fff',
-        marginBottom: 12,
-        textShadow: '0 0 30px rgba(0, 255, 255, 0.4)',
-        letterSpacing: 4,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: 16,
-    },
-    costInfo: {
-        fontSize: 14,
-        color: '#00D4FF',
-        fontWeight: 600,
-    },
-    gameModeTabs: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 8,
-        justifyContent: 'center',
-        marginBottom: 32,
-    },
-    gameModeTab: {
-        padding: '10px 18px',
-        fontSize: 'clamp(12px, 3vw, 15px)',
-        fontWeight: 600,
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '2px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 30,
-        color: 'rgba(255, 255, 255, 0.5)',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-    },
-    gameModeTabActive: {
-        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 255, 136, 0.2))',
-        border: '2px solid #00D4FF',
-        color: '#fff',
-    },
-    speedDrillCard: {
-        background: 'linear-gradient(135deg, rgba(255, 200, 0, 0.1), rgba(255, 140, 0, 0.1))',
-        border: '2px solid rgba(255, 215, 0, 0.3)',
-        borderRadius: 20,
-        padding: 40,
-        textAlign: 'center',
-        maxWidth: 500,
-        margin: '0 auto',
-    },
-    speedDrillButton: {
-        padding: '16px 48px',
-        fontSize: 18,
-        fontWeight: 700,
-        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-        color: '#000',
-        border: 'none',
-        borderRadius: 50,
-        cursor: 'pointer',
-        boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)',
-    },
-    levelGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 16,
-        marginBottom: 32,
-    },
-    levelCard: {
-        background: 'rgba(0, 0, 0, 0.4)',
-        border: '2px solid',
-        borderRadius: 16,
-        padding: 20,
-        transition: 'all 0.2s ease',
-    },
-    levelNumber: {
-        fontSize: 11,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-        color: '#00D4FF',
-        marginBottom: 6,
-        letterSpacing: 1,
-    },
-    levelName: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: 6,
-    },
-    levelFocus: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginBottom: 12,
-    },
-    levelMeta: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-    masteryGate: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(0, 212, 255, 0.08))',
-        border: '1px solid rgba(0, 255, 136, 0.25)',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 24,
-    },
-    masteryIcon: { fontSize: 32 },
-    masteryTitle: { fontSize: 16, fontWeight: 700, color: '#00ff88', marginBottom: 4 },
-    masteryDesc: { fontSize: 13, color: 'rgba(255, 255, 255, 0.6)' },
-    vipUpsell: {
-        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1))',
-        border: '2px solid rgba(255, 215, 0, 0.4)',
-        borderRadius: 16,
-        padding: 24,
-        textAlign: 'center',
-    },
-    vipTitle: { fontSize: 20, fontWeight: 700, color: '#FFD700', marginBottom: 8 },
-    vipFeatures: { fontSize: 13, color: 'rgba(255, 255, 255, 0.7)', marginBottom: 16 },
-    vipButton: {
-        padding: '12px 32px',
-        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-        border: 'none',
-        borderRadius: 30,
-        fontSize: 16,
-        fontWeight: 700,
-        color: '#000',
-        cursor: 'pointer',
-    },
-    timerContainer: {
-        position: 'relative',
-        height: 8,
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 4,
-        marginBottom: 20,
-        overflow: 'hidden',
-    },
-    timerBar: {
-        height: '100%',
-        transition: 'width 1s linear, background-color 0.3s ease',
-        borderRadius: 4,
-    },
-    timerText: {
-        position: 'absolute',
-        right: 0,
-        top: 12,
-        fontSize: 14,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-        fontWeight: 700,
-    },
-    gameHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-    },
-    levelBadge: {
-        fontSize: 11,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-        color: '#00D4FF',
-        marginBottom: 4,
-    },
-    scenarioTitle: {
-        fontSize: 24,
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: 4,
-    },
-    scenarioDesc: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-    tipText: {
-        fontSize: 12,
-        color: '#FFD700',
-        marginTop: 8,
-        padding: '8px 12px',
-        background: 'rgba(255, 215, 0, 0.1)',
-        borderRadius: 8,
-        border: '1px solid rgba(255, 215, 0, 0.2)',
-    },
-    scoreDisplay: {
-        textAlign: 'right',
-    },
-    scoreValue: {
-        fontSize: 56,
-        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-        fontWeight: 900,
-        lineHeight: 1,
-    },
-    passBadge: {
-        display: 'inline-block',
-        padding: '6px 16px',
-        borderRadius: 20,
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#000',
-        marginTop: 8,
-    },
-    actionBar: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
-        justifyContent: 'center',
-    },
-    actionButton: {
-        padding: '10px 16px',
-        borderRadius: 8,
-        border: '2px solid',
-        fontSize: 12,
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-        position: 'relative',
-    },
-    keyHint: {
-        position: 'absolute',
-        top: -8,
-        right: -6,
-        background: 'rgba(0, 0, 0, 0.8)',
-        width: 18,
-        height: 18,
-        borderRadius: 4,
-        fontSize: 10,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
-    },
-    gridWrapper: {
-        width: '100%',
-        maxWidth: 750,
-        margin: '0 auto',
-        marginBottom: 20,
-    },
-    grid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(13, 1fr)',
-        gap: 'min(0.5vw, 2px)',
-        width: '100%',
-    },
-    cell: {
-        aspectRatio: '1',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 'clamp(8px, 1.8vw, 12px)',
-        fontWeight: 600,
-        color: '#fff',
-        borderRadius: 'min(1vw, 4px)',
-        border: '1px solid',
-        transition: 'all 0.1s ease',
-        userSelect: 'none',
-        touchAction: 'manipulation',
-    },
-    buttonArea: {
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: 20,
-    },
-    submitButton: {
-        padding: '16px 48px',
-        fontSize: 18,
-        fontWeight: 700,
-        background: 'linear-gradient(135deg, #fff, #e0e0e0)',
-        color: '#000',
-        border: 'none',
-        borderRadius: 50,
-        cursor: 'pointer',
-        boxShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
-        transition: 'transform 0.1s ease',
-    },
-    resultButtons: {
-        display: 'flex',
-        gap: 16,
-    },
-    menuButton: {
-        padding: '14px 28px',
-        fontSize: 16,
-        fontWeight: 600,
-        background: 'rgba(255, 255, 255, 0.1)',
-        color: '#fff',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 12,
-        cursor: 'pointer',
-    },
-    nextButton: {
-        padding: '14px 32px',
-        fontSize: 16,
-        fontWeight: 600,
-        background: 'linear-gradient(135deg, #00D4FF, #0088dd)',
-        color: '#fff',
-        border: 'none',
-        borderRadius: 12,
-        cursor: 'pointer',
-        boxShadow: '0 0 25px rgba(0, 212, 255, 0.4)',
-    },
-    feedbackPanel: {
-        background: 'rgba(0, 0, 0, 0.5)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 16,
-        padding: 20,
-        maxWidth: 500,
-        margin: '0 auto',
-    },
-    feedbackGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 12,
-    },
-    feedbackItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '8px 12px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 8,
-        fontSize: 13,
-    },
-    feedbackValue: {
-        fontWeight: 700,
-        color: '#fff',
-    },
-    rewardSummary: {
-        marginTop: 16,
-        padding: 16,
-        background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.15))',
-        borderRadius: 12,
-        textAlign: 'center',
-        fontSize: 16,
-        fontWeight: 700,
-        color: '#00ff88',
     },
 };

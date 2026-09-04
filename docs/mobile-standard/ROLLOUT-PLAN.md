@@ -54,6 +54,12 @@ phones (z >= 900), every step >= 44px controls, no auto-advance.
 `pages/hub/memory-games/tutorial.js` becomes a page that mounts the same
 component in "page mode".
 
+**Shipped 2026-09-04** (`docs/changelog/2026-09-04-mobile-phase2-preflop-charts.md`):
+mode grid, wrapping subpage nav, ResponsiveTable leaderboard, the matrix
+fits 375 as one drag-to-paint control, HubPageShell + the full upgrade set,
+eight-step tutorial registered for both routes with the menu primer
+carrying the in-game targets, budget row converted.
+
 ## Phase 3: Poker Near Me (LARGE, the worst offender)
 
 Files: `pages/hub/poker-near-me/[pnmTab].js` (4,556), `lobby.js` (3,964),
@@ -183,7 +189,9 @@ results as stacked cards at <=768; verify at 375.
 3. Flip the route's row in `scripts/ci/mobile-budget.json` to
    `converted: true` and lower its numbers to the measured baseline.
 4. Append the phase number to `CONVERTED` in
-   `__tests__/no-slide-to-see.law.test.mjs`.
+   `__tests__/no-slide-to-see.law.test.mjs`, and import every new test file
+   in `__tests__/_test-guards-exist.test.mjs` (CHECK 8 fails on a guard
+   nothing runs).
 5. Verify at 375/390/1280 with Playwright (overflow, tutorial prompt, a
    sheet's close position and size), run the mobile/overlay/tutorial/law
    tests, `npx tsc --noEmit`, `npx next build`, then push and confirm

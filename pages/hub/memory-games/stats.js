@@ -93,7 +93,7 @@ export default function MemoryGamesStats() {
   return (
     <>
       <SEOHead title="Preflop Charts Stats" description="Your verified Preflop Charts accuracy, mastery, and training history." canonical="/hub/preflop-charts/stats" />
-      <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // VERIFIED SESSIONS" title="Range performance" description="Track accuracy, speed, and mastery using completed Preflop Charts sessions only." metric={dashboard?.current_grade || (metrics.count ? `${metrics.average.toFixed(0)}%` : '—')}>
+      <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // VERIFIED SESSIONS" title="Range performance" description="Track accuracy, speed, and mastery using completed Preflop Charts sessions only." metric={dashboard?.current_grade || (metrics.count ? `${metrics.average.toFixed(0)}%` : '-')}>
         {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To Track Progression</h2><p>Authenticated Sessions Sync Your Mastery, Personal Bests, And Training History Across Devices.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
           {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchStats}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
           <section className="preflop-stat-grid" aria-label="Training summary">
@@ -121,7 +121,7 @@ export default function MemoryGamesStats() {
           </div>
 
           <div className="preflop-analytics-layout">
-            <section className="preflop-subpage-panel" aria-labelledby="level-accuracy-title"><div className="preflop-panel-heading"><div><span>LEVEL ARRAY // 01–10</span><h2 id="level-accuracy-title">Accuracy By Level</h2></div></div><div className="preflop-level-telemetry">{levels.map((level) => <div key={level.level} data-empty={level.attempts === 0 || undefined}><span>L{level.level}</span><div><i style={{ '--level-accuracy': `${level.accuracy}%` }} /></div><strong>{level.attempts ? `${level.accuracy.toFixed(1)}%` : '—'}</strong><small>{level.attempts} run{level.attempts === 1 ? '' : 's'}</small></div>)}</div></section>
+            <section className="preflop-subpage-panel" aria-labelledby="level-accuracy-title"><div className="preflop-panel-heading"><div><span>LEVEL ARRAY // 01-10</span><h2 id="level-accuracy-title">Accuracy By Level</h2></div></div><div className="preflop-level-telemetry">{levels.map((level) => <div key={level.level} data-empty={level.attempts === 0 || undefined}><span>L{level.level}</span><div><i style={{ '--level-accuracy': `${level.accuracy}%` }} /></div><strong>{level.attempts ? `${level.accuracy.toFixed(1)}%` : '-'}</strong><small>{level.attempts} run{level.attempts === 1 ? '' : 's'}</small></div>)}</div></section>
             <section className="preflop-subpage-panel" aria-labelledby="mode-title"><div className="preflop-panel-heading"><div><span>MODE DISTRIBUTION</span><h2 id="mode-title">Training Mix</h2></div></div>{modes.length ? <div className="preflop-mode-metrics">{modes.map((mode) => <div key={mode.key}><span>{MODE_LABELS[mode.key] || mode.key.replaceAll('_', ' ')}</span><strong>{mode.average.toFixed(1)}%</strong><small>{mode.attempts} Sessions · Best {mode.best}%</small></div>)}</div> : <EmptyInline />}</section>
           </div>
 

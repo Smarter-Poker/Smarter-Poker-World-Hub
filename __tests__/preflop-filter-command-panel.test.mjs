@@ -26,13 +26,16 @@ test('draft and applied filter states remain explicit without changing the data 
     assert.match(PANEL, /onFilterChange\(\{[\s\S]*position: position \|\| null,[\s\S]*stackDepth: stackDepth \|\| null,[\s\S]*format: format \|\| null/);
     assert.match(PANEL, /onFilterChange\(\{\}\)/);
     assert.match(PAGE, /availableScenarios=\{ALL_TRAINING_SCENARIOS\.length\}/);
-    assert.match(PAGE, /filteredCount=\{filterScenarios\(ALL_TRAINING_SCENARIOS, scenarioFilters\)\.length\}/);
+    // Mobile phase 2: the count is computed once as filteredScenarioCount.
+    assert.match(PAGE, /const filteredScenarioCount = filterScenarios\(ALL_TRAINING_SCENARIOS, scenarioFilters\)\.length/);
+    assert.match(PAGE, /filteredCount=\{filteredScenarioCount\}/);
 });
 
 test('the command panel is mobile-first, touch-safe, and expands to three axes on desktop', () => {
     assert.match(CSS, /\.scenario-filter-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
-    assert.match(CSS, /@media \(max-width: 640px\)[\s\S]*\.scenario-filter-grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-    assert.match(CSS, /@media \(max-width: 640px\)[\s\S]*\.scenario-filter-field select\s*\{[\s\S]*min-height:\s*50px/);
+    // Mobile phase 2: the sanctioned phone breakpoint is 768 (docs/mobile-standard), not 640.
+    assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.scenario-filter-grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.scenario-filter-field select\s*\{[\s\S]*min-height:\s*50px/);
     assert.match(CSS, /\.scenario-filter-field select:focus-visible/);
     assert.match(CSS, /\.scenario-filter-console\[data-filter-state='draft'\]/);
 });
