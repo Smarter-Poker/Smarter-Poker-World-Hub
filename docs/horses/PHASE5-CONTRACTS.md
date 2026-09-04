@@ -122,6 +122,43 @@ Shape of the fix, to be confirmed against the code:
 - Add a liveness assertion the way Phase 3's heartbeat does: a detector that
   has not produced inside its cadence must be loud somewhere an operator looks.
 
+### 1.1 Done, and what the console must render because of it
+
+The scan resumes from `ca_collusion_scan_state` instead of re-reading a
+rolling 24 hours (workers `fix/collusion-scan-remembers`; World Hub migrations
+`20260904210000`, `20260904214500`, `20260904223000`). A real 30-minute window
+now completes in 7.1 seconds. Three things follow that the console CANNOT
+render as ordinary health:
+
+1. **`has_unscanned_gap`.** 1,241,438 hands between 2026-09-03 02:00 and the
+   seeded mark were never examined by anything. They are recorded on the state
+   row (`unscanned_from`, `unscanned_to`, `unscanned_note`), and
+   `fn_ca_collusion_detector_health` REFUSES to answer `stale: false` while
+   they are set. The banner says so until somebody rescans that window with
+   `?since=&until=` and clears the columns. Do not clear them to tidy the
+   dashboard.
+
+2. **`status: 'behind'` is not `status: 'live'`.** Health asks two independent
+   questions - has the process run recently, and is its coverage close to the
+   present. The first version asked only the first, so a scan advancing two
+   minutes per thirty-minute cycle reported `live` forever while losing an hour
+   every hour. `seconds_behind` is the number to render, and `catching_up` is
+   true whenever the window held more than the run read.
+
+3. **The pair thresholds saw a day and now see half an hour.** Every pattern
+   counts hands a pair shared INSIDE ONE RUN'S WINDOW, and `>=15` / `>=30` were
+   chosen when a run was 24 hours. A pair whose shared hands are spread across
+   runs is not aggregated by anything yet and cannot trigger. The scan reports
+   `detection_span_minutes` and `detection_thresholds.aggregates_across_runs:
+   false`; **the queue must show it**, because section 0 rule 1 is exactly
+   about not implying wider cover than exists.
+
+   Closing it properly is a rolling per-pair counter - `(player_a, player_b,
+   pattern)` totals carried across runs, decayed by age - so a signal can
+   accumulate the way it did when one window was a day. That is detector work,
+   it belongs in this phase, and it is written here rather than left as an
+   unstated regression.
+
 ## 2. What the data actually supports
 
 Measured 2026-09-04, because the plan's item list was written before anybody
