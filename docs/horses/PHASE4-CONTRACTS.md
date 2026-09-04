@@ -340,7 +340,6 @@ GET  ?section=restrictions&scope=&status=&includeHorses=&limit=&offset=
 GET  ?section=observations&hours=&limit=&offset=
 GET  ?section=tickets&status=&priority=&assignedTo=&limit=&offset=
 GET  ?section=reports&status=&limit=&offset=
-GET  ?section=kyc&userId=&limit=&offset=
 
 POST { action: 'restrict',        userId, scope, reasonCode, note, expiresAt, opId }
 POST { action: 'lift',            restrictionId, note }
@@ -398,39 +397,91 @@ the things that must never be quietly changed:
 - The reader fails open: the trigger function contains an exception handler that
   returns NEW.
 
-## 6. The one thing the engine must learn before enforcement goes on
+## 6. What must happen before enforcement is switched on
+
+**This section is the one Dan will read before flipping the switch, so it
+lists everything, not just the first thing that was noticed.**
+
+### 6.1 The engine must learn the refusal
 
 `HorseFleetManager.seatHorse` filters expected refusals from
 `atomic_table_buyin` and reports everything else as an error
 (`HorseFleetManager.ts:1934-1960`, list: `Insufficient balance`,
 `Player already seated`, `duplicate key`, `TABLE_CAP_REACHED`,
 `FOUR TABLE LIMIT`). A restriction refusal is not on that list, so with
-enforcement ON and any horse restricted, every seeding cycle would `reportError`
-once per attempt.
+enforcement ON and any horse restricted, every seeding cycle would
+`reportError` once per attempt.
 
 This is a genuine consequence of horses sharing the human path, which is the
-same property that makes rule 4 true by construction. It is not a defect in this
-phase and it is not a reason to give horses a different path.
+same property that makes rule 4 true by construction. It is not a defect and
+it is not a reason to give horses a different path. The refusal message is
+prefixed `PLAYER_RESTRICTED:` precisely so the engine can recognise it in one
+string compare.
 
-**It is a precondition for switching enforcement on, and it is recorded here so
-that switch is not thrown without it.** The refusal message is prefixed
-`PLAYER_RESTRICTED:` precisely so the engine can recognise it in one string
-compare. The engine change is a Club Arena commit of a few lines and belongs
-with whatever phase turns enforcement on.
+### 6.2 The tournament seating paths refuse a player who has already paid
+
+**Added 2026-09-04, after the scope correction, and it is bigger than 6.1.**
+
+The guard originally checked every `table_seats` write against `cash`. That
+was wrong (97.8% of those rows are tournament seats) and correcting it had a
+consequence the first version of this section did not have: a `tournaments`
+restriction now stands in front of the seat as well as the registration.
+
+The engine seats tournament entrants through `table_seats` directly
+(`TournamentManagerBase.ts:3644`), and through `fn_seat_late_registrant` and
+`fn_seat_horse_in_seat_first_game`. With enforcement ON, a player restricted
+from tournaments AFTER they registered and paid gets `PLAYER_RESTRICTED:` at
+seating time. The engine logs it and moves on; the entrant stays on the
+roster, unseated, blinding off, with their buy-in taken.
+
+**That is a policy question, not only a wiring one, and it is Dan's:** should
+a tournaments restriction applied after registration refuse the seat, or only
+the next registration? Refusing the seat is the stricter reading and the one
+the guard currently implements. Refunding and de-registering is a money
+decision, which section 10.6 makes an agent's to make - but only with a clear
+path, and there is not one until somebody decides which of the two behaviours
+is wanted.
+
+**Until it is decided, enforcement stays off.** The safe interim, if
+enforcement is wanted sooner, is to restrict `cash` rather than `tournaments`
+on any player who already holds a tournament entry.
+
+### 6.3 The two scheduled jobs - DONE 2026-09-04
+
+Both now run from Open Claw, hourly at :20, through one handler:
+`pages/api/cron/restriction-maintenance.js`, registered in
+`scripts/openclaw-cron-dispatcher.py` and deployed with
+`bash scripts/deploy-openclaw.sh` (91 jobs registered, 0 errors; the live
+`/opt/openclaw/dispatcher.py` SHA256 matches the repo file exactly, so there
+is no drift of the kind CLAUDE.md 11.3 forbids).
+
+ONE handler for two passes, deliberately: both are idempotent maintenance on
+the same record, and `pages/api/cron/` sits under a CI ratchet that fails on
+net-new files (CHECK 6b, cap 45, now 33).
+
+Neither pass is needed for CORRECTNESS - the reader treats `expires_at` as
+authoritative and `fn_ca_player_restrict` retires a stale row itself, so
+nobody is restricted a second past their expiry either way. The expiry sweep
+buys an honest LIST; the prune keeps the observation log bounded, which
+matters most once enforcement is on and the log stops being a dry run and
+starts being an audit surface.
+
+`:20` and not the quarter hour: `spin-sweep` records what the :00/:15/:30/:45
+pile-up cost it (an 8s statement timeout on a 2.1s query), and :20 is clear of
+the :55 maintenance break as well.
 
 ## 6b. Still open when Phase 4 shipped
 
 Recorded here rather than left for the next agent to rediscover:
 
-- **Neither scheduled job is registered.** `fn_ca_restriction_expire_sweep`
-  (marks run-out restrictions `expired`) and
-  `fn_ca_restriction_observation_prune` (retention on the observation log) both
-  exist and both have zero callers. Nothing depends on the sweep for
-  CORRECTNESS - the reader treats `expires_at` as authoritative over `status`
-  and `fn_ca_player_restrict` retires a stale row itself - so the cost of the
-  gap is a `status` column that reads stale in a list, and a log that grows.
-  They go in `pages/api/cron/` and into
-  `scripts/openclaw-cron-dispatcher.py` (CLAUDE.md 11.2).
+- ~~**Neither scheduled job is registered.**~~ **DONE 2026-09-04** - both run
+  from Open Claw hourly at :20 through
+  `pages/api/cron/restriction-maintenance.js`. See section 6.3.
+  (Originally: both existed with zero callers. Nothing depended on the sweep
+  for CORRECTNESS then either - the reader treats `expires_at` as
+  authoritative over `status` and `fn_ca_player_restrict` retires a stale row
+  itself - so the cost of the gap was a `status` column reading stale in a
+  list, and a log that grows.)
 - **`transfers` and `social` have no guard.** They record a decision and stop
   nothing, in either enforcement state. `SCOPE_META` says so on the control
   and the law test pins that it keeps saying so. They need a convergence point

@@ -121,6 +121,7 @@ import './horses-phase4-client.test.mjs';
 import './horses-phase4-migration.test.mjs';
 import './horses-phase4-players-are-players.law.test.mjs';
 import './horses-phase4-server.test.mjs';
+import './horses-an-rpc-write-has-a-where.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';

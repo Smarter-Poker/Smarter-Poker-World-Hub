@@ -73,7 +73,34 @@ const PHASE4_FILES = [
   'src/components/horses/playerAdmin.js',
   'src/lib/horses/playerRestrictions.js',
 ];
-const MIGRATION = 'supabase/migrations/20260904150000_ca_player_360_and_restrictions.sql';
+/**
+ * EVERY migration that carries a live Phase 4 body, not just the first one.
+ *
+ * This list is the whole reason to read it twice. The law originally named
+ * only 20260904150000, and then three corrections replaced the live bodies of
+ * fn_ca_player_search, fn_ca_restriction_list, fn_ca_player_360,
+ * fn_ca_player_restrict, fn_ca_player_rg_set and the guard itself. The law
+ * kept passing - against a file that no longer described the database - and
+ * one of its assertions had started arguing AGAINST the fix, insisting there
+ * were exactly two trigger attachments when the corrected platform has three.
+ *
+ * A law that guards a superseded file is worse than no law: it is a green
+ * check somebody will trust, and an assertion message that tells the next
+ * agent the correct state is wrong. That is the revert-war shape CLAUDE.md
+ * 10.7 and 10.8 name.
+ *
+ * ADD THE NEXT MIGRATION HERE. If a Phase 4 body moves again and this list
+ * does not, these assertions stop meaning anything, silently.
+ */
+const MIGRATIONS = [
+  'supabase/migrations/20260904150000_ca_player_360_and_restrictions.sql',
+  'supabase/migrations/20260904160000_ca_rg_loosen_list_is_an_array.sql',
+  'supabase/migrations/20260904183000_ca_the_restriction_guard_can_actually_be_reached.sql',
+  'supabase/migrations/20260904183500_ca_the_seat_guard_sees_a_revived_seat.sql',
+  'supabase/migrations/20260904193000_ca_creating_rg_limits_must_not_loosen_one.sql',
+];
+/** The first one, where the tables and the vocabulary are declared. */
+const MIGRATION = MIGRATIONS[0];
 
 // ══ HORSES ARE PLAYERS ══════════════════════════════════════════════════════
 
@@ -108,7 +135,7 @@ const EXCLUSION_SHAPES = [
 ];
 
 test('no Phase 4 file excludes a horse from anything', async () => {
-  for (const file of [...PHASE4_FILES, MIGRATION]) {
+  for (const file of [...PHASE4_FILES, ...MIGRATIONS]) {
     const body = code(await read(file));
     for (const [i, line] of body.split('\n').entries()) {
       if (!/is_horse|isHorse/i.test(line)) continue;
@@ -167,16 +194,22 @@ test('an absent include-horses parameter means EVERY player', () => {
 });
 
 test('the SQL defaults are true, not merely available', async () => {
-  const sql = code(await read(MIGRATION));
-  const defaults = [...sql.matchAll(/p_include_horses\s+boolean\s+default\s+(\w+)/g)];
-  assert.ok(defaults.length >= 2, 'the search and the restriction list must both carry it');
-  for (const m of defaults) {
-    assert.equal(m[1], 'true', 'every p_include_horses DEFAULTS TRUE');
+  // Across EVERY migration, because the corrections replaced both functions
+  // that carry this parameter.
+  let found = 0;
+  for (const file of MIGRATIONS) {
+    const sql = code(await read(file));
+    for (const m of sql.matchAll(/p_include_horses\s+boolean\s+default\s+(\w+)/g)) {
+      found += 1;
+      assert.equal(m[1], 'true', `${file}: every p_include_horses DEFAULTS TRUE`);
+    }
   }
+  assert.ok(found >= 4, `expected the parameter in both functions in both files, found ${found}`);
 });
 
 test('a horse can be restricted through the same path a human is', async () => {
-  const sql = code(await read(MIGRATION));
+  // The LIVE body, which 20260904183000 replaced.
+  const sql = code(await read(MIGRATIONS[2]));
   const fn = sql.slice(
     sql.indexOf('function public.fn_ca_player_restrict('),
     sql.indexOf('function public.fn_ca_player_lift_restriction')
@@ -190,20 +223,36 @@ test('a horse can be restricted through the same path a human is', async () => {
 });
 
 test('enforcement binds a horse by construction, not by a second code path', async () => {
-  const sql = await read(MIGRATION);
-  // One trigger function, attached to the two tables every seat and every
-  // tournament entry converges on - including the horse fleet's, which seats
-  // through atomic_table_buyin exactly as a browser does.
-  const triggers = sql.match(/execute function public\.fn_ca_refuse_restricted_entry\(/g) || [];
+  // THREE attachments across the migrations that create them: the seat
+  // insert, the seat REVIVE (almost every seating on this platform is an
+  // UPDATE of a vacated row, which the first version of this law asserted
+  // must not exist), and the tournament insert. One trigger FUNCTION for all
+  // three, so there is no second code path to keep in step - including for
+  // the fleet, which seats through atomic_table_buyin exactly as a browser
+  // does.
+  let attachments = 0;
+  for (const file of MIGRATIONS) {
+    const body = await read(file);
+    attachments += (body.match(/execute function public\.fn_ca_refuse_restricted_entry\(/g) || []).length;
+    assert.ok(
+      !/if .*is_horse.*then[\s\S]{0,200}return new/i.test(code(body)),
+      `${file}: the guard must not let a horse through a check a human fails, or the reverse`
+    );
+  }
   assert.equal(
-    triggers.length,
-    2,
-    'exactly two attachments, one per table. A third would be a second code path to keep '
-      + 'in step; a first would leave one entry route unguarded.'
+    attachments,
+    3,
+    'exactly three attachments: table_seats INSERT, table_seats seat-revive UPDATE, and '
+      + 'tournament_players INSERT. Fewer leaves an entry route unguarded - a BEFORE '
+      + 'INSERT-only guard was unreachable for 99.7% of seats.'
   );
-  assert.ok(
-    !/if .*is_horse.*then[\s\S]{0,200}return new/i.test(code(sql)),
-    'the guard must not let a horse through a check a human fails, or the reverse'
+
+  // And the revive one must actually carry the UPDATE bit.
+  const revive = await read(MIGRATIONS[3]);
+  assert.match(
+    revive,
+    /before update of user_id, left_at on public\.table_seats/,
+    'the revive guard must fire on the UPDATE that revives a vacated seat'
   );
 });
 
@@ -286,28 +335,31 @@ test('a scope with no guard is labelled as recorded only', () => {
 // ══ NOTHING IRREVERSIBLE ═══════════════════════════════════════════════════
 
 test('nothing in this phase deletes a player, a note or a restriction', async () => {
+  for (const file of MIGRATIONS) {
+    const sql = code(await read(file));
+    const body = sql.slice(0, sql.indexOf('ROLLBACK') === -1 ? undefined : sql.indexOf('ROLLBACK'));
+    assert.ok(
+      !/delete from public\.ca_player_restrictions/.test(body),
+      `${file}: a lift marks lifted. The record of a decision is part of the decision.`
+    );
+    assert.ok(
+      !/delete from public\.ca_operator_player_notes/.test(body),
+      `${file}: a note delete is soft and keeps its author and its text`
+    );
+    assert.ok(
+      !/delete from public\.profiles|drop table public\.profiles/.test(body),
+      `${file}: this phase deletes no account. P11 is deferred for exactly this reason.`
+    );
+  }
   const sql = code(await read(MIGRATION));
   const body = sql.slice(0, sql.indexOf('ROLLBACK') === -1 ? undefined : sql.indexOf('ROLLBACK'));
-  assert.ok(
-    !/delete from public\.ca_player_restrictions/.test(body),
-    'a lift marks lifted. The record of a decision is part of the decision.'
-  );
-  assert.ok(
-    !/delete from public\.ca_operator_player_notes/.test(body),
-    'a note delete is soft and keeps its author and its text'
-  );
-  assert.ok(
-    !/delete from public\.profiles|drop table public\.profiles/.test(body),
-    'this phase deletes no account. P11, erase at platform scope, is deferred for exactly '
-      + 'this reason.'
-  );
 
   const route = code(await read('pages/api/horses/player-admin.js'));
   assert.ok(!/\.delete\(\)/.test(route), 'the route deletes nothing either');
 });
 
 test('this phase never writes profiles.status', async () => {
-  for (const file of [MIGRATION, 'pages/api/horses/player-admin.js']) {
+  for (const file of [...MIGRATIONS, 'pages/api/horses/player-admin.js']) {
     const body = code(await read(file));
     assert.ok(
       !/update public\.profiles|from\('profiles'\)[\s\S]{0,120}\.update\(/.test(body),
@@ -319,7 +371,7 @@ test('this phase never writes profiles.status', async () => {
 });
 
 test('operator notes never land in the players own notes table', async () => {
-  for (const file of [MIGRATION, ...PHASE4_FILES]) {
+  for (const file of [...MIGRATIONS, ...PHASE4_FILES]) {
     const body = code(await read(file));
     assert.ok(
       !/from\('player_notes'\)|into public\.player_notes|update public\.player_notes/.test(body),
@@ -355,7 +407,11 @@ test('restricting needs moderation.write, which support does not hold', async ()
 });
 
 test('an operator cannot bypass a players own protection', async () => {
-  const sql = code(await read('supabase/migrations/20260904160000_ca_rg_loosen_list_is_an_array.sql'));
+  // THE LIVE BODY, which is 20260904193000. The law used to read
+  // 20260904160000, whose fn_ca_player_rg_set was wholly replaced twice
+  // since - so deleting the hold from the live function would have left this
+  // assertion green.
+  const sql = code(await read(MIGRATIONS[4]));
   assert.match(
     sql,
     /'ok', false,\s*'reason', 'loosening_is_held'/,

@@ -561,3 +561,120 @@ test('callPlayerRpc refuses an array and cannot throw out of its error path', ()
       + 'path, which would escape as a non-ApiError and turn a correct 400 into a 500'
   );
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECOND-ROUND CORRECTIONS. The first round of fixes was written fast, under
+// review pressure, and reviewed by nobody. A second reviewer found two more
+// blockers in it. These pin that round.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RG_FIX2 = await readFile(
+  path.join(
+    HERE, '..',
+    'supabase/migrations/20260904193000_ca_creating_rg_limits_must_not_loosen_one.sql'
+  ),
+  'utf8'
+);
+
+test('creating a limits row uses the columns own default, not a longer one', () => {
+  // BLOCKER. The INSERT branch defaulted the reality-check interval to 60
+  // where the column's default is 30. A LONGER interval is FEWER reminders,
+  // which this very function classifies as a loosening - so an operator
+  // tightening a deposit limit silently halved the reality check for the same
+  // player, on a protection surface, with no hold and nothing said.
+  assert.match(
+    RG_FIX2,
+    /c_default_interval constant int := 30;/,
+    'the create default must be the column default of 30'
+  );
+  assert.ok(
+    !/::int, 60\)/.test(RG_FIX2.replace(/^\s*--.*$/gm, ' ')),
+    'the 60-minute default must not come back'
+  );
+  assert.match(
+    RG_FIX2,
+    /ASSERT FAILED: the column default is now %/,
+    'and the migration must refuse to apply if the column default moves away from 30, '
+      + 'because the number now lives in two places'
+  );
+});
+
+test('a consumed approval key cannot write a second restriction', () => {
+  const body = routeCode.slice(routeCode.indexOf('async function actionRestrict'));
+  assert.match(
+    body,
+    /if \(approvalRef\.alreadyExecuted\) \{[\s\S]{0,300}'already_executed'/,
+    'fn_ca_player_restrict takes NO p_op_id, so it is exactly the kind approvals.js '
+      + 'describes as having no key of its own. `executed` is a RELEASED status, so '
+      + 'without this a replay falls through to the write. The unique index catches the '
+      + 'common case but not after a LIFT: restrict, approve, execute, lift, press Apply '
+      + 'It Now again, and a second restriction is written under a consumed approval.'
+  );
+  // fleet-admin guards the same thing the same way.
+  assert.match(body, /409,/, 'and it must be a conflict, not a silent success');
+});
+
+test('the active-restriction count honours expiry, like the reader does', () => {
+  const body = routeCode.slice(
+    routeCode.indexOf('async function sectionObservations'),
+    routeCode.indexOf('async function sectionTickets')
+  );
+  assert.match(
+    body,
+    /expires_at\.is\.null,expires_at\.gt\./,
+    'counting on status alone over-reports in exactly the state the platform is '
+      + 'guaranteed to be in, because the sweep that tidies status has no caller. And '
+      + 'this count is what tells the operator whether an empty observation log means a '
+      + 'quiet platform or nobody being restricted.'
+  );
+});
+
+test('a dropped audit row reaches the operator', () => {
+  const body = routeCode.slice(routeCode.indexOf('async function actionRestrict'));
+  assert.match(
+    body,
+    /const auditRecorded = auditResult\?\.ok !== false;/,
+    'auditOperatorAction never throws by design, so a dropped row used to be invisible: '
+      + "a player's access taken away with nothing in admin_audit_log, and the operator "
+      + 'told "Restriction Applied".'
+  );
+  assert.match(
+    body,
+    /WARNING: The Audit Row Could Not Be Written/,
+    'and the operator must be told in the sentence they read'
+  );
+});
+
+test('the ticket and report queues name the player', () => {
+  assert.match(
+    routeCode,
+    /async function namesFor\(db, ids\)/,
+    'a ticket list that renders an identical button on every row under a header reading '
+      + 'PLAYER tells an operator nothing about whose ticket it is. Found by rendering '
+      + 'the panel in a browser.'
+  );
+  assert.match(routeCode, /reported_name: names\.get/, 'the reports queue too');
+  // Best effort: a failed lookup must not take the queue down with it.
+  assert.match(
+    routeCode,
+    /if \(error \|\| !Array\.isArray\(data\)\) return out;/,
+    'a name lookup that fails leaves the names out; it does not fail the list'
+  );
+});
+
+test('the reason that needs a note is named once, not typed twice', async () => {
+  const { REASON_NEEDS_NOTE } = await import('../src/lib/horses/playerRestrictions.js');
+  assert.equal(REASON_NEEDS_NOTE, 'other');
+  assert.match(
+    routeCode,
+    /reasonCode === REASON_NEEDS_NOTE/,
+    'the route must use the constant. Both halves hardcoded the literal while the '
+      + 'constant naming it sat exported and imported by nothing - which is exactly how '
+      + 'the panel and the route drift apart about which reason needs an explanation.'
+  );
+  const panelSrc = await readFile(
+    path.join(HERE, '..', 'src/components/horses/PlayersPanel.jsx'),
+    'utf8'
+  );
+  assert.match(panelSrc, /reasonCode === REASON_NEEDS_NOTE/, 'and so must the panel');
+});
