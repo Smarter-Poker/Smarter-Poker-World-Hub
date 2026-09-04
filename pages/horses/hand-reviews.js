@@ -124,6 +124,26 @@ const TELEMETRY_COLUMNS = [
   ['feature', 'Layer'],
   ['fires', 'Fires'],
 ];
+// 2026-09-04 (Phase 1 of the horse real-time build plan): the Data Ledger.
+// Every input the brain consumes, from server/src/engine/HorseDataLedger.ts,
+// joined to yesterday's telemetry. "Proven" is the receipt: yes = fired,
+// NO = registered consumer with a big denominator and zero fires (the daily
+// audit raises data_unread for it), quiet = denominator too small to judge,
+// mix = depends on table mix, n/a = not a receipt row, legacy = a table
+// nobody reads.
+const LEDGER_COLUMNS = [
+  ['kind', 'Kind'],
+  ['name', 'Datum'],
+  ['cadence', 'Cadence'],
+  ['source', 'Source'],
+  ['consumer', 'Consumer'],
+  ['fires', 'Fires'],
+  ['ratio', 'Ratio'],
+  ['min_ratio', 'Expected'],
+  ['proven', 'Proven'],
+  ['since', 'Since'],
+  ['note', 'Note'],
+];
 const LEAGUE_COLUMNS = [
   ['run_date', 'Run'],
   ['matchup', 'Matchup'],
@@ -310,6 +330,10 @@ export default function HorseHandReviews() {
   // 2026-08-27 false-spike incident was exactly that).
   const [league, setLeague] = useState([]);
   const [leagueError, setLeagueError] = useState(null);
+  const [ledger, setLedger] = useState([]);
+  const [ledgerError, setLedgerError] = useState(null);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [ledgerKind, setLedgerKind] = useState('receipt');
   const [leagueOpen, setLeagueOpen] = useState(false);
   const [tagTrends, setTagTrends] = useState([]);
   const [tagTrendsError, setTagTrendsError] = useState(null);
@@ -391,6 +415,18 @@ export default function HorseHandReviews() {
     } else {
       setTelemetryError(null);
       setTelemetry(tData || []);
+    }
+    // 2026-09-04: the Data Ledger read. Same discipline: a failed read must
+    // LOOK failed, because an empty ledger is itself a critical audit finding
+    // (data_ledger_missing) and must not be confused with a query that did
+    // not run.
+    const { data: ldData, error: ldErr } = await supabase.rpc('ca_horse_data_ledger');
+    if (ldErr) {
+      setLedgerError(ldErr.message);
+      setLedger([]);
+    } else {
+      setLedgerError(null);
+      setLedger(ldData || []);
     }
     // Same error discipline as telemetry: a failed read must LOOK failed.
     const { data: lgData, error: lgErr } = await supabase.rpc('ca_horse_league_card', {
@@ -594,6 +630,98 @@ export default function HorseHandReviews() {
                           {telemetryError
                             ? `The Telemetry Read FAILED (${telemetryError}). This Is Not Evidence The Engine Is Dark, The Query Did Not Run. Fix The Read Before Drawing Any Conclusion From This Panel.`
                             : 'Counters Appear After The Telemetry Engine Deploy. A Telemetry Dark Finding Above Means This Is Expected.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* 2026-09-04 (Phase 1): What The Horses Consumed - the Data Ledger.
+              Source, cadence, consumer and receipt for every input the brain
+              can touch, judged against yesterday's fires. */}
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={ledgerOpen}
+              aria-controls="ledger-panel"
+              onClick={() => setLedgerOpen(!ledgerOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
+            >
+              <span style={{ fontWeight: 700 }}>What The Horses Consumed</span>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
+                The Data Ledger: Every Input The Brain Reads, Its Source, Cadence, Consumer, And The Receipt From Yesterday.
+              </span>
+              <span style={{ marginLeft: 'auto', color: ledgerError ? T.danger : ledger.some((r) => r.proven === 'NO') ? T.danger : T.positive, fontSize: '0.8rem' }}>
+                {ledgerError
+                  ? 'Read Failed'
+                  : ledger.length > 0
+                    ? `${ledger.length} Inputs, ${ledger.filter((r) => r.proven === 'yes').length} Proven, ${ledger.filter((r) => r.proven === 'NO').length} Unread`
+                    : 'No Ledger Yet'}
+              </span>
+            </button>
+            {ledgerOpen && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+                {['receipt', 'table', 'profile', 'mind', 'param', 'state', 'flag', 'all'].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setLedgerKind(k)}
+                    aria-pressed={ledgerKind === k}
+                    style={{ cursor: 'pointer', padding: '0.2rem 0.6rem', minHeight: 32, borderRadius: 6, border: `1px solid ${T.line}`, background: ledgerKind === k ? T.line : 'none', color: 'inherit', font: 'inherit', fontSize: '0.8rem' }}
+                  >
+                    {k === 'all' ? 'All' : k.charAt(0).toUpperCase() + k.slice(1)} ({k === 'all' ? ledger.length : ledger.filter((r) => r.kind === k).length})
+                  </button>
+                ))}
+                <div style={{ marginLeft: 'auto' }}>
+                  <ExportCsvButton rows={ledger} columns={LEDGER_COLUMNS} filePrefix="horse-data-ledger" />
+                </div>
+              </div>
+            )}
+            {ledgerOpen && (
+              <div id="ledger-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ color: T.muted, textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem' }}>Datum</th>
+                      <th style={{ padding: '0.3rem' }}>Cadence</th>
+                      <th style={{ padding: '0.3rem' }}>Consumer</th>
+                      <th style={{ padding: '0.3rem' }}>Fires</th>
+                      <th style={{ padding: '0.3rem' }}>Ratio / Expected</th>
+                      <th style={{ padding: '0.3rem' }}>Proven</th>
+                      <th style={{ padding: '0.3rem' }}>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledger
+                      .filter((r) => ledgerKind === 'all' || r.kind === ledgerKind)
+                      .map((r) => (
+                        <tr key={r.key} style={{ borderTop: `1px solid ${T.line}` }}>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{r.name}</td>
+                          <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{r.cadence}</td>
+                          <td style={{ padding: '0.3rem' }}>{r.consumer}</td>
+                          <td style={{ padding: '0.3rem', textAlign: 'right', color: r.fires == null ? T.muted : Number(r.fires) > 0 ? T.positive : T.danger }}>
+                            {r.fires == null ? '' : Number(r.fires).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>
+                            {r.ratio == null ? '' : `${(Number(r.ratio) * 100).toFixed(3)}%`}
+                            {r.min_ratio == null ? '' : ` / ${(Number(r.min_ratio) * 100).toFixed(3)}%`}
+                          </td>
+                          <td style={{ padding: '0.3rem', fontWeight: 700, color: r.proven === 'yes' ? T.positive : r.proven === 'NO' ? T.danger : T.muted }}>
+                            {r.proven}
+                          </td>
+                          <td style={{ padding: '0.3rem', color: T.muted }}>{r.note}</td>
+                        </tr>
+                      ))}
+                    {ledger.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '0.4rem', color: T.muted }}>
+                          {ledgerError
+                            ? `The Ledger Read FAILED (${ledgerError}). This Is Not Evidence The Ledger Is Empty, The Query Did Not Run.`
+                            : 'No Ledger Rows. The Engine Writes Its Contract At Boot; An Empty Ledger Is The Critical Audit Finding Named Data Ledger Missing.'}
                         </td>
                       </tr>
                     )}
