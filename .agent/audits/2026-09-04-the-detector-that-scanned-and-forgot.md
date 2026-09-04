@@ -123,6 +123,48 @@ comments first. A guard that miscounts is how the wrong function gets fixed.
 | workers #66 | the cursor as an index cond; the catch-up flag; 500 on a failed advance; `cron_execution_log.result` stops being `{}` |
 | `__tests__/horses-an-rpc-write-has-a-where.test.mjs` | proved red by removing the WHERE |
 
+## 5. And then it hung anyway, with everything measurably fast
+
+With the mark fixed and deployed, the 20:30 run sat at `running` for over ten
+minutes. Every component was then measured rather than reasoned about:
+
+| Part | Measured |
+| --- | --- |
+| read, 40,000 hands over the same window | 37.6s from a laptop, ~800ms per page, **flat with page depth** |
+| whole handler over those 40,000 real hands | **525ms**, 297,630 actions, 2,665 findings |
+| horse lookup, 300 ids | 695ms, HTTP 200 |
+| payload | 56 MB for 51,297 hands (643 bytes of actions each) |
+
+The flat page cost is the index-cond fix working. Everything measured is fast,
+so the run was not slow. **It was stuck**, and nothing in the process could say
+so, because the wall-clock budget covered the read and only the read.
+
+Three ceilings, none of which existed:
+
+1. **A single page had none.** The read budget is checked BETWEEN pages, so a
+   page that never answers is never noticed - the loop cannot reach its own
+   check. A budget that only applies while the thing is making progress is not
+   a budget.
+2. **The horse lookup, the insert, the state read and the advance had none.**
+3. **The supabase client had no fetch timeout at all**, so a stuck connection
+   was held for the life of the process.
+
+**Item 3 is not the fix, and this is the part worth carrying forward.**
+Measured: with a fetch that only settles when aborted, the abort fires - and
+the supabase-js call above it still never settles, and re-issues the request.
+A caller can hang with a perfectly good fetch timeout underneath it. So the
+deadline has to live where the `await` is, where `Promise.race` does not care
+what the library does with a rejection.
+
+None of them retry. An aborted request may already have executed, and
+replaying a write is a money-integrity hazard (Club Arena CLAUDE.md section
+2). These turn an invisible hang into a loud failure. That is all they do.
+
+Finding this required reproducing the entire handler locally against 40,000
+real rows, because `cron_execution_log` recorded a duration and nothing else.
+The response now carries per-phase timings and they land in `result`, so the
+next one says where the time went.
+
 ## Still open
 
 The pair thresholds (>=15 shared hands, >=30 for win rate) were chosen when
