@@ -821,6 +821,7 @@ jobs:
             __tests__/vercel-build-queue.test.mjs \
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
+            __tests__/login-bridge-probe-relay.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs
 

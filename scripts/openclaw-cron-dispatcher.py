@@ -113,6 +113,7 @@ REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 # pages about jobs that worked. Give the long ones the time they take; the
 # flat 120s stays the default for everything else.
 JOB_TIMEOUTS = {
+    '/api/internal/login-bridge-probe': 90,   # relay: Commander's two-leg probe takes 10-30s, relay caps at 50s
     '/api/cron/trivia-theme-backfill': 300,
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
@@ -388,14 +389,20 @@ ALL_CRONS = [
     # Commander handshake was broken for days on 2026-09-03 and nothing paged.
     # This is the probe's PRIMARY schedule (hub CLAUDE.md 10.9: never the
     # Claude scheduler; the GitHub cron in the commander repo is best-effort
-    # and files the issue). The path is the hub rewrite to
-    # commander.smarter.poker/api/internal/login-bridge-probe, which verifies
-    # the same CRON_SECRET bearer, runs both legs (structural + signed-in with
-    # the project's PROBE_LOGIN_* credentials), records its run in
-    # cron_execution_log as /commander/internal/login-bridge-probe, and sends
-    # commander.probe.login_bridge_failed to Sentry on any failure. 503 means
-    # CRON_SECRET is not yet set on the commander Vercel project (Dan-only).
-    ('/api/commander/internal/login-bridge-probe', dict(minute=22)),      # hourly at :22 - off the quarter-hours
+    # and files the issue). The path is a HUB relay
+    # (pages/api/internal/login-bridge-probe.js): it checks the same
+    # CRON_SECRET bearer as every other job, then calls
+    # commander.smarter.poker/api/internal/login-bridge-probe with a ticket
+    # signed by SUPABASE_JWT_SECRET, which both Vercel projects hold by
+    # construction. The first version pointed straight at the commander
+    # rewrite and needed a CRON_SECRET COPY on the commander project; its
+    # first live run 401'd on a drifted copy. Commander runs both legs
+    # (structural + signed-in with its PROBE_LOGIN_* credentials), records the
+    # run in cron_execution_log as /commander/internal/login-bridge-probe, and
+    # sends commander.probe.login_bridge_failed to Sentry on any failure. The
+    # relay returns Commander's status verbatim; two non-200s in a row page
+    # (CRITICAL_JOBS).
+    ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
     # RakebackSettlerService.runUnionWeeklyRakeback() calls
@@ -1002,7 +1009,7 @@ def _workers_dispatch(path: str) -> bool:
 # A 401 counts: for the commander probe that is CRON_SECRET drift between the
 # hub and the commander Vercel project, which is exactly a failure.
 CRITICAL_JOBS = {
-    '/api/commander/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
+    '/api/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
 }
 _critical_state = {}
 

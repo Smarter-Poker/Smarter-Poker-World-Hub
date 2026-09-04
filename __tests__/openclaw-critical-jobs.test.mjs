@@ -18,7 +18,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const src = fs.readFileSync(path.join(root, 'scripts', 'openclaw-cron-dispatcher.py'), 'utf8');
 
 test('the commander login-bridge probe is a critical job with a 2-failure threshold', () => {
-  assert.match(src, /CRITICAL_JOBS\s*=\s*\{[\s\S]*?'\/api\/commander\/internal\/login-bridge-probe':\s*2/);
+  assert.match(src, /CRITICAL_JOBS\s*=\s*\{[\s\S]*?'\/api\/internal\/login-bridge-probe':\s*2/);
 });
 
 test('every fire_cron outcome feeds _critical_record (200, non-200, timeout, exception)', () => {

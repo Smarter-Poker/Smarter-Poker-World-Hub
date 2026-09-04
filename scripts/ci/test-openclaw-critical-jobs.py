@@ -29,7 +29,7 @@ spec.loader.exec_module(d)
 sent = []
 d._send_sms = lambda body: (sent.append(body) or True)
 
-PROBE = '/api/commander/internal/login-bridge-probe'
+PROBE = '/api/internal/login-bridge-probe'
 assert PROBE in d.CRITICAL_JOBS, 'the commander login-bridge probe must be a critical job'
 assert d.CRITICAL_JOBS[PROBE] == 2, 'threshold must be 2 consecutive failures'
 
