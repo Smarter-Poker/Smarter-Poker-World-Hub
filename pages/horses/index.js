@@ -525,6 +525,8 @@ export default function HorsesAdmin() {
   const [mintLedgerAction, setMintLedgerAction] = useState('');
   // Drill-down: { id, label } of a single holder, or null for the whole journal.
   const [mintLedgerHolder, setMintLedgerHolder] = useState(null);
+  /** Where the row came from (ca_mint_ledger.origin): '' is every origin. */
+  const [mintLedgerOrigin, setMintLedgerOrigin] = useState('');
   // The ledger was a fixed limit=100 with no offset, so row 101 of the journal
   // that records every chip and diamond ever created was unreachable.
   const [mintLedgerOffset, setMintLedgerOffset] = useState(0);
@@ -1008,7 +1010,7 @@ export default function HorsesAdmin() {
    * `rows` is the Phase 1 paged field name; `entries` is the legacy one the
    * route keeps alongside it, so this reads whichever arrives.
    */
-  const loadMintLedger = useCallback(async (asset = '', action = '', holderId = '', offset = 0) => {
+  const loadMintLedger = useCallback(async (asset = '', action = '', holderId = '', offset = 0, origin = '') => {
     const seq = ++mintLedgerSeqRef.current;
     const params = new URLSearchParams({
       section: 'ledger',
@@ -1018,6 +1020,7 @@ export default function HorsesAdmin() {
     if (asset) params.set('asset', asset);
     if (action) params.set('action', action);
     if (holderId) params.set('holderId', holderId);
+    if (origin) params.set('origin', origin);
     setMintLedgerLoading(true);
     try {
       const data = await authFetch(`/api/horses/mint?${params.toString()}`);
@@ -1052,6 +1055,7 @@ export default function HorsesAdmin() {
       asset = mintLedgerAsset,
       action = mintLedgerAction,
       holder = mintLedgerHolder,
+      origin = mintLedgerOrigin,
       offset = 0,
     } = {}
   ) => {
@@ -1059,10 +1063,11 @@ export default function HorsesAdmin() {
     setMintLedgerAsset(asset);
     setMintLedgerAction(action);
     setMintLedgerHolder(holder);
+    setMintLedgerOrigin(origin);
     setMintLedgerOffset(nextOffset);
-    loadMintLedger(asset, action, holder?.id || '', nextOffset)
+    loadMintLedger(asset, action, holder?.id || '', nextOffset, origin)
       .catch((err) => showNotification(err.message, 'error'));
-  }, [loadMintLedger, mintLedgerAsset, mintLedgerAction, mintLedgerHolder, showNotification]);
+  }, [loadMintLedger, mintLedgerAsset, mintLedgerAction, mintLedgerHolder, mintLedgerOrigin, showNotification]);
 
   /** Move the ledger pager and load that page, reporting a failure rather than
    *  leaving the operator on a page that silently did not change. Paging is a
@@ -1088,7 +1093,7 @@ export default function HorsesAdmin() {
       setMintOverview(overview);
       setMintTargets(targets);
       await loadMintLedger(
-        mintLedgerAsset, mintLedgerAction, mintLedgerHolder?.id || '', ledgerOffset
+        mintLedgerAsset, mintLedgerAction, mintLedgerHolder?.id || '', ledgerOffset, mintLedgerOrigin
       );
       setMintLoaded(true);
     } catch (err) {
@@ -4655,8 +4660,8 @@ export default function HorsesAdmin() {
               <h2 className={styles.sectionTitle}>The Mint</h2>
               <p className={styles.subtitle} style={{ marginTop: -8, marginBottom: 20 }}>
                 Authorized Issuance And Retirement. Chips Go To A Club Treasury Or A Union Bank;
-                Diamonds Go To An Individual Player. Every Operation Is Journalled With Its Reason
-                And Cannot Be Edited Afterwards.
+                Diamonds Go To An Individual Player. Every Operation Is Journalled With Its Reason,
+                The Register Is Append-Only, And Every Issuance Is Held Under The Policy Ceiling.
               </p>
 
               {mintError && (
@@ -4676,11 +4681,111 @@ export default function HorsesAdmin() {
                 <div className={styles.loadingSpinner}>Loading The Mint</div>
               ) : (
                 <>
+                  {/* ── IS EVERY CHIP ACCOUNTED FOR ────────────────────────── */}
+                  {/* Since the 2026-09-04 opening baseline the register FOLLOWS
+                      the journal, so it is supposed to equal the supply meter.
+                      This card says whether it does, as of the meter's last
+                      snapshot: green when the difference is the meter's own
+                      unexplained drift and nothing else, which means no chip
+                      was issued or retired outside the register. */}
+                  {mintOverview?.totals?.reconciliation && (() => {
+                    const r = mintOverview.totals.reconciliation;
+                    const ok = r.balanced === true;
+                    const ageMin = Math.round((Number(r.meter_age_seconds) || 0) / 60);
+                    return (
+                      <div className={styles.card} style={{ borderColor: ok ? T.accentLine : T.danger, marginBottom: 20 }}>
+                        <h3 className={styles.sectionTitle} style={{ color: ok ? T.accent : T.danger }}>
+                          {ok ? 'Every Chip Is Accounted For' : 'The Register And The Meter Disagree'}
+                        </h3>
+                        <p style={{ color: T.dim, margin: '4px 0 12px' }}>
+                          {ok
+                            ? 'The Register Equals The Supply Meter As Of Its Last Snapshot, Except For The Meter\'s Own Unexplained Drift. Nothing Was Issued Or Retired Outside The Register.'
+                            : 'A Chip Reached A Balance Without A Register Row, Or Left One. The Trigger Makes That Impossible For Journal Legs, So Find The Writer.'}
+                        </p>
+                        <div className={styles.kpiGrid}>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Register At The Snapshot</span>
+                            <span className={styles.kpiValue}>{num(r.register_net_at_meter, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Supply Meter</span>
+                            <span className={styles.kpiValue}>{num(r.meter_total, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Difference</span>
+                            <span className={styles.kpiValue} style={{ color: ok ? T.accent : T.danger }}>{num(r.difference, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Meter Drift Since Baseline</span>
+                            <span className={styles.kpiValue}>{num(r.unexplained_since_baseline, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Snapshot Age</span>
+                            <span className={styles.kpiValue}>{ageMin} Min</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Register Now</span>
+                            <span className={styles.kpiValue}>{num(r.register_net, '0')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ── THE POLICY ─────────────────────────────────────────── */}
+                  {/* ca_mint_policy: a per-operation cap and a rolling 24h
+                      ceiling, refused in fn_ca_mint and again at commit for
+                      every door. Raising it is fn_ca_mint_policy_set with a
+                      reason, recorded in ca_mint_policy_changes. */}
+                  {mintOverview?.totals?.policy && (() => {
+                    const pol = mintOverview.totals.policy;
+                    const iss = mintOverview.totals.issuance || {};
+                    const headroom = Number(pol.headroom_24h_chips) || 0;
+                    const cap = Number(pol.rolling_24h_cap_chips) || 0;
+                    const usedPct = cap > 0 ? Math.min(100, Math.round(((cap - headroom) / cap) * 100)) : 0;
+                    return (
+                      <div className={styles.card} style={{ marginBottom: 20 }}>
+                        <h3 className={styles.sectionTitle}>Issuance Policy</h3>
+                        <p style={{ color: T.dim, margin: '4px 0 12px' }}>
+                          Per Operation Up To {num(pol.per_operation_cap_chips)} Chips Or {num(pol.per_operation_cap_diamonds)} Diamonds.
+                          {' '}Rolling 24 Hours Up To {num(pol.rolling_24h_cap_chips)} Chips Or {num(pol.rolling_24h_cap_diamonds)} Diamonds.
+                          {' '}Every Door Is Held To It At Commit. Raising It Is A Recorded Change With A Reason.
+                        </p>
+                        <div className={styles.kpiGrid}>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Chips Issued, Last 24h</span>
+                            <span className={styles.kpiValue}>{num(iss.issued_24h, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Chips Retired, Last 24h</span>
+                            <span className={styles.kpiValue}>{num(iss.retired_24h, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>24h Headroom</span>
+                            <span className={styles.kpiValue} style={{ color: usedPct >= 80 ? T.warn : T.text }}>{num(headroom, '0')} ({usedPct}% Used)</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Issued Since Baseline</span>
+                            <span className={styles.kpiValue}>{num(iss.issued_since_baseline, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Retired Since Baseline</span>
+                            <span className={styles.kpiValue}>{num(iss.retired_since_baseline, '0')}</span>
+                          </div>
+                        </div>
+                        {pol.note && (
+                          <p style={{ color: T.muted, fontSize: 12, margin: '10px 0 0' }}>
+                            Policy Note: {pol.note}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* ── SUPPLY ─────────────────────────────────────────────── */}
-                  {/* Issued and circulating are shown side by side and never
-                      reconciled into one number: ~172M chips in member wallets
-                      predate The Mint, so they are not supposed to match yet,
-                      and a single blended figure would hide that. */}
+                  {/* Issued (the register, net of burns) and the circulating
+                      stores side by side. Since the baseline they reconcile
+                      in the card above; these are the parts. */}
                   <div className={styles.kpiGrid}>
                     <div className={styles.kpi}>
                       <span className={styles.kpiLabel}>Chips Issued (Net Of Burns)</span>
@@ -5093,6 +5198,22 @@ export default function HorsesAdmin() {
                         <option value="mint">Issuance Only</option>
                         <option value="burn">Retirement Only</option>
                       </select>
+                      <select
+                        className={styles.filterSelect}
+                        value={mintLedgerOrigin}
+                        aria-label="Filter By Origin"
+                        onChange={(e) => refreshMintLedger({ origin: e.target.value })}
+                      >
+                        <option value="">Every Origin</option>
+                        <option value="operator">Operator (This Panel)</option>
+                        <option value="journal">Journal (Registered At Commit)</option>
+                        <option value="baseline">Opening Baseline</option>
+                        <option value="diamond-mint">Diamond Mint</option>
+                        <option value="opening-grant">Club Opening Grant</option>
+                        <option value="restoration">Restoration</option>
+                        <option value="seed">Seed</option>
+                        <option value="deletion">Deletion</option>
+                      </select>
                       <button
                         type="button"
                         className={styles.actionBtn}
@@ -5106,6 +5227,7 @@ export default function HorsesAdmin() {
                               ['holder_type', 'Holder Type'],
                               ['holder_label', 'Holder'],
                               ['holder_id', 'Holder Id'],
+                              ['origin', 'Origin'],
                               ['amount', 'Amount'],
                               ['balance_before', 'Balance Before'],
                               ['balance_after', 'Balance After'],
@@ -5144,7 +5266,7 @@ export default function HorsesAdmin() {
                          has never issued anything. An empty FILTER and an empty
                          JOURNAL are different facts and are worded that way. */
                       <div className={styles.emptyState}>
-                        {mintLedgerHolder || mintLedgerAsset || mintLedgerAction ? (
+                        {mintLedgerHolder || mintLedgerAsset || mintLedgerAction || mintLedgerOrigin ? (
                           <>
                             No Operations Match These Filters
                             {mintLedgerHolder ? ` For ${mintLedgerHolder.label}` : ''}. Clear Them
@@ -5164,6 +5286,7 @@ export default function HorsesAdmin() {
                             <tr>
                               <th>When</th>
                               <th>Operation</th>
+                              <th>Origin</th>
                               <th>Holder</th>
                               <th>Amount</th>
                               <th>Balance</th>
@@ -5182,6 +5305,7 @@ export default function HorsesAdmin() {
                                 >
                                   {row.action === 'mint' ? 'Issued' : 'Retired'} {assetLabel(row.asset)}
                                 </td>
+                                <td style={{ color: T.dim }}>{row.origin || '-'}</td>
                                 <td>
                                   {/* Clicking a holder narrows the journal to that
                                       holder. The route has always supported it and
