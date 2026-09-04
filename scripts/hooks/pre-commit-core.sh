@@ -3,9 +3,11 @@
 # PRE-COMMIT HOOK: Combined Safety Gate
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# CHECK A: Club Arena Build Enforcement
-#   Blocks any commit that touches public/hub/club-arena/ UNLESS it was
-#   triggered by scripts/build-club-arena.sh.
+# CHECK A: public/hub/club-arena/ is DELETED and may not come back
+#   Blocks any commit that touches public/hub/club-arena/, with no escape
+#   hatch. Rewritten 2026-09-04 - it used to allow the commit when
+#   ARENA_BUILD=1 or a merge was in progress, and told the reader to run
+#   scripts/sync-club-arena.sh - deleted from main on 2026-09-02.
 #
 # CHECK B: Merge / Stash Conflict Marker Detection  ★ CRITICAL ★
 #   Blocks commits containing <<<<<<< / ======= / >>>>>>> markers.
@@ -20,55 +22,59 @@
 #   git commit --no-verify -m "message"
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ─── CHECK A: Club Arena Build Enforcement ───────────────────────────────────
+# ─── CHECK A: public/hub/club-arena/ is deleted and may not come back ────────
+#
+# Rewritten 2026-09-04. This guard used to exist to stop HAND-EDITED build
+# output, so it let the build script through (ARENA_BUILD=1) and let a merge
+# through (MERGE_HEAD). Both exemptions are now holes, because the directory
+# itself is gone: Club Arena publishes to its own origin
+# (ca-static.smarter.poker) and this repo carries one rewrite,
+# /hub/club-arena/:path* -> that origin.
+#
+# NEXT.JS SERVES public/ BEFORE A REWRITE. So a file re-vendored here does not
+# duplicate the live bundle, it SHADOWS it: production keeps serving whatever
+# was last committed while publish-club-arena.yml rsyncs into the void, and
+# nothing reports a problem. That is why there is no escape hatch any more -
+# there is no legitimate commit that puts a file back in this directory, and a
+# merge that wants to is a merge of a branch older than the deletion.
+#
+# If you are here because a merge is bringing 1,700 files back: resolve it by
+# DELETING them (`git rm -r --cached public/hub/club-arena`), not by bypassing
+# this check.
+# ─────────────────────────────────────────────────────────────────────────────
 ARENA_PATH="public/hub/club-arena/"
 
-ARENA_STAGED=$(git diff --cached --name-only | grep "^${ARENA_PATH}" | wc -l | tr -d ' ')
+ARENA_STAGED=$(git diff --cached --name-only | grep -c "^${ARENA_PATH}" || true)
 
 if [ "$ARENA_STAGED" -gt 0 ]; then
-    # Dan 2026-08-15 — MERGE EXEMPTION.
-    #
-    # This guard exists to stop hand-edited build output, and it should. But it
-    # also fired on MERGE-CONFLICT RESOLUTIONS in that directory, a case the
-    # sync script cannot help with: sync-club-arena.sh builds and commits, it
-    # cannot resolve a merge. When origin and local each carry a different build
-    # of the same hashed assets, the only way forward is to resolve and commit —
-    # and this guard blocked exactly that, forcing a manual `ARENA_BUILD=1
-    # git commit` to land a 308-file merge.
-    #
-    # A merge commit is not a hand-edit, so allow it. MERGE_HEAD exists only
-    # while a merge is actually in progress, so this cannot be abused to sneak
-    # a direct commit through.
-    if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then
-        echo "[pre-commit] ✓ Merge in progress — Club Arena guard skipped ($ARENA_STAGED files)"
-    elif [ "${ARENA_BUILD:-0}" = "1" ]; then
-        echo "[pre-commit] ✓ Club Arena build script authorized — $ARENA_STAGED files committed"
-    else
-        echo ""
-        echo "╔══════════════════════════════════════════════════════════════╗"
-        echo "║  🚫  CLUB ARENA DIRECT COMMIT BLOCKED                       ║"
-        echo "╠══════════════════════════════════════════════════════════════╣"
-        echo "║                                                              ║"
-        echo "║  You are trying to commit $ARENA_STAGED files in:                   ║"
-        echo "║    public/hub/club-arena/                                    ║"
-        echo "║                                                              ║"
-        echo "║  Direct commits to this directory are FORBIDDEN.            ║"
-        echo "║  They cause phantom pending changes (the 792-commit bug).   ║"
-        echo "║                                                              ║"
-        echo "║  THE ONLY AUTHORIZED WAY TO DEPLOY CLUB ARENA:             ║"
-        echo "║                                                              ║"
-        echo "║    bash scripts/sync-club-arena.sh \"your message\"           ║"
-        echo "║                                                              ║"
-        echo "║  That script builds → cleans → copies → commits → pushes   ║"
-        echo "║  atomically, preventing all stale artifact accumulation.    ║"
-        echo "║                                                              ║"
-        echo "╚══════════════════════════════════════════════════════════════╝"
-        echo ""
-        echo "Blocked files (first 10):"
-        git diff --cached --name-only | grep "^${ARENA_PATH}" | head -10
-        echo ""
-        exit 1
-    fi
+    echo ""
+    echo "=============================================================="
+    echo "  BLOCKED: public/hub/club-arena/ is deleted and stays deleted"
+    echo "=============================================================="
+    echo ""
+    echo "  $ARENA_STAGED staged file(s) under $ARENA_PATH"
+    echo ""
+    echo "  Club Arena has not published through this repo since"
+    echo "  2026-09-02. It builds in its own repo and rsyncs to"
+    echo "  ca-static.smarter.poker; this repo carries ONE rewrite."
+    echo ""
+    echo "  Next.js serves public/ BEFORE that rewrite, so committing"
+    echo "  these files would not duplicate the live bundle - it would"
+    echo "  SHADOW it. Production would freeze on this copy while the"
+    echo "  real publisher kept publishing where nobody looks."
+    echo ""
+    echo "  There is no override. To deploy Club Arena, push a branch"
+    echo "  in the Club Arena repo and stop; everything after that is"
+    echo "  automatic. Confirm with:"
+    echo "    curl -s https://smarter.poker/hub/club-arena/build-info.json"
+    echo ""
+    echo "  If a MERGE is reintroducing them, delete them instead:"
+    echo "    git rm -r --cached public/hub/club-arena"
+    echo ""
+    echo "  Blocked files (first 10):"
+    git diff --cached --name-only | grep "^${ARENA_PATH}" | head -10
+    echo ""
+    exit 1
 fi
 
 # ─── CHECK B: Merge / Stash Conflict Marker Detection ───────────────────────
