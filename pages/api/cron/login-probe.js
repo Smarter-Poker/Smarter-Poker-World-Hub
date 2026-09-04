@@ -75,6 +75,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { unconfiguredProbe } from '../../../src/lib/probeUnconfigured';
 
 let _admin = null, _anon = null;
 function getAdmin() {
@@ -150,17 +151,14 @@ async function handler(req, res) {
 
     const admin = getAdmin();
     const anon = getAnon();
-    if (!admin || !anon) return res.status(500).json({ status: 'unconfigured', error: 'Missing Supabase env vars' });
+    if (!admin || !anon) return unconfiguredProbe(res, admin, 'login-probe', 'Missing Supabase env vars');
 
     const email = (process.env.PROBE_LOGIN_EMAIL || '').trim();
     const password = process.env.PROBE_LOGIN_PASSWORD;
     if (!email || !password) {
-        return res.status(500).json({
-            status: 'unconfigured',
-            error: 'Missing PROBE_LOGIN_EMAIL or PROBE_LOGIN_PASSWORD env vars. ' +
+        return unconfiguredProbe(res, admin, 'login-probe', 'Missing PROBE_LOGIN_EMAIL or PROBE_LOGIN_PASSWORD env vars. ' +
                 'Create a permanent probe account in Supabase and add the creds to Vercel env vars. ' +
-                'See the file header comment for setup instructions.',
-        });
+                'See the file header comment for setup instructions.');
     }
 
     // 2026-09-04: never run as a person. See the outage note in the header.
