@@ -5,6 +5,7 @@
 
 import { memo,  useState, useEffect, useRef } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { createLedgerEntry, updateLedgerEntry, getActiveTrip, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
@@ -12,6 +13,7 @@ import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/lo
 import VenueSelector from './VenueSelector';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 
 // Clean SmarterPoker-style categories (no emojis)
 const CATEGORIES = [
@@ -46,14 +48,11 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   const isEditMode = !!editEntry;
   // Phone back gesture closes the sheet instead of leaving the page (mobile
   // phase 0a). The modal is mounted only while open, so isOpen is constant;
-  // the unmount cleanup pops our history entry if it is still on top so an
-  // X-close never leaves a dead "back" behind.
+  // the hook pops our history entry on unmount so an X-close never leaves a
+  // dead "back" behind.
   useModalHistory(true, onClose);
-  useEffect(() => () => {
-    try {
-      if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
-    } catch (_) { /* history unavailable */ }
-  }, []);
+  // Tap outside closes; a drag-select that ends on the scrim does not.
+  const scrim = useScrimDismiss(onClose);
   const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -340,6 +339,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+    if (!requireOnlineNow(toast)) return;
 
     setIsSubmitting(true);
 
@@ -541,6 +541,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+    if (!requireOnlineNow(toast)) return;
 
     setUploading(true);
     const newUploads = [];
@@ -1506,7 +1507,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={styles.overlay}
-      onClick={onClose}
+      {...scrim}
     >
       <motion.div
         className="bankroll-modal"

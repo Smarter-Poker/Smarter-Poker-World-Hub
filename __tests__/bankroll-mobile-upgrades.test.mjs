@@ -19,7 +19,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 const PAGE = 'pages/hub/bankroll-manager.js';
-const TUTORIAL = 'src/components/bankroll/BankrollTutorial.jsx';
+const TUTORIAL = 'src/tutorials/bankroll-manager.js';
 const LOG_MODAL = 'src/components/bankroll/LogEntryModal.jsx';
 const COMPONENT_DIR = 'src/components/bankroll';
 
@@ -29,26 +29,26 @@ test('the page is built on the phase 0a foundation', () => {
   assert.match(src, /<HubPageShell className="bankroll"/);
   assert.match(src, /useLoadFailsafe\(isLoading, setIsLoading\)/);
   assert.match(src, /useInitialLoadRef\(\)/);
-  assert.ok(
-    src.includes('useModalHistory') || src.includes('BankrollTutorial'),
-    'page wires useModalHistory or the BankrollTutorial'
-  );
+  assert.match(src, /useModalHistory\(/, 'page wires useModalHistory');
   assert.match(src, /useOnlineStatus\(\)/);
   assert.match(src, /You Are Offline\. Try Again When Connected\./);
   assert.match(src, /useHaptics\(\)/);
   assert.doesNotMatch(src, /100vh/, 'no 100vh left on the page');
 });
 
-test('the tutorial exists, has seven steps and the versioned localStorage key', () => {
+test('the tutorial is registered, has seven steps and the versioned localStorage key', () => {
   const src = read(TUTORIAL);
   assert.match(src, /bankroll_tutorial_seen_v1/);
-  const stepsBlock = src.slice(src.indexOf('export const TUTORIAL_STEPS'), src.indexOf('export function hasSeenBankrollTutorial'));
-  const ids = [...stepsBlock.matchAll(/^\s{2}\{\s*$/gm)];
+  const stepsBlock = src.slice(src.indexOf('steps: ['), src.lastIndexOf(']'));
+  const ids = [...stepsBlock.matchAll(/^\s{4}\{\s*$/gm)];
   assert.equal(ids.length, 7, `expected 7 tutorial steps, found ${ids.length}`);
-  assert.match(src, /useModalHistory\(open, close\)/);
-  assert.match(src, /data-tutorial=/);
-  assert.match(read(PAGE), /data-tutorial="add-button"/);
-  assert.match(read(PAGE), /<BankrollTutorial open=\{showTutorial\}/);
+  assert.match(read('src/tutorials/index.js'), /prefix: '\/hub\/bankroll-manager', tutorial: BANKROLL_TUTORIAL/);
+  const page = read(PAGE);
+  for (const target of ['stats', 'add-button', 'chart', 'analytics', 'nav', 'insights']) {
+    assert.match(page, new RegExp(`data-tutorial="${target}"`), `page has the ${target} spotlight target`);
+  }
+  assert.match(page, /TUTORIAL_WILL_OPEN_EVENT/, 'page returns to the dashboard when the tour is about to open');
+  assert.doesNotMatch(page, /BankrollTutorial/, 'the page-owned tutorial is gone; the app shell owns tours');
 });
 
 test('no text under 12px on the page or in any bankroll component', () => {

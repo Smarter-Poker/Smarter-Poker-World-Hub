@@ -1,0 +1,426 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE TUTORIALS (src/components/tutorial/*)
+   One walkthrough engine for every World Hub page. Dan, 2026-09-03: every
+   page gets a tutorial; it is hidden by default in the hamburger menu; a
+   small prompt at the bottom of the page offers it and disappears after
+   three seconds; it must not look cheap.
+
+   Layout is CSS only (no width branching in JS, hydration #418). Centered
+   card on desktop, bottom sheet at or below the ONE sanctioned 600px
+   breakpoint. z-index: scrim 950, ring 951, card 952, prompt 940 (above
+   the header at 100 and the bottom nav at 90, below the hamburger drawer
+   at 10100 and the toast layer).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sp-tutorial-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    background: rgba(2, 6, 14, 0.66);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    animation: spTutorialFade 0.22s ease-out;
+}
+
+/* With a spotlight target the scrim goes clear and the ring's oversized
+   box-shadow darkens everything EXCEPT the target, so the real element
+   stays bright and readable inside the ring. */
+.sp-tutorial-scrim.has-target {
+    background: transparent;
+}
+
+.sp-tutorial-scrim.place-top {
+    align-items: flex-start;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 84px);
+}
+
+.sp-tutorial-scrim.place-bottom {
+    align-items: flex-end;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.sp-tutorial-ring {
+    position: fixed;
+    z-index: 951;
+    pointer-events: none;
+    border: 3px solid var(--sp-tutorial-accent, #6ee7ef);
+    border-radius: 14px;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 9999px rgba(2, 6, 14, 0.66), 0 0 0 6px rgba(110, 231, 239, 0.18), 0 0 28px rgba(110, 231, 239, 0.55);
+    transition: top 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: spTutorialPulse 2.2s ease-in-out infinite;
+}
+
+.sp-tutorial-card {
+    position: relative;
+    z-index: 952;
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    background:
+        radial-gradient(120% 80% at 100% 0%, rgba(110, 231, 239, 0.12), transparent 55%),
+        linear-gradient(150deg, #101d31 0%, #0a1322 60%, #070e1a 100%);
+    color: #fff;
+    border: 1px solid rgba(110, 231, 239, 0.32);
+    border-radius: 18px;
+    padding: 22px 22px 18px;
+    box-sizing: border-box;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    animation: spTutorialRise 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sp-tutorial-card button {
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sp-tutorial-card .sp-icon-btn {
+    --sp-btn-size: 44px;
+}
+
+.sp-tutorial-kicker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sp-tutorial-accent, #6ee7ef);
+    margin-bottom: 10px;
+    padding-right: 52px;
+}
+
+.sp-tutorial-step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(110, 231, 239, 0.14);
+    border: 1px solid rgba(110, 231, 239, 0.35);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.sp-tutorial-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 8px;
+    padding-right: 52px;
+    line-height: 1.22;
+}
+
+.sp-tutorial-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.sp-tutorial-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 16px 0 4px;
+    overflow: hidden;
+}
+
+.sp-tutorial-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2374e1, var(--sp-tutorial-accent, #6ee7ef));
+    transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sp-tutorial-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 10px 0 4px;
+}
+
+.sp-tutorial-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.sp-tutorial-dot.active {
+    background: var(--sp-tutorial-accent, #6ee7ef);
+    box-shadow: 0 0 8px rgba(110, 231, 239, 0.6);
+    transform: scale(1.25);
+}
+
+.sp-tutorial-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.sp-tutorial-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.sp-tutorial-btn:active {
+    transform: scale(0.97);
+}
+
+.sp-tutorial-btn--ghost {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.sp-tutorial-btn--secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #fff;
+}
+
+.sp-tutorial-btn--primary {
+    background: linear-gradient(135deg, #2f83f5, #1a5fc9);
+    border: none;
+    color: #fff;
+    min-width: 104px;
+    box-shadow: 0 8px 22px rgba(35, 116, 225, 0.35);
+}
+
+.sp-tutorial-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* ── The three-second prompt at the bottom of the page ───────────────── */
+
+.sp-tutorial-prompt {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    /* Sits just above the bottom nav (its height is published by the app
+       shell as --sp-bottom-nav-height) and the home indicator. */
+    bottom: calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 10px);
+    z-index: 940;
+    margin: 0 auto;
+    max-width: 520px;
+    background:
+        radial-gradient(100% 100% at 0% 0%, rgba(110, 231, 239, 0.12), transparent 60%),
+        linear-gradient(150deg, #101d31 0%, #0a1322 100%);
+    border: 1px solid rgba(110, 231, 239, 0.34);
+    border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 14px 14px 12px;
+    box-sizing: border-box;
+    overflow: hidden;
+    animation: spTutorialRise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sp-tutorial-prompt.leaving {
+    animation: spTutorialSink 0.22s ease-in forwards;
+}
+
+.sp-tutorial-prompt-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sp-tutorial-prompt-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(110, 231, 239, 0.14);
+    border: 1px solid rgba(110, 231, 239, 0.35);
+    color: #6ee7ef;
+}
+
+.sp-tutorial-prompt-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sp-tutorial-prompt-title {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.25;
+    margin: 0;
+}
+
+.sp-tutorial-prompt-sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.62);
+    margin: 3px 0 0;
+    line-height: 1.35;
+}
+
+.sp-tutorial-prompt-start {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #2f83f5, #1a5fc9);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 8px 22px rgba(35, 116, 225, 0.35);
+}
+
+.sp-tutorial-prompt-start:active {
+    transform: scale(0.97);
+}
+
+.sp-tutorial-prompt-close {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sp-tutorial-prompt-note {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 10px 0 0;
+    line-height: 1.35;
+    text-align: center;
+}
+
+/* The countdown: a thin bar that empties over the prompt's lifetime. */
+.sp-tutorial-prompt-timer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sp-tutorial-prompt-timer > span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    background: linear-gradient(90deg, #2374e1, #6ee7ef);
+    animation: spTutorialCountdown var(--sp-tutorial-prompt-ms, 3000ms) linear forwards;
+}
+
+@keyframes spTutorialCountdown {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+@keyframes spTutorialFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes spTutorialRise {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spTutorialSink {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(12px); }
+}
+
+@keyframes spTutorialPulse {
+    0%, 100% { box-shadow: 0 0 0 9999px rgba(2, 6, 14, 0.66), 0 0 0 6px rgba(110, 231, 239, 0.18), 0 0 28px rgba(110, 231, 239, 0.55); }
+    50% { box-shadow: 0 0 0 9999px rgba(2, 6, 14, 0.66), 0 0 0 10px rgba(110, 231, 239, 0.1), 0 0 36px rgba(110, 231, 239, 0.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sp-tutorial-ring,
+    .sp-tutorial-card,
+    .sp-tutorial-prompt,
+    .sp-tutorial-scrim {
+        animation: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .sp-tutorial-scrim {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+
+    .sp-tutorial-card {
+        max-width: 100%;
+        max-height: 80dvh;
+        border-radius: 18px 18px 0 0;
+        border-bottom: none;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .sp-tutorial-card::before {
+        content: '';
+        display: block;
+        width: 44px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.28);
+        margin: -8px auto 14px;
+    }
+
+    .sp-tutorial-title {
+        font-size: 18px;
+    }
+}

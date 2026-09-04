@@ -29,6 +29,7 @@ import { homeGamePageUrl } from '../../lib/home-games/urls';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
+import { getTutorialForPath, requestPageTutorial } from '../../tutorials';
 import {
   sanitizeFallbackMenuConfig,
   sanitizeProvidedMenuConfig,
@@ -872,6 +873,26 @@ function HamburgerMenuContent({
   // ── Bottom links (single source of truth for sign-out) ────────────────────
   const finalLinks = useMemo(() => {
     const links = [...(bottomLinks || [])];
+    // Page tutorials (Dan 2026-09-03) are hidden by default, here: one row
+    // above Log Out on every route that has a tour in src/tutorials.
+    const pageTutorial = getTutorialForPath(router?.asPath || router?.pathname || '');
+    if (pageTutorial && !links.some((i) => matchesId(i, 'page-tutorial'))) {
+      links.unshift({
+        id: 'page-tutorial',
+        label: 'Page Tutorial',
+        action: true,
+        onClick: () => {
+          if (typeof onClose === 'function') onClose();
+          requestPageTutorial();
+        },
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+          </svg>
+        ),
+      });
+    }
     const hasSignOut = [...links, ...(menuItems || [])].some(
       (i) => matchesId(i, 'sign-out') || looksLikeSignOut(i),
     );
@@ -891,7 +912,7 @@ function HamburgerMenuContent({
       });
     }
     return links;
-  }, [bottomLinks, menuItems, handleLogout]);
+  }, [bottomLinks, menuItems, handleLogout, router?.asPath, router?.pathname, onClose]);
 
   const shortcutItems = useMemo(() => {
     if (shortcuts && shortcuts.length > 0) return shortcuts;

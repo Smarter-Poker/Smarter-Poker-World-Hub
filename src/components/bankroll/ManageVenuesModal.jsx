@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { getUserLocations, renameLocation } from '../../lib/bankroll/locationMemory';
 import { supabase } from '../../lib/supabase';
-import { useToastStore } from '../../stores/toastStore';
+import toast from '../../stores/toastStore';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 
 /**
  * ManageVenuesModal - edit / rename / delete venues
  */
 export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
-    const toast = useToastStore.getState();
     const [venues, setVenues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null);
@@ -16,14 +17,11 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
     // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
-    // open, so isOpen is constant; the unmount cleanup pops our entry if an
-    // X-close left it on top.
+    // open, so isOpen is constant; the hook pops our history entry on unmount
+    // (an X-close never leaves a dead "back" behind).
     useModalHistory(true, onClose);
-    useEffect(() => () => {
-        try {
-            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
-        } catch (_) { /* history unavailable */ }
-    }, []);
+    // Tap outside closes; a drag that merely ends outside does not.
+    const scrim = useScrimDismiss(onClose);
 
     useEffect(() => { loadVenues(); }, []);
 
@@ -39,6 +37,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
 
     const handleRename = async (venueId) => {
         if (!editName.trim()) return;
+        if (!requireOnlineNow(toast)) return;
         try {
             await renameLocation(userId, venueId, editName.trim());
             toast.success('Venue Renamed');
@@ -52,6 +51,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     };
 
     const handleDelete = async (venueId) => {
+        if (!requireOnlineNow(toast)) return;
         setDeletingId(venueId);
         try {
             // Unlink ledger entries first (non-critical)
@@ -95,7 +95,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     };
 
     return (
-        <div className="bankroll-modal-overlay" style={s.overlay} onClick={onClose}>
+        <div className="bankroll-modal-overlay" style={s.overlay} {...scrim}>
             <div className="bankroll-modal" role="dialog" aria-modal="true" style={s.modal} onClick={(e) => e.stopPropagation()}>
                 <div className="bankroll-sheet-handle" aria-hidden="true" />
                 {/* Header */}

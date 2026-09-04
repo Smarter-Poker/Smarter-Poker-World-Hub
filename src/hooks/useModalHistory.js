@@ -8,70 +8,92 @@
  * player loses what they were doing. Native apps close the sheet first;
  * players expect the same here.
  *
- * How it works:
- * - When `isOpen` becomes true, push `{ spModal: true }` onto history.
- * - While open, a `popstate` (the back gesture) calls `onClose`.
- * - When the modal is closed programmatically (an X button, a Done action)
- *   while our entry is still on top, call `history.back()` once to pop it,
- *   and set a ref so the resulting `popstate` does NOT call `onClose` again.
+ * How it works (the bookkeeping lives in ./modalHistoryCore.js, which has a
+ * real test with a fake history stack):
+ * - When `isOpen` becomes true, push one entry `{ spModal: true, ... }`.
+ * - A `popstate` closes exactly the modals whose entries were popped: with
+ *   two sheets stacked, back closes the top one only.
+ * - A programmatic close (X, Done) or an unmount while open pops our own
+ *   entry once, and the resulting popstate does NOT call `onClose` again.
+ * - The Next router is told, through `beforePopState`, to ignore pops that
+ *   are modal closes. Without that, landing back on the page's own entry
+ *   re-runs the route and `pages/_app.js` scrolls the page to the top on
+ *   `routeChangeComplete`, so every modal close would jump the scroll.
  * - SSR-safe: everything lives inside effects and checks for `window`.
- * - Rapid open/close: the `pushedRef` is the single source of truth for
- *   whether our entry is on the stack, so the hook never pops twice or
- *   leaves an orphan entry.
  *
  * Usage:
  *   useModalHistory(isOpen, () => setOpen(false));
+ *   // or, for a modal that is only mounted while open:
+ *   useModalHistory(true, onClose);
  */
 import { useEffect, useRef } from 'react';
+import Router from 'next/router';
+import {
+  openModalEntry,
+  closeModalEntry,
+  handlePopState,
+  shouldRouterHandlePop,
+  isModalEntryOpen,
+} from './modalHistoryCore';
+
+let listenerInstalled = false;
+
+function currentLocation() {
+  const l = window.location;
+  return `${l.pathname}${l.search}${l.hash}`;
+}
+
+/**
+ * A modal entry nobody owns any more: the page navigated away (for example
+ * the sign-in prompt pushed /login) with the modal's entry still under the
+ * new page, and the player has now come back onto it. Next ignores entries
+ * without its own `__N` flag, so the URL would say one page while the
+ * router still shows the other. Ask the router to render where we are.
+ */
+function recoverOrphanEntry() {
+  const state = window.history.state;
+  if (!state || !state.spModal || isModalEntryOpen(state.spModalId)) return;
+  const here = currentLocation();
+  try {
+    if (Router.asPath !== here) void Router.replace(here);
+  } catch (_) {
+    // No router instance: nothing to recover.
+  }
+}
+
+function installGlobalListener() {
+  if (listenerInstalled || typeof window === 'undefined') return;
+  listenerInstalled = true;
+  window.addEventListener('popstate', (e) => {
+    handlePopState(window, e ? e.state : window.history && window.history.state);
+    recoverOrphanEntry();
+  });
+  try {
+    // Ask Next to leave modal pops alone; everything else runs as before.
+    Router.beforePopState((state) => shouldRouterHandlePop(state));
+  } catch (_) {
+    // No router instance yet (or not a Next runtime): Next handles all pops.
+  }
+}
 
 export function useModalHistory(isOpen, onClose) {
-  const pushedRef = useRef(false);
-  const suppressCloseRef = useRef(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const entryIdRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.history) return undefined;
-
-    if (isOpen) {
-      if (!pushedRef.current) {
-        try {
-          window.history.pushState({ spModal: true }, '');
-          pushedRef.current = true;
-        } catch (_) {
-          pushedRef.current = false;
-        }
-      }
-
-      const onPop = () => {
-        pushedRef.current = false;
-        if (suppressCloseRef.current) {
-          suppressCloseRef.current = false;
-          return;
-        }
-        if (typeof onCloseRef.current === 'function') onCloseRef.current();
-      };
-      window.addEventListener('popstate', onPop);
-      return () => window.removeEventListener('popstate', onPop);
-    }
-
-    // Closed programmatically while our entry is still on top: pop it
-    // without re-triggering onClose.
-    if (pushedRef.current) {
-      const state = window.history.state;
-      if (state && state.spModal) {
-        suppressCloseRef.current = true;
-        pushedRef.current = false;
-        try {
-          window.history.back();
-        } catch (_) {
-          suppressCloseRef.current = false;
-        }
-      } else {
-        pushedRef.current = false;
-      }
-    }
-    return undefined;
+    if (!isOpen) return undefined;
+    installGlobalListener();
+    const id = openModalEntry(window, () => onCloseRef.current);
+    entryIdRef.current = id;
+    return () => {
+      // Closed programmatically, or unmounted while open: pop our entry
+      // without re-firing onClose. A back gesture has already removed the
+      // entry from the registry, in which case this is a no-op.
+      closeModalEntry(window, id);
+      if (entryIdRef.current === id) entryIdRef.current = null;
+    };
   }, [isOpen]);
 }
 

@@ -200,6 +200,10 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
       {(onEdit || onDelete) && (
         <div ref={menuRef} style={styles.actionContainer}>
           <button
+            type="button"
+            aria-label="Entry Actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen ? 'true' : 'false'}
             style={styles.menuButton}
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); setConfirmDelete(false); }}
           >
@@ -351,8 +355,12 @@ const styles = {
     flexShrink: 0,
   },
   menuButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    minHeight: 44,
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
     borderRadius: '50%',
     background: 'transparent',
     border: 'none',

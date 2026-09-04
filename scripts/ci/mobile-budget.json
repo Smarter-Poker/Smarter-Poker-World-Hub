@@ -1,0 +1,55 @@
+{
+  "_comment": "Mobile performance budgets for e2e/mobile-budget.spec.ts (Global Footer E2E workflow, production build, 375px, unauthenticated). jsKb = transferred script bytes before load; lcpMs = Largest Contentful Paint. A row may only go DOWN. `converted: true` also enforces the 12px text floor and 44px tap targets on that route; flip it in the phase PR that converts the page (docs/mobile-standard/ROLLOUT-PLAN.md). Baselines measured 2026-09-04 on the production build: jsKb 635-711 across all ten routes (shared framework chunks dominate), LCP 268-1404ms on a Mac; budgets are the measured value plus ~15% for JS and a CI-runner allowance for LCP. Measured smallText/tinyTargets on unconverted pages: preflop 88/0, near-me 19/1, assistant 63/0, training 870/6, news 133/21, trivia 112/0, video-library 212/0, poker-tools 2/53; each phase drives its pair to 0/0 and flips converted.",
+  "routes": {
+    "/hub/bankroll-manager": {
+      "jsKb": 800,
+      "lcpMs": 2500,
+      "converted": true
+    },
+    "/hub/preflop-charts": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/poker-near-me": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/personal-assistant": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/training": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/news": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/trivia": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/diamond-arena": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/video-library": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    },
+    "/hub/poker-tools": {
+      "jsKb": 850,
+      "lcpMs": 3500,
+      "converted": false
+    }
+  }
+}
