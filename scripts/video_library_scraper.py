@@ -54,32 +54,100 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # SP_LOG_DIR / SP_EVIDENCE_DIR let a deploy target place these on a writable
 # volume without editing code; both default to the previous locations.
-LOG_DIR = Path(os.environ.get('SP_LOG_DIR') or (Path.home() / '.smarter-poker' / 'logs'))
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+#
+# 2026-09-04: the defaults must also SURVIVE a host where they cannot be
+# created. Deployed flat into /opt/openclaw on the Hetzner dispatcher,
+# REPO_ROOT resolves to /opt, so the evidence default became
+# /opt/data/scrape-evidence and mkdir died with PermissionError at import time.
+# The scraper exited 1 in 0.2s at 06:00 UTC every day from 2026-08-31 and the
+# dispatcher logged each run as "executed successfully". Evidence files are a
+# nice-to-have; ingestion is the job. A directory we cannot write is a reason
+# to fall back to one we can, never a reason to skip the day's videos.
+def _first_writable_dir(*candidates: Path) -> Path:
+    """Return the first candidate that exists-or-can-be-created and is
+    writable. The last candidate is returned regardless so callers still get a
+    meaningful path in their error message when nothing is usable."""
+    for cand in candidates:
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+            if os.access(cand, os.W_OK):
+                return cand
+        except OSError:
+            continue
+    return candidates[-1]
 
+
+_HOME_STATE = Path.home() / '.smarter-poker'
+
+LOG_DIR = _first_writable_dir(
+    *([Path(os.environ['SP_LOG_DIR'])] if os.environ.get('SP_LOG_DIR') else []),
+    _HOME_STATE / 'logs',
+    Path('/tmp') / 'smarter-poker' / 'logs',
+)
+
+_handlers: list = [logging.StreamHandler()]
+try:
+    _handlers.insert(0, logging.FileHandler(LOG_DIR / 'video-library-scraper.log'))
+except OSError:
+    pass  # stderr still reaches journald / the dispatcher log
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_DIR / 'video-library-scraper.log'),
-        logging.StreamHandler(),
-    ]
+    handlers=_handlers,
 )
 log = logging.getLogger('video-library-scraper')
 
-# Evidence directory
-EVIDENCE_DIR = Path(os.environ.get('SP_EVIDENCE_DIR') or (REPO_ROOT / 'data' / 'scrape-evidence'))
-EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+# Evidence directory. Same override, same fallback discipline.
+EVIDENCE_DIR = _first_writable_dir(
+    *([Path(os.environ['SP_EVIDENCE_DIR'])] if os.environ.get('SP_EVIDENCE_DIR') else []),
+    REPO_ROOT / 'data' / 'scrape-evidence',
+    _HOME_STATE / 'scrape-evidence',
+    Path('/tmp') / 'smarter-poker' / 'scrape-evidence',
+)
 
 # ── Env ─────────────────────────────────────────────────────────────────────────
 def _load_env():
-    env_file = Path(os.environ.get('SP_ENV_FILE') or (REPO_ROOT / '.env.local'))
-    if env_file.exists():
-        for line in env_file.read_text().splitlines():
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                k, v = line.split('=', 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    """Load credentials from every env file that exists, earliest wins.
+
+    2026-08-30: a single hard-coded candidate was not enough. Deployed to
+    /opt/openclaw on the Hetzner VM, REPO_ROOT resolves to /opt, so this looked
+    for /opt/.env.local, found nothing, and died with "Missing SUPABASE
+    credentials" on the first real run after the host-portability fix. The
+    dispatcher's own environment lives in /opt/openclaw/.env, right beside this
+    script, and that is where the keys actually are on that host. (This loader
+    ran on the box for five days before anyone committed it; it is in the repo
+    now so the next deploy cannot regress it.)
+
+    Order: explicit override, then next to this script (the deployed case),
+    then the repo root (the Mac case). Every candidate is tried, not just the
+    first that exists - setdefault means the earliest value for any key wins,
+    and a partial file on one host cannot mask complete credentials on another.
+    """
+    here = Path(__file__).resolve().parent
+    candidates = []
+    if os.environ.get('SP_ENV_FILE'):
+        candidates.append(Path(os.environ['SP_ENV_FILE']))
+    candidates += [here / '.env', here / '.env.local', REPO_ROOT / '.env.local', REPO_ROOT / '.env']
+
+    loaded = []
+    for env_file in candidates:
+        try:
+            if not env_file.exists():
+                continue
+            for line in env_file.read_text().splitlines():
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+            loaded.append(str(env_file))
+        except OSError:
+            continue  # an unreadable candidate must not stop the others
+
+    # Names only, never values - this lands in a journal people paste into chat.
+    if loaded:
+        print(f"[env] loaded: {', '.join(loaded)}", flush=True)
+    else:
+        print(f"[env] no env file found; tried: {', '.join(str(c) for c in candidates)}", flush=True)
 
 _load_env()
 
@@ -90,7 +158,7 @@ PRODUCTION_URL    = os.environ.get('NEXT_PUBLIC_SITE_URL', 'https://smarter.poke
 SLACK_WEBHOOK     = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    log.error('Missing SUPABASE credentials — check .env.local')
+    log.error('Missing SUPABASE credentials — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment or an env file listed above')
     sys.exit(1)
 
 from supabase import create_client
