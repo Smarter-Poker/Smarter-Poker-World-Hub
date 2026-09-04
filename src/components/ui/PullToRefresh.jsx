@@ -151,13 +151,15 @@ export default function PullToRefresh({ onRefresh, disabled = false, scrollRef =
       <div
         className="sp-ptr-content"
         style={{
-          // No transform while idle. `translateY(0px)` is still a transform,
-          // and ANY transform makes this div the containing block for every
-          // position:fixed descendant (a toast, a report modal, a FAB), which
-          // then pins to the page content instead of the viewport. Found on
-          // Poker Near Me (mobile phase 3), where the live feed's report
-          // dialog opened at the top of a 5,000px page. The transform exists
-          // only for the frames a pull is in progress.
+          // NO transform at rest (2026-09-04). `translateY(0px)` is still a
+          // transform, and a transformed ancestor is the containing block for
+          // every `position: fixed` descendant. The Bankroll Manager's world
+          // menu (a fixed drawer rendered inside this wrapper) opened 160px
+          // from the left edge on desktop - pinned to the centred column, not
+          // the viewport - and e2e/020-hamburger.spec.ts was red on main from
+          // the day this wrapper shipped. Any fixed sheet or toast rendered
+          // inside a pull-to-refresh page had the same problem. The transform
+          // exists only while a pull is in progress.
           transform: pull ? `translateY(${pull}px)` : undefined,
           transition: pull === 0 || refreshing ? 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
           willChange: pull ? 'transform' : 'auto',

@@ -2081,6 +2081,10 @@ export default function VideoLibraryPage() {
                 <div
                     id="video-library-grid"
                     className="vl-video-grid"
+                    /* aria-label is prohibited on a role-less div (axe
+                       aria-prohibited-attr, serious). A labelled region is
+                       what the command rail's aria-controls points at. */
+                    role="region"
                     aria-label="Poker videos"
                     style={{
                     maxWidth: 1400,
