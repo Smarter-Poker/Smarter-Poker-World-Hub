@@ -4783,9 +4783,12 @@ export default function HorsesAdmin() {
                   })()}
 
                   {/* ── SUPPLY ─────────────────────────────────────────────── */}
-                  {/* Issued (the register, net of burns) and the circulating
-                      stores side by side. Since the baseline they reconcile
-                      in the card above; these are the parts. */}
+                  {/* Issued (the register, net of burns) and the live stores
+                      side by side. The reconciliation is the card above; these
+                      figures are live reads and are NOT its parts: the felt
+                      here includes tournament stacks, which the supply meter
+                      does not count (tournament chips are not supply), and the
+                      member-wallet and treasury sums move every second. */}
                   <div className={styles.kpiGrid}>
                     <div className={styles.kpi}>
                       <span className={styles.kpiLabel}>Chips Issued (Net Of Burns)</span>
@@ -4812,7 +4815,7 @@ export default function HorsesAdmin() {
                       <span className={styles.kpiValue}>{num(mintOverview?.totals?.member_wallets, '0')}</span>
                     </div>
                     <div className={styles.kpi}>
-                      <span className={styles.kpiLabel}>Chips On The Felt</span>
+                      <span className={styles.kpiLabel}>Chips On The Felt (Cash And Tournament Stacks)</span>
                       <span className={styles.kpiValue}>{num(mintOverview?.totals?.chips_on_the_felt, '0')}</span>
                     </div>
                     <div className={styles.kpi}>
