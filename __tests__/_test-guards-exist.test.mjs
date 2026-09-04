@@ -153,10 +153,19 @@ import './world-copy-policy.test.mjs';
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
 
+// 2026-09-04: a synthetic probe never signs a person out. login-probe was
+// pointed at Dan's own account and called a bare signOut() - global scope -
+// every 15 minutes, revoking his session on every device and parking every
+// Club Arena table he opened on "Reconnecting To The Table" for 22 hours.
+// Same CHECK 8 reasoning as the blocks above: imported here so CI runs it.
+import './synthetic-probes-never-sign-out-a-person.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
     '__tests__/auth-routes-exist.test.mjs',
+    // A monitor must never revoke a person's sessions (2026-09-04 outage).
+    '__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',
