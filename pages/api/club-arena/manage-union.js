@@ -71,6 +71,24 @@ export default async function handler(req, res) {
       // CREATE UNION
       // ═══════════════════════════════════════════════════════════
       if (action === 'create') {
+        // UNION CREATION IS AN ALLOWLIST (Dan 2026-09-04). This handler runs
+        // as the SERVICE ROLE, so RLS does not apply to it and hiding the
+        // page in Club Arena hides nothing from anyone who can POST here.
+        // The decision lives in the database - fn_can_create_union reads
+        // public.union_creators, and trg_union_creation_is_allowlisted on
+        // public.unions refuses the insert regardless of what this file does.
+        // Asking first is only so the answer is a sentence rather than a
+        // constraint violation.
+        const { data: mayCreate, error: allowErr } = await getSupabase()
+          .rpc('fn_can_create_union', { p_user_id: user.id });
+        if (allowErr) throw allowErr;
+        if (mayCreate !== true) {
+          return res.status(403).json({
+            success: false,
+            error: 'Union creation is not open on this account.',
+          });
+        }
+
         // RED TEAM: Sanitize name before insert
         const safeName = name.trim().replace(/[;'"\\<>]/g, '').slice(0, 100);
         if (!safeName) return res.status(400).json({ success: false, error: 'Union name required (after sanitization)' });
