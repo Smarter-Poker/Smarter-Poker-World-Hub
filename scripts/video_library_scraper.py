@@ -54,100 +54,32 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # SP_LOG_DIR / SP_EVIDENCE_DIR let a deploy target place these on a writable
 # volume without editing code; both default to the previous locations.
-#
-# 2026-09-04: the defaults must also SURVIVE a host where they cannot be
-# created. Deployed flat into /opt/openclaw on the Hetzner dispatcher,
-# REPO_ROOT resolves to /opt, so the evidence default became
-# /opt/data/scrape-evidence and mkdir died with PermissionError at import time.
-# The scraper exited 1 in 0.2s at 06:00 UTC every day from 2026-08-31 and the
-# dispatcher logged each run as "executed successfully". Evidence files are a
-# nice-to-have; ingestion is the job. A directory we cannot write is a reason
-# to fall back to one we can, never a reason to skip the day's videos.
-def _first_writable_dir(*candidates: Path) -> Path:
-    """Return the first candidate that exists-or-can-be-created and is
-    writable. The last candidate is returned regardless so callers still get a
-    meaningful path in their error message when nothing is usable."""
-    for cand in candidates:
-        try:
-            cand.mkdir(parents=True, exist_ok=True)
-            if os.access(cand, os.W_OK):
-                return cand
-        except OSError:
-            continue
-    return candidates[-1]
+LOG_DIR = Path(os.environ.get('SP_LOG_DIR') or (Path.home() / '.smarter-poker' / 'logs'))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-
-_HOME_STATE = Path.home() / '.smarter-poker'
-
-LOG_DIR = _first_writable_dir(
-    *([Path(os.environ['SP_LOG_DIR'])] if os.environ.get('SP_LOG_DIR') else []),
-    _HOME_STATE / 'logs',
-    Path('/tmp') / 'smarter-poker' / 'logs',
-)
-
-_handlers: list = [logging.StreamHandler()]
-try:
-    _handlers.insert(0, logging.FileHandler(LOG_DIR / 'video-library-scraper.log'))
-except OSError:
-    pass  # stderr still reaches journald / the dispatcher log
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=_handlers,
+    handlers=[
+        logging.FileHandler(LOG_DIR / 'video-library-scraper.log'),
+        logging.StreamHandler(),
+    ]
 )
 log = logging.getLogger('video-library-scraper')
 
-# Evidence directory. Same override, same fallback discipline.
-EVIDENCE_DIR = _first_writable_dir(
-    *([Path(os.environ['SP_EVIDENCE_DIR'])] if os.environ.get('SP_EVIDENCE_DIR') else []),
-    REPO_ROOT / 'data' / 'scrape-evidence',
-    _HOME_STATE / 'scrape-evidence',
-    Path('/tmp') / 'smarter-poker' / 'scrape-evidence',
-)
+# Evidence directory
+EVIDENCE_DIR = Path(os.environ.get('SP_EVIDENCE_DIR') or (REPO_ROOT / 'data' / 'scrape-evidence'))
+EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Env ─────────────────────────────────────────────────────────────────────────
 def _load_env():
-    """Load credentials from every env file that exists, earliest wins.
-
-    2026-08-30: a single hard-coded candidate was not enough. Deployed to
-    /opt/openclaw on the Hetzner VM, REPO_ROOT resolves to /opt, so this looked
-    for /opt/.env.local, found nothing, and died with "Missing SUPABASE
-    credentials" on the first real run after the host-portability fix. The
-    dispatcher's own environment lives in /opt/openclaw/.env, right beside this
-    script, and that is where the keys actually are on that host. (This loader
-    ran on the box for five days before anyone committed it; it is in the repo
-    now so the next deploy cannot regress it.)
-
-    Order: explicit override, then next to this script (the deployed case),
-    then the repo root (the Mac case). Every candidate is tried, not just the
-    first that exists - setdefault means the earliest value for any key wins,
-    and a partial file on one host cannot mask complete credentials on another.
-    """
-    here = Path(__file__).resolve().parent
-    candidates = []
-    if os.environ.get('SP_ENV_FILE'):
-        candidates.append(Path(os.environ['SP_ENV_FILE']))
-    candidates += [here / '.env', here / '.env.local', REPO_ROOT / '.env.local', REPO_ROOT / '.env']
-
-    loaded = []
-    for env_file in candidates:
-        try:
-            if not env_file.exists():
-                continue
-            for line in env_file.read_text().splitlines():
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    k, v = line.split('=', 1)
-                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
-            loaded.append(str(env_file))
-        except OSError:
-            continue  # an unreadable candidate must not stop the others
-
-    # Names only, never values - this lands in a journal people paste into chat.
-    if loaded:
-        print(f"[env] loaded: {', '.join(loaded)}", flush=True)
-    else:
-        print(f"[env] no env file found; tried: {', '.join(str(c) for c in candidates)}", flush=True)
+    env_file = Path(os.environ.get('SP_ENV_FILE') or (REPO_ROOT / '.env.local'))
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                k, v = line.split('=', 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 _load_env()
 
@@ -157,12 +89,21 @@ CRON_SECRET       = os.environ.get('CRON_SECRET', '')
 PRODUCTION_URL    = os.environ.get('NEXT_PUBLIC_SITE_URL', 'https://smarter.poker')  # used by AI tagging
 SLACK_WEBHOOK     = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
+# --verify-sources reads YouTube and writes nothing, so it must not require
+# database credentials: a check that only runs where production secrets are
+# present cannot gate a deploy or run in CI, which is most of the value of
+# having it. Every other mode still exits here.
 if not SUPABASE_URL or not SUPABASE_KEY:
-    log.error('Missing SUPABASE credentials — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment or an env file listed above')
-    sys.exit(1)
+    if '--verify-sources' in sys.argv:
+        log.warning('No SUPABASE credentials; continuing because --verify-sources writes nothing.')
+    else:
+        log.error('Missing SUPABASE credentials — check .env.local')
+        sys.exit(1)
 
 from supabase import create_client
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# None in verify-only mode. Every write path is unreachable in that mode, and a
+# client built from empty credentials would fail later and more confusingly.
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if (SUPABASE_URL and SUPABASE_KEY) else None
 
 # ── Creator Registry ────────────────────────────────────────────────────────────
 # All @handles verified 2026-04-22 via yt-dlp against real video metadata.
@@ -195,17 +136,63 @@ CREATORS = [
     {'source_id': 'BART',      'name': 'Bart Hanson',          'handle': 'CrushLivePoker',      'type': 'cash',       'max':  8},
     {'source_id': 'UPSWING',   'name': 'Upswing Poker',        'handle': 'UpswingPoker',        'type': 'cash',       'max': 10},
 
-    # CELEBRITY PROS (may have limited/no active channels)
+    # CELEBRITY PROS
     {'source_id': 'NEGREANU',  'name': 'Daniel Negreanu',      'handle': 'dnegspoker',          'type': 'cash',       'max':  8},
-    # 2026-09-04: the four below answer HTTP 404 from YouTube - the handles do
-    # not exist - and were counted as four "creator failures" on every run,
-    # which is enough to trip the >=3 Slack alert daily for a condition nobody
-    # can act on. Inactive until someone supplies a real handle; a source with
-    # active: False is listed, skipped and never counted as a failure.
-    {'source_id': 'HELLMUTH',  'name': 'Phil Hellmuth',        'handle': 'PhilHellmuth',        'type': 'tournament', 'max':  6, 'active': False},
-    {'source_id': 'IVEY',      'name': 'Phil Ivey',            'handle': 'PhilIvey',            'type': 'cash',       'max':  6, 'active': False},
-    {'source_id': 'DWAN',      'name': 'Tom Dwan',             'handle': 'TomDwan',             'type': 'cash',       'max':  6, 'active': False},
-    {'source_id': 'GARRETT',   'name': 'Garrett Adelstein',    'handle': 'GarrettAdelstein',    'type': 'cash',       'max':  6, 'active': False},
+    # REMOVED 2026-09-04 after --verify-sources resolved each of these to NOTHING.
+    # The header above used to hedge with "may have limited/no active channels",
+    # which is how they sat here since 2026-04-22 contributing zero videos while
+    # every run reported success: a dead handle logs one warning and returns [].
+    # These four are not channels at these handles. If someone finds the real
+    # ones, add them back and run --verify-sources before committing.
+    #   HELLMUTH  @PhilHellmuth
+    #   IVEY      @PhilIvey
+    #   DWAN      @TomDwan
+    #   GARRETT   @GarrettAdelstein
+
+    # ── SHORTS (2026-09-04) ────────────────────────────────────────────────
+    # Every creator above is read from the /videos tab only, capped at 6-20.
+    # That is why the library held 557 videos and the reel feed had 1,987
+    # distinct clips across 17,279 rows - people were scrolling the same
+    # material over and over. A channel's /shorts tab is a separate listing of
+    # vertical short-form video, which is exactly what a reel feed wants, and
+    # nothing here had ever read one.
+    #
+    # Caps are much higher because shorts are plentiful and cheap to list, and
+    # ingestion dedupes on youtube_video_id, so a short already pulled from the
+    # /videos tab costs nothing. Every handle below was verified against
+    # yt-dlp on the Open Claw VM on 2026-09-04 before being added; run
+    # --verify-sources to re-check.
+    {'source_id': 'HCL_SHORTS',      'name': 'Hustler Casino Live', 'handle': 'HustlerCasinoLive',  'type': 'cash',       'tab': 'shorts', 'max': 80},
+    {'source_id': 'LODGE_SHORTS',    'name': 'The Lodge',           'handle': 'TheLodgeLive',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'POKERGO_SHORTS',  'name': 'PokerGO',             'handle': 'PokerGO',            'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'WSOP_SHORTS',     'name': 'WSOP',                'handle': 'wsop',               'type': 'tournament', 'tab': 'shorts', 'max': 60},
+    {'source_id': 'NEXTGEN',         'name': 'Next Gen Poker',      'handle': 'NextGenPoker',       'type': 'cash',       'tab': 'shorts', 'max': 80},
+    {'source_id': 'WOLFGANG_SHORTS', 'name': 'Wolfgang Poker',      'handle': 'Wolfgang_Poker',     'type': 'cash',       'tab': 'shorts', 'max': 80},
+    {'source_id': 'RAMPAGE_SHORTS',  'name': 'Rampage Poker',       'handle': 'RampagePoker',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'BRAD_SHORTS',     'name': 'Brad Owen',           'handle': 'BradOwenPoker',      'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'JOHNNIE_SHORTS',  'name': 'JohnnieVibes',        'handle': 'JohnnieVibes',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'MARIANO_SHORTS',  'name': 'Mariano',             'handle': 'MarianoPoker',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'POLK_SHORTS',     'name': 'Doug Polk Poker',     'handle': 'DougPolkPoker',      'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'NEGREANU_SHORTS', 'name': 'Daniel Negreanu',     'handle': 'dnegspoker',         'type': 'cash',       'tab': 'shorts', 'max': 60},
+
+    # ── SLOTS (2026-09-04) ─────────────────────────────────────────────────
+    # A second content vertical, requested by Dan. type='slots' keeps it
+    # distinguishable from poker at the row level so a feed can mix or
+    # separate them; nothing filters on type today, so adding a value is safe.
+    # Verified handles only - BrianChristopherSlots and SlotLady both resolve
+    # to nothing and are deliberately absent; Brian Christopher's real handle
+    # is BCSlots.
+    {'source_id': 'BCSLOTS',         'name': 'Brian Christopher Slots', 'handle': 'BCSlots',        'type': 'slots', 'max': 40},
+    {'source_id': 'BCSLOTS_SHORTS',  'name': 'Brian Christopher Slots', 'handle': 'BCSlots',        'type': 'slots', 'tab': 'shorts', 'max': 80},
+    {'source_id': 'BIGJACKPOT',      'name': 'The Big Jackpot',         'handle': 'TheBigJackpot',  'type': 'slots', 'max': 40},
+    {'source_id': 'BIGJACKPOT_SH',   'name': 'The Big Jackpot',         'handle': 'TheBigJackpot',  'type': 'slots', 'tab': 'shorts', 'max': 80},
+    {'source_id': 'LADYLUCK',        'name': 'Lady Luck HQ',            'handle': 'LadyLuckHQ',     'type': 'slots', 'max': 40},
+    {'source_id': 'LADYLUCK_SHORTS', 'name': 'Lady Luck HQ',            'handle': 'LadyLuckHQ',     'type': 'slots', 'tab': 'shorts', 'max': 80},
+    {'source_id': 'NICKSLOTS',       'name': 'NickSlots',               'handle': 'NickSlots',      'type': 'slots', 'max': 30},
+    {'source_id': 'VEGASLOWROLLER',  'name': 'Vegas Low Roller',        'handle': 'VegasLowRoller', 'type': 'slots', 'max': 30},
+    {'source_id': 'SLOTQUEEN',       'name': 'Slot Queen',              'handle': 'SlotQueen',      'type': 'slots', 'max': 30},
+    {'source_id': 'SLOTCATS',        'name': 'The Slot Cats',           'handle': 'TheSlotCats',    'type': 'slots', 'max': 30},
+    {'source_id': 'CASINODADDY',     'name': 'CasinoDaddy',             'handle': 'CasinoDaddy',    'type': 'slots', 'max': 20},
 ]
 
 
@@ -299,113 +286,6 @@ def send_failure_alert(summary: dict) -> None:
         log.warning(f'Slack alert failed (non-fatal): {e}')
 
 
-# ── YouTube RSS metadata (datacenter-safe) ─────────────────────────────────────
-# 2026-09-04. On the Hetzner dispatcher every per-video `yt-dlp --dump-json`
-# call answers "Sign in to confirm you're not a bot" - YouTube gates the watch
-# page from datacenter IPs. The channel listing (--flat-playlist) still works,
-# so discovery is fine, but flat entries carry no upload_date and no
-# view_count: every video inserted from that host got published_at = now and
-# views 0, the post-scrape backfill then failed 100/100, and the library page
-# showed a wall of "today, 0 views". The channel's public RSS feed
-# (feeds/videos.xml?channel_id=UC...) has no such gate and carries the real
-# <published> date and <media:statistics views> for the latest 15 uploads -
-# which is exactly the set a daily scraper inserts. yt-dlp per-video stays as
-# the fallback for older rows (it works from a residential IP such as the Mac).
-import xml.etree.ElementTree as _ET
-
-_RSS_NS = {
-    'a':     'http://www.w3.org/2005/Atom',
-    'yt':    'http://www.youtube.com/xml/schemas/2015',
-    'media': 'http://search.yahoo.com/mrss/',
-}
-_CHANNEL_ID_CACHE = LOG_DIR.parent / 'youtube-channel-ids.json'
-_channel_ids: dict = {}
-_rss_meta_cache: dict = {}
-
-
-def _load_channel_id_cache() -> None:
-    if _channel_ids or not _CHANNEL_ID_CACHE.exists():
-        return
-    try:
-        _channel_ids.update(json.loads(_CHANNEL_ID_CACHE.read_text()))
-    except Exception:
-        pass
-
-
-def resolve_channel_id(handle: str) -> str | None:
-    """@handle → UC... channel id, via the (ungated) channel listing. Cached
-    on disk beside the logs because a handle's channel id never changes."""
-    _load_channel_id_cache()
-    if handle in _channel_ids:
-        return _channel_ids[handle]
-    cmd = ['yt-dlp', '--flat-playlist', '--dump-single-json', '--no-warnings', '--quiet',
-           '--playlist-end', '1', f'https://www.youtube.com/@{handle}/videos']
-    try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        d = json.loads(r.stdout or '{}')
-        cid = d.get('channel_id') or d.get('uploader_id') or ''
-        if not str(cid).startswith('UC'):
-            return None
-        _channel_ids[handle] = cid
-        try:
-            _CHANNEL_ID_CACHE.write_text(json.dumps(_channel_ids, indent=2, sort_keys=True))
-        except OSError:
-            pass
-        return cid
-    except Exception as e:
-        log.warning(f'  channel id for @{handle} unresolved: {type(e).__name__}: {e}')
-        return None
-
-
-def fetch_rss_meta(channel_id: str) -> dict:
-    """channel id → {video_id: {'published_at': iso, 'views': int}} for the
-    channel's latest ~15 uploads. Empty dict on any failure; cached per run."""
-    if channel_id in _rss_meta_cache:
-        return _rss_meta_cache[channel_id]
-    meta = {}
-    try:
-        req = urllib.request.Request(
-            f'https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}',
-            headers={'User-Agent': 'smarter-poker-video-library/3.1'})
-        with urllib.request.urlopen(req, timeout=20) as r:
-            root_el = _ET.fromstring(r.read())
-        for entry in root_el.findall('a:entry', _RSS_NS):
-            vid = entry.findtext('yt:videoId', default='', namespaces=_RSS_NS)
-            if not vid:
-                continue
-            published = entry.findtext('a:published', default='', namespaces=_RSS_NS)
-            stats = entry.find('media:group/media:community/media:statistics', _RSS_NS)
-            views = 0
-            if stats is not None:
-                try:
-                    views = int(stats.get('views') or 0)
-                except ValueError:
-                    views = 0
-            meta[vid] = {'published_at': published or None, 'views': views}
-    except Exception as e:
-        log.warning(f'  RSS for {channel_id} failed: {type(e).__name__}: {e}')
-    _rss_meta_cache[channel_id] = meta
-    return meta
-
-
-def rss_meta_for_creator(creator: dict) -> dict:
-    cid = resolve_channel_id(creator['handle'])
-    return fetch_rss_meta(cid) if cid else {}
-
-
-def _rss_apply(row: dict, meta: dict) -> dict:
-    """The update dict for one DB row given its RSS entry (or {} if nothing)."""
-    if not meta:
-        return {}
-    upd = {}
-    if meta.get('published_at'):
-        upd['published_at'] = meta['published_at']
-    if meta.get('views'):
-        upd['views_count'] = meta['views']
-        upd['views_text']  = fmt_views(meta['views'])
-    return upd
-
-
 # ── Dead-video purge ─────────────────────────────────────────────────────────────
 
 def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
@@ -470,64 +350,15 @@ def backfill_metadata(limit: int = 300) -> dict:
     upload_date and view_count via yt-dlp --dump-json.
     """
     TODAY = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    needs_fix = (supabase.table('video_library_videos')
+        .select('id,youtube_video_id,published_at,views_count,views_text')
+        .or_(f'published_at.gte.{TODAY}T00:00:00Z,views_count.eq.0')
+        .limit(limit)
+        .execute().data or [])
 
-    # 2026-09-04: a fake date is not "today's date" - it is THE SCRAPE TIME.
-    # fetch_channel_videos() sets published_at = now when nothing better is
-    # known, and now is also scraped_at, so the two are equal to the
-    # microsecond on every row that never got a real date. Selecting on
-    # "published today" only ever caught rows on the day they were scraped;
-    # the 185 videos hand-run on 2026-08-30 sat with an 08-30 date for a week
-    # because by the time anything looked, "today" had moved on. PostgREST
-    # cannot compare two columns in a filter, so page the small table and
-    # compare here.
-    def _is_fake_date(row) -> bool:
-        pub, scr = str(row.get('published_at') or ''), str(row.get('scraped_at') or '')
-        return bool(pub) and (pub[:10] == TODAY or pub[:19] == scr[:19])
-
-    candidates, _page, _size = [], 0, 1000
-    while True:
-        _rows = (supabase.table('video_library_videos')
-                 .select('id,youtube_video_id,source_id,published_at,scraped_at,views_count,views_text')
-                 .order('scraped_at', desc=True)
-                 .range(_page * _size, _page * _size + _size - 1)
-                 .execute().data or [])
-        candidates.extend(_rows)
-        if len(_rows) < _size:
-            break
-        _page += 1
-    needs_fix = [r for r in candidates if _is_fake_date(r) or not (r.get('views_count') or 0)][:limit]
-
-    log.info(f'Backfill: {len(needs_fix)} rows need date/views fix '
-             f'({sum(1 for r in needs_fix if _is_fake_date(r))} with published_at = scrape time)')
+    log.info(f'Backfill: {len(needs_fix)} rows need date/views fix')
     updated = failed = 0
     BATCH = 5
-
-    # Pass 1 - RSS per creator (datacenter-safe; covers each channel's latest
-    # ~15 uploads, which is where a fake today-date almost always lives).
-    by_source = {c['source_id']: c for c in CREATORS}
-    remaining = []
-    for row in needs_fix:
-        creator = by_source.get(row.get('source_id') or '')
-        entry = rss_meta_for_creator(creator).get(row['youtube_video_id']) if creator else None
-        upd = _rss_apply(row, entry or {})
-        if not upd:
-            remaining.append(row)
-            continue
-        # Only overwrite a date that is provably fake - a real one stays.
-        if 'published_at' in upd and not _is_fake_date(row):
-            upd.pop('published_at')
-        if 'views_count' in upd and (row.get('views_count') or 0) > 0:
-            upd.pop('views_count'); upd.pop('views_text', None)
-        if not upd:
-            remaining.append(row)
-            continue
-        upd['updated_at'] = datetime.now(timezone.utc).isoformat()
-        supabase.table('video_library_videos').update(upd).eq('id', row['id']).execute()
-        updated += 1
-    if updated:
-        log.info(f'  Backfill via RSS: {updated} rows fixed, {len(remaining)} left for yt-dlp')
-    needs_fix = remaining
-    _ytdlp_reason_logged = False
 
     for i in range(0, len(needs_fix), BATCH):
         batch = needs_fix[i:i+BATCH]
@@ -542,12 +373,6 @@ def backfill_metadata(limit: int = 300) -> dict:
                     if d.get('id'): meta[d['id']] = d
                 except Exception:
                     pass
-            if not meta and r.stderr and not _ytdlp_reason_logged:
-                # Say WHY once per run instead of a bare failed=N. From a
-                # datacenter IP this is YouTube's "Sign in to confirm you're
-                # not a bot"; that is expected there, not a scraper defect.
-                log.warning(f'  yt-dlp per-video metadata unavailable: {r.stderr.strip().splitlines()[-1][:160]}')
-                _ytdlp_reason_logged = True
 
             for row in batch:
                 vid = row['youtube_video_id']
@@ -558,7 +383,7 @@ def backfill_metadata(limit: int = 300) -> dict:
 
                 upd = {}
                 real_date = yt_upload_date_to_iso(d.get('upload_date', ''))
-                if real_date and _is_fake_date(row):
+                if real_date and str(row.get('published_at', ''))[:10] == TODAY:
                     upd['published_at'] = real_date
 
                 vc = d.get('view_count') or 0
@@ -586,7 +411,8 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
     yt-dlp --flat-playlist scrape for a creator's latest N videos.
     Returns real upload_date (not today's date) for each video.
     """
-    url = f'https://www.youtube.com/@{creator["handle"]}/videos'
+    tab = creator.get('tab', 'videos')
+    url = f'https://www.youtube.com/@{creator["handle"]}/{tab}'
     cmd = [
         'yt-dlp',
         '--flat-playlist',
@@ -604,7 +430,6 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
 
         videos = []
         now    = datetime.now(timezone.utc).isoformat()
-        rss    = rss_meta_for_creator(creator)   # real dates + views, no bot gate
         for line in result.stdout.strip().splitlines():
             try:
                 d = json.loads(line)
@@ -612,12 +437,9 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
                 if not vid_id:
                     continue
 
-                # Real upload date: flat entries rarely carry one, RSS does for
-                # the latest 15; fall back to now only when neither knows.
+                # Real upload date from metadata; fall back to now only if missing
                 real_date = yt_upload_date_to_iso(d.get('upload_date', '') or '')
-                rss_entry = rss.get(vid_id) or {}
-                pub_date  = real_date or rss_entry.get('published_at') or now
-                view_ct   = d.get('view_count') or rss_entry.get('views') or 0
+                pub_date  = real_date or now
 
                 # Best thumbnail (largest)
                 thumbs = d.get('thumbnails') or []
@@ -630,8 +452,8 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
                     'source_name':      creator['name'],
                     'type':             creator['type'],
                     'title':            d.get('title', ''),
-                    'views_count':      view_ct,
-                    'views_text':       fmt_views(view_ct),
+                    'views_count':      d.get('view_count', 0) or 0,
+                    'views_text':       fmt_views(d.get('view_count', 0) or 0),
                     'duration':         fmt_duration(d.get('duration')),
                     'thumbnail_url':    thumb,
                     'video_url':        f'https://www.youtube.com/watch?v={vid_id}',
@@ -738,9 +560,6 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
             return summary
 
     for creator in creators:
-        if creator.get('active') is False and not filter_source:
-            log.info(f'Skipping {creator["name"]} (@{creator["handle"]}) - inactive source')
-            continue
         log.info(f'Processing {creator["name"]} (@{creator["handle"]})...')
         cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'error': None}
 
@@ -884,28 +703,6 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
     updated = failed = 0
     BATCH = 5
 
-    # RSS first: free, ungated, exact for anything still in a channel's latest 15.
-    by_source = {c['source_id']: c for c in CREATORS}
-    remaining = []
-    for row in rows:
-        creator = by_source.get(row.get('source_id') or '')
-        entry = rss_meta_for_creator(creator).get(row['youtube_video_id']) if creator else None
-        vc = (entry or {}).get('views') or 0
-        if not vc:
-            remaining.append(row)
-            continue
-        if vc != row.get('views_count', 0):
-            if not dry_run:
-                supabase.table('video_library_videos').update({
-                    'views_count': vc,
-                    'views_text':  fmt_views(vc),
-                    'updated_at':  datetime.now(timezone.utc).isoformat(),
-                }).eq('id', row['id']).execute()
-            log.info(f'  [{row["source_id"]}] {row["youtube_video_id"]}: {row["views_count"]:,} → {vc:,} views (rss)')
-            updated += 1
-    rows = remaining
-    _ytdlp_reason_logged = False
-
     for i in range(0, len(rows), BATCH):
         batch = rows[i:i+BATCH]
         urls  = [f'https://www.youtube.com/watch?v={v["youtube_video_id"]}' for v in batch]
@@ -919,9 +716,6 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
                     if d.get('id'): meta[d['id']] = d
                 except Exception:
                     pass
-            if not meta and r.stderr and not _ytdlp_reason_logged:
-                log.warning(f'  yt-dlp per-video metadata unavailable: {r.stderr.strip().splitlines()[-1][:160]}')
-                _ytdlp_reason_logged = True
 
             for row in batch:
                 vid = row['youtube_video_id']
@@ -947,6 +741,49 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
     return {'updated': updated, 'failed': failed}
 
 
+
+# ── Source verification ─────────────────────────────────────────────────────────
+
+def verify_sources() -> list[str]:
+    """
+    Resolve every creator handle/tab and report which return nothing.
+
+    WHY THIS EXISTS (2026-09-04). Adding sources meant choosing YouTube
+    handles, and two of the first candidates were wrong: BrianChristopherSlots
+    and SlotLady resolve to no channel at all (Brian Christopher's real handle
+    is BCSlots). A wrong handle does not fail loudly - fetch_channel_videos
+    logs one warning and returns [], the run reports success, and that source
+    silently contributes nothing for ever. It is the same shape as every other
+    defect found on this platform today: something that reads as working while
+    doing nothing.
+
+    Writes nothing. Exits non-zero when any source is dead, so it can gate a
+    deploy or run as a check.
+    """
+    log.info(f'Verifying {len(CREATORS)} sources (no writes)...')
+    dead, ok = [], 0
+    for c in CREATORS:
+        tab = c.get('tab', 'videos')
+        url = f'https://www.youtube.com/@{c["handle"]}/{tab}'
+        cmd = ['yt-dlp', '--flat-playlist', '--dump-json', '--no-warnings',
+               '--quiet', '--playlist-end', '1', url]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+            found = bool(r.stdout.strip())
+        except Exception:
+            found = False
+        if found:
+            ok += 1
+        else:
+            dead.append(f'{c["source_id"]} (@{c["handle"]}/{tab})')
+            log.warning(f'  DEAD: {c["source_id"]} -> {url}')
+
+    log.info(f'Sources verified: {ok} live, {len(dead)} dead')
+    if dead:
+        log.error('Dead sources (they contribute nothing, silently): ' + ', '.join(dead))
+    return dead
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Video Library Daily Scraper v3')
     parser.add_argument('--dry-run',       action='store_true', help='Fetch without DB writes')
@@ -955,9 +792,14 @@ if __name__ == '__main__':
     parser.add_argument('--backfill',      action='store_true', help='Backfill missing published_at dates and views only')
     parser.add_argument('--refresh-views', action='store_true', help='Re-fetch view counts for top 50 most-viewed videos', dest='refresh_views')
     parser.add_argument('--tag-backfill',  action='store_true', help='AI-tag all untagged videos via /api/video/tag', dest='tag_backfill')
+    parser.add_argument('--verify-sources', action='store_true', dest='verify_sources',
+                        help='Resolve every creator handle/tab and report which return nothing. Writes nothing.')
     args = parser.parse_args()
 
-    if args.purge:
+    if args.verify_sources:
+        dead = verify_sources()
+        sys.exit(1 if dead else 0)
+    elif args.purge:
         result = purge_dead_videos(dry_run=args.dry_run)
         log.info(f'Purge complete: {result}')
     elif args.backfill:

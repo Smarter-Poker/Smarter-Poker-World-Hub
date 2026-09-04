@@ -43,6 +43,13 @@ SERVICE="openclaw.service"
 SCRIPT_JOB_FILES=(video_library_scraper.py video_library_to_reels.py)
 REMOTE_DIR="/opt/openclaw"
 
+# Source .env if present
+if [ -f "$REPO_ROOT/.env" ]; then
+  set -a
+  source "$REPO_ROOT/.env" 2>/dev/null || true
+  set +a
+fi
+
 # ─── SSH key resolution (2026-08-16) ──────────────────────────────────────────
 #
 # This was hardcoded to $HOME/.ssh/openclaw_ed25519 -- a key "Phase 2A.1
@@ -80,9 +87,10 @@ die() { echo "[deploy-openclaw] ERROR: $*" >&2; exit "${2:-1}"; }
   || die "no usable SSH key (set OPENCLAW_SSH_KEY, or install one of: openclaw_ed25519, hetzner_deploy, hetzner_engine_key, id_ed25519_hetzner)" 1
 log "SSH key: $SSH_KEY"
 
-SERVER_IP=$(security find-generic-password -a smarter-poker -s openclaw-server-ip -w 2>/dev/null) \
-  || die "Keychain entry 'smarter-poker/openclaw-server-ip' missing — run Phase 2A.1 AG prompt first" 1
-SERVER_ID=$(security find-generic-password -a smarter-poker -s openclaw-server-id -w 2>/dev/null || echo "")
+SERVER_IP="${OPENCLAW_SERVER_IP:-$(security find-generic-password -a smarter-poker -s openclaw-server-ip -w 2>/dev/null || echo "")}"
+[ -n "$SERVER_IP" ] || die "Target server IP missing (set OPENCLAW_SERVER_IP in .env or add Keychain entry 'smarter-poker/openclaw-server-ip')" 1
+
+SERVER_ID="${OPENCLAW_SERVER_ID:-$(security find-generic-password -a smarter-poker -s openclaw-server-id -w 2>/dev/null || echo "")}"
 
 log "Target: $SERVER_IP (id=${SERVER_ID:-unknown})"
 

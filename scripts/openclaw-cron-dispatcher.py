@@ -574,7 +574,14 @@ ALL_CRONS = [
     # before this dispatcher existed. The .js handler was an unused parallel
     # implementation. Handler file deleted from pages/api/cron/ in same
     # commit. No code outside this file referenced the route.
-    ('/api/cron/venue-tournaments',               dict(hour=4, minute=0)),
+    # RETIRED 2026-09-04: /cron/venue-tournaments on workers host is retired.
+    # Reasons:
+    # 1. Scraping 50+ casino/venue websites from worker datacenter IPs triggers
+    #    Cloudflare bot challenges and connection resets (RemoteDisconnected).
+    # 2. Sequential execution exceeds HTTP keepalive limits (>100s runtime).
+    # 3. Upsert targets a dropped legacy constraint and omits NOT NULL provenance columns.
+    # 4. Charity schedules are handled cleanly by scrape-charity-schedules at 03:00 UTC.
+    # ('/api/cron/venue-tournaments',               dict(hour=4, minute=0)),
     ('/api/cron/refresh-venue-json',              dict(hour=5, minute=0)),   # cache refresh
     ('/api/cron/news-scraper',                    dict(hour='*/2', minute=0)),
     ('/api/cron/cardplayer-scraper',              dict(hour='*/2', minute=5)),
@@ -944,7 +951,7 @@ WORKERS_PREFERRED = {
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
     '/api/cron/trivia-tournament-rounds':      '/cron/trivia-tournament-rounds',
     '/api/cron/trivia-tournaments':            '/cron/trivia-tournaments',
-    '/api/cron/venue-tournaments':             '/cron/venue-tournaments',
+    # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04
     # '/api/cron/vip-diamond-stipend' - REMOVED 2026-09-01. Nothing schedules it
     # any more (see the VIP STIPEND note in the schedule block above), and
     # leaving the mapping would let any future re-add of that path route
