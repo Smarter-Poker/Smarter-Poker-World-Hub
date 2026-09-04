@@ -1946,11 +1946,11 @@ export default function MemoryGamesPage() {
                                     <div className="preflop-board-heading">
                                         <Calendar size={40} aria-hidden />
                                         <h2 style={{ color: '#00ff88' }}>DAILY CHALLENGE</h2>
-                                        <p>Complete Today&apos;s Challenge To Keep Your Streak Alive!</p>
+                                        <p>Complete Today's Challenge To Keep Your Streak Alive!</p>
                                     </div>
 
                                     {challengeLoading ? (
-                                        <div className="preflop-board-empty">Loading Today&apos;s Challenge...</div>
+                                        <div className="preflop-board-empty">Loading Today's Challenge...</div>
                                     ) : challengeCompleted ? (
                                         <div className="preflop-board-complete">
                                             <ShieldCheck size={48} aria-hidden />
@@ -1990,7 +1990,7 @@ export default function MemoryGamesPage() {
                                     ) : (
                                         <div className="preflop-board-empty is-warning">
                                             <h3>No Challenge Available</h3>
-                                            <p>Check Back Soon For Today&apos;s Challenge!</p>
+                                            <p>Check Back Soon For Today's Challenge!</p>
                                         </div>
                                     )}
 

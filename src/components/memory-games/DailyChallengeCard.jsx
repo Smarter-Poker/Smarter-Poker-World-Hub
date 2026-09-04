@@ -11,7 +11,7 @@ export default function DailyChallengeCard({ challenge, streak, completed, onPla
   if (loading) {
     return (
       <div className="preflop-daily-card is-loading" role="status" data-tutorial="daily">
-        Synchronizing Today&apos;s Assignment
+        Synchronizing Today's Assignment
       </div>
     );
   }
@@ -23,7 +23,7 @@ export default function DailyChallengeCard({ challenge, streak, completed, onPla
         <div className="preflop-daily-card-copy">
           <span>DAILY RANGE ASSIGNMENT</span>
           <h2 id="preflop-daily-title">No Assignment Posted Yet</h2>
-          <p>Today&apos;s Challenge Appears Here As Soon As It Is Published. Check Back Soon.</p>
+          <p>Today's Challenge Appears Here As Soon As It Is Published. Check Back Soon.</p>
         </div>
       </section>
     );
