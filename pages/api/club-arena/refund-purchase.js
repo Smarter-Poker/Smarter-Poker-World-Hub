@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         }
 
         // The service key is EXEMPT from zz_freeze_guard, so this route is the only
-        // thing standing between a player-initiated chip movement and a platform
+        // thing standing between an owner-initiated chip movement and a platform
         // that everyone has been told is frozen (CLAUDE.md 13). Fails closed.
         if (await refuseWhileFrozen(getSupabase(), res, { route: 'refund-purchase' })) return;
 
