@@ -216,9 +216,19 @@ test('shared production gate avoids the Commander root redirect loop', async () 
   assert.notEqual(rootIndex, -1);
   assert.notEqual(nestedIndex, -1);
   assert.ok(rootIndex < nestedIndex, 'exact root rewrite must run before the nested catch-all');
-  assert.equal(vercel.rewrites[rootIndex].destination, 'https://commander.smarter.poker/');
+  // 2026-09-04 (#1344): smarter.poker/commander lands on Commander's real
+  // landing page (pages/commander/index.js on the commander origin), not on
+  // commander.smarter.poker/ - which is a scaffold stub reading "migration in
+  // progress". This pin used to insist on the stub and went red the moment
+  // the menu row was made to navigate somewhere real. Neither destination
+  // can loop: the commander origin serves both paths directly (200, no
+  // redirect), and the hub only rewrites, never redirects, here.
+  assert.equal(vercel.rewrites[rootIndex].destination, 'https://commander.smarter.poker/commander');
   assert.equal(
     vercel.rewrites[nestedIndex].destination,
     'https://commander.smarter.poker/commander/:path*'
   );
+  for (const rewrite of [vercel.rewrites[rootIndex], vercel.rewrites[nestedIndex]]) {
+    assert.ok(!('permanent' in rewrite) && !('statusCode' in rewrite), 'a rewrite, not a redirect - a redirect here is how a loop starts');
+  }
 });
