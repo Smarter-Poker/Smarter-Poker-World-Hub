@@ -114,10 +114,55 @@ both `next start -p 3000`. Same class as Club Arena's E2E ports the same
 morning; same fix, `scripts/ci/e2e-port.mjs` ported over, both E2E workflows
 derive their port from `RUNNER_NAME` and free it first.
 
+## 7. The footer contract passed, and that unmasked two more things
+
+With sections 5 and 6 in, run 33927735576 was the first Global Footer E2E
+run in this repo to get PAST the footer contract (1 flaky, 15 passed). The
+next step in the same job, `Mobile performance budget (ten rollout pages)`,
+then failed, and #1364 sat open with every required check green.
+
+**7a. `/hub/poker-near-me` is over a budget nobody had run on CI.** #1368
+(`fix/mobile phase3 poker near me`, merged 22:53Z) tightened that route's row
+in `scripts/ci/mobile-budget.json` from 900 KB / 3500 ms / unconverted to
+850 KB / 2500 ms / converted, measured on a Mac (the file's own note says
+LCP 272-1068 ms there). That branch's own footer run, and every other
+branch's, still failed at the footer contract, so the budget step had never
+executed against those numbers. On the shared 16-core runner it reads 2592,
+2628 and 2876 ms across three attempts; the other two converted routes pass
+under 2500. Measured here on this Mac against the same build, PNM's LCP
+entry is a 250,705 px `<div>` painted 1.3 s AFTER `load` (load itself is
+115 ms): the `LobbyOverlay` layer is `ssr:false` by design, so the largest
+content is whatever hydration paints when its chunk arrives. That is a page
+decision belonging to the phase-3 owner, not a pipeline one, and the budget
+file forbids loosening a row without a recorded exception. Not touched.
+Reported as an issue instead, with these numbers. Until the page or the
+row moves, every pull request's footer run will end red at this step.
+
+**7b. Autopilot could not merge a PR the ruleset would merge.** When the
+sweep reached #1364 its required checks were already green, so
+`gh pr merge --auto` was refused ("Pull request is in unstable status") and
+`queue-pr.sh` fell through to a fallback that merged CLEAN only, with a
+comment saying UNSTABLE "is how red code lands". In a repo with no required
+checks that is true. In this repo it is not: a red or pending REQUIRED check
+reports BLOCKED, so UNSTABLE can only mean everything required is green and
+something optional is not - the exact state GitHub's own auto-merge merges
+in, and the state `--auto` three lines earlier would have accepted. The
+outcome was a race: enable auto-merge before the checks finish and the PR
+lands; sweep after they finish and it sits open forever, "the next sweep
+will look again", with no report. Fixed in the canonical (seven-repo)
+`queue-pr.sh`: UNSTABLE merges when the base ruleset requires at least one
+check, naming every not-green check in the log; UNSTABLE with no required
+checks keeps the old refusal; a red required check is refused by GitHub on
+the merge call and surfaced. `tests/autopilot-merges-when-the-ruleset-is-satisfied.test.mjs`
+runs the real script against a fake `gh` for all four cases (4 of 5 fail
+against the previous script). Rolled to the other six repos as
+`fix/autopilot-merges-when-the-ruleset-is-satisfied`.
+
 ## What is still true after this
 
-- The E2E suite is red and off the pull-request path. It needs a product
-  fix, not a pipeline one.
+- The E2E suite's footer contract is green on this branch; the mobile
+  budget step behind it is red on `/hub/poker-near-me` (7a). That needs the
+  page owner, not a pipeline change.
 - `U4.3` and `U4.2` run the same schema fetch the Safety Checks job runs; a
   shared artifact between jobs would save a few more seconds. Not worth a
   fourth workflow change today.
