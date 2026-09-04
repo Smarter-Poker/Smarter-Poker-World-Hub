@@ -324,6 +324,11 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toHaveCount(1);
       await expect(nav).toHaveAttribute('data-footer-hide-on-scroll', 'true');
       await expect(nav).toHaveAttribute('data-footer-hidden', 'false');
+      // The listener is installed by an effect after hydration. On a loaded
+      // Linux WebKit (CI, 2026-09-04) the first scrolls below landed BEFORE
+      // it existed, nothing saw them, and "should hide" failed on whichever
+      // world happened to hydrate slowest. Wait for the fact, not the clock.
+      await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
 
       await page.evaluate(() => {
         document.body.style.minHeight = '400vh';
