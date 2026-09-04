@@ -85,6 +85,19 @@ import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
 import './global-header-approved.test.mjs';
+// 2026-09-04, the "Log Out does nothing" fix. Its sibling guard
+// hamburger-never-regresses runs from `prebuild`, which fires on `npm run
+// build` but NOT on the `npx next build` the push script uses - so these two
+// went in here, where CHECK 8 reaches them on every pull request.
+// signout-contract pins that handleLogout clears the BACKUP key too: clearing
+// only the primary meant ensureAuthReady restored the session from the backup
+// on the way to the redirect, and the user was signed back in by their own
+// logout. query-params pins that a menu row's ?section= / ?tab= / ?source= is
+// one its destination page actually accepts - the existing route guard strips
+// the query before checking, so it only ever proved the file exists, and
+// Delete Account had been sending a value Settings ignores.
+import './hamburger-signout-contract.test.mjs';
+import './menu-query-params-are-real.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
@@ -179,6 +192,12 @@ const REQUIRED_TEST_FILES = [
     // the Leak Finder in production. Both run in `prebuild`.
     '__tests__/menu-routes-exist.test.mjs',
     '__tests__/pa-no-undef.test.mjs',
+    // The Log Out fix (2026-09-04). menu-routes-exist above is deliberately
+    // NOT a substitute for query-params-are-real: it strips ?query before it
+    // resolves a path, so it proves the destination file exists and nothing
+    // about whether the destination reads the parameter the row sends it.
+    '__tests__/hamburger-signout-contract.test.mjs',
+    '__tests__/menu-query-params-are-real.test.mjs',
     // Proves the Blob-URL equity worker still computes the same numbers as
     // EquityEngine.js — the worker holds a generated COPY of the Monte Carlo
     // core, so drift is silent and user-visible.

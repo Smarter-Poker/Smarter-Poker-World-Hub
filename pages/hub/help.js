@@ -152,7 +152,13 @@ export default function HelpPage() {
                 </div>
 
                 {/* Quick Contact Cards */}
-                <div style={{
+                {/* id="contact" is load-bearing: the help hamburger menu has
+                    always linked to /hub/help#contact, and this page carried no
+                    id attributes at all, so the anchor resolved to nothing and
+                    the row opened the FAQ at the top — the same place the FAQ
+                    row above it went. See src/config/hamburgerMenus.js. */}
+                <div id="contact" style={{
+                    scrollMarginTop: 80,
                     padding: '20px',
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
