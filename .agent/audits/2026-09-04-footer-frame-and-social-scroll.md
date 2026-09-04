@@ -116,6 +116,15 @@ artwork**; only the alpha channel is new. Total growth: about 3%.
 `sha256` in the registry is updated for all fourteen, which is what
 `bottom-nav-clearance.test.mjs` compares the shipped bytes against.
 
+**The files are renamed `-v2.png`, and that is not cosmetic.** `public/sw.js`
+registers every image under a `CacheFirst` route with a 30-day expiry, so a
+player who has ever loaded a footer keeps the old opaque bytes for up to a
+month no matter what the server ships at the same URL. Dan saw exactly that:
+"all the backgrounds are still behind every single frame" against a deploy
+that had already replaced them. A new filename is the only thing the service
+worker cannot serve from cache. Club Arena has the same rule
+(`MEDIA_CACHE` is deliberately unversioned across deploys) and the same fix.
+
 ## 5. "The footer inside the club arena is perfect ... replicate this size and placement on every footer, using this as the GOLD STANDARD"
 
 The stages used to size themselves by `aspect-ratio` from each world's

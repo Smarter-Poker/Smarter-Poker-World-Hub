@@ -249,7 +249,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toHaveAttribute('data-footer-world', 'training');
       await expect(nav).toHaveAttribute(
         'data-footer-artwork',
-        '/images/footers/world-hub/footer-training-games.png'
+        '/images/footers/world-hub/footer-training-games-v2.png'
       );
       await expect(nav).toHaveCSS('position', 'fixed');
       await expect(nav).toHaveCSS('transform', 'none');

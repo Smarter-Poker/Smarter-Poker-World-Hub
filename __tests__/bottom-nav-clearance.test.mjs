@@ -38,20 +38,20 @@ const EXPECTED_WORLDS = [
 ];
 
 const EXPECTED_ARTWORK = {
-  'personal-assistant': 'footer-personal-assistant.png',
-  training: 'footer-training-games.png',
-  news: 'footer-poker-news.png',
-  trivia: 'footer-poker-trivia.png',
-  'social-media': 'footer-social-media.png',
-  'diamond-arena': 'footer-diamond-arena.png',
-  'my-clubs': 'footer-my-clubs.png',
-  'video-library': 'footer-video-library.png',
-  'odds-calculator': 'footer-odds-calculator.png',
-  'bankroll-manager': 'footer-bankroll-manager.png',
-  'toke-tracker': 'footer-toke-tracker.png',
-  'preflop-charts': 'footer-preflop-charts.png',
-  'poker-near-me': 'footer-poker-near-me.png',
-  marketplace: 'footer-marketplace.png',
+  'personal-assistant': 'footer-personal-assistant-v2.png',
+  training: 'footer-training-games-v2.png',
+  news: 'footer-poker-news-v2.png',
+  trivia: 'footer-poker-trivia-v2.png',
+  'social-media': 'footer-social-media-v2.png',
+  'diamond-arena': 'footer-diamond-arena-v2.png',
+  'my-clubs': 'footer-my-clubs-v2.png',
+  'video-library': 'footer-video-library-v2.png',
+  'odds-calculator': 'footer-odds-calculator-v2.png',
+  'bankroll-manager': 'footer-bankroll-manager-v2.png',
+  'toke-tracker': 'footer-toke-tracker-v2.png',
+  'preflop-charts': 'footer-preflop-charts-v2.png',
+  'poker-near-me': 'footer-poker-near-me-v2.png',
+  marketplace: 'footer-marketplace-v2.png',
 };
 
 test('the global footer remains below modal and dialog stacking layers', () => {
