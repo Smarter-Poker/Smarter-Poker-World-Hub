@@ -59,8 +59,11 @@ async function reportFailureToServer(videoId, errorCode, surface) {
 // ── Sentry Telemetry (Improvement #4) ─────────────────────────────────────────
 function reportToSentry(videoId, errorCode, surface) {
     if (typeof window === 'undefined') return;
-    // Check for Sentry global (lazy — doesn't import the SDK directly)
-    const Sentry = window.__SENTRY__;
+    // 2026-09-04: this read window.__SENTRY__ first, which is the SDK's INTERNAL
+    // version carrier and has no captureMessage - so the primary branch could
+    // never fire, and the fallback below depended on window.Sentry, which
+    // nothing assigned. sentry.client.config.js assigns it now; read it first.
+    const Sentry = window.Sentry;
     if (!Sentry?.captureMessage) {
         // Fallback: try window.Sentry (standard browser SDK global)
         if (window.Sentry?.captureMessage) {

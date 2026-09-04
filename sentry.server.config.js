@@ -11,6 +11,9 @@ if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
+    // Attribute every event to a deploy. withSentryConfig is bypassed for the
+    // 8GB Vercel OOM, so nothing sets this automatically.
+    release: process.env.VERCEL_GIT_COMMIT_SHA || undefined,
 
     // Performance Monitoring
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
