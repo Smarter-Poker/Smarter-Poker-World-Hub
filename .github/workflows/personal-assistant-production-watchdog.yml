@@ -33,7 +33,8 @@ jobs:
           PA_PROBE_REQUESTS: '16'
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          # 2026-09-04: a repository variable (the service account), never a person.
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
         run: node scripts/verify-pa-production-hardening.mjs --require-auth | tee pa-hardening.json
       - name: Upload Hardening Receipt

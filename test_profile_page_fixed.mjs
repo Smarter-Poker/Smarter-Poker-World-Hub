@@ -15,7 +15,7 @@ import { chromium } from 'playwright';
     try {
         await page.waitForSelector('input[type="email"]', { timeout: 10000 });
         console.log('Logging in...');
-        await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+        await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
         await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
         await page.click('button[type="submit"]');
         await page.waitForNavigation({ waitUntil: 'networkidle' }).catch(() => {});

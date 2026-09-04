@@ -40,7 +40,15 @@ setup('authenticate', async ({ page }) => {
     await continueToHub.click();
   } else {
     // Fill in the static test account credentials prescribed in the browser-testing workflow.
-    await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+    // 2026-09-04: the account comes from the environment, never from this
+    // file. It used to be Dan's personal address, so every CI run signed in
+    // as him ("KEEP MY ACCOUNT CLEAN"). TEST_USER_EMAIL is the platform
+    // service account; CI passes it from a repository variable.
+    const testUserEmail = process.env.TEST_USER_EMAIL;
+    if (!testUserEmail) {
+      throw new Error('TEST_USER_EMAIL is not set - refusing to guess an account');
+    }
+    await page.fill('input[type="email"]', testUserEmail);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
 
