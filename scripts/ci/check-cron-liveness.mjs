@@ -141,14 +141,33 @@ async function main() {
   const silent = [];
   const healthy = [];
 
-  for (const p of scheduled) {
-    const job = toJobName(p);
-    const enc = encodeURIComponent(job);
-    const runs = await countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&select=id`);
-    const errors = await countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&status=eq.error&select=id`);
-    const ok = runs - errors;
+  /* TWO ROUND TRIPS PER JOB, IN SERIES, WAS 106 SECONDS (measured 2026-09-04
+     on a required check). 85 scheduled jobs x 2 exact-count HEAD requests,
+     each awaited before the next began. The same 170 requests in flight
+     sixteen at a time take a few seconds and return the same 170 numbers -
+     nothing about what is counted changes, only how long the runner waits. */
+  const CONCURRENCY = 16;
+  const results = new Array(scheduled.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= scheduled.length) return;
+      const p = scheduled[i];
+      const job = toJobName(p);
+      const enc = encodeURIComponent(job);
+      const [runs, errors] = await Promise.all([
+        countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&select=id`),
+        countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&status=eq.error&select=id`),
+      ]);
+      results[i] = { path: p, job, runs, successes: runs - errors };
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, scheduled.length) }, worker));
 
-    const record = { path: p, job, runs, successes: ok };
+  // Same order as the dispatcher lists them, so the report reads the same.
+  for (const record of results) {
+    const { runs, successes: ok } = record;
     if (runs === 0) silent.push(record);
     else if (ok === 0 && runs >= MIN_RUNS) dead.push(record);
     else healthy.push(record);
