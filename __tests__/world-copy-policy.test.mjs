@@ -63,3 +63,10 @@ test('user content, social posts, and comments are protected from title casing',
   assert.match(policySource, /data-comment-content/);
   assert.match(policySource, /text-transform: none !important/);
 });
+
+test('the preserve list names user content by marker, never by a bare element (2026-09-04: `article` took the Personal Assistant system cards out of title case)', () => {
+  const preserve = policySource.slice(policySource.indexOf('const PRESERVE_SELECTOR'), policySource.indexOf('].join('));
+  assert.doesNotMatch(preserve, /'article'/, 'a bare element name exempts every <article> in every world');
+  assert.doesNotMatch(policySource, /\.social-post,\s*article\s*\)/, 'the CSS exemption must not name a bare element either');
+  assert.match(policySource, /data-post-card/);
+});
