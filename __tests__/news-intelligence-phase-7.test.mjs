@@ -18,7 +18,7 @@ const DISPATCHER = read('scripts/openclaw-cron-dispatcher.py');
 test('sidebar never presents invented ranking or tournament records', () => {
   assert.doesNotMatch(PAGE, /FALLBACK_POY|FALLBACK_EVENTS/i);
   assert.match(PAGE, /Licensed GPI standings are not connected yet/);
-  assert.match(PAGE, /No tournaments found/);
+  assert.match(PAGE, /No tournaments found/i);  // Title Case made it 'No Tournaments found'
   assert.match(LEADERBOARD, /connected: Boolean\(data\?\.length\)/);
   assert.doesNotMatch(LEADERBOARD, /fallback: true/);
 });
@@ -54,8 +54,8 @@ test('POY sync is licensed-feed-only, validated and atomically replaced', () => 
 test('newsletter admin is role-protected, preview-gated and audited', () => {
   assert.match(ADMIN_API, /getServerUserWithFallback/);
   assert.match(ADMIN_API, /\['admin', 'superadmin', 'god'\]/);
-  assert.match(ADMIN_PAGE, /Run safe preview/);
-  assert.match(ADMIN_PAGE, /Confirm and send/);
+  assert.match(ADMIN_PAGE, /Run safe preview/i);  // Title Case made it 'Run Safe Preview'
+  assert.match(ADMIN_PAGE, /Confirm and send/i);  // Title Case made it 'Confirm And Send'
   assert.match(ADMIN_PAGE, /!preview \|\| preview\.recipients === 0/);
   assert.match(DIGEST, /from\('newsletter_campaigns'\)/);
   assert.match(DIGEST, /campaign_audit_failed/);
