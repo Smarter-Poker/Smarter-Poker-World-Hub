@@ -51,7 +51,16 @@ export async function refuseWhileFrozen(supabase, res, { route } = {}) {
   try {
     const { data, error } = await supabase.rpc('fn_platform_frozen');
     if (error) throw error;
-    frozen = data === true;
+    // fn_platform_frozen is `SELECT EXISTS (...)`, so it is always a real
+    // boolean and this cannot fire today. It is here because the promise this
+    // helper makes is "fails closed", and `data === true` alone would quietly
+    // PROCEED on anything unexpected - a null, a string, a shape change in the
+    // client. A guard whose safety depends on the happy path staying happy is
+    // not a guard.
+    if (typeof data !== 'boolean') {
+      throw new Error(`fn_platform_frozen returned ${JSON.stringify(data)}, expected a boolean`);
+    }
+    frozen = data;
   } catch (err) {
     // Unreadable. See "FAILS CLOSED" above: with no trigger backstop for the
     // service key, guessing "not frozen" is the one guess that can do damage.
