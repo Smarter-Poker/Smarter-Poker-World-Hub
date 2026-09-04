@@ -43,7 +43,21 @@ const ROUTE_DIR = 'pages/api/club-arena';
 const MONEY_RE =
   /chip_balance|chip_transactions|wallet_transactions|chip_ledger|\.from\(['"`]table_seats['"`]\)|\.from\(['"`]wallets['"`]\)|atomic_table_|atomic_chip_|fn_credit_|fn_transfer_|fn_agent_wallet_|fn_club_bank_|fn_promo_wallet_|distribute_chips|distribute_promo|mass_fund|mint_chips|increment_club_chip_pool/;
 
-const FREEZE_AWARE_RE = /fn_platform_frozen|freeze-exempt:/;
+/**
+ * What counts as knowing about the freeze. Three sanctioned answers:
+ *
+ *   fn_platform_frozen   the route asks the database itself
+ *   refuseWhileFrozen    the route uses the shared helper, which asks and
+ *                        answers 503 - added 2026-09-04, because the check
+ *                        previously recognised only the literal RPC name and
+ *                        so would have pushed three routes into copy-pasting
+ *                        the same call instead of sharing one place to get
+ *                        "fails closed" right
+ *   freeze-exempt:       a human declared, in writing, why this one must run
+ *                        during the break (see record-rake.js)
+ */
+const FREEZE_AWARE_CALL_RE = /fn_platform_frozen|refuseWhileFrozen/;
+const FREEZE_EXEMPT_RE = /freeze-exempt:/;
 
 /** Routes that predate the check. Shrink only. */
 const BASELINE = new Set([
@@ -84,15 +98,127 @@ if (!existsSync(ROUTE_DIR)) {
   process.exit(0);
 }
 
+/**
+ * CODE ONLY - COMMENTS ARE NOT A MONEY ROUTE (2026-09-03).
+ *
+ * MONEY_RE was tested against the raw file, so a route whose comment merely
+ * NAMES a table or an RPC counted as calling it. A retirement notice saying
+ * "this used to write chip_balance; it no longer touches money" therefore
+ * failed CHECK 18 as a new, freeze-unaware money route - the guard reading
+ * prose as behaviour.
+ *
+ * That is corrosive rather than merely annoying: the quickest way to satisfy
+ * it is to DELETE the explanation, so the codebase loses the record of why a
+ * route was retired in order to quiet a check that misread it.
+ *
+ * String literals are preserved - `supabase.rpc('fn_credit_and_log')` is a
+ * real call and the name lives in a string. Only comments are blanked, to
+ * spaces, so every reported line number still matches the file.
+ */
+function stripComments(src) {
+  let out = '';
+  let i = 0;
+  const n = src.length;
+  let state = 'code';
+  while (i < n) {
+    const c = src[i];
+    const c2 = src[i + 1];
+    if (state === 'code') {
+      if (c === '/' && c2 === '/') { state = 'line'; out += '  '; i += 2; continue; }
+      if (c === '/' && c2 === '*') { state = 'block'; out += '  '; i += 2; continue; }
+      if (c === "'") state = 'sq';
+      else if (c === '"') state = 'dq';
+      else if (c === '`') state = 'tpl';
+      out += c; i++; continue;
+    }
+    if (state === 'line') {
+      if (c === '\n') { state = 'code'; out += c; } else out += ' ';
+      i++; continue;
+    }
+    if (state === 'block') {
+      if (c === '*' && c2 === '/') { state = 'code'; out += '  '; i += 2; continue; }
+      out += c === '\n' ? c : ' '; i++; continue;
+    }
+    if (c === '\\') { out += c + (c2 ?? ''); i += 2; continue; }
+    if ((state === 'sq' && c === "'") || (state === 'dq' && c === '"') || (state === 'tpl' && c === '`')) state = 'code';
+    out += c; i++;
+  }
+  return out;
+}
+
+/**
+ * SIXTEEN MONEY RPCs THE PATTERN COULD NOT SEE (2026-09-04).
+ *
+ * MONEY_RE names PREFIXES - fn_credit_, fn_transfer_, atomic_chip_ - and every
+ * RPC spelled differently fell straight through this check as though the route
+ * touched nothing. A route calling fn_debit_chips, mint_club_chips,
+ * fn_approve_cashout_atomic or fn_refund_shop_purchase was never asked whether
+ * it respects the platform freeze, which is the one question this file exists
+ * to ask.
+ *
+ * Found by accident: distribute-promo.js and promo-wallet.js were being
+ * counted as money routes ONLY because the words `chip_balance` and
+ * `chip_treasury` appear in their comments. Fixing that false positive removed
+ * the accident and left them uncounted - which is what exposed the real hole.
+ *
+ * Arming this turned up five routes with no freeze check at all. Four are
+ * fixed in the same change (three refuse with 503, record-rake declares itself
+ * exempt because it books a hand that already finished); the fifth, buyin.js,
+ * was already a retired 410 with a marker.
+ */
+const EXTRA_MONEY_RPCS = [
+  'fn_debit_',
+  'fn_add_prepaid_credit',
+  'fn_union_credit_wallet',
+  'fn_request_cashout',
+  'fn_approve_cashout',
+  'fn_cancel_cashout',
+  'fn_refund_shop_purchase',
+  'mint_club_chips',
+  'mint_club_promo',
+  'transfer_chips_',
+  'transfer_promo_',
+  'orb1_buyin_transaction',
+  'increment_settlement_counters',
+];
+
 const failures = [];
 let checked = 0;
 for (const file of readdirSync(ROUTE_DIR).sort()) {
   if (!/\.(js|ts)$/.test(file)) continue;
-  const src = readFileSync(join(ROUTE_DIR, file), 'utf8');
-  if (!MONEY_RE.test(src)) continue;
+  const raw = readFileSync(join(ROUTE_DIR, file), 'utf8');
+
+  // THE TWO QUESTIONS READ DIFFERENT THINGS, AND THAT IS DELIBERATE.
+  //
+  // "Does this move money?" is asked of CODE ONLY. A comment naming an RPC is
+  // prose, not a call, and accusing it made the fastest fix "delete the
+  // retirement notice" - losing the record of why a route was retired.
+  //
+  // "Is it freeze-aware?" is asked of the RAW FILE, comments included, because
+  // ONE OF THE TWO SANCTIONED ANSWERS IS A COMMENT. This script's own
+  // instructions say: add `// freeze-exempt: <why>`. Stripping comments for
+  // this question would have quietly deleted that entire remedy - buyin.js
+  // carries exactly such a marker today - so a route could declare an
+  // exemption in the documented way and still be failed for it.
+  const code = stripComments(raw);
+  const movesMoney = MONEY_RE.test(code) || EXTRA_MONEY_RPCS.some((r) => code.includes(r));
+  if (!movesMoney) continue;
   checked++;
   if (BASELINE.has(file)) continue;
-  if (FREEZE_AWARE_RE.test(src)) continue;
+  // A CALL has to be in CODE; a DECLARATION may be a comment.
+  //
+  // Reading both from the raw file looked harmless and was not: record-rake's
+  // exemption paragraph EXPLAINS the difference between itself and the routes
+  // that use refuseWhileFrozen(), so merely naming the helper in prose made
+  // the file look guarded. Deleting its actual marker then changed nothing,
+  // which a mutation test caught - the check would have kept passing a route
+  // whose exemption had been removed.
+  //
+  // So: the two mechanical answers must appear in code, and the human
+  // declaration - the one the instructions below tell you to write as a
+  // comment - is read from the raw file.
+  if (FREEZE_AWARE_CALL_RE.test(code)) continue;
+  if (FREEZE_EXEMPT_RE.test(raw)) continue;
   failures.push(file);
 }
 

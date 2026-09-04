@@ -9,6 +9,23 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *
  * Body: { clubId, tableId, handId, potSize, rakeAmount, numPlayers,
  *         bbjContribution?, dealtPlayerIds?: string[] }
+ *
+ * freeze-exempt: this records rake for a hand that has ALREADY been played.
+ *
+ * The break parks every table at a hand boundary, so nothing new is dealt
+ * during it - but a hand that was in flight when the countdown started
+ * finishes, and its rake posts afterwards. Refusing that write would not
+ * prevent a chip movement; the chips already moved at the table. It would
+ * simply lose the rake for that hand, along with the VIP points, the agent
+ * commissions and the BBJ contribution that hang off it - and horses are
+ * players (CLAUDE.md 10.5), so on a horse-heavy table that is most of the
+ * hands in the window.
+ *
+ * This is the "engine-style recovery bookkeeping" case the freeze rule names
+ * as its own exception. The distinction that matters: the three routes guarded
+ * with refuseWhileFrozen() are a PERSON asking to move chips now, which the
+ * break exists to stop. This is the ledger catching up with something that
+ * already happened, which the break has no reason to stop.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
