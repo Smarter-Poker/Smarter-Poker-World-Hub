@@ -11,7 +11,7 @@ const supabaseClient = createClient(
 );
 
 async function run() {
-  const email = 'daniel@bekavactrading.com';
+  const email = process.env.TEST_USER_EMAIL;
   const password = process.env.TEST_USER_PASSWORD;
   
   // 1. Sign in to get user ID

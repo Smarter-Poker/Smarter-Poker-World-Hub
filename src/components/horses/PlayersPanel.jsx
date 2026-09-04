@@ -69,6 +69,7 @@ import {
 import {
   GATE_TEXT,
   REASON_LABELS,
+  REASON_NEEDS_NOTE,
   RESTRICTION_REASON_CODES,
   RESTRICTION_SCOPES,
   RG_FIELDS,
@@ -190,8 +191,16 @@ function rgPatchOf(rg, draft) {
 
     if (next === null && prev === null) continue;
     if (next !== null && prev !== null) {
+      // TO THE MINUTE for a timestamp, because a minute is all the input
+      // can express: seedRgDraft slices to "YYYY-MM-DDTHH:mm", so a value
+      // the player's own path wrote as now() + interval carries seconds
+      // this form cannot show and cannot preserve. Comparing exactly meant
+      // that OPENING the editor and pressing Save classified an untouched
+      // self-exclusion as :shortened - a loosening the operator never
+      // made, held or applied depending on the clock.
       const same = f.kind === 'time'
-        ? new Date(next).getTime() === new Date(prev).getTime()
+        ? Math.floor(new Date(next).getTime() / 60000)
+          === Math.floor(new Date(prev).getTime() / 60000)
         : Number(next) === Number(prev);
       if (same) continue;
     }
@@ -368,14 +377,18 @@ export default function PlayersPanel({
 
   // ── RESTRICT DIALOG ──────────────────────────────────────────────────────
   const [restrictDraft, setRestrictDraft] = useState(null);
-  const [pendingSanction, setPendingSanction] = useState(null);
+  const [pendingSanctions, setPendingSanctions] = useState({});
   const [busy, setBusy] = useState(false);
 
   const gate = restrictDraft
     ? needsApproval({ scope: restrictDraft.scope, expiresAt: restrictDraft.expiresAt })
     : { required: false, reason: null };
 
-  const noteRequired = restrictDraft?.reasonCode === 'other';
+  // The constant, not the literal. Both halves used to hardcode 'other'
+  // while the constant naming it sat exported and unimported - which is
+  // exactly how the panel and the route drift apart about which reason
+  // needs an explanation.
+  const noteRequired = restrictDraft?.reasonCode === REASON_NEEDS_NOTE;
   const restrictReady =
     restrictDraft
     && restrictDraft.scope
@@ -397,19 +410,26 @@ export default function PlayersPanel({
         // has to re-post the SAME idempotency key, or it raises a second
         // request under a new one and the approved row is orphaned. That
         // is review B-1's control with no exit, moved one screen over.
-        setPendingSanction({
-          approvalId: data.approvalId ?? null,
-          status: data.status ?? 'pending',
-          gateReason: data.gateReason ?? null,
-          draft: { ...restrictDraft, opId: data.opId || restrictDraft.opId },
-        });
+        // KEYED, not single. A raised sanction's opId lives only here -
+        // `sanction` is not executable from the approvals queue - so a
+        // second raise, or an ordinary restriction on any other player,
+        // used to overwrite or clear the only handle on it, orphaning an
+        // approved row and making the next press mint a fresh key.
+        setPendingSanctions((prev) => ({
+          ...prev,
+          [data.approvalId || restrictDraft.opId]: {
+            approvalId: data.approvalId ?? null,
+            status: data.status ?? 'pending',
+            gateReason: data.gateReason ?? null,
+            draft: { ...restrictDraft, opId: data.opId || restrictDraft.opId },
+          },
+        }));
         showNotification(
           data.message
             || 'That Restriction Needs A Second Operator. It Has Been Raised And Nothing Has Been Applied',
           'info'
         );
       } else {
-        setPendingSanction(null);
         showNotification(data?.message || 'Restriction Applied', 'success');
         setEnforced(enforcedOf(data));
       }
@@ -433,13 +453,14 @@ export default function PlayersPanel({
    * a fresh one here would raise a SECOND request and leave the approved
    * one to expire.
    */
-  const applyPendingSanction = useCallback(async () => {
-    if (!pendingSanction) return;
+  const applyPendingSanction = useCallback(async (key) => {
+    const entry = pendingSanctions[key];
+    if (!entry) return;
     setBusy(true);
     try {
       const data = await authFetch(PLAYER_ADMIN, {
         method: 'POST',
-        body: JSON.stringify(restrictBody(pendingSanction.draft)),
+        body: JSON.stringify(restrictBody(entry.draft)),
       });
       if (data?.pending) {
         showNotification(
@@ -450,7 +471,11 @@ export default function PlayersPanel({
       }
       showNotification(data?.message || 'Restriction Applied', 'success');
       setEnforced(enforcedOf(data));
-      setPendingSanction(null);
+      setPendingSanctions((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
       if (openId) loadPlayer(openId);
       if (restrictionList.loaded) restrictionList.refresh();
     } catch (err) {
@@ -459,7 +484,7 @@ export default function PlayersPanel({
       setBusy(false);
     }
   }, [
-    authFetch, pendingSanction, showNotification, openId, loadPlayer, restrictionList,
+    authFetch, pendingSanctions, showNotification, openId, loadPlayer, restrictionList,
   ]);
 
   const post = useCallback(
@@ -539,13 +564,13 @@ export default function PlayersPanel({
           section rather than inside one, because an operator who raises a
           sanction and then goes to look at the player must not lose the
           only handle on it. */}
-      {pendingSanction && (
-        <div className={styles.warnNote} role="status">
+      {Object.entries(pendingSanctions).map(([key, entry]) => (
+        <div key={key} className={styles.warnNote} role="status">
           <strong>A Sanction Is Waiting For A Second Operator. </strong>
-          {SCOPE_META[pendingSanction.draft.scope]?.label} For
+          {SCOPE_META[entry.draft.scope]?.label} For
           {' '}
-          {pendingSanction.draft.displayName || pendingSanction.draft.userId}
-          {pendingSanction.approvalId ? ` (Request ${pendingSanction.approvalId})` : ''}
+          {entry.draft.displayName || entry.draft.userId}
+          {entry.approvalId ? ` (Request ${entry.approvalId})` : ''}
           . The Approvals Queue Records The Decision And Does Not Carry It Out, So Apply It
           Here Once It Is Approved.
           <div className={styles.rowActions}>
@@ -553,20 +578,24 @@ export default function PlayersPanel({
               type="button"
               className={styles.btn}
               disabled={busy || !canModerate}
-              onClick={() => applyPendingSanction()}
+              onClick={() => applyPendingSanction(key)}
             >
               Apply It Now
             </button>
             <button
               type="button"
               className={styles.btn}
-              onClick={() => setPendingSanction(null)}
+              onClick={() => setPendingSanctions((prev) => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+              })}
             >
               Dismiss This Reminder
             </button>
           </div>
         </div>
-      )}
+      ))}
 
       {/* ── SEARCH ──────────────────────────────────────────────────────── */}
       {section === 'search' && (
@@ -909,12 +938,16 @@ export default function PlayersPanel({
               {
                 key: 'user_id',
                 header: 'Player',
+                // The NAME, not a button labelled "Open". Rendering the same
+                // word on every row put a column of "Open" under a header
+                // reading PLAYER, beside a STATUS column that also says OPEN.
+                // Seen the first time this panel was rendered in a browser.
                 render: (r) =>
                   r.user_id ? (
                     <button type="button" className={styles.btn} onClick={() => openPlayer(r.user_id)}>
-                      Open
+                      {r.display_name || r.username || `${String(r.user_id).slice(0, 8)}...`}
                     </button>
-                  ) : '-',
+                  ) : 'No Player',
               },
               { key: 'priority', header: 'Priority', render: (r) => <StatusPill status={r.priority} /> },
               { key: 'status', header: 'Status', render: (r) => <StatusPill status={r.status} /> },
@@ -1005,7 +1038,7 @@ export default function PlayersPanel({
                   header: 'Reported',
                   render: (r) => (
                     <button type="button" className={styles.btn} onClick={() => openPlayer(r.reported_user_id)}>
-                      Open
+                      {r.reported_name || `${String(r.reported_user_id).slice(0, 8)}...`}
                     </button>
                   ),
                 },
@@ -1099,7 +1132,7 @@ export default function PlayersPanel({
             </select>
 
             <label className={styles.fieldLabel} htmlFor="restrict-note">
-              Note {noteRequired ? '(Required For Other)' : '(Optional)'}
+              Note {noteRequired ? `(Required For ${REASON_LABELS[REASON_NEEDS_NOTE]})` : '(Optional)'}
             </label>
             <textarea
               id="restrict-note"

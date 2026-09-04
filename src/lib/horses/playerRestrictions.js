@@ -55,7 +55,13 @@ export const SCOPE_META = Object.freeze({
   },
   tournaments: {
     label: 'Tournaments',
-    blurb: 'Cannot Register For A Tournament',
+    // BOTH, since the guard was corrected. table_seats carries cash and
+    // tournament seats and 97.8% of its rows are tournament ones, so a
+    // tournaments restriction now refuses the SEAT as well as the
+    // registration. Section 0's second half is the reason the guard was
+    // corrected; leaving this string behind would have re-created the same
+    // mismatch one layer up.
+    blurb: 'Cannot Register For A Tournament Or Take A Tournament Seat',
     enforced: true,
   },
   transfers: {
@@ -138,9 +144,9 @@ export function needsApproval({ scope, expiresAt } = {}) {
 /** What the operator is told about the gate, before they press anything. */
 export const GATE_TEXT = Object.freeze({
   whole_account:
-    'This Restricts The Whole Account, So It Needs A Second Operator To Approve It',
+    'This Restricts The Whole Account, So It Needs A Second Operator To Approve It.',
   no_expiry:
-    'This Restriction Has No Expiry, So Nobody Is Forced To Revisit It. It Needs A Second Operator To Approve It',
+    'This Restriction Has No Expiry, So Nobody Is Forced To Revisit It. It Needs A Second Operator To Approve It.',
 });
 
 /**

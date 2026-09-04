@@ -42,6 +42,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { unconfiguredProbe } from '../../../src/lib/probeUnconfigured';
 
 let _admin = null, _anon = null;
 function getAdmin() {
@@ -82,12 +83,9 @@ async function handler(req, res) {
 
     const probeEmail = process.env.PROBE_RECOVERY_EMAIL;
     if (!probeEmail) {
-        return res.status(500).json({
-            status: 'unconfigured',
-            error: 'Missing PROBE_RECOVERY_EMAIL env var. ' +
+        return unconfiguredProbe(res, admin, 'recovery-probe', 'Missing PROBE_RECOVERY_EMAIL env var. ' +
                 'Create a permanent probe account in Supabase and add the email to Vercel env vars. ' +
-                'See the file header comment for setup instructions.',
-        });
+                'See the file header comment for setup instructions.');
     }
 
     const startedAt = Date.now();

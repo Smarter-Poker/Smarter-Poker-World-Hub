@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
   const page = await context.newPage();
   
   await page.goto('https://smarter.poker/login', { waitUntil: 'networkidle' });
-  await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
   await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
   await page.waitForURL('**/hub**');

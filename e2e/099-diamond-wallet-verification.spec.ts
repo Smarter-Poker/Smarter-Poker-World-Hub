@@ -14,7 +14,9 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
 
     // 2. Perform authentic login
     console.log('[Test] Performing authentication...');
-    await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+    const testUserEmail = process.env.TEST_USER_EMAIL;
+    if (!testUserEmail) throw new Error('TEST_USER_EMAIL is not set - refusing to guess an account');
+    await page.fill('input[type="email"]', testUserEmail);
     await page.fill('input[type="password"]', testUserPassword);
     await page.click('button[type="submit"]');
 

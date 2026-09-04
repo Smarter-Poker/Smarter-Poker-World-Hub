@@ -1557,7 +1557,7 @@ test('grinder-stats: club actions return 501 not_built, unknown actions 400', as
 const { handle: abuseHandle, maskEmail } = await import(path.join(ROUTE_DIR, 'anti-abuse.js'));
 
 test('anti-abuse: raw_email is masked in the alerts feed', async () => {
-  assert.equal(maskEmail('daniel@bekavactrading.com'), 'd***@bekavactrading.com');
+  assert.equal(maskEmail('dan@example.com'), 'd***@example.com');
   assert.equal(maskEmail('a@b.co'), 'a***@b.co');
   assert.equal(maskEmail('not-an-address'), null);
   assert.equal(maskEmail(null), null);

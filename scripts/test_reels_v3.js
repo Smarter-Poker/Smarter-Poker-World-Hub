@@ -23,7 +23,7 @@ const { chromium } = require('playwright');
   // Login
   await page.goto('https://smarter.poker/login', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2000);
-  await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
   await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
   await page.waitForURL('**/hub**', { timeout: 10000 });

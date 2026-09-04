@@ -326,7 +326,7 @@ async function processJob(job) {
       '-y', '-hide_banner', '-loglevel', 'error',
       '-i', rawFile,
       '-vf', SCALE_1080P,
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+      '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',   // 'fast' is what the box has run since it sat at load ~18 on 'slow'; the repo now says so too
       '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
       '-c:a', 'aac', '-b:a', '192k',
       '-movflags', '+faststart',
@@ -959,6 +959,12 @@ const DEAD_VIDEO_BATCH       = 200;
 let lastDeadVideoAt = 0;
 
 const TRANSIENT_PATTERNS = [
+  // 2026-09-04: "The page needs to be reloaded." is yt-dlp's symptom of an
+  // extractor that YouTube has moved out from under - it clears the moment
+  // yt-dlp is upgraded (2026.07.04 -> 2026.08.19 did it today). It matched
+  // neither list, so 1,515 reels sat in media_status='failed' from 05-03 with
+  // no retry path, and 246 of the last 3 days' jobs failed 246:1. Transient.
+  /page needs to be reloaded/i,
   /cookies-from-browser/i,
   /cookies for the authentication/i,
   /Sign in to confirm/i,

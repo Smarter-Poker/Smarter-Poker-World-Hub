@@ -89,12 +89,21 @@ CRON_SECRET       = os.environ.get('CRON_SECRET', '')
 PRODUCTION_URL    = os.environ.get('NEXT_PUBLIC_SITE_URL', 'https://smarter.poker')  # used by AI tagging
 SLACK_WEBHOOK     = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
+# --verify-sources reads YouTube and writes nothing, so it must not require
+# database credentials: a check that only runs where production secrets are
+# present cannot gate a deploy or run in CI, which is most of the value of
+# having it. Every other mode still exits here.
 if not SUPABASE_URL or not SUPABASE_KEY:
-    log.error('Missing SUPABASE credentials — check .env.local')
-    sys.exit(1)
+    if '--verify-sources' in sys.argv:
+        log.warning('No SUPABASE credentials; continuing because --verify-sources writes nothing.')
+    else:
+        log.error('Missing SUPABASE credentials — check .env.local')
+        sys.exit(1)
 
 from supabase import create_client
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# None in verify-only mode. Every write path is unreachable in that mode, and a
+# client built from empty credentials would fail later and more confusingly.
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if (SUPABASE_URL and SUPABASE_KEY) else None
 
 # ── Creator Registry ────────────────────────────────────────────────────────────
 # All @handles verified 2026-04-22 via yt-dlp against real video metadata.
@@ -127,12 +136,63 @@ CREATORS = [
     {'source_id': 'BART',      'name': 'Bart Hanson',          'handle': 'CrushLivePoker',      'type': 'cash',       'max':  8},
     {'source_id': 'UPSWING',   'name': 'Upswing Poker',        'handle': 'UpswingPoker',        'type': 'cash',       'max': 10},
 
-    # CELEBRITY PROS (may have limited/no active channels)
+    # CELEBRITY PROS
     {'source_id': 'NEGREANU',  'name': 'Daniel Negreanu',      'handle': 'dnegspoker',          'type': 'cash',       'max':  8},
-    {'source_id': 'HELLMUTH',  'name': 'Phil Hellmuth',        'handle': 'PhilHellmuth',        'type': 'tournament', 'max':  6},
-    {'source_id': 'IVEY',      'name': 'Phil Ivey',            'handle': 'PhilIvey',            'type': 'cash',       'max':  6},
-    {'source_id': 'DWAN',      'name': 'Tom Dwan',             'handle': 'TomDwan',             'type': 'cash',       'max':  6},
-    {'source_id': 'GARRETT',   'name': 'Garrett Adelstein',    'handle': 'GarrettAdelstein',    'type': 'cash',       'max':  6},
+    # REMOVED 2026-09-04 after --verify-sources resolved each of these to NOTHING.
+    # The header above used to hedge with "may have limited/no active channels",
+    # which is how they sat here since 2026-04-22 contributing zero videos while
+    # every run reported success: a dead handle logs one warning and returns [].
+    # These four are not channels at these handles. If someone finds the real
+    # ones, add them back and run --verify-sources before committing.
+    #   HELLMUTH  @PhilHellmuth
+    #   IVEY      @PhilIvey
+    #   DWAN      @TomDwan
+    #   GARRETT   @GarrettAdelstein
+
+    # ── SHORTS (2026-09-04) ────────────────────────────────────────────────
+    # Every creator above is read from the /videos tab only, capped at 6-20.
+    # That is why the library held 557 videos and the reel feed had 1,987
+    # distinct clips across 17,279 rows - people were scrolling the same
+    # material over and over. A channel's /shorts tab is a separate listing of
+    # vertical short-form video, which is exactly what a reel feed wants, and
+    # nothing here had ever read one.
+    #
+    # Caps are much higher because shorts are plentiful and cheap to list, and
+    # ingestion dedupes on youtube_video_id, so a short already pulled from the
+    # /videos tab costs nothing. Every handle below was verified against
+    # yt-dlp on the Open Claw VM on 2026-09-04 before being added; run
+    # --verify-sources to re-check.
+    {'source_id': 'HCL_SHORTS',      'name': 'Hustler Casino Live', 'handle': 'HustlerCasinoLive',  'type': 'cash',       'tab': 'shorts', 'max': 80},
+    {'source_id': 'LODGE_SHORTS',    'name': 'The Lodge',           'handle': 'TheLodgeLive',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'POKERGO_SHORTS',  'name': 'PokerGO',             'handle': 'PokerGO',            'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'WSOP_SHORTS',     'name': 'WSOP',                'handle': 'wsop',               'type': 'tournament', 'tab': 'shorts', 'max': 60},
+    {'source_id': 'NEXTGEN',         'name': 'Next Gen Poker',      'handle': 'NextGenPoker',       'type': 'cash',       'tab': 'shorts', 'max': 80},
+    {'source_id': 'WOLFGANG_SHORTS', 'name': 'Wolfgang Poker',      'handle': 'Wolfgang_Poker',     'type': 'cash',       'tab': 'shorts', 'max': 80},
+    {'source_id': 'RAMPAGE_SHORTS',  'name': 'Rampage Poker',       'handle': 'RampagePoker',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'BRAD_SHORTS',     'name': 'Brad Owen',           'handle': 'BradOwenPoker',      'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'JOHNNIE_SHORTS',  'name': 'JohnnieVibes',        'handle': 'JohnnieVibes',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'MARIANO_SHORTS',  'name': 'Mariano',             'handle': 'MarianoPoker',       'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'POLK_SHORTS',     'name': 'Doug Polk Poker',     'handle': 'DougPolkPoker',      'type': 'cash',       'tab': 'shorts', 'max': 60},
+    {'source_id': 'NEGREANU_SHORTS', 'name': 'Daniel Negreanu',     'handle': 'dnegspoker',         'type': 'cash',       'tab': 'shorts', 'max': 60},
+
+    # ── SLOTS (2026-09-04) ─────────────────────────────────────────────────
+    # A second content vertical, requested by Dan. type='slots' keeps it
+    # distinguishable from poker at the row level so a feed can mix or
+    # separate them; nothing filters on type today, so adding a value is safe.
+    # Verified handles only - BrianChristopherSlots and SlotLady both resolve
+    # to nothing and are deliberately absent; Brian Christopher's real handle
+    # is BCSlots.
+    {'source_id': 'BCSLOTS',         'name': 'Brian Christopher Slots', 'handle': 'BCSlots',        'type': 'slots', 'max': 40},
+    {'source_id': 'BCSLOTS_SHORTS',  'name': 'Brian Christopher Slots', 'handle': 'BCSlots',        'type': 'slots', 'tab': 'shorts', 'max': 80},
+    {'source_id': 'BIGJACKPOT',      'name': 'The Big Jackpot',         'handle': 'TheBigJackpot',  'type': 'slots', 'max': 40},
+    {'source_id': 'BIGJACKPOT_SH',   'name': 'The Big Jackpot',         'handle': 'TheBigJackpot',  'type': 'slots', 'tab': 'shorts', 'max': 80},
+    {'source_id': 'LADYLUCK',        'name': 'Lady Luck HQ',            'handle': 'LadyLuckHQ',     'type': 'slots', 'max': 40},
+    {'source_id': 'LADYLUCK_SHORTS', 'name': 'Lady Luck HQ',            'handle': 'LadyLuckHQ',     'type': 'slots', 'tab': 'shorts', 'max': 80},
+    {'source_id': 'NICKSLOTS',       'name': 'NickSlots',               'handle': 'NickSlots',      'type': 'slots', 'max': 30},
+    {'source_id': 'VEGASLOWROLLER',  'name': 'Vegas Low Roller',        'handle': 'VegasLowRoller', 'type': 'slots', 'max': 30},
+    {'source_id': 'SLOTQUEEN',       'name': 'Slot Queen',              'handle': 'SlotQueen',      'type': 'slots', 'max': 30},
+    {'source_id': 'SLOTCATS',        'name': 'The Slot Cats',           'handle': 'TheSlotCats',    'type': 'slots', 'max': 30},
+    {'source_id': 'CASINODADDY',     'name': 'CasinoDaddy',             'handle': 'CasinoDaddy',    'type': 'slots', 'max': 20},
 ]
 
 
@@ -351,7 +411,8 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
     yt-dlp --flat-playlist scrape for a creator's latest N videos.
     Returns real upload_date (not today's date) for each video.
     """
-    url = f'https://www.youtube.com/@{creator["handle"]}/videos'
+    tab = creator.get('tab', 'videos')
+    url = f'https://www.youtube.com/@{creator["handle"]}/{tab}'
     cmd = [
         'yt-dlp',
         '--flat-playlist',
@@ -680,6 +741,49 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
     return {'updated': updated, 'failed': failed}
 
 
+
+# ── Source verification ─────────────────────────────────────────────────────────
+
+def verify_sources() -> list[str]:
+    """
+    Resolve every creator handle/tab and report which return nothing.
+
+    WHY THIS EXISTS (2026-09-04). Adding sources meant choosing YouTube
+    handles, and two of the first candidates were wrong: BrianChristopherSlots
+    and SlotLady resolve to no channel at all (Brian Christopher's real handle
+    is BCSlots). A wrong handle does not fail loudly - fetch_channel_videos
+    logs one warning and returns [], the run reports success, and that source
+    silently contributes nothing for ever. It is the same shape as every other
+    defect found on this platform today: something that reads as working while
+    doing nothing.
+
+    Writes nothing. Exits non-zero when any source is dead, so it can gate a
+    deploy or run as a check.
+    """
+    log.info(f'Verifying {len(CREATORS)} sources (no writes)...')
+    dead, ok = [], 0
+    for c in CREATORS:
+        tab = c.get('tab', 'videos')
+        url = f'https://www.youtube.com/@{c["handle"]}/{tab}'
+        cmd = ['yt-dlp', '--flat-playlist', '--dump-json', '--no-warnings',
+               '--quiet', '--playlist-end', '1', url]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+            found = bool(r.stdout.strip())
+        except Exception:
+            found = False
+        if found:
+            ok += 1
+        else:
+            dead.append(f'{c["source_id"]} (@{c["handle"]}/{tab})')
+            log.warning(f'  DEAD: {c["source_id"]} -> {url}')
+
+    log.info(f'Sources verified: {ok} live, {len(dead)} dead')
+    if dead:
+        log.error('Dead sources (they contribute nothing, silently): ' + ', '.join(dead))
+    return dead
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Video Library Daily Scraper v3')
     parser.add_argument('--dry-run',       action='store_true', help='Fetch without DB writes')
@@ -688,9 +792,14 @@ if __name__ == '__main__':
     parser.add_argument('--backfill',      action='store_true', help='Backfill missing published_at dates and views only')
     parser.add_argument('--refresh-views', action='store_true', help='Re-fetch view counts for top 50 most-viewed videos', dest='refresh_views')
     parser.add_argument('--tag-backfill',  action='store_true', help='AI-tag all untagged videos via /api/video/tag', dest='tag_backfill')
+    parser.add_argument('--verify-sources', action='store_true', dest='verify_sources',
+                        help='Resolve every creator handle/tab and report which return nothing. Writes nothing.')
     args = parser.parse_args()
 
-    if args.purge:
+    if args.verify_sources:
+        dead = verify_sources()
+        sys.exit(1 if dead else 0)
+    elif args.purge:
         result = purge_dead_videos(dry_run=args.dry_run)
         log.info(f'Purge complete: {result}')
     elif args.backfill:

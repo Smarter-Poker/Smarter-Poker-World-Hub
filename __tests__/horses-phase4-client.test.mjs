@@ -397,9 +397,13 @@ test('the section nav is a real tablist with a visible active state', () => {
 });
 
 test('a raised sanction has a surface and a way to be applied', () => {
+  // Was `useState(null)` in the first round of fixes; a second reviewer showed
+  // a single slot loses a pending sanction to any unrelated success, so it is
+  // a keyed map now. The rule it pins is unchanged: the 202 must not be
+  // thrown away.
   assert.match(
     panel,
-    /const \[pendingSanction, setPendingSanction\] = useState\(null\)/,
+    /const \[pendingSanctions, setPendingSanctions\] = useState\(\{\}\)/,
     'the 202 used to be thrown away entirely: approvalId discarded, no pending surface, '
       + 'and a fresh opId minted on the next dialog open - so coming back to apply an '
       + 'approved sanction raised a SECOND one and orphaned the approved row'
@@ -413,6 +417,11 @@ test('a raised sanction has a surface and a way to be applied', () => {
     panel,
     /draft: \{ \.\.\.restrictDraft, opId: data\.opId \|\| restrictDraft\.opId \}/,
     'under THE SAME key, which is what makes an approved request execute exactly once'
+  );
+  assert.match(
+    panel,
+    /const applyPendingSanction = useCallback\(async \(key\) => \{/,
+    'and applying one names WHICH pending sanction, now that several can be waiting'
   );
   assert.match(
     panel,
@@ -569,5 +578,73 @@ test('no client vocabulary contradicts the database', async () => {
     [...clientPriorities],
     ['low', 'medium', 'high', 'critical'],
     'mirrored from live_help_tickets_priority_check'
+  );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECOND-ROUND CORRECTIONS, and the two defects that only a browser found.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('a pending sanction survives an unrelated success', () => {
+  assert.match(
+    panel,
+    /const \[pendingSanctions, setPendingSanctions\] = useState\(\{\}\)/,
+    "a raised sanction's opId lives only in this state - `sanction` is not executable "
+      + 'from the approvals queue - so a single slot meant that raising a second one, or '
+      + 'applying any ordinary restriction on any other player, orphaned the first '
+      + 'approved row and made the next press mint a fresh key'
+  );
+  assert.match(
+    panel,
+    /Object\.entries\(pendingSanctions\)\.map/,
+    'and one banner per pending sanction'
+  );
+  assert.ok(
+    !/setPendingSanction\(null\);\s*\n\s*showNotification\(data\?\.message \|\| 'Restriction Applied'/.test(panel),
+    'an ordinary restriction must not clear a pending sanction'
+  );
+});
+
+test('a timestamp is compared to the minute, which is all the input can express', () => {
+  assert.match(
+    panel,
+    /Math\.floor\(new Date\(next\)\.getTime\(\) \/ 60000\)/,
+    'seedRgDraft slices to "YYYY-MM-DDTHH:mm", so a self-exclusion the player\'s own '
+      + 'path wrote as now() + interval carries seconds this form cannot show. Comparing '
+      + 'exactly meant that OPENING the editor and pressing Save classified an untouched '
+      + 'exclusion as :shortened - a loosening the operator never made.'
+  );
+});
+
+test('the ticket and report queues render a name, not a button label', () => {
+  assert.match(
+    panel,
+    /\{r\.display_name \|\| r\.username \|\| `\$\{String\(r\.user_id\)\.slice\(0, 8\)\}\.\.\.`\}/,
+    'the Player column rendered the word "Open" on every row, under a header reading '
+      + 'PLAYER, beside a STATUS column that also says OPEN. Found by rendering the panel '
+      + 'in a browser for the first time.'
+  );
+  assert.match(panel, /r\.reported_name \|\|/, 'and the reports queue names the reported player');
+});
+
+test('the gate sentences end, so the panel does not run two together', async () => {
+  // Seen in the rendered dialog: "...To Approve It Once It Is Approved, Come
+  // Back To This Tab..." - two sentences with no full stop between them,
+  // because GATE_TEXT ended without one and the panel appends to it.
+  const { GATE_TEXT: gt } = await import('../src/lib/horses/playerRestrictions.js');
+  for (const [reason, sentence] of Object.entries(gt)) {
+    assert.ok(sentence.endsWith('.'), `GATE_TEXT.${reason} must end with a full stop`);
+  }
+});
+
+test('the tournaments blurb says what the corrected guard actually does', async () => {
+  const { SCOPE_META: sm } = await import('../src/lib/horses/playerRestrictions.js');
+  assert.match(
+    sm.tournaments.blurb,
+    /Take A Tournament Seat/,
+    'after the scope correction a tournaments restriction refuses the SEAT as well as '
+      + 'the registration, because 97.8% of table_seats rows are tournament seats. '
+      + "Section 0's second half is the reason the guard was corrected; leaving this "
+      + 'string behind re-creates the same mismatch one layer up.'
   );
 });
