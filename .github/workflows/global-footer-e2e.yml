@@ -1,9 +1,10 @@
 name: Global Footer E2E
 
+# Pull requests only (2026-09-04): the merge commit of a green pull request is
+# the same tree, and running the 9-minute contract again on it queued a runner
+# behind the next pull request's required checks.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
   workflow_dispatch:
 

@@ -43,6 +43,14 @@ jobs:
     # Named explicitly: a bare `check` job produces a status context that
     # collides with every other bare `check` job in this repo.
     name: No New Silent Writes
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 6
     steps:
@@ -53,13 +61,26 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # Same key as undefined-identifier-guard on purpose: same Node line, same
+      # full install, so whichever of the two runs first warms the other. See
+      # the note on the TypeScript Check job in build-safety-gate.yml.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-guard-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
-        # `npm ci` alone is NOT safe in this repo: package-lock.json is
-        # currently out of sync with package.json on main -- npm 11 refuses it
-        # with "Invalid: lock file's ajv@6.15.0 does not satisfy ajv@8.20.0".
-        # build-safety-gate.yml and e2e-tests.yml already carry this same
-        # fallback for the same reason. A new guard must not be the thing that
-        # turns a pre-existing lockfile problem into a red required check.
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        # The fallback to `npm install` is kept as a net, but the reason this
+        # comment used to give for it is no longer true (verified 2026-09-04:
+        # `npm ci --dry-run` on the current lockfile succeeds under npm 10.8
+        # AND npm 11.12). It said package-lock.json was out of sync and npm 11
+        # refused it with "ajv@6.15.0 does not satisfy ajv@8.20.0"; that was
+        # fixed on main since. Left here so nobody regenerates a healthy
+        # lockfile on the strength of a stale sentence - and because the net
+        # still costs nothing when `npm ci` works, which it does.
         run: npm ci --prefer-offline --no-audit 2>/dev/null || npm install --no-audit --no-fund
         env:
           HUSKY: '0'

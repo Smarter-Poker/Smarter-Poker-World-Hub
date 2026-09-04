@@ -80,6 +80,7 @@ import {
   fleetStateLabel,
   formatGap,
   isolationState,
+  staleAfterFor,
   lastCycleReason,
   shapePnl,
   stakeBandLabel,
@@ -130,7 +131,13 @@ const EXPORT_PAGE_SIZE = 500;
 /** How long the console lets the heartbeat go quiet before it says so. The
  *  route's overview window is its own (15 minutes by default); this is the
  *  console's line and it is tighter, so the tab notices first. */
-const STALE_AFTER_SECONDS = 300;
+/**
+ * The staleness threshold is DERIVED from the engine's own cycle, not a
+ * constant. See staleAfterFor in fleetModel.js: 300 was a guess, and the
+ * first time this panel was rendered (2026-09-04) it turned out the fleet's
+ * average cycle is 390 seconds, so 54 of 65 recorded gaps were "stale" and
+ * the Health tab called a healthy fleet stale 83% of the time.
+ */
 
 /** The clock the ages are measured against, refreshed so a tab left open does
  *  not report a two hour old beat as four minutes old forever. */
@@ -649,7 +656,9 @@ export default function FleetPanel({
     return classifyHeartbeat({
       beatAt: beat?.beat_at || null,
       now: at,
-      staleAfterSeconds: STALE_AFTER_SECONDS,
+      // The beat's OWN cycle_ms decides how old it may be: a fleet has to
+      // miss a whole cycle and most of another before this says anything.
+      staleAfterSeconds: staleAfterFor(beat?.cycle_ms),
     });
   }, [beat, serverNow, loadedAt, now]);
 

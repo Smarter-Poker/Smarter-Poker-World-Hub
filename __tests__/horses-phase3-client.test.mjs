@@ -1729,3 +1729,58 @@ test('the Phase 3 files obey the house rules on dashes, emoji, hex and .single()
     assert.ok(!src.includes('.single('), `${file}: no .single() - always .maybeSingle()`);
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FOUND BY RENDERING THE PANEL, 2026-09-04. Phase 3 shipped and was reviewed
+// without any browser ever executing FleetPanel.jsx (defect D-10). The first
+// time it was opened, the Health tab said "The Heartbeat Is Stale" over a
+// completely healthy fleet.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('the staleness threshold is derived from the engines own cycle', async () => {
+  const { staleAfterFor, STALE_FLOOR_SECONDS, STALE_CEILING_SECONDS } =
+    await import('../src/components/horses/fleetModel.js');
+
+  // MEASURED against production: 66 beats, average cycle 390s, p95 619s, max
+  // 1,456s. With a flat 300s threshold, 54 of 65 inter-beat gaps were "stale"
+  // - the panel declared a healthy fleet stale 83% of the time. A warning
+  // that is on more often than it is off is the thing an operator learns to
+  // scroll past, and then the once the fleet really has stopped it looks the
+  // same as every other visit.
+  assert.equal(
+    staleAfterFor(390_000) > 390,
+    true,
+    'the average observed cycle must not be over the threshold'
+  );
+  assert.equal(
+    staleAfterFor(619_000) > 619,
+    true,
+    'nor must the 95th percentile'
+  );
+
+  // Two cycles plus a minute: a fleet has to miss a whole cycle and most of
+  // another before this says anything.
+  assert.equal(staleAfterFor(300_000), 660);
+
+  // Floored, so a fast cycle cannot make the alarm hair-trigger.
+  assert.equal(staleAfterFor(10_000), STALE_FLOOR_SECONDS);
+  assert.equal(staleAfterFor(0), STALE_FLOOR_SECONDS);
+  assert.equal(staleAfterFor(null), STALE_FLOOR_SECONDS);
+  assert.equal(staleAfterFor('nonsense'), STALE_FLOOR_SECONDS);
+
+  // Capped, so one pathological 24-minute cycle cannot mute the alarm.
+  assert.equal(staleAfterFor(9_999_000), STALE_CEILING_SECONDS);
+});
+
+test('the fleet panel feeds the beats own cycle to the threshold', async () => {
+  const src = await read(PANEL);
+  assert.match(
+    src,
+    /staleAfterSeconds: staleAfterFor\(beat\?\.cycle_ms\)/,
+    'the threshold must come from the beat being classified, not from a constant'
+  );
+  assert.ok(
+    !/const STALE_AFTER_SECONDS = 300;/.test(src),
+    'the guessed constant must not come back'
+  );
+});

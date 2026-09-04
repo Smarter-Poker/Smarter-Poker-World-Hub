@@ -52,7 +52,46 @@ const BREAK_START_MS = MAINTENANCE_BREAK.startMinute * MINUTE_MS;
 const BREAK_LENGTH_MS = MAINTENANCE_BREAK.lengthMinutes * MINUTE_MS;
 
 /** How long the heartbeat may be silent before the console says so. */
+/**
+ * How old a heartbeat may be before the panel calls it stale.
+ *
+ * MEASURED, not guessed. 300 seconds was a guess, and rendering the panel
+ * for the first time on 2026-09-04 showed what it cost: the engine's own
+ * seeding cycle averages 390 seconds and its 95th percentile is 619, so
+ * 54 of 65 recorded inter-beat gaps were over the threshold. The Health
+ * tab declared a completely healthy fleet STALE 83% of the time.
+ *
+ * A warning that is on more often than it is off is not a warning. It is
+ * the thing an operator learns to scroll past, and then the one time the
+ * fleet really has stopped it looks exactly like every other visit.
+ *
+ * So the threshold is derived from the cycle the engine ITSELF reports:
+ * two cycles plus a minute of slack, floored at the old 300 so a fast
+ * cycle cannot make the alarm hair-trigger, and capped so a pathological
+ * cycle cannot switch the alarm off altogether. With no cycle to read -
+ * no heartbeat at all - it falls back to the floor.
+ */
 export const DEFAULT_STALE_AFTER_SECONDS = 300;
+
+/** Never quieter than this many seconds, whatever the engine reports. */
+export const STALE_FLOOR_SECONDS = 300;
+
+/** Never louder than this, so one 24-minute cycle cannot mute the alarm. */
+export const STALE_CEILING_SECONDS = 1800;
+
+/**
+ * The staleness threshold for a given heartbeat, in seconds.
+ *
+ * `cycleMs` is the beat's own `cycle_ms`: how long the cycle that wrote it
+ * actually took. Two of those plus 60s means a fleet has to miss a whole
+ * cycle AND most of another before the panel says anything.
+ */
+export function staleAfterFor(cycleMs) {
+  const cycle = Number(cycleMs);
+  if (!Number.isFinite(cycle) || cycle <= 0) return STALE_FLOOR_SECONDS;
+  const derived = Math.round((cycle * 2) / 1000) + 60;
+  return Math.min(Math.max(derived, STALE_FLOOR_SECONDS), STALE_CEILING_SECONDS);
+}
 
 function toMs(value) {
   if (value === null || value === undefined || value === '') return null;

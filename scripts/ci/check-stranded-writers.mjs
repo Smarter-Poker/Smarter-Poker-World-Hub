@@ -51,6 +51,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fromCalls, lineIndex } from './lib/from-calls.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ALLOWLIST_PATH = path.join(REPO_ROOT, 'scripts', 'ci', 'supabase-invariants.allowlist.json');
@@ -102,25 +103,23 @@ function walk(dir, out = []) {
   return out;
 }
 
-const FROM_RE = /([A-Za-z_$][A-Za-z0-9_$]*)?\s*(?:\(\))?\s*(\.\s*storage)?\s*\.\s*from\(\s*['"]([a-zA-Z0-9_]+)['"]\s*\)/g;
+// The `.from(` scanner lives in lib/from-calls.mjs (see the note there: the
+// regex that used to be here cost 86 seconds a run).
 // A write is the mutating verb chained after .from(...), within a short window.
 const WRITE_AFTER = /^\s*(?:\/\/[^\n]*\n\s*)*\.\s*(insert|upsert|update|delete)\s*\(/;
 
 function tablesIn(src, { writesOnly = false } = {}) {
   const clean = stripComments(src);
   const found = new Map();
-  let m;
-  FROM_RE.lastIndex = 0;
-  while ((m = FROM_RE.exec(clean)) !== null) {
-    const receiver = m[1] || '';
-    if (m[2] || receiver === 'storage') continue;
+  const lineOf = lineIndex(clean);
+  for (const { index, end, receiver, isStorage, table } of fromCalls(clean)) {
+    if (isStorage || receiver === 'storage') continue;
     if (FOREIGN_CLIENT_IDENTIFIERS.has(receiver)) continue;
-    const table = m[3];
     if (writesOnly) {
-      const tail = clean.slice(m.index + m[0].length, m.index + m[0].length + 120);
+      const tail = clean.slice(end, end + 120);
       if (!WRITE_AFTER.test(tail)) continue;
     }
-    const line = clean.slice(0, m.index).split('\n').length;
+    const line = lineOf(index);
     if (!found.has(table)) found.set(table, []);
     found.get(table).push(line);
   }

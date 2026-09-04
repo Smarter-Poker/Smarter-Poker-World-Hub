@@ -44,6 +44,14 @@ permissions:
 jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
 
@@ -776,6 +784,18 @@ jobs:
       # package-lock.json untouched, and the guard below keeps a registry
       # blip from turning a copy gate into a red build for an unrelated
       # reason - the check still runs, it just cannot be skipped silently.
+      # The parser CHECK 20 installs ad hoc took 55s a run (measured
+      # 2026-09-04). Cached on its own: only node_modules/typescript, keyed on
+      # the pinned major, so this job still carries no other dependency and
+      # every other check here still sees the tree it always saw. The
+      # `require.resolve` guard below finds the restored copy and skips the
+      # install.
+      - name: Restore the TypeScript parser CHECK 20 needs
+        uses: actions/cache@v4
+        with:
+          path: node_modules/typescript
+          key: ts5-parser-${{ runner.os }}-v1
+
       - name: "CHECK 20: Title Case on every player-facing page"
         run: |
           if ! node -e "require.resolve('typescript')" 2>/dev/null; then
@@ -819,8 +839,14 @@ jobs:
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
             __tests__/vercel-build-queue.test.mjs \
+            __tests__/openclaw-workers-secret.test.mjs \
+            __tests__/openclaw-critical-jobs.test.mjs \
+            __tests__/login-bridge-probe-relay.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
-            tests/the-deploy-docs-name-the-live-route.test.mjs
+            tests/the-deploy-docs-name-the-live-route.test.mjs \
+            tests/the-from-scanner-is-fast-and-faithful.test.mjs \
+            tests/a-required-check-does-not-reinstall-a-restored-tree.test.mjs \
+            tests/the-app-does-not-fight-the-readers-scroll.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -979,6 +1005,14 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════
   type-check:
     name: TypeScript Check
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     
@@ -996,7 +1030,31 @@ jobs:
           scope: '@smarter-poker'
           always-auth: true
 
+      # THE 424-SECOND INSTALL (2026-09-04). This job is a REQUIRED check and
+      # it was the slowest thing on every World Hub pull request: 7.9 minutes,
+      # of which 424s was `npm ci` and 30s was the typecheck it exists to run -
+      # and the typecheck is advisory (continue-on-error), so a required check
+      # that cannot fail was costing seven minutes of critical path per merge.
+      #
+      # No workflow in this repo cached node_modules. `cache: npm` above keeps
+      # only the tarballs; extracting 1,324 packages still happens every run,
+      # on a runner shared with up to eleven others doing the same. The tree is
+      # cached now, keyed on the lockfile and the Node line, and the install
+      # is SKIPPED on a hit - `npm ci` deletes node_modules before installing,
+      # so an unguarded install would throw the restored tree away (the Club
+      # Arena CSS Beat job did exactly that until the same day).
+      #
+      # A lockfile change misses once, installs, and saves. Everything else
+      # restores in about fifteen seconds.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-typecheck-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
@@ -1035,7 +1093,12 @@ jobs:
   vercel-deploy-retry:
     name: Vercel Deploy Retry (GitHub-500 guard)
     needs: [safety-checks]
-    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # `always()`, not `success()`: safety-checks runs on pull requests only
+    # now (see its note), so on a push to main it is SKIPPED, and a job that
+    # `needs` a skipped job is skipped too unless it says always(). This job
+    # only polls the Vercel API for a GitHub-500 clone failure; it never
+    # needed the checks' verdict, only their ordering.
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 

@@ -240,46 +240,12 @@ export default async function handler(req, res) {
       return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
     }
 
-    /* eslint-disable no-unreachable */
-    try {
-      // LEGACY (unreachable, kept for one release as a rollback reference):
-      // free mint straight into the pool.
-      const { data: result, error: rpcErr } = await getSupabase().rpc('mint_club_chips', {
-        p_club_id: clubId,
-        p_amount: amount,
-        p_minted_by: user.id,
-      });
-
-      if (rpcErr) {
-        console.warn('[mint-chips] RPC error:', rpcErr);
-        return res.status(500).json(safeErrorResponse(rpcErr, 'Mint failed'));
-      }
-
-      if (!result?.success) {
-        return res.status(400).json({ success: false, error: result?.error || 'Mint failed' });
-      }
-
-      // Notify club admins
-      notifyClubAdmins(supabaseAdmin, {
-        clubId, type: 'chips_minted',
-        title: `🪙 ${amount.toLocaleString()} Chips Minted`,
-        message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` - ${notes}` : ''}.`,
-        data: { amount },
-        excludeUserId: user.id,
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-
-      logAudit(supabaseAdmin, { actionType: 'chips_minted', userId: user.id, clubId, amount, ip: extractIP(req), details: { treasuryBefore: result.old_treasury, treasuryAfter: result.new_treasury, notes } });
-      return res.status(200).json({
-        success: true,
-        clubId,
-        amount,
-        treasuryBefore: result.old_treasury,
-        treasuryAfter: result.new_treasury,
-      });
-    } catch (err) {
-      console.warn('[mint-chips]', err);
-      return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
-    }
+    /* The legacy free mint (mint_club_chips, straight into the pool with no
+       journal declaration and no register row) used to sit here as an
+       unreachable rollback reference. The function was CLOSED on 2026-09-04
+       (chip standard, the Mint hardened: revoked from every role, registry
+       row closed) and is dropped after seven days of silence, so the block
+       is gone rather than pointing at a door that no longer opens. */
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

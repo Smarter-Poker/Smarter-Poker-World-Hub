@@ -14,7 +14,7 @@ import fs from 'fs';
     const emailInput = await page.$('input[type="email"]');
     if (emailInput) {
         console.log('Logging in...');
-        await emailInput.fill('daniel@bekavactrading.com');
+        await emailInput.fill(process.env.TEST_USER_EMAIL);
         const passInput = await page.$('input[type="password"]');
         if (passInput) await passInput.fill(process.env.TEST_USER_PASSWORD);
         

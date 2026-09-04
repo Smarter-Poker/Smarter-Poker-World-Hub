@@ -309,6 +309,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
   }) => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 844 });
+    // Poker Near Me shows a first-visit tutorial that scrollIntoView()s its
+    // target 150ms after mounting. That is the page scrolling the reader, not
+    // the reader scrolling the page, and this contract is about the second.
+    // Every other Poker Near Me spec marks the tutorial seen the same way.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('pnm_lobby_tutorial_seen', '1');
+      window.localStorage.setItem('pnm_tutorial_seen', '1');
+    });
 
     for (const entry of [...WORLD_ROUTES, { id: 'global', route: '/hub/install' }]) {
       await visit(page, entry.route);
@@ -323,9 +331,18 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       });
       await page.waitForTimeout(60);
 
-      // Down, in steps, the way a thumb moves.
+      // Down, in steps, the way a thumb moves - AND A FRAME BETWEEN THEM, the
+      // way a thumb moves. Two scrollTo calls with no yield between them let
+      // the browser deliver ONE scroll event for the pair, at whichever
+      // position it sampled: traced on 2026-09-04 as `200` delivered, `600`
+      // never delivered, then the up-scroll reported as `400` - which the bar
+      // correctly read as 200 -> 400, still downward, and stayed hidden. The
+      // hook was right about the events it was given; the test had not given
+      // it the ones it assumed. One frame per step is what a finger does.
       await page.evaluate(() => window.scrollTo(0, 200));
+      await page.waitForTimeout(50);
       await page.evaluate(() => window.scrollTo(0, 600));
+      await page.waitForTimeout(50);
       await expect(nav, `${entry.id} should hide while reading downward`).toHaveAttribute(
         'data-footer-hidden',
         'true'
@@ -339,6 +356,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       // Back up, and it is there again.
       await page.evaluate(() => window.scrollTo(0, 400));
+      await page.waitForTimeout(50);
       await expect(nav, `${entry.id} should return on the way back up`).toHaveAttribute(
         'data-footer-hidden',
         'false'

@@ -38,6 +38,14 @@ jobs:
     # Named for the same reason as no-conflict-markers.yml: a bare `check` job
     # produces a context that collides with every other bare `check` job.
     name: No New Undefined Identifiers
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +55,19 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # node_modules cached and the install skipped on a hit (2026-09-04) -
+      # see the note on the TypeScript Check job in build-safety-gate.yml.
+      # Its own key: this tree is a full install on Node 22, not the
+      # --ignore-scripts Node 20 tree the typecheck restores.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-guard-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline --no-audit
         env:
           HUSKY: '0'

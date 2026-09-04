@@ -45,6 +45,14 @@ concurrency:
 jobs:
   phantom-tables:
     name: "U4.2: No phantom tables"
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -64,6 +72,14 @@ jobs:
 
   policy-function-grants:
     name: "U4.4: Policy functions are executable"
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +112,14 @@ jobs:
 
   cron-liveness:
     name: "U4.3: Scheduled jobs actually succeed"
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4

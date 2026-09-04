@@ -28,7 +28,7 @@ if (fs.existsSync('.env.local')) {
 const baseUrl = String(process.env.PA_VERIFY_BASE_URL || 'https://smarter.poker').replace(/\/$/, '');
 const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const email = process.env.TEST_USER_EMAIL || 'daniel@bekavactrading.com';
+const email = process.env.TEST_USER_EMAIL; // 2026-09-04: no personal-account default; unset = no session
 const password = process.env.TEST_USER_PASSWORD || '';
 const requireAuth = process.argv.includes('--require-auth');
 const configuredConcurrency = Number(process.env.PA_PROBE_CONCURRENCY || 4);
@@ -97,7 +97,7 @@ async function request(url, options = {}) {
 }
 
 async function signIn() {
-  if (!supabaseUrl || !anonKey || !password) return null;
+  if (!supabaseUrl || !anonKey || !password || !email) return null;
   const result = await request(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, 'Content-Type': 'application/json' },
