@@ -470,13 +470,35 @@ def backfill_metadata(limit: int = 300) -> dict:
     upload_date and view_count via yt-dlp --dump-json.
     """
     TODAY = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    needs_fix = (supabase.table('video_library_videos')
-        .select('id,youtube_video_id,source_id,published_at,views_count,views_text')
-        .or_(f'published_at.gte.{TODAY}T00:00:00Z,views_count.eq.0')
-        .limit(limit)
-        .execute().data or [])
 
-    log.info(f'Backfill: {len(needs_fix)} rows need date/views fix')
+    # 2026-09-04: a fake date is not "today's date" - it is THE SCRAPE TIME.
+    # fetch_channel_videos() sets published_at = now when nothing better is
+    # known, and now is also scraped_at, so the two are equal to the
+    # microsecond on every row that never got a real date. Selecting on
+    # "published today" only ever caught rows on the day they were scraped;
+    # the 185 videos hand-run on 2026-08-30 sat with an 08-30 date for a week
+    # because by the time anything looked, "today" had moved on. PostgREST
+    # cannot compare two columns in a filter, so page the small table and
+    # compare here.
+    def _is_fake_date(row) -> bool:
+        pub, scr = str(row.get('published_at') or ''), str(row.get('scraped_at') or '')
+        return bool(pub) and (pub[:10] == TODAY or pub[:19] == scr[:19])
+
+    candidates, _page, _size = [], 0, 1000
+    while True:
+        _rows = (supabase.table('video_library_videos')
+                 .select('id,youtube_video_id,source_id,published_at,scraped_at,views_count,views_text')
+                 .order('scraped_at', desc=True)
+                 .range(_page * _size, _page * _size + _size - 1)
+                 .execute().data or [])
+        candidates.extend(_rows)
+        if len(_rows) < _size:
+            break
+        _page += 1
+    needs_fix = [r for r in candidates if _is_fake_date(r) or not (r.get('views_count') or 0)][:limit]
+
+    log.info(f'Backfill: {len(needs_fix)} rows need date/views fix '
+             f'({sum(1 for r in needs_fix if _is_fake_date(r))} with published_at = scrape time)')
     updated = failed = 0
     BATCH = 5
 
@@ -491,8 +513,8 @@ def backfill_metadata(limit: int = 300) -> dict:
         if not upd:
             remaining.append(row)
             continue
-        # Only overwrite a date that is provably fake (today) - a real one stays.
-        if 'published_at' in upd and str(row.get('published_at', ''))[:10] != TODAY:
+        # Only overwrite a date that is provably fake - a real one stays.
+        if 'published_at' in upd and not _is_fake_date(row):
             upd.pop('published_at')
         if 'views_count' in upd and (row.get('views_count') or 0) > 0:
             upd.pop('views_count'); upd.pop('views_text', None)
@@ -536,7 +558,7 @@ def backfill_metadata(limit: int = 300) -> dict:
 
                 upd = {}
                 real_date = yt_upload_date_to_iso(d.get('upload_date', ''))
-                if real_date and str(row.get('published_at', ''))[:10] == TODAY:
+                if real_date and _is_fake_date(row):
                     upd['published_at'] = real_date
 
                 vc = d.get('view_count') or 0
