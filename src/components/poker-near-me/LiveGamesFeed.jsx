@@ -1565,7 +1565,7 @@ function LiveGamesFeed({
                     type="button"
                     aria-label="Report A Live Game"
                     className="sp-icon-btn"
-                    style={{
+                    style={{ '--sp-btn-size': '52px',
                         // Above the app footer (mobile standard: never hardcode 56).
                         position: 'fixed', bottom: 'calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 16px)', right: 16, zIndex: 900,
                         width: 52, height: 52, borderRadius: '50%',

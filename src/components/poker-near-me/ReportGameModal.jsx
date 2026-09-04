@@ -673,7 +673,7 @@ export default function ReportGameModal({
                             Geo-Verified · Members Only
                         </p>
                     </div>
-                    <button type="button" className="sp-icon-btn" onClick={onClose} aria-label="Close report game dialog" style={{
+                    <button type="button" className="sp-icon-btn" onClick={onClose} aria-label="Close report game dialog" style={{ '--sp-btn-size': '44px',
                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: 'rgba(255,255,255,0.5)', cursor: 'pointer', touchAction: 'manipulation',

@@ -260,3 +260,30 @@ re-measured on a fresh production build:
   (was 24x44).
 - The phase-14 cluster pin moved with the mechanism: the two smallest orbs
   are 32/30px (were 30/28) so their digits sit at the 12px floor.
+
+## 8. Deep-dive verification before phase 4 (Dan's standing rule)
+
+- CI on the pushed branch was red on one check: main had just gained CHECK
+  19 (`scripts/ci/check-icon-button-sizing.mjs`), which fails when a file
+  sets an inline `width` on `.sp-icon-btn` without `--sp-btn-size` (the
+  class's `!important` width discards the inline value; exactly the 44-wide,
+  32-tall close this phase measured). The branch had 24 such files against
+  a baseline of 20. Every one is now fixed at the source: all 32 occurrences
+  across the 23 files set `'--sp-btn-size': '<n>px'` on the style object
+  (the pages, every 0b overlay, the hamburger, the wallet, the PNM
+  components), and the check's baseline is driven to 0 so it can never
+  grow again. This also finishes the estate-wide repair started in
+  section 7.
+- `src/components/bankroll/BankrollTutorial.jsx` was still on main: dead
+  since phase 0c moved the tour into `src/tutorials/`, imported by nothing.
+  Deleted.
+- `VenueGameAlerts.jsx` posted its alert with no offline guard; it now
+  refuses offline with the standard toast copy in its own feedback line.
+  Every other PNM mutation (check-in, favourite, review, report, vouch,
+  tournament-alert prefs) already carried `requireOnline`.
+- Measured on the production build at 375: `/hub/poker-near-me/in` and
+  `/in/tx` (the state pages, which share the tutorial prefix) have 0
+  sideways overflow, 0 text under 12px, 0 targets under 44px, 0 errors.
+- Full `node --test __tests__/*.mjs` after the fixes: 3162 tests, the only
+  four failures are the pre-existing environment ones; `tsc` 0; title-case
+  and em-dash checks OK; `next build --webpack` 0.

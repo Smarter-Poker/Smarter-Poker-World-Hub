@@ -278,7 +278,7 @@ export default function InviteFriendsModal({
                         onClick={onClose}
                         aria-label="Close"
                         className="sp-icon-btn"
-                        style={{
+                        style={{ '--sp-btn-size': '44px',
                             width: 44,
                             height: 44,
                             minWidth: 44,

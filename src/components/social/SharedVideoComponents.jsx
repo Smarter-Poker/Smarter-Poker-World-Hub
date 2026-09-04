@@ -695,7 +695,7 @@ export function FullScreenVideoViewer({
         }}
         aria-label="Close"
         className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
-        style={{
+        style={{ '--sp-btn-size': '44px',
           position: 'absolute',
           top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
           left: 12,

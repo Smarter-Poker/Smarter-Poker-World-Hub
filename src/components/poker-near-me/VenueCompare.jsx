@@ -257,7 +257,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
               color: '#ffffff', fontSize: 12, fontWeight: 600,
             }}>
               {v.name}
-              <button type="button" className="sp-icon-btn" aria-label={`Remove ${v.name}`} onClick={() => toggleVenue(v.id)} style={{
+              <button type="button" className="sp-icon-btn" aria-label={`Remove ${v.name}`} onClick={() => toggleVenue(v.id)} style={{ '--sp-btn-size': '44px',
                 background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer',
                 padding: 0, fontSize: 18, lineHeight: 1, fontFamily: 'inherit', minWidth: 44, minHeight: 44, width: 44, height: 44,
               }}>×</button>

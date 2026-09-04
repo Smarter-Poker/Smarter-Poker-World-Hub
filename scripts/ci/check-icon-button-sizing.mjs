@@ -43,8 +43,9 @@ const ROOTS = ['src', 'pages', 'components'];
 const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const SKIP = new Set(['node_modules', 'dist', '.next', 'test-results', '_to_delete']);
 
-/** Recorded on 2026-09-03. This number may SHRINK, never grow. */
-const BASELINE = 20;
+/** Recorded on 2026-09-03 at 20; driven to 0 on 2026-09-04 (mobile phase 3
+    deep dive: every offender now sets the variable). May never grow. */
+const BASELINE = 0;
 
 function walk(dir, acc = []) {
   let entries;

@@ -2690,7 +2690,7 @@ export default function PokerNearMeLobby() {
                     className="sp-icon-btn"
                     aria-label="Share link"
                     title="Copy shareable link"
-                    style={{
+                    style={{ '--sp-btn-size': '44px',
                       background: 'none', border: 'none',
                       color: shareCopied ? '#3fb950' : 'rgba(200, 214, 229, 0.4)',
                       cursor: 'pointer', padding: 0, borderRadius: 8,
@@ -2715,7 +2715,7 @@ export default function PokerNearMeLobby() {
                     onClick={handlePanelClose}
                     className="sp-icon-btn"
                     aria-label="Close panel"
-                    style={{
+                    style={{ '--sp-btn-size': '44px',
                       background: 'none', border: 'none',
                       color: 'rgba(200, 214, 229, 0.5)',
                       cursor: 'pointer', padding: 0, borderRadius: 8,
@@ -2805,7 +2805,7 @@ export default function PokerNearMeLobby() {
                   type="button"
                   className="sp-icon-btn"
                   onClick={() => { document.getElementById('pnm-panel-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  style={{
+                  style={{ '--sp-btn-size': '44px',
                     position: 'sticky', bottom: 20, left: '50%', transform: 'translateX(-50%)',
                     width: 44, height: 44, borderRadius: '50%', cursor: 'pointer',
                     background: 'linear-gradient(135deg, rgba(148,163,184,0.12), rgba(212,168,83,0.05))',
@@ -2960,7 +2960,7 @@ export default function PokerNearMeLobby() {
               className="sp-icon-btn"
               onClick={() => setGeofenceStatus(null)}
               aria-label="Dismiss geofence notice"
-              style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0, minWidth: 44, minHeight: 44, width: 44, height: 44 }}
+              style={{ '--sp-btn-size': '44px', background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0, minWidth: 44, minHeight: 44, width: 44, height: 44 }}
             >&times;</button>
           </div>
         )}

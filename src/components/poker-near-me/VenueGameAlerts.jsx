@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { OFFLINE_TOAST } from '../../hooks/useOnlineStatus';
 import { normalizeGameName } from './normalize-game';
 
 // Venue display names differ between poker_venues (alert rows) and the
@@ -141,6 +142,13 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   const createAlert = async () => {
     if (!selectedVenue || !selectedGame || !userId) return;
+    // Mobile standard: no mutation fires offline (the POST would hang until
+    // the 8s failsafe and the player would not know why).
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setFeedback({ type: 'error', msg: OFFLINE_TOAST });
+      setTimeout(() => setFeedback(null), 3000);
+      return;
+    }
     setCreating(true);
     try {
       const token = await getFreshAccessToken();

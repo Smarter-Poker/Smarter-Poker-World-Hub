@@ -1270,7 +1270,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         onClick={onClose}
                         aria-label="Close"
                         className="sp-icon-btn"
-                        style={{
+                        style={{ '--sp-btn-size': '44px',
                             background: 'rgba(255, 255, 255, 0.08)',
                             border: '1px solid rgba(255, 255, 255, 0.1)',
                             borderRadius: 8,

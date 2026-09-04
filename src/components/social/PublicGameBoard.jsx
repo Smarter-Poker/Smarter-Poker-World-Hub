@@ -3033,7 +3033,7 @@ const PostCard = React.memo(
               }}
               aria-label="Close"
               className="sp-icon-btn sp-overlay-close"
-              style={{
+              style={{ '--sp-btn-size': '44px',
                 position: 'absolute',
                 top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                 right: 12,

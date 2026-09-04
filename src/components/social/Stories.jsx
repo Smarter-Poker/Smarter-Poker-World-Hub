@@ -566,7 +566,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                 onClick={onClose}
                 aria-label="Close"
                 className="sp-icon-btn sp-overlay-close"
-                style={{
+                style={{ '--sp-btn-size': '44px',
                     position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
                     width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.2)',
@@ -988,7 +988,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                         onClick={onClose}
                         aria-label="Close"
                         className="sp-icon-btn"
-                        style={{
+                        style={{ '--sp-btn-size': '44px',
                             background: 'rgba(255,255,255,0.2)',
                             border: 'none',
                             width: 44,

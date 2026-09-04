@@ -1139,7 +1139,7 @@ function HamburgerMenuContent({
                   onClick={() => setQuery('')}
                   aria-label="Clear search"
                   className="sp-icon-btn"
-                  style={{
+                  style={{ '--sp-btn-size': '44px',
                     position: 'absolute', right: 0, width: 44, height: 44, borderRadius: '50%',
                     border: 'none', background: 'transparent', color: colors.textSec,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
