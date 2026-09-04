@@ -721,7 +721,7 @@ export default function HorseHandReviews() {
                         <td colSpan={7} style={{ padding: '0.4rem', color: T.muted }}>
                           {ledgerError
                             ? `The Ledger Read FAILED (${ledgerError}). This Is Not Evidence The Ledger Is Empty, The Query Did Not Run.`
-                            : 'No Ledger Rows. The Engine Writes Its Contract At Boot (HorseDataLedgerSync); An Empty Ledger Is A Critical Audit Finding (data_ledger_missing).'}
+                            : 'No Ledger Rows. The Engine Writes Its Contract At Boot; An Empty Ledger Is The Critical Audit Finding Named Data Ledger Missing.'}
                         </td>
                       </tr>
                     )}
