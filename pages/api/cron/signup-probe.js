@@ -44,6 +44,7 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { unconfiguredProbe } from '../../../src/lib/probeUnconfigured';
 
 let _admin = null;
 function getAdmin() {
@@ -65,20 +66,14 @@ async function handler(req, res) {
 
     const admin = getAdmin();
     if (!admin) {
-        return res.status(500).json({
-            status: 'unconfigured',
-            error: 'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
-        });
+        return unconfiguredProbe(res, admin, 'signup-probe', 'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     }
 
     const probeUserId = process.env.PROBE_SIGNUP_USER_ID;
     if (!probeUserId) {
-        return res.status(500).json({
-            status: 'unconfigured',
-            error: 'Missing PROBE_SIGNUP_USER_ID env var. ' +
+        return unconfiguredProbe(res, admin, 'signup-probe', 'Missing PROBE_SIGNUP_USER_ID env var. ' +
                 'Create a permanent probe account in Supabase and set this to its UUID. ' +
-                'See the file header comment for setup instructions.',
-        });
+                'See the file header comment for setup instructions.');
     }
 
     const startedAt = Date.now();

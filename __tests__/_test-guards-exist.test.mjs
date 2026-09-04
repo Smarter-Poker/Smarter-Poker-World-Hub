@@ -178,6 +178,9 @@ import './synthetic-probes-never-sign-out-a-person.law.test.mjs';
 // among them, so every CI run signed in as him. The account is
 // TEST_USER_EMAIL from the environment now, and this law keeps it there.
 import './a-script-never-wears-a-persons-face.law.test.mjs';
+// 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
+// had been silent for a day: unconfigured, and exiting before its heartbeat).
+import './a-probe-that-cannot-run-says-so.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -186,6 +189,7 @@ const REQUIRED_TEST_FILES = [
     // A monitor must never revoke a person's sessions (2026-09-04 outage).
     '__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs',
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
+    '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',
