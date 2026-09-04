@@ -1,294 +1,78 @@
-# Club Arena Deployment Guide — Agent Standard Operating Procedure
+# Club Arena Deployment Guide
 
-> **MANDATORY READING** for all Claude agents working on Smarter Poker.
-> This document defines the ONLY correct workflow for deploying Club Arena changes.
-> Violating these rules causes broken production builds, missing chunks, and hours of wasted debugging.
+> **REPLACED 2026-09-04. The 294 lines that used to be here described a
+> pipeline that no longer exists, and described it as "the ONLY correct
+> workflow" under a MANDATORY READING banner.**
+>
+> It told the reader to build Club Arena on a Vercel project of its own,
+> download 200+ chunks from that deployment, and push them into this repo's
+> `public/hub/club-arena/` with the GitHub Git Trees API. Every part of that is
+> now wrong: the Club Arena Vercel project is disabled
+> (`deploymentEnabled: false`), the directory was deleted on 2026-09-02, and
+> **Next.js serves `public/` BEFORE a rewrite** - so a file put back there
+> would not duplicate the live bundle, it would SHADOW it. Production would
+> freeze on the committed copy while the real publisher kept publishing to an
+> origin nobody was reading.
+>
+> A banner on top of the old text was not enough. The body read as present-tense
+> law, and a reader who skims lands in the middle of it.
 
----
-
-## Architecture Overview
+## How a Club Arena change reaches a player
 
 ```
-Club Arena (CA) repo          World Hub (WH) repo              Production
-─────────────────────         ────────────────────────          ──────────────
-src/services/*.ts             public/hub/club-arena/            smarter.poker
-src/components/*.tsx    →     ├── index.html                →   /hub/club-arena/
-src/pages/*.tsx         →     ├── assets/                   →   served by Vercel
-                              │   ├── index-{HASH}.js           (hub-vanguard project)
-Vite build on Vercel          │   ├── vendor-react-{HASH}.js
-(CA Vercel project)           │   ├── vendor-supabase-{HASH}.js
-                              │   ├── {ChunkName}-{HASH}.js (200+ files)
-                              │   └── *.css
-                              └── images/, sounds/, cards/, etc.
+push a branch to Smarter-Poker-Club-Arena
+  -> agent-open-pr.yml opens the pull request (seconds)
+  -> ci.yml runs the six required checks on the estate's runners
+  -> agent-autopilot.yml squash-merges when they are green
+  -> publish-club-arena.yml builds dist/ and rsyncs it to
+     ca-static.smarter.poker  (/srv/club-arena/releases/<sha>/, then an
+     atomic swap of the `current` symlink)
+  -> THIS repo's single rewrite, /hub/club-arena/:path* -> that origin,
+     serves it
 ```
 
-- **CA repo**: `Smarter-Poker/Smarter-Poker-Club-Arena` (Vite + React SPA source code)
-- **WH repo**: `Smarter-Poker/Smarter-Poker-World-Hub` (Next.js app that hosts the SPA)
-- **CA Vercel project**: `prj_oaCq8RYhExLRUYizLG93li0uX468` — builds CA source into static assets
-- **WH Vercel project (hub-vanguard)**: `prj_op66GkZyZcygXQKm76iyycfVFAQx` — serves `smarter.poker`
-- **Vercel team**: `team_SVD8r7AOPH065G3usBxVvrBc`
+**Your job ends at "push a branch."** Do not open the pull request, do not
+merge, do not watch CI. The browser never sees the origin's hostname - Vercel
+proxies the rewrite - so the player is still on `smarter.poker` and the shared
+`smarter-poker-auth` session is untouched.
 
-### Critical: Two Vercel Projects, One Domain
+## The only verification that counts
 
-`hub-vanguard` owns the `smarter.poker` domain. All production deployments MUST target this project.
-The CA Vercel project only builds the SPA — it does NOT serve production traffic.
-
-### Critical: Git Integration Auto-Deploys
-
-Both repos have Vercel Git integrations. **Every push to `main` automatically triggers a Vercel deployment.** This means if two agents push to WH within minutes of each other, the LAST push wins and becomes production.
-
----
-
-## The Golden Rule
-
-> **Source changes go to the CA repo. Build output goes to WH. Never mix these up.**
-
-### What this means:
-
-- **If you're fixing a bug in Club Arena code** (services, components, pages, etc.):
-  1. Edit the source file in the CA repo
-  2. Push/commit to CA `main`
-  3. CA Vercel auto-builds from the new commit
-  4. Download the COMPLETE build output from CA Vercel
-  5. Push ALL assets to WH `public/hub/club-arena/`
-  6. WH Vercel auto-deploys
-
-- **If you're fixing something in World Hub** (Next.js API routes, pages, etc.):
-  1. Edit the source file in WH repo
-  2. Push/commit to WH `main`
-  3. WH Vercel auto-deploys
-  4. **DO NOT touch `public/hub/club-arena/` unless you are pushing a COMPLETE CA build**
-
----
-
-## NEVER Do These Things
-
-### 1. NEVER push partial club-arena builds to WH
-
-Every push to `public/hub/club-arena/assets/` MUST include:
-- `index.html` (references the entry-point JS/CSS)
-- `index-{HASH}.js` (main bundle)
-- `vendor-react-{HASH}.js`
-- `vendor-supabase-{HASH}.js`
-- `index-{HASH}.css`
-- **ALL 200+ lazy-loaded chunk files** (JS and CSS)
-
-If you push only some chunks, the missing ones will return HTML (Next.js catch-all) instead of JavaScript, causing `"Failed to fetch dynamically imported module"` errors that **cannot be fixed by refreshing** due to browser cache poisoning with `immutable` cache headers.
-
-### 2. NEVER push a club-arena build from a stale CA commit
-
-Always build from the **current CA `main` HEAD**. If you build from an older commit, you'll ship a build that's missing fixes that other agents have already committed.
-
-Before pushing a CA build to WH, verify:
-```
-GET /repos/Smarter-Poker/Smarter-Poker-Club-Arena/commits?per_page=1
-```
-The build commit SHA must match or be the current HEAD.
-
-### 3. NEVER edit minified JS files in WH
-
-The files in `public/hub/club-arena/assets/` are Vite build output. They are minified, hashed, and interconnected. You CANNOT fix bugs by editing these files. Fix the source in CA, rebuild, and push the complete output.
-
-### 4. NEVER assume your push is the last one
-
-Another agent may push to WH at any time. After pushing, ALWAYS verify production is serving your build:
-
-```javascript
-// Fetch index.html and check the entry point hash
-const idx = await fetch('https://smarter.poker/hub/club-arena/index.html');
-const html = await idx.text();
-const match = html.match(/index-([A-Za-z0-9_]+)\.js/);
-console.log('Production build:', match[1]); // Should match YOUR build hash
-```
-
----
-
-## Correct Deployment Workflow
-
-### Step 1: Commit source changes to CA repo
-
-Push your code changes to `Smarter-Poker/Smarter-Poker-Club-Arena` on `main`.
-
-**Mandatory before committing:**
 ```bash
-node --max-old-space-size=2048 ./node_modules/typescript/bin/tsc --noEmit
-```
-TypeScript MUST pass with zero errors.
-
-### Step 2: Wait for CA Vercel build
-
-The Git integration will auto-build. You can also trigger manually:
-
-```javascript
-// Trigger a new CA build via Vercel API
-POST /v13/deployments?teamId=team_SVD8r7AOPH065G3usBxVvrBc
-{
-  "name": "club-arena",
-  "project": "prj_oaCq8RYhExLRUYizLG93li0uX468",
-  "target": "production",
-  "gitSource": {
-    "type": "github",
-    "org": "Smarter-Poker",
-    "repo": "Smarter-Poker-Club-Arena",
-    "ref": "main"
-  }
-}
+curl -s https://smarter.poker/hub/club-arena/build-info.json
 ```
 
-Poll until `readyState === "READY"`.
+`ca_sha` must equal the squash commit on Club Arena's `main`. Not "the push
+succeeded", not "the merge landed", not "Vercel is building". This file, or it
+is not deployed.
 
-### Step 3: Get the build hash
+## The four rules
 
-Fetch `index.html` from the CA Vercel deployment to find the build hash:
-```
-https://{ca-deploy-url}/index.html
-```
-Extract: `index-{HASH}.js`, `vendor-react-{HASH}.js`, `vendor-supabase-{HASH}.js`, `index-{HASH}.css`
+1. **Never re-create `public/hub/club-arena/`.** It is deleted, it is
+   gitignored, and `tests/club-arena-is-a-rewrite.test.mjs` fails CI if it
+   returns.
+2. **Never write or run a script that copies a Club Arena build into this
+   repo.** `scripts/sync-club-arena.sh` and `scripts/build-club-arena.sh` are
+   gone and stay gone.
+3. **Never `vercel deploy` / `vercel --prod` for Club Arena.**
+4. **A Club Arena UI change is a Club Arena commit.** The only Club Arena
+   surfaces in this repo are the rewrite in `next.config.js` and the API routes
+   under `pages/api/club-arena/`.
 
-The CA deployment is SSO-protected. Use the Vercel MCP `get_access_to_vercel_url` tool to get a share URL, or use `_vercel_share` query parameter.
+## What survives from the old guide, because it is still true
 
-### Step 4: Download ALL assets from the CA build
+**Old hashed assets must keep resolving.** A player whose tab still holds the
+previous `index.html` asks for the previous chunks mid-hand, and a missing
+chunk is a `"Failed to fetch dynamically imported module"` that a refresh
+cannot fix, because `immutable` cache headers poison the browser cache. The
+origin handles this now: `/assets/*` and `/fonts/*` are served from an ADDITIVE
+pool the publisher never `--delete`s, pruned by age (30 days) only. **Do not
+"clean up" that pool** by removing what is not in the current bundle - that is
+precisely the 404 it exists to prevent.
 
-Extract all chunk filenames from the built `index-{HASH}.js`:
-```javascript
-const p = /[A-Za-z][A-Za-z0-9_.-]*-[A-Za-z0-9_]{4,10}\.(js|css)/g;
-```
+## Where the detail lives
 
-Download every file. The total should be 200+ files (150+ JS, 90+ CSS).
-
-### Step 5: Push COMPLETE build to WH repo
-
-Use the GitHub Git Trees API to push all files in a single commit:
-1. Create blobs for each file
-2. Create a tree with ALL files under `public/hub/club-arena/`
-3. Include `index.html`, ALL assets, manifest.json, images, etc.
-4. Create a commit on top of current WH `main` HEAD
-5. Update `refs/heads/main`
-
-**CRITICAL**: Always fetch the current WH HEAD right before creating the commit. If another agent pushed between your fetch and your push, you'll get a 422 error. Handle this by re-fetching HEAD and retrying.
-
-### Step 6: Verify production
-
-After the WH Vercel deploy completes:
-
-1. **Check index.html** references your build:
-   ```
-   GET https://smarter.poker/hub/club-arena/index.html
-   → Should reference index-{YOUR_HASH}.js
-   ```
-
-2. **Verify ALL chunks return JavaScript** (not HTML):
-   ```javascript
-   // For each chunk filename extracted from index-{HASH}.js:
-   const resp = await fetch(`https://smarter.poker/hub/club-arena/assets/${chunk}`);
-   const isHTML = (await resp.text()).startsWith('<!DOCTYPE');
-   // isHTML should be FALSE for every chunk
-   ```
-
-3. **Verify critical fixes are in the build**:
-   ```javascript
-   // AutoRebuyService must have 'running' in status filter:
-   const body = await (await fetch('https://smarter.poker/hub/club-arena/assets/index-{HASH}.js')).text();
-   assert(body.includes('"running","active","waiting"') || body.includes('"active","waiting","running"'));
-
-   // Busted horses must use rebuyHorse, not reseatHorse:
-   // Find: a.stack===0 ... rebuyHorse (NOT reseatHorse)
-   ```
-
----
-
-## Key Technical Details
-
-### Vite Build Hashes
-
-Every Vite build produces **unique hash suffixes** for every chunk. Two builds from the same source code at the same commit produce **identical** hashes. Two builds from different commits produce **completely different** hashes. There is NO overlap between builds — you cannot mix chunks from different builds.
-
-### Browser Cache Poisoning
-
-Club Arena assets are served with:
-```
-Cache-Control: public, max-age=31536000, immutable
-```
-
-If a chunk URL is served as HTML (because it's missing from the repo and Next.js catch-all serves `index.html`), the browser caches that HTML response for **1 year** with `immutable`. Even after fixing the server, the browser will keep using the cached HTML. The only fix is a **completely fresh browsing context** (new incognito window or cleared cache). ES module dynamic imports have a separate module map that caches failures per URL — even `fetch()` with `cache: 'no-store'` won't fix it.
-
-This is why pushing complete builds is non-negotiable.
-
-### AutoRebuyService Critical Fixes (MUST be preserved)
-
-These fixes are in the CA source at `src/services/AutoRebuyService.ts`. They MUST remain:
-
-1. **Status filter includes 'running'**:
-   ```typescript
-   .in('status', ['active', 'waiting', 'running'])
-   ```
-   Tables transition `waiting → active → running` during gameplay. Without 'running', horses at live tables get no auto-rebuy.
-
-2. **Busted horses use rebuyHorse, NOT reseatHorse**:
-   ```typescript
-   if (horse.stack === 0) {
-     const rebuyAmount = this.rebuyStackBB * bigBlind;
-     await this.rebuyHorse(horse.horseId, tableId, rebuyAmount);
-   }
-   ```
-   `reseatHorse()` does a destructive remove+reseat cycle that conflicts with HeadlessTableEngine, causing duplicate seats and phantom chip drain.
-
-### Rake Rules
-
-Rake is NEVER a fixed amount. It's calculated from the formula in `RakeConfig.ts`:
-- 10% of pot, capped per stakes-based `RAKE_SCHEDULE`
-- No flop = no drop
-- Same rules for BBJ
-
-### Horse Rules
-
-- Horses are regular players — NEVER labeled as "horses" or "bots" in the UI
-- No "Horses" tab anywhere
-- Max 4 horses per cash table (unlimited in tournaments)
-- If a real player is waiting, a horse must leave before their BB
-- Horses have NO player wallets — `WalletService.getWallet` returns null
-- Horse profiles are in `profiles` table with `is_horse=true`
-
----
-
-## Environment References
-
-| Resource | ID / URL |
-|----------|----------|
-| Supabase URL | `https://kuklfnapbkmacvwxktbh.supabase.co` |
-| CA repo | `Smarter-Poker/Smarter-Poker-Club-Arena` |
-| WH repo | `Smarter-Poker/Smarter-Poker-World-Hub` |
-| CA Vercel project | `prj_oaCq8RYhExLRUYizLG93li0uX468` |
-| WH Vercel project (hub-vanguard) | `prj_op66GkZyZcygXQKm76iyycfVFAQx` |
-| Vercel team | `team_SVD8r7AOPH065G3usBxVvrBc` |
-| Production domain | `smarter.poker` |
-| Dan's TEST GAME table | `6f992e14-a735-40f2-9b9b-4a4275c1e053` |
-| Shark NLH 1/2 table | `3bbb6664-f72b-4890-8b3d-9d2fd0bce229` |
-| JAQK PLO 2/5 table | `b2422fbd-ee5b-4cd2-8ef7-868479abaa5b` |
-| SHARK CLUB | `a41434bb-8d0c-400a-8f0d-e8b3d65afed4` (Midway Union) |
-| Club JAQK | `a0000000-0000-0000-0000-000000000001` (standalone) |
-| Midway Union | `fade0000-0000-0000-0000-000000000001` |
-
----
-
-## Troubleshooting
-
-### "Failed to fetch dynamically imported module"
-→ Missing chunks. Check if the chunk URL returns HTML instead of JS. If yes, push the complete build.
-
-### Production shows old build after my push
-→ Another agent pushed after you. Check WH HEAD and latest Vercel deployment. Re-push if needed.
-
-### CA build produces different hash than expected
-→ The build is from a different commit. Verify the CA HEAD matches your expected commit SHA.
-
-### `table_seats` unique constraint violation
-→ The `(table_id, seat_number)` constraint doesn't account for `left_at`. Departed rows with `left_at` set block new INSERTs. Clean up departed rows first.
-
-### VM disk full (ENOSPC)
-→ 9.6GB disk, ~80-84% used. Cannot do full `npm install`. Use Vercel CA project to build instead.
-
----
-
-*Last updated: 2026-03-24 by Gravity (cash game audit agent)*
-*Both AutoRebuyService fixes verified in production build BLShtKdk*
+- `~/Documents/club-arena/CLAUDE.md` section 1.1 - the pipeline, step by step
+- `~/Documents/club-arena/.agent/architecture/deploy-paths.md` - the tier table
+- `.agent/workflows/club-arena-rebuild.md` - the same route, from this repo's side
+- `AGENT-PLAYBOOK.md` - byte-identical in all seven repos
