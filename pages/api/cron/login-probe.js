@@ -98,10 +98,20 @@ export const config = { maxDuration: 30 };
  * the convention a gate. Exported so the law test pins it.
  */
 export const PROBE_ACCOUNT_DOMAIN = 'probe.smarter.poker';
+/**
+ * Dan, 2026-09-04, mid-incident: "DON'T USE MY ACCOUNT FOR THE CRON, USE THE
+ * OTHER 'GOD MODE ADMIN ACCOUNT'. IT HAS THE SAME PASSWORD. KEEP MY ACCOUNT
+ * CLEAN." The platform's service identity (profiles.role = 'god', display
+ * name "Smarter.Poker Official") is the one non-probe address a probe may
+ * sign in as. His personal account is not on this list and must never be.
+ */
+export const PROBE_ALLOWED_ACCOUNTS = Object.freeze(['daniel@smarter.poker']);
 export function isDedicatedProbeAccount(email) {
-    const at = String(email || '').trim().toLowerCase().lastIndexOf('@');
+    const normalized = String(email || '').trim().toLowerCase();
+    const at = normalized.lastIndexOf('@');
     if (at <= 0) return false;
-    return String(email).trim().toLowerCase().slice(at + 1) === PROBE_ACCOUNT_DOMAIN;
+    if (PROBE_ALLOWED_ACCOUNTS.includes(normalized)) return true;
+    return normalized.slice(at + 1) === PROBE_ACCOUNT_DOMAIN;
 }
 
 // ── Ops alert (mirrors auth-integrity-audit.js's Resend block) ────────────
@@ -153,9 +163,9 @@ async function handler(req, res) {
     if (!isDedicatedProbeAccount(email)) {
         const failure = {
             status: 'misconfigured',
-            error: 'PROBE_LOGIN_EMAIL is not a dedicated probe account (must be an address under @probe.smarter.poker). ' +
+            error: 'PROBE_LOGIN_EMAIL is not a probe account (an address under @probe.smarter.poker, or the platform service account in PROBE_ALLOWED_ACCOUNTS). ' +
                 'Refusing to sign in as it: a synthetic monitor must never borrow a real person\'s identity. ' +
-                'Create probe-login@probe.smarter.poker (see the file header) and point the env var at it.',
+                'Point the env var at the service account or at probe-login@probe.smarter.poker (see the file header).',
             probe_email_domain: email.split('@')[1] || null,
         };
         {

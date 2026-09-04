@@ -52,30 +52,36 @@ reported `ok` on every run.
    end the session the probe created, nothing else. This is the line that ends
    the outage, and it is correct regardless of which account the probe is
    pointed at.
-2. The probe refuses to run as anything but a dedicated probe account. If
-   `PROBE_LOGIN_EMAIL` is not under `@probe.smarter.poker` it records a
-   `failed` heartbeat with `status: 'misconfigured'`, returns 500, and does not
-   sign in. A synthetic monitor never borrows a person's identity.
+2. The probe refuses to run as anything but a probe account: an address
+   under `@probe.smarter.poker`, or the platform service account named in
+   `PROBE_ALLOWED_ACCOUNTS`. Anything else records a `failed` heartbeat with
+   `status: 'misconfigured'`, returns 500, and does not sign in. A synthetic
+   monitor never borrows a person's identity.
 3. `__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs`, run by
    CHECK 8 via the `_test-guards-exist` import: no headless code (pages/api,
    scripts, lib, src/lib, src/utils) may call `signOut` without
-   `scope: 'local'`, and the login-probe guard must run before
-   `signInWithPassword`. Verified red against the pre-fix file.
+   `scope: 'local'`, the login-probe guard must run before
+   `signInWithPassword`, and the allowlist is exactly the one service
+   account. Verified red against the pre-fix file.
 
-## What is still Dan's
+## Which account the probe uses now
 
-The Vercel env vars still hold his account, so once this deploys the probe will
-report `misconfigured` every 15 minutes (heartbeat only; no email storm - the
-misconfigured path does not call alertOps) until:
+Dan, mid-incident: "DON'T USE MY ACCOUNT FOR THE CRON, USE THE OTHER 'GOD
+MODE ADMIN ACCOUNT'. IT HAS THE SAME PASSWORD. KEEP MY ACCOUNT CLEAN."
 
-1. Supabase -> Authentication -> Users -> create
-   `probe-login@probe.smarter.poker` with a long random password, confirmed.
-2. Vercel (hub-vanguard) -> `PROBE_LOGIN_EMAIL` = that address,
-   `PROBE_LOGIN_PASSWORD` = that password, production + preview.
-3. Redeploy or wait for the next tick; `probe_heartbeats` goes back to `ok`.
+That account is `daniel@smarter.poker` (profiles.role = `god`, display name
+"Smarter.Poker Official", the platform's own service identity - the same
+actor the ledger migrations have used since May). `PROBE_LOGIN_EMAIL` in
+Vercel (hub-vanguard, production + preview) was repointed at it on
+2026-09-04 ~19:20 UTC; `PROBE_LOGIN_PASSWORD` was left as it was on Dan's
+word that the two share a password. The guard's allowlist
+(`PROBE_ALLOWED_ACCOUNTS`) names exactly that one address alongside the
+`@probe.smarter.poker` domain, and the law test pins that
+`daniel@bekavactrading.com` never appears in the file.
 
-Creating an account and changing project secrets are his to do, not an
-agent's.
+With `scope: 'local'` the probe ends only the session it made, so the
+service account's other sessions - if Dan is using it in a browser - are
+untouched.
 
 ## The client side
 
