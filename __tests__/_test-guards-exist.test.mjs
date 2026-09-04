@@ -50,10 +50,22 @@ import '../tests/no-stray-club-arena-build.test.mjs';
 import '../tests/one-build-command.test.mjs';
 import '../tests/spin-reserve-fund-contract.test.mjs';
 
+// Open Claw cron auth guards, executed HERE for the same reason as the block
+// above: CHECK 8's list in build-safety-gate.yml is workflow-permission
+// territory. This suite pins the fix for the 2026-08-31 outage in which 58
+// scheduled jobs answered 401 for a full day behind a green healthcheck. It
+// had been sitting on disk unrun by CI since it was written - a guard nobody
+// executes is the same kind of decoration as a healthcheck that pings an
+// unauthenticated endpoint, which is the very failure it exists to prevent.
+import './openclaw-workers-secret.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
     '__tests__/auth-routes-exist.test.mjs',
+    // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
+    // it would silently un-protect the 2026-08-31 workers outage fix.
+    '__tests__/openclaw-workers-secret.test.mjs',
     '__tests__/signup-hardening.test.mjs',
     '__tests__/build-2-deliverables.test.mjs',
     '__tests__/sentry-coverage.test.mjs',
