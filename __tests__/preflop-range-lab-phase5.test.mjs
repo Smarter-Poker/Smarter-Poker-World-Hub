@@ -21,19 +21,25 @@ test('the page relies on shared service clients and follows authenticated user c
 test('leak analysis and keyboard wiring clean up and avoid native-control double submits', () => {
     assert.match(PAGE, /leakAnalyzer\.setUserId\(userId \|\| null\)/);
     assert.match(PAGE, /leakAnalyzer\.stop\(\)/);
-    assert.match(PAGE, /closest\('button, a, input, select, textarea, \[contenteditable="true"\]'\)/);
+    // Mobile phase 2: the matrix is a focusable [role="grid"], so it joins the
+    // interactive-target guard; text entry keeps its own narrower guard.
+    assert.match(PAGE, /closest\('button, a, input, select, textarea, \[contenteditable="true"\], \[role="grid"\]'\)/);
+    assert.match(PAGE, /closest\('input, select, textarea, \[contenteditable="true"\]'\)/);
     assert.match(PAGE, /\(e\.metaKey \|\| e\.ctrlKey\).*e\.key\.toLowerCase\(\) === 'z'/s);
 });
 
 test('mobile Range Lab has a sticky editing command strip with recoverable clear', () => {
     assert.match(PAGE, /className="preflop-lab-command-strip"/);
-    assert.match(PAGE, /onClick=\{handleUndo\}/);
-    assert.match(PAGE, /onClick=\{handleRedo\}/);
-    assert.match(PAGE, /onClick=\{handleClearRange\}/);
+    // Mobile phase 2: every command fires a haptic before its handler.
+    assert.match(PAGE, /onClick=\{\(\) => \{ haptic\('light'\); handleUndo\(\); \}\}/);
+    assert.match(PAGE, /handleRedo\(\)/);
+    assert.match(PAGE, /handleClearRange\(\)/);
     assert.match(PAGE, /className="preflop-lab-command-actions"/);
     assert.match(PAGE, /className="preflop-lab-live" aria-live="polite"/);
-    assert.match(CSS, /\.preflop-lab-command-strip\s*\{[\s\S]*position:\s*sticky;[\s\S]*env\(safe-area-inset-top/);
-    assert.match(CSS, /@media \(min-width: 768px\)[\s\S]*\.preflop-lab-command-strip\s*\{[\s\S]*position:\s*relative/);
+    // Mobile phase 2: sticky offset comes from the real header height
+    // (--sp-header-height, published by UniversalHeader), not a guessed inset.
+    assert.match(CSS, /\.preflop-lab-command-strip\s*\{[\s\S]*position:\s*sticky;[\s\S]*top:\s*var\(--sp-header-height/);
+    assert.match(CSS, /@media \(min-width: 769px\)[\s\S]*\.preflop-lab-command-strip\s*\{[\s\S]*position:\s*relative/);
 });
 
 test('matrix focus keeps undo, redo, and action-number shortcuts wired', () => {

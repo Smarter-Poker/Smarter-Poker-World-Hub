@@ -92,5 +92,13 @@ export default defineConfig({
       testMatch: /global-footer-visual\.spec\.ts$/,
       use: { ...devices['iPhone 13'] },
     },
+    {
+      // Mobile performance budget for the ten rollout pages
+      // (docs/mobile-standard/ROLLOUT-PLAN.md). Unauthenticated, 375px,
+      // throttled-CPU-free: it measures what ships, not the network.
+      name: 'mobile-budget',
+      testMatch: /mobile-budget\.spec\.ts$/,
+      use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
+    },
   ],
 });

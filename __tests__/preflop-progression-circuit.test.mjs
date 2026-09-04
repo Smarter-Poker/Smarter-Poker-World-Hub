@@ -37,7 +37,8 @@ test('the actual current level and mastery data drive card presentation', () => 
 test('the circuit and level states retain responsive, accessible styling', () => {
     assert.match(CSS, /\.preflop-circuit-status\s*\{[\s\S]*grid-template-columns:/);
     assert.match(CSS, /@media \(max-width: 900px\)[\s\S]*\.preflop-circuit-status\s*\{[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
-    assert.match(CSS, /@media \(max-width: 640px\)[\s\S]*\.preflop-circuit-stat\s*\{[\s\S]*min-height:\s*72px/);
+    // Mobile phase 2: the sanctioned phone breakpoint is 768, not 640.
+    assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.preflop-circuit-stat\s*\{[\s\S]*min-height:\s*72px/);
     assert.match(CSS, /\.preflop-level-card\.is-no-match/);
     assert.match(CSS, /\.preflop-level-state\.is-mastered/);
     assert.match(CSS, /\.preflop-level-card:focus-within/);

@@ -201,7 +201,10 @@ const styles = {
         gap: 4,
     },
     sortBtn: {
-        padding: '4px 8px',
+        padding: '4px 12px',
+        minWidth: 44,
+        minHeight: 44,
+        touchAction: 'manipulation',
         background: 'transparent',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 4,

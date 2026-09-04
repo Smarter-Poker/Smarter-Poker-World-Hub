@@ -446,10 +446,16 @@ html.reels-lock {
   /* Typography floor: NOTHING under 12px is allowed on a phone (standard,
      "Tokens"). Captions and <small> are the usual offenders; this clamps
      them without touching anything already at or above 12px. */
-  small,
   .caption,
   [data-caption] {
     font-size: max(12px, 1em);
+  }
+
+  /* <small> keeps its UA ratio (`smaller`, about 0.83em) so it still reads
+     as a caption next to its parent; `max(12px, 1em)` would have made every
+     <small> the same size as the text beside it. */
+  small {
+    font-size: max(12px, 0.8333em);
   }
 }
 

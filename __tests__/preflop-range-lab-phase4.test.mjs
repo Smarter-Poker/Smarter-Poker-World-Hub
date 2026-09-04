@@ -43,14 +43,23 @@ test('Range Lab is a mobile-first native-button matrix with a separate desktop e
     assert.match(PAGE, /<PreflopRangeMatrix/);
     assert.match(RANGE_MATRIX, /className="preflop-lab-grid"[\s\S]*role="grid"/);
     assert.match(RANGE_MATRIX, /role="gridcell"/);
-    assert.match(RANGE_MATRIX, /tabIndex=\{focusedHand === hand \? 0 : -1\}/);
-    assert.match(RANGE_MATRIX, /type="button"[\s\S]*data-feedback=\{feedbackState\}/);
+    // Mobile phase 2: the grid is ONE focusable paint control; the focused
+    // hand is tracked in state and marked on its gridcell, not by roving tabIndex.
+    assert.match(RANGE_MATRIX, /role="grid"[\s\S]*tabIndex=\{0\}/);
+    assert.match(RANGE_MATRIX, /useState\(\(\) => getHandName\(0, 0\)\)/);
+    assert.match(RANGE_MATRIX, /data-focused=/);
+    // Cells are gridcells of one paint control (mobile phase 2), not buttons.
+    assert.match(RANGE_MATRIX, /role="gridcell"[\s\S]*data-feedback=\{feedbackState\}/);
+    assert.match(RANGE_MATRIX, /aria-selected=\{!!userAction\}/);
     assert.match(PAGE, /aria-pressed=\{selectedAction === action\}/);
-    assert.match(CSS, /\.preflop-lab-grid\s*\{[\s\S]*min-width:\s*628px/);
+    // Mobile phase 2: the matrix fits 375px; the 628px floor that made it a
+    // sideways scroller is gone for good (no-slide-to-see law).
+    assert.match(CSS, /\.preflop-lab-grid\s*\{[\s\S]*width:\s*100%;[\s\S]*min-width:\s*0/);
+    assert.doesNotMatch(CSS, /min-width:\s*628px/);
     assert.match(CSS, /\.preflop-lab-feedback\s*\{\s*position:\s*relative;\s*min-width:\s*0/);
     assert.match(CSS, /\.preflop-lab-actions\s*\{[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
-    assert.match(CSS, /@media \(min-width: 768px\)[\s\S]*\.preflop-lab-actions\s*\{[\s\S]*repeat\(6, minmax\(0, 1fr\)\)/);
-    assert.match(CSS, /@media \(min-width: 768px\)[\s\S]*\.preflop-lab-grid\s*\{[\s\S]*min-width:\s*0/);
+    // Desktop expansion lives in the 769px complement of the one phone breakpoint.
+    assert.match(CSS, /@media \(min-width: 769px\)[\s\S]*\.preflop-lab-actions\s*\{[\s\S]*repeat\(6, minmax\(0, 1fr\)\)/);
 });
 
 test('submission, timeout, persistence, and adaptive launch regressions stay repaired', () => {

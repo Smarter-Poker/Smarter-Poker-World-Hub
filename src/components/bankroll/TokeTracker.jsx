@@ -1405,9 +1405,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 borderRadius: 16,
-                                boxShadow: '0 8px 32px rgba(56,189,248,0.15)',
                                 background: 'linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(56,189,248,0.05) 100%)',
-                                border: '2px solid rgba(56,189,248,0.5)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.5)',
+                                border: '2px solid rgba(56,189,248,0.5)',
+                                boxShadow: '0 8px 32px rgba(56,189,248,0.15), inset 0 0 0 1px rgba(56,189,248,0.5)',
                             }}>
                                 <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 8, color: '#38bdf8' }}>+</span>
                                 <span style={{ fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Add Down</span>

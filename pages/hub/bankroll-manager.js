@@ -15,9 +15,11 @@ import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import HubPageShell from '../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../src/components/ui/PullToRefresh';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { useLoadFailsafe, useInitialLoadRef } from '../../src/hooks/useLoadFailsafe';
 import { useModalHistory } from '../../src/hooks/useModalHistory';
+import { useScrimDismiss } from '../../src/hooks/useScrimDismiss';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { useOnlineStatus } from '../../src/hooks/useOnlineStatus';
 import FeatureGate from '../../src/components/gates/FeatureGate';
@@ -46,7 +48,7 @@ import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
-import BankrollTutorial, { hasSeenBankrollTutorial } from '../../src/components/bankroll/BankrollTutorial';
+import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
 const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 300 }} />;
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
@@ -223,9 +225,7 @@ export default function BankrollManagerPage() {
   // screen so scroll position survives (mobile phase 0a, useInitialLoadRef).
   const isInitialLoad = useInitialLoadRef();
   const sectionPushedRef = useRef(false);
-  const tutorialTimerRef = useRef(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
 
   // Offline: mutation buttons explain instead of firing (the OfflineBar in
   // pages/_app.js is the global banner; this is the per-action guard).
@@ -501,7 +501,6 @@ export default function BankrollManagerPage() {
     }
 
     if (isInitialLoad.current) setIsLoading(true);
-    let loadedOk = false;
     try {
       const dateRange = getDateRangeFilter(timeFilter);
 
@@ -602,7 +601,6 @@ export default function BankrollManagerPage() {
       // 5. Sort by date descending
       visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
       setEntries(visible);
-      loadedOk = true;
     } catch (error) {
       console.warn('Error loading bankroll data:', error);
     } finally {
@@ -611,18 +609,10 @@ export default function BankrollManagerPage() {
         if (isInitialLoad.current) {
           isInitialLoad.current = false;
           setHasLoadedOnce(true);
-          // First-visit walkthrough, 800ms after the first successful load.
-          if (loadedOk && !hasSeenBankrollTutorial()) {
-            if (tutorialTimerRef.current) clearTimeout(tutorialTimerRef.current);
-            tutorialTimerRef.current = setTimeout(() => {
-              if (isMountedRef.current) setShowTutorial(true);
-            }, 800);
-          }
         }
       }
     }
   }, [userId, locationFilter, timeFilter]);
-  useEffect(() => () => { if (tutorialTimerRef.current) clearTimeout(tutorialTimerRef.current); }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3 REALTIME: Bankroll Data Sync
@@ -827,11 +817,40 @@ export default function BankrollManagerPage() {
     }
   };
 
+  // The page tutorial lives in the app shell (TutorialProvider; offered by
+  // the three-second prompt and the hamburger's Page Tutorial row). Its
+  // spotlight targets (stats, chart, analytics, Add +) only exist on the
+  // unfiltered dashboard, so when the provider announces it is about to
+  // open, return there first; otherwise every step would render without a
+  // ring.
+  const activeSectionRef = useRef(activeSection);
+  activeSectionRef.current = activeSection;
+  const categoryFilterRef = useRef(categoryFilter);
+  categoryFilterRef.current = categoryFilter;
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onWillOpen = (e) => {
+      if (e && e.detail && e.detail.id && e.detail.id !== 'bankroll-manager') return;
+      if (activeSectionRef.current !== 'dashboard') goToSection('dashboard');
+      if (categoryFilterRef.current !== 'all') setCategoryFilter('all');
+    };
+    window.addEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
+    return () => window.removeEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goToSection]);
+
   // Page-owned overlays: the phone back gesture closes them (mobile phase 0a).
   useModalHistory(showScanner, closeScanner);
-  useModalHistory(showAllEntries, () => setShowAllEntries(false));
+  const closeAllEntries = useCallback(() => setShowAllEntries(false), []);
+  useModalHistory(showAllEntries, closeAllEntries);
+  // Scrims close on a tap outside, not on a drag that ends outside.
+  const scannerScrim = useScrimDismiss(closeScanner);
+  const allEntriesScrim = useScrimDismiss(closeAllEntries);
   useModalHistory(showLogModal && !userId, closeLogModal);
-  useModalHistory(ruleViolations.length > 0, () => setRuleViolations([]));
+  const closeRuleViolations = useCallback(() => setRuleViolations([]), []);
+  useModalHistory(ruleViolations.length > 0, closeRuleViolations);
+  const signInScrim = useScrimDismiss(closeLogModal);
+  const violationsScrim = useScrimDismiss(closeRuleViolations);
 
   const selectedLocationName = locationFilter
     ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
@@ -846,6 +865,7 @@ export default function BankrollManagerPage() {
 
   // Hamburger menu handlers - save to Supabase
   const updatePreference = useCallback(async (key, value) => {
+    if (!requireOnline()) return;
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
 
@@ -856,13 +876,13 @@ export default function BankrollManagerPage() {
         console.warn('Failed to save preference:', error);
       }
     }
-  }, [userId, preferences]);
+  }, [userId, preferences, requireOnline]);
 
   const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
     setAutoSave: (val) => updatePreference('autoSave', val),
     setNotifications: (val) => updatePreference('notifications', val),
     setCurrencyEUR: (val) => updatePreference('currencyEUR', val),
-    onAdjustBankroll: () => { setMenuOpen(false); setShowAdjustModal(true); }
+    onAdjustBankroll: () => { setMenuOpen(false); openAdjustModal(); }
   });
 
   // Close dropdowns when clicking outside
@@ -917,6 +937,11 @@ export default function BankrollManagerPage() {
       </SEOHead>
 
       <HubPageShell className="bankroll" maxWidth={960} background="#18191a" onMenuClick={() => setMenuOpen(true)}>
+      {/* Pull down at the top of the page to reload the ledger (mobile
+          standard, "Pull-to-refresh": the browser's own gesture is disabled
+          app-wide). Off while a sheet is open so a drag inside it cannot
+          fire a reload underneath. */}
+      <PullToRefresh onRefresh={loadData} disabled={showLogModal || showAdjustModal || showScanner || showProjection}>
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
 
@@ -995,15 +1020,6 @@ export default function BankrollManagerPage() {
                   {!isGloballyVip && hasProAccess && proExpiresAt && (
                     <DayPassCountdown expiresAt={proExpiresAt} />
                   )}
-                  <button
-                    type="button"
-                    className="bankroll-tutorial-btn"
-                    style={styles.tutorialButton}
-                    onClick={() => { haptic('light'); setShowTutorial(true); }}
-                    aria-label="Replay The Tutorial"
-                  >
-                    Tutorial
-                  </button>
                   {activeSection === 'dashboard' && categoryFilter === 'all' && (
                     <button type="button" className="bankroll-log-btn" data-tutorial="add-button" style={styles.logButton} onClick={() => { haptic('light'); handleLogClick(); }}>
                       Add +
@@ -1480,7 +1496,7 @@ export default function BankrollManagerPage() {
                   {showAllEntries && (
                     <div
                       className="bankroll-modal-overlay"
-                      onClick={() => setShowAllEntries(false)}
+                      {...allEntriesScrim}
                       style={{
                         position: 'fixed',
                         top: 0,
@@ -1962,12 +1978,13 @@ export default function BankrollManagerPage() {
           </div>
         </FeatureGate>
       </div>
+      </PullToRefresh>
       </HubPageShell>
 
       {/* Receipt Scanner Modal */}
       {
         showScanner && (
-          <div className="bankroll-modal-overlay" style={styles.scannerModal} onClick={closeScanner}>
+          <div className="bankroll-modal-overlay" style={styles.scannerModal} {...scannerScrim}>
             <div className="bankroll-modal" role="dialog" aria-modal="true" style={styles.scannerModalContent} onClick={(e) => e.stopPropagation()}>
               <div className="bankroll-sheet-handle" aria-hidden="true" />
               <div className="bankroll-modal-header" style={styles.scannerModalHeader}>
@@ -2171,9 +2188,11 @@ export default function BankrollManagerPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 50,
+                // Above the header (100) and bottom nav (90): fixed overlays
+                // render at z >= 900 (mobile standard).
+                zIndex: 1000,
               }}
-              onClick={closeLogModal}
+              {...signInScrim}
             >
               <motion.div
                 role="dialog"
@@ -2255,7 +2274,7 @@ export default function BankrollManagerPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 20,
             }}
-            onClick={() => setRuleViolations([])}
+            {...violationsScrim}
           >
             <motion.div
               initial={{ scale: 0.9, y: 30 }}
@@ -2355,9 +2374,6 @@ export default function BankrollManagerPage() {
           />
         )}
       </AnimatePresence>
-
-      {/* First-visit walkthrough (replayable from the Tutorial button) */}
-      <BankrollTutorial open={showTutorial} onClose={() => setShowTutorial(false)} />
 
       {/* Adjust Bankroll Modal */}
       <AnimatePresence>
@@ -2486,8 +2502,10 @@ const styles = {
     textAlign: 'left',
   },
   searchButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    minHeight: 44,
     borderRadius: '50%',
     background: 'rgba(255, 255, 255, 0.05)',
     border: '2px solid rgba(255, 255, 255, 0.1)',
@@ -2560,20 +2578,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-  },
-  tutorialButton: {
-    padding: '10px 16px',
-    minHeight: 44,
-    touchAction: 'manipulation',
-    WebkitTapHighlightColor: 'transparent',
-    background: 'rgba(255, 255, 255, 0.06)',
-    border: '2px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
   },
   logButton: {
     padding: '10px 24px',

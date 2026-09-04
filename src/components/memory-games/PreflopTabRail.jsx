@@ -1,3 +1,13 @@
+/**
+ * PreflopTabRail: a wrapping row of 44px tabs for the Preflop Charts
+ * subpages (leaderboard modes, achievement categories).
+ *
+ * Mobile phase 2: this used to share `.preflop-mode-rail`, an overflow-x
+ * scroller with a hidden scrollbar and a scrollIntoView on activation, so
+ * tabs past the fold were "slide to see". Every tab now wraps into view
+ * (`.preflop-tab-rail`, flex-wrap) and nothing scrolls. The roving tabindex
+ * keyboard contract (arrows, Home, End) is unchanged.
+ */
 import { memo, useCallback, useRef } from 'react';
 
 function PreflopTabRail({ items, selected, onSelect, ariaLabel }) {
@@ -8,8 +18,7 @@ function PreflopTabRail({ items, selected, onSelect, ariaLabel }) {
     if (!item) return;
     onSelect(item.key);
     const tab = tabRefs.current.get(item.key);
-    tab?.focus({ preventScroll: true });
-    tab?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    if (tab && typeof tab.focus === 'function') tab.focus({ preventScroll: true });
   }, [items, onSelect]);
 
   const handleKeyDown = useCallback((event, index) => {
@@ -24,7 +33,7 @@ function PreflopTabRail({ items, selected, onSelect, ariaLabel }) {
   }, [activate, items.length]);
 
   return (
-    <div className="preflop-mode-rail" role="tablist" aria-label={ariaLabel}>
+    <div className="preflop-tab-rail" role="tablist" aria-label={ariaLabel}>
       {items.map((item, index) => (
         <button
           key={item.key}
