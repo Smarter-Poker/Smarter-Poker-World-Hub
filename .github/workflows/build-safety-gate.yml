@@ -44,6 +44,14 @@ permissions:
 jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
 
@@ -837,7 +845,8 @@ jobs:
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs \
             tests/the-from-scanner-is-fast-and-faithful.test.mjs \
-            tests/a-required-check-does-not-reinstall-a-restored-tree.test.mjs
+            tests/a-required-check-does-not-reinstall-a-restored-tree.test.mjs \
+            tests/the-app-does-not-fight-the-readers-scroll.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -996,6 +1005,14 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════
   type-check:
     name: TypeScript Check
+    # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
+    # on the squash commit of a pull request it had just passed - so every
+    # merge queued a second full copy of this repo's thirteen workflows behind
+    # the NEXT pull request's checks, on six runners. Measured on #1336: jobs
+    # that ran in 0.2-2.1 minutes waited 8-14 minutes for a runner. The
+    # ruleset enforces this check on the pull request; the merge commit is
+    # the same tree. Club Arena made the same call on 2026-08-23.
+    if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     
@@ -1076,7 +1093,12 @@ jobs:
   vercel-deploy-retry:
     name: Vercel Deploy Retry (GitHub-500 guard)
     needs: [safety-checks]
-    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # `always()`, not `success()`: safety-checks runs on pull requests only
+    # now (see its note), so on a push to main it is SKIPPED, and a job that
+    # `needs` a skipped job is skipped too unless it says always(). This job
+    # only polls the Vercel API for a GitHub-500 clone failure; it never
+    # needed the checks' verdict, only their ordering.
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 

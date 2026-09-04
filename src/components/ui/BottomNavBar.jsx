@@ -170,16 +170,30 @@ function useHideOnScroll(enabled, resetKey) {
     let frame = 0;
     let pending = null;
 
+    // THE FIRST FLICK MUST COUNT (2026-09-04). The first scroll event from a
+    // scroller used to do nothing but record where it was, so the bar could
+    // not hide until the SECOND settle. A real flick fires dozens of events
+    // and nobody noticed on a phone - but a fresh page that receives one
+    // burst of scrolling (the footer contract in e2e/global-footer-visual
+    // does exactly that, and so does a programmatic jump) never hid at all,
+    // and that check has been red on main since it landed. The document's
+    // starting position is known at install, so it is seeded here; any other
+    // scroller is seeded at its top, which is where a panel is when it mounts.
+    const seed = (source, y) => {
+      travel.set(source, { last: y, anchor: y, direction: 0 });
+    };
+    seed(document, scrollTopOf(document));
+
     const settle = () => {
       frame = 0;
       const source = pending;
       pending = null;
 
       const y = scrollTopOf(source);
-      const state = travel.get(source);
+      let state = travel.get(source);
       if (!state) {
-        travel.set(source, { last: y, anchor: y, direction: 0 });
-        return;
+        seed(source, 0);
+        state = travel.get(source);
       }
 
       const direction = y > state.last ? 1 : y < state.last ? -1 : 0;
