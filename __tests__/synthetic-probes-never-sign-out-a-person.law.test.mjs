@@ -184,6 +184,58 @@ test('LAW 2 (behaviour): the guard accepts only @probe.smarter.poker', () => {
   assert.equal(fn(undefined), false);
 });
 
+test('LAW 3: the probe proves the session WORKS, not merely that it was issued', () => {
+  // The 2026-09-03 outage ran 22 hours with this probe green because every
+  // step asked GoTrue to issue or describe a token, and issuing never broke.
+  // What was broken was whether an issued token was worth anything at the
+  // engine. This pins the step that asks.
+  assert.match(
+    LOGIN_PROBE,
+    /steps\.engine_accepts_session/,
+    'login-probe must verify the engine accepts the session it just obtained'
+  );
+  const stepAt = LOGIN_PROBE.indexOf('steps.engine_accepts_session = {');
+  const loginAt = LOGIN_PROBE.indexOf('anon.auth.signInWithPassword({ email, password })');
+  assert.ok(stepAt > loginAt, 'the engine check runs AFTER a session exists to check');
+  assert.match(
+    LOGIN_PROBE.slice(stepAt),
+    /Authorization: `Bearer \$\{ld\.session\.access_token\}`/,
+    "it presents the probe's own freshly issued access token"
+  );
+  // It must use a side-effect-free endpoint: a probe that seats, bets or moves
+  // chips every 15 minutes is the 2026-08-25 incident (CLAUDE.md 11.5).
+  assert.match(LOGIN_PROBE.slice(stepAt), /\/voice\/ice/, 'uses the read-only ICE endpoint');
+  for (const forbidden of ['/action', '/addchips', '/heartbeat', '/leave', '/preaction']) {
+    assert.ok(
+      !LOGIN_PROBE.slice(stepAt).includes(`\${forbidden}\``),
+      `a probe must never call ${forbidden} - it moves seats, hands or chips`
+    );
+  }
+});
+
+test('LAW 3: only a REFUSED session alarms; an unreachable engine does not', () => {
+  const stepAt = LOGIN_PROBE.indexOf('steps.engine_accepts_session = {');
+  const step = LOGIN_PROBE.slice(stepAt, LOGIN_PROBE.indexOf('duration_ms =', stepAt));
+  // 401/403 = the engine looked at the session and said no. That is the alarm.
+  assert.match(step, /status === 401 \|\| engineRes\.status === 403/);
+  assert.match(step, /throw new Error\(`engine-accepts-session:/);
+  // Everything else - a thrown fetch, a 5xx - must NOT throw: the engine being
+  // down is already paged by EngineDown/EngineScrapeDown, and a second alarm
+  // for one event is how alerts get muted.
+  assert.match(step, /catch \(netErr\)/);
+  // Scope this to the CATCH BODY only. The step legitimately throws further
+  // down for a 401, so a loose regex from `catch (` to the next `throw`
+  // sails past the block and reads that as a violation (it did, first run).
+  const catchStart = step.indexOf('catch (netErr)');
+  const catchBody = step.slice(catchStart, step.indexOf('if (engineRes)', catchStart));
+  assert.ok(catchStart > 0 && catchBody.length > 0, 'the network-error branch is findable');
+  assert.ok(
+    !catchBody.includes('throw'),
+    'an unreachable engine is recorded and skipped, never raised as a bad session'
+  );
+  assert.match(catchBody, /skipped/, 'and it says why it was skipped');
+});
+
 test('LAW 1 (probe): both sign-outs in login-probe are local-scope', () => {
   const sites = signOutCallSites(LOGIN_PROBE);
   assert.equal(sites.length, 2, 'the success path and the failure path each sign out once');
