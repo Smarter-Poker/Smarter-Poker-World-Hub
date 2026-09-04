@@ -106,6 +106,14 @@ Result on this Mac, both browsers, three consecutive runs of the
 hide-and-return test across all fifteen worlds: **6 of 6 passed**, from
 failing on two worlds in every CI run since it landed.
 
+## 6. And then the new runners exposed one more hardcoded port
+
+The first run of this branch with 18 runners: every required check green,
+`Global Footer E2E` red with `EADDRINUSE :::3000`. Two E2E jobs on one box,
+both `next start -p 3000`. Same class as Club Arena's E2E ports the same
+morning; same fix, `scripts/ci/e2e-port.mjs` ported over, both E2E workflows
+derive their port from `RUNNER_NAME` and free it first.
+
 ## What is still true after this
 
 - The E2E suite is red and off the pull-request path. It needs a product

@@ -41,9 +41,24 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
 
+      # PER-RUNNER PORT (2026-09-04). `next start -p 3000` collided the hour the
+      # World Hub got six runners per box: two pull requests reaching this step
+      # together, and the second died with EADDRINUSE. Same fix as Club Arena's
+      # E2E jobs: a port derived from RUNNER_NAME, and that port freed first in
+      # case a CANCELLED run on this runner left its server behind - safe only
+      # because the port is this runner's alone.
+      - name: Reserve this runner's port
+        id: port
+        run: |
+          PORT=$(node scripts/ci/e2e-port.mjs 3000)
+          echo "port=$PORT" >> "$GITHUB_OUTPUT"
+          echo "Server port for ${RUNNER_NAME:-local}: $PORT"
+          PIDS=$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)
+          if [ -n "$PIDS" ]; then echo "freeing port $PORT held by orphaned pid(s): $PIDS"; kill -9 $PIDS 2>/dev/null || true; fi
+
       - name: Start production server
         run: |
-          nohup node_modules/.bin/next start -p 3000 > /tmp/footer-next-server.log 2>&1 &
+          nohup node_modules/.bin/next start -p ${{ steps.port.outputs.port }} > /tmp/footer-next-server.log 2>&1 &
           echo "SERVER_PID=$!" >> "$GITHUB_ENV"
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -53,7 +68,7 @@ jobs:
       - name: Wait for server
         run: |
           for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:3000/hub/install -o /dev/null; then
+            if curl -fsS http://127.0.0.1:${{ steps.port.outputs.port }}/hub/install -o /dev/null; then
               exit 0
             fi
             sleep 2
@@ -69,7 +84,7 @@ jobs:
         run: npx playwright test e2e/global-footer-visual.spec.ts --project=footer-chromium --project=footer-webkit --workers=1
         env:
           CI: true
-          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3000
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       # Mobile performance budget (mobile programme item 10): the ten rollout
       # pages at 375px against scripts/ci/mobile-budget.json. Same server,
@@ -78,7 +93,7 @@ jobs:
         run: npx playwright test e2e/mobile-budget.spec.ts --project=mobile-budget --workers=2
         env:
           CI: true
-          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3000
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Stop server and surface log
         if: always()
