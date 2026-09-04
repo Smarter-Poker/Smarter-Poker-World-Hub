@@ -27,14 +27,13 @@ const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
 
 test('phase 4 route pages delegate controller and recovery responsibilities', async () => {
-  const [lobby, directory, lobbyController, discoveryController, recovery, lobbyInteractions, gestures] = await Promise.all([
+  const [lobby, directory, lobbyController, discoveryController, recovery, lobbyInteractions] = await Promise.all([
     source('pages/hub/poker-near-me/lobby.js'),
     source('pages/hub/poker-near-me/[pnmTab].js'),
     source('src/components/poker-near-me/lobby/lobbyController.js'),
     source('src/components/poker-near-me/discoveryController.js'),
     source('src/components/poker-near-me/ControllerRecovery.jsx'),
     source('src/components/poker-near-me/lobby/useLobbyInteractionController.js'),
-    source('src/components/poker-near-me/useDiscoveryGestureController.js'),
   ]);
 
   assert.match(lobby, /from '\.\.\/\.\.\/\.\.\/src\/components\/poker-near-me\/lobby\/lobbyController'/);
@@ -56,8 +55,15 @@ test('phase 4 route pages delegate controller and recovery responsibilities', as
     'the aria-modal pod panel must remain above the fixed global header'
   );
   assert.match(lobbyInteractions, /export function useLobbyDialogController/);
-  assert.match(directory, /useDiscoveryGestureController/);
-  assert.match(gestures, /export default function useDiscoveryGestureController/);
+  // Mobile phase 3 (2026-09-04): useDiscoveryGestureController owned two
+  // gestures, swipe-to-change-tab and pull-to-refresh. Swipe navigation is
+  // forbidden by the mobile standard (touch never changes a surface) and the
+  // pull gesture moved to the shared PullToRefresh primitive, so the
+  // controller was deleted rather than left as an unreachable file. The pin
+  // moves to the mechanism that replaced it.
+  assert.match(directory, /import PullToRefresh from '\.\.\/\.\.\/\.\.\/src\/components\/ui\/PullToRefresh'/);
+  assert.match(directory, /<PullToRefresh onRefresh=\{refreshDiscovery\}/);
+  assert.doesNotMatch(directory, /useDiscoveryGestureController|onTouchStart/);
 });
 
 test('canonical route controller keeps aliases, URL state, and metadata synchronized', () => {

@@ -334,7 +334,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     const color = i === 0 ? '#22c55e' : i === routeResult.stops.length - 1 ? '#ef4444' : '#3b82f6';
                     const icon = L.divIcon({
                         className: 'trip-stop-marker',
-                        html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
+                        html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size: 12px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
                         iconSize: [20, 20], iconAnchor: [10, 10],
                     });
                     L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${esc(stop.name)}</b>`);
@@ -786,7 +786,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         @media (max-width: 500px) { .rtp-stats-bar { grid-template-columns: repeat(2, 1fr); } }
         .rtp-stat { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
         .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #ffffff; }
-        .rtp-stat-label { font-size: 11px; color: rgba(148,163,184,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rtp-stat-label { font-size: 12px; color: rgba(148,163,184,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
         .rtp-map-wrapper { margin-bottom: 20px; }
         .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(200,214,229,0.04)); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
         @media (max-width: 600px) { .rtp-map-toggle { display: flex; } }
@@ -797,7 +797,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-map-overlay.error { pointer-events: auto; }
         .rtp-map-overlay p { margin: 0 0 12px; }
         .rtp-map-overlay button { min-width: 44px; min-height: 44px; padding: 10px 16px; border: 1px solid rgba(59,130,246,0.55); border-radius: 6px; background: rgba(59,130,246,0.14); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-        .rtp-estimate-note { margin: -6px 0 14px; font-size: 11px; color: rgba(148,163,184,0.55); line-height: 1.5; }
+        .rtp-estimate-note { margin: -6px 0 14px; font-size: 12px; color: rgba(148,163,184,0.55); line-height: 1.5; }
         .rtp-share-status { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
         .rtp-share-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
         .rtp-share-status.fail { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
@@ -810,7 +810,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-venue-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
         .rtp-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-bottom: 6px; }
         .rtp-venue-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-        .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+        .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
         .rtp-tag.type { background: rgba(99,102,241,0.2); color: #818cf8; }
         .rtp-tag.trust { background: rgba(255,255,255,0.12); color: #ffffff; }
         .rtp-nav-btn { background: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
@@ -828,11 +828,11 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-saved-trip-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-bottom: 1px solid rgba(148,163,184,0.06); }
         .rtp-saved-trip-item:last-child { border-bottom: none; }
         .rtp-saved-trip-route { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #e2e8f0; }
-        .rtp-saved-trip-meta { display: flex; gap: 12px; font-size: 10px; color: rgba(148,163,184,0.4); }
+        .rtp-saved-trip-meta { display: flex; gap: 12px; font-size: 12px; color: rgba(148,163,184,0.4); }
         .rtp-saved-trip-actions { display: flex; gap: 6px; margin-top: 4px; }
-        .rtp-saved-trip-load { padding: 4px 12px; border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trip-load { padding: 4px 12px; border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
         .rtp-saved-trip-load:hover { background: rgba(255,255,255,0.2); }
-        .rtp-saved-trip-delete { padding: 4px 12px; border-radius: 6px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: rgba(239,68,68,0.6); font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trip-delete { padding: 4px 12px; border-radius: 6px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: rgba(239,68,68,0.6); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
         .rtp-saved-trip-delete:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
         .rtp-add-waypoint, .rtp-chip, .rtp-date, .rtp-map-toggle, .rtp-nav-btn, .rtp-saved-trips-toggle, .rtp-saved-trip-load, .rtp-saved-trip-delete { min-height: 44px; }
         .rtp-date { min-width: 0; flex: 1; }

@@ -158,28 +158,28 @@ const PodVenueSearchEngine = ({
         </div>
 
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
+          <div style={{ fontSize: 12, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
             {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'poker_tour',l:'Poker Tour'},{k:'series',l:'Series'}].map(t => (
               <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, [`${prefix}VenueType`]: t.k }))}
-                style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: pVenueType === t.k ? '1.5px solid #d4a853' : '1px solid rgba(48,54,61,0.6)', background: pVenueType === t.k ? 'rgba(212,168,83,0.12)' : 'rgba(22,27,34,0.6)', color: pVenueType === t.k ? '#d4a853' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
+                style={{ padding: '4px 12px', borderRadius: 16, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: pVenueType === t.k ? '1.5px solid #d4a853' : '1px solid rgba(48,54,61,0.6)', background: pVenueType === t.k ? 'rgba(212,168,83,0.12)' : 'rgba(22,27,34,0.6)', color: pVenueType === t.k ? '#d4a853' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
             ))}
           </div>
         </div>
 
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
+          <div style={{ fontSize: 12, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
             {[{k:'all',l:'All Games'},{k:'nlh',l:'NLH'},{k:'plo',l:'PLO'},{k:'mixed',l:'Mixed'}].map(g => (
               <button key={g.k} onClick={() => setFilters(prev => ({ ...prev, [`${prefix}GameType`]: g.k }))}
-                style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: pGameType === g.k ? '1px solid #3fb950' : '1px solid rgba(48,54,61,0.6)', background: pGameType === g.k ? 'rgba(63,185,80,0.15)' : 'rgba(22,27,34,0.6)', color: pGameType === g.k ? '#3fb950' : '#8b949e', transition: 'all 0.15s' }}>{g.l}</button>
+                style={{ padding: '4px 12px', borderRadius: 16, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: pGameType === g.k ? '1px solid #3fb950' : '1px solid rgba(48,54,61,0.6)', background: pGameType === g.k ? 'rgba(63,185,80,0.15)' : 'rgba(22,27,34,0.6)', color: pGameType === g.k ? '#3fb950' : '#8b949e', transition: 'all 0.15s' }}>{g.l}</button>
             ))}
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
           <select value={pState} onChange={(e) => setFilters(prev => ({ ...prev, [`${prefix}State`]: e.target.value }))}
-            style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
+            style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
             <option value="all">All States</option>
             {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
               <option key={st} value={st}>{st}</option>
@@ -189,14 +189,14 @@ const PodVenueSearchEngine = ({
             <>
               <input type="number" placeholder="Min $" value={pMinBuyin}
                 onChange={(e) => setFilters(prev => ({ ...prev, [`${prefix}MinBuyin`]: e.target.value }))}
-                style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit' }} />
+                style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit' }} />
               <input type="number" placeholder="Max $" value={pMaxBuyin}
                 onChange={(e) => setFilters(prev => ({ ...prev, [`${prefix}MaxBuyin`]: e.target.value }))}
-                style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit' }} />
+                style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit' }} />
             </>
           )}
           <select value={pSort} onChange={(e) => setFilters(prev => ({ ...prev, [`${prefix}Sort`]: e.target.value }))}
-            style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+            style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
             {userLocation && <option value="distance">Nearest First</option>}
             <option value="trust">Trust Score</option>
             <option value="name">Name A-Z</option>
@@ -232,7 +232,7 @@ const PodVenueSearchEngine = ({
               {showBuyIn && pTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{pTournaments.length}</span> Tournaments</span>}
             </span>
             <button onClick={() => setFilters(prev => ({ ...prev, [`${prefix}State`]: 'all', [`${prefix}VenueType`]: 'all', [`${prefix}GameType`]: 'all', [`${prefix}Radius`]: showBuyIn ? '50' : '100', [`${prefix}MinBuyin`]: '', [`${prefix}MaxBuyin`]: '', [`${prefix}Searched`]: false }))}
-              style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+              style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
           </div>
           {results.length > 0 ? (
             <>
@@ -242,7 +242,7 @@ const PodVenueSearchEngine = ({
                   return (
                     <div key={v.id} style={{ position: 'relative' }}>
                       {d !== null && d < 99999 && (
-                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(63,185,80,0.15)', border: '1px solid rgba(63,185,80,0.3)', fontSize: 11, fontWeight: 700, color: '#3fb950' }}>
+                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(63,185,80,0.15)', border: '1px solid rgba(63,185,80,0.3)', fontSize: 12, fontWeight: 700, color: '#3fb950' }}>
                           {d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`}
                         </div>
                       )}
@@ -293,7 +293,7 @@ const PodVenueSearchEngine = ({
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.3px' }}>Poker Tours & Series Nearby</div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{nearbyTours.length} tour{nearbyTours.length !== 1 ? 's' : ''} · {nearbySeries.length} Series Within {pRadius === 'any' ? 'range' : pRadius + ' mi'}</div>
+                  <div style={{ fontSize: 12, color: '#8b949e', marginTop: 2 }}>{nearbyTours.length} tour{nearbyTours.length !== 1 ? 's' : ''} · {nearbySeries.length} Series Within {pRadius === 'any' ? 'range' : pRadius + ' mi'}</div>
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
@@ -302,7 +302,7 @@ const PodVenueSearchEngine = ({
                   return (
                     <div key={`tour-${t.id || t.tour_code || i}`} style={{ position: 'relative' }}>
                       {td !== null && td < 99999 && (
-                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
                           {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
                         </div>
                       )}
@@ -315,7 +315,7 @@ const PodVenueSearchEngine = ({
                   return (
                     <div key={`series-${s.id || i}`} style={{ position: 'relative' }}>
                       {sd !== null && sd < 99999 && (
-                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(210,168,255,0.15)', border: '1px solid rgba(210,168,255,0.3)', fontSize: 11, fontWeight: 700, color: '#d2a8ff' }}>
+                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(210,168,255,0.15)', border: '1px solid rgba(210,168,255,0.3)', fontSize: 12, fontWeight: 700, color: '#d2a8ff' }}>
                           {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
                         </div>
                       )}
@@ -339,8 +339,8 @@ const PodVenueSearchEngine = ({
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
             {/* Real counts only — show a neutral placeholder while venues load
                 instead of fabricated "700+" / "47+" figures. */}
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '-'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '-'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '-'}</div><div style={{ fontSize: 12, color: '#8b949e' }}>Venues</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '-'}</div><div style={{ fontSize: 12, color: '#8b949e' }}>States</div></div>
           </div>
         </div>
       )}

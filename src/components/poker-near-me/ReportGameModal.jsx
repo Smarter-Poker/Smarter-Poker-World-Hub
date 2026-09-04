@@ -9,6 +9,11 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
+import { triggerHaptic } from '../../hooks/useHaptics';
+import toast from '../../stores/toastStore';
 
 // ─── Haversine distance (miles) ───────────────────────────────────────────────
 function haversineMiles(lat1, lon1, lat2, lon2) {
@@ -248,6 +253,11 @@ export default function ReportGameModal({
     // panel while the user is typing in the notes field.
     const onCloseRef = useRef(onClose);
     useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+    // Mobile phase 3: the modal is only mounted while open, so it owns one
+    // history entry (back gesture closes it) and a scrim tap that merely ENDED
+    // outside the form does not throw the report away.
+    useModalHistory(true, onClose);
+    const scrim = useScrimDismiss(onClose);
 
     // ─── Dialog behaviour: Escape to close, body scroll lock, initial focus ───
     useEffect(() => {
@@ -307,6 +317,8 @@ export default function ReportGameModal({
     // ─── Submit ───────────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!requireOnlineNow(toast)) return;
+        triggerHaptic('medium');
         if (!activeVenue?.id) {
             setError('Please select a venue first.');
             return;
@@ -476,12 +488,12 @@ export default function ReportGameModal({
                             >
                                 <div>
                                     <div style={{ fontWeight: 600, color: '#fff' }}>{v.name}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
+                                    <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
                                         {[v.city, v.state].filter(Boolean).join(', ')}
                                     </div>
                                 </div>
                                 {dist !== null && dist < 9999 && (
-                                    <span style={{ fontSize: 11, color: dist <= GEO_RADIUS_MILES ? '#22c55e' : 'rgba(200,214,229,0.35)', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                                    <span style={{ fontSize: 12, color: dist <= GEO_RADIUS_MILES ? '#22c55e' : 'rgba(200,214,229,0.35)', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
                                         {dist < 0.1 ? '<0.1 mi' : `${dist.toFixed(1)} mi`}
                                     </span>
                                 )}
@@ -500,7 +512,7 @@ export default function ReportGameModal({
                 }}>
                     <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#6ee7ef' }}>{selectedVenue.name}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
+                        <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)' }}>
                             {[selectedVenue.city, selectedVenue.state].filter(Boolean).join(', ')}
                             {distanceMiles < 9999 && ` · ${distanceMiles.toFixed(2)} mi away`}
                         </div>
@@ -576,7 +588,7 @@ export default function ReportGameModal({
                             Overall Rating *
                         </div>
                         <StarRow rating={reviewForm.rating} size={28} onChange={val => handleReviewChange('rating', val)} />
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
                             {reviewForm.rating === 0 ? 'Tap to rate' : ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][reviewForm.rating]}
                         </div>
                     </div>
@@ -622,7 +634,7 @@ export default function ReportGameModal({
                         />
                     </div>
                     {showReview && reviewForm.rating === 0 && reviewForm.reviewText.trim() && (
-                        <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.7)', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.7)', marginTop: 4 }}>
                             Please Add An Overall Star Rating To Submit The Review.
                         </div>
                     )}
@@ -634,32 +646,22 @@ export default function ReportGameModal({
     // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div
-            onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-            style={{
-                position: 'fixed', inset: 0, zIndex: 10000,
-                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 16,
-            }}
+            className="rgm-scrim"
+            role="presentation"
+            {...scrim}
         >
             <div
                 ref={panelRef}
+                className="rgm-panel"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="rgm-title"
                 tabIndex={-1}
                 onClick={e => e.stopPropagation()}
-                style={{
-                    background: 'linear-gradient(160deg, #0e1523 0%, #0a0f1a 100%)',
-                    border: '1px solid rgba(110,231,239,0.2)',
-                    borderRadius: 18, width: '100%', maxWidth: 500,
-                    maxHeight: '92vh', overflow: 'auto', outline: 'none',
-                    boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(110,231,239,0.06)',
-                    animation: 'rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
-                }}
             >
+                <div className="rgm-handle" aria-hidden="true" />
                 {/* ── Header ── */}
-                <div style={{
+                <div className="rgm-head" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}>
@@ -667,14 +669,14 @@ export default function ReportGameModal({
                         <h2 id="rgm-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
                             Report Live Game
                         </h2>
-                        <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(110,231,239,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(110,231,239,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             Geo-Verified · Members Only
                         </p>
                     </div>
-                    <button type="button" onClick={onClose} aria-label="Close report game dialog" style={{
+                    <button type="button" className="sp-icon-btn" onClick={onClose} aria-label="Close report game dialog" style={{
                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
+                        borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'rgba(255,255,255,0.5)', cursor: 'pointer', touchAction: 'manipulation',
                     }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -706,7 +708,7 @@ export default function ReportGameModal({
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                 marginBottom: 18, padding: '5px 12px',
                                 background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
-                                borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#22c55e',
+                                borderRadius: 20, fontSize: 12, fontWeight: 700, color: '#22c55e',
                             }}>
                                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'rgm-pulse 1.5s infinite' }} />
                                 Location Verified · {distanceMiles < 0.1 ? '<0.1' : distanceMiles.toFixed(2)} Mi Away
@@ -833,6 +835,19 @@ export default function ReportGameModal({
 
             {/* ── Scoped CSS ── */}
             <style>{`
+                .rgm-scrim { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: max(env(safe-area-inset-top, 0px), 16px); box-sizing: border-box; }
+                .rgm-panel { position: relative; background: linear-gradient(160deg, #0e1523 0%, #0a0f1a 100%); border: 1px solid rgba(110,231,239,0.2); border-radius: 18px; width: 100%; max-width: 500px; max-height: 92dvh; overflow: auto; outline: none; box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(110,231,239,0.06); animation: rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); box-sizing: border-box; }
+                .rgm-handle { display: none; }
+                .rgm-panel input, .rgm-panel select, .rgm-panel textarea { min-height: 44px; }
+                .rgm-panel button { min-height: 44px; touch-action: manipulation; }
+                /* Mobile phase 3: bottom sheet at or below 600px with a drag handle,
+                   the 44px X below the status bar, 16px inputs (no iOS zoom). */
+                @media (max-width: 600px) {
+                    .rgm-scrim { align-items: flex-end; padding: 0; padding-top: max(env(safe-area-inset-top, 0px), 12px); }
+                    .rgm-panel { max-width: none; border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+                    .rgm-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 8px auto 0; }
+                    .rgm-panel input, .rgm-panel select, .rgm-panel textarea { font-size: 16px !important; }
+                }
                 @keyframes rgm-slideUp {
                     from { opacity: 0; transform: translateY(20px) scale(0.97); }
                     to   { opacity: 1; transform: translateY(0) scale(1); }

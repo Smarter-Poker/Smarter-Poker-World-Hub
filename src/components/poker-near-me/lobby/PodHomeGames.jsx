@@ -259,7 +259,7 @@ export default function PodHomeGames({
               <span style={{ color: '#d4a853', fontWeight: 800 }}>{displayGames.length}</span> Home game{displayGames.length !== 1 ? 's' : ''}
             </span>
             <button onClick={() => { setPodHomeGames([]); setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false })); }}
-              style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+              style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
           </div>
           {loading && <div style={{ display: 'grid', gap: 12 }}>
             {[1,2,3].map(n => <div key={n} style={{ height: 80, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}

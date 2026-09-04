@@ -2,7 +2,7 @@
  * PeakActivityHeatmap — Shows busiest hours per venue
  * Uses venue_live_history to build a 7-day × 24-hour heatmap
  */
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { eventBus, EventType } from '../../engine/EventBus';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -134,64 +134,69 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
         )}
       </div>
 
-      {/* Heatmap Grid */}
-      <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 600 }}>
-          {/* Hour labels */}
-          <div style={{ display: 'flex', marginLeft: 40, marginBottom: 4 }}>
-            {HOUR_LABELS.filter((_, i) => i % 3 === 0).map((label, i) => (
-              <div key={i} style={{
-                flex: '0 0 calc(100% / 8)', color: '#64748b', fontSize: 10, textAlign: 'center',
-              }}>{label}</div>
-            ))}
-          </div>
-
-          {/* Grid rows */}
-          {heatmapGrid.map((row, dayIndex) => (
-            <div key={dayIndex} style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
-              <div style={{ width: 36, color: '#94a3b8', fontSize: 12, textAlign: 'right', paddingRight: 4 }}>
-                {DAY_LABELS[dayIndex]}
-              </div>
-              <div style={{ display: 'flex', flex: 1, gap: 1 }}>
-                {/* UX/A11Y FIX: each cell used to be a plain <div> with only
-                    onMouseEnter/onMouseLeave, so on touch devices (no hover) the
-                    "Sun at 7p — Avg: N tables" readout never appeared and the grid was a
-                    decorative block of coloured squares with no way to read a value.
-                    There was no title, role, tabIndex or aria-label either, so the whole
-                    dataset was invisible to assistive tech. */}
-                {row.map((cell, hourIndex) => (
-                  <div
-                    key={hourIndex}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]}: average ${cell.avg_tables} tables`}
-                    title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} - Avg: ${cell.avg_tables} tables`}
-                    onMouseEnter={() => setHoveredCell(cell)}
-                    onMouseLeave={() => setHoveredCell(null)}
-                    onClick={() => setHoveredCell(cell)}
-                    onFocus={() => setHoveredCell(cell)}
-                    onBlur={() => setHoveredCell(null)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setHoveredCell(cell);
-                      }
-                    }}
-                    style={{
-                      flex: 1, height: 20, borderRadius: 3,
-                      background: intensityColor(cell.intensity),
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      transform: hoveredCell === cell ? 'scale(1.3)' : 'scale(1)',
-                      zIndex: hoveredCell === cell ? 10 : 1,
-                      position: 'relative',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+      {/* Heatmap Grid.
+          Mobile phase 3: this used to be a 600px-wide block inside an
+          `overflowX: auto` scroller, so on a phone five of the seven days and
+          most of the hours were only reachable sideways ("slide to see"). It is
+          now a 24-column grid that fits the container at every width. The
+          grid is ONE control (a heat map) with 168 read-only cells, so the
+          cells are gridcells rather than buttons and the grid carries
+          data-allow-small-target, the same sanction the Preflop 13x13 matrix
+          records in e2e/mobile-budget.spec.ts. Labels stay at 12px; the hour
+          axis shows every third hour so it never overlaps. */}
+      <div
+        role="grid"
+        aria-label="Busiest hours by day"
+        data-allow-small-target="true"
+        style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr)', rowGap: 2, columnGap: 4 }}
+      >
+        {/* Hour labels */}
+        <div aria-hidden="true" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', marginBottom: 2 }}>
+          {HOUR_LABELS.filter((_, i) => i % 3 === 0).map((label, i) => (
+            <div key={i} style={{ color: '#94a3b8', fontSize: 12, textAlign: 'left', whiteSpace: 'nowrap' }}>{label}</div>
           ))}
         </div>
+
+        {/* Grid rows */}
+        {heatmapGrid.map((row, dayIndex) => (
+          <React.Fragment key={dayIndex}>
+            <div role="rowheader" style={{ color: '#94a3b8', fontSize: 12, textAlign: 'right', paddingRight: 2, alignSelf: 'center' }}>
+              {DAY_LABELS[dayIndex]}
+            </div>
+            <div role="row" style={{ display: 'grid', gridTemplateColumns: 'repeat(24, minmax(0, 1fr))', gap: 1 }}>
+              {/* UX/A11Y FIX: each cell used to be a plain <div> with only
+                  onMouseEnter/onMouseLeave, so on touch devices (no hover) the
+                  "Sun at 7p, Avg: N tables" readout never appeared. Tap, focus and
+                  keyboard all set the readout below the grid now. */}
+              {row.map((cell, hourIndex) => (
+                <div
+                  key={hourIndex}
+                  role="gridcell"
+                  tabIndex={0}
+                  aria-selected={hoveredCell === cell ? 'true' : 'false'}
+                  aria-label={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]}: average ${cell.avg_tables} tables`}
+                  title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} - Avg: ${cell.avg_tables} tables`}
+                  onClick={() => setHoveredCell(cell)}
+                  onFocus={() => setHoveredCell(cell)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setHoveredCell(cell);
+                    }
+                  }}
+                  style={{
+                    height: 20, minWidth: 0, borderRadius: 2,
+                    background: intensityColor(cell.intensity),
+                    outline: hoveredCell === cell ? '2px solid #6ee7ef' : 'none',
+                    outlineOffset: -1,
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
+          </React.Fragment>
+        ))}
       </div>
 
       {/* Tooltip */}
@@ -208,14 +213,14 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
 
       {/* Legend */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, justifyContent: 'center' }}>
-        <span style={{ color: '#64748b', fontSize: 11 }}>Less</span>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>Less</span>
         {[0, 20, 40, 60, 80].map(i => (
           <div key={i} style={{
             width: 16, height: 16, borderRadius: 3,
             background: intensityColor(i + 10),
           }} />
         ))}
-        <span style={{ color: '#64748b', fontSize: 11 }}>More</span>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>More</span>
       </div>
     </div>
   );

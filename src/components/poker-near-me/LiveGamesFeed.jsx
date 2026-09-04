@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
 import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, getVenueLogoFallback, estimateWaitTime, saveFilters, loadFilters, isStaleData, getInitialsColor } from './pnm-utils';
 import { normalizeGameName } from './normalize-game';
+import { PAGE_SIZE_LIVE, INITIAL_VISIBLE_LIVE } from './discoveryController';
 import { busEmit } from '../../engine/EventBus';
 import ReportGameModal from './ReportGameModal';
 
@@ -115,7 +116,7 @@ function SourceBadge({ source, isSimulated }) {
     if (isSimulated) {
         return (
             <span style={{
-                fontSize: 10, letterSpacing: '0.3px',
+                fontSize: 12, letterSpacing: '0.3px',
                 color: 'rgba(245,158,11,0.95)',
                 background: 'rgba(245,158,11,0.12)',
                 border: '1px solid rgba(245,158,11,0.3)',
@@ -131,7 +132,7 @@ function SourceBadge({ source, isSimulated }) {
     const isLive = source === 'bravo' || source === 'pokeratlas';
     return (
         <span style={{
-            fontSize: 10, letterSpacing: '0.3px',
+            fontSize: 12, letterSpacing: '0.3px',
             color: isLive ? 'rgba(239,68,68,0.9)' : 'rgba(255,255,255,0.9)',
             background: isLive ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.12)',
             padding: '2px 6px',
@@ -193,6 +194,10 @@ function LiveGamesFeed({
     // ─── REPORT GAME MODAL STATE ───
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [reportVenue, setReportVenue] = useState(null);
+    // Mobile phase 3: the feed is one stacked section among six, so it shows
+    // INITIAL_VISIBLE_LIVE venue cards and grows by PAGE_SIZE_LIVE per tap of
+    // Show More (everything stays reachable on the page; nothing hides behind a tab).
+    const [liveVisibleCount, setLiveVisibleCount] = useState(INITIAL_VISIBLE_LIVE);
     const [reportSuccess, setReportSuccess] = useState(null);
     // ─── STATE ───
     const [liveData, setLiveData] = useState({}); // Mapping: bravo_slug -> live data
@@ -876,7 +881,7 @@ function LiveGamesFeed({
         return (
             <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.04)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, paddingBottom: 5, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(224,232,240,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Game Breakdown</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(224,232,240,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Game Breakdown</span>
                 </div>
                 {displayGames.map((g, i) => {
                     if (!g || typeof g.game !== 'string') return null;
@@ -889,15 +894,15 @@ function LiveGamesFeed({
                                 {normalized.canonical !== 'Unknown' ? normalized.canonical : g.game}
                             </span>
                             {g.buyin && (
-                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
                                     Buy-In: {g.buyin}
                                 </span>
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                            {g.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: 11 }}>{g.players_waiting} Waiting</span>}
+                            {g.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: 12 }}>{g.players_waiting} Waiting</span>}
                             {isPASource ? (
-                                <span style={{ color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
+                                <span style={{ color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 12 }}>
                                     {g.runs || `~${g.tables_running} est.`}
                                 </span>
                             ) : (
@@ -913,7 +918,7 @@ function LiveGamesFeed({
                         style={{ 
                             display: 'block', width: '100%', marginTop: 6, padding: '5px 0', 
                             background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.15)', 
-                            borderRadius: 6, color: '#ffffff', fontSize: 11, fontWeight: 600, 
+                            borderRadius: 6, color: '#ffffff', fontSize: 12, fontWeight: 600, 
                             cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' 
                         }}
                     >
@@ -1058,7 +1063,10 @@ function LiveGamesFeed({
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
                             {handleToggleFavorite && (
                                 <button onClick={(e) => { e.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, transition: 'transform 0.2s' }}
+                                    type="button"
+                                    aria-label={isFav ? 'Remove From Saved' : 'Save Venue'}
+                                    aria-pressed={isFav ? 'true' : 'false'}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', transition: 'transform 0.2s' }}
                                     title={isFav ? 'Remove From Saved' : 'Save Venue'}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke={isFav ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
                                         <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
@@ -1066,7 +1074,7 @@ function LiveGamesFeed({
                                 </button>
                             )}
                             {effectiveLocation && v.latitude && dist < 99999 && (
-                                <span style={{ fontSize: 11, color: '#3fb950', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <span style={{ fontSize: 12, color: '#3fb950', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
                                     {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`}
                                 </span>
@@ -1083,18 +1091,18 @@ function LiveGamesFeed({
                             keep the running badge; catalog rows state capacity honestly. */}
                         {v._isLive && isModelled ? (
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                 title="Modelled from weeks of observed history - not a live scrape">
                                 {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Estimated
                             </span>
                         ) : v._isLive ? (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
                                 {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
                             </span>
                         ) : (
                             v.totalTables > 0 && (
-                                <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.18)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.18)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                     {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''}
                                 </span>
                             )
@@ -1104,7 +1112,7 @@ function LiveGamesFeed({
                             computed for every live venue in mergedVenues and then never rendered —
                             players_waiting only surfaced inside the collapsed per-game breakdown. */}
                         {v._isLive && v.totalWait > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
                                 {v.totalWait} Waiting{v.waitEstimate && v.waitEstimate.label ? ` - ${v.waitEstimate.label}` : ''}
                             </span>
                         )}
@@ -1112,13 +1120,13 @@ function LiveGamesFeed({
                         {/* WIRING FIX: checkinCounts was passed by both call sites and never read,
                             so the Live tab showed no check-in signal at all. */}
                         {checkinCount > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.28)' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.28)' }}>
                                 {checkinCount} Here Today
                             </span>
                         )}
 
                         {!v._isLive && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>No Live Data</span>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>No Live Data</span>
                         )}
                     </div>
 
@@ -1129,7 +1137,7 @@ function LiveGamesFeed({
                                 const chipStyle = getGameChipStyle(g);
                                 return (
                                     <span key={g || idx} style={{
-                                        padding: '4px 10px', borderRadius: 5, fontSize: 11.5, fontWeight: 600,
+                                        padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600,
                                         background: chipStyle.bg || 'rgba(255,255,255,0.06)',
                                         color: chipStyle.color || 'rgba(255,255,255,0.65)',
                                         border: `1px solid ${chipStyle.border || 'rgba(255,255,255,0.1)'}`,
@@ -1148,11 +1156,11 @@ function LiveGamesFeed({
                                when we have it, otherwise say plainly that we have no data. */
                             <div style={{ padding: '8px 0', marginTop: 4 }}>
                                 {Array.isArray(v.stakes_cash) && v.stakes_cash.length > 0 ? (
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                         Stakes Played {v.stakes_cash.slice(0, 4).join('  ')}
                                     </span>
                                 ) : (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                         No Live Game Data
                                     </span>
                                 )}
@@ -1163,8 +1171,8 @@ function LiveGamesFeed({
                     </div>
 
                     {/* === ACTION BAR === */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8 }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             {user && (
                                 <button onClick={(e) => { e.stopPropagation(); setReportVenue({ id: v.id, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
@@ -1209,8 +1217,8 @@ function LiveGamesFeed({
                     {trustScore > 0 && (
                         <div style={{ paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                <span style={{ fontSize: 11.5, fontWeight: 700, color: trustColor }}>Trust: {trustLabel}</span>
-                                <span style={{ fontSize: 11.5, fontWeight: 800, color: trustColor }}>{trustScore}/5</span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: trustColor }}>Trust: {trustLabel}</span>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: trustColor }}>{trustScore}/5</span>
                             </div>
                             <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${trustPct}%`, borderRadius: 3, background: `linear-gradient(90deg, ${trustColor}, ${trustColor}77)`, boxShadow: `0 0 8px ${trustColor}33`, transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
@@ -1222,9 +1230,9 @@ function LiveGamesFeed({
                     {v.last_updated && (() => {
                         const staleInfo = isStaleData(v.last_updated);
                         return (
-                            <div style={{ marginTop: 6, fontSize: 10, color: staleInfo.stale ? 'rgba(245,158,11,0.6)' : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
+                            <div style={{ marginTop: 6, fontSize: 12, color: staleInfo.stale ? 'rgba(245,158,11,0.6)' : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
                                 title={new Date(v.last_updated).toLocaleString()}>
-                                {staleInfo.stale && (<span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>)}
+                                {staleInfo.stale && (<span style={{ fontSize: 12, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>)}
                                 Updated {staleInfo.age}
                             </div>
                         );
@@ -1303,7 +1311,7 @@ function LiveGamesFeed({
                                 >
                                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
                                     {s.totalTables > 0 && (
-                                        <span style={{ flexShrink: 0, fontSize: 11, color: '#3fb950', fontWeight: 700 }}>{s.totalTables}</span>
+                                        <span style={{ flexShrink: 0, fontSize: 12, color: '#3fb950', fontWeight: 700 }}>{s.totalTables}</span>
                                     )}
                                 </button>
                             ))}
@@ -1328,14 +1336,14 @@ function LiveGamesFeed({
                     </svg>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data - Intelligence Engines Are Syncing</div>
-                        <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
                             Live Scrapers Are Temporarily Offline. Showing Last-Known Game Data - No Information Has Been Lost.
                         </div>
                     </div>
                     <button
                         onClick={() => fetchGlobalLiveData(true)}
                         disabled={isRefreshing}
-                        style={{ flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 7, padding: '5px 10px', color: '#f59e0b', fontSize: 11, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
+                        style={{ flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 7, padding: '5px 10px', color: '#f59e0b', fontSize: 12, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
                     >
                         {isRefreshing ? 'Retrying...' : 'Retry'}
                     </button>
@@ -1360,7 +1368,7 @@ function LiveGamesFeed({
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
                             {globalStats.dataMode === 'estimated' ? 'Estimated Table Counts' : 'Some Table Counts Are Estimated'}
                         </div>
-                        <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
                             Cards Marked ESTIMATED Are Modelled From Weeks Of Observed History, Not A Live Scrape.
                         </div>
                     </div>
@@ -1381,7 +1389,7 @@ function LiveGamesFeed({
                     </svg>
                     <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>Live Data May Be Outdated</div>
-                        <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.8)', marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.8)', marginTop: 2 }}>
                             Last Network Sync: {globalStats.lastScrape ? timeAgo(globalStats.lastScrape) : 'Unknown'}. Intelligence Engines May Be Experiencing Delays.
                         </div>
                     </div>
@@ -1434,7 +1442,7 @@ function LiveGamesFeed({
                                     disabled={isRefreshing}
                                     style={{ 
                                         background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.2)', 
-                                        borderRadius: 6, padding: '4px 10px', color: '#ffffff', fontSize: 11, 
+                                        borderRadius: 6, padding: '4px 10px', color: '#ffffff', fontSize: 12, 
                                         fontWeight: 600, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit',
                                         display: 'flex', alignItems: 'center', gap: 4,
                                     }}
@@ -1448,11 +1456,11 @@ function LiveGamesFeed({
 
                             {/* Color Coded Map Legend for Venues */}
                             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, padding: '0 4px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Casino</span></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Poker Club</span></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 6px rgba(59,130,246,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Charity</span></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8', boxShadow: '0 0 6px rgba(148,163,184,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Home Game</span></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Poker Tour</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Casino</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Poker Club</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 6px rgba(59,130,246,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Charity</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8', boxShadow: '0 0 6px rgba(148,163,184,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Home Game</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Poker Tour</span></div>
                             </div>
                             </>
                         )}
@@ -1497,9 +1505,21 @@ function LiveGamesFeed({
                                    375px mobile baseline each card got ~170px — and an inline
                                    style cannot be overridden from a stylesheet. Moved to
                                    `.lgf-venue-grid`, which collapses to one column <= 768px. */
+                                <>
                                 <div className="lgf-venue-grid" style={{ display: 'grid', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
-                                    {mergedVenues.slice(0, 200).map((v, i) => renderLiveVenueCard(v, i))}
+                                    {mergedVenues.slice(0, Math.min(200, liveVisibleCount)).map((v, i) => renderLiveVenueCard(v, i))}
                                 </div>
+                                {mergedVenues.length > liveVisibleCount && liveVisibleCount < 200 && (
+                                    <button
+                                        type="button"
+                                        className="lgf-show-more"
+                                        onClick={() => setLiveVisibleCount((n) => n + PAGE_SIZE_LIVE)}
+                                        style={{ width: '100%', minHeight: 44, marginBottom: 16, borderRadius: 10, border: '1.5px solid rgba(148,163,184,0.2)', background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}
+                                    >
+                                        Show More Venues ({Math.min(200, mergedVenues.length) - liveVisibleCount} More)
+                                    </button>
+                                )}
+                                </>
                             )
                         )}
                     </>
@@ -1526,7 +1546,7 @@ function LiveGamesFeed({
             {/* ─── REPORT SUCCESS TOAST ─── */}
             {reportSuccess && (
                 <div style={{
-                    position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+                    position: 'fixed', bottom: 'calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 84px)', left: '50%', transform: 'translateX(-50%)',
                     background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff',
                     padding: '12px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700,
                     boxShadow: '0 8px 32px rgba(34,197,94,0.4)', zIndex: 9999,
@@ -1542,8 +1562,12 @@ function LiveGamesFeed({
             {user && !reportModalOpen && (
                 <button
                     onClick={() => { setReportVenue(null); setReportModalOpen(true); }}
+                    type="button"
+                    aria-label="Report A Live Game"
+                    className="sp-icon-btn"
                     style={{
-                        position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
+                        // Above the app footer (mobile standard: never hardcode 56).
+                        position: 'fixed', bottom: 'calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 16px)', right: 16, zIndex: 900,
                         width: 52, height: 52, borderRadius: '50%',
                         background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
                         border: '2px solid rgba(255,255,255,0.2)',
@@ -1579,10 +1603,15 @@ function LiveGamesFeed({
                    The orphan .lgf-sidebar / .lgf-filter-toggle rules that used to live
                    here styled elements that were never rendered — removed with the
                    dead Filters button. */
-                .lgf-venue-grid { grid-template-columns: repeat(2, 1fr); }
+                /* minmax(0, 1fr), not 1fr: a bare 1fr track is minmax(auto, 1fr), so a
+                   card whose action row will not wrap sets the track to its own
+                   min-content width and the whole column runs past the phone's right
+                   edge (measured 367px inside a 275px container at 375, mobile phase 3). */
+                .lgf-venue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                .lgf-venue-grid > * { min-width: 0; }
                 @media (max-width: 768px) {
                     .lgf-layout { flex-direction: column !important; }
-                    .lgf-venue-grid { grid-template-columns: 1fr; }
+                    .lgf-venue-grid { grid-template-columns: minmax(0, 1fr); }
                 }
             `}</style>
         </div>
