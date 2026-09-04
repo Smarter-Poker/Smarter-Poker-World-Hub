@@ -191,7 +191,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(stage).toHaveCSS('overflow', 'hidden');
       await expect(artwork).toHaveCount(1);
       await expect(artwork).toBeVisible();
-      await expect(artwork).toHaveCSS('object-fit', 'contain');
+      await expect(artwork).toHaveCSS('object-fit', 'fill');
       await expect(artwork).toHaveCSS('filter', 'none');
       await artwork.evaluate(async (image: HTMLImageElement) => {
         if (!image.complete || image.naturalWidth === 0) await image.decode();
@@ -199,8 +199,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();
-      const displayBounds = definition!.artwork.contentBounds;
-      expect(Math.abs(stageBox!.width / stageBox!.height - displayBounds.width / displayBounds.height)).toBeLessThan(0.01);
+      // GOLD STANDARD (Dan, 2026-09-04): every world footer is Club Arena's
+      // footer by size and fit — full bleed edge to edge, and exactly
+      // `clamp(44px, 13.72vw, 132px)` tall. Fourteen aspect-derived heights is
+      // what this replaced.
+      expect(Math.abs(stageBox!.width - 320)).toBeLessThanOrEqual(1);
+      expect(Math.abs(stageBox!.height - expectedClubFooterHeight(320))).toBeLessThanOrEqual(3);
       expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
       expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
       expect(await artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([
@@ -245,13 +249,18 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toHaveAttribute('data-footer-world', 'training');
       await expect(nav).toHaveAttribute(
         'data-footer-artwork',
-        '/images/footers/world-hub/footer-training-games.png'
+        '/images/footers/world-hub/footer-training-games-v2.png'
       );
       await expect(nav).toHaveCSS('position', 'fixed');
       await expect(nav).toHaveCSS('transform', 'none');
       await expect(nav).toHaveCSS('transition-duration', '0s');
 
+      // Travel to the end of the page and back. Since 2026-09-04 the footer
+      // hides while the reader is moving down (Dan's Facebook behaviour), so
+      // the weld is asserted where it is shown — after coming back up.
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(80);
       // ServiceWorkerUpdater can replace the document once after a fresh
       // production build. WebKit may observe the locator during that narrow
       // replacement window even though the fixed footer is present before and
@@ -262,6 +271,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       expect(Math.abs(navBox!.x)).toBeLessThanOrEqual(1);
       expect(Math.abs(navBox!.y + navBox!.height - viewport.height)).toBeLessThan(4);
       expect(navBox!.width).toBeLessThanOrEqual(viewport.width + 1);
+      // The Club Arena height token, at every supported width. This is the one
+      // assertion that keeps the estate looking like a single product.
+      expect(Math.abs(navBox!.height - expectedClubFooterHeight(viewport.width))).toBeLessThanOrEqual(3);
       expect(await nav.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 
       const links = nav.getByRole('link');
@@ -280,6 +292,60 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const clearanceBox = await clearance.boundingBox();
       expect(clearanceBox).not.toBeNull();
       expect(Math.abs(clearanceBox!.height - navBox!.height)).toBeLessThan(2);
+    }
+  });
+
+  /**
+   * Dan, 2026-09-04: "any other pages that you can 'scroll up to see more'
+   * need this same disappearing footer functionality... implement this
+   * everywhere its needed."
+   *
+   * Every world, plus the legacy fallback. The page is forced tall so the
+   * assertion measures the behaviour rather than whether that particular route
+   * happened to have enough content to scroll on the day CI ran.
+   */
+  test('every footer drops while the reader travels down and returns on the way back up', async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    for (const entry of [...WORLD_ROUTES, { id: 'global', route: '/hub/install' }]) {
+      await visit(page, entry.route);
+      const nav = page.locator('[data-global-bottom-nav="true"]');
+      await expect(nav).toHaveCount(1);
+      await expect(nav).toHaveAttribute('data-footer-hide-on-scroll', 'true');
+      await expect(nav).toHaveAttribute('data-footer-hidden', 'false');
+
+      await page.evaluate(() => {
+        document.body.style.minHeight = '400vh';
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(60);
+
+      // Down, in steps, the way a thumb moves.
+      await page.evaluate(() => window.scrollTo(0, 200));
+      await page.evaluate(() => window.scrollTo(0, 600));
+      await expect(nav, `${entry.id} should hide while reading downward`).toHaveAttribute(
+        'data-footer-hidden',
+        'true'
+      );
+      const hiddenBox = await nav.boundingBox();
+      expect(hiddenBox, `${entry.id} keeps a box while parked`).not.toBeNull();
+      expect(
+        hiddenBox!.y,
+        `${entry.id} must park below the viewport, not shrink or fade`
+      ).toBeGreaterThanOrEqual(844 - 1);
+
+      // Back up, and it is there again.
+      await page.evaluate(() => window.scrollTo(0, 400));
+      await expect(nav, `${entry.id} should return on the way back up`).toHaveAttribute(
+        'data-footer-hidden',
+        'false'
+      );
+      const shownBox = await nav.boundingBox();
+      expect(shownBox).not.toBeNull();
+      expect(Math.abs(shownBox!.y + shownBox!.height - 844)).toBeLessThan(4);
     }
   });
 

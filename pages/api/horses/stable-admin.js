@@ -83,7 +83,43 @@ const HORSE_FIELDS = [
   'is_active',
 ];
 
-/** Settings keys the panel owns. `id` is handled separately. */
+/**
+ * Settings keys the panel owns. `id` is handled separately.
+ *
+ * These are the SOCIAL CONTENT engine's settings and nothing else. The row is
+ * read by `src/content-engine/pipeline/PipelineCommander.js`, which writes
+ * posts and stories; `ai_model` and `temperature` steer that writing and are
+ * legitimate.
+ *
+ * The four `grinder_*` keys that used to sit at the end of this list were
+ * REMOVED on 2026-09-04. They were write-only: this route accepted them, the
+ * console rendered them, and nothing on the platform ever read one back.
+ *
+ *   - `grinder_ai_model` was worse than inert, it was FALSE. It offered an
+ *     operator a choice between GPT-4o and GPT-4o Mini for the poker fleet.
+ *     The horses run HorseLogic, a deterministic engine in the Club Arena
+ *     repo; `grep -rl "openai\|gpt-4\|anthropic" server/src` there returns
+ *     nothing, and that repo contains no reference to `content_settings` at
+ *     all. Dan flagged the control himself: the horses "run off their own
+ *     deterministic engine and programming, not off Chat GPT".
+ *   - `grinder_max_tables`, `grinder_daily_hours` and `grinder_starting_chips`
+ *     named real levers (simultaneous tables per horse, session length,
+ *     buy-in size) that the engine genuinely has and genuinely decides for
+ *     itself. An operator setting one of them changed a database column and
+ *     nothing else, which is the more expensive lie of the two: the fleet
+ *     carries on at whatever the engine chose while the console reports the
+ *     operator's number back to them.
+ *
+ * The controls that DO steer seating live on Fleet Command, which writes
+ * `ca_horse_fleet_policy` through `/api/horses/fleet-admin` and which the
+ * engine reads once per club per cycle. If one of the three levers above is
+ * wanted, it belongs there, as a policy field with an engine reader, not here.
+ *
+ * The `content_settings` COLUMNS still exist and still hold their last written
+ * values. Dropping them is a Tier 3 migration for its own branch; this route
+ * simply stops accepting writes to them, so the values can no longer move and
+ * no screen can imply they mean anything.
+ */
 const SETTINGS_FIELDS = [
   'posts_per_day',
   'min_delay_minutes',
@@ -93,10 +129,6 @@ const SETTINGS_FIELDS = [
   'engine_enabled',
   'auto_publish',
   'peak_hours',
-  'grinder_max_tables',
-  'grinder_daily_hours',
-  'grinder_starting_chips',
-  'grinder_ai_model',
 ];
 
 const SETTING_RANGES = {
@@ -104,9 +136,6 @@ const SETTING_RANGES = {
   min_delay_minutes: [5, 180],
   max_delay_minutes: [15, 300],
   temperature: [0, 1],
-  grinder_max_tables: [1, 4],
-  grinder_daily_hours: [1, 24],
-  grinder_starting_chips: [1000, 100000],
 };
 
 /**

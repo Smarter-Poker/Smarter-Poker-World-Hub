@@ -3676,10 +3676,14 @@ export default function HorsesAdmin() {
               than a confident second reading from a source the engine does not
               write.
 
-              The four grinder_* controls moved to the Settings tab, under
-              Grinder Horses: they are content_settings rows, not the fleet
-              policy, so Fleet Command does not supersede them and they are
-              labelled there to say which is which.
+              The four grinder_* controls moved to the Settings tab in Phase 3
+              and were DELETED there on 2026-09-04. They were content_settings
+              rows that nothing read: not this repo, not the engine. One of
+              them, AI Model, additionally claimed the fleet runs on GPT-4o,
+              and the fleet has never run on a language model. Fleet Command
+              does not supersede them, it replaces them - it is the only place
+              a horse-seating decision is made, and the only one the engine
+              reads.
 
               The panel's Club Management "Not Built Yet" list (Add All Horses
               To Shark Club, Add All Horses To Club JAQK, Start Auto-Join, Stop
@@ -3827,52 +3831,51 @@ export default function HorsesAdmin() {
                   </div>
                 </div>
 
-                {/* MOVED HERE FROM THE GRINDER TAB IN PHASE 3, unchanged.
-                    These four are content_settings rows, which is a different
-                    thing from the fleet policy: Fleet Command edits
-                    ca_horse_fleet_policy through /api/horses/fleet-admin, and
-                    nothing on this card steers seating. They are labelled to
-                    say so, because two screens carrying a number called "max
-                    tables" is exactly the confusion Phase 3 set out to end. */}
+                {/* THE FOUR GRINDER CONTROLS WERE DELETED HERE ON 2026-09-04.
+                    Phase 3 moved them off the Grinder tab and labelled them
+                    "not the fleet policy", which was true and was not enough:
+                    a control an operator can turn is a promise that turning it
+                    does something, and turning any of these four did nothing at
+                    all. Nothing on the platform read one back - not this repo,
+                    not the engine, which has no reference to content_settings
+                    anywhere in server/src.
+
+                    "AI Model" was the one Dan named. It offered GPT-4o or
+                    GPT-4o Mini for the poker fleet, and the fleet has never run
+                    on a language model: HorseLogic, HorseBehavior and
+                    HorseEvEngine decide every action, deterministically, and
+                    the Club Arena repo carries no LLM dependency at all.
+
+                    The card stays, with no controls, because an operator who
+                    remembers these settings needs to be told where the real
+                    ones are rather than left to conclude the page is broken.
+                    __tests__/horses-no-language-model-for-the-fleet.test.mjs
+                    fails if a model choice for the horses ever comes back. */}
                 <div className={styles.settingCard}>
-                  <h3>Grinder Horses</h3>
-                  <p style={{ color: T.dim, fontSize: 12, margin: '0 0 10px' }}>
-                    Content Settings, Not The Fleet Policy. The Caps, The Kill Switch And The
-                    Per-Club Quotas That Decide How Many Horses Take Seats Live On Fleet Command.
+                  <h3>Horse Fleet</h3>
+                  <p style={{ color: T.dim, fontSize: 12, margin: 0 }}>
+                    The Horses Decide Their Own Play. HorseLogic Is A Deterministic Engine In
+                    Club Arena, Not A Language Model, And It Takes No Settings From This Page.
                   </p>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-max-tables">Max Tables Per Horse</label>
-                    <select id="g-max-tables" value={settings.grinder_max_tables ?? 4}
-                      onChange={(e) => updateSetting('grinder_max_tables', parseInt(e.target.value, 10))}>
-                      {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'Table' : 'Tables'}</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-hours">Daily Play Hours</label>
-                    <select id="g-hours" value={settings.grinder_daily_hours ?? 16}
-                      onChange={(e) => updateSetting('grinder_daily_hours', parseInt(e.target.value, 10))}>
-                      {[8, 12, 16, 24].map((n) => <option key={n} value={n}>{n} Hours</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-chips">Starting Chips</label>
-                    <input
-                      id="g-chips" type="number" min="1000" max="100000" step="500"
-                      value={settings.grinder_starting_chips ?? 10000}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (Number.isFinite(v)) updateSetting('grinder_starting_chips', v);
-                      }}
-                    />
-                  </div>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-model">AI Model</label>
-                    <select id="g-model" value={settings.grinder_ai_model ?? 'gpt-4o'}
-                      onChange={(e) => updateSetting('grinder_ai_model', e.target.value)}>
-                      <option value="gpt-4o">GPT-4o (Best)</option>
-                      <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
-                    </select>
-                  </div>
+                  <p style={{ color: T.dim, fontSize: 12, margin: '10px 0 0' }}>
+                    Seating Is Governed By Fleet Command: The Kill Switch, The Caps, The
+                    Occupancy Bias And The Per-Club Policy All Live There, And The Engine
+                    Reads Them Once Per Club Per Cycle.
+                  </p>
+                  {/* Gated on the tab this operator can actually reach. A
+                      settings.write account does not necessarily hold
+                      fleet.read, and a button that lands on a panel the nav
+                      will not show is worse than no button. */}
+                  {navTabs.some((t) => t.id === 'fleet') && (
+                    <button
+                      type="button"
+                      className={styles.linkBtn}
+                      style={{ marginTop: 12 }}
+                      onClick={() => setActiveTab('fleet')}
+                    >
+                      Open Fleet Command
+                    </button>
+                  )}
                 </div>
 
                 <div className={`${styles.settingCard} ${styles.fullWidth}`}>

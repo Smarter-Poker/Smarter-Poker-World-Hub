@@ -46,7 +46,7 @@ node scripts/verify-deploy.js --wait 60
 > **CLAIMING SUCCESS WITHOUT VERIFICATION IS FORBIDDEN.** On 4/14/2026, unresolved merge conflicts in 4 files blocked ALL deployments because agents pushed without verifying. Every push MUST be verified to be healthy on production.
 
 > [!WARNING]
-> **Vercel Subfolder Ignore Trap:** If you are working in a repository where the Vercel Root Directory is set to a subfolder (e.g., `web/` for frontend, `engine/` for backend), Vercel will silently **IGNORE** any GitHub pushes that only contain backend files. If you only modify backend code, you **MUST** make a dummy commit to the frontend directory (e.g., `echo "<!-- trigger $(date) -->" >> web/README.md`) to force Vercel to auto-deploy, or run `npx vercel --prod` locally.
+> **Vercel Subfolder Ignore Trap:** If you are working in a repository where the Vercel Root Directory is set to a subfolder (e.g., `web/` for frontend, `engine/` for backend), Vercel will silently **IGNORE** any GitHub pushes that only contain backend files. If you only modify backend code, you **MUST** make a dummy commit to the frontend directory (e.g., `echo "<!-- trigger $(date) -->" >> web/README.md`) to force Vercel to auto-deploy, or push again through `bash scripts/git-safe-push.sh`. **Do not run the Vercel CLI** - CLAUDE.md 1.3 forbids `vercel deploy` and `vercel --prod` outright (corrected 2026-09-04; this used to say "or run the CLI locally"). A CLI deploy skips the build gate, the secret scan and the post-deploy SHA verification, and has produced duplicate and out-of-order deployments here before.
 
 ### Rule 3: Write SQL LAST — After Building and Testing
 

@@ -17,10 +17,13 @@
  * check stops them coming back. Ported from Club Arena's identically-named
  * script (which has no exception because that repo may not deploy at all).
  *
- * THE ONE EXCEPTION: `.github/workflows/club-arena-scheduled-deploy.yml`
- * POSTs the `VERCEL_HUB_VANGUARD_DEPLOY_HOOK` daily as a safety net for a
- * missed Club Arena sync. It is CHECK-6c allowlisted and OWNS the hook.
- * Nothing else may call a deploy hook or the deployments API.
+ * THERE IS NO EXCEPTION ANY MORE. This header used to name
+ * `.github/workflows/club-arena-scheduled-deploy.yml` as the sole sanctioned
+ * caller of `VERCEL_HUB_VANGUARD_DEPLOY_HOOK` - a daily safety net for a
+ * missed Club Arena sync. Both the sync and that workflow were retired on
+ * 2026-09-03 when Club Arena moved to its own origin, and ALLOWED below has
+ * been empty since. The header outlived the code by a day; corrected
+ * 2026-09-04. Nothing may call a deploy hook or the deployments API.
  *
  * Usage: node scripts/ci/check-no-vercel-deploy.mjs
  * Exit:  0 clean · 1 something else can deploy · 2 script error

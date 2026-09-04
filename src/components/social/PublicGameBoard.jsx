@@ -487,7 +487,7 @@ const PostCard = React.memo(
                         text: payload.content || '',
                         authorId: payload.authorId,
                         parentId: payload.parentId || null,
-                        authorName: author?.username || author?.full_name || 'Player',
+                        authorName: author?.full_name || author?.username || 'Player',
                         authorAvatar: author?.avatar_url || null,
                         authorUsername: author?.username || null,
                         time: 'Just now',
@@ -695,7 +695,7 @@ const PostCard = React.memo(
             text: c.content,
             authorId: c.author_id,
             parentId: c.parent_id || null,
-            authorName: author.username || author.full_name || 'Player',
+            authorName: author.full_name || author.username || 'Player',
             authorAvatar: author.avatar_url || null,
             authorUsername: author.username || null,
             time: timeAgo(c.created_at),
@@ -942,11 +942,16 @@ const PostCard = React.memo(
 
     return (
       <div
+        className="no-capitalize"
+        data-preserve-case="true"
+        data-post-card="true"
+        data-user-content="true"
         style={{
           background: C.card,
           boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
           marginBottom: 2,
           overflow: 'hidden',
+          textTransform: 'none',
         }}
       >
         <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -973,7 +978,9 @@ const PostCard = React.memo(
           <div style={{ flex: 1 }}>
             <Link
               href={`/hub/user/${post.author?.username || 'player'}`}
-              style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}
+              className="no-capitalize"
+              data-preserve-case="true"
+              style={{ fontWeight: 600, color: C.text, textDecoration: 'none', textTransform: 'none' }}
             >
               {post.author?.name || 'Player'}
             </Link>
@@ -1207,7 +1214,13 @@ const PostCard = React.memo(
           </div>
         ) : (
           displayContent && (
-            <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
+            <div
+              className="no-capitalize post-content"
+              data-preserve-case="true"
+              data-post-content="true"
+              data-user-content="true"
+              style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4, textTransform: 'none' }}
+            >
               {(() => {
                 // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
                 let displayText = displayContent;
@@ -2366,19 +2379,33 @@ const PostCard = React.memo(
                         </div>
                       ) : (
                         <div
+                          className="no-capitalize comment-content"
+                          data-preserve-case="true"
+                          data-comment-content="true"
+                          data-user-content="true"
                           style={{
                             background: C.bg,
                             borderRadius: 12,
                             padding: '6px 10px',
                             display: 'inline-block',
                             minWidth: '80%',
+                            textTransform: 'none',
                           }}
                         >
-                          <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>
+                          <div
+                            className="no-capitalize"
+                            data-preserve-case="true"
+                            style={{ fontWeight: 600, fontSize: 13, color: C.text, textTransform: 'none' }}
+                          >
                             {c.authorName}
                           </div>
                           {c.text && (
-                            <div style={{ fontSize: 14, color: C.text }}>
+                            <div
+                              className="no-capitalize"
+                              data-preserve-case="true"
+                              data-user-content="true"
+                              style={{ fontSize: 14, color: C.text, textTransform: 'none' }}
+                            >
                               {renderMentions(c.text)}
                             </div>
                           )}
