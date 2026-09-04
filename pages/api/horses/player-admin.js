@@ -76,6 +76,7 @@ import { runPaged } from '../../../src/lib/horses/paged.js';
 import { pageFor, shapeList } from '../../../src/lib/horses/listShape.js';
 import { bool, enumOf, int, isoDate, searchTerm, text, uuid } from '../../../src/lib/horses/validate.js';
 import {
+  REASON_NEEDS_NOTE,
   RESTRICTION_REASON_CODES,
   RESTRICTION_SCOPES,
   needsApproval,
@@ -256,6 +257,32 @@ async function enforcementState(db, requestId) {
   return data.restrictions_enforced === true;
 }
 
+/**
+ * Display names for a set of player ids.
+ *
+ * Best effort: a failed lookup leaves the names out and the panel falls back
+ * to a short id. A queue that will not render because a name could not be
+ * read is worse than a queue with an id in it.
+ */
+async function namesFor(db, ids) {
+  const wanted = [...new Set((ids || []).filter(Boolean))];
+  const out = new Map();
+  if (wanted.length === 0) return out;
+  const { data, error } = await db
+    .from('profiles')
+    .select('id, display_name, username, is_horse')
+    .in('id', wanted.slice(0, 200));
+  if (error || !Array.isArray(data)) return out;
+  for (const row of data) {
+    out.set(row.id, {
+      display_name: row.display_name,
+      username: row.username,
+      is_horse: row.is_horse === true,
+    });
+  }
+  return out;
+}
+
 /** Does this operator see money figures? Phase 3 M-3's rule, reused. */
 function moneyVisible(op) {
   return hasPermission(op?.permissions, PERMISSIONS.MONEY_READ);
@@ -387,10 +414,15 @@ async function sectionObservations(db, query, requestId) {
     { unavailable: 'The Observation Log Is Unavailable', requestId }
   );
 
+  // expires_at is the clock and status is only the intent, and the sweep
+  // that tidies status has no caller yet - so counting on status alone
+  // over-reports in precisely the state the platform is guaranteed to be
+  // in. The predicate is fn_ca_player_restricted's, exactly.
   const { count, error } = await db
     .from('ca_player_restrictions')
     .select('id', { count: 'exact', head: true })
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
   const rows = Array.isArray(data.rows) ? data.rows : [];
   const total = typeof data.total === 'number' ? data.total : null;
@@ -432,8 +464,14 @@ async function sectionTickets(db, query, requestId) {
     throw mapDbError(result.error, 'The Ticket Queue', { route: 'horses.player-admin' });
   }
 
+  // The PLAYER'S NAME, so the Player column can render one. A ticket list
+  // that shows a column of identical "Open" buttons under a header reading
+  // PLAYER tells an operator nothing about whose ticket it is.
+  const names = await namesFor(db, (result.data || []).map((t) => t.user_id));
+
   const now = Date.now();
   const rows = (result.data || []).map((t) => ({
+    ...names.get(t.user_id),
     ...t,
     // SLA ageing, computed here rather than in the browser so the CSV and
     // the table agree and so a clock-skewed laptop cannot change a queue's
@@ -463,7 +501,12 @@ async function sectionReports(db, query, requestId) {
   if (result.error) {
     throw mapDbError(result.error, 'The Reports Queue', { route: 'horses.player-admin' });
   }
-  return shapeList(result, page, result.data || [], { requestId });
+  const names = await namesFor(db, (result.data || []).map((r) => r.reported_user_id));
+  const rows = (result.data || []).map((r) => ({
+    ...r,
+    reported_name: names.get(r.reported_user_id)?.display_name ?? null,
+  }));
+  return shapeList(result, page, rows, { requestId });
 }
 
 // ── ACTIONS ─────────────────────────────────────────────────────────────────
@@ -498,7 +541,7 @@ async function actionRestrict(db, op, req, res, body) {
   // had written nothing - and for any other reason code their explanation
   // was silently dropped and the restriction written with no note at all.
   const note = noteOrThrow(body.note, 2000);
-  if (reasonCode === 'other' && !note) {
+  if (reasonCode === REASON_NEEDS_NOTE && !note) {
     throw badRequest('Reason Code Other Needs A Note Saying Why', 'note_required');
   }
 
@@ -591,6 +634,25 @@ async function actionRestrict(db, op, req, res, body) {
         },
       });
     }
+
+    // THIS KEY HAS ALREADY RUN. fn_ca_player_restrict has NO idempotency
+    // key of its own - it takes no p_op_id - so it is exactly the case
+    // approvals.js describes: "a kind whose RPC has no key of its own has
+    // no such protection, so the fact is surfaced rather than collapsed
+    // into required:false and the caller decides what a replay means".
+    //
+    // `executed` is a RELEASED status, so without this the replay falls
+    // straight through to the write. The unique index catches the common
+    // case, but NOT after a lift: restrict, approve, execute, lift, press
+    // Apply It Now again, and a second restriction is written under an
+    // approval that was already consumed. The panel makes that two clicks.
+    if (approvalRef.alreadyExecuted) {
+      throw new ApiError(
+        409,
+        'That Restriction Was Already Applied Under This Key. Reload The Panel',
+        'already_executed'
+      );
+    }
   }
 
   const data = await callPlayerRpc(
@@ -628,7 +690,7 @@ async function actionRestrict(db, op, req, res, body) {
     }
   }
 
-  await auditOperatorAction(op, req, {
+  const auditResult = await auditOperatorAction(op, req, {
     action: 'player.restrict',
     targetType: 'profile',
     targetId: userId,
@@ -649,12 +711,22 @@ async function actionRestrict(db, op, req, res, body) {
     },
   });
 
+  // THE AUDIT ROW IS PART OF THE ACT. auditOperatorAction never throws by
+  // design - the restriction is already written by the time it runs - but
+  // that used to mean a dropped row was invisible: a player's access
+  // taken away with nothing in admin_audit_log, and the operator told
+  // "Restriction Applied". The route already surfaces a refused approval
+  // close in this position for a strictly less serious failure.
+  const auditRecorded = auditResult?.ok !== false;
+
   return {
     restriction: data.restriction ?? null,
     isHorse: data.is_horse === true,
     enforced,
     approvalCloseRefused: executionNote,
-    message: restrictionMessage(enforced, scope),
+    auditRecorded,
+    message: restrictionMessage(enforced, scope)
+      + (auditRecorded ? '' : '. WARNING: The Audit Row Could Not Be Written'),
   };
 }
 

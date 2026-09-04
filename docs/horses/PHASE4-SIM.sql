@@ -429,6 +429,24 @@ begin
   end if;
   raise notice 'ASSERT OK: after the hold, the same loosening is allowed.';
 
+  -- ══ 8b. CREATING A ROW MUST NOT LOOSEN THE FIELD NOBODY NAMED ═════
+  -- The case the first version of this file did not have, and the reason
+  -- it did not catch a blocker: every create probe above passes an
+  -- explicit reality_check_interval_minutes, so the OMITTED-key create -
+  -- the only shape the defect had - was never exercised. A probe that
+  -- always names a field cannot find a bad default for it.
+  delete from public.responsible_gaming_limits where user_id = v_human;
+  v_res := public.fn_ca_player_rg_set(
+    v_human, jsonb_build_object('daily_loss_limit', 250), v_actor);
+  if (v_res ->> 'ok') <> 'true' or (v_res ->> 'created') <> 'true' then
+    raise exception 'ASSERT FAILED: create with one key refused: %', v_res;
+  end if;
+  if (v_res -> 'limits' ->> 'reality_check_interval_minutes')::int <> 30 then
+    raise exception 'ASSERT FAILED: creating a row wrote a reality check of % minutes. The column default is 30, and a LONGER interval is FEWER reminders, which is a LOOSENING the operator never asked for.',
+      v_res -> 'limits' ->> 'reality_check_interval_minutes';
+  end if;
+  raise notice 'ASSERT OK: creating a limits row without naming the reality check uses the column default of 30, not a looser one.';
+
   -- ══ 9. NOTES AND TAGS ═════════════════════════════════════════════
   v_res := public.fn_ca_player_note_add(v_human, 'sim note', v_actor, true);
   if (v_res ->> 'ok') <> 'true' then

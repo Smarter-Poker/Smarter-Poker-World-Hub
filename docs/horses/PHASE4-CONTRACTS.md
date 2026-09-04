@@ -340,7 +340,6 @@ GET  ?section=restrictions&scope=&status=&includeHorses=&limit=&offset=
 GET  ?section=observations&hours=&limit=&offset=
 GET  ?section=tickets&status=&priority=&assignedTo=&limit=&offset=
 GET  ?section=reports&status=&limit=&offset=
-GET  ?section=kyc&userId=&limit=&offset=
 
 POST { action: 'restrict',        userId, scope, reasonCode, note, expiresAt, opId }
 POST { action: 'lift',            restrictionId, note }
@@ -398,25 +397,64 @@ the things that must never be quietly changed:
 - The reader fails open: the trigger function contains an exception handler that
   returns NEW.
 
-## 6. The one thing the engine must learn before enforcement goes on
+## 6. What must happen before enforcement is switched on
+
+**This section is the one Dan will read before flipping the switch, so it
+lists everything, not just the first thing that was noticed.**
+
+### 6.1 The engine must learn the refusal
 
 `HorseFleetManager.seatHorse` filters expected refusals from
 `atomic_table_buyin` and reports everything else as an error
 (`HorseFleetManager.ts:1934-1960`, list: `Insufficient balance`,
 `Player already seated`, `duplicate key`, `TABLE_CAP_REACHED`,
 `FOUR TABLE LIMIT`). A restriction refusal is not on that list, so with
-enforcement ON and any horse restricted, every seeding cycle would `reportError`
-once per attempt.
+enforcement ON and any horse restricted, every seeding cycle would
+`reportError` once per attempt.
 
 This is a genuine consequence of horses sharing the human path, which is the
-same property that makes rule 4 true by construction. It is not a defect in this
-phase and it is not a reason to give horses a different path.
+same property that makes rule 4 true by construction. It is not a defect and
+it is not a reason to give horses a different path. The refusal message is
+prefixed `PLAYER_RESTRICTED:` precisely so the engine can recognise it in one
+string compare.
 
-**It is a precondition for switching enforcement on, and it is recorded here so
-that switch is not thrown without it.** The refusal message is prefixed
-`PLAYER_RESTRICTED:` precisely so the engine can recognise it in one string
-compare. The engine change is a Club Arena commit of a few lines and belongs
-with whatever phase turns enforcement on.
+### 6.2 The tournament seating paths refuse a player who has already paid
+
+**Added 2026-09-04, after the scope correction, and it is bigger than 6.1.**
+
+The guard originally checked every `table_seats` write against `cash`. That
+was wrong (97.8% of those rows are tournament seats) and correcting it had a
+consequence the first version of this section did not have: a `tournaments`
+restriction now stands in front of the seat as well as the registration.
+
+The engine seats tournament entrants through `table_seats` directly
+(`TournamentManagerBase.ts:3644`), and through `fn_seat_late_registrant` and
+`fn_seat_horse_in_seat_first_game`. With enforcement ON, a player restricted
+from tournaments AFTER they registered and paid gets `PLAYER_RESTRICTED:` at
+seating time. The engine logs it and moves on; the entrant stays on the
+roster, unseated, blinding off, with their buy-in taken.
+
+**That is a policy question, not only a wiring one, and it is Dan's:** should
+a tournaments restriction applied after registration refuse the seat, or only
+the next registration? Refusing the seat is the stricter reading and the one
+the guard currently implements. Refunding and de-registering is a money
+decision, which section 10.6 makes an agent's to make - but only with a clear
+path, and there is not one until somebody decides which of the two behaviours
+is wanted.
+
+**Until it is decided, enforcement stays off.** The safe interim, if
+enforcement is wanted sooner, is to restrict `cash` rather than `tournaments`
+on any player who already holds a tournament entry.
+
+### 6.3 The two scheduled jobs
+
+`fn_ca_restriction_expire_sweep` and `fn_ca_restriction_observation_prune`
+both exist and neither has a caller. Neither is needed for CORRECTNESS - the
+reader treats `expires_at` as authoritative and `fn_ca_player_restrict`
+retires a stale row itself - but with enforcement on, the observation log
+stops being a dry run and starts being an audit surface, and an unbounded one
+is a bad audit surface. Register both in Open Claw (CLAUDE.md 11.2), never the
+Claude scheduler (10.9).
 
 ## 6b. Still open when Phase 4 shipped
 
