@@ -109,9 +109,16 @@ pixels — a *run*, not a single pixel, because these canvases carry isolated
 specks a few units above black out in the margin, and taking the first lit
 pixel dragged the edge dozens of pixels into the background and painted a
 streak — then intersecting the two sweeps, flood-filling interior holes, and
-feathering the boundary by one pixel so the curves stay anti-aliased. PNG is
-lossless, so **every visible pixel is byte-identical to the approved
-artwork**; only the alpha channel is new. Total growth: about 3%.
+and setting alpha to exactly 255 inside and exactly 0 outside. **No feather.**
+The first cut softened the boundary by a pixel, and that ring is made of the
+canvas margin's own near-black pixels at partial alpha — on any page that is
+not precisely that black it reads as a faint second shade hugging the frame,
+which Dan called "a different color black that's clearly background residue".
+The frame's own edge is already anti-aliased in its RGB, and every footer is
+displayed downscaled, which smooths the alpha edge again. PNG is lossless, so
+**every visible pixel is byte-identical to the approved artwork** and every
+invisible one is fully transparent; there is no third kind. Total growth:
+about 3%.
 
 `sha256` in the registry is updated for all fourteen, which is what
 `bottom-nav-clearance.test.mjs` compares the shipped bytes against.
