@@ -111,6 +111,20 @@ if (!existsSync(ROUTE_DIR)) {
  * it is to DELETE the explanation, so the codebase loses the record of why a
  * route was retired in order to quiet a check that misread it.
  *
+ * WHAT THIS IS NOT: a JavaScript parser. It tracks strings and comments, not
+ * regex literals, so `const re = /don't/` flips it into string state and the
+ * remainder is copied verbatim instead of stripped.
+ *
+ * That failure direction is the safe one, which is why this is acceptable: a
+ * mis-parse PRESERVES text, so the worst case is a surviving comment causing a
+ * FALSE POSITIVE - never a real money call being hidden. Verified both ways,
+ * and verified that the three club-arena routes which do contain a quote
+ * inside a regex literal (house-ads, manage-shop, shop-purchases) strip
+ * cleanly today, with zero leftover comment lines.
+ *
+ * If that stops being true, replace this with a real tokenizer rather than
+ * adding another special case.
+ *
  * String literals are preserved - `supabase.rpc('fn_credit_and_log')` is a
  * real call and the name lives in a string. Only comments are blanked, to
  * spaces, so every reported line number still matches the file.

@@ -40,10 +40,36 @@ const SKIP_DIRS = new Set([
   'coverage',
   '_to_delete',
   '__tests__',
+  // `tests` and `e2e` were missing while `__tests__` was here, and this repo
+  // keeps 23 files under src/lib/poker-engine/tests/. See IS_TEST_FILE.
+  'tests',
+  'e2e',
   'test-results',
   '.git',
   'vendor',
 ]);
+
+/**
+ * A TEST TITLE IS NOT COPY (2026-09-04).
+ *
+ * This gate exists to keep em dashes out of "anything a player can read", and
+ * it already ignores comments for exactly that reason. `it('the pot raise is
+ * 4.5bb - not 3.5')` never reaches a player either.
+ *
+ * Club Arena's copy of this script had the identical hole and it cost an agent
+ * a blocked push today: a pre-push failure on three test TITLES, with a rule
+ * about player-facing copy quoted at them. The obvious escape is --no-verify,
+ * which skips every other check in that hook - including the secret scan. A
+ * guard that cries wolf teaches people to walk around the guards that are
+ * right.
+ *
+ * Fixed there in Club Arena #2812; this is the second copy. Nothing is lost:
+ * a string a player actually reads has to exist in a real source file, all of
+ * which are still scanned, and a test can only ASSERT such a string - which is
+ * checked at its source.
+ */
+const IS_TEST_FILE = (rel) =>
+  /(^|\/)(tests?|e2e|__tests__)\//.test(rel) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(rel);
 /**
  * Files where an em dash is CODE, not copy, and rewriting it changes behaviour.
  *
@@ -200,6 +226,10 @@ let fixedFiles = 0;
 for (const file of files) {
   const rel = file.replace(ROOT, '');
   if (SKIP_FILES.has(rel)) continue;
+  // A test title is not copy - see IS_TEST_FILE. Also catches suites living
+  // beside their source (foo.test.js next to foo.js), which the directory skip
+  // above cannot see.
+  if (IS_TEST_FILE(rel)) continue;
   const original = readFileSync(file, 'utf8');
   if (!EM_DASHES.test(original)) continue;
 

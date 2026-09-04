@@ -421,6 +421,20 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
             right: isMobile ? 8 : 12,
             // The parent spring enters at scale .95. Use 48px so the effective
             // hit area never drops below 44px while that animation settles.
+            //
+            // SET THE VARIABLE, NOT JUST THE PROPERTY (2026-09-03). `width: 48`
+            // alone did nothing: .sp-icon-btn declares
+            //     width: var(--sp-btn-size, 32px) !important
+            // and a stylesheet !important beats an inline style, so this button
+            // rendered at 32px - and 31.84px mid-spring, which is exactly the
+            // failure the comment above was written to prevent. It has been
+            // failing `retain touch targets` on every run since, and a red
+            // Playwright suite makes every open pull request "unstable", which
+            // is why auto-merge had to be bypassed by hand.
+            //
+            // `--sp-btn-size` is the extension point the utility was written
+            // with; setting it makes the !important rule itself compute 48px.
+            '--sp-btn-size': '48px',
             width: 48, height: 48,
             borderRadius: '50%',
             border: '1px solid rgba(200,214,229,0.15)',
