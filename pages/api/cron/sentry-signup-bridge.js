@@ -40,6 +40,32 @@ try {
     };
 }
 
+// withSentryConfig is intentionally disabled in next.config.js (8GB Vercel OOM
+// workaround — see sentry.server.config.js). That means Sentry.init() is NOT
+// called automatically for cron serverless functions. Without an explicit init,
+// getClient() returns undefined and sentryReady() returns false, causing the
+// bridge to bail on every run with "sentry_unavailable" — leaving 30+ signup
+// errors unforwarded indefinitely (96 failures in 24h as of 2026-09-04).
+// Fix: call init() here if the SDK loaded but has no client yet.
+if (!sentryIsStub) {
+    try {
+        const hasClient = typeof Sentry.getClient === 'function' && !!Sentry.getClient();
+        if (!hasClient) {
+            const dsn = (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN || '').trim();
+            if (dsn) {
+                Sentry.init({
+                    dsn,
+                    environment: process.env.NODE_ENV || 'production',
+                    release: process.env.VERCEL_GIT_COMMIT_SHA || undefined,
+                    tracesSampleRate: 0,
+                    enabled: true,
+                    initialScope: { tags: { app: 'world-hub', runtime: 'cron', cron: 'sentry-signup-bridge' } },
+                });
+            }
+        }
+    } catch (_) { /* never let init errors break the bridge */ }
+}
+
 // True only when events will actually be transmitted. If the SDK failed to
 // load OR loaded but was never initialized (no client), captureMessage is a
 // silent no-op — in that state we must NOT stamp rows as forwarded.
