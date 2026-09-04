@@ -160,12 +160,14 @@ def _request(method, path, body=None, params=None):
         log.error(f"Request error {method} {path}: {ex}")
         return None
 
-def _select(table, select='*', filters=None, limit=None, order=None):
+def _select(table, select='*', filters=None, limit=None, order=None, offset=None):
     params = {'select': select}
     if filters:
         params.update(filters)
     if limit:
         params['limit'] = limit
+    if offset:
+        params['offset'] = offset
     if order:
         params['order'] = order
     return _request('GET', table, params=params) or []
@@ -269,23 +271,41 @@ def get_system_bot_id():
 # ── Already-in-reels set ─────────────────────────────────────────────────────
 def get_existing_reel_video_ids():
     """
-    Return a set of youtube video IDs already in social_reels
-    (matched by source_type = 'video_library' or youtube URL pattern).
+    Return the set of YouTube video IDs already in social_reels, whatever
+    their source_type.
+
+    2026-09-04: this used to look only at source_type = 'video_library'. But
+    the BEFORE INSERT trigger trg_social_reels_yt_intercept rewrites every
+    YouTube reel to source_type = 'youtube' (and fills youtube_video_id,
+    queues the native transcode), so the bridge could never see a reel it
+    had itself inserted - the first scheduled run after the fix would have
+    re-inserted the same 100 videos every morning. Match on youtube_video_id,
+    which the trigger populates, across the whole table (17k rows, paged),
+    plus the URL-parsed legacy rows that predate the trigger.
     """
-    rows = _select(
-        'social_reels',
-        select='video_url',
-        filters={'source_type': 'eq.video_library'},
-        limit=5000,
-    )
     ids = set()
-    for r in rows:
-        url = r.get('video_url', '')
-        # Extract video ID from embed or watch URL
-        for pattern in ['watch?v=', '/embed/', '/shorts/']:
-            if pattern in url:
-                vid_id = url.split(pattern)[-1].split('&')[0].split('?')[0][:11]
-                ids.add(vid_id)
+    page, size = 0, 1000
+    while True:
+        rows = _select(
+            'social_reels',
+            select='youtube_video_id,video_url,source_type',
+            filters={'or': '(youtube_video_id.not.is.null,source_type.eq.video_library)'},
+            order='created_at.desc',
+            limit=size,
+            offset=page * size,
+        )
+        for r in rows:
+            vid = (r.get('youtube_video_id') or '').strip()
+            if len(vid) == 11:
+                ids.add(vid)
+                continue
+            url = r.get('video_url') or ''
+            for pattern in ['watch?v=', '/embed/', '/shorts/', 'youtu.be/']:
+                if pattern in url:
+                    ids.add(url.split(pattern)[-1].split('&')[0].split('?')[0][:11])
+        if len(rows) < size:
+            break
+        page += 1
     return ids
 
 # ── Main bridge logic ────────────────────────────────────────────────────────
