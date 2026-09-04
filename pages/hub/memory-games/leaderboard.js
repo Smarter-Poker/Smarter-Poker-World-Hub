@@ -3,6 +3,7 @@ import { Clock3, Medal, RefreshCw, ShieldCheck, Target } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import PreflopTabRail from '../../../src/components/memory-games/PreflopTabRail';
+import ResponsiveTable from '../../../src/components/ui/ResponsiveTable';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { accuracyToPercent } from '../../../src/lib/preflopRangeLab';
@@ -22,6 +23,23 @@ function formatTime(seconds) {
   const total = Math.max(0, Number(seconds) || 0);
   return `${Math.floor(total / 60)}:${Math.floor(total % 60).toString().padStart(2, '0')}`;
 }
+
+const rankingColumns = [
+  { key: 'rank', label: 'Rank', render: (row) => <strong>#{row.rank}</strong> },
+  { key: 'player', label: 'Player', render: (row) => <>{row.profiles?.username || 'Anonymous player'}{row.current && <span className="preflop-ranking-you">YOU</span>}</> },
+  { key: 'level', label: 'Level', align: 'right', render: (row) => `L${row.level || 1}` },
+  { key: 'score', label: 'Score', align: 'right', render: (row) => Number(row.score || 0).toLocaleString() },
+  { key: 'accuracy', label: 'Accuracy', align: 'right', render: (row) => `${accuracyToPercent(row.accuracy, row.score).toFixed(1)}%` },
+  { key: 'time', label: 'Time', align: 'right', render: (row) => <span className="preflop-ranking-time"><Clock3 size={13} aria-hidden />{formatTime(row.time_taken)}</span> },
+  {
+    key: 'perfect',
+    label: 'Perfect',
+    align: 'right',
+    render: (row) => ((row.perfect_game || accuracyToPercent(row.accuracy, row.score) >= 99.5)
+      ? <span className="preflop-ranking-perfect"><ShieldCheck size={16} aria-hidden /> Yes</span>
+      : <span className="preflop-ranking-perfect" style={{ color: '#7590a1' }}>No</span>),
+  },
+];
 
 export default function MemoryGamesLeaderboard() {
   useTrainingBus('preflop-charts-leaderboard');
@@ -85,11 +103,16 @@ export default function MemoryGamesLeaderboard() {
         <section className="preflop-subpage-panel" aria-labelledby="ranking-table-title">
           <div className="preflop-panel-heading"><div><span>TOP 50 // PERSONAL BESTS</span><h2 id="ranking-table-title">Live Ranking Board</h2></div><button type="button" onClick={fetchLeaderboard} disabled={loading} aria-label="Refresh leaderboard"><RefreshCw size={16} aria-hidden /></button></div>
           {loading ? <div className="preflop-subpage-loading">Synchronizing Rankings…</div> : leaderboard.length === 0 ? <div className="preflop-subpage-empty"><TrophyIcon /><h3>No Verified Entries Yet</h3><p>Complete This Mode To Establish The First Personal Best.</p></div> : (
-            <div className="preflop-ranking-scroll"><table className="preflop-ranking-table"><thead><tr><th>Rank</th><th>Player</th><th>Level</th><th>Score</th><th>Accuracy</th><th>Time</th><th><span className="sr-only">Perfect</span></th></tr></thead><tbody>{leaderboard.map((entry, index) => {
-              const current = entry.user_id === user?.id;
-              const accuracy = accuracyToPercent(entry.accuracy, entry.score);
-              return <tr key={entry.id} data-current={current || undefined}><td><strong>#{index + 1}</strong></td><td>{entry.profiles?.username || 'Anonymous player'}{current && <small> YOU</small>}</td><td>L{entry.level || 1}</td><td>{Number(entry.score || 0).toLocaleString()}</td><td>{accuracy.toFixed(1)}%</td><td><Clock3 size={13} aria-hidden />{formatTime(entry.time_taken)}</td><td>{(entry.perfect_game || accuracy >= 99.5) && <ShieldCheck size={16} aria-label="Perfect result" />}</td></tr>;
-            })}</tbody></table></div>
+            <div className="preflop-ranking-board">
+              {/* Mobile phase 2: a real table above 768px, one labelled card per
+                  row at or below it (ResponsiveTable), never a sideways scroll. */}
+              <ResponsiveTable
+                columns={rankingColumns}
+                rows={leaderboard.map((entry, index) => ({ ...entry, rank: index + 1, current: entry.user_id === user?.id }))}
+                keyField="id"
+                caption="Live ranking board"
+              />
+            </div>
           )}
         </section>
       </PreflopSubpageShell>

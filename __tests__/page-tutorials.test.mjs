@@ -19,9 +19,23 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const EM_DASH = String.fromCharCode(0x2014);
 
-// Phase -> route -> page file. Append a row when the phase lands.
+// Phase -> route -> page file. Append a row when the phase lands. `also`
+// lists the page's own components that carry some of its spotlight targets
+// (a target must exist in the page file or one of them).
 const LANDED = [
   { phase: 1, route: '/hub/bankroll-manager', page: 'pages/hub/bankroll-manager.js', tutorial: 'src/tutorials/bankroll-manager.js' },
+  {
+    phase: 2,
+    route: '/hub/preflop-charts',
+    page: 'pages/hub/memory-games.js',
+    tutorial: 'src/tutorials/preflop-charts.js',
+    also: [
+      'src/components/memory-games/PreflopMatrixPrimer.jsx',
+      'src/components/memory-games/PreflopRangeMatrix.jsx',
+      'src/components/memory-games/DailyChallengeCard.jsx',
+      'src/components/memory-games/PreflopSubpageNav.jsx',
+    ],
+  },
 ];
 
 test('the tutorial system is built and mounted once', () => {
@@ -62,10 +76,14 @@ test('every landed phase has a registered tutorial whose targets exist on its pa
   for (const row of LANDED) {
     assert.match(registry, new RegExp(`prefix: '${row.route.replace(/\//g, '\\/')}'`), `${row.route} is registered`);
     const tut = read(row.tutorial);
-    const page = read(row.page);
-    const targets = [...tut.matchAll(/target: '([^']+)'/g)].map((m) => m[1]);
+    // A target "a|b" lists alternatives (PageTutorial rings the first one on
+    // screen); every alternative must exist somewhere in the page's DOM.
+    const page = [row.page, ...(row.also || [])].map(read).join('\n');
+    const targets = [...tut.matchAll(/target: '([^']+)'/g)].flatMap((m) => m[1].split('|'));
     assert.ok(targets.length >= 4, `${row.tutorial} spotlights at least four elements`);
-    for (const t of targets) assert.match(page, new RegExp(`data-tutorial="${t}"`), `${row.page} has data-tutorial="${t}"`);
+    for (const t of targets) {
+      assert.match(page, new RegExp(`data-tutorial="${t}"|tutorialTarget="${t}"`), `${row.page} has data-tutorial="${t}"`);
+    }
     const steps = (tut.match(/^\s{4}\{\s*$/gm) || []).length;
     assert.ok(steps >= 5, `${row.tutorial} has at least five steps (found ${steps})`);
     assert.ok(!tut.includes(EM_DASH), `${row.tutorial} has no em dash`);

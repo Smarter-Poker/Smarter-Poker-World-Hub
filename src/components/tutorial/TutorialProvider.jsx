@@ -11,6 +11,13 @@
  *   needs no context plumbing), or on `openPageTutorial()` from context.
  * - Fires TUTORIAL_WILL_OPEN_EVENT first so a page can put itself in the
  *   state the tour expects (Bankroll returns to its dashboard).
+ * - `?tutorial=1` on a registered route opens the tour once, right after the
+ *   page has mounted, then strips the query with a shallow replace. This is
+ *   how a static guide page (Preflop Charts, /hub/preflop-charts/tutorial)
+ *   hands off to the interactive tour: the link carries the query, the page
+ *   itself never auto-launches anything (mobile phase 2). The replace runs
+ *   BEFORE the tour opens because pages/_app.js scrolls to the top on
+ *   routeChangeComplete, which would move the spotlight target.
  * - Route changes close everything and reset the timers.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -83,6 +90,33 @@ export default function TutorialProvider({ children }) {
     window.addEventListener(OPEN_TUTORIAL_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_TUTORIAL_EVENT, onOpen);
   }, [openPageTutorial]);
+
+  // `?tutorial=1`: a deep link from a guide page. Strip the query first (the
+  // app shell scrolls to the top on routeChangeComplete), then open once the
+  // page has had a moment to paint. Guarded so a re-render never re-opens it.
+  const queryOpenedRef = useRef(false);
+  const queryTutorial = router && router.query ? router.query.tutorial : undefined;
+  useEffect(() => {
+    if (!router || !router.isReady || typeof window === 'undefined') return undefined;
+    const wants = Array.isArray(queryTutorial) ? queryTutorial[0] : queryTutorial;
+    if (wants !== '1') {
+      // The query is gone (stripped below, or a plain visit): arm for next time.
+      queryOpenedRef.current = false;
+      return undefined;
+    }
+    if (!tutorial || queryOpenedRef.current) return undefined;
+    queryOpenedRef.current = true;
+    const rest = { ...router.query };
+    delete rest.tutorial;
+    const timer = window.setTimeout(() => openPageTutorial(), 450);
+    try {
+      void router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+    } catch (_) {
+      // A failed replace leaves the query in place; the tour still opens.
+    }
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router && router.isReady, queryTutorial, tutorial, openPageTutorial]);
 
   const value = useMemo(() => ({ tutorial, openPageTutorial, isOpen: open }), [tutorial, openPageTutorial, open]);
 

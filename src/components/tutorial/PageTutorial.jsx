@@ -30,13 +30,23 @@ const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayout
 
 const RING_PAD = 8;
 
+/**
+ * A step's `target` may list alternatives separated by "|" ("matrix|mode-grid").
+ * The first one that is on the page AND has a box wins. Pages with more than
+ * one screen (Preflop Charts: menu, game, result) use this so a step still
+ * gets a spotlight whichever screen the tour was opened on.
+ */
 function measure(target) {
   if (!target || typeof document === 'undefined') return null;
-  const el = document.querySelector(`[data-tutorial="${target}"]`);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (r.width < 8 || r.height < 8) return null;
-  return { el, top: r.top, left: r.left, width: r.width, height: r.height, bottom: r.bottom };
+  const candidates = String(target).split('|').map((t) => t.trim()).filter(Boolean);
+  for (const candidate of candidates) {
+    const el = document.querySelector(`[data-tutorial="${candidate}"]`);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 8 || r.height < 8) continue;
+    return { el, top: r.top, left: r.left, width: r.width, height: r.height, bottom: r.bottom };
+  }
+  return null;
 }
 
 function CompassIcon() {
