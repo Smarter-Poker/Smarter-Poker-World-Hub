@@ -83,7 +83,6 @@
       "label": "Social Media",
       "theme": "dark",
       "accent": "#ff5d6c",
-      "hideOnScroll": true,
       "artwork": { "src": "/images/footers/world-hub/footer-social-media.png", "width": 2508, "height": 627, "sha256": "80b71634d3397472c619822119b726c8d687595606a2b51e34cb53733dee1813", "cropToContentBounds": true, "contentBounds": { "x": 28, "y": 141, "width": 2445, "height": 374 } },
       "routePrefixes": ["/hub/social-media", "/hub/reels", "/hub/friends", "/hub/messenger", "/hub/social-pages", "/hub/saved-posts", "/hub/post", "/hub/user", "/u"],
       "items": [

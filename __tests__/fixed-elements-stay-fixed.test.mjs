@@ -113,11 +113,12 @@ test('the shared World Hub footer is welded to the viewport bottom', () => {
     nav,
     /width:\s*'100%',\s*maxWidth:\s*'100vw',\s*margin:\s*0,[\s\S]*?overflow:\s*'hidden',\s*boxSizing:\s*'border-box'/
   );
-  // The legacy fallback footer keeps the original weld verbatim: no world owns
-  // it, nothing opts it into moving, and it must never acquire a transform.
-  assert.match(
-    nav,
-    /transform:\s*'none',\s*translate:\s*'none',\s*transition:\s*'none',\s*animation:\s*'none'/
+  // Both footers — the artwork one and the legacy fallback — declare the same
+  // weld, and neither may ever translate, rotate or scale for any reason other
+  // than the scroll behaviour pinned below.
+  assert.equal(
+    (nav.match(/translate:\s*'none',\s*transition:\s*'none',\s*animation:\s*'none'/g) || []).length,
+    2
   );
   // Nothing animates, ever. `translateY(110%)` in particular was an older
   // auto-hide attempt that parked the bar somewhere it could not come back
@@ -126,11 +127,13 @@ test('the shared World Hub footer is welded to the viewport bottom', () => {
 });
 
 /**
- * THE SOCIAL FOOTER HIDES WHILE YOU READ (Dan, 2026-09-04, binding).
+ * EVERY FOOTER HIDES WHILE YOU READ (Dan, 2026-09-04, binding).
  *
  * Dan, verbatim: "the footer on social media needs to disappear when you
  * scroll up and reappear when you scroll down like it does on facebook. it
- * needs to be real time instant change."
+ * needs to be real time instant change." And then, on seeing it: "any other
+ * pages that you can 'scroll up to see more' need this same disappearing
+ * footer functionality... implement this everywhere its needed."
  *
  * This test REPLACES an assertion that read `assert.doesNotMatch(nav,
  * /autoHide|setHidden|addEventListener\('scroll/)` — a blanket ban on the
@@ -138,36 +141,34 @@ test('the shared World Hub footer is welded to the viewport bottom', () => {
  * failure: the bar coming UNSTUCK from the viewport on iOS because an
  * ancestor had quietly become a scroll container. The test above still pins
  * every part of that, and the ban is narrowed here rather than deleted:
- * movement is opt-in per world, on one axis, by exactly one screen height,
- * with no transition and no timer, and it always comes back.
+ * movement is on one axis, by exactly one screen height, with no transition
+ * and no timer, and it always comes back.
  *
  * If you are here because this test went red: you did not break a rule about
- * hiding, you broke one of those five conditions. Read which assertion failed.
+ * hiding, you broke one of those conditions. Read which assertion failed.
  */
-test('only worlds that opt in may hide on scroll, and they hide instantly and reversibly', () => {
+test('every footer hides on scroll, instantly, on one axis, and always comes back', () => {
   const nav = bottomNav();
   const registry = JSON.parse(
     fs.readFileSync(path.join(ROOT, 'src/config/world-footer-navigation.json'), 'utf8')
   );
 
-  const optedIn = registry.worlds.filter((world) => world.hideOnScroll);
-  assert.deepEqual(
-    optedIn.map((world) => world.id),
-    ['social-media'],
-    'hideOnScroll is opt-in and Dan asked for it on the social media world only'
+  // No route list, no allowlist: a page that does not scroll never fires a
+  // scroll event, so "everywhere it is needed" is the same thing as
+  // "everywhere". `hideOnScroll: false` exists only as an escape hatch, and
+  // nothing uses it — an entry appearing here is a footer somebody froze.
+  const optedOut = [registry.fallback, ...registry.worlds].filter(
+    (footer) => footer.hideOnScroll === false
   );
-  for (const world of optedIn) {
-    assert.equal(world.hideOnScroll, true, `${world.id} must opt in with a literal true`);
-  }
-  assert.equal(
-    registry.fallback.hideOnScroll,
-    undefined,
-    'the legacy fallback footer never moves'
-  );
+  assert.deepEqual(optedOut.map((footer) => footer.id), []);
 
-  // One axis, one screen height, and only while the reader is travelling down.
-  assert.match(nav, /transform:\s*hidden\s*\?\s*'translateY\(100%\)'\s*:\s*'none'/);
-  assert.match(nav, /useHideOnScroll\(Boolean\(footer\.hideOnScroll\), path\)/);
+  // One axis, one screen height, on BOTH the artwork footer and the fallback.
+  assert.equal(
+    (nav.match(/transform:\s*hidden\s*\?\s*'translateY\(100%\)'\s*:\s*'none'/g) || []).length,
+    2
+  );
+  assert.match(nav, /useHideOnScroll\(footer\.hideOnScroll !== false, path\)/);
+  assert.equal((nav.match(/onFocusCapture=\{reveal\}/g) || []).length, 2);
 
   const hook = nav.slice(
     nav.indexOf('function useHideOnScroll'),
@@ -183,10 +184,17 @@ test('only worlds that opt in may hide on scroll, and they hide instantly and re
   assert.match(hook, /useState\(false\)/);
   assert.match(hook, /\}, \[resetKey\]\)/);
   assert.match(hook, /if \(y <= 0\) \{\s*setHidden\(false\);/);
-  assert.match(nav, /onFocusCapture=\{reveal\}/);
-  // The listener must not itself make scrolling expensive, and must be removed.
-  assert.match(hook, /addEventListener\('scroll', onScroll, \{ passive: true \}\)/);
-  assert.match(hook, /removeEventListener\('scroll', onScroll\)/);
+  // Scroll events do not bubble. Pages that scroll an inner panel rather than
+  // the document are the ones this capture-phase listener exists for, and
+  // dropping `capture` silently removes the behaviour from all of them.
+  assert.match(
+    hook,
+    /document\.addEventListener\('scroll', onScroll, \{ capture: true, passive: true \}\)/
+  );
+  assert.match(
+    hook,
+    /document\.removeEventListener\('scroll', onScroll, \{ capture: true \}\)/
+  );
 });
 
 /**

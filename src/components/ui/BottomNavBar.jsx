@@ -8,9 +8,8 @@
  *
  * POSITION CONTRACT: the footer is welded to the viewport bottom. It never
  * animates and never becomes horizontally scrollable. It translates on the Y
- * axis for exactly one reason: a world that sets `hideOnScroll` in the
- * registry gets the Facebook reading behaviour described below. No other
- * movement is permitted, and no world hides by default.
+ * axis for exactly one reason: the Facebook reading behaviour described below,
+ * which every footer has. No other movement is permitted.
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -85,13 +84,22 @@ export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
 /**
- * THE SOCIAL FOOTER GETS OUT OF THE WAY WHILE YOU READ (Dan, 2026-09-04).
+ * THE FOOTER GETS OUT OF THE WAY WHILE YOU READ (Dan, 2026-09-04, binding).
  *
  * Dan, verbatim: "the footer on social media needs to disappear when you
  * scroll up and reappear when you scroll down like it does on facebook. it
- * needs to be real time instant change."
+ * needs to be real time instant change." Then, once he had it: "any other
+ * pages that you can 'scroll up to see more' need this same disappearing
+ * footer functionality... implement this everywhere its needed."
  *
- * That is Facebook's rule exactly: a swipe up (reading further down the feed)
+ * So it is EVERY world, and the fallback footer too. It shipped for a day as
+ * an opt-in `hideOnScroll` flag on one world; the flag survives only as an
+ * explicit `false` escape hatch, and no footer sets it.
+ *
+ * "Everywhere it's needed" is self-limiting and needs no route list: a page
+ * that does not scroll never fires a scroll event, so its footer never moves.
+ *
+ * That is Facebook's rule exactly: a swipe up (reading further down the page)
  * drops the bar; a swipe back down brings it straight back. This replaces the
  * older blanket "never auto-hides" clause of the position contract, which was
  * written to stop the bar coming UNSTUCK from the viewport on iOS — a
@@ -104,27 +112,36 @@ export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bott
  * applied on the animation frame that follows the scroll event that caused it,
  * which is the same frame the browser was going to paint anyway. Do not add a
  * `transition` here to make it "smoother": smooth is the thing Dan rejected.
- *
- * Only a world that asks for it moves. Worlds are opt-in via `hideOnScroll` in
- * world-footer-navigation.json, and today only `social-media` sets it.
  */
 const HIDE_ON_SCROLL_THRESHOLD = 4;
 
-const readScrollTop = () => {
+const isDocumentScroller = (source) =>
+  !source ||
+  source === window ||
+  source === document ||
+  source === document.documentElement ||
+  source === document.body;
+
+const scrollTopOf = (source) => {
   if (typeof window === 'undefined') return 0;
-  return (
-    window.scrollY ||
-    document.documentElement?.scrollTop ||
-    document.body?.scrollTop ||
-    0
-  );
+  if (isDocumentScroller(source)) {
+    return (
+      window.scrollY ||
+      document.documentElement?.scrollTop ||
+      document.body?.scrollTop ||
+      0
+    );
+  }
+  return source.scrollTop || 0;
 };
 
-const readScrollLimit = () => {
-  if (typeof document === 'undefined') return 0;
-  const doc = document.documentElement;
-  if (!doc) return 0;
-  return Math.max(0, doc.scrollHeight - window.innerHeight);
+const scrollLimitOf = (source) => {
+  if (typeof window === 'undefined') return 0;
+  if (isDocumentScroller(source)) {
+    const doc = document.documentElement;
+    return doc ? Math.max(0, doc.scrollHeight - window.innerHeight) : 0;
+  }
+  return Math.max(0, (source.scrollHeight || 0) - (source.clientHeight || 0));
 };
 
 function useHideOnScroll(enabled, resetKey) {
@@ -144,47 +161,63 @@ function useHideOnScroll(enabled, resetKey) {
       return undefined;
     }
 
-    let lastY = readScrollTop();
-    // Where the current run of travel in one direction began. Measuring the
-    // threshold from here rather than from the previous event means a single
-    // fast flick still flips immediately, while sub-pixel jitter inside a
-    // momentum scroll cannot rattle the bar open and shut.
-    let anchorY = lastY;
-    let lastDirection = 0;
+    // Not every hub page scrolls the document. Several put the scroll on an
+    // inner panel, and a scroll event on an element does not bubble — so this
+    // listens on the CAPTURE phase at the document, which sees a scroll from
+    // any scroller on the page, and tracks each one's position separately so
+    // switching between two panels cannot read as a jump.
+    const travel = new Map();
     let frame = 0;
+    let pending = null;
 
     const settle = () => {
       frame = 0;
-      const y = readScrollTop();
-      const direction = y > lastY ? 1 : y < lastY ? -1 : 0;
-      if (direction !== 0 && direction !== lastDirection) {
-        anchorY = lastY;
-        lastDirection = direction;
-      }
-      lastY = y;
+      const source = pending;
+      pending = null;
 
-      // At the top of the feed the bar is always present.
+      const y = scrollTopOf(source);
+      const state = travel.get(source);
+      if (!state) {
+        travel.set(source, { last: y, anchor: y, direction: 0 });
+        return;
+      }
+
+      const direction = y > state.last ? 1 : y < state.last ? -1 : 0;
+      if (direction !== 0 && direction !== state.direction) {
+        // Where the current run of travel in one direction began. Measuring
+        // the threshold from here rather than from the previous event means a
+        // single fast flick still flips immediately, while sub-pixel jitter
+        // inside a momentum scroll cannot rattle the bar open and shut.
+        state.anchor = state.last;
+        state.direction = direction;
+      }
+      const anchor = state.anchor;
+      state.last = y;
+
+      // At the top of the page the bar is always present.
       if (y <= 0) {
         setHidden(false);
         return;
       }
-      // Rubber-band overscroll past the end of the document is not a reader
-      // travelling further down, so it must not hide anything.
-      if (y >= readScrollLimit()) return;
+      // Rubber-band overscroll past the end is not a reader travelling further
+      // down, so it must not hide anything.
+      if (y >= scrollLimitOf(source)) return;
 
-      if (direction === 1 && y - anchorY > HIDE_ON_SCROLL_THRESHOLD) setHidden(true);
-      else if (direction === -1 && anchorY - y > HIDE_ON_SCROLL_THRESHOLD) setHidden(false);
+      if (direction === 1 && y - anchor > HIDE_ON_SCROLL_THRESHOLD) setHidden(true);
+      else if (direction === -1 && anchor - y > HIDE_ON_SCROLL_THRESHOLD) setHidden(false);
     };
 
-    const onScroll = () => {
+    const onScroll = (event) => {
+      pending = event?.target || null;
       if (frame) return;
       frame = window.requestAnimationFrame(settle);
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('scroll', onScroll, { capture: true });
+      travel.clear();
     };
   }, [enabled]);
 
@@ -435,7 +468,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, reveal }) 
       data-footer-artwork={artwork.src}
       data-footer-artwork-sha256={artwork.sha256}
       data-footer-cropped={artwork.contentBounds && artwork.cropToContentBounds !== false ? 'true' : 'false'}
-      data-footer-hide-on-scroll={footer.hideOnScroll ? 'true' : 'false'}
+      data-footer-hide-on-scroll={footer.hideOnScroll === false ? 'false' : 'true'}
       data-footer-hidden={hidden ? 'true' : 'false'}
       // Keyboard focus has no scroll direction to read, so tabbing into a
       // footer that scroll has parked off-screen would move focus somewhere
@@ -583,7 +616,9 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   const base = THEMES[resolvedTheme] || THEMES.light;
   const c = { ...base, active: footer.accent || base.active };
   const activeHref = useMemo(() => activeDestination(items, path), [items, path]);
-  const { hidden, reveal } = useHideOnScroll(Boolean(footer.hideOnScroll), path);
+  // Every footer hides while you read (Dan, 2026-09-04). `hideOnScroll: false`
+  // is the only way out and nothing sets it.
+  const { hidden, reveal } = useHideOnScroll(footer.hideOnScroll !== false, path);
 
   const warm = useCallback(
     (href) => {
@@ -610,16 +645,18 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
     );
   }
 
-  // The plain footer is the legacy fallback ("global"), which no world owns and
-  // which nothing opts into hiding. It keeps the original weld verbatim.
+  // The plain footer is the legacy fallback ("global") on pages no world owns.
+  // It reads while you scroll like any other page, so it hides like any other
+  // footer; the weld underneath it is identical to the artwork nav's.
   return (
     <nav
       aria-label={`${footer.label} footer`}
       className="bn-nav"
       data-global-bottom-nav="true"
       data-footer-world={footer.id}
-      data-footer-hide-on-scroll="false"
-      data-footer-hidden="false"
+      data-footer-hide-on-scroll={footer.hideOnScroll === false ? 'false' : 'true'}
+      data-footer-hidden={hidden ? 'true' : 'false'}
+      onFocusCapture={reveal}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -640,7 +677,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
         paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
-        transform: 'none',
+        transform: hidden ? 'translateY(100%)' : 'none',
         translate: 'none',
         transition: 'none',
         animation: 'none',
