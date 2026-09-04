@@ -77,7 +77,7 @@ const LEAFLET_CUSTOM_CSS = `
 .leaflet-control-attribution {
   background: linear-gradient(90deg, rgba(10,10,21,0.85), rgba(10,10,21,0.7)) !important;
   color: rgba(255,255,255,0.7) !important;
-  font-size: 10px !important;
+  font-size: 12px !important;
   padding: 3px 10px !important;
   border-radius: 6px 0 0 0 !important;
   font-weight: 600 !important;
@@ -174,7 +174,7 @@ const LEAFLET_CUSTOM_CSS = `
 }
 .venue-map-legend--coverage { bottom: 92px; }
 .venue-map-legend-title {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: rgba(255,255,255,0.7);
   letter-spacing: 1px;
@@ -195,7 +195,7 @@ const LEAFLET_CUSTOM_CSS = `
   border: 1.5px solid rgba(255,255,255,0.5);
 }
 .venue-map-legend-label {
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(255,255,255,0.7);
   font-weight: 500;
 }
@@ -217,7 +217,7 @@ const LEAFLET_CUSTOM_CSS = `
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 20px;
   color: rgba(255,255,255,0.8);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-family: 'Inter', -apple-system, sans-serif;
   letter-spacing: 0.5px;
@@ -257,7 +257,7 @@ export class MapErrorBoundary extends React.Component {
           <p style={{ fontSize: 13 }}>Unable To Load The Map. This May Be Caused By An Ad Blocker Or Network Issue.</p>
           {/* [VM8 FIX] Stack trace hidden in production — was leaking internal file paths and source structure to end users. */}
           {process.env.NODE_ENV === 'development' && (
-            <div style={{ fontSize: 11, color: 'red', marginTop: 10, textAlign: 'left', background: '#222', padding: 8 }}>
+            <div style={{ fontSize: 12, color: 'red', marginTop: 10, textAlign: 'left', background: '#222', padding: 8 }}>
               <strong>Error:</strong> {this.state.error?.message}<br />
               {this.state.error?.stack}
             </div>
@@ -538,7 +538,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
         .addTo(map)
-        .bindPopup('<div style="padding:10px 14px;"><b style="color:#fff;font-size:14px;">You Are Here</b><br/><span style="font-size:11px;color:rgba(148,163,184,0.7);">Your Current Location</span></div>');
+        .bindPopup('<div style="padding:10px 14px;"><b style="color:#fff;font-size:14px;">You Are Here</b><br/><span style="font-size: 12px;color:rgba(148,163,184,0.7);">Your Current Location</span></div>');
 
       // Do NOT auto-zoom to user location — keep full US overview so users can explore all venues
     }
@@ -815,7 +815,14 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   ];
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}>
+    <div
+      style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}
+      // The map is ONE control (mobile phase 3): its pins and cluster orbs are
+      // Leaflet markers with role="button" at 30-58px, the same sanction the
+      // Preflop 13x13 matrix and the peak-activity heat map record in
+      // e2e/mobile-budget.spec.ts. Text inside the map stays at 12px or more.
+      data-allow-small-target="true"
+    >
       {/* Premium loading skeleton */}
       {!mapReady && !mapError && (
         <div style={{
@@ -843,7 +850,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           <span style={{ fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 14, fontWeight: 600, letterSpacing: '1px' }}>
             LOADING MAP...
           </span>
-          <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.4)' }}>
+          <span style={{ fontSize: 12, color: 'rgba(148,163,184,0.4)' }}>
             {(venues || []).length} Venues Ready
           </span>
           <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>

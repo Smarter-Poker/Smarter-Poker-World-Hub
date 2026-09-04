@@ -437,7 +437,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             // still 23 hours away today. Show an honest "Started" badge instead.
             if (diffMin <= 0) {
               return (
-                <div style={{ float: 'right', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(148,163,184,0.12)', color: 'rgba(203,213,225,0.7)' }}>
+                <div style={{ float: 'right', fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(148,163,184,0.12)', color: 'rgba(203,213,225,0.7)' }}>
                   Started
                 </div>
               );
@@ -446,7 +446,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             const mins = diffMin % 60;
             const isImminent = diffMin <= 60;
             return (
-              <div style={{ float: 'right', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: isImminent ? 'rgba(239,68,68,0.15)' : 'rgba(110,231,239,0.08)', color: isImminent ? '#f87171' : '#6ee7ef', animation: isImminent ? 'lobby-badgePulse 1.5s ease-in-out infinite' : 'none' }}>
+              <div style={{ float: 'right', fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: isImminent ? 'rgba(239,68,68,0.15)' : 'rgba(110,231,239,0.08)', color: isImminent ? '#f87171' : '#6ee7ef', animation: isImminent ? 'lobby-badgePulse 1.5s ease-in-out infinite' : 'none' }}>
                 {hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}
               </div>
             );
@@ -500,12 +500,12 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
               </span>
             )}
             {t.game_type && t.game_type !== 'Unknown' && (
-              <span className="ev-game-type" style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', background: 'rgba(255,255,255,0.06)', borderRadius: 4, color: '#cbd5e1' }}>
+              <span className="ev-game-type" style={{ fontSize: 12, fontWeight: 600, padding: '1px 6px', background: 'rgba(255,255,255,0.06)', borderRadius: 4, color: '#cbd5e1' }}>
                 {formatGameType(t.game_type)}
               </span>
             )}
             {t.is_clustered && (
-              <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4, color: '#cbd5e1' }}>
+              <span style={{ fontSize: 12, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4, color: '#cbd5e1' }}>
                 {t.flights?.length || 0} Flights
               </span>
             )}
@@ -513,7 +513,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
           {/* Structural Data Row */}
           {(t.starting_stack || t.level_duration_minutes || t.late_registration) && (
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'rgba(148,163,184,0.6)', marginTop: 8, padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'rgba(148,163,184,0.6)', marginTop: 8, padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
               {t.starting_stack && <span><strong style={{ color: '#e2e8f0' }}>Stack:</strong> {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
               {(t.level_duration_minutes || t.blind_levels) && <span><strong style={{ color: '#e2e8f0' }}>Blinds:</strong> {t.level_duration_minutes ? `${t.level_duration_minutes}m` : t.blind_levels}</span>}
               {t.late_registration && <span><strong style={{ color: '#e2e8f0' }}>Late Reg:</strong> {t.late_registration}</span>}
@@ -524,7 +524,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           {/* Structure Link */}
           {safeHref(t.structure_sheet_url) && (
             <a href={safeHref(t.structure_sheet_url)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800,
+              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800,
               background: 'linear-gradient(180deg, rgba(14,165,233,0.15), rgba(2,132,199,0.05))', color: '#38bdf8', border: '1px solid rgba(14,165,233,0.2)',
               padding: '6px 12px', borderRadius: 6, marginTop: 10, textDecoration: 'none', letterSpacing: '0.05em'
             }}>
@@ -535,12 +535,12 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           {/* Clustered Flights Dropdown */}
           {t.is_clustered && isExpanded && t.flights?.length > 1 && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Included Flights</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Included Flights</div>
                 <div style={{ display: 'grid', gap: 6 }}>
                       {t.flights.map((f, idx) => (
                         <div key={f.id || `${f.start_time || ''}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: 4, fontSize: 12, color: '#cbd5e1' }}>
                             <span>{f.day_of_week && f.day_of_week !== 'Daily' ? `${f.day_of_week} ` : ''}{formatTime(f.start_time)}</span>
-                            {f.tournament_name && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{f.tournament_name}</span>}
+                            {f.tournament_name && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{f.tournament_name}</span>}
                         </div>
                     ))}
                 </div>
@@ -553,8 +553,10 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
   return (
     <div>
-      {/* Day-of-week tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+      {/* Day-of-week tabs. Mobile phase 3: a wrapping row (it used to be a
+          hidden-scrollbar rail, so on a phone Friday to Sunday were only
+          reachable by sliding). */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12, paddingBottom: 4 }}>
         {DAYS.map((day) => (
           <button key={day} onClick={() => handleDayChange(day)}
             style={{
@@ -564,7 +566,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
               border: selectedDay === day ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
               background: selectedDay === day ? 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
               color: selectedDay === day ? '#ffffff' : 'rgba(148,163,184,0.6)',
-              fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.25s', boxShadow: selectedDay === day ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
             }}
           >
@@ -579,7 +581,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         {GAME_TYPES.map(gt => (
           <button key={gt} onClick={() => startTransition(() => setGameType(gt))}
             style={{
-              padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               // MOBILE FIX: 44px minimum touch target
               minHeight: 44, minWidth: 44,
               border: gameType === gt ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
@@ -595,7 +597,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="number" placeholder="Min $" value={minBuyin} onChange={e => startTransition(() => setMinBuyin(e.target.value))}
           style={{ width: 70, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
-        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>To</span>
+        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 12 }}>To</span>
         <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => startTransition(() => setMaxBuyin(e.target.value))}
           style={{ width: 70, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
         <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => startTransition(() => setMinGuaranteed(e.target.value))}
@@ -606,7 +608,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         </select>
         <button onClick={() => startTransition(() => setGroupByState(!groupByState))}
           style={{
-            padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             // MOBILE FIX: 44px minimum touch target
             minHeight: 44, minWidth: 44,
             border: groupByState ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
@@ -625,10 +627,10 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
       {/* Top States quick filter — [DTP5] uses memoized topStates (was an IIFE re-running 400+ items per render) */}
       {topStates.length >= 2 && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12, paddingBottom: 4 }}>
             <button onClick={() => startTransition(() => setSelectedState('all'))}
               style={{
-                flexShrink: 0, padding: '3px 10px', minHeight: 44, minWidth: 44, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                flexShrink: 0, padding: '3px 10px', minHeight: 44, minWidth: 44, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 border: (!selectedState || selectedState === 'all') ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
                 background: (!selectedState || selectedState === 'all') ? 'rgba(255,255,255,0.12)' : 'transparent',
                 color: (!selectedState || selectedState === 'all') ? '#ffffff' : 'rgba(148,163,184,0.5)',
@@ -636,11 +638,11 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             {topStates.map(([st, count]) => (
               <button key={st} onClick={() => startTransition(() => setSelectedState(st))}
                 style={{
-                  flexShrink: 0, padding: '3px 10px', minHeight: 44, minWidth: 44, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  flexShrink: 0, padding: '3px 10px', minHeight: 44, minWidth: 44, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                   border: selectedState === st ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
                   background: selectedState === st ? 'rgba(255,255,255,0.12)' : 'transparent',
                   color: selectedState === st ? '#ffffff' : 'rgba(148,163,184,0.5)',
-                }}>{st} <span style={{ fontSize: 8, opacity: 0.6 }}>({count})</span></button>
+                }}>{st} <span style={{ fontSize: 12, opacity: 0.6 }}>({count})</span></button>
             ))}
           </div>
       )}
@@ -701,7 +703,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           color: rgba(255,255,255,0.5); font-size: 18px; font-weight: 700;
         }
         .ev-source {
-          display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.05em;
+          display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.05em;
           text-transform: uppercase; padding: 2px 6px; border-radius: 4px; border: 1px solid;
         }
 

@@ -449,7 +449,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                                         {item.venue && (() => {
                                             const d = computeDistance(item.venue);
                                             return d !== null ? (
-                                                <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'rgba(63,185,80,0.15)', color: '#3fb950', border: '1px solid rgba(63,185,80,0.25)' }}>
+                                                <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: 'rgba(63,185,80,0.15)', color: '#3fb950', border: '1px solid rgba(63,185,80,0.25)' }}>
                                                     {d < 1 ? '<1' : Math.round(d)} Mi
                                                 </span>
                                             ) : null;
@@ -471,7 +471,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         .nmf-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         .nmf-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; flex: 1; }
         .nmf-icon { display: flex; align-items: center; }
-        .nmf-refresh-time { font-size: 11px; color: rgba(255,255,255,0.3); }
+        .nmf-refresh-time { font-size: 12px; color: rgba(255,255,255,0.3); }
         .nmf-controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
         .nmf-radius, .nmf-type-filter { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .nmf-ctrl-label { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; }
@@ -485,10 +485,10 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         .nmf-item-content { flex: 1; min-width: 0; }
         .nmf-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .nmf-item-title { font-size: 14px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .nmf-item-time { font-size: 11px; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+        .nmf-item-time { font-size: 12px; color: rgba(255,255,255,0.3); flex-shrink: 0; }
         .nmf-item-subtitle { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
         .nmf-item-detail { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .nmf-item-type { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid; flex-shrink: 0; align-self: center; }
+        .nmf-item-type { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid; flex-shrink: 0; align-self: center; }
         
         /* Skeleton styles */
         .nmf-skeleton { animation: nmf-pulse 1.5s ease-in-out infinite; }

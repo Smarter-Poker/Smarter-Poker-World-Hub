@@ -339,7 +339,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         .tc-venue-option { display: flex; flex-direction: column; width: 100%; padding: 10px 14px; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; cursor: pointer; transition: background 0.15s; }
         .tc-venue-option:hover { background: rgba(255,255,255,0.06); }
         .tc-vo-name { font-size: 13px; font-weight: 600; color: #fff; }
-        .tc-vo-loc { font-size: 11px; color: rgba(255,255,255,0.4); }
+        .tc-vo-loc { font-size: 12px; color: rgba(255,255,255,0.4); }
         .tc-selected-venue { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 8px; font-size: 13px; color: #22c55e; margin-top: 8px; }
         .tc-sv-check { font-weight: 700; }
         .tc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -368,7 +368,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         .tc-break-icon { width: 40px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.75); }
         .tc-break-info { flex: 1; }
         .tc-break-label { font-size: 14px; font-weight: 600; color: #fff; display: block; }
-        .tc-break-detail { font-size: 11px; color: rgba(255,255,255,0.35); }
+        .tc-break-detail { font-size: 12px; color: rgba(255,255,255,0.35); }
         .tc-break-amount { font-size: 16px; font-weight: 700; color: #ffffff; }
         .tc-no-gps { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; font-size: 12px; color: #f59e0b; margin-top: 12px; }
       `}</style>

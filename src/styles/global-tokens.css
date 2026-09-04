@@ -172,6 +172,12 @@ body,
 }
 
 .sp-overlay-close {
+  /* .sp-icon-btn (src/index.css) sets width/height to --sp-btn-size with
+     !important and unsets min-height, so an overlay close that carries both
+     classes rendered 44 wide but 32 tall (measured on the Poker Near Me
+     check-in sheet, mobile phase 3). Setting the token here makes the two
+     classes agree at 44x44 everywhere. */
+  --sp-btn-size: 44px;
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
   right: 12px;

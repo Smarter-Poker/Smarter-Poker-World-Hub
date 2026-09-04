@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { OFFLINE_TOAST } from '../../hooks/useOnlineStatus';
 import { normalizeGameName } from './normalize-game';
 
 // Venue display names differ between poker_venues (alert rows) and the
@@ -141,6 +142,13 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   const createAlert = async () => {
     if (!selectedVenue || !selectedGame || !userId) return;
+    // Mobile standard: no mutation fires offline (the POST would hang until
+    // the 8s failsafe and the player would not know why).
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setFeedback({ type: 'error', msg: OFFLINE_TOAST });
+      setTimeout(() => setFeedback(null), 3000);
+      return;
+    }
     setCreating(true);
     try {
       const token = await getFreshAccessToken();
@@ -346,13 +354,13 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
                     <span style={{ color: '#00d4ff', fontSize: 12 }}>{alert.game_type}</span>
                     {running && (
                       <span style={{
-                        fontSize: 10, color: '#4ade80', fontWeight: 700,
+                        fontSize: 12, color: '#4ade80', fontWeight: 700,
                         background: 'rgba(34,197,94,0.15)', padding: '1px 6px', borderRadius: 4,
                       }}>LIVE NOW</span>
                     )}
                     {estimated && (
                       <span style={{
-                        fontSize: 10, color: '#fbbf24', fontWeight: 700,
+                        fontSize: 12, color: '#fbbf24', fontWeight: 700,
                         background: 'rgba(251,191,36,0.12)', padding: '1px 6px', borderRadius: 4,
                       }} title="Modelled from historical activity, not a live count">LIKELY RUNNING (EST.)</span>
                     )}
@@ -386,7 +394,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {liveGameTypes.map(({ game, count, estimated }) => (
               <div key={game} style={{
-                padding: '4px 10px', borderRadius: 6, fontSize: 11,
+                padding: '4px 10px', borderRadius: 6, fontSize: 12,
                 background: estimated ? 'rgba(251,191,36,0.07)' : 'rgba(0,212,255,0.08)',
                 border: `1px solid ${estimated ? 'rgba(251,191,36,0.18)' : 'rgba(0,212,255,0.15)'}`,
                 color: '#94a3b8', cursor: 'default',
@@ -398,7 +406,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(148,163,184,0.55)' }}>
+          <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(148,163,184,0.55)' }}>
             Counts Marked &quot;Est.&quot; Are Modelled From Historical Activity, Not A Live Table Count.
           </div>
         </div>

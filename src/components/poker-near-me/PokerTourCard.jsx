@@ -88,7 +88,7 @@ export default function PokerTourCard({ tourPin = {} }) {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
                         </svg>
-                        <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                        <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
                             LIVE NOW
                         </span>
                     </div>
@@ -130,7 +130,7 @@ export default function PokerTourCard({ tourPin = {} }) {
                 }
                 .tour-logo-img { width: 100%; height: 100%; object-fit: contain; }
                 .tour-code-badge { padding: 4px 10px; border-radius: 6px; }
-                .tour-type-pill { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid; }
+                .tour-type-pill { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; border: 1px solid; }
                 .tour-card-name { font-size: 18px; font-weight: 800; color: #fff; margin: 0; }
                 .tour-card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; }
                 .tour-action-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.08); color: #fff; }

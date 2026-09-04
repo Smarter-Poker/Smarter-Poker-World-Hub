@@ -120,7 +120,15 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(dockSource, /querySelector\('\[data-world-menu-trigger="approved-header"\]'\)/);
   assert.match(dockSource, /min-height: 48px/);
   assert.match(dockSource, /@media \(max-width: 430px\)/);
-  assert.match(pokerNearMeLobbySource, /zIndex: 10050, pointerEvents: 'none'/);
+  // Mobile phase 3 (2026-09-04): the lobby used to float UniversalHeader in
+  // an absolute wrapper (zIndex 10050, pointerEvents none) above a
+  // 100vh stage. The lobby is document flow on HubPageShell now, which
+  // renders the ONE header in flow above the stage, so the wrapper is gone.
+  // The pin moves to: exactly one header, supplied through the shell's
+  // `header` prop, and no second UniversalHeader anywhere on the page.
+  assert.match(pokerNearMeLobbySource, /<HubPageShell[\s\S]{0,120}header=\{\s*<UniversalHeader\s+pageDepth=\{2\}/);
+  assert.equal((pokerNearMeLobbySource.match(/<UniversalHeader\b/g) || []).length, 1, 'the lobby renders one header');
+  assert.doesNotMatch(pokerNearMeLobbySource, /zIndex: 10050, pointerEvents: 'none'/);
 });
 
 test('the approved hamburger artwork is pinned and cannot become a settings icon', () => {

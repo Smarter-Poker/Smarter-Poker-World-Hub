@@ -5,7 +5,10 @@
  *   - "POKER NEAR ME" title
  *   - Search bar with autocomplete + voice + GPS
  *   - Unified playing-card grid (12 cards: 8 pods + 4 dock, all same size)
- *   - First-time tutorial overlay
+ *
+ * Mobile phase 3: the grid and the stats bar flow in the document (no inner
+ * scroller, no hidden scrollbar) and the page tutorial is the shared one in
+ * src/tutorials/poker-near-me.js; the hotspots carry its spotlight targets.
  *
  * NOTE: The feature panel drawer is rendered at the PAGE level
  * (poker-near-me-lobby.js) to avoid z-index stacking context issues.
@@ -13,7 +16,16 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import InteractiveTutorial, { LOBBY_TUTORIAL_STEPS } from '../InteractiveTutorial';
+
+// Spotlight targets for src/tutorials/poker-near-me.js, keyed by hotspot id.
+const TUTORIAL_TARGETS = {
+  nearme: 'venues',
+  livegames: 'live',
+  mapview: 'map',
+  daily: 'events',
+  favorites: 'saved',
+  social: 'social',
+};
 
 // 12 clickable areas laid over the single dynamic image, in a 4x3 grid.
 // Each entry defines the pod ID that gets opened when the hotspot is tapped.
@@ -42,11 +54,6 @@ const GRID_HOTSPOTS = [
 ];
 
 
-
-
-
-/* FirstTimeTutorial removed — replaced by InteractiveTutorial component */
-
 /**
  * LobbyOverlay — the full UI layer.
  */
@@ -67,8 +74,6 @@ export default function LobbyOverlay({
   savedLocationCity,
   savedLocationState,
   onUseSavedLocation,
-  showTutorial = false,
-  onTutorialDismiss,
   venueCount = 0,
   // ─── Global Search Overlay trigger ───
   onSearchBarClick,
@@ -87,17 +92,8 @@ export default function LobbyOverlay({
 
   return (
     <>
-      {/* Interactive Tutorial Overlay — spotlight-based with real-time element targeting */}
-      <InteractiveTutorial
-        steps={LOBBY_TUTORIAL_STEPS}
-        storageKey="pnm_lobby_tutorial_seen"
-        visible={showTutorial}
-        onDismiss={() => onTutorialDismiss?.()}
-        onDontShowAgain={() => onTutorialDismiss?.()}
-      />
-
       <div className="lobby-overlay" style={{
-        position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
+        position: 'relative', zIndex: 10, pointerEvents: 'none',
         display: 'flex', flexDirection: 'column',
       }}>
 
@@ -283,7 +279,7 @@ export default function LobbyOverlay({
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px' }}>
                       Use Saved Location
                     </div>
-                    <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
+                    <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
                       {savedLocationCity}{savedLocationState ? `, ${savedLocationState}` : ''}
                     </div>
                   </div>
@@ -332,7 +328,7 @@ export default function LobbyOverlay({
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', letterSpacing: '-0.2px' }}>
                     Enable Location
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
+                  <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
                     Find Poker Rooms, Live Games, And Events Near You
                   </div>
                 </div>
@@ -357,19 +353,14 @@ export default function LobbyOverlay({
         </div>
       )}
 
-      {/* ═══ SINGLE DYNAMIC IMAGE with clickable hotspot overlay ═══ */}
+      {/* ═══ SINGLE DYNAMIC IMAGE with clickable hotspot overlay ═══
+          Mobile phase 3: plain flow, no inner scroller. The page scrolls. */}
       <div className="lobby-card-scroll" style={{
-        flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         pointerEvents: 'auto',
         padding: 'clamp(12px, 2vw, 24px) clamp(16px, 4vw, 48px)',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
       }}>
         <div style={{ position: 'relative', maxWidth: 900, width: '100%' }}>
           {/* Grid image — WebP with PNG fallback for broad compatibility */}
@@ -405,17 +396,19 @@ export default function LobbyOverlay({
             gridTemplateRows: 'repeat(3, 1fr)',
             gap: gridImageFailed ? 8 : 0,
             overflow: 'visible',
-            pointerEvents: showTutorial ? 'none' : 'auto',
+            pointerEvents: 'auto',
             minHeight: gridImageFailed ? 260 : undefined,
             position: gridImageFailed ? 'relative' : 'absolute',
           }}
           className={gridImageFailed ? 'lobby-hotspots lobby-hotspots-fallback' : 'lobby-hotspots'}
+          data-tutorial="nav"
           >
             {GRID_HOTSPOTS.map((hotspot) => (
               <a
                 key={hotspot.id}
                 href={hotspot.href}
                 data-tutorial-id={`pod-${hotspot.id}`}
+                data-tutorial={TUTORIAL_TARGETS[hotspot.id] || undefined}
                 className="lobby-hotspot"
                 onClick={(e) => {
                   // Let modified clicks (new tab / new window) behave natively.
@@ -494,15 +487,13 @@ export default function LobbyOverlay({
                 <span>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
               </div>
               <div style={{
-                fontSize: 'clamp(8px, 1.4vw, 11px)',
-                color: 'rgba(200,214,229,0.45)',
+                fontSize: '12px',
+                color: 'rgba(200,214,229,0.55)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                letterSpacing: '0.08em',
+                letterSpacing: '0.06em',
                 marginTop: 4,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                lineHeight: 1.2,
                 maxWidth: '100%',
               }}>{stat.label}</div>
             </div>
@@ -523,7 +514,7 @@ export default function LobbyOverlay({
         padding: 2px 4px;
         border-radius: 6px;
         font-family: Inter, system-ui, sans-serif;
-        font-size: clamp(8px, 1.2vw, 11px);
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.02em;
         text-align: center;
@@ -534,6 +525,7 @@ export default function LobbyOverlay({
         pointer-events: none;
       }
       .lobby-hotspot:hover .lobby-hotspot-label,
+      .lobby-hotspot:active .lobby-hotspot-label,
       .lobby-hotspot:focus-visible .lobby-hotspot-label {
         opacity: 1;
       }

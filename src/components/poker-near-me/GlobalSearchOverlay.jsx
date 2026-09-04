@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { fuzzyMatchScore } from './pnm-utils';
@@ -269,7 +270,7 @@ function TimeWindowLabel({ timeWindow }) {
   const label = labels[timeWindow];
   if (!label) return null;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 11, fontWeight: 700, marginLeft: 6 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 12, fontWeight: 700, marginLeft: 6 }}>
       <CalendarIcon />
       {label}
     </span>
@@ -314,7 +315,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
     <div style={{ position: 'absolute', inset: 0, zIndex: 10010, background: 'rgba(4,10,20,0.99)', display: 'flex', flexDirection: 'column', animation: 'gso-modal-in 0.22s ease' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
-        <button onClick={onClose} className="sp-icon-btn" style={{ flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close">
+        <button onClick={onClose} className="sp-icon-btn" style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
         </button>
         <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(200,214,229,0.8)' }}>
@@ -322,7 +323,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
         </span>
       </div>
       {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 20px 80px' }}>
           {/* Hero */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: 20, marginBottom: 20, background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))', border: `1px solid ${accentColor}30`, borderRadius: 16 }}>
@@ -332,7 +333,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: '#e0e8f0', letterSpacing: '-0.4px', lineHeight: 1.2, marginBottom: 6 }}>{item.name || item.tour_name || item.series_name}</div>
               {city && <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.55)', marginBottom: 8 }}>{city}</div>}
-              <span style={{ padding: '3px 10px', borderRadius: 6, background: isVenue ? typeStyle.bg : `${accentColor}20`, color: accentColor, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{isVenue ? typeStyle.label : isTour ? (item.tour_code || 'Tour') : 'Series'}</span>
+              <span style={{ padding: '3px 10px', borderRadius: 6, background: isVenue ? typeStyle.bg : `${accentColor}20`, color: accentColor, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{isVenue ? typeStyle.label : isTour ? (item.tour_code || 'Tour') : 'Series'}</span>
             </div>
           </div>
           {/* Info rows */}
@@ -355,7 +356,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
           {isVenue && item.trust_score > 0 && (
             <div style={{ padding: '14px 16px', marginBottom: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Trust Score</div>
+                <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Trust Score</div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[1,2,3,4,5].map(n => <div key={n} style={{ flex: 1, height: 6, borderRadius: 3, background: n <= Math.round(item.trust_score) ? '#d4a853' : 'rgba(255,255,255,0.08)' }} />)}
                 </div>
@@ -366,14 +367,14 @@ function DetailModal({ item, type, onClose, onNavigate }) {
           {/* Tour stops */}
           {isTour && Array.isArray(item.stops_2026) && item.stops_2026.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>2026 Stops</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>2026 Stops</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {item.stops_2026.slice(0, 15).map((stop, i) => (
                   <div key={i} style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: tourColor, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>{stop.name || stop.location}</div>
-                      {stop.dates && <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{stop.dates}</div>}
+                      {stop.dates && <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{stop.dates}</div>}
                     </div>
                   </div>
                 ))}
@@ -448,7 +449,7 @@ function VenueResultCard({ venue, onClick, isSelected = false }) {
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{venue.name}</div>
         {city && <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{city}</div>}
       </div>
-      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: typeStyle.bg, fontSize: 10, fontWeight: 700, color: typeStyle.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{typeStyle.label}</div>
+      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: typeStyle.bg, fontSize: 12, fontWeight: 700, color: typeStyle.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{typeStyle.label}</div>
     </button>
   );
 }
@@ -462,13 +463,13 @@ function TourResultCard({ tour, onClick, isSelected = false }) {
       onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(110,231,239,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: `${color}18`, border: `1.5px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {tour.logo_url ? <img src={tour.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 11, fontWeight: 900, color }}>{tour.tour_code || '?'}</span>}
+        {tour.logo_url ? <img src={tour.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 12, fontWeight: 900, color }}>{tour.tour_code || '?'}</span>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tour.tour_name || tour.tour_code}</div>
         <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{tour.regions?.slice(0,2).join(' • ') || 'Traveling Tour'}</div>
       </div>
-      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: `${color}20`, fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tour</div>
+      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: `${color}20`, fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tour</div>
     </button>
   );
 }
@@ -488,7 +489,7 @@ function SeriesResultCard({ series, onClick, isSelected = false }) {
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{series.name || series.series_name}</div>
         {city && <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{city}</div>}
       </div>
-      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.12)', fontSize: 10, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Series</div>
+      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.12)', fontSize: 12, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Series</div>
     </button>
   );
 }
@@ -497,8 +498,8 @@ function SectionHeader({ icon, label, count }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px', borderBottom: '1px solid rgba(110,231,239,0.08)', marginBottom: 10 }}>
       {icon}
-      <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(200,214,229,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
-      {count > 0 && <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'rgba(110,231,239,0.6)', background: 'rgba(110,231,239,0.08)', padding: '1px 7px', borderRadius: 10 }}>{count}</span>}
+      <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(200,214,229,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
+      {count > 0 && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'rgba(110,231,239,0.6)', background: 'rgba(110,231,239,0.08)', padding: '1px 7px', borderRadius: 10 }}>{count}</span>}
     </div>
   );
 }
@@ -626,6 +627,12 @@ export default function GlobalSearchOverlay({
     if (!isOpen) return undefined;
     return acquireScrollLock('PokerNearMeGlobalSearch');
   }, [isOpen]);
+
+  // Mobile phase 3: the phone back gesture closes the search instead of
+  // leaving the page. The overlay stays full-screen on purpose (the input is
+  // pinned under the status bar, above the keyboard); a bottom sheet would
+  // put the field behind the keyboard.
+  useModalHistory(!!isOpen, onClose);
 
   // A11Y FIX: the shell declares role="dialog" aria-modal="true" and locks body scroll, but
   // nothing constrained Tab — a keyboard or screen-reader user tabbing past the last result
@@ -993,8 +1000,8 @@ export default function GlobalSearchOverlay({
         {/* ───── HEADER ───── */}
         {/* Header sits below the status bar so the close control is reachable on a phone (mobile phase 0b). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
-          <button className="gso-back sp-icon-btn" onClick={onClose} aria-label="Close"
-            style={{ flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s' }}>
+          <button type="button" className="gso-back sp-icon-btn" onClick={onClose} aria-label="Close"
+            style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
           </button>
 
@@ -1022,8 +1029,8 @@ export default function GlobalSearchOverlay({
           </form>
 
           {localQuery.trim() && (
-            <button onClick={handleSubmit}
-              style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,rgba(110,231,239,0.2),rgba(167,139,250,0.15))', color: '#6ee7ef', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button type="button" onClick={handleSubmit}
+              style={{ flexShrink: 0, minHeight: 44, padding: '0 16px', borderRadius: 8, touchAction: 'manipulation', border: 'none', background: 'linear-gradient(135deg,rgba(110,231,239,0.2),rgba(167,139,250,0.15))', color: '#6ee7ef', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               Search
             </button>
           )}
@@ -1057,14 +1064,14 @@ export default function GlobalSearchOverlay({
               hideLegend={true}
               disableClustering={venueResults.length < 20}
             />
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1001, padding: '4px 14px', background: 'rgba(4,10,20,0.88)', backdropFilter: 'blur(8px)', border: '1px solid rgba(110,231,239,0.12)', borderRadius: 20, fontSize: 11, color: 'rgba(200,214,229,0.65)', fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1001, padding: '4px 14px', background: 'rgba(4,10,20,0.88)', backdropFilter: 'blur(8px)', border: '1px solid rgba(110,231,239,0.12)', borderRadius: 20, fontSize: 12, color: 'rgba(200,214,229,0.65)', fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
               {venueResults.length} {venueResults.length === 1 ? 'venue' : 'venues'} - Tap A Pin For Details
             </div>
           </div>
         )}
 
         {/* ───── SCROLLABLE BODY ───── */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
 
           {/* INPUT phase — suggestions */}
           {phase === 'input' && (
@@ -1202,14 +1209,14 @@ export default function GlobalSearchOverlay({
                       <>
                         {/* Only intents that were actually applied get a chip */}
                         {nlIntent.applied?.stateCode && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(110,231,239,0.15)', color: '#6ee7ef', fontSize: 11, fontWeight: 700 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(110,231,239,0.15)', color: '#6ee7ef', fontSize: 12, fontWeight: 700 }}>
                             <MapPinIcon />
                             {nlIntent.stateCode}
                           </span>
                         )}
                         {nlIntent.applied?.timeWindow && <TimeWindowLabel timeWindow={nlIntent.timeWindow} />}
                         {nlIntent.applied?.gameType && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 11, fontWeight: 700 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 12, fontWeight: 700 }}>
                             <CardsIcon size={12} />
                             {GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType}
                           </span>
@@ -1220,7 +1227,7 @@ export default function GlobalSearchOverlay({
                     )}
                   </div>
                   {nlIntent?.isNaturalLanguage && (
-                    <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 11, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
+                    <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 12, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
                       <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> - Applied Filters: {[
                         nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
                         nlIntent.applied?.timeWindow && nlIntent.timeWindow?.replace(/_/g, ' '),

@@ -4,6 +4,8 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 
 // Friend check-ins older than this are history, not "at the venue right now".
 const CHECKIN_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -33,7 +35,7 @@ function getInitials(name) {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function SocialLayer({ userId, userLocation, venues = [], authToken }) {
+export default function SocialLayer({ userId, userLocation, venues = [], authToken, requireOnline }) {
     const [friendCheckins, setFriendCheckins] = useState([]);
     const [friendsList, setFriendsList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -231,6 +233,11 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     // A11Y: the invite modal had no dialog role, no Escape handler and no focus move,
     // so keyboard and screen-reader users tabbed straight past it into the page behind.
     const inviteModalRef = useRef(null);
+    // Mobile phase 3: back gesture closes the invite sheet; a drag that merely
+    // ends on the scrim does not.
+    const closeInvite = useCallback(() => setInviteModal(null), []);
+    useModalHistory(!!inviteModal, closeInvite);
+    const inviteScrim = useScrimDismiss(closeInvite);
     const inviteOpenerRef = useRef(null);
     useEffect(() => {
         if (!inviteModal) return undefined;
@@ -271,6 +278,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     };
 
     const copyInviteLink = async (venueId) => {
+        if (typeof requireOnline === 'function' && !requireOnline()) return;
         const link = generateInviteLink(venueId);
         try {
             await navigator.clipboard.writeText(link);
@@ -417,7 +425,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
 
             {/* Invite Modal */}
             {inviteModal && (
-                <div className="sl-modal-overlay" onClick={() => setInviteModal(null)}>
+                <div className="sl-modal-overlay" role="presentation" {...inviteScrim}>
                     <div
                         className="sl-modal"
                         role="dialog"
@@ -427,9 +435,10 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                         ref={inviteModalRef}
                         onClick={e => e.stopPropagation()}
                     >
+                        <div className="sl-modal-handle" aria-hidden="true" />
                         <div className="sl-modal-header">
                             <h3>Invite To Table</h3>
-                            <button className="sl-modal-close" aria-label="Close" onClick={() => setInviteModal(null)}>×</button>
+                            <button type="button" className="sl-modal-close sp-icon-btn" aria-label="Close" onClick={closeInvite}>×</button>
                         </div>
                         <p className="sl-modal-text">
                             Share This Link To Invite Someone To Join You At <strong>{inviteModal.venueName}</strong>:
@@ -474,25 +483,33 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-friend-time { font-size: 12px; color: rgba(148,163,184,0.5); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .sl-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
         .sl-friend-msg { color: rgba(148,163,184,0.35); font-style: italic; }
-        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
-        .sl-invite-btn:hover { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 10px rgba(255,255,255,0.12); }
-        .sl-modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .sl-modal { background: linear-gradient(160deg, rgba(18,28,45,0.98), rgba(10,16,28,1)); border: 2px solid rgba(148,163,184,0.16); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 64px rgba(0,0,0,0.6); }
+        .sl-invite-btn { display: flex; align-items: center; gap: 4px; min-height: 44px; touch-action: manipulation; padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
+        .sl-invite-btn:hover, .sl-invite-btn:active { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 10px rgba(255,255,255,0.12); }
+        .sl-modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 20px; padding-top: max(env(safe-area-inset-top, 0px), 20px); box-sizing: border-box; }
+        .sl-modal { position: relative; background: linear-gradient(160deg, rgba(18,28,45,0.98), rgba(10,16,28,1)); border: 2px solid rgba(148,163,184,0.16); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 64px rgba(0,0,0,0.6); box-sizing: border-box; }
+        .sl-modal-handle { display: none; }
         .sl-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .sl-modal-header h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0; }
-        .sl-modal-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; }
-        .sl-modal-close:hover { color: #ffffff; }
+        .sl-modal-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; min-width: 44px; min-height: 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
+        .sl-modal-close:hover, .sl-modal-close:active { color: #ffffff; }
+        /* Mobile phase 3: bottom sheet at or below 600px with a drag handle, 16px input. */
+        @media (max-width: 600px) {
+          .sl-modal-overlay { align-items: flex-end; padding: 0; padding-top: max(env(safe-area-inset-top, 0px), 12px); }
+          .sl-modal { max-width: none; border-radius: 16px 16px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
+          .sl-modal-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 0 auto 8px; }
+          .sl-invite-link-input { font-size: 16px; }
+        }
         .sl-modal-text { font-size: 14px; color: rgba(148,163,184,0.6); margin: 0 0 16px; }
         .sl-invite-link-box { display: flex; gap: 8px; }
         .sl-invite-link-input { flex: 1; padding: 10px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
-        .sl-copy-btn { padding: 10px 16px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .sl-copy-btn { min-height: 44px; touch-action: manipulation; padding: 10px 16px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .sl-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
         .sl-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         .sl-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: 1.5px solid; font-family: inherit; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.3); }
         .sl-cta-checkin { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
-        .sl-cta-checkin:hover { background: rgba(34,197,94,0.2); }
+        .sl-cta-checkin:hover, .sl-cta-checkin:active { background: rgba(34,197,94,0.2); }
         .sl-cta-invite { background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.35); color: #ffffff; }
-        .sl-cta-invite:hover { border-color: rgba(255,255,255,0.5); }
+        .sl-cta-invite:hover, .sl-cta-invite:active { border-color: rgba(255,255,255,0.5); }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

@@ -213,7 +213,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                         </span>
                         {/* Tour type badge */}
                         {tourTypeLabel && (
-                            <span style={{ padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                            <span style={{ padding: '3px 8px', borderRadius: 5, fontSize: 12, fontWeight: 600,
                                 background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
                                 border: '1px solid rgba(255,255,255,0.12)' }}>
                                 {tourTypeLabel}
@@ -245,7 +245,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                                 ? '0 0 6px #10b981' : '0 0 6px #3b82f6',
                         }} />
                         <span style={{
-                            fontSize: 11, fontWeight: 800, letterSpacing: '0.5px',
+                            fontSize: 12, fontWeight: 800, letterSpacing: '0.5px',
                             color: currentStopType === 'current' ? '#10b981' : '#3b82f6',
                         }}>
                             {currentStopType === 'current' ? 'LIVE NOW' : 'NEXT STOP'}
@@ -267,7 +267,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                         </div>
                     )}
                     {currentStop.stop_start_date && (
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
                             {formatDateRange(currentStop.stop_start_date, currentStop.stop_end_date)}
                         </div>
                     )}
@@ -297,7 +297,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
                     {displayTour.regions.slice(0, 3).map(r => (
                         <span key={r} style={{
-                            padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                            padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                             background: 'rgba(100,116,139,0.15)', color: '#94a3b8',
                             border: '1px solid rgba(100,116,139,0.2)'
                         }}>{r}</span>
@@ -316,7 +316,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
             {/* Upcoming Stops list */}
             {upcomingStops.length > 0 && (
                 <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
                         textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
                         display: 'flex', alignItems: 'center', gap: 4 }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -332,7 +332,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {s.stop_name || s.name}
                             </span>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', flexShrink: 0, marginLeft: 8 }}>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', flexShrink: 0, marginLeft: 8 }}>
                                 {formatDateRange(s.stop_start_date, s.stop_end_date) || s.dates || 'TBD'}
                             </span>
                         </div>
@@ -344,7 +344,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8,
                 paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 {displayTour.established && (
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
                         Est. {displayTour.established}
                     </span>
                 )}
