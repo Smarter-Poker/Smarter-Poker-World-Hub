@@ -120,6 +120,17 @@ JOB_TIMEOUTS = {
     **{f'/api/cron/horse-batch/{i}': 600 for i in range(10)},
     '/api/cron/horses-social-all':     600,
     '/api/cron/scrape-sports-clips':   300,
+    # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
+    # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
+    # ingestion stops wherever it was. The scraper walks 23 YouTube channels
+    # through yt-dlp (up to 60s each) and then enriches every new video, so a
+    # real run is minutes, not two. The reels bridge is fast but shares the
+    # discipline: never kill a writer at 120s.
+    '/api/cron/video-library-scraper':  1800,
+    '/api/cron/video-library-reels':     900,
+    '/api/cron/video-library-backfill': 1800,
+    '/api/cron/video-library-purge':    1800,
+    '/api/cron/video-library-views':    1800,
 }
 def job_timeout(path: str) -> int:
     return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
@@ -807,9 +818,19 @@ SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
 }
 
+# 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
+# is the caption-only mode: it rewrites captions of reels that already exist
+# and returns before the bridge runs. Scheduled that way, no new library video
+# could ever reach social_reels - the last video_library reel was written
+# 2026-04-22 while the library gained 185 videos on 2026-08-30. The daily job
+# now runs the bridge itself, bounded to the newest 100 library videos by
+# published_at (the bridge stamps created_at = now(), so an unbounded run
+# after a gap would drop the whole backlog onto the feed in one burst; the
+# backlog is a deliberate manual run: `video_library_to_reels.py` with no
+# --limit). Caption sync is folded into the end of every bridge run.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
-    '/api/cron/video-library-reels':    ['--sync-captions'],
+    '/api/cron/video-library-reels':    ['--limit', '100'],   # bridge newest 100 → social_reels, then caption sync
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
@@ -1010,6 +1031,16 @@ def _workers_dispatch(path: str) -> bool:
 # hub and the commander Vercel project, which is exactly a failure.
 CRITICAL_JOBS = {
     '/api/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
+    # 2026-09-04: the video-library scraper exited 1 at 06:00 UTC on five
+    # consecutive days and every run was logged "executed successfully". A
+    # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
+    '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
+    '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+}
+CRITICAL_RUNBOOKS = {
+    '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
+    '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
 }
 _critical_state = {}
 
@@ -1035,7 +1066,7 @@ def _critical_record(path: str, ok: bool, detail: str = ''):
         n = st['consec_fail']
         if n >= threshold:
             body = (f'🚨 CRITICAL {path} failed {n}x in a row: {detail[:160]}. '
-                    f'Runbook: smarter-poker-commander/docs/runbooks/login-bridge.md')
+                    f'Runbook: {CRITICAL_RUNBOOKS.get(path, "see dispatcher journal")}')
             if st.get('alert_sent'):
                 log.error(f'[critical] {path} still failing ({n} consecutive); operator already paged')
             else:
@@ -1094,21 +1125,26 @@ def fire_script(path: str, extra_args: list):
     cmd = [sys.executable, SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)] + extra_args
     log.info(f'▶ Script job {path} → {" ".join(cmd)}')
     t0 = time.time()
+    timeout = job_timeout(path)
     try:
         result = subprocess.run(
             cmd,
             capture_output=False,  # let stdout/stderr flow to our log
-            timeout=REQUEST_TIMEOUT,
+            timeout=timeout,
         )
         elapsed = round(time.time() - t0, 1)
         if result.returncode == 0:
             log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+            _critical_record(path, True)
         else:
             log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            _critical_record(path, False, f'exit {result.returncode} after {elapsed}s')
     except subprocess.TimeoutExpired:
-        log.error(f'❌ {path} script TIMEOUT after {REQUEST_TIMEOUT}s')
+        log.error(f'❌ {path} script TIMEOUT after {timeout}s (killed)')
+        _critical_record(path, False, f'killed at {timeout}s')
     except Exception as e:
         log.error(f'❌ {path} script {type(e).__name__}: {e}')
+        _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
 def _send_sms(body: str):

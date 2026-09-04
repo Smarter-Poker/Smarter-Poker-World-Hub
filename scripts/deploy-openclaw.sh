@@ -13,6 +13,11 @@
 # What it does:
 #   1. Diffs the local dispatcher.py against what's on the VM.
 #   2. scp's the updated file to /opt/openclaw/dispatcher.py.
+#   2b. scp's the SCRIPT_JOB scripts (video_library_scraper.py,
+#       video_library_to_reels.py) to /opt/openclaw/ whenever they differ —
+#       the dispatcher runs them from beside itself, so they drift exactly the
+#       way dispatcher.py used to (2026-09-04: the box ran a scraper with an
+#       env loader nobody had committed, and a reels bridge nobody had ported).
 #   3. Restarts systemd openclaw.service.
 #   4. Tails journalctl to confirm all jobs re-registered with zero errors.
 #   5. Verifies systemctl is-active returns active.
@@ -32,6 +37,11 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_SRC="$REPO_ROOT/scripts/openclaw-cron-dispatcher.py"
 REMOTE_PATH="/opt/openclaw/dispatcher.py"
 SERVICE="openclaw.service"
+# SCRIPT_JOB scripts the dispatcher invokes from its own directory (see
+# _SCRAPER_DIR_CANDIDATES in openclaw-cron-dispatcher.py). Kept in sync on
+# every deploy; each is idempotent against Supabase so a re-upload is safe.
+SCRIPT_JOB_FILES=(video_library_scraper.py video_library_to_reels.py)
+REMOTE_DIR="/opt/openclaw"
 
 # ─── SSH key resolution (2026-08-16) ──────────────────────────────────────────
 #
@@ -76,6 +86,32 @@ SERVER_ID=$(security find-generic-password -a smarter-poker -s openclaw-server-i
 
 log "Target: $SERVER_IP (id=${SERVER_ID:-unknown})"
 
+# ─── 0. Sync SCRIPT_JOB scripts (independent of the dispatcher hash) ─────────
+
+SCRIPTS_CHANGED=0
+for f in "${SCRIPT_JOB_FILES[@]}"; do
+  src="$REPO_ROOT/scripts/$f"
+  [ -f "$src" ] || die "SCRIPT_JOB source missing at $src" 1
+  lsha=$(shasum -a 256 "$src" | cut -d' ' -f1)
+  rsha=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
+    "root@$SERVER_IP" "sha256sum $REMOTE_DIR/$f 2>/dev/null | cut -d' ' -f1" 2>/dev/null || echo "missing")
+  if [ "$lsha" = "$rsha" ]; then
+    log "$f: in sync"
+    continue
+  fi
+  log "$f: uploading (remote ${rsha:0:12} → local ${lsha:0:12})"
+  scp -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
+    "$src" "root@$SERVER_IP:$REMOTE_DIR/$f.new" || die "scp $f failed" 2
+  ssh -i "$SSH_KEY" "root@$SERVER_IP" "
+    set -euo pipefail
+    chown openclaw:openclaw $REMOTE_DIR/$f.new
+    chmod 0755 $REMOTE_DIR/$f.new
+    mv $REMOTE_DIR/$f.new $REMOTE_DIR/$f
+    sudo -u openclaw /usr/bin/python3 -m py_compile $REMOTE_DIR/$f
+  " || die "remote install of $f failed" 2
+  SCRIPTS_CHANGED=1
+done
+
 # ─── 1. Diff local vs. remote ─────────────────────────────────────────────────
 
 LOCAL_SHA=$(shasum -a 256 "$LOCAL_SRC" | cut -d' ' -f1)
@@ -92,7 +128,11 @@ for arg in "$@"; do
 done
 
 if [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE" -eq 0 ]; then
-  log "Already in sync — dispatcher.py hash matches remote. Nothing to deploy."
+  if [ "$SCRIPTS_CHANGED" -eq 1 ]; then
+    log "dispatcher.py already in sync; SCRIPT_JOB scripts updated (no restart needed — they run as subprocesses)."
+  else
+    log "Already in sync — dispatcher.py and SCRIPT_JOB scripts match remote. Nothing to deploy."
+  fi
   log "Pass --force to re-upload and restart anyway (e.g., to recover a flapping service)."
   exit 0
 fi
