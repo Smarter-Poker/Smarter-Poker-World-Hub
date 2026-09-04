@@ -2,9 +2,16 @@ name: E2E Tests (Playwright)
 
 # Runs on PRs, main pushes, and manual trigger. Branch protection decides
 # whether the PR run blocks merge; the main run provides post-promote evidence.
+# OFF THE PULL-REQUEST PATH (2026-09-04). This suite is not a required check,
+# it has been red on main since 2026-09-03 18:32 (18 of the last 22 main runs
+# failed - 140 failures a run, the Commander routes returning 500 and Poker
+# Near Me phase 8), and it holds one of the World Hub's runners for 15-20
+# minutes on EVERY push to EVERY branch, twice (pull_request and push). On
+# 2026-09-04 the required checks behind it were waiting 8-14 minutes for a
+# runner. A red, unactioned, non-blocking suite on the critical path is pure
+# cost: it runs on main and on demand until it is green again, at which point
+# the pull_request trigger belongs back here in the same commit that fixes it.
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
