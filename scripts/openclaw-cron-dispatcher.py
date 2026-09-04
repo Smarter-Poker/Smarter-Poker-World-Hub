@@ -426,6 +426,31 @@ ALL_CRONS = [
     # time-boxed and resumable (cursor in club_stats_rebuild_log), so a run
     # that stops mid-table simply continues next time.
     ('/api/cron/club-stats-maintenance',    dict(minute='*/15')),
+    # ── Player restriction housekeeping (2026-09-04, Phase 4) ─────────────
+    # Two idempotent passes on ca_player_restrictions and the observation log
+    # beside it: mark run-out restrictions expired, and prune observations
+    # older than 30 days.
+    #
+    # THE EXPIRY PASS CHANGES NO BEHAVIOUR and its absence is not an outage.
+    # expires_at is the clock and status is only the intent, so
+    # fn_ca_player_restricted - the reader every guard calls - already treats
+    # a run-out row as not binding, and fn_ca_player_restrict retires a stale
+    # row itself. Nobody is ever restricted a second past their expiry. What
+    # the sweep buys is an honest LIST: without it the console shows `active`
+    # against somebody who is not restricted.
+    #
+    # THE PRUNE PASS IS THE ONE WITH A CLOCK ON IT. While
+    # ca_operator_policy.restrictions_enforced is false, every entry a
+    # restriction would have refused is recorded and allowed through - and the
+    # fleet re-seats continuously, so one restricted horse writes a row per
+    # seating attempt forever, with two indexes riding along on every insert.
+    # PHASE4-CONTRACTS section 2 promised "retained by age"; this delivers it.
+    #
+    # HOURLY AT :20, not on the quarter hour. spin-sweep's note above records
+    # what the :00/:15/:30/:45 pile-up cost it (an 8s statement timeout on a
+    # 2.1s query), and :20 is also well clear of the :55 maintenance break,
+    # when the platform is frozen and every table is parked.
+    ('/api/cron/restriction-maintenance',   dict(minute=20)),
     # ── Spin reserve backstop (2026-08-20) ────────────────────────────────
     # fn_spin_sweep_unbooked settles any Spin that ran without booking its
     # rake + reserve movements. That failure mode throws nothing and logs

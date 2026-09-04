@@ -446,29 +446,42 @@ is wanted.
 enforcement is wanted sooner, is to restrict `cash` rather than `tournaments`
 on any player who already holds a tournament entry.
 
-### 6.3 The two scheduled jobs
+### 6.3 The two scheduled jobs - DONE 2026-09-04
 
-`fn_ca_restriction_expire_sweep` and `fn_ca_restriction_observation_prune`
-both exist and neither has a caller. Neither is needed for CORRECTNESS - the
-reader treats `expires_at` as authoritative and `fn_ca_player_restrict`
-retires a stale row itself - but with enforcement on, the observation log
-stops being a dry run and starts being an audit surface, and an unbounded one
-is a bad audit surface. Register both in Open Claw (CLAUDE.md 11.2), never the
-Claude scheduler (10.9).
+Both now run from Open Claw, hourly at :20, through one handler:
+`pages/api/cron/restriction-maintenance.js`, registered in
+`scripts/openclaw-cron-dispatcher.py` and deployed with
+`bash scripts/deploy-openclaw.sh` (91 jobs registered, 0 errors; the live
+`/opt/openclaw/dispatcher.py` SHA256 matches the repo file exactly, so there
+is no drift of the kind CLAUDE.md 11.3 forbids).
+
+ONE handler for two passes, deliberately: both are idempotent maintenance on
+the same record, and `pages/api/cron/` sits under a CI ratchet that fails on
+net-new files (CHECK 6b, cap 45, now 33).
+
+Neither pass is needed for CORRECTNESS - the reader treats `expires_at` as
+authoritative and `fn_ca_player_restrict` retires a stale row itself, so
+nobody is restricted a second past their expiry either way. The expiry sweep
+buys an honest LIST; the prune keeps the observation log bounded, which
+matters most once enforcement is on and the log stops being a dry run and
+starts being an audit surface.
+
+`:20` and not the quarter hour: `spin-sweep` records what the :00/:15/:30/:45
+pile-up cost it (an 8s statement timeout on a 2.1s query), and :20 is clear of
+the :55 maintenance break as well.
 
 ## 6b. Still open when Phase 4 shipped
 
 Recorded here rather than left for the next agent to rediscover:
 
-- **Neither scheduled job is registered.** `fn_ca_restriction_expire_sweep`
-  (marks run-out restrictions `expired`) and
-  `fn_ca_restriction_observation_prune` (retention on the observation log) both
-  exist and both have zero callers. Nothing depends on the sweep for
-  CORRECTNESS - the reader treats `expires_at` as authoritative over `status`
-  and `fn_ca_player_restrict` retires a stale row itself - so the cost of the
-  gap is a `status` column that reads stale in a list, and a log that grows.
-  They go in `pages/api/cron/` and into
-  `scripts/openclaw-cron-dispatcher.py` (CLAUDE.md 11.2).
+- ~~**Neither scheduled job is registered.**~~ **DONE 2026-09-04** - both run
+  from Open Claw hourly at :20 through
+  `pages/api/cron/restriction-maintenance.js`. See section 6.3.
+  (Originally: both existed with zero callers. Nothing depended on the sweep
+  for CORRECTNESS then either - the reader treats `expires_at` as
+  authoritative over `status` and `fn_ca_player_restrict` retires a stale row
+  itself - so the cost of the gap was a `status` column reading stale in a
+  list, and a log that grows.)
 - **`transfers` and `social` have no guard.** They record a decision and stop
   nothing, in either enforcement state. `SCOPE_META` says so on the control
   and the law test pins that it keeps saying so. They need a convergence point
