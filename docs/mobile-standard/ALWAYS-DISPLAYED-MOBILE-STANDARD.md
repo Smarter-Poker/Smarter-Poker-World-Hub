@@ -195,3 +195,44 @@ it never re-implements them.
   70`, and its FAB sits at `calc(56px + 16px + env(safe-area-inset-bottom))`.
   The `social-pages` loading shells carry one `maxWidth` each (100vw on the
   shell, 700 on an inner column).
+
+## Phase 0c: tutorials, chrome geometry, pull-to-refresh, the budget
+
+Added 2026-09-03 after Dan's second review. Every later phase uses all four.
+
+- **Page tutorials (`src/tutorials/`, `src/components/tutorial/`).** Dan:
+  every one of the ten pages has a tutorial; it is hidden by default in the
+  hamburger menu; a small prompt at the bottom of the page asks "Would You
+  Like A Tutorial Of This Page?" and disappears after three seconds unless
+  the player taps Start or X, with the note "Tutorials For Every Page Live
+  In The Hamburger Menu If You Ever Need It." One `TutorialProvider` is
+  mounted in `_app.js`; the hamburger adds the "Page Tutorial" row for any
+  route in the registry. A phase adds `src/tutorials/<page>.js` (5 to 8
+  steps, Title Case, no em dash, each `target` a `data-tutorial="..."` on a
+  real element), one row in `src/tutorials/index.js`, one row in
+  `__tests__/page-tutorials.test.mjs` `LANDED`, and, if the page has state
+  the tour needs (a dashboard, a tab), a listener for
+  `TUTORIAL_WILL_OPEN_EVENT` that puts the page there first. Pages never
+  mount their own tutorial and never auto-launch one; the prompt is the
+  only unprompted surface.
+- **Chrome geometry.** `--sp-header-height` is published on `<html>` by
+  `UniversalHeader` from its rendered height (about 38px at 375, 56 on
+  desktop); `--sp-bottom-nav-height` is 56px in `global-tokens.css`. A
+  sticky sub-bar is `top: var(--sp-header-height)`; a fixed layer above the
+  nav is `bottom: calc(var(--sp-bottom-nav-height) + env(safe-area-inset-bottom) + Npx)`.
+  Never hardcode 56 or 80 again.
+- **Pull-to-refresh (`src/components/ui/PullToRefresh.jsx`).** The
+  browser's own gesture is disabled app-wide (`overscroll-behavior-y:
+  none`), so every page with a reloadable list wraps its content in
+  `<PullToRefresh onRefresh={loadData} disabled={anySheetOpen}>`. Touch
+  only, arms at scroll top, haptic at the threshold, 8s cap.
+- **Mobile budget (`e2e/mobile-budget.spec.ts`, `scripts/ci/mobile-budget.json`).**
+  Runs in the Global Footer E2E workflow against the production build at
+  375px: script bytes, LCP, sideways overflow, and for converted routes the
+  12px text floor and 44px targets. A phase flips its row to
+  `converted: true` and lowers its numbers to the measured baseline plus
+  about 15%. Rows only go down.
+- **iOS text sizing.** Type is px, so iOS Dynamic Type does not scale it;
+  Safari's page zoom does, uniformly. Layouts survive that because every
+  control uses `min-height` (never `height`) for text-bearing elements and
+  rows wrap. Keep it that way: `height: 44` is for icon buttons only.

@@ -3,8 +3,9 @@
  * Monte Carlo simulation visualization (user-initiated only)
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
 
 export default function BankrollProjection({ userId, currentBankroll = 0, onClose }) {
@@ -16,14 +17,11 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
         projectionDays: 90
     });
     // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
-    // open, so isOpen is constant; the unmount cleanup pops our entry if an
-    // X-close left it on top.
+    // open, so isOpen is constant; the hook pops our history entry on unmount
+    // (an X-close never leaves a dead "back" behind).
     useModalHistory(true, onClose);
-    useEffect(() => () => {
-        try {
-            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
-        } catch (_) { /* history unavailable */ }
-    }, []);
+    // Tap outside closes; a drag that merely ends outside does not.
+    const scrim = useScrimDismiss(onClose);
 
     async function runProjection() {
         if (!userId) return;
@@ -65,7 +63,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={styles.overlay}
-            onClick={onClose}
+            {...scrim}
         >
             <motion.div
                 className="bankroll-modal"

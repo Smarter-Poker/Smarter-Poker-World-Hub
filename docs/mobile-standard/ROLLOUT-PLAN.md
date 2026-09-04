@@ -170,6 +170,25 @@ hydration guards; `paddingBottom:70` boilerplate.
 Work: standard shell; card picker grid `repeat(auto-fill, minmax(44px,1fr))`;
 results as stacked cards at <=768; verify at 375.
 
+## Every phase, in addition to its page work (added 2026-09-03)
+
+1. Build on the Phase 0 foundation: `HubPageShell`, `useLoadFailsafe` +
+   `useInitialLoadRef`, `useModalHistory` on every modal, `useHaptics`,
+   `ResponsiveTable`, `PullToRefresh`, `requireOnline`, sheets at 600px with
+   a 44px X below the status bar, 16px inputs, `--sp-header-height` for any
+   sticky bar, no font under 12px, lazy-load below-the-fold panels.
+2. Register the page tutorial (`src/tutorials/<page>.js` + registry row +
+   `LANDED` row in `__tests__/page-tutorials.test.mjs`), with spotlight
+   targets on the rebuilt DOM.
+3. Flip the route's row in `scripts/ci/mobile-budget.json` to
+   `converted: true` and lower its numbers to the measured baseline.
+4. Append the phase number to `CONVERTED` in
+   `__tests__/no-slide-to-see.law.test.mjs`.
+5. Verify at 375/390/1280 with Playwright (overflow, tutorial prompt, a
+   sheet's close position and size), run the mobile/overlay/tutorial/law
+   tests, `npx tsc --noEmit`, `npx next build`, then push and confirm
+   `/api/health` serves the squash SHA before starting the next phase.
+
 ## Cross-cutting, done once in Phase 1's PR
 
 - `docs/mobile-standard/*` (this folder).

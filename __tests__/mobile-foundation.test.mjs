@@ -82,7 +82,8 @@ test('OfflineBar is mounted once in the app shell and every hook is SSR-safe', (
     assert.ok(fs.existsSync(path.join(ROOT, file)), `${file} is missing`);
   }
   assert.match(read('src/hooks/useOnlineStatus.js'), /useState\(true\)/, 'default online so SSR markup agrees');
-  assert.match(read('src/hooks/useModalHistory.js'), /pushState\(\{ spModal: true \}, ''\)/);
+  assert.match(read('src/hooks/modalHistoryCore.js'), /pushState\(\{ spModal: true, spModalId: entry\.id, spModalDepth: depth \}, ''\)/);
+  assert.match(read('src/hooks/useModalHistory.js'), /Router\.beforePopState\(/, 'Next must be told to ignore modal pops, or it scrolls the page to the top on every close');
   assert.match(read('src/hooks/useHaptics.js'), /navigator\.vibrate/);
   assert.match(read('src/hooks/useLoadFailsafe.js'), /ms = 8000/);
 });
@@ -94,9 +95,11 @@ test('no em dashes in the Phase 0a files', () => {
     'src/components/ui/ResponsiveTable.jsx',
     'src/hooks/useOnlineStatus.js',
     'src/hooks/useModalHistory.js',
+    'src/hooks/modalHistoryCore.js',
     'src/hooks/useHaptics.js',
     'src/hooks/useLoadFailsafe.js',
     '__tests__/mobile-foundation.test.mjs',
+    '__tests__/modal-history-core.test.mjs',
   ]) {
     assert.ok(!read(file).includes(String.fromCharCode(0x2014)), `${file} contains an em dash`);
   }
