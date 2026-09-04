@@ -18,6 +18,12 @@
  *   <GlobalErrorCatcher />
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
+// 2026-09-04: this file's two capture calls read `window.Sentry`, a global
+// that @sentry/nextjs v10 DOES NOT DEFINE and that nothing in this repo
+// assigns. Both guards were therefore always false, and the broadest
+// client-side capture surface in the World Hub - every uncaught error and
+// every unhandled rejection - reported nothing at all. Import the SDK.
+import * as Sentry from '@sentry/nextjs';
 
 // Errors to silently suppress (these are noise, not real crashes)
 const SUPPRESSED_PATTERNS = [
@@ -79,8 +85,8 @@ export default function GlobalErrorCatcher() {
 
             // Report to Sentry silently
             try {
-                if (window.Sentry && event?.error) {
-                    window.Sentry.captureException(event.error, {
+                if (event?.error) {
+                    Sentry.captureException(event.error, {
                         tags: { caughtBy: 'GlobalErrorCatcher', type: 'uncaught-error' },
                         extra: { url: window.location.href },
                     });
@@ -115,9 +121,9 @@ export default function GlobalErrorCatcher() {
 
             // Report to Sentry silently
             try {
-                if (window.Sentry) {
+                {
                     const err = reason instanceof Error ? reason : new Error(message);
-                    window.Sentry.captureException(err, {
+                    Sentry.captureException(err, {
                         tags: { caughtBy: 'GlobalErrorCatcher', type: 'unhandled-rejection' },
                         extra: { url: window.location.href },
                     });
