@@ -3218,6 +3218,7 @@ body.world-preflop-charts .preflop-lab-command-actions {
     padding: 4px;
 }
 
+/* Mobile-first touch contract: every action chip is a 44px target. */
 body.world-preflop-charts .preflop-lab-command-actions button {
     min-width: 0;
     min-height: 44px;
