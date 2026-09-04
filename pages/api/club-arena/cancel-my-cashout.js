@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 /**
  * POST /api/club-arena/cancel-my-cashout
  * Player cancels their own pending cashout request.
@@ -62,6 +63,11 @@ export default async function handler(req, res) {
       }
 
       // Atomic cancellation (updates status + credits player chips + logs transaction)
+      // The service key is EXEMPT from zz_freeze_guard, so this route is the only
+      // thing standing between a player-initiated chip movement and a platform
+      // that everyone has been told is frozen (CLAUDE.md 13). Fails closed.
+      if (await refuseWhileFrozen(getSupabase(), res, { route: 'cancel-my-cashout' })) return;
+
       const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
         p_cashout_id: cashoutId,
         p_user_id: user.id,

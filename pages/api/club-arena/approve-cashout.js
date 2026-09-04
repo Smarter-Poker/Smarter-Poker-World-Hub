@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 /**
  * POST /api/club-arena/approve-cashout
  * 
@@ -328,6 +329,11 @@ export default async function handler(req, res) {
         }
 
         // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
+        // The service key is EXEMPT from zz_freeze_guard, so this route is the only
+        // thing standing between a player-initiated chip movement and a platform
+        // that everyone has been told is frozen (CLAUDE.md 13). Fails closed.
+        if (await refuseWhileFrozen(getSupabase(), res, { route: 'approve-cashout' })) return;
+
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_approve_cashout_atomic', {
           p_cashout_id: cashoutId,
           p_agent_id: user.id,
@@ -418,6 +424,10 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       if (action === 'cancel') {
         // Atomic cancellation (updates status + credits player chips + logs transaction)
+        // Both branches of this route move money; the cancel branch needs the
+        // same refusal as the approve branch. Service key, so no trigger backstop.
+        if (await refuseWhileFrozen(getSupabase(), res, { route: 'approve-cashout' })) return;
+
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
           p_cashout_id: cashoutId,
           p_user_id: user.id,
