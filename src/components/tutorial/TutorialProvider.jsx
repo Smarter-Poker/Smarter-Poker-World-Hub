@@ -95,26 +95,38 @@ export default function TutorialProvider({ children }) {
   // app shell scrolls to the top on routeChangeComplete), then open once the
   // page has had a moment to paint. Guarded so a re-render never re-opens it.
   const queryOpenedRef = useRef(false);
+  // The open timer lives in a ref, NOT in the effect's cleanup: the shallow
+  // replace below removes `?tutorial=1`, which re-runs this effect, and a
+  // cleanup-owned timer would be cleared before it ever fired (the tour
+  // would only open if the replace took longer than the delay). It is
+  // cleared on unmount only.
+  const queryTimerRef = useRef(null);
+  useEffect(() => () => {
+    if (queryTimerRef.current) window.clearTimeout(queryTimerRef.current);
+  }, []);
   const queryTutorial = router && router.query ? router.query.tutorial : undefined;
   useEffect(() => {
-    if (!router || !router.isReady || typeof window === 'undefined') return undefined;
+    if (!router || !router.isReady || typeof window === 'undefined') return;
     const wants = Array.isArray(queryTutorial) ? queryTutorial[0] : queryTutorial;
     if (wants !== '1') {
       // The query is gone (stripped below, or a plain visit): arm for next time.
       queryOpenedRef.current = false;
-      return undefined;
+      return;
     }
-    if (!tutorial || queryOpenedRef.current) return undefined;
+    if (!tutorial || queryOpenedRef.current) return;
     queryOpenedRef.current = true;
     const rest = { ...router.query };
     delete rest.tutorial;
-    const timer = window.setTimeout(() => openPageTutorial(), 450);
+    if (queryTimerRef.current) window.clearTimeout(queryTimerRef.current);
+    queryTimerRef.current = window.setTimeout(() => {
+      queryTimerRef.current = null;
+      openPageTutorial();
+    }, 450);
     try {
       void router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
     } catch (_) {
       // A failed replace leaves the query in place; the tour still opens.
     }
-    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router && router.isReady, queryTutorial, tutorial, openPageTutorial]);
 

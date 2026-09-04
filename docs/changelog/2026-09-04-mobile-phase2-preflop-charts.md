@@ -130,3 +130,32 @@ the entry points.
   route by about 100KB (bankroll 687 to 792, poker-tools 652 to 757); the
   budget rows were re-baselined once above that shell growth (converted
   850, unconverted 900) and the reason is recorded in the JSON comment.
+
+## 8. Deep-dive verification before phase 3 (2026-09-04, Dan's standing rule)
+
+- Full `node --test __tests__/*.mjs`: 3054 tests, the only 4 failures are
+  the pre-existing environment-dependent ones (Open Claw config, training
+  inventory, diamond-store phase 14, venue integrity) in files this
+  programme does not touch. Eight older Preflop pins described mechanisms
+  phase 2 deliberately replaced (roving per-cell tabIndex, `<button>` cells,
+  the 628px matrix floor, the 640/720 breakpoints, the review tablist, the
+  routes living in the shell file, `Ctrl/⌘ Z` copy, `onClick={handleUndo}`
+  without the haptic); each was moved to the new mechanism with the reason
+  beside it, never loosened.
+- Found and fixed a real bug in `TutorialProvider`'s `?tutorial=1` path: the
+  open timer lived in the effect cleanup, and the shallow replace that
+  strips the query re-ran the effect and cleared the timer before it fired,
+  so the guide page's deep link only worked if the replace took longer than
+  450ms. The timer now lives in a ref cleared on unmount only. Verified in
+  the browser: `/hub/preflop-charts?tutorial=1` opens the tour and the URL
+  is stripped to `/hub/preflop-charts`.
+- Verified at 375 on the dev server: the filter sheet's close is 44x44 at
+  y 623; the guide page's CTA is 325x48 with no overflow; all four subpages
+  (leaderboard, stats, achievements, tutorial) have 0 overflow, 0 text
+  under 12px, 0 targets under 44px, 5 nav links, 0 page errors.
+- `filterScenarios` moved to `src/games/scenarioFilters.js` and is
+  re-exported from `ScenarioFilterPanel.jsx`, so its four other importers
+  are unchanged. `OutOfDiamondsModal` has Preflop as its only caller.
+- CI: the pushed branch was red on `_test-guards-exist` (new test files not
+  imported) and on the older pins above; both are fixed in this branch and
+  in #1324's branch.
