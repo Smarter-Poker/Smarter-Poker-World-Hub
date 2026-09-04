@@ -198,9 +198,30 @@ function segmentsOf(route) {
   return route.replace(/^\/api\/?/, '').split('/').filter(Boolean);
 }
 
-/** true when a path segment is an interpolation placeholder. */
+/**
+ * The literal prefix of a segment, before any interpolation.
+ *   `marketplace-items${query}` -> `marketplace-items`
+ *   `${id}`                     -> `` (the whole segment is the placeholder)
+ */
+function staticPrefix(seg) {
+  const i = seg.indexOf('${');
+  return i === -1 ? seg : seg.slice(0, i);
+}
+
+/**
+ * true when a path segment is an interpolation placeholder.
+ *
+ * A segment only counts as a wildcard when it has NO literal prefix. A call
+ * site writing `/api/memory/dashboard${suffix}` is asking for the LITERAL
+ * route `dashboard` with a query string or suffix appended - it must resolve
+ * against `dashboard.js`, not against some `[dynamic].js`. Treating any
+ * segment containing `${` as a wildcard made both of those report as missing
+ * handlers when the handlers were right there. (Found 2026-09-04: this guard
+ * had never run in CI, so the false positive went unnoticed - see #1312.)
+ */
 function isWildcard(seg) {
-  return seg.includes('${') || /^:/.test(seg) || seg === '[id]' || seg === '[code]';
+  if (seg.includes('${')) return staticPrefix(seg) === '';
+  return /^:/.test(seg) || seg === '[id]' || seg === '[code]';
 }
 
 /**
@@ -212,6 +233,9 @@ function resolves(segments, dir = API_DIR) {
     return EXTS.some((e) => fs.existsSync(path.join(dir, `index${e}`)));
   }
   const [head, ...rest] = segments;
+  // Literal name to match on disk. Identical to `head` for ordinary segments;
+  // for `name${expr}` it is `name`, which is what actually exists in pages/api.
+  const lit = staticPrefix(head);
 
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return false; }
@@ -226,12 +250,12 @@ function resolves(segments, dir = API_DIR) {
 
   // 1. exact file match
   if (isLast && !isWildcard(head)) {
-    if (EXTS.some((e) => names.includes(`${head}${e}`))) return true;
+    if (EXTS.some((e) => names.includes(`${lit}${e}`))) return true;
   }
   // 2. exact directory (+ index if last)
-  if (dirNames.includes(head) && !isWildcard(head)) {
-    if (isLast && EXTS.some((e) => fs.existsSync(path.join(dir, head, `index${e}`)))) return true;
-    if (!isLast && resolves(rest, path.join(dir, head))) return true;
+  if (dirNames.includes(lit) && !isWildcard(head)) {
+    if (isLast && EXTS.some((e) => fs.existsSync(path.join(dir, lit, `index${e}`)))) return true;
+    if (!isLast && resolves(rest, path.join(dir, lit))) return true;
   }
   // 3. dynamic segment file  [x].js
   if (isLast && names.some((n) => /^\[[^.\]]+\]\.(js|jsx|ts|tsx)$/.test(n))) return true;

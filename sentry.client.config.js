@@ -18,9 +18,21 @@ import * as Sentry from '@sentry/nextjs';
 const SENTRY_DSN = (process.env.NEXT_PUBLIC_SENTRY_DSN || '').trim();
 
 if (SENTRY_DSN) {
+  // 2026-09-04: GlobalErrorCatcher.jsx:82/118, _app.js reportWebVitals and
+  // useYouTubeErrorManager.js:63 all guard on `window.Sentry`. The npm SDK does
+  // not self-attach that global (only the CDN loader does), so all three have
+  // been silently no-op since they were written: the entire uncaught-error and
+  // unhandled-rejection net reached nothing. Assign it so they work.
+  if (typeof window !== 'undefined') {
+    window.Sentry = Sentry;
+  }
+
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
+    // Attribute every event to a deploy. withSentryConfig is bypassed for the
+    // 8GB Vercel OOM, so nothing sets this automatically.
+    release: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || undefined,
 
     // Performance Monitoring
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
@@ -89,13 +101,21 @@ if (SENTRY_DSN) {
         if ('name' in error && String(error.name) === 'AbortError') return null;
         if ('message' in error) {
           const msg = String(error.message);
-          if (msg.includes('signal is aborted') || msg.includes('aborted')) return null;
+          if (
+            msg.includes('signal is aborted') ||
+            msg.includes('The operation was aborted') ||
+            msg.includes('The user aborted a request')
+          )
+            return null;
           if (msg.includes('Internal error')) return null;
           if (msg.includes('Invariant: attempted to hard navigate')) return null;
           // SWC/Terser TDZ: "Cannot access 'X' before initialization"
           if (/Cannot access '\w+' before initialization/.test(msg)) return null;
-          // ReferenceError from minified/stale bundles: "X is not defined"
-          if (msg.includes('is not defined')) return null;
+          // 2026-09-04: this was an unanchored substring test, so it deleted every
+          // "X is not defined" - which is precisely the shape a minified bundle
+          // produces, and source maps are not uploaded (next.config.js:1100).
+          // The anchored form and the known stale-chunk symbols are already in
+          // ignoreErrors above; this blanket drop only removed real bugs.
           // Next.js static props prefetch failures
           if (msg.includes('Failed to load static props')) return null;
         }

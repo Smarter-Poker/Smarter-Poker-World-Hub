@@ -83,8 +83,31 @@ race resolved cleanly only by luck). Before shipping ANY change:
 
 ## Deploy pipeline note
 
-Merging to `Smarter-Poker-Club-Arena` `main` triggers the **Build for World Hub
-Sync** GitHub Action, which builds the CA bundle and commits it into
-`Smarter-Poker-World-Hub/public/hub/club-arena`, which Vercel then deploys.
-That sync is **GitHub-Actions-gated** — during an Actions outage a merge will not
-go live until Actions recovers and the sync workflow runs.
+CORRECTED 2026-09-04. This paragraph described the **Build for World Hub Sync**
+action committing the Club Arena bundle into
+`Smarter-Poker-World-Hub/public/hub/club-arena`. That workflow, that script and
+that directory were all deleted on 2026-09-02, and re-creating the directory
+would SHADOW the live bundle rather than duplicate it (Next serves `public/`
+before a rewrite).
+
+Merging to `Smarter-Poker-Club-Arena` `main` triggers **`publish-club-arena.yml`**,
+which builds `dist/`, runs the four-way sharded client suite, and rsyncs the
+bundle to Club Arena's own origin, `ca-static.smarter.poker` - a release
+directory per sha under `/srv/club-arena/releases/`, then an atomic swap of the
+`current` symlink. This repo carries ONE rewrite,
+`/hub/club-arena/:path*` -> that origin, and is not rebuilt for a Club Arena
+merge at all.
+
+It is still **GitHub-Actions-gated**: during an Actions outage a merge does not
+go live until Actions recovers. Three nets catch a publish that fails, all
+automatic - the `*/30` catch-up cron inside the publisher,
+`publish-watchdog.yml`, and the orphan sweep in `agent-autopilot.yml`. If
+production is behind `main` for more than ~25 minutes, read the watchdog issue.
+
+Confirm a publish with the only thing that counts:
+
+```bash
+curl -s https://smarter.poker/hub/club-arena/build-info.json
+```
+
+`ca_sha` must equal the squash commit on `main`.

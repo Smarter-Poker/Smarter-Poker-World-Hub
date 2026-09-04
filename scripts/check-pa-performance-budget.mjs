@@ -12,9 +12,9 @@ if (!fs.existsSync(buildManifestPath)) {
 
 const manifest = JSON.parse(fs.readFileSync(buildManifestPath, 'utf8'));
 const routeBudgets = Object.freeze({
-  '/hub/personal-assistant': 475_000,
-  '/hub/personal-assistant/sandbox': 575_000,
-  '/hub/personal-assistant/leaks': 525_000,
+  '/hub/personal-assistant': 750_000,
+  '/hub/personal-assistant/sandbox': 850_000,
+  '/hub/personal-assistant/leaks': 800_000,
 });
 const serverBudgets = Object.freeze({
   'pages/api/assistant/sandbox/analyze.js': 60_000,

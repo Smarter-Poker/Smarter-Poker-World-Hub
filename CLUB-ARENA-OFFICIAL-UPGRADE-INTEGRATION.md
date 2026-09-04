@@ -246,14 +246,15 @@ Two rules born from the 2026-04-15 audit (9 silent-failure bugs):
 Developer push                     CI / Vercel                          Production
 ──────────────                     ───────────                          ──────────
 
-cd ~/Documents/club-arena          git push origin main                 (no Vercel deploy)
-npm run build                      (club-arena repo is not              ─────── ▲
-bash scripts/sync-to-world-hub.sh  on Vercel anymore)                            │
+cd ~/Documents/club-arena          agent-open-pr.yml opens the PR       (no Vercel deploy)
+git push origin HEAD:fix/<slug>    agent-autopilot.yml merges it        ─────── ▲
+                                   publish-club-arena.yml rsyncs                 │
+YOUR JOB ENDS HERE.                dist/ to ca-static.smarter.poker              │
                                                                                   │
-cd ~/Documents/Smarter-Poker-      GitHub → Vercel webhook ─────────────▶  hub-vanguard
-   World-Hub                       build-safety-gate.yml                         │
-bash scripts/git-safe-push.sh      + Next.js build                               │
-  "sync club-arena: …"             + post-deploy verify                          │
+                                   World Hub rewrite                             │
+                                   /hub/club-arena/:path* ──────────────▶  hub-vanguard
+                                   (the World Hub is NOT rebuilt                 │
+                                    for a Club Arena merge)                      │
                                                                                   ▼
                                                                           smarter.poker
                                                                            (live)
@@ -326,7 +327,7 @@ Gate U4: Both scripts pass against current HEAD. Any intentional exceptions are 
 | U5.1 | Fix CA Sentry sourcemap upload in Vite build (Task #133) | nothing | CA release shows readable stack frames in Sentry |
 | U5.2 | Add CA bundle-size CI budget (Task #155) — fail build if main bundle > 5 MB | U5.1 done first | CI blocks an oversized change |
 | U5.3 (**DEFERRED by Dan 2026-08-17**: zero real users, cost optimization only. Code side is done — MEDIA_BASE env flip in CA 45f2228ce; runbook in .agent/handoffs/2026-08-17-u5-3-r2-static-assets.md. Revisit when real traffic makes the Vercel bill matter. Do NOT resurrect before then.) | Move `public/hub/club-arena/` large static assets (cards, club-logos, avatar packs) to Cloudflare R2 (Task #44). Update SPA to load from R2 URL. | WH rewrites updated | Vercel bandwidth cut ≥ 50 MB/deploy |
-| U5.4 | Deprecate `scripts/build-club-arena.sh` duplicate pipelines — consolidate to single entrypoint: `bash scripts/sync-club-arena.sh` that runs build + sync + push | U5.1, U5.2 done | One and only one way to ship a CA change |
+| U5.4 | **DONE 2026-09-03, differently and better.** This proposed consolidating the duplicate pipelines onto one sync script. What happened instead: BOTH scripts were deleted along with the vendored `public/hub/club-arena/` tree, and Club Arena now publishes to its own origin via `publish-club-arena.yml`. There is one way to ship a CA change and it is "push a branch". `tests/no-commit-left-behind.law.test.ts` in the CA repo counts publishers and requires exactly one. | — | Met |
 
 Gate U5: Sentry stack traces are readable, CA bundle ≤ 5 MB, R2 URLs return 200, all deploys go through one script.
 
@@ -386,12 +387,24 @@ No database migrations are required by this plan. No schema changes. No Supabase
 
 **Frontend change** (anywhere in `club-arena/src/`):
 
+Rewritten 2026-09-04. This recipe used to build locally and copy the bundle
+into the World Hub. Both scripts it named are deleted, and re-vendoring the
+bundle would SHADOW the live one rather than duplicate it, because Next.js
+serves `public/` before a rewrite.
+
 ```bash
 cd ~/Documents/club-arena
-npm run build
-bash scripts/sync-to-world-hub.sh ~/Documents/Smarter-Poker-World-Hub
-cd ~/Documents/Smarter-Poker-World-Hub
-bash scripts/git-safe-push.sh "sync club-arena: <what changed>"
+git worktree add -b fix/<slug> ~/Documents/.agent-trees/club-arena/<name> origin/main
+# edit, commit, then:
+git push origin HEAD:refs/heads/fix/<slug>
+```
+
+That is the whole job. `agent-open-pr.yml` opens the pull request,
+`agent-autopilot.yml` merges it when the six required checks are green, and
+`publish-club-arena.yml` rsyncs `dist/` to `ca-static.smarter.poker`. Confirm:
+
+```bash
+curl -s https://smarter.poker/hub/club-arena/build-info.json   # ca_sha == main
 ```
 
 Verify: https://smarter.poker/hub/club-arena/ shows new build; `curl -s https://smarter.poker/api/health | jq '.sha'` matches the commit SHA.
