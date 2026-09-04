@@ -84,11 +84,63 @@ if (!existsSync(ROUTE_DIR)) {
   process.exit(0);
 }
 
+/**
+ * CODE ONLY - COMMENTS ARE NOT A MONEY ROUTE (2026-09-03).
+ *
+ * MONEY_RE was tested against the raw file, so a route whose comment merely
+ * NAMES a table or an RPC counted as calling it. A retirement notice saying
+ * "this used to write chip_balance; it no longer touches money" therefore
+ * failed CHECK 18 as a new, freeze-unaware money route - the guard reading
+ * prose as behaviour.
+ *
+ * That is corrosive rather than merely annoying: the quickest way to satisfy
+ * it is to DELETE the explanation, so the codebase loses the record of why a
+ * route was retired in order to quiet a check that misread it.
+ *
+ * String literals are preserved - `supabase.rpc('fn_credit_and_log')` is a
+ * real call and the name lives in a string. Only comments are blanked, to
+ * spaces, so every reported line number still matches the file.
+ */
+function stripComments(src) {
+  let out = '';
+  let i = 0;
+  const n = src.length;
+  let state = 'code';
+  while (i < n) {
+    const c = src[i];
+    const c2 = src[i + 1];
+    if (state === 'code') {
+      if (c === '/' && c2 === '/') { state = 'line'; out += '  '; i += 2; continue; }
+      if (c === '/' && c2 === '*') { state = 'block'; out += '  '; i += 2; continue; }
+      if (c === "'") state = 'sq';
+      else if (c === '"') state = 'dq';
+      else if (c === '`') state = 'tpl';
+      out += c; i++; continue;
+    }
+    if (state === 'line') {
+      if (c === '\n') { state = 'code'; out += c; } else out += ' ';
+      i++; continue;
+    }
+    if (state === 'block') {
+      if (c === '*' && c2 === '/') { state = 'code'; out += '  '; i += 2; continue; }
+      out += c === '\n' ? c : ' '; i++; continue;
+    }
+    if (c === '\\') { out += c + (c2 ?? ''); i += 2; continue; }
+    if ((state === 'sq' && c === "'") || (state === 'dq' && c === '"') || (state === 'tpl' && c === '`')) state = 'code';
+    out += c; i++;
+  }
+  return out;
+}
+
 const failures = [];
 let checked = 0;
 for (const file of readdirSync(ROUTE_DIR).sort()) {
   if (!/\.(js|ts)$/.test(file)) continue;
-  const src = readFileSync(join(ROUTE_DIR, file), 'utf8');
+  const raw = readFileSync(join(ROUTE_DIR, file), 'utf8');
+  // Both questions are asked of CODE, never of comments: a route must not be
+  // accused of moving money because it explains that it used to, and must not
+  // be excused by a comment that merely mentions the freeze.
+  const src = stripComments(raw);
   if (!MONEY_RE.test(src)) continue;
   checked++;
   if (BASELINE.has(file)) continue;
