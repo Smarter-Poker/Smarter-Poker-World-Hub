@@ -13,6 +13,15 @@ const COPY_ATTRIBUTES = [
   'data-tooltip',
 ];
 
+// Where the world copy policy must NOT retitle text: user-authored content
+// and inputs. Match it by the data attributes and classes the social
+// components carry (data-post-card, data-user-content, .post-content ...),
+// never by a bare element name. 2026-09-04: #1322 added a bare `article` here
+// and to the CSS below "to protect post casing"; every social post already
+// carried the specific markers, so the only effect was on every OTHER
+// <article> in every world - the Personal Assistant's system cards lost
+// their title case (14 elements, e2e/021-personal-assistant.spec.ts red on
+// main for the rest of the day), and news/venue cards would have followed.
 const PRESERVE_SELECTOR = [
   'script',
   'style',
@@ -33,7 +42,6 @@ const PRESERVE_SELECTOR = [
   '.post-content',
   '.comment-content',
   '.social-post',
-  'article',
 ].join(',');
 
 function shouldPreserve(element) {
@@ -139,13 +147,13 @@ export default function WorldCopyPolicy({ worldId }) {
         input, textarea, select, [contenteditable='true'],
         [data-preserve-case='true'], [data-user-content], [data-post-card],
         [data-post-content], [data-comment-content], .no-capitalize,
-        .social-feed, .post-content, .comment-content, .social-post, article
+        .social-feed, .post-content, .comment-content, .social-post
       ),
       .${WORLD_COPY_SCOPE_CLASS} :is(
         input, textarea, select, [contenteditable='true'],
         [data-preserve-case='true'], [data-user-content], [data-post-card],
         [data-post-content], [data-comment-content], .no-capitalize,
-        .social-feed, .post-content, .comment-content, .social-post, article
+        .social-feed, .post-content, .comment-content, .social-post
       ) * {
         text-transform: none !important;
       }
