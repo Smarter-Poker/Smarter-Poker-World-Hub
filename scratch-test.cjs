@@ -19,7 +19,7 @@ function getWeekKey() {
 function getMonthKey() { return new Date().toISOString().slice(0, 7); }
 
 async function main() {
-  const { data: users } = await supabase.from('profiles').select('id, email').eq('email', 'DANIEL@BEKAVACTRADING.COM');
+  const { data: users } = await supabase.from('profiles').select('id, email').eq('email', String(process.env.TEST_USER_EMAIL || '').toUpperCase());
   const userId = users[0].id;
 
   console.log("Calling bump_challenge_progress for", userId);

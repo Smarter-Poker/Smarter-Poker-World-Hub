@@ -1,6 +1,6 @@
 /**
  * 🔍 CHECK AUTH USER BY EMAIL
- * Find the actual Supabase auth UUID for Daniel@bekavactrading.com
+ * Find the actual Supabase auth UUID for <TEST_USER_EMAIL from .env.local>
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -25,7 +25,12 @@ function getSupabase() {
     return _supabase;
 }
 
-      const email = 'Daniel@bekavactrading.com';
+      // 2026-09-04: read from the environment; this used to name Dan's
+      // personal address. Without it there is nothing to look up.
+      const email = process.env.TEST_USER_EMAIL;
+      if (!email) {
+          return res.status(500).json({ error: 'TEST_USER_EMAIL is not set - refusing to guess an account' });
+      }
 
       try {
           // Query auth.users directly using RPC

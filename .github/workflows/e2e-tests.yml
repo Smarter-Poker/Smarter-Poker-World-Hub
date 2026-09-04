@@ -138,6 +138,11 @@ jobs:
           # project and therefore all 244 tests, from a message that says
           # nothing about a missing secret. Nobody saw it, because the build had
           # been OOMing before Playwright ever started.
+          # 2026-09-04: the ACCOUNT is a repository variable, not a literal in
+          # e2e/00-auth.setup.ts. It used to be Dan's personal address, so every
+          # CI run signed in as him. TEST_USER_EMAIL is the platform service
+          # account (Dan: "KEEP MY ACCOUNT CLEAN"); the password stays a secret.
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}

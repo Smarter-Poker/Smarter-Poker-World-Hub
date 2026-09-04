@@ -9,7 +9,7 @@ async function run() {
   const supabase = createClient(SUPER_URL, ANON_KEY);
 
   const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
-    email: 'daniel@bekavactrading.com',
+    email: process.env.TEST_USER_EMAIL,
     password: process.env.TEST_USER_PASSWORD
   });
   

@@ -10,7 +10,7 @@ require('dotenv').config({ path: '.agent/skills/credentials/.env' });
          process.env.SUPABASE_SERVICE_ROLE_KEY
      );
      // Target Daniel's ID from earlier (dd09f1dc-0ab2-4b24-9bbf-eb5eb9e2c695 is typical but we can fetch via email)
-     const { data: userDat } = await adminClient.from('profiles').select('id').eq('email', 'daniel@bekavactrading.com').maybeSingle();
+     const { data: userDat } = await adminClient.from('profiles').select('id').eq('email', process.env.TEST_USER_EMAIL).maybeSingle();
      if (userDat) {
          await adminClient.from('profiles').update({ can_review: true, deleted_reviews_count: 0 }).eq('id', userDat.id);
          console.log('Moderation counters reset.');
@@ -31,7 +31,7 @@ require('dotenv').config({ path: '.agent/skills/credentials/.env' });
     // Login
     console.log('Signing in...');
     await page.waitForSelector('input[type="email"]');
-    await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
     
@@ -81,7 +81,7 @@ require('dotenv').config({ path: '.agent/skills/credentials/.env' });
        
        console.log("Checking DB Profile increment...");
        const adminClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-       const { data: userDat } = await adminClient.from('profiles').select('id, deleted_reviews_count').eq('email', 'daniel@bekavactrading.com').maybeSingle();
+       const { data: userDat } = await adminClient.from('profiles').select('id, deleted_reviews_count').eq('email', process.env.TEST_USER_EMAIL).maybeSingle();
        if (userDat && userDat.deleted_reviews_count === 1) {
            console.log("100% VERIFICATION PASSED: Trust Profile incremented correctly.");
        } else {

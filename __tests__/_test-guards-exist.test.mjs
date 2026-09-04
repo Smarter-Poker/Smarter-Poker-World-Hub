@@ -159,6 +159,11 @@ import './openclaw-workers-secret.test.mjs';
 // Club Arena table he opened on "Reconnecting To The Table" for 22 hours.
 // Same CHECK 8 reasoning as the blocks above: imported here so CI runs it.
 import './synthetic-probes-never-sign-out-a-person.law.test.mjs';
+// 2026-09-04, the quiet half of the same incident: thirty-seven files carried
+// Dan's personal address as the account to sign in as, e2e/00-auth.setup.ts
+// among them, so every CI run signed in as him. The account is
+// TEST_USER_EMAIL from the environment now, and this law keeps it there.
+import './a-script-never-wears-a-persons-face.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -166,6 +171,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/auth-routes-exist.test.mjs',
     // A monitor must never revoke a person's sessions (2026-09-04 outage).
     '__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs',
+    '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',

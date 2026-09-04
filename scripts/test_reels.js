@@ -28,7 +28,7 @@ const { chromium } = require('playwright');
   await page.waitForTimeout(2000);
 
   try {
-    await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
     await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/hub**', { timeout: 10000 });
