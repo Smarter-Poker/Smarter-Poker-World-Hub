@@ -146,6 +146,13 @@ const scrollLimitOf = (source) => {
 
 function useHideOnScroll(enabled, resetKey) {
   const [hidden, setHidden] = useState(false);
+  // True once the scroll listener is actually installed. Server-rendered
+  // markup and the first client paint both precede the effect that arms the
+  // listener, and on a slow device that gap is real: a flick delivered before
+  // it is armed is a flick nobody saw. The footer publishes this so anything
+  // that needs to know (the E2E contract, first) can wait for the fact rather
+  // than guess at the timing.
+  const [armed, setArmed] = useState(false);
   const reveal = useCallback(() => setHidden(false), []);
 
   // A route change always hands the reader a fresh screen, and the bar belongs
@@ -158,6 +165,7 @@ function useHideOnScroll(enabled, resetKey) {
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') {
       setHidden(false);
+      setArmed(false);
       return undefined;
     }
 
@@ -228,14 +236,16 @@ function useHideOnScroll(enabled, resetKey) {
     };
 
     document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    setArmed(true);
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       document.removeEventListener('scroll', onScroll, { capture: true });
       travel.clear();
+      setArmed(false);
     };
   }, [enabled]);
 
-  return { hidden: enabled && hidden, reveal };
+  return { hidden: enabled && hidden, armed: enabled && armed, reveal };
 }
 
 const artworkDisplayBounds = (artwork) =>
@@ -459,7 +469,7 @@ const activeDestination = (items, currentLocation) => {
   return winner?.href || items[0]?.href;
 };
 
-function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, reveal }) {
+function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = false, reveal }) {
   const artwork = footer.artwork;
   const items = footer.items || [];
   const bounds = artwork.contentBounds || {
@@ -484,6 +494,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, reveal }) 
       data-footer-cropped={artwork.contentBounds && artwork.cropToContentBounds !== false ? 'true' : 'false'}
       data-footer-hide-on-scroll={footer.hideOnScroll === false ? 'false' : 'true'}
       data-footer-hidden={hidden ? 'true' : 'false'}
+      data-footer-scroll-armed={armed ? 'true' : 'false'}
       // Keyboard focus has no scroll direction to read, so tabbing into a
       // footer that scroll has parked off-screen would move focus somewhere
       // invisible. Reaching it brings it back.
@@ -632,7 +643,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   const activeHref = useMemo(() => activeDestination(items, path), [items, path]);
   // Every footer hides while you read (Dan, 2026-09-04). `hideOnScroll: false`
   // is the only way out and nothing sets it.
-  const { hidden, reveal } = useHideOnScroll(footer.hideOnScroll !== false, path);
+  const { hidden, armed, reveal } = useHideOnScroll(footer.hideOnScroll !== false, path);
 
   const warm = useCallback(
     (href) => {
@@ -654,6 +665,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
         activeHref={activeHref}
         warm={warm}
         hidden={hidden}
+        armed={armed}
         reveal={reveal}
       />
     );
@@ -670,6 +682,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
       data-footer-world={footer.id}
       data-footer-hide-on-scroll={footer.hideOnScroll === false ? 'false' : 'true'}
       data-footer-hidden={hidden ? 'true' : 'false'}
+      data-footer-scroll-armed={armed ? 'true' : 'false'}
       onFocusCapture={reveal}
       style={{
         position: 'fixed',

@@ -66,3 +66,20 @@ test('the three required checks that install are the ones cached', () => {
     assert.match(readFileSync(join(DIR, f), 'utf8'), /key: nm-wh-guard-/, `${f} lost its cache`);
   }
 });
+
+/**
+ * And the E2E servers bind a per-runner port. `next start -p 3000` in two
+ * jobs sharing a box collided the hour the World Hub got six runners per box:
+ * the second died with EADDRINUSE. Same fix as Club Arena's E2E ports.
+ */
+test('no E2E workflow starts next on a literal port', () => {
+  for (const f of ['global-footer-e2e.yml', 'e2e-tests.yml']) {
+    const text = readFileSync(join(DIR, f), 'utf8')
+      .split('\n')
+      .filter((l) => !/^\s*#/.test(l))
+      .join('\n');
+    assert.ok(!/next start -p \d{4}/.test(text), `${f} starts next on a literal port`);
+    assert.match(text, /scripts\/ci\/e2e-port\.mjs 3000/, `${f} must derive its port`);
+    assert.ok(!/127\.0\.0\.1:3000|localhost:3000/.test(text), `${f} still points at :3000`);
+  }
+});
