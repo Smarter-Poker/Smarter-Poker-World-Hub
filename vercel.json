@@ -727,7 +727,7 @@
   "rewrites": [
     {
       "source": "/commander",
-      "destination": "https://commander.smarter.poker/"
+      "destination": "https://commander.smarter.poker/commander"
     },
     {
       "source": "/commander/:path*",

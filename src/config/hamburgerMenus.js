@@ -473,7 +473,7 @@ export const MENU_CONFIGS = {
                 handlers.setShowCaptions
             ),
             createMenuItem.divider(),
-            createMenuItem.navigation('Content Preferences', '/hub/settings?section=content')
+            createMenuItem.navigation('Content Preferences', '/hub/settings?section=display')
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
@@ -483,8 +483,8 @@ export const MENU_CONFIGS = {
     'friends': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.navigation('Friend Requests', '/hub/friends?tab=requests', null, state.requestCount || null),
-            createMenuItem.navigation('Suggestions', '/hub/friends?tab=suggestions'),
-            createMenuItem.navigation('All Friends', '/hub/friends?tab=all'),
+            createMenuItem.navigation('Suggestions', '/hub/friends?tab=discover'),
+            createMenuItem.navigation('All Friends', '/hub/friends?tab=friends'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
             // Label is 'Allow Friend Requests' (not 'Friend Requests') so it does not
@@ -521,14 +521,14 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Categories'),
             createMenuItem.navigation('All Products', '/hub/diamond-store'),
-            createMenuItem.navigation('Diamonds', '/hub/diamond-store?category=diamonds'),
-            createMenuItem.navigation('VIP Membership', '/hub/diamond-store?category=vip'),
-            createMenuItem.navigation('Merchandise', '/hub/diamond-store?category=merch'),
+            createMenuItem.navigation('Diamonds', '/hub/diamond-store'),
+            createMenuItem.navigation('VIP Membership', '/hub/vip-membership'),
+            createMenuItem.navigation('Merchandise', '/hub/merch-store'),
             createMenuItem.divider(),
             createMenuItem.navigation('Shopping Cart', '/hub/diamond-store/cart', MenuIcons.store, state.cartCount || null),
             createMenuItem.navigation('Order History', '/hub/diamond-store/orders'),
             createMenuItem.navigation('Wishlist', '/hub/diamond-store/wishlist'),
-            createMenuItem.navigation('Payment Methods', '/hub/settings?section=payments'),
+            createMenuItem.navigation('Payment Methods', '/hub/settings?section=billing'),
             createMenuItem.divider(),
             createMenuItem.section('Preferences'),
             createMenuItem.toggle(
@@ -563,7 +563,7 @@ export const MENU_CONFIGS = {
             // config-supplied row. So it can never be a no-op, and never doubles up.
             createMenuItem.navigation(
                 'Delete Account',
-                '/hub/settings?section=delete-account',
+                '/hub/settings?section=delete',
                 MenuIcons.flag,
                 null,
                 null,
@@ -746,14 +746,14 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Hand History', '/hub/diamond-arena/history'),
             createMenuItem.divider(),
             createMenuItem.section('Diamond Store'),
-            createMenuItem.navigation('Buy Diamonds', '/hub/diamond-store?category=diamonds'),
-            createMenuItem.navigation('VIP Benefits', '/hub/diamond-store?category=vip'),
+            createMenuItem.navigation('Buy Diamonds', '/hub/diamond-store'),
+            createMenuItem.navigation('VIP Benefits', '/hub/vip-membership'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
             createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
             createMenuItem.toggle('Animations', state.animations !== false, handlers.setAnimations),
             createMenuItem.toggle('Auto-Rebuy', state.autoRebuy || false, handlers.setAutoRebuy),
-            createMenuItem.navigation('Table Preferences', '/hub/settings?section=table')
+            createMenuItem.navigation('Table Preferences', '/hub/settings?section=gameplay')
         ],
         bottomLinks: [
             { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help }
@@ -795,7 +795,6 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('PokerNews', '/hub/news?source=pokernews'),
             createMenuItem.navigation('CardPlayer', '/hub/news?source=cardplayer'),
             createMenuItem.navigation('WSOP', '/hub/news?source=wsop'),
-            createMenuItem.navigation('WPT', '/hub/news?source=wpt'),
             createMenuItem.navigation('MSPT', '/hub/news?source=mspt'),
             createMenuItem.divider(),
             createMenuItem.section('My Feed'),
@@ -1180,7 +1179,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('All Promotions', '/hub/promotions'),
             // Normalized to the canonical param used by the diamond-store and
             // diamond-arena configs (?category=vip); ?tab=vip landed unfiltered.
-            createMenuItem.navigation('VIP Offers', '/hub/diamond-store?category=vip'),
+            createMenuItem.navigation('VIP Offers', '/hub/vip-membership'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
             createMenuItem.navigation('Diamond Store', '/hub/diamond-store'),
@@ -1238,6 +1237,10 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Help Center'),
             createMenuItem.navigation('FAQ', '/hub/help', MenuIcons.help),
+            // '#contact' used to resolve to nothing: pages/hub/help.js declared no
+            // id attributes at all, so this opened the FAQ at the top —
+            // indistinguishable from the FAQ row above it. help.js now carries
+            // id="contact" on the Quick Contact cards. Keep the two in step.
             createMenuItem.navigation('Contact Support', '/hub/help#contact', MenuIcons.chat),
             // 'Report Issue' removed: ReportBugWidget is rendered inline in
             // every drawer, so the row was a duplicate path to the same flow.
@@ -1346,7 +1349,7 @@ export const MENU_CONFIGS = {
                 handlers.setCompactView
             ),
             createMenuItem.divider(),
-            createMenuItem.navigation('Table Preferences', '/hub/settings?section=table'),
+            createMenuItem.navigation('Table Preferences', '/hub/settings?section=gameplay'),
             createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy')
         ],
         bottomLinks: [
