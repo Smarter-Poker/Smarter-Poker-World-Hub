@@ -329,6 +329,36 @@ export default function BankrollManagerPage() {
   const clearLogSessionView = useCallback(() => {
     const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
     if (requestedView !== 'log-session') return;
+
+    /* STAND DOWN useModalHistory BEFORE replacing the URL (2026-09-03).
+       Two mechanisms own history for this modal and they were undoing each
+       other. useModalHistory pushes `{ spModal: true }` when the gate opens
+       and, when it closes, calls history.back() to pop that entry. Cancel runs
+       both: setShowLogModal(false) schedules the hook's effect, and this
+       function calls router.replace to strip `?view=log-session`.
+
+       router.replace is ASYNC. The hook's effect ran first, still saw its own
+       marker on top, and called back() - which restored the very entry this
+       function had just replaced. The dialog closed and the URL stayed at
+       `?view=log-session`, so a reload or a share reopened the gate. That is
+       what `Bankroll Log deep links ... clean their URL` has been failing on,
+       and a red Playwright run makes every open pull request "unstable", which
+       is why auto-merge had to be bypassed by hand.
+
+       The hook already guards on `state.spModal`, so clearing the marker
+       SYNCHRONOUSLY here - before its effect runs - makes it decline to pop,
+       and the replace below stands. Back still works and returns the visitor
+       to the deep link they arrived on, which is the honest destination. */
+    try {
+      const st = window.history.state;
+      if (st && st.spModal) {
+        window.history.replaceState({ ...st, spModal: false }, '');
+      }
+    } catch (_) {
+      /* history is unavailable (SSR, or a locked-down embed): the replace
+         below is still correct, we simply cannot pre-empt the hook. */
+    }
+
     const nextQuery = { ...router.query };
     delete nextQuery.view;
     void router.replace(

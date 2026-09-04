@@ -259,6 +259,25 @@ jobs:
       # secret in repo Settings → Secrets and variables → Actions to
       # activate enforcement.
       # ═══════════════════════════════════════════════════════════════
+
+      # CHECK 19: an inline width on .sp-icon-btn is silently discarded
+      #
+      # `.sp-icon-btn` declares `width: var(--sp-btn-size, 32px) !important`,
+      # and a stylesheet !important beats an inline style. A component writing
+      # `style={{ width: 48 }}` on that class renders a 32px button and a
+      # comment that lies. InteractiveTutorial's close button did exactly that
+      # - 48 in the source, 32 on screen, 31.84 mid-spring - and failed the
+      # Poker Near Me touch-target spec on every run. A red Playwright suite
+      # makes every open pull request "unstable", which GitHub refuses to
+      # enable auto-merge on, so one discarded CSS declaration stopped the
+      # estate from merging and a PR had to be squashed by hand.
+      #
+      # Baseline, not zero: most of the remaining ones are decorative buttons
+      # where 32px is a deliberate desktop choice, and resizing them all at
+      # once is a visual decision rather than a lint. This fails when the count
+      # GROWS, so the trap cannot be re-laid quietly.
+      - name: "CHECK 19: An inline width on .sp-icon-btn is not silently discarded"
+        run: node scripts/ci/check-icon-button-sizing.mjs
       - name: "CHECK 10: Diamond economy invariants"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
