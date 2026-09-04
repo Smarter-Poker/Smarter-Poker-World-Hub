@@ -40,7 +40,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const ROOT = process.cwd();
@@ -122,11 +122,17 @@ function docsAndScripts() {
   ]);
   const out = [];
   const walk = (dir) => {
-    for (const name of readdirSync(dir)) {
-      if (SKIP.has(name) || name.startsWith('.tmp')) continue;
-      const full = join(dir, name);
-      if (statSync(full).isDirectory()) walk(full);
-      else if (/\.(md|sh)$/.test(name)) out.push(relative(ROOT, full));
+    // withFileTypes, and SYMLINKS ARE SKIPPED. Caught in the Club Arena copy
+    // of this law on 2026-09-04: a CI checkout carries a dangling
+    // `.node_modules` symlink (agents link the shared install in rather than
+    // reinstalling), and `statSync` on a dangling link throws ENOENT - so the
+    // law passed on every machine where the target existed and failed on the
+    // runner. A symlink is never a document this repo is responsible for.
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (SKIP.has(entry.name) || entry.name.startsWith('.tmp') || entry.isSymbolicLink()) continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile() && /\.(md|sh)$/.test(entry.name)) out.push(relative(ROOT, full));
     }
   };
   walk(ROOT);
