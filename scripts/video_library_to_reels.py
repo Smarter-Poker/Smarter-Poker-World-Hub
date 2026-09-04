@@ -13,7 +13,7 @@ Architecture:
   - Follows the exact same pattern as video_library_scraper.py.
 
 Open Claw cron (daily 7am UTC — 1hr after video_library_scraper.py):
-    python3 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/scripts/video_library_to_reels.py
+    python3 <repo>/scripts/video_library_to_reels.py --sync-captions
 
 Usage:
     python3 scripts/video_library_to_reels.py               # Full daily run
@@ -36,43 +36,90 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-# ── Logging ─────────────────────────────────────────────────────────────────
-LOG_DIR = Path.home() / '.smarter-poker' / 'logs'
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+# ── Paths ───────────────────────────────────────────────────────────────────
+# Host-portability (2026-09-04). This bridge still carried the literal
+# one-laptop /Users/... repo paths that video_library_scraper.py shed on
+# 2026-08-29. Deployed to /opt/openclaw on the
+# Hetzner dispatcher it died at import with PermissionError on /Users, exit 1
+# in 0.2s, every day at 07:00 UTC - so nothing the scraper ingested ever
+# reached social_reels. Same resolution rules as the scraper now: SP_* env
+# overrides, then the repo, then the home directory, then /tmp; a directory we
+# cannot write is never a reason to skip the day's work.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+_HOME_STATE = Path.home() / '.smarter-poker'
 
+
+def _first_writable_dir(*candidates: Path) -> Path:
+    for cand in candidates:
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+            if os.access(cand, os.W_OK):
+                return cand
+        except OSError:
+            continue
+    return candidates[-1]
+
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+LOG_DIR = _first_writable_dir(
+    *([Path(os.environ['SP_LOG_DIR'])] if os.environ.get('SP_LOG_DIR') else []),
+    _HOME_STATE / 'logs',
+    Path('/tmp') / 'smarter-poker' / 'logs',
+)
+
+_handlers: list = [logging.StreamHandler()]
+try:
+    _handlers.insert(0, logging.FileHandler(LOG_DIR / 'video-library-to-reels.log'))
+except OSError:
+    pass
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_DIR / 'video-library-to-reels.log'),
-        logging.StreamHandler(),
-    ]
+    handlers=_handlers,
 )
 log = logging.getLogger('video-library-to-reels')
 
 # Evidence directory
-EVIDENCE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/scrape-evidence')
-EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+EVIDENCE_DIR = _first_writable_dir(
+    *([Path(os.environ['SP_EVIDENCE_DIR'])] if os.environ.get('SP_EVIDENCE_DIR') else []),
+    REPO_ROOT / 'data' / 'scrape-evidence',
+    _HOME_STATE / 'scrape-evidence',
+    Path('/tmp') / 'smarter-poker' / 'scrape-evidence',
+)
 
 # ── Env ──────────────────────────────────────────────────────────────────────
-_BASE = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub')
-
 def _load_env():
-    """Load env vars from all candidate files (highest priority first)."""
-    candidates = [
-        _BASE / '.env.local',
-        _BASE / '.env.production',
-        _BASE / '.env.vercel-db',
-        _BASE / '.env',
-        _BASE / '.env.prod',
-    ]
+    """Load env vars from every candidate file that exists; earliest wins.
+
+    Order: explicit SP_ENV_FILE, then files beside this script (the deployed
+    /opt/openclaw case, where the dispatcher's .env lives), then the repo root
+    (the Mac case). On the dispatcher the systemd EnvironmentFile has usually
+    already populated the process environment, and setdefault leaves that alone.
+    """
+    here = Path(__file__).resolve().parent
+    candidates = []
+    if os.environ.get('SP_ENV_FILE'):
+        candidates.append(Path(os.environ['SP_ENV_FILE']))
+    candidates += [here / '.env', here / '.env.local']
+    candidates += [REPO_ROOT / n for n in ('.env.local', '.env.production', '.env.vercel-db', '.env', '.env.prod')]
+
+    loaded = []
     for env_file in candidates:
-        if env_file.exists():
+        try:
+            if not env_file.exists():
+                continue
             for line in env_file.read_text().splitlines():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     k, v = line.split('=', 1)
                     os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+            loaded.append(str(env_file))
+        except OSError:
+            continue
+    if loaded:
+        print(f"[env] loaded: {', '.join(loaded)}", flush=True)
+    else:
+        print(f"[env] no env file found; tried: {', '.join(str(c) for c in candidates)}", flush=True)
 
 _load_env()
 
@@ -84,7 +131,7 @@ SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 VIDEO_LIBRARY_BOT_PROFILE_ID = os.environ.get('VIDEO_LIBRARY_BOT_PROFILE_ID', '')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    log.error('Missing SUPABASE credentials — checked .env.local, .env.production, .env.vercel-db')
+    log.error('Missing SUPABASE credentials — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment or an env file listed above')
     sys.exit(1)
 
 # ── Supabase REST helpers ────────────────────────────────────────────────────
@@ -113,12 +160,14 @@ def _request(method, path, body=None, params=None):
         log.error(f"Request error {method} {path}: {ex}")
         return None
 
-def _select(table, select='*', filters=None, limit=None, order=None):
+def _select(table, select='*', filters=None, limit=None, order=None, offset=None):
     params = {'select': select}
     if filters:
         params.update(filters)
     if limit:
         params['limit'] = limit
+    if offset:
+        params['offset'] = offset
     if order:
         params['order'] = order
     return _request('GET', table, params=params) or []
@@ -222,23 +271,41 @@ def get_system_bot_id():
 # ── Already-in-reels set ─────────────────────────────────────────────────────
 def get_existing_reel_video_ids():
     """
-    Return a set of youtube video IDs already in social_reels
-    (matched by source_type = 'video_library' or youtube URL pattern).
+    Return the set of YouTube video IDs already in social_reels, whatever
+    their source_type.
+
+    2026-09-04: this used to look only at source_type = 'video_library'. But
+    the BEFORE INSERT trigger trg_social_reels_yt_intercept rewrites every
+    YouTube reel to source_type = 'youtube' (and fills youtube_video_id,
+    queues the native transcode), so the bridge could never see a reel it
+    had itself inserted - the first scheduled run after the fix would have
+    re-inserted the same 100 videos every morning. Match on youtube_video_id,
+    which the trigger populates, across the whole table (17k rows, paged),
+    plus the URL-parsed legacy rows that predate the trigger.
     """
-    rows = _select(
-        'social_reels',
-        select='video_url',
-        filters={'source_type': 'eq.video_library'},
-        limit=5000,
-    )
     ids = set()
-    for r in rows:
-        url = r.get('video_url', '')
-        # Extract video ID from embed or watch URL
-        for pattern in ['watch?v=', '/embed/', '/shorts/']:
-            if pattern in url:
-                vid_id = url.split(pattern)[-1].split('&')[0].split('?')[0][:11]
-                ids.add(vid_id)
+    page, size = 0, 1000
+    while True:
+        rows = _select(
+            'social_reels',
+            select='youtube_video_id,video_url,source_type',
+            filters={'or': '(youtube_video_id.not.is.null,source_type.eq.video_library)'},
+            order='created_at.desc',
+            limit=size,
+            offset=page * size,
+        )
+        for r in rows:
+            vid = (r.get('youtube_video_id') or '').strip()
+            if len(vid) == 11:
+                ids.add(vid)
+                continue
+            url = r.get('video_url') or ''
+            for pattern in ['watch?v=', '/embed/', '/shorts/', 'youtu.be/']:
+                if pattern in url:
+                    ids.add(url.split(pattern)[-1].split('&')[0].split('?')[0][:11])
+        if len(rows) < size:
+            break
+        page += 1
     return ids
 
 # ── Main bridge logic ────────────────────────────────────────────────────────
@@ -454,6 +521,16 @@ def main():
         return
 
     stats = run_bridge(args)
+
+    # 2026-09-04: the scheduler used to invoke caption sync INSTEAD of the
+    # bridge (see openclaw-cron-dispatcher.py SCRIPT_JOBS). It is cheap and
+    # idempotent, so a bridge run now finishes with it; a caption failure must
+    # never undo the inserts above.
+    try:
+        stats['captions'] = sync_captions(dry_run=args.dry_run)
+    except Exception as e:  # noqa: BLE001 - reported, not fatal
+        log.warning(f"  Caption sync failed after the bridge: {type(e).__name__}: {e}")
+        stats['captions'] = {'error': str(e)}
     elapsed = time.time() - start
 
     log.info("")
@@ -474,8 +551,11 @@ def main():
         'elapsed_seconds': round(elapsed, 1),
     }
     ev_path = EVIDENCE_DIR / f"video_library_to_reels_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    ev_path.write_text(json.dumps(evidence, indent=2))
-    log.info(f"  Evidence saved → {ev_path}")
+    try:
+        ev_path.write_text(json.dumps(evidence, indent=2))
+        log.info(f"  Evidence saved → {ev_path}")
+    except OSError as e:
+        log.warning(f"  Evidence NOT saved ({e}); the reels were still written")
 
 if __name__ == '__main__':
     main()

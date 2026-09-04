@@ -17,7 +17,7 @@
 //   --wait <ms>            Optional. Extra wait in ms after navigation (default: 2000).
 //   --text <selector>      Optional. Print innerText of a CSS selector.
 //
-// CREDENTIALS: daniel@bekavactrading.com / <TEST_USER_PASSWORD — see .env.local, never commit>
+// CREDENTIALS: <TEST_USER_EMAIL from .env.local> / <TEST_USER_PASSWORD — see .env.local, never commit>
 //
 // EXIT CODES:
 //   0 = success (page loaded, no fatal errors)
@@ -39,7 +39,7 @@ const CHECK_CONSOLE = hasFlag('--check-console');
 const EXTRA_WAIT    = parseInt(getArg('--wait') || '2000');
 const TEXT_SEL      = getArg('--text');
 
-const TEST_EMAIL    = 'daniel@bekavactrading.com';
+const TEST_EMAIL    = process.env.TEST_USER_EMAIL;
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD;
 const LOGIN_URL     = 'https://smarter.poker/login';
 

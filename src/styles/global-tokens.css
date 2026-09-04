@@ -4,6 +4,13 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
+  /* Chrome geometry published for sticky offsets and fixed layers (mobile
+     standard). --sp-header-height is overwritten at runtime by
+     UniversalHeader with the rendered artwork height; --sp-bottom-nav-height
+     matches BOTTOM_NAV_H in src/components/ui/BottomNavBar.jsx. */
+  --sp-header-height: 56px;
+  --sp-bottom-nav-height: 56px;
+
   /* ═══════════════════════════════════════════════════════════════════════════
      DEFAULT WORLD THEME
      These are the fallback values. Each world CSS overrides these.
@@ -182,4 +189,12 @@ body,
 .sp-overlay-close--left {
   right: auto;
   left: 12px;
+}
+
+/* PullToRefresh (src/components/ui/PullToRefresh.jsx): the spinner while a
+   page reload runs. Reduced motion keeps the spin (it carries meaning,
+   data-motion="keep"), only the pull transform is instant. */
+@keyframes spPtrSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

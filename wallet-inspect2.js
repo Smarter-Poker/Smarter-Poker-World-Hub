@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
     }
     const emailInput = page.locator('input[type="email"]').first();
     if (await emailInput.isVisible()) {
-        await emailInput.fill('daniel@bekavactrading.com');
+        await emailInput.fill(process.env.TEST_USER_EMAIL);
         await page.locator('input[type="password"]').first().fill(process.env.TEST_USER_PASSWORD);
         await page.locator('button[type="submit"]').first().click();
         await page.waitForTimeout(3500);

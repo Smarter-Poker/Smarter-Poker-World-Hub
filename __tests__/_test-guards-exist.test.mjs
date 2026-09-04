@@ -85,6 +85,19 @@ import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
 import './global-header-approved.test.mjs';
+// 2026-09-04, the "Log Out does nothing" fix. Its sibling guard
+// hamburger-never-regresses runs from `prebuild`, which fires on `npm run
+// build` but NOT on the `npx next build` the push script uses - so these two
+// went in here, where CHECK 8 reaches them on every pull request.
+// signout-contract pins that handleLogout clears the BACKUP key too: clearing
+// only the primary meant ensureAuthReady restored the session from the backup
+// on the way to the redirect, and the user was signed back in by their own
+// logout. query-params pins that a menu row's ?section= / ?tab= / ?source= is
+// one its destination page actually accepts - the existing route guard strips
+// the query before checking, so it only ever proved the file exists, and
+// Delete Account had been sending a value Settings ignores.
+import './hamburger-signout-contract.test.mjs';
+import './menu-query-params-are-real.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
@@ -118,11 +131,14 @@ import './horses-subpages-phase1.test.mjs';
 import './login-painted-auth-state.test.mjs';
 import './messenger-prefs-sync.test.mjs';
 import './mobile-foundation.test.mjs';
+import './modal-history-core.test.mjs';
 import './news-intelligence-phase-7.test.mjs';
 import './no-slide-to-see.law.test.mjs';
 import './overlays-leave-room-to-close.law.test.mjs';
+import './page-tutorials.test.mjs';
 import './pa-closeout-hardening.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
+import './preflop-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
@@ -151,10 +167,25 @@ import './world-copy-policy.test.mjs';
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
 
+// 2026-09-04: a synthetic probe never signs a person out. login-probe was
+// pointed at Dan's own account and called a bare signOut() - global scope -
+// every 15 minutes, revoking his session on every device and parking every
+// Club Arena table he opened on "Reconnecting To The Table" for 22 hours.
+// Same CHECK 8 reasoning as the blocks above: imported here so CI runs it.
+import './synthetic-probes-never-sign-out-a-person.law.test.mjs';
+// 2026-09-04, the quiet half of the same incident: thirty-seven files carried
+// Dan's personal address as the account to sign in as, e2e/00-auth.setup.ts
+// among them, so every CI run signed in as him. The account is
+// TEST_USER_EMAIL from the environment now, and this law keeps it there.
+import './a-script-never-wears-a-persons-face.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
     '__tests__/auth-routes-exist.test.mjs',
+    // A monitor must never revoke a person's sessions (2026-09-04 outage).
+    '__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs',
+    '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',
@@ -168,6 +199,12 @@ const REQUIRED_TEST_FILES = [
     // the Leak Finder in production. Both run in `prebuild`.
     '__tests__/menu-routes-exist.test.mjs',
     '__tests__/pa-no-undef.test.mjs',
+    // The Log Out fix (2026-09-04). menu-routes-exist above is deliberately
+    // NOT a substitute for query-params-are-real: it strips ?query before it
+    // resolves a path, so it proves the destination file exists and nothing
+    // about whether the destination reads the parameter the row sends it.
+    '__tests__/hamburger-signout-contract.test.mjs',
+    '__tests__/menu-query-params-are-real.test.mjs',
     // Proves the Blob-URL equity worker still computes the same numbers as
     // EquityEngine.js — the worker holds a generated COPY of the Monte Carlo
     // core, so drift is silent and user-visible.

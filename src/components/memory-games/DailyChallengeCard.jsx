@@ -1,13 +1,37 @@
 import { CalendarDays, Check, ChevronRight, Clock3, Gem, Target } from 'lucide-react';
 import { accuracyToPercent } from '../../lib/preflopRangeLab';
 
+/**
+ * The daily assignment card on the Preflop Charts menu. Mobile phase 2: it
+ * always renders a card (loading, empty, or the assignment) so the
+ * `data-tutorial="daily"` spotlight target exists whatever the server
+ * returned; the empty state says plainly that nothing is posted yet.
+ */
 export default function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
-  if (loading) return <div className="preflop-daily-card is-loading" role="status">Synchronizing Today&apos;S Assignment…</div>;
-  if (!challenge) return null;
+  if (loading) {
+    return (
+      <div className="preflop-daily-card is-loading" role="status" data-tutorial="daily">
+        Synchronizing Today's Assignment
+      </div>
+    );
+  }
+
+  if (!challenge) {
+    return (
+      <section className="preflop-daily-card is-empty" aria-labelledby="preflop-daily-title" data-tutorial="daily">
+        <div className="preflop-daily-card-mark" aria-hidden><CalendarDays size={21} /></div>
+        <div className="preflop-daily-card-copy">
+          <span>DAILY RANGE ASSIGNMENT</span>
+          <h2 id="preflop-daily-title">No Assignment Posted Yet</h2>
+          <p>Today's Challenge Appears Here As Soon As It Is Published. Check Back Soon.</p>
+        </div>
+      </section>
+    );
+  }
 
   const target = accuracyToPercent(challenge.target_accuracy ?? 75);
   return (
-    <section className="preflop-daily-card" data-completed={completed || undefined} aria-labelledby="preflop-daily-title">
+    <section className="preflop-daily-card" data-completed={completed || undefined} aria-labelledby="preflop-daily-title" data-tutorial="daily">
       <div className="preflop-daily-card-mark" aria-hidden>{completed ? <Check size={21} /> : <CalendarDays size={21} />}</div>
       <div className="preflop-daily-card-copy">
         <span>DAILY RANGE ASSIGNMENT</span>

@@ -53,7 +53,18 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # Same key as undefined-identifier-guard on purpose: same Node line, same
+      # full install, so whichever of the two runs first warms the other. See
+      # the note on the TypeScript Check job in build-safety-gate.yml.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-guard-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         # `npm ci` alone is NOT safe in this repo: package-lock.json is
         # currently out of sync with package.json on main -- npm 11 refuses it
         # with "Invalid: lock file's ajv@6.15.0 does not satisfy ajv@8.20.0".

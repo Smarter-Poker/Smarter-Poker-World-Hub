@@ -55,6 +55,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resilientFetch } from './lib/resilient-fetch.mjs';
+import { fromCalls, lineIndex } from './lib/from-calls.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ALLOWLIST_PATH = path.join(REPO_ROOT, 'scripts', 'ci', 'supabase-invariants.allowlist.json');
@@ -121,37 +122,25 @@ function walk(dir, out = []) {
 }
 
 /**
- * `.from('x')` where the receiver is NOT `.storage`.
- *
- * `[\s\S]{0,40}?` before `.from` lets the match see across a newline, because
- * the storage form is routinely written as:
- *     await supabase.storage
- *         .from('uploads')
- * A same-line negative lookbehind would miss that and report every bucket.
+ * `.from('x')` where the receiver is NOT `.storage`. The scanner lives in
+ * lib/from-calls.mjs - see the note there for why the regex that used to be
+ * here cost 86 seconds a run.
  */
-const FROM_RE = /([A-Za-z_$][A-Za-z0-9_$]*)?\s*(?:\(\))?\s*(\.\s*storage)?\s*\.\s*from\(\s*['"]([a-zA-Z0-9_]+)['"]\s*\)/g;
-
 function referencesIn(src) {
   const found = new Map(); // table -> Set(lineNumber)
   const clean = stripComments(src);
-  const lineOf = (idx) => clean.slice(0, idx).split('\n').length;
-  let m;
-  FROM_RE.lastIndex = 0;
-  while ((m = FROM_RE.exec(clean)) !== null) {
-    const receiver = m[1] || '';
-    const isStorage = !!m[2];
-    const table = m[3];
-
+  const lineOf = lineIndex(clean);
+  for (const { index, receiver, isStorage, table } of fromCalls(clean)) {
     // supabase.storage.from('bucket') is a storage bucket, not a table. The
-    // call is routinely split across lines, which is why the regex tolerates
-    // whitespace rather than matching on a single line.
+    // call is routinely split across lines, which is why the scanner reads
+    // the receiver across whitespace rather than on a single line.
     if (isStorage || receiver === 'storage') continue;
 
     // A client pointed at another Supabase project.
     if (FOREIGN_CLIENT_IDENTIFIERS.has(receiver)) continue;
 
     if (!found.has(table)) found.set(table, new Set());
-    found.get(table).add(lineOf(m.index));
+    found.get(table).add(lineOf(index));
   }
   return found;
 }

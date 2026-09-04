@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEMORY GAMES THEME — Brain Training, Focus, Neon Blue
+   MEMORY GAMES THEME - Brain Training, Focus, Neon Blue
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-memory-games {
@@ -19,8 +19,20 @@ body.world-memory-games {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PREFLOP CHARTS — COMPACT COMMAND DECK
+   PREFLOP CHARTS - COMPACT COMMAND DECK
    Visual layer only. Gameplay state and interactions remain in the page.
+
+   Mobile phase 2 (docs/mobile-standard/ALWAYS-DISPLAYED-MOBILE-STANDARD.md):
+   - Three breakpoints only: 900 (side rail), 768 (phone layout), 600
+     (sheets). Desktop-only rules use the complements (min-width 769 / 901
+     / 601) of the same three boundaries, never a fourth number.
+   - No horizontal rails: the mode picker is a wrapping grid, the section
+     nav a wrapping row, the tab rail a wrapping row.
+   - The 13x13 matrix is width: 100% with aspect-ratio cells and no
+     min-width, so it never scrolls sideways.
+   - Nothing under 12px. Every control 44px, touch-action: manipulation,
+     :active press feedback; :hover only where the same state also exists
+     on :active or :focus-visible.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-preflop-charts .preflop-command-deck {
@@ -55,6 +67,16 @@ body.world-preflop-charts .preflop-command-deck::before {
     mask-image: linear-gradient(to bottom, black, transparent 86%);
 }
 
+/* Every control on the deck is a touch control (standard, "Tokens"). */
+body.world-preflop-charts .preflop-command-deck :is(button, [role='button'], a) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.world-preflop-charts .preflop-command-deck button:not(.sp-icon-btn) {
+    min-height: 44px;
+}
+
 body.world-preflop-charts .preflop-menu {
     max-width: 1180px;
     margin: 18px auto 42px;
@@ -64,12 +86,32 @@ body.world-preflop-charts .preflop-menu button {
     font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* First-paint skeleton (one class, one keyframe), mirrors the menu. */
+body.world-preflop-charts .preflop-skel,
+.preflop-subpage .preflop-skel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(102, 217, 255, 0.14);
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(10, 24, 38, 0.9) 0%, rgba(20, 44, 66, 0.9) 50%, rgba(10, 24, 38, 0.9) 100%);
+    background-size: 200% 100%;
+    animation: preflopShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes preflopShimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
 body.world-preflop-charts .preflop-hero,
 body.world-preflop-charts .preflop-smart-practice,
 body.world-preflop-charts .preflop-suggestions,
 body.world-preflop-charts .preflop-level-toolbar,
 body.world-preflop-charts .preflop-mastery-gate,
-body.world-preflop-charts .preflop-vip-panel {
+body.world-preflop-charts .preflop-vip-panel,
+body.world-preflop-charts .preflop-primer,
+body.world-preflop-charts .preflop-recent,
+body.world-preflop-charts .preflop-board-panel {
     position: relative;
     border: 1px solid var(--pc-line);
     background:
@@ -86,7 +128,8 @@ body.world-preflop-charts .preflop-smart-practice::before,
 body.world-preflop-charts .preflop-suggestions::before,
 body.world-preflop-charts .preflop-level-toolbar::before,
 body.world-preflop-charts .preflop-mastery-gate::before,
-body.world-preflop-charts .preflop-vip-panel::before {
+body.world-preflop-charts .preflop-vip-panel::before,
+body.world-preflop-charts .preflop-primer::before {
     content: '';
     position: absolute;
     inset: 5px;
@@ -130,9 +173,9 @@ body.world-preflop-charts .preflop-panel-kicker {
     align-items: center;
     gap: 7px;
     font-family: var(--font-orbitron), Orbitron, sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.16em;
     color: var(--pc-cyan);
 }
 
@@ -269,6 +312,11 @@ body.world-preflop-charts .preflop-diamond-stage img {
     animation: preflop-diamond-float 5s ease-in-out infinite;
 }
 
+/* Section links on the game page (the subpages' nav, not sticky here). */
+body.world-preflop-charts .preflop-command-deck .preflop-subpage-nav {
+    margin: 0 0 14px;
+}
+
 body.world-preflop-charts .preflop-smart-practice {
     display: grid;
     grid-template-columns: 116px minmax(0, 1fr) minmax(230px, 0.48fr);
@@ -333,9 +381,9 @@ body.world-preflop-charts .preflop-weak-spots {
 
 body.world-preflop-charts .preflop-weak-label {
     width: 100%;
-    color: #7e91a4;
-    font-size: 10px;
-    letter-spacing: 0.1em;
+    color: #8ea1b4;
+    font-size: 12px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
@@ -343,15 +391,15 @@ body.world-preflop-charts .preflop-weak-row {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 8px;
+    padding: 6px 9px;
     border: 1px solid rgba(155, 108, 255, 0.2);
     background: rgba(0, 0, 0, 0.26);
     color: #d5c8ff;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 body.world-preflop-charts .preflop-weak-row span:last-child {
-    color: #74869b;
+    color: #8b9db0;
 }
 
 body.world-preflop-charts .preflop-primary-cta {
@@ -374,8 +422,9 @@ body.world-preflop-charts .preflop-primary-cta {
     transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
 }
 
-body.world-preflop-charts .preflop-primary-cta:hover:not(:disabled) {
-    transform: translateY(-2px);
+body.world-preflop-charts .preflop-primary-cta:hover:not(:disabled),
+body.world-preflop-charts .preflop-primary-cta:active:not(:disabled),
+body.world-preflop-charts .preflop-primary-cta:focus-visible:not(:disabled) {
     filter: brightness(1.12);
     box-shadow: inset 0 0 20px rgba(119, 215, 255, 0.34), 0 8px 30px rgba(42, 131, 255, 0.42);
 }
@@ -416,12 +465,15 @@ body.world-preflop-charts .preflop-suggestion-row {
     border: 1px solid rgba(169, 135, 255, 0.18);
     background: rgba(0, 0, 0, 0.28);
     color: #c7d2de;
+    font-size: 13px;
     text-align: left;
     cursor: pointer;
     transition: border-color 160ms ease, background 160ms ease;
 }
 
-body.world-preflop-charts .preflop-suggestion-row:hover {
+body.world-preflop-charts .preflop-suggestion-row:hover,
+body.world-preflop-charts .preflop-suggestion-row:active,
+body.world-preflop-charts .preflop-suggestion-row:focus-visible {
     border-color: rgba(169, 135, 255, 0.58);
     background: rgba(78, 48, 147, 0.16);
 }
@@ -432,13 +484,15 @@ body.world-preflop-charts .preflop-suggestion-row > span:last-child {
     gap: 5px;
     flex-shrink: 0;
     color: #b897ff;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
 }
 
+/* Mode picker: a wrapping grid at every width (no rail, no snap, no hidden
+   scrollbar). Seven cards on a wide desktop, two per row on a phone. */
 body.world-preflop-charts .preflop-mode-rail {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 7px;
     margin-bottom: 8px;
 }
@@ -461,7 +515,7 @@ body.world-preflop-charts .preflop-mode-card {
         linear-gradient(180deg, rgba(11, 23, 37, 0.96), rgba(5, 11, 19, 0.98));
     color: #a7b4c2;
     cursor: pointer;
-    transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    transition: border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
 body.world-preflop-charts .preflop-mode-card::after {
@@ -477,8 +531,9 @@ body.world-preflop-charts .preflop-mode-card::after {
 }
 
 body.world-preflop-charts .preflop-mode-card:hover,
+body.world-preflop-charts .preflop-mode-card:active,
+body.world-preflop-charts .preflop-mode-card:focus-visible,
 body.world-preflop-charts .preflop-mode-card.is-active {
-    transform: translateY(-2px);
     border-color: var(--mode-accent);
     color: var(--mode-accent);
     box-shadow: inset 0 0 26px color-mix(in srgb, var(--mode-accent) 12%, transparent), 0 6px 20px rgba(0, 0, 0, 0.28);
@@ -497,20 +552,19 @@ body.world-preflop-charts .preflop-mode-icon {
 
 body.world-preflop-charts .preflop-mode-label {
     max-width: 100%;
-    overflow: hidden;
     color: #dbe4ec;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
-    line-height: 1.1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.15;
+    text-align: center;
 }
 
 body.world-preflop-charts .preflop-mode-desc {
     min-height: 24px;
-    color: #6f8092;
-    font-size: 9px;
+    color: #8496a8;
+    font-size: 12px;
     line-height: 1.25;
+    text-align: center;
 }
 
 body.world-preflop-charts .preflop-quick-row {
@@ -522,7 +576,7 @@ body.world-preflop-charts .preflop-quick-row {
 
 body.world-preflop-charts .preflop-quick-button,
 body.world-preflop-charts .preflop-tool-button {
-    min-height: 42px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -531,16 +585,466 @@ body.world-preflop-charts .preflop-tool-button {
     border-radius: 2px;
     background: linear-gradient(180deg, rgba(13, 26, 41, 0.98), rgba(4, 11, 19, 0.98));
     color: #8595a7;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
 }
 
 body.world-preflop-charts .preflop-quick-button:hover,
+body.world-preflop-charts .preflop-quick-button:active,
+body.world-preflop-charts .preflop-quick-button:focus-visible,
 body.world-preflop-charts .preflop-quick-button.is-active {
     border-color: var(--mode-accent);
     color: var(--mode-accent);
     box-shadow: inset 0 0 20px color-mix(in srgb, var(--mode-accent) 10%, transparent);
+}
+
+/* Mode launch card (CSS enter animation keyed by mode; no framer-motion in
+   the menu chunk). */
+body.world-preflop-charts .preflop-launch-card {
+    position: relative;
+    max-width: 520px;
+    margin: 0 auto 22px;
+    padding: 32px 28px;
+    overflow: hidden;
+    border: 2px solid color-mix(in srgb, var(--launch-color) 30%, transparent);
+    border-radius: 20px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--launch-color) 7%, transparent), color-mix(in srgb, var(--launch-color) 3%, transparent));
+    text-align: center;
+    animation: preflopLaunchEnter 0.25s ease-out both;
+}
+
+@keyframes preflopLaunchEnter {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+body.world-preflop-charts .preflop-launch-difficulty {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 5px 12px;
+    border: 1px solid;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+body.world-preflop-charts .preflop-launch-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+    color: var(--launch-color);
+}
+
+body.world-preflop-charts .preflop-launch-title {
+    margin: 0 0 10px;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--launch-color);
+    letter-spacing: 0.04em;
+}
+
+body.world-preflop-charts .preflop-launch-desc {
+    max-width: 380px;
+    margin: 0 auto 20px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.6;
+}
+
+body.world-preflop-charts .preflop-launch-stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+body.world-preflop-charts .preflop-launch-stats > div {
+    min-width: 90px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+body.world-preflop-charts .preflop-launch-stats span {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+body.world-preflop-charts .preflop-launch-stats strong {
+    font-size: 13px;
+    color: #fff;
+}
+
+body.world-preflop-charts .preflop-launch-best {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 215, 0, 0.08);
+    color: #FFD700;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-launch-best span {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+}
+
+body.world-preflop-charts .preflop-launch-best strong {
+    font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+body.world-preflop-charts .preflop-launch-best em {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 800;
+}
+
+body.world-preflop-charts .preflop-launch-button {
+    min-height: 52px;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--launch-from), var(--launch-to));
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--launch-color) 20%, transparent);
+    transition: filter 0.2s ease;
+}
+
+body.world-preflop-charts .preflop-launch-button:hover,
+body.world-preflop-charts .preflop-launch-button:active,
+body.world-preflop-charts .preflop-launch-button:focus-visible {
+    filter: brightness(1.1);
+}
+
+/* Leaderboard / daily panels on the menu */
+body.world-preflop-charts .preflop-board-panel {
+    max-width: 800px;
+    margin: 0 auto 22px;
+    padding: 24px;
+    border-radius: 20px;
+}
+
+body.world-preflop-charts .preflop-board-panel.is-gold {
+    border-color: rgba(255, 215, 0, 0.3);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 140, 0, 0.05)), linear-gradient(180deg, rgba(10, 24, 38, 0.97), rgba(3, 10, 18, 0.98));
+}
+
+body.world-preflop-charts .preflop-board-panel.is-green {
+    max-width: 600px;
+    border-color: rgba(0, 255, 136, 0.3);
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 212, 255, 0.05)), linear-gradient(180deg, rgba(10, 24, 38, 0.97), rgba(3, 10, 18, 0.98));
+}
+
+body.world-preflop-charts .preflop-board-heading {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #FFD700;
+}
+
+body.world-preflop-charts .preflop-board-heading h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    color: #FFD700;
+}
+
+body.world-preflop-charts .preflop-board-heading p {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body.world-preflop-charts .preflop-board-modes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+body.world-preflop-charts .preflop-board-modes button {
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 22px;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+body.world-preflop-charts .preflop-board-modes button[aria-pressed='true'],
+body.world-preflop-charts .preflop-board-modes button:active,
+body.world-preflop-charts .preflop-board-modes button:focus-visible {
+    border-color: var(--mode-accent);
+    background: color-mix(in srgb, var(--mode-accent) 13%, transparent);
+    color: var(--mode-accent);
+}
+
+body.world-preflop-charts .preflop-board-rank {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    border: 2px solid #00D4FF;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(138, 43, 226, 0.15));
+}
+
+body.world-preflop-charts .preflop-board-rank span {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body.world-preflop-charts .preflop-board-rank strong {
+    display: block;
+    font-size: 32px;
+    font-weight: 900;
+    color: #00D4FF;
+}
+
+body.world-preflop-charts .preflop-board-table {
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px;
+}
+
+body.world-preflop-charts .preflop-board-table .sp-rtable th {
+    color: #FFD700;
+}
+
+body.world-preflop-charts .preflop-board-table .sp-rtable td,
+body.world-preflop-charts .preflop-board-table .sp-rtable-value {
+    color: #fff;
+}
+
+body.world-preflop-charts .preflop-board-empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 14px;
+}
+
+body.world-preflop-charts .preflop-board-empty.is-warning {
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: 16px;
+    background: rgba(255, 165, 0, 0.1);
+}
+
+body.world-preflop-charts .preflop-board-empty h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #FFA500;
+}
+
+body.world-preflop-charts .preflop-board-empty p {
+    margin: 0;
+}
+
+body.world-preflop-charts .preflop-board-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+body.world-preflop-charts .preflop-board-actions button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+body.world-preflop-charts .preflop-board-actions button:active,
+body.world-preflop-charts .preflop-board-actions button:focus-visible {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+body.world-preflop-charts .preflop-board-streaks {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+
+body.world-preflop-charts .preflop-board-streaks > div {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    text-align: center;
+}
+
+body.world-preflop-charts .preflop-board-streaks strong {
+    font-size: 32px;
+    font-weight: 900;
+}
+
+body.world-preflop-charts .preflop-board-streaks span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+body.world-preflop-charts .preflop-board-complete {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 32px;
+    border: 2px solid #00ff88;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2));
+    text-align: center;
+    color: #00ff88;
+}
+
+body.world-preflop-charts .preflop-board-complete h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-board-complete p {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.world-preflop-charts .preflop-board-complete strong {
+    margin-top: 12px;
+    font-size: 18px;
+    color: #FFD700;
+}
+
+body.world-preflop-charts .preflop-board-challenge {
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+body.world-preflop-charts .preflop-board-challenge-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(0, 255, 136, 0.1);
+    color: #00ff88;
+}
+
+body.world-preflop-charts .preflop-board-challenge-head strong {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+body.world-preflop-charts .preflop-board-challenge-head span {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+body.world-preflop-charts .preflop-board-challenge > p {
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.world-preflop-charts .preflop-board-challenge-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+body.world-preflop-charts .preflop-board-challenge-meta span {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+body.world-preflop-charts .preflop-board-challenge-meta strong {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-board-start {
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #00ff88, #00D4FF);
+    color: #000;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+}
+
+body.world-preflop-charts .preflop-board-note {
+    display: grid;
+    gap: 8px;
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+body.world-preflop-charts .preflop-board-note strong {
+    font-size: 14px;
+    color: #FFD700;
+}
+
+body.world-preflop-charts .preflop-board-note span {
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.6);
 }
 
 body.world-preflop-charts .preflop-level-toolbar {
@@ -570,6 +1074,8 @@ body.world-preflop-charts .preflop-tool-button {
 }
 
 body.world-preflop-charts .preflop-tool-button:hover,
+body.world-preflop-charts .preflop-tool-button:active,
+body.world-preflop-charts .preflop-tool-button:focus-visible,
 body.world-preflop-charts .preflop-tool-button.is-active {
     border-color: var(--pc-cyan);
     color: var(--pc-cyan);
@@ -581,19 +1087,19 @@ body.world-preflop-charts .preflop-tool-button.is-gold {
 }
 
 body.world-preflop-charts .preflop-filter-count {
-    min-width: 19px;
-    height: 19px;
+    min-width: 20px;
+    height: 20px;
     display: inline-grid;
     place-items: center;
     border-radius: 50%;
     background: var(--pc-cyan);
     color: #00111d;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
 }
 
-/* Phase 2 — the scenario filter becomes a range-tuning console instead of a
-   generic form card. The numeric pool readout is the signature interaction. */
+/* The scenario filter is a range-tuning console instead of a generic form
+   card. The numeric pool readout is the signature interaction. */
 body.world-preflop-charts .scenario-filter-console {
     position: relative;
     margin: 0 0 14px;
@@ -664,9 +1170,9 @@ body.world-preflop-charts .scenario-filter-kicker {
     gap: 7px;
     color: var(--pc-cyan);
     font-family: var(--font-orbitron), Orbitron, sans-serif;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.19em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
@@ -681,17 +1187,18 @@ body.world-preflop-charts .scenario-filter-heading h3 {
 
 body.world-preflop-charts .scenario-filter-heading p {
     margin: 0;
-    color: #7f91a3;
+    color: #8fa1b3;
     font-size: 12px;
     line-height: 1.5;
 }
 
 body.world-preflop-charts .scenario-filter-close {
+    --sp-btn-size: 44px;
     position: relative;
     z-index: 2;
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
     display: inline-grid;
     place-items: center;
     border: 1px solid rgba(126, 157, 184, 0.28);
@@ -701,7 +1208,9 @@ body.world-preflop-charts .scenario-filter-close {
     cursor: pointer;
 }
 
-body.world-preflop-charts .scenario-filter-close:hover {
+body.world-preflop-charts .scenario-filter-close:hover,
+body.world-preflop-charts .scenario-filter-close:active,
+body.world-preflop-charts .scenario-filter-close:focus-visible {
     border-color: var(--pc-cyan);
     color: var(--pc-cyan);
 }
@@ -729,9 +1238,9 @@ body.world-preflop-charts .scenario-filter-field label {
     align-items: center;
     gap: 7px;
     color: #dce7ee;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
@@ -743,9 +1252,9 @@ body.world-preflop-charts .scenario-filter-field-note {
     display: block;
     min-height: 16px;
     margin: 4px 0 8px 21px;
-    color: #65788b;
-    font-size: 9px;
-    letter-spacing: 0.025em;
+    color: #7e91a3;
+    font-size: 12px;
+    letter-spacing: 0.02em;
 }
 
 body.world-preflop-charts .scenario-filter-select-wrap {
@@ -753,17 +1262,19 @@ body.world-preflop-charts .scenario-filter-select-wrap {
 }
 
 body.world-preflop-charts .scenario-filter-select-wrap::after {
-    content: '⌄';
+    content: '';
     position: absolute;
     top: 50%;
-    right: 13px;
-    color: var(--pc-cyan);
-    font-size: 16px;
-    line-height: 1;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--pc-cyan);
+    border-bottom: 2px solid var(--pc-cyan);
     pointer-events: none;
-    transform: translateY(-62%);
+    transform: translateY(-70%) rotate(45deg);
 }
 
+/* Inputs are exactly 16px so iOS never zooms the page on focus. */
 body.world-preflop-charts .scenario-filter-field select {
     width: 100%;
     min-height: 46px;
@@ -774,11 +1285,12 @@ body.world-preflop-charts .scenario-filter-field select {
     color: #edf5fa;
     color-scheme: dark;
     background: rgba(1, 7, 13, 0.9);
-    font: 700 12px/1 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font: 700 16px/1 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     cursor: pointer;
 }
 
-body.world-preflop-charts .scenario-filter-field select:hover {
+body.world-preflop-charts .scenario-filter-field select:hover,
+body.world-preflop-charts .scenario-filter-field select:active {
     border-color: rgba(102, 217, 255, 0.62);
 }
 
@@ -812,11 +1324,11 @@ body.world-preflop-charts .scenario-filter-meter {
 
 body.world-preflop-charts .scenario-filter-meter span {
     grid-column: 1 / -1;
-    color: #6e8294;
+    color: #7f93a6;
     font-family: var(--font-orbitron), Orbitron, sans-serif;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
@@ -829,8 +1341,8 @@ body.world-preflop-charts .scenario-filter-meter strong {
 }
 
 body.world-preflop-charts .scenario-filter-meter small {
-    color: #728597;
-    font: 700 10px/1 Inter, sans-serif;
+    color: #8496a8;
+    font: 700 12px/1 Inter, sans-serif;
 }
 
 body.world-preflop-charts .scenario-filter-summary {
@@ -841,14 +1353,14 @@ body.world-preflop-charts .scenario-filter-summary {
 }
 
 body.world-preflop-charts .scenario-filter-summary span {
-    min-height: 25px;
+    min-height: 28px;
     display: inline-flex;
     align-items: center;
     padding: 4px 8px;
     border: 1px solid rgba(110, 143, 169, 0.2);
     background: rgba(9, 19, 30, 0.9);
-    color: #718495;
-    font-size: 9px;
+    color: #8598a9;
+    font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -860,8 +1372,8 @@ body.world-preflop-charts .scenario-filter-summary span.is-selected {
 
 body.world-preflop-charts .scenario-filter-status {
     margin: 0;
-    color: #899aaa;
-    font-size: 10px;
+    color: #98a8b7;
+    font-size: 12px;
     font-weight: 700;
     text-align: right;
     white-space: nowrap;
@@ -882,7 +1394,7 @@ body.world-preflop-charts .scenario-filter-actions button {
     gap: 7px;
     padding: 0 18px;
     border-radius: 2px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.04em;
     cursor: pointer;
@@ -908,13 +1420,15 @@ body.world-preflop-charts .scenario-filter-apply {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 0 18px rgba(32, 168, 255, 0.18);
 }
 
-body.world-preflop-charts .scenario-filter-apply:hover {
+body.world-preflop-charts .scenario-filter-apply:hover,
+body.world-preflop-charts .scenario-filter-apply:active,
+body.world-preflop-charts .scenario-filter-apply:focus-visible {
     filter: brightness(1.1);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 0 24px rgba(32, 168, 255, 0.3);
 }
 
-/* Phase 3 — live circuit telemetry connects filters, mastery, and the active
-   level into one poker-specific progression readout. */
+/* Live circuit telemetry connects filters, mastery, and the active level
+   into one poker-specific progression readout. */
 body.world-preflop-charts .preflop-circuit-status {
     position: relative;
     display: grid;
@@ -958,11 +1472,11 @@ body.world-preflop-charts .preflop-circuit-label {
 
 body.world-preflop-charts .preflop-circuit-label span,
 body.world-preflop-charts .preflop-circuit-stat small {
-    color: #6f8395;
+    color: #8497aa;
     font-family: var(--font-orbitron), Orbitron, sans-serif;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.13em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
@@ -993,17 +1507,15 @@ body.world-preflop-charts .preflop-circuit-stat > span {
 }
 
 body.world-preflop-charts .preflop-circuit-stat strong {
-    overflow: hidden;
     color: #edf5f9;
     font-size: 13px;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.25;
 }
 
 body.world-preflop-charts .preflop-circuit-stat strong em {
-    color: #788c9f;
-    font-size: 9px;
+    display: block;
+    color: #8fa3b6;
+    font-size: 12px;
     font-style: normal;
     font-weight: 600;
 }
@@ -1036,20 +1548,20 @@ body.world-preflop-charts .preflop-game-notice {
     border-left: 3px solid #f4c44e;
     background: linear-gradient(90deg, rgba(244, 196, 78, 0.11), rgba(6, 17, 28, 0.94));
     color: #dec982;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.45;
 }
 
 body.world-preflop-charts .preflop-game-notice button {
-    min-height: 30px;
-    padding: 0 9px;
+    min-height: 44px;
+    padding: 0 12px;
     border: 1px solid rgba(244, 196, 78, 0.32);
     border-radius: 2px;
     background: rgba(0, 0, 0, 0.2);
     color: #f0d98d;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.05em;
     cursor: pointer;
 }
 
@@ -1070,8 +1582,19 @@ body.world-preflop-charts .preflop-daily-card {
 body.world-preflop-charts .preflop-daily-card.is-loading {
     display: block;
     min-height: 68px;
-    color: #8da4b2;
+    color: #a3b6c3;
+    font-size: 13px;
+}
+
+body.world-preflop-charts .preflop-daily-card.is-empty {
+    grid-template-columns: 42px minmax(0, 1fr);
+}
+
+body.world-preflop-charts .preflop-daily-card.is-empty p {
+    margin: 6px 0 0;
+    color: #9aa9b7;
     font-size: 12px;
+    line-height: 1.5;
 }
 
 body.world-preflop-charts .preflop-daily-card[data-completed] {
@@ -1091,17 +1614,17 @@ body.world-preflop-charts .preflop-daily-card-mark {
 }
 
 body.world-preflop-charts .preflop-daily-card-mark svg { transform: rotate(-45deg); }
-body.world-preflop-charts .preflop-daily-card-copy > span { color: #a48a48; font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.11em; }
+body.world-preflop-charts .preflop-daily-card-copy > span { color: #c0a45a; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 body.world-preflop-charts .preflop-daily-card-copy h2 { margin: 6px 0 0; color: #f0e8d2; font-size: 15px; }
 
 body.world-preflop-charts .preflop-daily-card-streak {
     display: grid;
     justify-items: end;
-    color: #b99a48;
+    color: #c9ab5a;
 }
 
 body.world-preflop-charts .preflop-daily-card-streak strong { color: #f4c44e; font: 800 18px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
-body.world-preflop-charts .preflop-daily-card-streak span { font-size: 8px; }
+body.world-preflop-charts .preflop-daily-card-streak span { font-size: 12px; }
 
 body.world-preflop-charts .preflop-daily-card-metrics {
     grid-column: 1 / -1;
@@ -1117,17 +1640,17 @@ body.world-preflop-charts .preflop-daily-card-metrics > div {
     gap: 7px;
     padding: 8px;
     background: rgba(0, 0, 0, 0.22);
-    color: #7290a2;
+    color: #8aa4b6;
 }
 
 body.world-preflop-charts .preflop-daily-card-metrics span { min-width: 0; display: grid; gap: 4px; }
-body.world-preflop-charts .preflop-daily-card-metrics small { color: #617b8c; font-size: 7px; text-transform: uppercase; }
-body.world-preflop-charts .preflop-daily-card-metrics strong { overflow: hidden; color: #c6d5dd; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
+body.world-preflop-charts .preflop-daily-card-metrics small { color: #7b93a3; font-size: 12px; text-transform: uppercase; }
+body.world-preflop-charts .preflop-daily-card-metrics strong { overflow: hidden; color: #c6d5dd; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
 
 body.world-preflop-charts .preflop-daily-card > button,
 body.world-preflop-charts .preflop-daily-card-complete {
     grid-column: 1 / -1;
-    min-height: 42px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1136,9 +1659,15 @@ body.world-preflop-charts .preflop-daily-card-complete {
     border-radius: 2px;
     background: rgba(75, 55, 10, 0.44);
     color: #f0da99;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
     cursor: pointer;
+}
+
+body.world-preflop-charts .preflop-daily-card > button:active,
+body.world-preflop-charts .preflop-daily-card > button:focus-visible {
+    border-color: #f4c44e;
+    color: #fff3cf;
 }
 
 body.world-preflop-charts .preflop-daily-card-complete {
@@ -1162,7 +1691,7 @@ body.world-preflop-charts .preflop-level-card {
     color: #d5e1e9;
     cursor: pointer;
     box-shadow: inset 0 0 24px rgba(72, 152, 211, 0.035);
-    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    transition: border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
 body.world-preflop-charts .preflop-level-card::after {
@@ -1188,14 +1717,13 @@ body.world-preflop-charts .preflop-level-card-action:disabled {
 }
 
 body.world-preflop-charts .preflop-level-card:focus-within {
-    transform: translateY(-3px);
     border-color: var(--pc-gold);
     box-shadow: inset 0 0 25px rgba(35, 159, 239, 0.1), 0 0 0 2px rgba(244, 196, 78, 0.6);
 }
 
 body.world-preflop-charts .preflop-level-card:hover:not(.is-locked):not(.is-no-match),
+body.world-preflop-charts .preflop-level-card:active:not(.is-locked):not(.is-no-match),
 body.world-preflop-charts .preflop-level-card:focus-visible {
-    transform: translateY(-3px);
     border-color: var(--pc-cyan);
     outline: none;
     box-shadow: inset 0 0 25px rgba(35, 159, 239, 0.1), 0 0 22px rgba(31, 147, 226, 0.14);
@@ -1262,24 +1790,24 @@ body.world-preflop-charts .preflop-level-heading {
 body.world-preflop-charts .preflop-level-number {
     font-family: var(--font-orbitron), Orbitron, sans-serif;
     color: var(--pc-cyan);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.13em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
 body.world-preflop-charts .preflop-level-state {
-    min-height: 20px;
+    min-height: 22px;
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
-    padding: 2px 5px;
+    padding: 2px 6px;
     border: 1px solid rgba(111, 148, 178, 0.23);
     background: rgba(5, 13, 22, 0.9);
-    color: #7e91a3;
-    font-size: 7px;
-    font-weight: 900;
-    letter-spacing: 0.09em;
+    color: #8fa1b3;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -1300,18 +1828,16 @@ body.world-preflop-charts .preflop-level-state.is-no-match {
 
 body.world-preflop-charts .preflop-level-copy h3 {
     margin: 0 0 5px;
-    overflow: hidden;
     color: #edf3f7;
     font-size: 15px;
     line-height: 1.15;
-    text-overflow: ellipsis;
 }
 
 body.world-preflop-charts .preflop-level-copy p {
     min-height: 30px;
     margin: 0;
-    color: #728397;
-    font-size: 10px;
+    color: #8496a9;
+    font-size: 12px;
     line-height: 1.35;
 }
 
@@ -1322,8 +1848,8 @@ body.world-preflop-charts .preflop-level-meta {
     margin-top: auto;
     padding-top: 12px;
     border-top: 1px solid rgba(125, 157, 184, 0.14);
-    color: #8ea0b3;
-    font-size: 10px;
+    color: #9db0c2;
+    font-size: 12px;
 }
 
 body.world-preflop-charts .preflop-level-meta > span,
@@ -1356,7 +1882,7 @@ body.world-preflop-charts .preflop-level-vip {
     border: 1px solid rgba(244, 196, 78, 0.62);
     background: rgba(89, 61, 4, 0.28);
     color: var(--pc-gold);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -1376,8 +1902,8 @@ body.world-preflop-charts .preflop-level-progress-label {
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 4px;
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
 }
 
 body.world-preflop-charts .preflop-level-mastered-label {
@@ -1438,8 +1964,275 @@ body.world-preflop-charts .preflop-mastery-title {
 }
 
 body.world-preflop-charts .preflop-mastery-desc {
-    color: #8193a5;
+    color: #8fa1b3;
     font-size: 12px;
+}
+
+/* ── Range primer (the always-visible matrix legend on the menu) ── */
+body.world-preflop-charts .preflop-primer {
+    margin: 0 0 14px;
+    padding: 18px;
+}
+
+body.world-preflop-charts .preflop-primer-heading h2 {
+    margin: 6px 0 4px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #eef4f8;
+}
+
+body.world-preflop-charts .preflop-primer-heading p {
+    margin: 0 0 14px;
+    color: #9eacc0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+body.world-preflop-charts .preflop-primer-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+body.world-preflop-charts .preflop-primer-matrix {
+    min-width: 0;
+}
+
+body.world-preflop-charts .preflop-primer-regions,
+body.world-preflop-charts .preflop-primer-swatches,
+body.world-preflop-charts .preflop-primer-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+body.world-preflop-charts .preflop-primer-regions span,
+body.world-preflop-charts .preflop-primer-swatches span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 28px;
+    padding: 4px 9px;
+    border: 1px solid rgba(110, 143, 169, 0.22);
+    background: rgba(3, 10, 17, 0.8);
+    color: #c2d0dc;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-primer-regions i,
+body.world-preflop-charts .preflop-primer-swatches i,
+body.world-preflop-charts .preflop-primer-grades i {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+    border: 1px solid var(--action-color, rgba(129, 167, 194, 0.4));
+    background: var(--action-fill, transparent);
+}
+
+body.world-preflop-charts .preflop-primer-regions [data-region='pair'] i,
+body.world-preflop-charts .preflop-lab-grid.is-static [data-region='pair'] {
+    --cell-fill: rgba(102, 217, 255, 0.42);
+    --cell-stroke: rgba(102, 217, 255, 0.85);
+    background: var(--cell-fill);
+    border-color: var(--cell-stroke);
+}
+
+body.world-preflop-charts .preflop-primer-regions [data-region='suited'] i,
+body.world-preflop-charts .preflop-lab-grid.is-static [data-region='suited'] {
+    --cell-fill: rgba(155, 108, 255, 0.32);
+    --cell-stroke: rgba(155, 108, 255, 0.7);
+    background: var(--cell-fill);
+    border-color: var(--cell-stroke);
+}
+
+body.world-preflop-charts .preflop-primer-regions [data-region='offsuit'] i,
+body.world-preflop-charts .preflop-lab-grid.is-static [data-region='offsuit'] {
+    --cell-fill: rgba(100, 116, 139, 0.32);
+    --cell-stroke: rgba(129, 167, 194, 0.4);
+    background: var(--cell-fill);
+    border-color: var(--cell-stroke);
+}
+
+body.world-preflop-charts .preflop-primer-keys {
+    display: grid;
+    gap: 12px;
+}
+
+body.world-preflop-charts .preflop-primer-legend,
+body.world-preflop-charts .preflop-primer-score {
+    padding: 12px;
+    border: 1px solid rgba(103, 138, 166, 0.22);
+    background: rgba(1, 7, 13, 0.55);
+}
+
+body.world-preflop-charts .preflop-primer-key-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-orbitron), Orbitron, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--pc-cyan);
+}
+
+body.world-preflop-charts .preflop-primer-score p {
+    margin: 8px 0 0;
+    color: #9eacc0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+body.world-preflop-charts .preflop-primer-grades span {
+    flex: 1 1 140px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    border-left: 2px solid var(--result-color);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+body.world-preflop-charts .preflop-primer-grades i {
+    border-color: var(--result-color);
+    box-shadow: inset 0 0 0 2px var(--result-color);
+}
+
+body.world-preflop-charts .preflop-primer-grades strong {
+    color: #dcecf3;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-primer-grades small {
+    grid-column: 2;
+    color: #8fa3b3;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-primer-grades [data-feedback='correct'] { --result-color: #39e9a5; }
+body.world-preflop-charts .preflop-primer-grades [data-feedback='missed'] { --result-color: #3b82f6; }
+body.world-preflop-charts .preflop-primer-grades [data-feedback='extra'] { --result-color: #ef4444; }
+body.world-preflop-charts .preflop-primer-grades [data-feedback='wrong'] { --result-color: #f59e0b; }
+
+/* ── Recent sessions ── */
+body.world-preflop-charts .preflop-recent {
+    margin: 0 0 14px;
+    padding: 20px;
+    border-radius: 2px;
+}
+
+body.world-preflop-charts .preflop-recent-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+body.world-preflop-charts .preflop-recent-head span:first-child {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+body.world-preflop-charts .preflop-recent-head span:last-child {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+body.world-preflop-charts .preflop-recent-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 48px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+body.world-preflop-charts .preflop-recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+body.world-preflop-charts .preflop-recent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+body.world-preflop-charts .preflop-recent-grade {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+body.world-preflop-charts .preflop-recent-copy {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.world-preflop-charts .preflop-recent-score {
+    display: grid;
+    justify-items: end;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+body.world-preflop-charts .preflop-recent-score strong {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-recent-score span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+body.world-preflop-charts .preflop-recent-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.world-preflop-charts .preflop-recent-stats > div {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+}
+
+body.world-preflop-charts .preflop-recent-stats strong {
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+}
+
+body.world-preflop-charts .preflop-recent-stats span {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.45);
 }
 
 body.world-preflop-charts .preflop-vip-panel {
@@ -1478,7 +2271,7 @@ body.world-preflop-charts .preflop-vip-copy > div {
 
 body.world-preflop-charts .preflop-vip-copy p {
     margin: 5px 0 0;
-    color: #a89d86;
+    color: #b3a88f;
     font-size: 12px;
 }
 
@@ -1510,19 +2303,19 @@ body.world-preflop-charts .preflop-vip-notice {
     border-left: 2px solid #ff657a;
     background: rgba(255, 101, 122, 0.08);
     color: #f2afb9;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.4;
 }
 
 body.world-preflop-charts .preflop-vip-notice button {
-    min-height: 30px;
+    min-height: 44px;
     flex: 0 0 auto;
-    padding: 0 8px;
+    padding: 0 10px;
     border: 1px solid rgba(255, 101, 122, 0.3);
     border-radius: 2px;
     background: rgba(0, 0, 0, 0.2);
     color: #ffc1ca;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
     cursor: pointer;
 }
@@ -1530,6 +2323,43 @@ body.world-preflop-charts .preflop-vip-notice button {
 body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visible {
     outline: 2px solid var(--pc-cyan);
     outline-offset: 3px;
+}
+
+/* AI generation overlay (blocking, not dismissible; padded below the status
+   bar by .sp-fullscreen-overlay). */
+body.world-preflop-charts .preflop-ai-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.85);
+    text-align: center;
+}
+
+body.world-preflop-charts .preflop-ai-overlay-icon {
+    color: var(--pc-gold);
+    animation: preflopPulse 1.5s infinite;
+}
+
+body.world-preflop-charts .preflop-ai-overlay-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #FFD700;
+}
+
+body.world-preflop-charts .preflop-ai-overlay-sub {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes preflopPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
 }
 
 @keyframes preflop-diamond-float {
@@ -1553,21 +2383,6 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
 
     body.world-preflop-charts .preflop-primary-cta {
         grid-column: 1 / -1;
-    }
-
-    body.world-preflop-charts .preflop-mode-rail {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding: 1px 1px 10px;
-        scroll-snap-type: x mandatory;
-        scrollbar-width: thin;
-        scrollbar-color: var(--pc-cobalt) rgba(255, 255, 255, 0.06);
-    }
-
-    body.world-preflop-charts .preflop-mode-card {
-        flex: 0 0 118px;
-        scroll-snap-align: start;
     }
 
     body.world-preflop-charts .preflop-circuit-status {
@@ -1645,11 +2460,15 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
         grid-column: 2 / -1;
         margin-top: 0;
     }
+
+    body.world-preflop-charts .preflop-primer-body {
+        grid-template-columns: 1fr;
+    }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     body.world-preflop-charts .preflop-command-deck {
-        padding: 8px 8px 92px !important;
+        padding: 12px !important;
     }
 
     body.world-preflop-charts .preflop-menu {
@@ -1707,14 +2526,14 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
 
     body.world-preflop-charts .preflop-grade-chip {
         max-width: 62%;
-        font-size: 10px;
+        font-size: 12px;
     }
 
     body.world-preflop-charts .preflop-cost-chip {
-        min-height: 30px;
+        min-height: 32px;
         margin-top: 11px;
         padding: 5px 8px;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     body.world-preflop-charts .preflop-smart-practice {
@@ -1748,7 +2567,7 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
     body.world-preflop-charts .preflop-suggestion-row {
         align-items: flex-start;
         min-height: 48px;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     body.world-preflop-charts .preflop-suggestion-row > span:last-child {
@@ -1756,9 +2575,22 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
         text-align: right;
     }
 
+    /* Two mode cards per row: all seven always on screen, no rail. */
+    body.world-preflop-charts .preflop-mode-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
     body.world-preflop-charts .preflop-mode-card {
-        flex-basis: 105px;
         min-height: 108px;
+    }
+
+    body.world-preflop-charts .preflop-launch-card {
+        padding: 28px 16px 22px;
+    }
+
+    body.world-preflop-charts .preflop-board-panel {
+        padding: 16px 12px;
     }
 
     body.world-preflop-charts .preflop-level-toolbar {
@@ -1793,13 +2625,7 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
 
     body.world-preflop-charts .scenario-filter-heading p {
         max-width: 250px;
-        font-size: 11px;
-    }
-
-    body.world-preflop-charts .scenario-filter-close {
-        width: 44px;
-        height: 44px;
-        flex-basis: 44px;
+        font-size: 12px;
     }
 
     body.world-preflop-charts .scenario-filter-grid {
@@ -1818,7 +2644,6 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
 
     body.world-preflop-charts .scenario-filter-field select {
         min-height: 50px;
-        font-size: 13px;
     }
 
     body.world-preflop-charts .scenario-filter-readout {
@@ -1840,9 +2665,8 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
     }
 
     body.world-preflop-charts .scenario-filter-summary span {
-        min-height: 24px;
+        min-height: 26px;
         padding-inline: 6px;
-        font-size: 8px;
     }
 
     body.world-preflop-charts .scenario-filter-status {
@@ -1872,7 +2696,7 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
 
     body.world-preflop-charts .preflop-circuit-label strong {
         margin: 0;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     body.world-preflop-charts .preflop-circuit-stat {
@@ -1883,25 +2707,18 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
     }
 
     body.world-preflop-charts .preflop-circuit-stat > svg {
-        width: 13px;
-        height: 13px;
+        width: 14px;
+        height: 14px;
         margin-top: 1px;
     }
 
-    body.world-preflop-charts .preflop-circuit-stat small {
-        font-size: 7px;
-        line-height: 1.35;
-    }
-
     body.world-preflop-charts .preflop-circuit-stat strong {
-        font-size: 11px;
+        font-size: 12px;
         white-space: normal;
     }
 
     body.world-preflop-charts .preflop-circuit-stat strong em {
-        display: block;
         margin-top: 3px;
-        font-size: 8px;
     }
 
     body.world-preflop-charts .preflop-level-card {
@@ -1914,10 +2731,6 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
         font-size: 13px;
     }
 
-    body.world-preflop-charts .preflop-level-copy p {
-        font-size: 9px;
-    }
-
     body.world-preflop-charts .preflop-level-meta {
         grid-column: 2;
         display: flex;
@@ -1925,7 +2738,6 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
         gap: 7px 11px;
         padding-top: 8px;
         border-top: 1px solid rgba(125, 157, 184, 0.1);
-        font-size: 9px;
     }
 
     body.world-preflop-charts .preflop-level-progress {
@@ -1945,6 +2757,14 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
         font-size: 14px;
     }
 
+    body.world-preflop-charts .preflop-primer {
+        padding: 14px 12px;
+    }
+
+    body.world-preflop-charts .preflop-recent {
+        padding: 14px 12px;
+    }
+
     body.world-preflop-charts .preflop-vip-panel {
         grid-template-columns: 52px minmax(0, 1fr);
         gap: 11px;
@@ -1962,7 +2782,7 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
     }
 
     body.world-preflop-charts .preflop-vip-copy p {
-        font-size: 10px;
+        font-size: 12px;
         line-height: 1.4;
     }
 
@@ -1973,8 +2793,9 @@ body.world-preflop-charts .preflop-menu :is(button, [role='button']):focus-visib
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RANGE LAB — ACTIVE TRAINING CONSOLE
-   Mobile-first interaction surface; desktop expands into a wider command bay.
+   RANGE LAB - ACTIVE TRAINING CONSOLE
+   Mobile-first interaction surface; desktop (min-width: 769px, the
+   complement of the 768 phone rule) expands into a wider command bay.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-preflop-charts .preflop-combo-popup {
@@ -2004,9 +2825,9 @@ body.world-preflop-charts .preflop-combo-popup span {
     display: block;
     margin-top: 6px;
     font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     color: #f4c44e;
 }
 
@@ -2083,7 +2904,7 @@ body.world-preflop-charts .preflop-lab-action-header,
 body.world-preflop-charts .preflop-lab-matrix-heading {
     font-family: var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.13em;
+    letter-spacing: 0.1em;
 }
 
 body.world-preflop-charts .preflop-lab-kicker {
@@ -2091,12 +2912,12 @@ body.world-preflop-charts .preflop-lab-kicker {
     flex-wrap: wrap;
     gap: 7px;
     margin-bottom: 9px;
-    font-size: 8px;
+    font-size: 12px;
     color: #6bd2ff;
 }
 
 body.world-preflop-charts .preflop-lab-kicker span {
-    min-height: 23px;
+    min-height: 26px;
     display: inline-flex;
     align-items: center;
     padding: 0 8px;
@@ -2122,8 +2943,8 @@ body.world-preflop-charts .preflop-lab-briefing h2 {
 body.world-preflop-charts .preflop-lab-briefing-copy > p {
     max-width: 720px;
     margin: 0;
-    color: #91a5b5;
-    font-size: 12px;
+    color: #a0b3c3;
+    font-size: 13px;
     line-height: 1.55;
 }
 
@@ -2137,7 +2958,7 @@ body.world-preflop-charts .preflop-lab-tip {
     border-left: 2px solid #f4c44e;
     background: linear-gradient(90deg, rgba(244, 196, 78, 0.1), transparent);
     color: #dec982;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.45;
 }
 
@@ -2154,7 +2975,7 @@ body.world-preflop-charts .preflop-lab-readout {
     min-height: 84px;
     padding: 8px 5px;
     border-left: 1px solid rgba(114, 170, 204, 0.17);
-    color: #8198a9;
+    color: #93a9ba;
 }
 
 body.world-preflop-charts .preflop-lab-readout svg {
@@ -2169,10 +2990,10 @@ body.world-preflop-charts .preflop-lab-readout strong {
 
 body.world-preflop-charts .preflop-lab-readout span {
     font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-    font-size: 7px;
+    font-size: 12px;
     text-align: center;
     text-transform: uppercase;
-    letter-spacing: 0.13em;
+    letter-spacing: 0.06em;
 }
 
 body.world-preflop-charts .preflop-lab-readout.has-result strong {
@@ -2226,7 +3047,7 @@ body.world-preflop-charts .preflop-lab-matrix-heading {
     gap: 10px;
     margin-bottom: 11px;
     color: #b7cad9;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 body.world-preflop-charts .preflop-lab-action-header > div,
@@ -2238,20 +3059,20 @@ body.world-preflop-charts .preflop-lab-matrix-heading > div {
 
 body.world-preflop-charts .preflop-lab-action-header > span,
 body.world-preflop-charts .preflop-lab-matrix-heading > span {
-    color: #6f8799;
-    font-size: 7px;
+    color: #8299ab;
+    font-size: 12px;
     text-align: right;
 }
 
 body.world-preflop-charts .preflop-lab-section-index {
     display: inline-grid;
-    width: 28px;
-    height: 25px;
+    width: 30px;
+    height: 26px;
     place-items: center;
     border: 1px solid rgba(107, 210, 255, 0.34);
     background: rgba(25, 111, 158, 0.18);
     color: #6bd2ff;
-    font-size: 8px;
+    font-size: 12px;
 }
 
 body.world-preflop-charts .preflop-lab-actions {
@@ -2264,27 +3085,34 @@ body.world-preflop-charts .preflop-lab-actions button {
     min-width: 0;
     min-height: 50px;
     display: grid;
-    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-columns: 22px minmax(0, 1fr);
     align-items: center;
     gap: 6px;
     padding: 7px;
     border: 1px solid rgba(119, 157, 183, 0.22);
     border-radius: 2px;
     background: rgba(3, 9, 16, 0.72);
-    color: #7990a2;
+    color: #8ea3b4;
     font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-    font-size: 7px;
-    letter-spacing: 0.055em;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-align: left;
     cursor: pointer;
-    transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 }
 
-body.world-preflop-charts .preflop-lab-actions button.is-selected {
+body.world-preflop-charts .preflop-lab-actions button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.world-preflop-charts .preflop-lab-actions button.is-selected,
+body.world-preflop-charts .preflop-lab-actions button:active:not(:disabled) {
     border-color: var(--action-color);
     background: linear-gradient(135deg, var(--action-fill), rgba(6, 15, 24, 0.9));
     color: #fff;
     box-shadow: inset 3px 0 0 var(--action-color), 0 0 16px color-mix(in srgb, var(--action-color) 22%, transparent);
-    transform: translateY(-1px);
 }
 
 body.world-preflop-charts .preflop-lab-actions button:disabled {
@@ -2295,15 +3123,15 @@ body.world-preflop-charts .preflop-lab-actions button:disabled {
 body.world-preflop-charts .preflop-lab-actions kbd,
 body.world-preflop-charts .preflop-lab-submit kbd {
     display: inline-grid;
-    min-width: 20px;
-    height: 20px;
+    min-width: 22px;
+    height: 22px;
     place-items: center;
     padding: 0 4px;
     border: 1px solid rgba(206, 226, 239, 0.22);
     border-bottom-color: rgba(206, 226, 239, 0.42);
     background: rgba(0, 0, 0, 0.28);
     color: #9eb1c0;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
 }
 
 body.world-preflop-charts .preflop-lab-shape-tools {
@@ -2318,33 +3146,36 @@ body.world-preflop-charts .preflop-lab-shape-tools {
 
 body.world-preflop-charts .preflop-lab-shape-tools > span {
     margin-right: auto;
-    color: #71899a;
-    font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    color: #8299ab;
+    font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
 }
 
 body.world-preflop-charts .preflop-lab-shape-tools button {
-    min-height: 32px;
-    padding: 0 11px;
+    min-height: 44px;
+    padding: 0 12px;
     border: 1px solid rgba(107, 210, 255, 0.22);
     border-radius: 2px;
     background: rgba(5, 16, 26, 0.92);
     color: #a9becc;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
     cursor: pointer;
 }
 
-body.world-preflop-charts .preflop-lab-shape-tools button:hover:not(:disabled) {
+body.world-preflop-charts .preflop-lab-shape-tools button:hover:not(:disabled),
+body.world-preflop-charts .preflop-lab-shape-tools button:active:not(:disabled),
+body.world-preflop-charts .preflop-lab-shape-tools button:focus-visible {
     border-color: #6bd2ff;
     color: #e8f8ff;
 }
 
+/* Sticky command strip under the real header height (never a 44px guess). */
 body.world-preflop-charts .preflop-lab-command-strip {
     position: sticky;
     z-index: 20;
-    top: calc(44px + env(safe-area-inset-top, 0px));
+    top: var(--sp-header-height, 56px);
     min-width: 0;
     min-height: 58px;
     display: grid;
@@ -2369,6 +3200,12 @@ body.world-preflop-charts .preflop-lab-edit-tools {
     background: rgba(255, 255, 255, 0.025);
 }
 
+/* SANCTIONED display:none pair (standard rule 4, "a desktop-only duplicate of
+   something the phone shows another way"): on phones the marked / active
+   counters live in the active-tool block (.preflop-lab-active-counts) and
+   the six quick action buttons repeat the action row that has scrolled off
+   under the sticky strip; on desktop the full action row is still on screen
+   so the quick buttons are hidden and the counters take their own block. */
 body.world-preflop-charts .preflop-lab-command-counts {
     display: none;
 }
@@ -2381,9 +3218,10 @@ body.world-preflop-charts .preflop-lab-command-actions {
     padding: 4px;
 }
 
+/* Mobile-first touch contract: every action chip is a 44px target. */
 body.world-preflop-charts .preflop-lab-command-actions button {
     min-width: 0;
-    min-height: 34px;
+    min-height: 44px;
     display: grid;
     place-items: center;
     gap: 2px;
@@ -2391,13 +3229,13 @@ body.world-preflop-charts .preflop-lab-command-actions button {
     border: 1px solid rgba(118, 161, 190, 0.18);
     border-radius: 2px;
     background: rgba(3, 10, 17, 0.95);
-    color: #748b9b;
+    color: #8ea3b4;
     cursor: pointer;
 }
 
 body.world-preflop-charts .preflop-lab-command-actions button i {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border: 1px solid var(--action-color);
     background: color-mix(in srgb, var(--action-color) 58%, transparent);
     transform: rotate(45deg);
@@ -2406,12 +3244,14 @@ body.world-preflop-charts .preflop-lab-command-actions button i {
 body.world-preflop-charts .preflop-lab-command-actions button span {
     overflow: hidden;
     max-width: 100%;
-    font: 700 6px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: -0.01em;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-body.world-preflop-charts .preflop-lab-command-actions button[aria-pressed='true'] {
+body.world-preflop-charts .preflop-lab-command-actions button[aria-pressed='true'],
+body.world-preflop-charts .preflop-lab-command-actions button:active:not(:disabled) {
     border-color: var(--action-color);
     color: #f3fbff;
     box-shadow: inset 0 -2px 0 var(--action-color);
@@ -2427,10 +3267,10 @@ body.world-preflop-charts .preflop-lab-active-tool {
 
 body.world-preflop-charts .preflop-lab-active-tool > span,
 body.world-preflop-charts .preflop-lab-command-counts span {
-    color: #71899a;
-    font: 600 7px/1.2 var(--font-orbitron), 'Orbitron', sans-serif;
+    color: #8299ab;
+    font: 600 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.06em;
 }
 
 body.world-preflop-charts .preflop-lab-active-tool strong {
@@ -2440,18 +3280,25 @@ body.world-preflop-charts .preflop-lab-active-tool strong {
     gap: 6px;
     margin-top: 4px;
     color: #eff9ff;
-    font: 800 9px/1 var(--font-orbitron), 'Orbitron', sans-serif;
-    letter-spacing: 0.055em;
+    font: 800 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    letter-spacing: 0.04em;
     white-space: nowrap;
 }
 
 body.world-preflop-charts .preflop-lab-active-tool i {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     flex: 0 0 auto;
     background: var(--selected-color);
     box-shadow: 0 0 10px var(--selected-color);
     transform: rotate(45deg);
+}
+
+body.world-preflop-charts .preflop-lab-active-counts {
+    margin-top: 4px;
+    color: #9fb3c3;
+    font-size: 12px;
+    font-style: normal;
 }
 
 body.world-preflop-charts .preflop-lab-command-counts {
@@ -2475,8 +3322,8 @@ body.world-preflop-charts .preflop-lab-edit-tools {
 }
 
 body.world-preflop-charts .preflop-lab-edit-tools button {
-    min-width: 42px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     display: grid;
     place-items: center;
     gap: 2px;
@@ -2489,12 +3336,14 @@ body.world-preflop-charts .preflop-lab-edit-tools button {
 }
 
 body.world-preflop-charts .preflop-lab-edit-tools button span {
-    font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    font: 700 12px/1 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
 }
 
-body.world-preflop-charts .preflop-lab-edit-tools button:hover:not(:disabled) {
+body.world-preflop-charts .preflop-lab-edit-tools button:hover:not(:disabled),
+body.world-preflop-charts .preflop-lab-edit-tools button:active:not(:disabled),
+body.world-preflop-charts .preflop-lab-edit-tools button:focus-visible {
     border-color: #6bd2ff;
     color: #e8f8ff;
 }
@@ -2504,31 +3353,97 @@ body.world-preflop-charts .preflop-lab-edit-tools button:disabled {
     cursor: default;
 }
 
-body.world-preflop-charts .preflop-lab-grid-scroll {
+/* Readout bar above the grid: last hand touched, its action, the solver's
+   action once graded. 44px tall, 14px text, always visible. */
+body.world-preflop-charts .preflop-lab-touch-readout {
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+    padding: 6px 12px;
+    border: 1px solid rgba(107, 210, 255, 0.24);
+    background: rgba(2, 9, 16, 0.85);
+    color: #d9e9f5;
+    font-size: 14px;
+}
+
+body.world-preflop-charts .preflop-lab-touch-readout strong {
+    font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #f5fbff;
+}
+
+body.world-preflop-charts .preflop-lab-touch-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 2px 8px;
+    border: 1px solid var(--action-color);
+    color: #e8f3fb;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-lab-touch-action i {
+    width: 10px;
+    height: 10px;
+    background: var(--action-color);
+    transform: rotate(45deg);
+}
+
+body.world-preflop-charts .preflop-lab-touch-action.is-solver {
+    border-style: dashed;
+}
+
+body.world-preflop-charts .preflop-lab-touch-hint {
+    color: #9fb3c3;
+    font-size: 14px;
+}
+
+/* ── The 13x13 matrix (PreflopRangeMatrix / PreflopStaticGrid) ──
+   width: 100%, aspect-ratio cells, NO min-width, NO overflow-x: the grid
+   always fits the column. Painting is pointer-driven on the grid element,
+   so `touch-action: none` there keeps a drag from becoming a page scroll. */
+body.world-preflop-charts .preflop-lab-grid-frame {
     width: 100%;
-    overflow-x: auto;
-    padding: 7px 7px 9px;
+    min-width: 0;
+    padding: 7px;
+    overflow: visible;
     border: 1px solid rgba(103, 154, 185, 0.17);
     background:
         linear-gradient(rgba(76, 151, 194, 0.025) 1px, transparent 1px),
         linear-gradient(90deg, rgba(76, 151, 194, 0.025) 1px, transparent 1px),
         rgba(0, 4, 9, 0.66);
     background-size: 20px 20px;
-    scrollbar-color: #22698e #07111b;
-    scrollbar-width: thin;
-    overscroll-behavior-x: contain;
-}
-
-body.world-preflop-charts .preflop-lab-grid-scroll:focus-visible {
-    outline: 2px solid #f4c44e;
-    outline-offset: 2px;
 }
 
 body.world-preflop-charts .preflop-lab-grid {
     display: grid;
-    grid-template-columns: 30px repeat(13, minmax(44px, 1fr));
+    grid-template-columns: minmax(20px, 0.8fr) repeat(13, minmax(0, 1fr));
     gap: 2px;
-    min-width: 628px;
+    width: 100%;
+    min-width: 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body.world-preflop-charts .preflop-lab-grid[role='grid'] {
+    touch-action: none;
+    cursor: crosshair;
+    outline: none;
+}
+
+body.world-preflop-charts .preflop-lab-grid[role='grid'][aria-disabled='true'] {
+    cursor: default;
+}
+
+body.world-preflop-charts .preflop-lab-grid[role='grid']:focus-visible {
+    outline: 2px solid #f4c44e;
+    outline-offset: 2px;
 }
 
 body.world-preflop-charts .preflop-lab-grid-row {
@@ -2542,71 +3457,69 @@ body.world-preflop-charts .preflop-lab-axis-corner {
     place-items: center;
     border: 1px solid rgba(107, 210, 255, 0.15);
     background: rgba(3, 13, 22, 0.98);
-    color: #6f9db8;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
-}
-
-body.world-preflop-charts .preflop-lab-axis-corner {
-    position: sticky;
-    z-index: 4;
-    left: 0;
-    font-size: 5px;
-    letter-spacing: 0.04em;
-}
-
-body.world-preflop-charts .preflop-lab-axis.is-row {
-    position: sticky;
-    z-index: 3;
-    left: 0;
+    color: #8fb9d3;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
 }
 
 body.world-preflop-charts .preflop-lab-axis.is-column {
     min-height: 26px;
 }
 
-body.world-preflop-charts .preflop-lab-grid button {
+body.world-preflop-charts .preflop-lab-grid [role='gridcell'],
+body.world-preflop-charts .preflop-lab-static-cell {
     aspect-ratio: 1;
     min-width: 0;
     display: grid;
     place-items: center;
     padding: 0;
-    border: 1px solid var(--cell-stroke);
+    overflow: hidden;
+    border: 1px solid var(--cell-stroke, rgba(129, 167, 194, 0.18));
     border-radius: 2px;
-    background: var(--cell-fill);
+    background: var(--cell-fill, rgba(20, 29, 43, 0.82));
     color: #dce8f0;
-    font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-    font-size: 10px;
+    transition: border-color 100ms ease, filter 100ms ease;
+}
+
+body.world-preflop-charts .preflop-lab-cell-label {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px;
     font-weight: 700;
-    cursor: pointer;
-    user-select: none;
-    touch-action: manipulation;
-    transition: border-color 100ms ease, filter 100ms ease, transform 100ms ease;
+    letter-spacing: -0.02em;
+    line-height: 1;
 }
 
-body.world-preflop-charts .preflop-lab-grid button:hover:not(:disabled) {
-    filter: brightness(1.23);
-    transform: scale(1.04);
+body.world-preflop-charts .preflop-lab-grid [role='gridcell'][data-focused='true'] {
+    filter: brightness(1.18);
 }
 
-body.world-preflop-charts .preflop-lab-grid button:disabled {
-    cursor: default;
-    opacity: 1;
+body.world-preflop-charts .preflop-lab-grid[role='grid']:focus-visible [role='gridcell'][data-focused='true'] {
+    box-shadow: inset 0 0 0 2px #f4c44e;
 }
 
-body.world-preflop-charts .preflop-lab-grid button[data-feedback='correct'] {
+body.world-preflop-charts .preflop-lab-grid [role='gridcell'][data-feedback='correct'] {
     box-shadow: inset 0 0 0 2px #39e9a5;
 }
 
-body.world-preflop-charts .preflop-lab-grid button[data-feedback='missed'] {
+body.world-preflop-charts .preflop-lab-grid [role='gridcell'][data-feedback='missed'] {
     box-shadow: inset 0 0 0 2px #3b82f6;
 }
 
-body.world-preflop-charts .preflop-lab-grid button[data-feedback='extra'] {
+body.world-preflop-charts .preflop-lab-grid [role='gridcell'][data-feedback='extra'] {
     box-shadow: inset 0 0 0 2px #ef4444;
 }
 
-body.world-preflop-charts .preflop-lab-grid button[data-feedback='wrong'] {
+body.world-preflop-charts .preflop-lab-grid [role='gridcell'][data-feedback='wrong'] {
     box-shadow: inset 0 0 0 2px #f59e0b;
+}
+
+body.world-preflop-charts .preflop-lab-static-cell[data-mark='diff'] {
+    border: 2px solid #FFD700;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+body.world-preflop-charts .preflop-lab-grid-frame.is-review {
+    max-width: 560px;
+    margin: 0 auto;
 }
 
 body.world-preflop-charts .preflop-lab-submit-panel {
@@ -2623,10 +3536,10 @@ body.world-preflop-charts .preflop-lab-result-actions button {
     border: 1px solid rgba(112, 184, 224, 0.32);
     border-radius: 2px;
     font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.085em;
+    letter-spacing: 0.06em;
     cursor: pointer;
 }
 
@@ -2635,6 +3548,10 @@ body.world-preflop-charts .preflop-lab-submit {
     background: linear-gradient(135deg, #e9f8ff, #90d9f8);
     color: #04101a;
     box-shadow: 0 0 28px rgba(104, 203, 246, 0.16);
+}
+
+body.world-preflop-charts .preflop-lab-submit:active:not(:disabled) {
+    filter: brightness(0.95);
 }
 
 body.world-preflop-charts .preflop-lab-submit:disabled {
@@ -2651,6 +3568,12 @@ body.world-preflop-charts .preflop-lab-result-actions {
 body.world-preflop-charts .preflop-lab-result-actions button {
     background: rgba(6, 18, 29, 0.92);
     color: #aebfcb;
+}
+
+body.world-preflop-charts .preflop-lab-result-actions button:active,
+body.world-preflop-charts .preflop-lab-result-actions button:focus-visible {
+    border-color: #6bd2ff;
+    color: #e8f8ff;
 }
 
 body.world-preflop-charts .preflop-lab-result-actions button.is-primary {
@@ -2678,8 +3601,8 @@ body.world-preflop-charts .preflop-lab-feedback-grid > div {
     padding: 9px 11px;
     border-left: 2px solid var(--result-color);
     background: rgba(255, 255, 255, 0.025);
-    color: #8da3b3;
-    font-size: 10px;
+    color: #9db1c1;
+    font-size: 12px;
 }
 
 body.world-preflop-charts .preflop-lab-feedback-grid [data-result='correct'] { --result-color: #39e9a5; }
@@ -2703,7 +3626,111 @@ body.world-preflop-charts .preflop-lab-reward {
     border: 1px solid rgba(57, 233, 165, 0.25);
     background: linear-gradient(90deg, rgba(57, 233, 165, 0.09), rgba(107, 210, 255, 0.06));
     color: #8ff1ca;
-    font-size: 11px;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-lab-jarvis-button,
+body.world-preflop-charts .preflop-lab-coach-button {
+    width: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+body.world-preflop-charts .preflop-lab-jarvis-button {
+    margin-top: 16px;
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+}
+
+body.world-preflop-charts .preflop-lab-coach-button {
+    margin-top: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3));
+    font-size: 13px;
+    font-weight: 500;
+}
+
+body.world-preflop-charts .preflop-lab-jarvis-button:active,
+body.world-preflop-charts .preflop-lab-coach-button:active {
+    filter: brightness(1.15);
+}
+
+body.world-preflop-charts .preflop-lab-coach {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+}
+
+body.world-preflop-charts .preflop-lab-coach-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #10B981;
+}
+
+body.world-preflop-charts .preflop-lab-coach-head span:first-child {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts .preflop-lab-coach-head span:last-child {
+    font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+    font-size: 14px;
+}
+
+body.world-preflop-charts .preflop-lab-coach-loading {
+    padding: 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+body.world-preflop-charts .preflop-lab-coach-summary {
+    margin: 0 0 12px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+body.world-preflop-charts .preflop-lab-coach-block {
+    margin-bottom: 12px;
+}
+
+body.world-preflop-charts .preflop-lab-coach-label {
+    margin-bottom: 6px;
+    color: #10B981;
+    font-size: 12px;
+}
+
+body.world-preflop-charts .preflop-lab-coach-item {
+    margin-bottom: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 13px;
+}
+
+body.world-preflop-charts .preflop-lab-coach-item.is-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-visible {
@@ -2711,7 +3738,32 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     outline-offset: 2px;
 }
 
-@media (min-width: 768px) {
+/* Phone: the header column and the cells share the width; only the pairs on
+   the diagonal keep a label (sanctioned duplicate: the two rank headers say
+   which hand every other cell is, and every cell's aria-label carries it). */
+@media (max-width: 768px) {
+    body.world-preflop-charts .preflop-lab-matrix-panel {
+        padding: 8px;
+    }
+
+    body.world-preflop-charts .preflop-lab-grid-frame {
+        padding: 4px;
+    }
+
+    body.world-preflop-charts .preflop-lab-grid {
+        gap: 1px;
+    }
+
+    body.world-preflop-charts .preflop-lab-grid [data-hand]:not([data-pair]) .preflop-lab-cell-label {
+        display: none;
+    }
+
+    body.world-preflop-charts .preflop-lab-grid.has-all-labels [data-hand] .preflop-lab-cell-label {
+        display: block;
+    }
+}
+
+@media (min-width: 769px) {
     body.world-preflop-charts .preflop-range-lab {
         gap: 13px;
         margin-top: 20px;
@@ -2754,15 +3806,16 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 
     body.world-preflop-charts .preflop-lab-command-counts {
         display: flex;
+        gap: 18px;
+        padding-inline: 20px;
     }
 
     body.world-preflop-charts .preflop-lab-command-actions {
         display: none;
     }
 
-    body.world-preflop-charts .preflop-lab-command-counts {
-        gap: 18px;
-        padding-inline: 20px;
+    body.world-preflop-charts .preflop-lab-active-counts {
+        display: none;
     }
 
     body.world-preflop-charts .preflop-lab-edit-tools button {
@@ -2778,22 +3831,19 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 
     body.world-preflop-charts .preflop-lab-actions button {
         min-height: 54px;
-        font-size: 8px;
     }
 
-    body.world-preflop-charts .preflop-lab-grid-scroll {
+    body.world-preflop-charts .preflop-lab-grid-frame {
         padding: 10px;
-        overflow-x: visible;
     }
 
     body.world-preflop-charts .preflop-lab-grid {
         grid-template-columns: 30px repeat(13, minmax(0, 1fr));
-        min-width: 0;
         gap: 3px;
     }
 
-    body.world-preflop-charts .preflop-lab-grid button {
-        font-size: clamp(9px, 1.05vw, 12px);
+    body.world-preflop-charts .preflop-lab-grid [role='gridcell'] {
+        min-height: 44px;
     }
 
     body.world-preflop-charts .preflop-lab-submit-panel {
@@ -2822,7 +3872,10 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 }
 
 @media (prefers-reduced-motion: reduce) {
-    body.world-preflop-charts .preflop-diamond-stage img {
+    body.world-preflop-charts .preflop-diamond-stage img,
+    body.world-preflop-charts .preflop-skel,
+    .preflop-subpage .preflop-skel,
+    body.world-preflop-charts .preflop-launch-card {
         animation: none;
     }
 
@@ -2846,8 +3899,10 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PREFLOP CHARTS — CANONICAL SUBPAGES
-   One shared mobile-first command language for stats, ranks, awards and guide.
+   PREFLOP CHARTS - CANONICAL SUBPAGES
+   One shared mobile-first command language for stats, ranks, awards and
+   guide. The shell (HubPageShell via PreflopSubpageShell) owns 100dvh, the
+   width clamp and the bottom clearance; this only paints the column.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .preflop-subpage {
@@ -2858,17 +3913,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     --ps-blue: #238fe8;
     --ps-gold: #f4c44e;
     --ps-text: #e7f2f8;
-    --ps-muted: #7f98a8;
-    min-height: 100vh;
-    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-    /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
-       which makes this a scroll container - and WebKit then resolves fixed
-       descendants against IT instead of the viewport. On this page that is the
-       favourite-venue toast (position:fixed; top:80px) scrolling away with the
-       content, and the two full-bleed `inset:0` backgrounds sizing to the whole
-       scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
-    overflow-x: hidden;
-    overflow-x: clip;
+    --ps-muted: #8fa6b5;
     background:
         radial-gradient(circle at 80% 5%, rgba(17, 118, 190, 0.14), transparent 30rem),
         linear-gradient(rgba(107, 210, 255, 0.018) 1px, transparent 1px),
@@ -2879,10 +3924,15 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+.preflop-subpage :is(a, button) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
 .preflop-subpage-main {
-    width: min(100%, 1240px);
+    width: 100%;
     margin: 0 auto;
-    padding: calc(86px + env(safe-area-inset-top, 0px)) 12px 36px;
+    padding: 12px 12px 36px;
 }
 
 .preflop-subpage-utility {
@@ -2892,9 +3942,9 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     justify-content: space-between;
     gap: 12px;
     border-bottom: 1px solid rgba(107, 210, 255, 0.13);
-    color: #577386;
-    font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif;
-    letter-spacing: 0.08em;
+    color: #6d8ba0;
+    font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif;
+    letter-spacing: 0.06em;
 }
 
 .preflop-subpage-back {
@@ -2906,19 +3956,16 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     text-decoration: none;
 }
 
+/* Section nav and tab rail: wrapping rows. Every item visible, nothing
+   scrolls, no hidden scrollbar. */
 .preflop-subpage-nav,
-.preflop-mode-rail {
+.preflop-tab-rail {
     display: flex;
+    flex-wrap: wrap;
     gap: 3px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
 }
 
 .preflop-subpage-nav {
-    position: sticky;
-    z-index: 30;
-    top: calc(44px + env(safe-area-inset-top, 0px));
     margin: 8px 0 10px;
     padding: 4px;
     border: 1px solid rgba(107, 210, 255, 0.25);
@@ -2926,11 +3973,15 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     backdrop-filter: blur(14px);
 }
 
-.preflop-subpage-nav::-webkit-scrollbar,
-.preflop-mode-rail::-webkit-scrollbar { display: none; }
+.preflop-subpage-nav.is-sticky {
+    position: sticky;
+    z-index: 30;
+    top: var(--sp-header-height, 56px);
+}
 
 .preflop-subpage-nav a,
-.preflop-mode-rail button {
+.preflop-tab-rail button {
+    flex: 1 1 auto;
     min-width: max-content;
     min-height: 44px;
     display: inline-flex;
@@ -2941,16 +3992,21 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     border: 1px solid transparent;
     border-radius: 1px;
     background: transparent;
-    color: #7791a3;
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
-    letter-spacing: 0.045em;
+    color: #8aa3b5;
+    font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
+    letter-spacing: 0.03em;
     text-decoration: none;
     text-transform: uppercase;
     cursor: pointer;
 }
 
+.preflop-subpage-nav a:active,
+.preflop-tab-rail button:active {
+    color: #ddf6ff;
+}
+
 .preflop-subpage-nav a[aria-current='page'],
-.preflop-mode-rail button[aria-selected='true'] {
+.preflop-tab-rail button[aria-selected='true'] {
     border-color: rgba(107, 210, 255, 0.46);
     background: linear-gradient(180deg, rgba(32, 136, 202, 0.22), rgba(8, 31, 48, 0.7));
     color: #ddf6ff;
@@ -2974,8 +4030,8 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-panel-heading span,
 .preflop-guide-shortcuts > div > span {
     color: var(--ps-cyan);
-    font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif;
-    letter-spacing: 0.16em;
+    font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif;
+    letter-spacing: 0.12em;
 }
 
 .preflop-subpage-hero h1 {
@@ -3022,14 +4078,14 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     transform: rotate(-45deg);
 }
 
-.preflop-mode-rail {
+.preflop-tab-rail {
     margin: 12px 0;
     padding: 5px;
     border: 1px solid rgba(107, 210, 255, 0.16);
     background: rgba(3, 10, 17, 0.92);
 }
 
-.preflop-mode-rail button {
+.preflop-tab-rail button {
     min-width: 44px;
     border-color: rgba(107, 210, 255, 0.1);
     background: rgba(255, 255, 255, 0.018);
@@ -3061,6 +4117,11 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     font: 600 19px/1.1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
+.preflop-panel-heading > span {
+    color: var(--ps-muted);
+    font-size: 12px;
+}
+
 .preflop-panel-heading button,
 .preflop-subpage-error button {
     min-width: 44px;
@@ -3073,7 +4134,14 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     border: 1px solid rgba(107, 210, 255, 0.25);
     background: rgba(5, 18, 29, 0.9);
     color: #9cc6db;
+    font-size: 13px;
     cursor: pointer;
+}
+
+.preflop-panel-heading button:active,
+.preflop-subpage-error button:active {
+    border-color: var(--ps-cyan);
+    color: #eefaff;
 }
 
 .preflop-subpage-loading,
@@ -3081,6 +4149,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-inline-empty {
     padding: 44px 18px;
     color: var(--ps-muted);
+    font-size: 14px;
     text-align: center;
 }
 
@@ -3118,11 +4187,11 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-user-rank span,
 .preflop-daily-signal div { display: grid; gap: 4px; }
 .preflop-user-rank small,
-.preflop-daily-signal small { color: #876f32; font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.1em; }
+.preflop-daily-signal small { color: #a58a44; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 .preflop-user-rank strong,
 .preflop-daily-signal strong { color: #f1e4b5; font-size: 14px; }
-.preflop-daily-signal span { color: #8da3b1; font-size: 11px; }
-.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(244, 196, 78, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-daily-signal span { color: #9bb0bd; font-size: 12px; }
+.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(244, 196, 78, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
 
 .preflop-podium {
     display: grid;
@@ -3143,20 +4212,23 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 
 .preflop-podium article[data-rank='1'] { border-color: rgba(244, 196, 78, 0.48); box-shadow: inset 3px 0 0 var(--ps-gold); }
 .preflop-podium article > svg { color: var(--ps-gold); }
-.preflop-podium article > span { color: #52758b; font: 800 10px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-podium article > span { color: #6d8ba0; font: 800 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-podium h2 { margin: 0; color: #dfeef5; font-size: 15px; }
 .preflop-podium strong { color: var(--ps-cyan); font: 800 18px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
-.preflop-podium small { grid-column: 3 / -1; color: #8097a6; }
+.preflop-podium small { grid-column: 3 / -1; color: #8fa6b5; font-size: 12px; }
 
-.preflop-ranking-scroll { overflow-x: auto; }
-.preflop-ranking-table { width: 100%; min-width: 720px; border-collapse: collapse; }
-.preflop-ranking-table th { padding: 11px 13px; color: #58788c; font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-align: left; letter-spacing: 0.07em; text-transform: uppercase; }
-.preflop-ranking-table td { padding: 13px; border-top: 1px solid rgba(107, 210, 255, 0.08); color: #9fb2be; font-size: 12px; }
-.preflop-ranking-table tr[data-current] { background: rgba(35, 143, 232, 0.1); box-shadow: inset 3px 0 0 var(--ps-cyan); }
-.preflop-ranking-table td strong { color: #d8edf7; }
-.preflop-ranking-table td small { color: var(--ps-cyan); font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
-.preflop-ranking-table td:nth-child(n+3) { text-align: right; }
-.preflop-ranking-table td:nth-child(6) { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+/* The ranking board is a ResponsiveTable (table above 768px, one card per
+   row at or below); these only colour its cells. */
+.preflop-ranking-board { padding: 4px 8px 8px; }
+.preflop-ranking-board .sp-rtable th { color: #7d9bae; }
+.preflop-ranking-board .sp-rtable td,
+.preflop-ranking-board .sp-rtable-value { color: #b7c8d2; }
+.preflop-ranking-board .sp-rtable tr[data-current] { background: rgba(35, 143, 232, 0.1); box-shadow: inset 3px 0 0 var(--ps-cyan); }
+.preflop-ranking-board .sp-rtable-card[data-current] { border-color: var(--ps-cyan); background: rgba(35, 143, 232, 0.08); }
+.preflop-ranking-board strong { color: #d8edf7; }
+.preflop-ranking-board .preflop-ranking-you { margin-left: 6px; color: var(--ps-cyan); font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-ranking-board .preflop-ranking-time { display: inline-flex; align-items: center; gap: 5px; }
+.preflop-ranking-board .preflop-ranking-perfect { color: #55d6a1; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 
 .preflop-stat-grid {
     display: grid;
@@ -3176,59 +4248,61 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 }
 
 .preflop-stat-grid svg { color: var(--ps-cyan); }
-.preflop-stat-grid span { color: #708b9c; font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-transform: uppercase; }
+.preflop-stat-grid span { color: #86a0b1; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; text-transform: uppercase; }
 .preflop-stat-grid strong { margin-top: 5px; color: #edfaff; font: 800 clamp(22px, 8vw, 35px)/1 var(--font-orbitron), 'Orbitron', sans-serif; }
-.preflop-stat-grid small { color: #536f80; }
+.preflop-stat-grid small { color: #7590a1; font-size: 12px; }
 
 .preflop-analytics-layout { display: grid; gap: 12px; }
 .preflop-level-telemetry { padding: 8px 13px 13px; }
-.preflop-level-telemetry > div { display: grid; grid-template-columns: 28px minmax(100px, 1fr) 52px 45px; align-items: center; gap: 8px; min-height: 39px; border-bottom: 1px solid rgba(107, 210, 255, 0.07); }
-.preflop-level-telemetry span { color: #6d8da1; font: 700 8px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-level-telemetry > div { display: grid; grid-template-columns: 34px minmax(80px, 1fr) 56px 52px; align-items: center; gap: 8px; min-height: 42px; border-bottom: 1px solid rgba(107, 210, 255, 0.07); }
+.preflop-level-telemetry span { color: #86a4b8; font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-level-telemetry > div > div { height: 5px; overflow: hidden; background: rgba(255, 255, 255, 0.055); }
 .preflop-level-telemetry i { display: block; width: var(--level-accuracy); height: 100%; background: linear-gradient(90deg, #1e6ea1, var(--ps-cyan)); }
-.preflop-level-telemetry strong { color: #cfe4ee; font-size: 11px; text-align: right; }
-.preflop-level-telemetry small { color: #4f6b7c; font-size: 9px; text-align: right; }
+.preflop-level-telemetry strong { color: #cfe4ee; font-size: 12px; text-align: right; }
+.preflop-level-telemetry small { color: #7590a1; font-size: 12px; text-align: right; }
 .preflop-level-telemetry [data-empty] { opacity: 0.45; }
 
 .preflop-mode-metrics { display: grid; gap: 1px; padding: 10px; }
 .preflop-mode-metrics > div { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; padding: 12px; background: rgba(255, 255, 255, 0.022); }
 .preflop-mode-metrics span { color: #acc0cc; font-size: 12px; text-transform: capitalize; }
 .preflop-mode-metrics strong { color: var(--ps-cyan); font: 800 14px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
-.preflop-mode-metrics small { grid-column: 1 / -1; color: #5f7b8d; }
+.preflop-mode-metrics small { grid-column: 1 / -1; color: #7590a1; font-size: 12px; }
 
 .preflop-session-list article { min-height: 61px; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 11px; padding: 10px 14px; border-top: 1px solid rgba(107, 210, 255, 0.08); }
 .preflop-session-list article > div { display: grid; gap: 4px; }
 .preflop-session-list article > div span { color: #c3d4dd; font-size: 12px; }
-.preflop-session-list small { color: #577285; }
+.preflop-session-list small { color: #7590a1; font-size: 12px; }
 .preflop-session-list strong { color: #dfb85a; font: 800 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-session-list strong[data-pass='true'] { color: #55d6a1; }
-.preflop-session-list article > span { color: #6f8796; font-size: 10px; }
+.preflop-session-list article > span { color: #8399a8; font-size: 12px; }
 
 .preflop-performance-signal .preflop-panel-heading > strong { color: #d48a6b; font: 800 13px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-performance-signal .preflop-panel-heading > strong[data-positive='true'] { color: #4ed5a1; }
 .preflop-signal-chart { padding: 2px 15px 14px; }
 .preflop-signal-chart svg { width: 100%; height: 150px; overflow: visible; border-bottom: 1px solid rgba(107, 210, 255, 0.12); background: repeating-linear-gradient(to bottom, transparent 0 36px, rgba(107, 210, 255, 0.06) 37px); }
-.preflop-signal-chart > div { display: flex; justify-content: space-between; padding-top: 7px; color: #4f6d80; font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.1em; }
+.preflop-signal-chart > div { display: flex; justify-content: space-between; padding-top: 7px; color: #6d8ba0; font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 .preflop-weak-signal > div:last-child { padding: 0 13px 13px; }
 .preflop-weak-signal article { position: relative; display: grid; grid-template-columns: 34px 1fr; gap: 9px; align-items: center; min-height: 62px; padding: 10px 0; border-top: 1px solid rgba(107, 210, 255, 0.07); overflow: hidden; }
-.preflop-weak-signal article > span { color: var(--ps-cyan); font: 800 11px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-weak-signal article > span { color: var(--ps-cyan); font: 800 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-weak-signal article > div { display: grid; gap: 4px; }
 .preflop-weak-signal article strong { color: #dcecf3; font-size: 13px; }
-.preflop-weak-signal article small { color: #5c7686; font-size: 9px; }
+.preflop-weak-signal article small { color: #7590a1; font-size: 12px; }
 .preflop-weak-signal article i { position: absolute; left: 0; bottom: 0; width: var(--weak-accuracy); height: 2px; background: linear-gradient(90deg, #2d6d94, #d29658); }
 
 .preflop-auth-gate { margin-top: 12px; border: 1px solid var(--ps-line); background: rgba(5, 16, 26, 0.94); }
 .preflop-auth-gate a,
-.preflop-subpage-primary-cta { min-height: 45px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; margin-top: 16px; padding: 0 18px; border: 1px solid var(--ps-cyan); background: rgba(24, 111, 164, 0.25); color: #e7f8ff; font: 700 9px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-subpage-primary-cta { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; margin-top: 16px; padding: 0 18px; border: 1px solid var(--ps-cyan); background: rgba(24, 111, 164, 0.25); color: #e7f8ff; font: 700 13px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-auth-gate a:active,
+.preflop-subpage-primary-cta:active { background: rgba(24, 111, 164, 0.45); }
 
 .preflop-award-progress { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 16px; }
 .preflop-award-progress > svg { color: var(--ps-gold); }
 .preflop-award-progress > div { display: grid; gap: 7px; }
-.preflop-award-progress small { color: #7a6b42; font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.1em; }
+.preflop-award-progress small { color: #a58a44; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 .preflop-award-progress strong { color: #e8dfc2; }
 .preflop-award-progress [role='progressbar'] { height: 7px; overflow: hidden; background: rgba(255,255,255,0.06); }
 .preflop-award-progress [role='progressbar'] i { display: block; width: var(--award-progress); height: 100%; background: linear-gradient(90deg, #a97b19, var(--ps-gold)); }
-.preflop-award-progress > span { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid rgba(244, 196, 78, 0.11); color: #766c50; font-size: 10px; }
+.preflop-award-progress > span { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid rgba(244, 196, 78, 0.11); color: #9b8f6f; font-size: 12px; }
 .preflop-award-progress > span strong { color: #c6b987; }
 
 .preflop-award-grid { display: grid; gap: 8px; }
@@ -3238,17 +4312,27 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-code span { color: var(--ps-gold); font: 800 18px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-award-code svg { color: #6e8797; }
 .preflop-award-grid article > svg { color: #6c8da1; }
-.preflop-award-grid article > small { color: #5c7789; font: 700 7px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-award-grid article > small { color: #7590a1; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-award-grid h2 { grid-column: 1 / -1; margin: 7px 0 0; color: #dbeaf1; font-size: 17px; }
-.preflop-award-grid p { grid-column: 1 / -1; margin: 0; color: #738b99; font-size: 12px; line-height: 1.5; }
-.preflop-award-grid time { grid-column: 1 / -1; color: #b89d57; font-size: 9px; }
+.preflop-award-grid p { grid-column: 1 / -1; margin: 0; color: #8098a6; font-size: 12px; line-height: 1.5; }
+.preflop-award-grid time { grid-column: 1 / -1; color: #b89d57; font-size: 12px; }
 
+/* Guide page: the eight tour steps as stacked articles (always displayed),
+   the feedback legend, the shortcut map, and the CTA to the interactive tour. */
 .preflop-guide-grid { display: grid; gap: 8px; margin-top: 12px; }
-.preflop-guide-step { min-height: 214px; display: grid; align-content: start; grid-template-columns: auto 1fr; gap: 10px 12px; padding: 16px; border: 1px solid rgba(107, 210, 255, 0.17); background: linear-gradient(150deg, rgba(9, 24, 38, 0.96), rgba(2, 8, 14, 0.98)); }
-.preflop-guide-step-index { grid-column: 1 / -1; color: #416a83; font: 800 22px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-guide-step { min-height: 160px; display: grid; align-content: start; grid-template-columns: auto 1fr; gap: 10px 12px; padding: 16px; border: 1px solid rgba(107, 210, 255, 0.17); background: linear-gradient(150deg, rgba(9, 24, 38, 0.96), rgba(2, 8, 14, 0.98)); }
+.preflop-guide-step-index { grid-column: 1 / -1; color: #5f8aa6; font: 800 22px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-guide-step svg { color: var(--ps-cyan); }
 .preflop-guide-step h2 { margin: 0; color: #deedf4; font-size: 17px; }
-.preflop-guide-step p { grid-column: 1 / -1; margin: 6px 0 0; color: #78909e; font-size: 12px; line-height: 1.6; }
+.preflop-guide-step p { grid-column: 1 / -1; margin: 6px 0 0; color: #8aa1af; font-size: 13px; line-height: 1.6; }
+.preflop-guide-tour { margin-top: 12px; }
+.preflop-guide-tour-list { display: grid; gap: 8px; padding: 12px; }
+.preflop-guide-tour-list article { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 14px; border: 1px solid rgba(107, 210, 255, 0.14); background: rgba(5, 15, 24, 0.92); }
+.preflop-guide-tour-list article > span { grid-row: 1 / span 2; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid rgba(107, 210, 255, 0.4); color: var(--ps-cyan); font: 800 14px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-guide-tour-list h3 { margin: 0; color: #deedf4; font-size: 16px; }
+.preflop-guide-tour-list p { margin: 0; color: #8aa1af; font-size: 13px; line-height: 1.6; }
+.preflop-guide-tour-cta { display: flex; justify-content: center; padding: 4px 12px 16px; }
+.preflop-guide-tour-cta .preflop-subpage-primary-cta { margin-top: 0; width: 100%; max-width: 420px; }
 
 .preflop-feedback-legend { display: grid; gap: 6px; padding: 12px; }
 .preflop-feedback-legend > div { display: flex; align-items: center; gap: 10px; min-height: 53px; padding: 9px 11px; border: 1px solid rgba(255,255,255,0.06); }
@@ -3257,14 +4341,14 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-feedback-legend [data-feedback='missed'] i { border-color: #3b82f6; }
 .preflop-feedback-legend [data-feedback='wrong'] i { border-color: #f59e0b; }
 .preflop-feedback-legend [data-feedback='extra'] i { border-color: #ef4444; }
-.preflop-feedback-legend span { display: grid; gap: 3px; color: #718b9c; font-size: 10px; }
-.preflop-feedback-legend strong { color: #cfe0e8; font-size: 12px; }
+.preflop-feedback-legend span { display: grid; gap: 3px; color: #8aa1af; font-size: 12px; }
+.preflop-feedback-legend strong { color: #cfe0e8; font-size: 13px; }
 
 .preflop-guide-shortcuts { display: flex; gap: 13px; padding: 15px; }
 .preflop-guide-shortcuts > svg { flex: 0 0 auto; color: var(--ps-gold); }
 .preflop-guide-shortcuts h2 { margin: 5px 0 7px; color: #e2edf2; font-size: 17px; }
-.preflop-guide-shortcuts p { margin: 0; color: #7d95a3; font-size: 11px; line-height: 1.8; }
-.preflop-guide-shortcuts kbd { padding: 2px 5px; border: 1px solid rgba(107, 210, 255, 0.24); background: rgba(0,0,0,0.25); color: #b8d4e2; }
+.preflop-guide-shortcuts p { margin: 0; color: #8aa1af; font-size: 12px; line-height: 1.9; }
+.preflop-guide-shortcuts kbd { padding: 2px 5px; border: 1px solid rgba(107, 210, 255, 0.24); background: rgba(0,0,0,0.25); color: #b8d4e2; font-size: 12px; }
 .preflop-subpage-cta-row { display: flex; justify-content: center; }
 
 .preflop-subpage :is(a, button):focus-visible { outline: 2px solid var(--ps-gold); outline-offset: 2px; }
@@ -3274,23 +4358,8 @@ body.world-preflop-charts .preflop-review-panel :is(button, [role='tabpanel']):f
     outline-offset: 2px;
 }
 
-/* Mobile-first touch contract for the main command surface and every Range Lab sub-function. */
-body.world-preflop-charts :is(
-    .preflop-quick-button,
-    .preflop-tool-button,
-    .scenario-filter-close,
-    .preflop-game-notice button,
-    .preflop-daily-card > button,
-    .preflop-lab-shape-tools button,
-    .preflop-lab-command-actions button,
-    .preflop-lab-edit-tools button,
-    .preflop-lab-result-actions button
-) {
-    min-height: 44px;
-}
-
-@media (min-width: 720px) {
-    .preflop-subpage-main { padding: calc(94px + env(safe-area-inset-top, 0px)) 24px 50px; }
+@media (min-width: 769px) {
+    .preflop-subpage-main { padding: 16px 24px 50px; }
     .preflop-subpage-hero { grid-template-columns: minmax(0, 1fr) 180px; padding: 34px 38px; }
     .preflop-subpage-signal { width: 158px; height: 158px; }
     .preflop-podium { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3304,10 +4373,11 @@ body.world-preflop-charts :is(
     .preflop-award-progress > span { grid-column: auto; display: grid; border-top: 0; border-left: 1px solid rgba(244, 196, 78, 0.11); padding: 0 0 0 16px; }
     .preflop-award-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .preflop-guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .preflop-guide-tour-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .preflop-feedback-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (min-width: 1080px) {
+@media (min-width: 901px) {
     .preflop-award-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .preflop-guide-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .preflop-feedback-legend { grid-template-columns: repeat(4, minmax(0, 1fr)); }

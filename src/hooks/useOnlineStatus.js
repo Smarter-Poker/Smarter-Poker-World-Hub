@@ -31,4 +31,21 @@ export function useOnlineStatus() {
   return online;
 }
 
+/**
+ * Imperative check for a submit handler that lives inside a modal and has no
+ * render-time flag to hand: reads navigator.onLine at the moment of the
+ * tap. Returns true when the mutation may proceed; otherwise shows the
+ * standard offline toast (Title Case, no em dash) and returns false. `toast`
+ * is the object from src/stores/toastStore (or anything with `.error`).
+ */
+export const OFFLINE_TOAST = 'You Are Offline. Try Again When Connected.';
+
+export function requireOnlineNow(toast) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (toast && typeof toast.error === 'function') toast.error(OFFLINE_TOAST);
+    return false;
+  }
+  return true;
+}
+
 export default useOnlineStatus;

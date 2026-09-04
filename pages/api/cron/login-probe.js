@@ -26,6 +26,35 @@
  *        PROBE_LOGIN_PASSWORD = <the password you set above>
  *   3. Do NOT delete this user.  It should persist indefinitely.
  *
+ * ⚠️  THE 2026-09-03 OUTAGE - THIS PROBE SIGNED A REAL PERSON OUT EVERY 15 MIN
+ * ────────────────────────────────────────────────────────────────────────
+ * On 2026-09-03 20:15 UTC PROBE_LOGIN_EMAIL / PROBE_LOGIN_PASSWORD were set
+ * in Vercel to Dan's OWN account instead of the dedicated probe user above.
+ * From the very next tick (20:45 UTC) this handler signed in as him and then
+ * called `anon.auth.signOut()` - whose DEFAULT scope is 'global', i.e.
+ * "revoke every session this user has, on every device". Ninety-six times a
+ * day. Supabase's audit log shows the pair (login, logout, user_agent "node")
+ * at :00/:15/:30/:45 for 22 hours straight.
+ *
+ * The visible symptom was nowhere near here: the Club Arena engine verifies
+ * every table socket with auth.getUser(), GoTrue answered
+ * "session_not_found", the engine returned HTTP 401 on the upgrade, and every
+ * table Dan opened sat on "Reconnecting To The Table" for as long as he
+ * looked at it. The lobby still worked because PostgREST only checks the JWT
+ * signature, not the session - so the app LOOKED signed in while the engine
+ * refused it. The access token has a 7-day life, so nothing on the client
+ * ever noticed either.
+ *
+ * Two rules, both pinned by
+ * __tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs:
+ *   1. A probe signs out with { scope: 'local' } - ONLY the session it made.
+ *      A bare signOut() in a synthetic monitor is a bug, whatever account it
+ *      is pointed at.
+ *   2. A probe refuses to run against anything but a dedicated probe account
+ *      (an address under @probe.smarter.poker, exactly as the SETUP block
+ *      above has always said). A misconfigured probe reports 'misconfigured'
+ *      and does nothing; it never borrows a person's identity.
+ *
  * What is tested
  * ──────────────
  *   • signInWithPassword returns a valid session (access_token + refresh_token)
@@ -63,6 +92,28 @@ function getAnon() {
 
 export const config = { maxDuration: 30 };
 
+/**
+ * The only accounts a synthetic probe may sign in as. The SETUP block at the
+ * top has named probe-login@probe.smarter.poker since 2026-05-18; this makes
+ * the convention a gate. Exported so the law test pins it.
+ */
+export const PROBE_ACCOUNT_DOMAIN = 'probe.smarter.poker';
+/**
+ * Dan, 2026-09-04, mid-incident: "DON'T USE MY ACCOUNT FOR THE CRON, USE THE
+ * OTHER 'GOD MODE ADMIN ACCOUNT'. IT HAS THE SAME PASSWORD. KEEP MY ACCOUNT
+ * CLEAN." The platform's service identity (profiles.role = 'god', display
+ * name "Smarter.Poker Official") is the one non-probe address a probe may
+ * sign in as. His personal account is not on this list and must never be.
+ */
+export const PROBE_ALLOWED_ACCOUNTS = Object.freeze(['daniel@smarter.poker']);
+export function isDedicatedProbeAccount(email) {
+    const normalized = String(email || '').trim().toLowerCase();
+    const at = normalized.lastIndexOf('@');
+    if (at <= 0) return false;
+    if (PROBE_ALLOWED_ACCOUNTS.includes(normalized)) return true;
+    return normalized.slice(at + 1) === PROBE_ACCOUNT_DOMAIN;
+}
+
 // ── Ops alert (mirrors auth-integrity-audit.js's Resend block) ────────────
 // A probe_heartbeats row alone is not an alert — nobody is watching the
 // dashboard at 3am. Failure of THIS probe emails OPS_ALERT_EMAIL directly.
@@ -97,7 +148,7 @@ async function handler(req, res) {
     const anon = getAnon();
     if (!admin || !anon) return res.status(500).json({ status: 'unconfigured', error: 'Missing Supabase env vars' });
 
-    const email = process.env.PROBE_LOGIN_EMAIL;
+    const email = (process.env.PROBE_LOGIN_EMAIL || '').trim();
     const password = process.env.PROBE_LOGIN_PASSWORD;
     if (!email || !password) {
         return res.status(500).json({
@@ -106,6 +157,28 @@ async function handler(req, res) {
                 'Create a permanent probe account in Supabase and add the creds to Vercel env vars. ' +
                 'See the file header comment for setup instructions.',
         });
+    }
+
+    // 2026-09-04: never run as a person. See the outage note in the header.
+    if (!isDedicatedProbeAccount(email)) {
+        const failure = {
+            status: 'misconfigured',
+            error: 'PROBE_LOGIN_EMAIL is not a probe account (an address under @probe.smarter.poker, or the platform service account in PROBE_ALLOWED_ACCOUNTS). ' +
+                'Refusing to sign in as it: a synthetic monitor must never borrow a real person\'s identity. ' +
+                'Point the env var at the service account or at probe-login@probe.smarter.poker (see the file header).',
+            probe_email_domain: email.split('@')[1] || null,
+        };
+        {
+            const { error: hbErr } = await admin.from('probe_heartbeats').insert({
+                probe_name: 'login-probe',
+                status: 'failed',
+                duration_ms: 0,
+                details: failure,
+            });
+            if (hbErr) console.warn('[login-probe] heartbeat insert failed:', hbErr.message);
+        }
+        console.error('[login-probe] ' + failure.error);
+        return res.status(500).json(failure);
     }
 
     const startedAt = Date.now();
@@ -192,8 +265,11 @@ async function handler(req, res) {
         steps.oauth_chain.ok = true;
         steps.oauth_chain.duration_ms = Date.now() - steps.oauth_chain.started_at;
 
-        // Sign out to avoid accumulating open sessions (best-effort)
-        await anon.auth.signOut().catch(() => null);
+        // Sign out to avoid accumulating open sessions (best-effort).
+        // scope: 'local' ends ONLY the session this run created. The default
+        // scope is 'global' and revokes every session the account has on
+        // every device - which is the 2026-09-03 outage in one line.
+        await anon.auth.signOut({ scope: 'local' }).catch(() => null);
 
         // Heartbeat OK. NOTE: supabase-js builders resolve with {error} —
         // they don't reject — so check the error field, not try/catch.
@@ -209,8 +285,8 @@ async function handler(req, res) {
 
         return res.status(200).json({ status: 'ok', duration_ms: Date.now() - startedAt, steps });
     } catch (err) {
-        // Sign out any partial session (best-effort)
-        await anon.auth.signOut().catch(() => null);
+        // Sign out any partial session (best-effort). Local scope, same reason.
+        await anon.auth.signOut({ scope: 'local' }).catch(() => null);
 
         const failure = {
             status: 'failed',

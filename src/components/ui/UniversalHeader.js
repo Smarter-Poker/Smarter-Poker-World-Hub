@@ -781,6 +781,31 @@ export default function UniversalHeader({
   // Guard against rapid double-click on back button
   const backInProgressRef = useRef(false);
 
+  // Mobile standard, sticky offsets: the artwork header is ~38px at 375px
+  // and ~56px on desktop, so any `position: sticky; top: 56px` sub-bar sits
+  // 18px too low on a phone. Publish the REAL rendered height as
+  // --sp-header-height on <html>; sub-bars use `top: var(--sp-header-height)`.
+  const headerObserverRef = useRef(null);
+  const publishHeaderHeight = useCallback((el) => {
+    if (typeof window === 'undefined') return;
+    if (headerObserverRef.current) {
+      headerObserverRef.current.disconnect();
+      headerObserverRef.current = null;
+    }
+    if (!el) return;
+    const root = document.documentElement;
+    const write = () => {
+      const h = Math.round(el.getBoundingClientRect().height);
+      if (h > 0) root.style.setProperty('--sp-header-height', `${h}px`);
+    };
+    write();
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(write);
+      ro.observe(el);
+      headerObserverRef.current = ro;
+    }
+  }, []);
+
   const handleBack = () => {
     if (typeof window === 'undefined') return;
     // Block re-entrant clicks while a back navigation is in flight
@@ -1445,7 +1470,7 @@ export default function UniversalHeader({
         />
       )}
 
-      <header className="approved-global-header" data-artwork="approved-global-header">
+      <header className="approved-global-header" data-artwork="approved-global-header" ref={publishHeaderHeight}>
         <img
           src="/images/global-header/global-header-desktop.png"
           alt=""

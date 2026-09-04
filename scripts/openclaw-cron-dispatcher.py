@@ -113,12 +113,24 @@ REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 # pages about jobs that worked. Give the long ones the time they take; the
 # flat 120s stays the default for everything else.
 JOB_TIMEOUTS = {
+    '/api/internal/login-bridge-probe': 90,   # relay: Commander's two-leg probe takes 10-30s, relay caps at 50s
     '/api/cron/trivia-theme-backfill': 300,
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
     **{f'/api/cron/horse-batch/{i}': 600 for i in range(10)},
     '/api/cron/horses-social-all':     600,
     '/api/cron/scrape-sports-clips':   300,
+    # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
+    # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
+    # ingestion stops wherever it was. The scraper walks 23 YouTube channels
+    # through yt-dlp (up to 60s each) and then enriches every new video, so a
+    # real run is minutes, not two. The reels bridge is fast but shares the
+    # discipline: never kill a writer at 120s.
+    '/api/cron/video-library-scraper':  1800,
+    '/api/cron/video-library-reels':     900,
+    '/api/cron/video-library-backfill': 1800,
+    '/api/cron/video-library-purge':    1800,
+    '/api/cron/video-library-views':    1800,
 }
 def job_timeout(path: str) -> int:
     return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
@@ -388,14 +400,20 @@ ALL_CRONS = [
     # Commander handshake was broken for days on 2026-09-03 and nothing paged.
     # This is the probe's PRIMARY schedule (hub CLAUDE.md 10.9: never the
     # Claude scheduler; the GitHub cron in the commander repo is best-effort
-    # and files the issue). The path is the hub rewrite to
-    # commander.smarter.poker/api/internal/login-bridge-probe, which verifies
-    # the same CRON_SECRET bearer, runs both legs (structural + signed-in with
-    # the project's PROBE_LOGIN_* credentials), records its run in
-    # cron_execution_log as /commander/internal/login-bridge-probe, and sends
-    # commander.probe.login_bridge_failed to Sentry on any failure. 503 means
-    # CRON_SECRET is not yet set on the commander Vercel project (Dan-only).
-    ('/api/commander/internal/login-bridge-probe', dict(minute=22)),      # hourly at :22 - off the quarter-hours
+    # and files the issue). The path is a HUB relay
+    # (pages/api/internal/login-bridge-probe.js): it checks the same
+    # CRON_SECRET bearer as every other job, then calls
+    # commander.smarter.poker/api/internal/login-bridge-probe with a ticket
+    # signed by SUPABASE_JWT_SECRET, which both Vercel projects hold by
+    # construction. The first version pointed straight at the commander
+    # rewrite and needed a CRON_SECRET COPY on the commander project; its
+    # first live run 401'd on a drifted copy. Commander runs both legs
+    # (structural + signed-in with its PROBE_LOGIN_* credentials), records the
+    # run in cron_execution_log as /commander/internal/login-bridge-probe, and
+    # sends commander.probe.login_bridge_failed to Sentry on any failure. The
+    # relay returns Commander's status verbatim; two non-200s in a row page
+    # (CRITICAL_JOBS).
+    ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
     # RakebackSettlerService.runUnionWeeklyRakeback() calls
@@ -825,9 +843,19 @@ SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
 }
 
+# 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
+# is the caption-only mode: it rewrites captions of reels that already exist
+# and returns before the bridge runs. Scheduled that way, no new library video
+# could ever reach social_reels - the last video_library reel was written
+# 2026-04-22 while the library gained 185 videos on 2026-08-30. The daily job
+# now runs the bridge itself, bounded to the newest 100 library videos by
+# published_at (the bridge stamps created_at = now(), so an unbounded run
+# after a gap would drop the whole backlog onto the feed in one burst; the
+# backlog is a deliberate manual run: `video_library_to_reels.py` with no
+# --limit). Caption sync is folded into the end of every bridge run.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
-    '/api/cron/video-library-reels':    ['--sync-captions'],
+    '/api/cron/video-library-reels':    ['--limit', '100'],   # bridge newest 100 → social_reels, then caption sync
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
@@ -1012,6 +1040,67 @@ def _workers_dispatch(path: str) -> bool:
     return bool(WORKERS_BASE_URL) and path in WORKERS_PREFERRED
 
 
+# ─── Critical jobs: page after N consecutive failures (2026-09-04) ──────────
+# A job on this list is one whose FAILURE is the incident, not a symptom of
+# one. The Club Commander login-bridge probe is the first: when it fails,
+# nobody can sign in to Commander, and until today that produced a ⚠️ line in
+# this journal, a GitHub issue, and a Sentry event that the exhausted org
+# quota drops on the floor. None of those reach a phone. The workers
+# healthcheck has paged on two consecutive failures since Phase 2A; this gives
+# the same treatment to any job named here, through the same _alert() path
+# (de-duplicated, cooldown, state persisted across restarts).
+#
+# Value = consecutive non-200 responses (timeouts and exceptions count) before
+# the page goes out. One recovery SMS closes the loop when the job is 200 again.
+# A 401 counts: for the commander probe that is CRON_SECRET drift between the
+# hub and the commander Vercel project, which is exactly a failure.
+CRITICAL_JOBS = {
+    '/api/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
+    # 2026-09-04: the video-library scraper exited 1 at 06:00 UTC on five
+    # consecutive days and every run was logged "executed successfully". A
+    # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
+    '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
+    '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+}
+CRITICAL_RUNBOOKS = {
+    '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
+    '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+}
+_critical_state = {}
+
+
+def _critical_record(path: str, ok: bool, detail: str = ''):
+    """Count consecutive failures for a CRITICAL_JOBS path; page and recover."""
+    threshold = CRITICAL_JOBS.get(path)
+    if not threshold:
+        return
+    st = _critical_state.get(path)
+    if st is None:
+        st = _alert_bind(f'critical:{path}', {'consec_fail': 0, 'alert_sent': False})
+        _critical_state[path] = st
+    if ok:
+        if st.get('alert_sent'):
+            body = (f'✅ RECOVERED {path} - 200 again after '
+                    f'{st.get("consec_fail", 0)} consecutive failure(s)')
+            if _alert(st, body, recovery=True):
+                st['alert_sent'] = False
+        st['consec_fail'] = 0
+    else:
+        st['consec_fail'] = int(st.get('consec_fail', 0)) + 1
+        n = st['consec_fail']
+        if n >= threshold:
+            body = (f'🚨 CRITICAL {path} failed {n}x in a row: {detail[:160]}. '
+                    f'Runbook: {CRITICAL_RUNBOOKS.get(path, "see dispatcher journal")}')
+            if st.get('alert_sent'):
+                log.error(f'[critical] {path} still failing ({n} consecutive); operator already paged')
+            else:
+                st['alert_sent'] = _alert(st, body)
+        else:
+            log.warning(f'[critical] {path} failure {n}/{threshold} - will page at {threshold}')
+    _alert_flush(st)
+
+
 def fire_cron(path: str):
     """Make an authenticated GET request to a Vercel cron endpoint (or workers when routed)."""
     if _workers_dispatch(path):
@@ -1040,12 +1129,16 @@ def fire_cron(path: str):
         elapsed = round(time.time() - t0, 1)
         if resp.status_code == 200:
             log.info(f'✅ {path} → {target_label} {resp.status_code} [{elapsed}s]')
+            _critical_record(path, True)
         else:
             log.warning(f'⚠️ {path} → {target_label} {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
+            _critical_record(path, False, f'HTTP {resp.status_code} {resp.text[:120]}')
     except requests.exceptions.Timeout:
         log.error(f'❌ {path} → {target_label} TIMEOUT after {job_timeout(path)}s')
+        _critical_record(path, False, f'TIMEOUT after {job_timeout(path)}s')
     except Exception as e:
         log.error(f'❌ {path} → {target_label} {type(e).__name__}: {e}')
+        _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
 def fire_script(path: str, extra_args: list):
@@ -1057,21 +1150,26 @@ def fire_script(path: str, extra_args: list):
     cmd = [sys.executable, SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)] + extra_args
     log.info(f'▶ Script job {path} → {" ".join(cmd)}')
     t0 = time.time()
+    timeout = job_timeout(path)
     try:
         result = subprocess.run(
             cmd,
             capture_output=False,  # let stdout/stderr flow to our log
-            timeout=REQUEST_TIMEOUT,
+            timeout=timeout,
         )
         elapsed = round(time.time() - t0, 1)
         if result.returncode == 0:
             log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+            _critical_record(path, True)
         else:
             log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            _critical_record(path, False, f'exit {result.returncode} after {elapsed}s')
     except subprocess.TimeoutExpired:
-        log.error(f'❌ {path} script TIMEOUT after {REQUEST_TIMEOUT}s')
+        log.error(f'❌ {path} script TIMEOUT after {timeout}s (killed)')
+        _critical_record(path, False, f'killed at {timeout}s')
     except Exception as e:
         log.error(f'❌ {path} script {type(e).__name__}: {e}')
+        _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
 def _send_sms(body: str):

@@ -11,15 +11,21 @@ const STATS = read('pages/hub/memory-games/stats.js');
 const ACHIEVEMENTS = read('pages/hub/memory-games/achievements.js');
 const TUTORIAL = read('pages/hub/memory-games/tutorial.js');
 const SHELL = read('src/components/memory-games/PreflopSubpageShell.jsx');
+const NAV = read('src/components/memory-games/PreflopSubpageNav.jsx');
 const MAIN = read('pages/hub/memory-games.js');
 const SESSION_SERVICE = read('src/services/GameSessionService.js');
 const CSS = read('src/styles/worlds/memory-games.css');
 
 test('all canonical subpages share the responsive command shell', () => {
   for (const page of [LEADERBOARD, STATS, ACHIEVEMENTS, TUTORIAL]) assert.match(page, /PreflopSubpageShell/);
-  for (const route of ['/hub/preflop-charts/stats', '/hub/preflop-charts/leaderboard', '/hub/preflop-charts/achievements', '/hub/preflop-charts/tutorial']) assert.match(SHELL, new RegExp(route.replaceAll('/', '\\/')));
+  // Mobile phase 2: the nav rows live in PreflopSubpageNav (a wrapping row,
+  // never a scroller), which the shell imports and re-exports.
+  assert.match(SHELL, /import PreflopSubpageNav, \{ PREFLOP_NAV_ITEMS \} from '\.\/PreflopSubpageNav'/);
+  for (const route of ['/hub/preflop-charts/stats', '/hub/preflop-charts/leaderboard', '/hub/preflop-charts/achievements', '/hub/preflop-charts/tutorial']) assert.match(NAV, new RegExp(route.replaceAll('/', '\\/')));
   assert.match(CSS, /\.preflop-subpage-nav[\s\S]*position:\s*sticky/);
-  assert.match(CSS, /@media \(min-width: 720px\)/);
+  // The sanctioned breakpoints are 900/768/600 (docs/mobile-standard); 720 is gone.
+  assert.match(CSS, /@media \(min-width: 769px\)/);
+  assert.doesNotMatch(CSS, /@media \(min-width: 720px\)/);
 });
 
 test('leaderboard uses a valid real-data query and never invents rankings', () => {
@@ -68,7 +74,8 @@ test('stats reads the completed boolean contract and normalizes mixed accuracy u
 test('achievements uses the shared client and tutorial describes range training', () => {
   assert.doesNotMatch(ACHIEVEMENTS, /createClient\(|@supabase\/supabase-js/);
   assert.match(ACHIEVEMENTS, /import \{ supabase \} from/);
-  assert.match(TUTORIAL, /Missing hands, extra hands/);
+  // Title Case is the page-copy rule (check-title-case.mjs); the sentence survives.
+  assert.match(TUTORIAL, /Missing Hands, Extra Hands/);
   assert.doesNotMatch(TUTORIAL, /Match Pairs of Cards/);
-  assert.match(TUTORIAL, /Ctrl\/⌘ Z/);
+  assert.match(TUTORIAL, /Ctrl\/(?:⌘|Cmd) Z/);
 });

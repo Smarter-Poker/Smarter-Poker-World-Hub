@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function testAdminReviews() {
   console.log('Logging in as test admin...');
   const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
-    email: 'daniel@bekavactrading.com',
+    email: process.env.TEST_USER_EMAIL,
     password: process.env.TEST_USER_PASSWORD
   });
 

@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   console.log("Navigating to login...");
   await page.goto('https://smarter.poker/auth/login');
   
-  await page.fill('input[type="email"]', 'daniel@bekavactrading.com');
+  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
   await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
   await page.click('button[type="submit"]');
 

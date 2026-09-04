@@ -26,6 +26,7 @@ import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
+import '../src/styles/tutorial.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
@@ -100,6 +101,7 @@ import UniversalHeader from '../src/components/ui/UniversalHeader';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import OfflineBar from '../src/components/ui/OfflineBar';
+import TutorialProvider from '../src/components/tutorial/TutorialProvider';
 import bottomNavRoutes from '../src/config/bottom-nav-routes.json';
 import {
   getFallbackFooter,
@@ -1040,6 +1042,13 @@ export default function App({ Component, pageProps }) {
                                   browser reports offline after hydration). */}
                               <HubErrorBoundary name="Offline Bar" fallback={<></>}>
                                 <OfflineBar />
+                              </HubErrorBoundary>
+                              {/* Page tutorials (Dan 2026-09-03): one provider for
+                                  every route; the prompt, the tour and the
+                                  hamburger "Page Tutorial" row all read from
+                                  src/tutorials/index.js. */}
+                              <HubErrorBoundary name="Page Tutorial" fallback={<></>}>
+                                <TutorialProvider />
                               </HubErrorBoundary>
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>
                                 <CelebrationManager />

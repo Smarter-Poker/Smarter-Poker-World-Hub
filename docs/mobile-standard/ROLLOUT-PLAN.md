@@ -54,6 +54,12 @@ phones (z >= 900), every step >= 44px controls, no auto-advance.
 `pages/hub/memory-games/tutorial.js` becomes a page that mounts the same
 component in "page mode".
 
+**Shipped 2026-09-04** (`docs/changelog/2026-09-04-mobile-phase2-preflop-charts.md`):
+mode grid, wrapping subpage nav, ResponsiveTable leaderboard, the matrix
+fits 375 as one drag-to-paint control, HubPageShell + the full upgrade set,
+eight-step tutorial registered for both routes with the menu primer
+carrying the in-game targets, budget row converted.
+
 ## Phase 3: Poker Near Me (LARGE, the worst offender)
 
 Files: `pages/hub/poker-near-me/[pnmTab].js` (4,556), `lobby.js` (3,964),
@@ -169,6 +175,27 @@ hydration guards; `paddingBottom:70` boilerplate.
 
 Work: standard shell; card picker grid `repeat(auto-fill, minmax(44px,1fr))`;
 results as stacked cards at <=768; verify at 375.
+
+## Every phase, in addition to its page work (added 2026-09-03)
+
+1. Build on the Phase 0 foundation: `HubPageShell`, `useLoadFailsafe` +
+   `useInitialLoadRef`, `useModalHistory` on every modal, `useHaptics`,
+   `ResponsiveTable`, `PullToRefresh`, `requireOnline`, sheets at 600px with
+   a 44px X below the status bar, 16px inputs, `--sp-header-height` for any
+   sticky bar, no font under 12px, lazy-load below-the-fold panels.
+2. Register the page tutorial (`src/tutorials/<page>.js` + registry row +
+   `LANDED` row in `__tests__/page-tutorials.test.mjs`), with spotlight
+   targets on the rebuilt DOM.
+3. Flip the route's row in `scripts/ci/mobile-budget.json` to
+   `converted: true` and lower its numbers to the measured baseline.
+4. Append the phase number to `CONVERTED` in
+   `__tests__/no-slide-to-see.law.test.mjs`, and import every new test file
+   in `__tests__/_test-guards-exist.test.mjs` (CHECK 8 fails on a guard
+   nothing runs).
+5. Verify at 375/390/1280 with Playwright (overflow, tutorial prompt, a
+   sheet's close position and size), run the mobile/overlay/tutorial/law
+   tests, `npx tsc --noEmit`, `npx next build`, then push and confirm
+   `/api/health` serves the squash SHA before starting the next phase.
 
 ## Cross-cutting, done once in Phase 1's PR
 

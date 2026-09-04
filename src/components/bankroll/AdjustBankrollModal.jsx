@@ -6,11 +6,13 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
 import { adjustBankroll } from '../../lib/bankroll/bankrollSelectors';
 import toast from '../../stores/toastStore';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 
 export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
     const [type, setType] = useState('deposit'); // 'deposit' | 'withdrawal'
@@ -18,17 +20,15 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
-    // open, so isOpen is constant; the unmount cleanup pops our entry if an
-    // X-close left it on top.
+    // open, so isOpen is constant; the hook pops our history entry on unmount
+    // (an X-close never leaves a dead "back" behind).
     useModalHistory(true, onClose);
-    useEffect(() => () => {
-        try {
-            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
-        } catch (_) { /* history unavailable */ }
-    }, []);
+    // Tap outside closes; a drag that merely ends outside does not.
+    const scrim = useScrimDismiss(onClose);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!requireOnlineNow(toast)) return;
         const value = parseFloat(amount);
         if (!value || value <= 0) {
             toast.error('Please Enter A Valid Amount');
@@ -58,7 +58,7 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={styles.overlay}
-            onClick={onClose}
+            {...scrim}
         >
             <motion.div
                 className="bankroll-modal"

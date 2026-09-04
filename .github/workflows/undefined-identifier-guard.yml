@@ -47,7 +47,19 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # node_modules cached and the install skipped on a hit (2026-09-04) -
+      # see the note on the TypeScript Check job in build-safety-gate.yml.
+      # Its own key: this tree is a full install on Node 22, not the
+      # --ignore-scripts Node 20 tree the typecheck restores.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-guard-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline --no-audit
         env:
           HUSKY: '0'

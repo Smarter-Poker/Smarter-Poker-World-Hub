@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   🔍 SCENARIO FILTER PANEL — Custom filtering for Memory Matrix scenarios
+   SCENARIO FILTER PANEL - Custom filtering for Memory Matrix scenarios
    Allows users to practice specific positions, stack depths, and formats
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -216,45 +216,7 @@ export default function ScenarioFilterPanel({
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILTER SCENARIOS UTILITY
+// Lives in ./scenarioFilters.js so the Preflop Charts menu can count matches
+// without loading this panel (and framer-motion). Re-exported for callers.
 // ═══════════════════════════════════════════════════════════════════════════
-export function filterScenarios(scenarios, filters = {}) {
-    if (!filters || (!filters.position && !filters.stackDepth && !filters.format)) {
-        return scenarios;
-    }
-
-    return scenarios.filter(scenario => {
-        // Position filter
-        if (filters.position && scenario.position !== filters.position) {
-            return false;
-        }
-
-        // Stack depth filter
-        if (filters.stackDepth && scenario.stackDepth !== filters.stackDepth) {
-            return false;
-        }
-
-        // Format filter (check title for keywords)
-        if (filters.format) {
-            const titleLower = (scenario.title || '').toLowerCase();
-            const idLower = (scenario.id || '').toLowerCase();
-
-            switch (filters.format) {
-                case '6-max':
-                    if (!titleLower.includes('6-max') && !titleLower.includes('6max')) return false;
-                    break;
-                case '9-max':
-                    // Default format is 9-max if not specified
-                    if (titleLower.includes('6-max') || titleLower.includes('6max') || titleLower.includes('mtt')) return false;
-                    break;
-                case 'mtt':
-                    if (!titleLower.includes('mtt') && !titleLower.includes('tournament')) return false;
-                    break;
-                case 'ante':
-                    if (!titleLower.includes('ante')) return false;
-                    break;
-            }
-        }
-
-        return true;
-    });
-}
+export { filterScenarios } from './scenarioFilters';

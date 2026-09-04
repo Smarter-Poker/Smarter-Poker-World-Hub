@@ -18,7 +18,7 @@ import { createClient } from '@supabase/supabase-js';
 dotenv.config({ path: '.env.local', quiet: true });
 
 const baseUrl = String(process.env.VERIFY_BASE_URL || 'https://smarter.poker').replace(/\/$/, '');
-const email = process.env.TEST_USER_EMAIL || 'daniel@bekavactrading.com';
+const email = process.env.TEST_USER_EMAIL; // 2026-09-04: no personal-account default; checked below
 const password = process.env.TEST_USER_PASSWORD;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -27,7 +27,7 @@ const skipAudit = process.argv.includes('--skip-audit');
 const MAX_AUDIT_BATCHES = 12;
 const MAX_TRANSIENT_RETRIES = 3;
 
-if (!password || !supabaseUrl || !anonKey) {
+if (!email || !password || !supabaseUrl || !anonKey) {
   throw new Error('Missing TEST_USER_PASSWORD or public Supabase environment variables.');
 }
 

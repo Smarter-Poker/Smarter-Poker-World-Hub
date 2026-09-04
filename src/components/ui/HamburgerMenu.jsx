@@ -23,12 +23,13 @@ import GeevesMenuWidget from './GeevesMenuWidget';
 import ReportBugWidget from './ReportBugWidget';
 import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { useAvatar } from '../../contexts/AvatarContext';
-import { getAuthUser } from '../../lib/authUtils';
+import { getAuthUser, clearAuth } from '../../lib/authUtils';
 import { T } from '../sandbox/paTokens';
 import { homeGamePageUrl } from '../../lib/home-games/urls';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
+import { getTutorialForPath, requestPageTutorial } from '../../tutorials';
 import {
   sanitizeFallbackMenuConfig,
   sanitizeProvidedMenuConfig,
@@ -250,18 +251,53 @@ function HamburgerMenuContent({
     };
   }, []);
 
+  /**
+   * SOVEREIGN LOGOUT — the one the user asked for, not a soft cache flush.
+   *
+   * 2026-09-04: "click the hamburger, click Log Out, it silently fails."
+   * Two independent reasons, both fixed here:
+   *
+   * 1. THE SESSION BACKUP WAS NEVER CLEARED. This handler removed
+   *    `smarter-poker-auth` but not `smarter-poker-auth-backup` (authUtils
+   *    AUTH_BACKUP_KEY, 30-minute TTL). useRequireAuth refreshes that backup on
+   *    every successful auth, so it is always fresh; ensureAuthReady then calls
+   *    restoreSessionBackup() whenever the primary key is missing and copies
+   *    the session straight back. The redirect to `/` fired, the backup was
+   *    restored on the way in, and the user landed signed in — indistinguishable
+   *    from the click doing nothing. clearAuth(true) is the only code path that
+   *    drops the backup, the sb-*-auth-token keys and the sp_auth_confirmed
+   *    fast-path flag together. It already existed; nothing live called it.
+   *
+   * 2. signOut REPORTS FAILURE BY RETURN VALUE, NOT BY THROWING. GoTrue
+   *    resolves with { error } for anything that is not 401/403/404 — offline,
+   *    5xx, a 429 — and on that path it returns before _removeSession(), so the
+   *    JWT survives. A bare try/catch never fires. We no longer depend on
+   *    signOut having cleared anything: the local clear below is what makes the
+   *    sign-out real, and it runs on every path.
+   */
+  const signingOutRef = useRef(false);
   const handleLogout = useCallback(async () => {
+    // A second tap while the first is in flight fired a second network call and
+    // a second redirect. Latch it.
+    if (signingOutRef.current) return;
+    signingOutRef.current = true;
     try {
       const { supabase } = await import('../../lib/supabase');
-      await supabase.auth.signOut();
+      const { error } = (await supabase.auth.signOut()) || {};
+      if (error) console.warn('[HamburgerMenu] signOut reported:', error?.message || error);
     } catch (e) {
       console.warn('Signout warning:', e);
     } finally {
+      // Runs whether or not the server round-trip worked. Order matters:
+      // clearAuth(true) first so the backup is gone before anything can read it.
+      try { clearAuth(true); } catch (_) {}
       ['sp-social-user', 'sp-vip-status', 'smarter-poker-auth', 'sp-cached-header-user',
         'sp-cached-settings-profile', 'sp-notif-count'].forEach((k) => {
         try { localStorage.removeItem(k); } catch (_) {}
       });
-      // window.top throws a SecurityError inside a cross-origin iframe.
+      // `/` is the public landing page (pages/index.js — no auth guard), so this
+      // is a real destination, not a bounce. window.top throws a SecurityError
+      // inside a cross-origin iframe.
       try { window.top.location.href = '/'; } catch (_) { window.location.href = '/'; }
     }
   }, []);
@@ -872,9 +908,36 @@ function HamburgerMenuContent({
   // ── Bottom links (single source of truth for sign-out) ────────────────────
   const finalLinks = useMemo(() => {
     const links = [...(bottomLinks || [])];
-    const hasSignOut = [...links, ...(menuItems || [])].some(
-      (i) => matchesId(i, 'sign-out') || looksLikeSignOut(i),
-    );
+    // Page tutorials (Dan 2026-09-03) are hidden by default, here: one row
+    // above Log Out on every route that has a tour in src/tutorials.
+    const pageTutorial = getTutorialForPath(router?.asPath || router?.pathname || '');
+    if (pageTutorial && !links.some((i) => matchesId(i, 'page-tutorial'))) {
+      links.unshift({
+        id: 'page-tutorial',
+        label: 'Page Tutorial',
+        action: true,
+        onClick: () => {
+          if (typeof onClose === 'function') onClose();
+          requestPageTutorial();
+        },
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+          </svg>
+        ),
+      });
+    }
+    // A row only counts as "there is already a sign-out here" if it can
+    // actually sign the user out. Matching on the label alone was a live
+    // foot-gun: a config row labelled "Log Out" with no handler would suppress
+    // the working row below AND then be dropped by the stub guard at render, so
+    // the drawer would ship with no Log Out at all. Nothing in MENU_CONFIGS
+    // does this today — which is exactly why it would have gone unnoticed.
+    const isWiredSignOut = (i) =>
+      (matchesId(i, 'sign-out') || looksLikeSignOut(i)) &&
+      (typeof i?.onClick === 'function' || typeof i?.href === 'string');
+    const hasSignOut = [...links, ...(menuItems || [])].some(isWiredSignOut);
     if (!hasSignOut) {
       links.push({
         id: 'sign-out',
@@ -891,7 +954,7 @@ function HamburgerMenuContent({
       });
     }
     return links;
-  }, [bottomLinks, menuItems, handleLogout]);
+  }, [bottomLinks, menuItems, handleLogout, router?.asPath, router?.pathname, onClose]);
 
   const shortcutItems = useMemo(() => {
     if (shortcuts && shortcuts.length > 0) return shortcuts;
