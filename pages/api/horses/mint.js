@@ -2,7 +2,7 @@
  * THE MINT - platform issuance and retirement API
  *
  * GET  /api/horses/mint?section=overview
- * GET  /api/horses/mint?section=ledger&asset=&action=&limit=&offset=
+ * GET  /api/horses/mint?section=ledger&asset=&action=&origin=&holderId=&limit=&offset=
  * GET  /api/horses/mint?section=targets                 (clubs + unions, with balances)
  * GET  /api/horses/mint?section=player_search&q=<text>  (diamond recipients)
  * POST /api/horses/mint  { action, asset, target, targetId, amount, reason, opId }
@@ -87,8 +87,10 @@ import {
 } from '../../../src/lib/horses/listShape.js';
 import { uuid, enumOf, money2dp, text, searchTerm } from '../../../src/lib/horses/validate.js';
 
-/** The single-operation ceilings the RPC also enforces. Mirrored so the panel
- *  can say no without a round trip; the database still has the last word. */
+/** Sanity ceilings for the pre-flight check only. The real caps live in
+ *  ca_mint_policy (10,000,000 chips / 1,000,000 diamonds per operation by
+ *  default, plus a rolling 24h ceiling) and fn_ca_mint refuses over them with
+ *  a reason code this route translates; the database has the last word. */
 const CAPS = { chips: 1000000000, diamonds: 10000000 };
 
 /** Dan's law, expressed as data. `chips` never reaches a person. */
@@ -99,7 +101,11 @@ const SECTIONS = ['overview', 'ledger', 'targets', 'player_search'];
 const LEDGER_FIELDS =
   'id, op_id, action, asset, holder_type, holder_id, holder_label, amount, ' +
   'balance_before, balance_after, supply_after, reason, performed_by, ' +
-  'performed_by_label, created_at, chip_ledger_id, diamond_tx_id';
+  'performed_by_label, created_at, chip_ledger_id, diamond_tx_id, origin';
+
+/** Where a register row came from (ca_mint_ledger.origin, generated from
+ *  the op id in 20260904194036_the_mint_hardened). The panel filters on it. */
+const ORIGINS = ['operator', 'journal', 'baseline', 'diamond-mint', 'opening-grant', 'restoration', 'seed', 'deletion'];
 
 /** Restored to the original 200 (addendum item 10): the journal is rendered
  *  without a pager on first load, and 50 rows of it is half a screen. */
@@ -113,11 +119,17 @@ const PLAYER_PAGE = { defaultLimit: 25, max: 50 };
 // -- READS -------------------------------------------------------------------
 
 /**
- * Supply and circulation. `fn_ca_mint_overview` reports issued totals from the
- * Mint journal and circulating totals from the live balances SEPARATELY and on
- * purpose: the platform has ~172M chips in member wallets that predate the Mint
- * entirely, so "issued" and "circulating" are not supposed to match yet and a
- * panel that reconciled them silently would be lying.
+ * Supply and circulation. Until 2026-09-04 18:34 UTC "issued" and
+ * "circulating" were not supposed to match: ~172M chips in member wallets
+ * predated the Mint. The opening baseline (chip standard Phase 3.1) sized the
+ * register to the supply meter at that instant, and since then the register
+ * FOLLOWS the journal (a constraint trigger registers every issuance leg at
+ * commit), so they are supposed to match, and `fn_ca_mint_overview` says
+ * whether they do: `reconciliation` (register net as of the meter's
+ * snapshot, meter total, difference, unexplained drift since the baseline,
+ * `balanced`), `issuance` (since the baseline and in 24h), `policy` (the
+ * caps in ca_mint_policy with 24h headroom) and `by_origin`. Passed through
+ * whole; the old keys are still there (add, never rename).
  */
 async function sectionOverview(db, requestId) {
   const c = sourceCollector({ requestId, route: 'horses.mint' });
@@ -152,6 +164,8 @@ async function sectionLedger(db, query) {
   if (action) q = q.eq('action', action);
   const holderId = uuid(query.holderId);
   if (holderId) q = q.eq('holder_id', holderId);
+  const origin = enumOf(query.origin, ORIGINS);
+  if (origin) q = q.eq('origin', origin);
 
   const result = await runPaged(q, page);
   if (result.error) {
@@ -376,7 +390,9 @@ const REASON_TEXT = {
   target_required: 'Pick A Destination.',
   amount_must_be_positive_to_two_decimals: 'Amount Must Be Positive, To At Most Two Decimals.',
   diamonds_are_whole_numbers: 'Diamonds Are Whole Numbers.',
-  amount_over_the_single_mint_cap: 'That Is Over The Single-Operation Cap.',
+  amount_over_the_single_mint_cap: 'That Is Over The Single-Operation Cap In The Issuance Policy.',
+  over_the_rolling_24h_issuance_ceiling:
+    'That Would Take The Last 24 Hours Over The Rolling Issuance Ceiling. Raise The Policy With A Reason First.',
   issuance_needs_a_real_reason: 'Issuance Needs A Reason Of At Least Ten Characters.',
   retirement_needs_a_real_reason: 'Retirement Needs A Reason Of At Least Ten Characters.',
   idempotency_key_required: 'Missing Idempotency Key. Reload The Panel And Try Again.',
