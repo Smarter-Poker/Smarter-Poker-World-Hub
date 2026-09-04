@@ -107,7 +107,9 @@ for f in "${SCRIPT_JOB_FILES[@]}"; do
     chown openclaw:openclaw $REMOTE_DIR/$f.new
     chmod 0755 $REMOTE_DIR/$f.new
     mv $REMOTE_DIR/$f.new $REMOTE_DIR/$f
-    sudo -u openclaw /usr/bin/python3 -m py_compile $REMOTE_DIR/$f
+    # Syntax check as the service user. PYTHONPYCACHEPREFIX keeps the .pyc out
+    # of $REMOTE_DIR/__pycache__, which is root-owned on the box.
+    sudo -u openclaw env PYTHONPYCACHEPREFIX=/tmp/openclaw-pyc /usr/bin/python3 -m py_compile $REMOTE_DIR/$f
   " || die "remote install of $f failed" 2
   SCRIPTS_CHANGED=1
 done
