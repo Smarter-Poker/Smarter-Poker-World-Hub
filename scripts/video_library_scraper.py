@@ -197,10 +197,15 @@ CREATORS = [
 
     # CELEBRITY PROS (may have limited/no active channels)
     {'source_id': 'NEGREANU',  'name': 'Daniel Negreanu',      'handle': 'dnegspoker',          'type': 'cash',       'max':  8},
-    {'source_id': 'HELLMUTH',  'name': 'Phil Hellmuth',        'handle': 'PhilHellmuth',        'type': 'tournament', 'max':  6},
-    {'source_id': 'IVEY',      'name': 'Phil Ivey',            'handle': 'PhilIvey',            'type': 'cash',       'max':  6},
-    {'source_id': 'DWAN',      'name': 'Tom Dwan',             'handle': 'TomDwan',             'type': 'cash',       'max':  6},
-    {'source_id': 'GARRETT',   'name': 'Garrett Adelstein',    'handle': 'GarrettAdelstein',    'type': 'cash',       'max':  6},
+    # 2026-09-04: the four below answer HTTP 404 from YouTube - the handles do
+    # not exist - and were counted as four "creator failures" on every run,
+    # which is enough to trip the >=3 Slack alert daily for a condition nobody
+    # can act on. Inactive until someone supplies a real handle; a source with
+    # active: False is listed, skipped and never counted as a failure.
+    {'source_id': 'HELLMUTH',  'name': 'Phil Hellmuth',        'handle': 'PhilHellmuth',        'type': 'tournament', 'max':  6, 'active': False},
+    {'source_id': 'IVEY',      'name': 'Phil Ivey',            'handle': 'PhilIvey',            'type': 'cash',       'max':  6, 'active': False},
+    {'source_id': 'DWAN',      'name': 'Tom Dwan',             'handle': 'TomDwan',             'type': 'cash',       'max':  6, 'active': False},
+    {'source_id': 'GARRETT',   'name': 'Garrett Adelstein',    'handle': 'GarrettAdelstein',    'type': 'cash',       'max':  6, 'active': False},
 ]
 
 
@@ -294,6 +299,113 @@ def send_failure_alert(summary: dict) -> None:
         log.warning(f'Slack alert failed (non-fatal): {e}')
 
 
+# ── YouTube RSS metadata (datacenter-safe) ─────────────────────────────────────
+# 2026-09-04. On the Hetzner dispatcher every per-video `yt-dlp --dump-json`
+# call answers "Sign in to confirm you're not a bot" - YouTube gates the watch
+# page from datacenter IPs. The channel listing (--flat-playlist) still works,
+# so discovery is fine, but flat entries carry no upload_date and no
+# view_count: every video inserted from that host got published_at = now and
+# views 0, the post-scrape backfill then failed 100/100, and the library page
+# showed a wall of "today, 0 views". The channel's public RSS feed
+# (feeds/videos.xml?channel_id=UC...) has no such gate and carries the real
+# <published> date and <media:statistics views> for the latest 15 uploads -
+# which is exactly the set a daily scraper inserts. yt-dlp per-video stays as
+# the fallback for older rows (it works from a residential IP such as the Mac).
+import xml.etree.ElementTree as _ET
+
+_RSS_NS = {
+    'a':     'http://www.w3.org/2005/Atom',
+    'yt':    'http://www.youtube.com/xml/schemas/2015',
+    'media': 'http://search.yahoo.com/mrss/',
+}
+_CHANNEL_ID_CACHE = LOG_DIR.parent / 'youtube-channel-ids.json'
+_channel_ids: dict = {}
+_rss_meta_cache: dict = {}
+
+
+def _load_channel_id_cache() -> None:
+    if _channel_ids or not _CHANNEL_ID_CACHE.exists():
+        return
+    try:
+        _channel_ids.update(json.loads(_CHANNEL_ID_CACHE.read_text()))
+    except Exception:
+        pass
+
+
+def resolve_channel_id(handle: str) -> str | None:
+    """@handle → UC... channel id, via the (ungated) channel listing. Cached
+    on disk beside the logs because a handle's channel id never changes."""
+    _load_channel_id_cache()
+    if handle in _channel_ids:
+        return _channel_ids[handle]
+    cmd = ['yt-dlp', '--flat-playlist', '--dump-single-json', '--no-warnings', '--quiet',
+           '--playlist-end', '1', f'https://www.youtube.com/@{handle}/videos']
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        d = json.loads(r.stdout or '{}')
+        cid = d.get('channel_id') or d.get('uploader_id') or ''
+        if not str(cid).startswith('UC'):
+            return None
+        _channel_ids[handle] = cid
+        try:
+            _CHANNEL_ID_CACHE.write_text(json.dumps(_channel_ids, indent=2, sort_keys=True))
+        except OSError:
+            pass
+        return cid
+    except Exception as e:
+        log.warning(f'  channel id for @{handle} unresolved: {type(e).__name__}: {e}')
+        return None
+
+
+def fetch_rss_meta(channel_id: str) -> dict:
+    """channel id → {video_id: {'published_at': iso, 'views': int}} for the
+    channel's latest ~15 uploads. Empty dict on any failure; cached per run."""
+    if channel_id in _rss_meta_cache:
+        return _rss_meta_cache[channel_id]
+    meta = {}
+    try:
+        req = urllib.request.Request(
+            f'https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}',
+            headers={'User-Agent': 'smarter-poker-video-library/3.1'})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            root_el = _ET.fromstring(r.read())
+        for entry in root_el.findall('a:entry', _RSS_NS):
+            vid = entry.findtext('yt:videoId', default='', namespaces=_RSS_NS)
+            if not vid:
+                continue
+            published = entry.findtext('a:published', default='', namespaces=_RSS_NS)
+            stats = entry.find('media:group/media:community/media:statistics', _RSS_NS)
+            views = 0
+            if stats is not None:
+                try:
+                    views = int(stats.get('views') or 0)
+                except ValueError:
+                    views = 0
+            meta[vid] = {'published_at': published or None, 'views': views}
+    except Exception as e:
+        log.warning(f'  RSS for {channel_id} failed: {type(e).__name__}: {e}')
+    _rss_meta_cache[channel_id] = meta
+    return meta
+
+
+def rss_meta_for_creator(creator: dict) -> dict:
+    cid = resolve_channel_id(creator['handle'])
+    return fetch_rss_meta(cid) if cid else {}
+
+
+def _rss_apply(row: dict, meta: dict) -> dict:
+    """The update dict for one DB row given its RSS entry (or {} if nothing)."""
+    if not meta:
+        return {}
+    upd = {}
+    if meta.get('published_at'):
+        upd['published_at'] = meta['published_at']
+    if meta.get('views'):
+        upd['views_count'] = meta['views']
+        upd['views_text']  = fmt_views(meta['views'])
+    return upd
+
+
 # ── Dead-video purge ─────────────────────────────────────────────────────────────
 
 def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
@@ -359,7 +471,7 @@ def backfill_metadata(limit: int = 300) -> dict:
     """
     TODAY = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     needs_fix = (supabase.table('video_library_videos')
-        .select('id,youtube_video_id,published_at,views_count,views_text')
+        .select('id,youtube_video_id,source_id,published_at,views_count,views_text')
         .or_(f'published_at.gte.{TODAY}T00:00:00Z,views_count.eq.0')
         .limit(limit)
         .execute().data or [])
@@ -367,6 +479,33 @@ def backfill_metadata(limit: int = 300) -> dict:
     log.info(f'Backfill: {len(needs_fix)} rows need date/views fix')
     updated = failed = 0
     BATCH = 5
+
+    # Pass 1 - RSS per creator (datacenter-safe; covers each channel's latest
+    # ~15 uploads, which is where a fake today-date almost always lives).
+    by_source = {c['source_id']: c for c in CREATORS}
+    remaining = []
+    for row in needs_fix:
+        creator = by_source.get(row.get('source_id') or '')
+        entry = rss_meta_for_creator(creator).get(row['youtube_video_id']) if creator else None
+        upd = _rss_apply(row, entry or {})
+        if not upd:
+            remaining.append(row)
+            continue
+        # Only overwrite a date that is provably fake (today) - a real one stays.
+        if 'published_at' in upd and str(row.get('published_at', ''))[:10] != TODAY:
+            upd.pop('published_at')
+        if 'views_count' in upd and (row.get('views_count') or 0) > 0:
+            upd.pop('views_count'); upd.pop('views_text', None)
+        if not upd:
+            remaining.append(row)
+            continue
+        upd['updated_at'] = datetime.now(timezone.utc).isoformat()
+        supabase.table('video_library_videos').update(upd).eq('id', row['id']).execute()
+        updated += 1
+    if updated:
+        log.info(f'  Backfill via RSS: {updated} rows fixed, {len(remaining)} left for yt-dlp')
+    needs_fix = remaining
+    _ytdlp_reason_logged = False
 
     for i in range(0, len(needs_fix), BATCH):
         batch = needs_fix[i:i+BATCH]
@@ -381,6 +520,12 @@ def backfill_metadata(limit: int = 300) -> dict:
                     if d.get('id'): meta[d['id']] = d
                 except Exception:
                     pass
+            if not meta and r.stderr and not _ytdlp_reason_logged:
+                # Say WHY once per run instead of a bare failed=N. From a
+                # datacenter IP this is YouTube's "Sign in to confirm you're
+                # not a bot"; that is expected there, not a scraper defect.
+                log.warning(f'  yt-dlp per-video metadata unavailable: {r.stderr.strip().splitlines()[-1][:160]}')
+                _ytdlp_reason_logged = True
 
             for row in batch:
                 vid = row['youtube_video_id']
@@ -437,6 +582,7 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
 
         videos = []
         now    = datetime.now(timezone.utc).isoformat()
+        rss    = rss_meta_for_creator(creator)   # real dates + views, no bot gate
         for line in result.stdout.strip().splitlines():
             try:
                 d = json.loads(line)
@@ -444,9 +590,12 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
                 if not vid_id:
                     continue
 
-                # Real upload date from metadata; fall back to now only if missing
+                # Real upload date: flat entries rarely carry one, RSS does for
+                # the latest 15; fall back to now only when neither knows.
                 real_date = yt_upload_date_to_iso(d.get('upload_date', '') or '')
-                pub_date  = real_date or now
+                rss_entry = rss.get(vid_id) or {}
+                pub_date  = real_date or rss_entry.get('published_at') or now
+                view_ct   = d.get('view_count') or rss_entry.get('views') or 0
 
                 # Best thumbnail (largest)
                 thumbs = d.get('thumbnails') or []
@@ -459,8 +608,8 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
                     'source_name':      creator['name'],
                     'type':             creator['type'],
                     'title':            d.get('title', ''),
-                    'views_count':      d.get('view_count', 0) or 0,
-                    'views_text':       fmt_views(d.get('view_count', 0) or 0),
+                    'views_count':      view_ct,
+                    'views_text':       fmt_views(view_ct),
                     'duration':         fmt_duration(d.get('duration')),
                     'thumbnail_url':    thumb,
                     'video_url':        f'https://www.youtube.com/watch?v={vid_id}',
@@ -567,6 +716,9 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
             return summary
 
     for creator in creators:
+        if creator.get('active') is False and not filter_source:
+            log.info(f'Skipping {creator["name"]} (@{creator["handle"]}) - inactive source')
+            continue
         log.info(f'Processing {creator["name"]} (@{creator["handle"]})...')
         cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'error': None}
 
@@ -710,6 +862,28 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
     updated = failed = 0
     BATCH = 5
 
+    # RSS first: free, ungated, exact for anything still in a channel's latest 15.
+    by_source = {c['source_id']: c for c in CREATORS}
+    remaining = []
+    for row in rows:
+        creator = by_source.get(row.get('source_id') or '')
+        entry = rss_meta_for_creator(creator).get(row['youtube_video_id']) if creator else None
+        vc = (entry or {}).get('views') or 0
+        if not vc:
+            remaining.append(row)
+            continue
+        if vc != row.get('views_count', 0):
+            if not dry_run:
+                supabase.table('video_library_videos').update({
+                    'views_count': vc,
+                    'views_text':  fmt_views(vc),
+                    'updated_at':  datetime.now(timezone.utc).isoformat(),
+                }).eq('id', row['id']).execute()
+            log.info(f'  [{row["source_id"]}] {row["youtube_video_id"]}: {row["views_count"]:,} → {vc:,} views (rss)')
+            updated += 1
+    rows = remaining
+    _ytdlp_reason_logged = False
+
     for i in range(0, len(rows), BATCH):
         batch = rows[i:i+BATCH]
         urls  = [f'https://www.youtube.com/watch?v={v["youtube_video_id"]}' for v in batch]
@@ -723,6 +897,9 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
                     if d.get('id'): meta[d['id']] = d
                 except Exception:
                     pass
+            if not meta and r.stderr and not _ytdlp_reason_logged:
+                log.warning(f'  yt-dlp per-video metadata unavailable: {r.stderr.strip().splitlines()[-1][:160]}')
+                _ytdlp_reason_logged = True
 
             for row in batch:
                 vid = row['youtube_video_id']
