@@ -139,6 +139,9 @@ import './page-tutorials.test.mjs';
 import './pa-closeout-hardening.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
+// Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,
+// the retired swipe navigation, the sheets, the 12px floor and the tutorial.
+import './pnm-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';

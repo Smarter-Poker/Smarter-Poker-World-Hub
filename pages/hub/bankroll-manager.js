@@ -1547,7 +1547,7 @@ export default function BankrollManagerPage() {
                             aria-label="Close"
                             className="bankroll-modal-close sp-icon-btn"
                             onClick={() => setShowAllEntries(false)}
-                            style={{
+                            style={{ '--sp-btn-size': '44px',
                               background: 'rgba(255,255,255,0.1)',
                               border: 'none',
                               borderRadius: '50%',

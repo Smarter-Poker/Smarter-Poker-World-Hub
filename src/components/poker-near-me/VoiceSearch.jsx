@@ -316,27 +316,28 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
             )}
 
             <style>{`
-        .voice-fab { position: fixed; bottom: 24px; left: 24px; z-index: 9999; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #64748b, #334155); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: all 0.3s; }
-        .voice-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
+        /* Above the app footer (mobile standard: never hardcode 56). */
+        .voice-fab { position: fixed; bottom: calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 16px); left: 16px; z-index: 900; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #64748b, #334155); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: all 0.3s; }
+        .voice-fab:hover, .voice-fab:active { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
         .voice-fab.listening { background: linear-gradient(135deg, #ef4444, #dc2626); animation: fabPulse 1.5s ease-in-out infinite; }
         .voice-fab-ring { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(239,68,68,0.5); animation: ringExpand 1.5s ease-out infinite; }
         @keyframes fabPulse { 0%, 100% { box-shadow: 0 4px 20px rgba(239,68,68,0.4); } 50% { box-shadow: 0 4px 30px rgba(239,68,68,0.6); } }
         @keyframes ringExpand { from { transform: scale(1); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
-        .voice-panel { position: fixed; bottom: 86px; left: 24px; z-index: 9998; width: 340px; max-width: calc(100vw - 40px); background: rgba(15,23,42,0.97); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); animation: panelSlideUp 0.3s ease-out; }
+        .voice-panel { position: fixed; bottom: calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 78px); left: 16px; z-index: 899; width: 340px; max-width: calc(100vw - 40px); background: rgba(15,23,42,0.97); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); animation: panelSlideUp 0.3s ease-out; }
         @keyframes panelSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .voice-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .voice-panel-header h3 { font-size: 16px; font-weight: 600; color: #fff; margin: 0; }
-        .voice-panel-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 22px; cursor: pointer; }
+        .voice-panel-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 22px; cursor: pointer; min-width: 44px; min-height: 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
         .voice-waveform { display: flex; align-items: center; justify-content: center; gap: 2px; height: 40px; margin-bottom: 12px; }
         .voice-bar { width: 4px; border-radius: 2px; transition: height 0.1s ease; }
         .voice-status { text-align: center; margin-bottom: 12px; }
         .voice-status-text { font-size: 13px; color: rgba(255,255,255,0.5); }
         .voice-error { font-size: 13px; color: #ef4444; }
         .voice-transcript { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; margin-bottom: 12px; }
-        .voice-transcript-label { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+        .voice-transcript-label { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
         .voice-transcript-text { font-size: 15px; color: #fff; margin: 6px 0 0; font-style: italic; }
         .voice-result { padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; margin-bottom: 12px; }
-        .voice-result-label { font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.5px; }
+        .voice-result-label { font-size: 12px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.5px; }
         .voice-filter-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
         .voice-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
         .voice-tag.game { background: rgba(99,102,241,0.2); color: #818cf8; }
@@ -349,7 +350,7 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
         .voice-unsupported { text-align: center; padding: 20px; }
         .voice-unsupported p { color: rgba(255,255,255,0.4); }
         .voice-examples { margin-top: 12px; }
-        .voice-examples-label { font-size: 11px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.5px; }
+        .voice-examples-label { font-size: 12px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.5px; }
         .voice-example-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
         .voice-example { text-align: left; padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; font-style: italic; transition: all 0.2s; }
         .voice-example:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }

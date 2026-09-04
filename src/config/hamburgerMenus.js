@@ -688,9 +688,11 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Trip Cost Calculator', '/hub/poker-near-me/roadtrip'),
             createMenuItem.navigation('Game Alerts', '/hub/poker-near-me/alerts'),
             createMenuItem.divider(),
-            createMenuItem.section('Help'),
-            createMenuItem.action('Replay Tutorial', () => handlers?.replayTutorial?.(), null, false, true),
-            createMenuItem.divider(),
+            // "Replay Tutorial" used to live here and open the old per-tab
+            // InteractiveTutorial. Mobile phase 3 retired that walkthrough: the
+            // page tour is registered in src/tutorials/poker-near-me.js and
+            // HamburgerMenu adds its own "Page Tutorial" row for every registered
+            // route, so a second row here would be a duplicate.
             createMenuItem.section('Settings'),
             createMenuItem.toggle('Geofence Alerts', state.geofenceAlerts !== false, handlers.setGeofenceAlerts, 'Get Notified When Near Poker Venues'),
             createMenuItem.toggle('Location Services', state.locationEnabled !== false, handlers.setLocationEnabled),

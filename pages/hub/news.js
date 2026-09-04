@@ -4290,7 +4290,7 @@ export default function NewsHub() {
                             onClick={() => setReelViewerOpen(false)}
                             aria-label="Close"
                             className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
-                            style={{
+                            style={{ '--sp-btn-size': '44px',
                                 position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 12, zIndex: 10,
                                 width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
                                 touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',

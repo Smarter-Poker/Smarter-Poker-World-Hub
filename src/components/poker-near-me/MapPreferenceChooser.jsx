@@ -208,7 +208,7 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .map-pref-title {
-          font-size: 10px;
+          font-size: 12px;
           font-weight: 700;
           color: rgba(255,255,255,0.6);
           text-transform: uppercase;
@@ -264,7 +264,7 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
           line-height: 1.2;
         }
         .map-pref-desc {
-          font-size: 10px;
+          font-size: 12px;
           color: rgba(148,163,184,0.5);
           margin-top: 1px;
         }

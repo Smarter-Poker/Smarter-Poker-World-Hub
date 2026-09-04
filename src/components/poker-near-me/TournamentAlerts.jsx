@@ -121,7 +121,7 @@ function matchesTournament(prefs, tournament, userLocation, venueCoords) {
     return true;
 }
 
-export default function TournamentAlerts({ dailyTournaments = [], userId, authToken, userLocation = null, venues = [] }) {
+export default function TournamentAlerts({ dailyTournaments = [], userId, authToken, userLocation = null, venues = [], requireOnline }) {
     const [prefs, setPrefs] = useState(() => {
         const saved = typeof window !== 'undefined' ? loadPrefs() : null;
         return saved || {
@@ -177,6 +177,9 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
 
         // Debounce so typing "250" into Min $ is one upsert, not three.
         const timer = setTimeout(() => {
+            // Offline: keep the local prefs, explain, and retry on the next change
+            // (mobile phase 3 online guard; the page supplies requireOnline).
+            if (typeof requireOnline === 'function' && !requireOnline()) return;
             lastSyncedRef.current = serialized;
             let token = authToken;
             if (!token) {
@@ -185,7 +188,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
             syncPrefsToServer(prefs, token);
         }, SYNC_DEBOUNCE_MS);
         return () => clearTimeout(timer);
-    }, [prefs, authToken, userId]);
+    }, [prefs, authToken, userId, requireOnline]);
 
     // Cross-tab sync — CustomEvents never leave the document that dispatched
     // them; only `storage` fires in other tabs, so listen for that instead.

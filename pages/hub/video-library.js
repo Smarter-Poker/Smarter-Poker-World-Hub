@@ -2081,6 +2081,10 @@ export default function VideoLibraryPage() {
                 <div
                     id="video-library-grid"
                     className="vl-video-grid"
+                    /* aria-label is prohibited on a role-less div (axe
+                       aria-prohibited-attr, serious). A labelled region is
+                       what the command rail's aria-controls points at. */
+                    role="region"
                     aria-label="Poker videos"
                     style={{
                     maxWidth: 1400,
@@ -2390,7 +2394,7 @@ export default function VideoLibraryPage() {
                         onClick={handleCloseVideo}
                         className="vl-modal-close sp-icon-btn sp-overlay-close"
                         aria-label="Close"
-                        style={{
+                        style={{ '--sp-btn-size': '44px',
                             position: 'absolute',
                             top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                             right: 12,
@@ -3181,7 +3185,7 @@ export default function VideoLibraryPage() {
                                 <div id="vl-tts-title" style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-Matched Drills For This Video</div>
                             </div>
-                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="sp-icon-btn" onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
+                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="sp-icon-btn" onClick={() => setTtsOverlay(null)} style={{ '--sp-btn-size': '44px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
                         </div>
                         <div style={{ padding: '0 20px 12px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                             <div style={{ width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>

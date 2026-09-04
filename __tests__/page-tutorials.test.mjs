@@ -36,6 +36,13 @@ const LANDED = [
       'src/components/memory-games/PreflopSubpageNav.jsx',
     ],
   },
+  {
+    phase: 3,
+    route: '/hub/poker-near-me',
+    page: 'pages/hub/poker-near-me/[pnmTab].js',
+    tutorial: 'src/tutorials/poker-near-me.js',
+    also: ['src/components/poker-near-me/MoreTabPanel.jsx'],
+  },
 ];
 
 test('the tutorial system is built and mounted once', () => {

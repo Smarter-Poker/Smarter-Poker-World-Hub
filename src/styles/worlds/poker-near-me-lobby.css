@@ -3,19 +3,22 @@
    Layered over the React Three Fiber scene
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ─── BASE PAGE ─── */
+/* ─── BASE PAGE ───
+   Mobile phase 3: the lobby is document flow inside HubPageShell. It used to
+   be a 100vw x 100vh stage with overflow:hidden and an inner scroller; the
+   page scrolls normally now and the shell owns the viewport clamp. */
 .pnm-lobby-page {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  width: 100%;
   background: radial-gradient(ellipse at center, #0c1524 0%, #050810 70%, #030408 100%);
   font-family: var(--font-premium-body);
+  touch-action: pan-y;
 }
 
 .pnm-lobby-stage {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  overflow: hidden;
+  min-height: 60dvh;
 }
 
 .pnm-lobby-skip {
@@ -54,31 +57,21 @@
   display: block;
 }
 
-/* ─── OVERLAY (UI on top of 3D) ─── */
+/* ─── OVERLAY (UI on top of the background) ─── */
 .lobby-overlay {
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 10;
   pointer-events: none;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
-/* ─── SCAN LINE — REMOVED ─── */
-
-/* Hide scrollbar on card grid while keeping it scrollable */
-.lobby-card-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-/* ─── TOP BAR ─── */
+/* ─── TOP BAR (the header is in flow above it; no 80px clearance) ─── */
 .lobby-topbar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 80px 16px 12px;
-  padding-top: calc(80px + env(safe-area-inset-top, 0px));
+  padding: 16px 16px 12px;
   pointer-events: auto;
   position: relative;
   z-index: 20;
@@ -179,8 +172,8 @@
 
 .lobby-gps-btn {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(110, 231, 239, 0.15);
   background: rgba(110, 231, 239, 0.06);
@@ -191,7 +184,8 @@
   cursor: pointer;
   transition: all 0.25s var(--premium-ease);
 }
-.lobby-gps-btn:hover {
+.lobby-gps-btn:hover,
+.lobby-gps-btn:active {
   border-color: rgba(110, 231, 239, 0.4);
   color: #6ee7ef;
   background: rgba(110, 231, 239, 0.1);
@@ -227,7 +221,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 82vh;
+  max-height: 82dvh;
   z-index: 51;
   background: linear-gradient(160deg, rgba(18, 24, 40, 0.97), rgba(8, 12, 22, 0.98));
   border-top: 1px solid rgba(110, 231, 239, 0.15);
@@ -274,11 +268,14 @@
   border: none;
   color: rgba(200, 214, 229, 0.5);
   cursor: pointer;
-  padding: 4px;
+  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 8px;
   transition: color 0.2s, background 0.2s;
 }
-.lobby-panel-close:hover {
+.lobby-panel-close:hover,
+.lobby-panel-close:active {
   color: #6ee7ef;
   background: rgba(110, 231, 239, 0.08);
 }
@@ -311,11 +308,10 @@
   100% { transform: translateX(100%); }
 }
 
-/* ─── RESPONSIVE ─── */
-@media (max-width: 600px) {
+/* ─── RESPONSIVE (768: the phone boundary) ─── */
+@media (max-width: 768px) {
   .lobby-topbar {
-    padding: 74px 12px 10px;
-    padding-top: calc(74px + env(safe-area-inset-top, 0px));
+    padding: 12px 12px 10px;
   }
   .lobby-search-form {
     width: calc(100vw - 24px);
@@ -356,11 +352,13 @@
   }
 }
 
-/* ─── SUGGESTION & HISTORY HOVER ─── */
-.lobby-suggestion-btn:hover {
+/* ─── SUGGESTION & HISTORY PRESS ─── */
+.lobby-suggestion-btn:hover,
+.lobby-suggestion-btn:active {
   background: rgba(110, 231, 239, 0.08) !important;
 }
-.lobby-history-btn:hover {
+.lobby-history-btn:hover,
+.lobby-history-btn:active {
   background: rgba(110, 231, 239, 0.06) !important;
 }
 
@@ -391,7 +389,7 @@
 
 .pnm-lobby-page .lobby-topbar {
   align-items: flex-start;
-  padding: 88px clamp(18px, 5vw, 72px) 12px;
+  padding: 18px clamp(18px, 5vw, 72px) 12px;
   background: linear-gradient(180deg, rgba(2, 4, 6, 0.94), rgba(2, 4, 6, 0.48) 68%, transparent);
 }
 
@@ -400,7 +398,7 @@
   display: block;
   margin-bottom: 13px;
   color: #2fa8ff;
-  font: 700 10px/1 var(--font-premium-body);
+  font: 700 12px/1 var(--font-premium-body);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   text-shadow: 0 0 14px rgba(47, 168, 255, 0.5);
@@ -455,6 +453,7 @@
 }
 
 .pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn):hover,
+.pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn):active,
 .pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn):focus-visible {
   color: #eef5fb !important;
   border-color: rgba(47, 168, 255, 0.58) !important;
@@ -486,6 +485,7 @@
 }
 
 .pnm-lobby-page .lobby-hotspot:hover,
+.pnm-lobby-page .lobby-hotspot:active,
 .pnm-lobby-page .lobby-hotspot:focus-visible {
   border-color: rgba(47, 168, 255, 0.62) !important;
   background: rgba(47, 168, 255, 0.055) !important;
@@ -498,7 +498,7 @@
   border: 1px solid rgba(47, 168, 255, 0.35);
   background: rgba(3, 7, 11, 0.96);
   color: #eef5fb;
-  font: 700 10px/1 var(--font-premium-body);
+  font: 700 12px/1 var(--font-premium-body);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -518,16 +518,16 @@
   background: linear-gradient(145deg, #0d131b, #05090e);
 }
 
-@media (max-width: 800px) {
+@media (max-width: 768px) {
   .pnm-lobby-page .lobby-topbar {
     align-items: center;
-    padding: 75px 12px 8px;
+    padding: 12px 12px 8px;
   }
 
   .pnm-lobby-page .lobby-topbar::before {
     width: calc(100vw - 24px);
     margin-bottom: 9px;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .pnm-lobby-page .lobby-topbar > div,
@@ -546,9 +546,8 @@
     max-width: 100% !important;
   }
 
-  .pnm-lobby-page .lobby-card-scroll picture img {
-    min-height: 420px;
-    object-fit: cover;
-    object-position: center;
-  }
+  /* Mobile phase 3: the grid bitmap keeps its own aspect ratio. The old
+     min-height: 420px + object-fit: cover cropped both side columns at 375px
+     ("Trip Planner" and "Tournament Alerts" were cut off) and shifted the
+     percentage-positioned hotspots off their icons. */
 }

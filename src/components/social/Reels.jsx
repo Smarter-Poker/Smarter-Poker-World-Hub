@@ -1931,7 +1931,7 @@ export function ReelsViewer({ onClose }) {
           onClick={onClose}
           aria-label="Close"
           className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
-          style={{
+          style={{ '--sp-btn-size': '44px',
             position: 'absolute',
             top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
             left: 12,
@@ -2166,7 +2166,7 @@ export function ReelsViewer({ onClose }) {
         }}
         aria-label="Close"
         className="sp-icon-btn"
-        style={{
+        style={{ '--sp-btn-size': '44px',
           position: 'fixed',
           top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
           left: 12,
@@ -4148,7 +4148,7 @@ export function ReelsViewer({ onClose }) {
                           onClick={() => setShowShareDescriptionModal(false)}
                           aria-label="Close"
                           className="sp-icon-btn"
-                          style={{
+                          style={{ '--sp-btn-size': '44px',
                             background: 'rgba(255,255,255,0.1)',
                             border: 'none',
                             color: 'white',

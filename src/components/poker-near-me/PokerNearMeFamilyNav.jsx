@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useEffect, useRef } from 'react';
 
 const FAMILY_LINKS = [
   { label: 'Lobby', href: '/hub/poker-near-me/lobby', matches: ['/hub/poker-near-me/lobby'] },
@@ -23,37 +22,20 @@ const FAMILY_LINKS = [
 export default function PokerNearMeFamilyNav({ className = '' }) {
   const router = useRouter();
   const path = (router.asPath || router.pathname || '').split('?')[0];
-  const railRef = useRef(null);
-  const activeRef = useRef(null);
 
-  // The mobile command rail is wider than the viewport. Keep the current family
-  // visible on direct deep links instead of always opening at "Lobby" and hiding
-  // Home games / Saved beyond the right edge.
-  useEffect(() => {
-    const rail = railRef.current;
-    const active = activeRef.current;
-    if (!rail || !active) return undefined;
-    const frame = requestAnimationFrame(() => {
-      const target = Math.max(
-        0,
-        active.offsetLeft - ((rail.clientWidth - active.offsetWidth) / 2)
-      );
-      if (typeof rail.scrollTo === 'function') rail.scrollTo({ left: target, behavior: 'auto' });
-      else rail.scrollLeft = target;
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [path]);
-
+  // Mobile phase 3: the rail WRAPS (src/styles/worlds/poker-near-me.css), so
+  // every family link is visible at every width and nothing needs to be
+  // scrolled into view. The old effect that centred the active link inside
+  // a sideways scroller is gone with the scroller.
   return (
     <nav className={`pnm-family-nav ${className}`.trim()} aria-label="Poker Near Me">
-      <div className="pnm-family-nav__rail" ref={railRef}>
+      <div className="pnm-family-nav__rail">
         <span className="pnm-family-nav__label" aria-hidden="true">Discovery Deck</span>
         {FAMILY_LINKS.map((item) => {
           const active = item.matches.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
           return (
             <Link
               key={item.href}
-              ref={active ? activeRef : undefined}
               href={item.href}
               className={`pnm-family-nav__link${active ? ' is-active' : ''}${item.live ? ' is-live' : ''}`}
               aria-current={active ? 'page' : undefined}

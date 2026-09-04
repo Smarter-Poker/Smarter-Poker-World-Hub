@@ -24,6 +24,7 @@
  */
 import { BANKROLL_TUTORIAL } from './bankroll-manager';
 import { PREFLOP_TUTORIAL } from './preflop-charts';
+import { POKER_NEAR_ME_TUTORIAL } from './poker-near-me';
 
 // Longest prefix wins. Keep re-exported aliases (preflop-charts -> memory-games)
 // as their own rows so the URL the player sees maps to a tour.
@@ -33,10 +34,16 @@ import { PREFLOP_TUTORIAL } from './preflop-charts';
 // none of the tour's spotlight targets, so offering the game page's tour
 // there would show eight steps with no rings. The guide subpage links to
 // /hub/preflop-charts?tutorial=1 instead (TutorialProvider opens it there).
+//
+// Poker Near Me is a PREFIX row on purpose (mobile phase 3): the lobby, every
+// discovery route (/map, /venues, /events, /live-games, /saved, /more, the
+// sub-surfaces) and the state directory pages are one product, and the
+// stacked discovery page carries every spotlight target.
 const REGISTRY = [
   { prefix: '/hub/bankroll-manager', tutorial: BANKROLL_TUTORIAL },
   { prefix: '/hub/preflop-charts', tutorial: PREFLOP_TUTORIAL, exact: true },
   { prefix: '/hub/memory-games', tutorial: PREFLOP_TUTORIAL, exact: true },
+  { prefix: '/hub/poker-near-me', tutorial: POKER_NEAR_ME_TUTORIAL },
 ];
 
 export const TUTORIAL_PROMPT_MS = 3000;

@@ -59,7 +59,7 @@ export default function PostImageLightbox({ mediaUrls = [], initialIndex = 0, co
                 onClick={onClose}
                 aria-label="Close"
                 className="sp-icon-btn sp-overlay-close"
-                style={{
+                style={{ '--sp-btn-size': '44px',
                     position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12, zIndex: 10,
                     width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none',
                     background: 'rgba(255,255,255,0.1)', color: 'white',

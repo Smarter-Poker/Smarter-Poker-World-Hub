@@ -281,17 +281,23 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
 
           {showHeatmap && (
             <div className="bttg-heatmap">
+              {/* Mobile phase 3: each day is a 24-cell grid that wraps eight
+                  hours per row, every cell labelled at 12px, instead of a
+                  24-wide strip inside an overflow-x scroller. */}
               {heatmapGrid.map((row, dayIndex) => (
                 <div key={dayIndex} className="bttg-hm-row">
                   <span className="bttg-hm-day">{DAY_SHORT[dayIndex]}</span>
-                  <div className="bttg-hm-cells">
+                  <div className="bttg-hm-cells" role="list" aria-label={`${DAY_SHORT[dayIndex]} activity by hour`}>
                     {row.map((cell, hourIndex) => (
                       <div
                         key={hourIndex}
                         className="bttg-hm-cell"
+                        role="listitem"
                         style={{ background: intensityColor(cell.intensity) }}
                         title={`${DAY_SHORT[dayIndex]} ${hourIndex}:00 - ${cell.avg_tables} avg tables`}
-                      />
+                      >
+                        {hourIndex === 0 ? '12a' : hourIndex < 12 ? `${hourIndex}a` : hourIndex === 12 ? '12p' : `${hourIndex - 12}p`}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -336,7 +342,7 @@ const STYLES = `
   .bttg-title-row { display: flex; align-items: center; gap: 8px; }
   .bttg-title-row h3 { margin: 0; font-size: 16px; font-weight: 700; color: #fff; }
   .bttg-quality {
-    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
     text-transform: uppercase; letter-spacing: 0.3px;
   }
   .bttg-quality-excellent { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
@@ -349,7 +355,7 @@ const STYLES = `
     padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.03);
   }
-  .bttg-badge-label { display: block; font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+  .bttg-badge-label { display: block; font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
   .bttg-badge-value { display: block; font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px; }
 
   /* === Mini Day Bar Chart === */
@@ -358,7 +364,7 @@ const STYLES = `
     background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
   }
   .bttg-day-chart-title {
-    display: block; font-size: 10px; color: rgba(255,255,255,0.4);
+    display: block; font-size: 12px; color: rgba(255,255,255,0.4);
     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
   }
   .bttg-day-bars {
@@ -377,7 +383,7 @@ const STYLES = `
     min-height: 2px;
   }
   .bttg-day-bar-label {
-    font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 500;
+    font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500;
   }
 
   /* === Game-Specific ETA === */
@@ -386,7 +392,7 @@ const STYLES = `
     background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
   }
   .bttg-game-eta-title {
-    display: block; font-size: 10px; color: rgba(255,255,255,0.4);
+    display: block; font-size: 12px; color: rgba(255,255,255,0.4);
     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
   }
   .bttg-game-eta-row {
@@ -396,7 +402,7 @@ const STYLES = `
   }
   .bttg-game-eta-row:last-child { margin-bottom: 0; }
   .bttg-game-eta-chip {
-    padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 5px; font-size: 12px; font-weight: 700;
     background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.25);
     white-space: nowrap; flex-shrink: 0;
   }
@@ -414,12 +420,12 @@ const STYLES = `
     height: 100%; border-radius: 2px; transition: width 0.5s ease;
   }
   .bttg-confidence-pct {
-    font-size: 11px; font-weight: 700; min-width: 30px; text-align: right;
+    font-size: 12px; font-weight: 700; min-width: 30px; text-align: right;
   }
 
-  .bttg-game-tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .bttg-game-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding-bottom: 4px; }
   .bttg-game-tab {
-    padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    min-height: 44px; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; touch-action: manipulation;
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.6); cursor: pointer; white-space: nowrap;
     transition: all 0.2s;
@@ -438,7 +444,7 @@ const STYLES = `
   }
   .bttg-pred-meta { display: flex; gap: 6px; flex-wrap: wrap; }
   .bttg-pred-tag {
-    padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500;
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
     background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
     border: 1px solid rgba(255,255,255,0.08);
   }
@@ -450,18 +456,20 @@ const STYLES = `
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
     color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s;
   }
-  .bttg-heatmap-toggle:hover { background: rgba(255,255,255,0.08); }
+  .bttg-heatmap-toggle:hover, .bttg-heatmap-toggle:active { background: rgba(255,255,255,0.08); }
 
-  .bttg-heatmap { margin-top: 12px; overflow-x: auto; }
-  .bttg-hm-row { display: flex; align-items: center; margin-bottom: 2px; }
-  .bttg-hm-day { width: 32px; font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; padding-right: 4px; flex-shrink: 0; }
-  .bttg-hm-cells { display: flex; flex: 1; gap: 1px; }
-  .bttg-hm-cell { flex: 1; height: 16px; border-radius: 2px; cursor: pointer; transition: transform 0.15s; min-width: 8px; }
-  .bttg-hm-cell:hover { transform: scale(1.4); z-index: 10; position: relative; }
+  .bttg-heatmap { margin-top: 12px; }
+  .bttg-hm-row { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
+  .bttg-hm-day { width: 32px; font-size: 12px; color: rgba(255,255,255,0.55); text-align: right; padding-right: 2px; flex-shrink: 0; padding-top: 4px; }
+  .bttg-hm-cells { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); flex: 1; gap: 2px; min-width: 0; }
+  .bttg-hm-cell { min-height: 22px; border-radius: 3px; font-size: 12px; line-height: 22px; text-align: center; color: rgba(255,255,255,0.75); min-width: 0; overflow: hidden; }
+  @media (min-width: 769px) {
+    .bttg-hm-cells { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  }
 
   .bttg-hm-legend {
     display: flex; align-items: center; gap: 4px; justify-content: center; margin-top: 8px;
-    font-size: 10px; color: rgba(255,255,255,0.4);
+    font-size: 12px; color: rgba(255,255,255,0.4);
   }
   .bttg-hm-legend-box { width: 14px; height: 14px; border-radius: 2px; }
 `;
