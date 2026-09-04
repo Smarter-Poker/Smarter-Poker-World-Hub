@@ -987,6 +987,57 @@ def _workers_dispatch(path: str) -> bool:
     return bool(WORKERS_BASE_URL) and path in WORKERS_PREFERRED
 
 
+# ─── Critical jobs: page after N consecutive failures (2026-09-04) ──────────
+# A job on this list is one whose FAILURE is the incident, not a symptom of
+# one. The Club Commander login-bridge probe is the first: when it fails,
+# nobody can sign in to Commander, and until today that produced a ⚠️ line in
+# this journal, a GitHub issue, and a Sentry event that the exhausted org
+# quota drops on the floor. None of those reach a phone. The workers
+# healthcheck has paged on two consecutive failures since Phase 2A; this gives
+# the same treatment to any job named here, through the same _alert() path
+# (de-duplicated, cooldown, state persisted across restarts).
+#
+# Value = consecutive non-200 responses (timeouts and exceptions count) before
+# the page goes out. One recovery SMS closes the loop when the job is 200 again.
+# A 401 counts: for the commander probe that is CRON_SECRET drift between the
+# hub and the commander Vercel project, which is exactly a failure.
+CRITICAL_JOBS = {
+    '/api/commander/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
+}
+_critical_state = {}
+
+
+def _critical_record(path: str, ok: bool, detail: str = ''):
+    """Count consecutive failures for a CRITICAL_JOBS path; page and recover."""
+    threshold = CRITICAL_JOBS.get(path)
+    if not threshold:
+        return
+    st = _critical_state.get(path)
+    if st is None:
+        st = _alert_bind(f'critical:{path}', {'consec_fail': 0, 'alert_sent': False})
+        _critical_state[path] = st
+    if ok:
+        if st.get('alert_sent'):
+            body = (f'✅ RECOVERED {path} - 200 again after '
+                    f'{st.get("consec_fail", 0)} consecutive failure(s)')
+            if _alert(st, body, recovery=True):
+                st['alert_sent'] = False
+        st['consec_fail'] = 0
+    else:
+        st['consec_fail'] = int(st.get('consec_fail', 0)) + 1
+        n = st['consec_fail']
+        if n >= threshold:
+            body = (f'🚨 CRITICAL {path} failed {n}x in a row: {detail[:160]}. '
+                    f'Runbook: smarter-poker-commander/docs/runbooks/login-bridge.md')
+            if st.get('alert_sent'):
+                log.error(f'[critical] {path} still failing ({n} consecutive); operator already paged')
+            else:
+                st['alert_sent'] = _alert(st, body)
+        else:
+            log.warning(f'[critical] {path} failure {n}/{threshold} - will page at {threshold}')
+    _alert_flush(st)
+
+
 def fire_cron(path: str):
     """Make an authenticated GET request to a Vercel cron endpoint (or workers when routed)."""
     if _workers_dispatch(path):
@@ -1015,12 +1066,16 @@ def fire_cron(path: str):
         elapsed = round(time.time() - t0, 1)
         if resp.status_code == 200:
             log.info(f'✅ {path} → {target_label} {resp.status_code} [{elapsed}s]')
+            _critical_record(path, True)
         else:
             log.warning(f'⚠️ {path} → {target_label} {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
+            _critical_record(path, False, f'HTTP {resp.status_code} {resp.text[:120]}')
     except requests.exceptions.Timeout:
         log.error(f'❌ {path} → {target_label} TIMEOUT after {job_timeout(path)}s')
+        _critical_record(path, False, f'TIMEOUT after {job_timeout(path)}s')
     except Exception as e:
         log.error(f'❌ {path} → {target_label} {type(e).__name__}: {e}')
+        _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
 def fire_script(path: str, extra_args: list):
