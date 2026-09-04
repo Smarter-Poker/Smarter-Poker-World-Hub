@@ -11,7 +11,30 @@ import importlib.util
 import os
 import sys
 import tempfile
+import types
 from pathlib import Path
+
+# The dispatcher imports apscheduler and requests at module level (and tries
+# to pip-install apscheduler when missing). A CI runner has neither, and this
+# test exercises only the pure paging logic, so stub what is absent.
+def _stub(name, **attrs):
+    if name in sys.modules:
+        return
+    try:
+        __import__(name)
+    except Exception:
+        m = types.ModuleType(name)
+        for k, v in attrs.items():
+            setattr(m, k, v)
+        sys.modules[name] = m
+
+_stub('requests', get=lambda *a, **k: None, post=lambda *a, **k: None,
+      exceptions=types.SimpleNamespace(Timeout=type('Timeout', (Exception,), {})))
+_stub('apscheduler')
+_stub('apscheduler.schedulers')
+_stub('apscheduler.schedulers.blocking', BlockingScheduler=object)
+_stub('apscheduler.triggers')
+_stub('apscheduler.triggers.cron', CronTrigger=object)
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'scripts' / 'openclaw-cron-dispatcher.py'
