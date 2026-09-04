@@ -38,8 +38,21 @@ vercel env add STRIPE_WEBHOOK_SECRET production
 
 ### 4. Redeploy
 
+Corrected 2026-09-04: this said `vercel --prod`, which CLAUDE.md 1.3 forbids
+outright - a CLI deploy skips the build gate, the secret scan and the
+post-deploy SHA verification, and has produced duplicate and out-of-order
+deployments here before. Redeploy the way everything else deploys:
+
 ```bash
-vercel --prod
+bash scripts/git-safe-push.sh "chore(stripe): rotate webhook secret"
+```
+
+If nothing needs committing, change the environment variable in the Vercel
+dashboard and redeploy the current production deployment from there. Either
+way, confirm production is serving what you expect before you call it done:
+
+```bash
+curl -s https://smarter.poker/api/health
 ```
 
 ## Note

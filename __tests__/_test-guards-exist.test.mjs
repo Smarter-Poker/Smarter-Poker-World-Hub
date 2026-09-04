@@ -88,6 +88,12 @@ import './global-header-approved.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
+// Phase A, 2026-09-04: the horses run a deterministic engine, so no /horses
+// source may offer them a language model. This one has to be reachable more
+// than most: the control it removes has been named as "the thing to remove
+// next" in three separate documents, which is the shape of a rule that keeps
+// getting re-broken.
+import './horses-no-language-model-for-the-fleet.test.mjs';
 import './horses-operator-foundation.test.mjs';
 import './horses-phase2-client.test.mjs';
 import './horses-phase2-migration.test.mjs';
@@ -95,6 +101,13 @@ import './horses-phase2-server.test.mjs';
 import './horses-phase3-client.test.mjs';
 import './horses-phase3-migration.test.mjs';
 import './horses-phase3-reverify.test.mjs';
+// Phase 4, 2026-09-04. The law file is the one that must never become
+// unreachable: it pins that no read excludes a horse, and that nothing tells
+// an operator a restriction bites while enforcement is off.
+import './horses-phase4-client.test.mjs';
+import './horses-phase4-migration.test.mjs';
+import './horses-phase4-players-are-players.law.test.mjs';
+import './horses-phase4-server.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';

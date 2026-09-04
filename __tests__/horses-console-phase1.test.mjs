@@ -744,7 +744,7 @@ test('every shared component file obeys the house rules', async () => {
  * Phase 2 review found: thirteen tabs asking for invented names, invisible to
  * a `god`, suite green throughout.
  */
-test('tabRegistry exports eighteen tabs in order, and Fleet Command replaced Grinder', async () => {
+test('tabRegistry exports nineteen tabs in order, and Fleet Command replaced Grinder', async () => {
   const src = await read(`${COMPONENT_DIR}tabRegistry.js`);
   const ids = [...src.matchAll(/\{ id: '([a-z]+)', label:/g)].map((m) => m[1]);
   assert.deepEqual(ids, [
@@ -756,8 +756,10 @@ test('tabRegistry exports eighteen tabs in order, and Fleet Command replaced Gri
     'reviews', 'scrapers', 'audit',
     // Phase 2.
     'staff', 'approvals',
+    // Phase 4.
+    'players',
   ]);
-  assert.equal(ids.length, 18);
+  assert.equal(ids.length, 19);
   assert.match(src, /export const TABS = \[/);
   assert.match(src, /export const DEFAULT_TAB = 'stable'/);
 
@@ -770,7 +772,7 @@ test('tabRegistry exports eighteen tabs in order, and Fleet Command replaced Gri
   // the server module that defines it rather than copied into this file.
   const { ALL_PERMISSIONS } = await import('../src/lib/horses/permissions.js');
   const { TABS } = await import(`../${COMPONENT_DIR}tabRegistry.js`);
-  assert.equal(TABS.length, 18);
+  assert.equal(TABS.length, 19);
   assert.deepEqual(TABS.map((t) => t.id), ids, 'the parsed order is the exported order');
   for (const tab of TABS) {
     assert.ok(
@@ -778,6 +780,13 @@ test('tabRegistry exports eighteen tabs in order, and Fleet Command replaced Gri
       `tab ${tab.id} declares "${tab.permission}", which no role can hold`,
     );
   }
+  // Phase 4's tab, held to the same three properties Fleet Command is.
+  const players = TABS.find((t) => t.id === 'players');
+  assert.equal(players.label, 'Players');
+  assert.equal(players.permission, 'players.read');
+  assert.equal(typeof players.load, 'function', 'Players is its own code-split module');
+  assert.notEqual(players.legacy, true, 'it is not rendered inline by index.js');
+
   const fleet = TABS.find((t) => t.id === 'fleet');
   assert.equal(fleet.label, 'Fleet Command');
   assert.equal(fleet.permission, 'fleet.read');

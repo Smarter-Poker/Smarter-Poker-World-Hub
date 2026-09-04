@@ -25,13 +25,14 @@ plan document and not started.
 - Phase 1, foundation and hardening: DONE, LIVE.
 - Phase 2, operator RBAC, maker-checker approvals, audit trail: DONE, LIVE.
 - Re-verification pass over Phases 1 and 2: DONE, LIVE.
-- Phase 3, the Fleet Command Center: DONE, LIVE (console and database). The
-  Club Arena ENGINE half is merged to that repo's `main` and published to the
-  static origin, but the engine CONTAINER cutover had not yet run at the time of
-  writing. See section 10 and section 19.
+- Phase 3, the Fleet Command Center: DONE, LIVE END TO END. Console, database
+  and engine. The container cutover completed on the `:45` schedule at
+  2026-09-04 03:06Z and the fleet has been publishing state and heartbeats ever
+  since (55 beats by 09:53Z, `degraded = false`, 578 of 1,000 horses seated).
+- Dan's AI Model instruction below: DONE 2026-09-04. See the update after it.
 
-**The immediate unfinished objective, and Dan's newest instruction.** Dan's last
-message before this handoff, verbatim in substance:
+**The instruction that opened the next session, and what was done about it.**
+Dan's last message before this handoff, verbatim in substance:
 
 > "FOR PHASE 3 WHEN YOU START WORKING INSIDE THE FLEET COMMAND CENTER, YOU NEED
 > TO KNOW AND UNDERSTAND THAT THE HORSES RUN OFF THEIR OWN DETERMINISTIC ENGINE
@@ -41,15 +42,26 @@ message before this handoff, verbatim in substance:
 He attached a screenshot of the Grinder Horses tab showing a "Grinder Settings"
 card with an "AI Model" dropdown set to "GPT-4o (Best)".
 
-**THIS IS THE FIRST TASK OF THE NEXT SESSION.** It is not a cosmetic change: the
-control tells an operator something false about how the platform works. Evidence
-gathered 2026-09-04 (section 6.9) proves the poker engine contains no LLM at all
-and never reads that setting.
+**DONE, 2026-09-04.** It was not a cosmetic change: the control told an operator
+something false about how the platform works. Evidence in section 6.9 proves the
+poker engine contains no LLM at all and never reads that setting.
+
+What shipped, and it is more than Dan asked for. All FOUR controls in that card
+went, not just the model one. The other three - Max Tables Per Horse, Daily Play
+Hours, Starting Chips - were write-only in exactly the same way, and the model
+control is only the most obvious member of the family, not a different disease.
+The route's allowlist is now the eight social-content keys the content pipeline
+genuinely reads, and nothing else. In their place the Settings tab carries one
+card that states the horses run a deterministic engine and routes to Fleet
+Command, which is where seating is actually governed and which the engine
+actually reads. `__tests__/horses-no-language-model-for-the-fleet.test.mjs`
+holds the line, and it was proved to go RED by re-injecting the control before
+it was trusted to hold anything.
 
 **The first action the next agent should take** is section 22, step by step. In
-one sentence: open the World Hub repo, confirm the state in section 10, then
-delete the `grinder_ai_model` control and audit the other three `grinder_*`
-controls beside it.
+one sentence: open Fleet Command in a browser as a signed-in operator, including
+at 375px, because that panel is live and no browser has ever rendered it
+(D-10, D-11), then start Phase 4.
 
 ---
 
@@ -951,10 +963,10 @@ and the client's executable-kind table (fleet_policy became executable).
 
 | Priority | Defect | Evidence | Impact | Recommended fix | Status |
 | --- | --- | --- | --- | --- | --- |
-| **CRITICAL (product truth)** | **D-1. The console offers an "AI Model" choice for the horses. The horses have no AI model.** | `content_settings.grinder_ai_model = 'gpt-4o'` in production; zero LLM references in the whole Club Arena `server/src`; the engine never reads `content_settings`; only `stable-admin.js` (write allowlist) and `index.js` (the control) mention it | An operator is told the poker fleet is driven by GPT-4o. It is driven by `HorseLogic`. Dan flagged it himself | Delete the control and the key. See section 21 Phase A | OPEN, Dan's first task for the next session |
+| ~~CRITICAL~~ | ~~D-1. The console offers an "AI Model" choice for the horses.~~ | `content_settings.grinder_ai_model = 'gpt-4o'` in production; zero LLM references in the whole Club Arena `server/src`; the engine never reads `content_settings`; only `stable-admin.js` (write allowlist) and `index.js` (the control) mention it | An operator was told the poker fleet is driven by GPT-4o. It is driven by `HorseLogic` | Deleted 2026-09-04 with D-4, together with the card they sat in. `__tests__/horses-no-language-model-for-the-fleet.test.mjs` fails if a model choice for the fleet returns | **CLOSED** |
 | HIGH | D-2. Playwright E2E is red on World Hub `main` | `020-hamburger.spec.ts:463` Bankroll Log URL cleanup and `10-poker-near-me-phase-12.spec.ts:118` touch targets fail on `main` itself; `021-video-library` accessibility failed once | Every PR shows UNSTABLE, so autopilot cannot auto-merge anything | Fix the two page defects, or quarantine the tests with a reason. Not `/horses` work | OPEN, pre-existing, not caused by this programme |
-| HIGH | D-3. The engine container has not taken the fleet policy code | `auto-deploy-hetzner.yml` run for `0b28bad0` ended `cancelled`; last success `474b1377`; `ca_horse_fleet_heartbeat` and `_state` are empty | Fleet Command's Health tab honestly says "no heartbeat has ever been recorded", and the policy has no reader | Wait for the `:45` run and confirm heartbeats, or check `publish-watchdog`'s dispatch | OPEN, expected to self-heal |
-| MEDIUM | D-4. The other three `grinder_*` settings are also write-only | Same evidence as D-1 | Max Tables Per Horse, Daily Play Hours and Starting Chips look like fleet controls and steer nothing | Decide per field: delete, or wire to the fleet policy which the engine does read | OPEN, needs Dan's call, see section 19 |
+| ~~HIGH~~ | ~~D-3. The engine container has not taken the fleet policy code~~ | The cancelled run self-healed. First heartbeat `2026-09-04 03:06:24Z`; at 09:53Z there were 55 beats, `degraded = false`, 1,000 `ca_horse_fleet_state` rows, `fn_ca_fleet_overview(null)` returning 578 seated across three clubs and `stuck = 0` | Fleet Command's Health tab now has a live heartbeat, and the policy has its reader | Nothing. Verified by reading the database, not the health endpoint | **CLOSED 2026-09-04** |
+| ~~MEDIUM~~ | ~~D-4. The other three `grinder_*` settings are also write-only~~ | Same evidence as D-1, re-confirmed 2026-09-04: `grep -rn "grinder_"` across both repos finds the four keys in exactly two shipped files (the write allowlist and the controls) plus two archived migrations, and nothing that reads one | An operator setting "Daily Play Hours 8" was told the fleet now plays eight hours. It played whatever the engine chose, and the console reported the operator's own number back to them | Deleted with D-1 rather than escalated. The three named REAL levers (simultaneous tables, session length, buy-in size) that the engine decides for itself; if any is wanted it belongs on `ca_horse_fleet_policy`, which has an engine reader, not on `content_settings`, which does not. See D-13 | **CLOSED 2026-09-04** |
 | MEDIUM | D-5. Materiality has a floor but no window | `MATERIAL_CAP_FLOOR` comment in `src/lib/horses/fleetPolicy.js` | A run of small cuts above the floor is still individually immaterial | Lookback over `admin_audit_log` inside `fn_ca_fleet_set_policy` | OPEN, deliberately deferred |
 | MEDIUM | D-6. No pending-approval expiry sweeper | Rows past TTL are closed when touched; the queue filters them out but nothing writes `expired` | The history filter `status=expired` finds little | A small scheduled job through Open Claw | OPEN |
 | MEDIUM | D-7. SQL RPCs and the routes both audit the same Phase 2 action | Two `operator.grant_role` rows per grant, one with request context and one without | The Audit tab's counts double for those actions | Namespace the SQL rows or drop the SQL audit where the route audits | OPEN, noted in the re-verification record |
@@ -962,6 +974,8 @@ and the client's executable-kind table (fleet_policy became executable).
 | LOW | D-9. The `schedule` policy field has no editor | `FleetPanel` states it is not edited there | An operator cannot set a seating schedule from the console | Add the control, or move the field out of the policy | OPEN by design |
 | LOW | D-10. The Fleet Command UI has never been rendered | No React test environment in the World Hub for these panels | A runtime error in a panel would not be caught by the suite | Click through it in a browser as a signed-in operator, or add a rendering test harness | OPEN |
 | LOW | D-11. Mobile verification missing for the new panels | Not tested at 375px | Dan's rule is mobile first | Check the three panels at 375px | OPEN |
+| MEDIUM | **D-12. Fleet State shows eight states. The engine writes three.** | `HorseFleetManager.ts:1933` types the field as `'idle' \| 'seated' \| 'suspended'` and writes nothing else; live `select state, count(*) from ca_horse_fleet_state` returns `seated 578, idle 422` and nothing more; the schema, `fn_ca_fleet_overview` and `summariseStates` all carry eight | Five tiles are structurally zero rather than measured zero, and one of them is **Playing**. An operator reading "Seated 578, Playing 0" concludes no horse is in a hand, while 578 of them are. This is the CLAUDE.md trap where a metric at zero means the opposite of what it looks like. The headline Seated figure is NOT affected: `SEATED_STATES` sums seated and playing, so it is right either way | Either the engine learns the other five (it knows when a horse is in a hand, busted or sitting out), or the console stops presenting a vocabulary the writer does not speak. Do not simply hide the zeros: `summariseStates` documents, correctly, that hiding `busted` at zero teaches an operator that busted is not a thing. The honest interim is to mark the five as not reported rather than as zero | OPEN, found 2026-09-04 while closing D-3 |
+| LOW | D-13. The three real grinder levers have no home | D-4's deletion removed the controls, not the intent. Simultaneous tables per horse, session length and buy-in size are all things the engine decides and an operator may legitimately want to steer. `ca_horse_fleet_policy.max_per_table` is horses PER TABLE, which is a different quantity from tables per horse | An operator who used to set these has no control at all now, which is honest but not finished | Add them to `ca_horse_fleet_policy` WITH an engine reader in the same change, and put them through the materiality table. Never re-add a control ahead of its reader | OPEN, was B-1, decided 2026-09-04 |
 
 ---
 
@@ -1042,24 +1056,36 @@ statement was run. If a future phase needs one, take it before the first
 
 ## 19. Current Blockers And Decision Points
 
-**B-1. What happens to the other three `grinder_*` settings? DAN'S CALL.**
-`grinder_ai_model` is unambiguous and goes. The other three (Max Tables Per
-Horse, Daily Play Hours, Starting Chips) are also read by nothing, but they
-describe things the fleet policy could genuinely own. Options:
+**B-1. What happens to the other three `grinder_*` settings? DECIDED 2026-09-04,
+option (a), by the agent rather than by Dan.** All four controls are deleted.
 
-- **(a) Delete all four.** Honest immediately. Loses the stated intent.
-- **(b) Delete `grinder_ai_model`, move the other three onto the fleet policy**
-  so the engine actually honours them. More work, and `max_per_table` already
-  covers part of it. **Recommended, staged: (a) now for the AI model, (b) as a
-  scoped piece of the next fleet work.**
-- **(c) Leave them and label them louder.** Rejected: a control that steers
-  nothing is a lie whatever the label says.
+Why this was not escalated. It was written up as Dan's call, and on re-reading
+it is not one: option (c) was already rejected in the same paragraph that
+proposed it, and option (b) cannot be done today, because moving a field onto
+the fleet policy without an engine reader in the same change produces exactly
+the defect being fixed - a control that steers nothing - only now on the screen
+an operator has been told to trust. That leaves (a) as the only thing that can
+ship. Dan's working rule 12 is "never ask 'should I?', just do it; only stop for
+genuine forks", and a choice with one live branch is not a fork.
 
-Consequence of getting this wrong: an operator sets "Daily Play Hours 8",
-believes the fleet now plays eight hours, and it plays twenty four.
+What the deletion costs, stated plainly so it is not lost: Max Tables Per Horse,
+Daily Play Hours and Starting Chips named REAL levers. The engine genuinely
+multi-tables its horses, genuinely runs sessions, and genuinely picks a buy-in;
+it simply decides all three itself and has never once looked at these columns.
+The intent is carried forward as D-13, with the condition attached: a field goes
+on `ca_horse_fleet_policy` only alongside the engine code that reads it.
 
-**B-2. Engine cutover.** Technical, self-healing, no decision needed. Confirm
-heartbeats before telling Dan Phase 3 is fully live.
+The `content_settings` columns are LEFT IN PLACE holding their last values.
+`SETTINGS_FIELDS` no longer accepts them, so nothing can move them, and nothing
+can imply they mean anything. Dropping four columns is a Tier 3 migration for
+its own branch and buys nothing an operator can see.
+
+**B-2. Engine cutover. RESOLVED 2026-09-04.** The cancelled run self-healed on
+the next `:45` schedule. First heartbeat 03:06:24Z; 55 beats by 09:53Z,
+`degraded = false`, 1,000 state rows, `fn_ca_fleet_overview` returning 578
+seated across three clubs. Phase 3 is live end to end: the engine reads the
+policy and publishes, the RPC aggregates, the console has something true to
+show. Verified against the database, never the health endpoint.
 
 **B-3. The two red E2E tests on `main`.** Neither is `/horses`. They block
 autopilot for everyone. Someone must own them; if the next agent is asked to,
@@ -1076,16 +1102,25 @@ recorded honestly in the audit trail.
 
 ### Critical
 
-1. Remove the "AI Model" control for the horses and the `grinder_ai_model` key
-   (D-1, Dan's explicit first task).
-2. Confirm the engine cutover wrote heartbeats (D-3).
+1. ~~Remove the "AI Model" control for the horses and the `grinder_ai_model`
+   key (D-1, Dan's explicit first task).~~ **DONE 2026-09-04.** All four
+   `grinder_*` controls deleted, the route's allowlist narrowed to the eight
+   social-content keys the pipeline actually reads, and
+   `__tests__/horses-no-language-model-for-the-fleet.test.mjs` added. That
+   guard was proved to FAIL by re-injecting the control before it was trusted.
+2. ~~Confirm the engine cutover wrote heartbeats (D-3).~~ **DONE 2026-09-04.**
 
 ### High priority
 
-3. Decide and act on the other three `grinder_*` controls (B-1).
+3. ~~Decide and act on the other three `grinder_*` controls (B-1).~~ **DONE,
+   deleted with D-1.** The intent survives as D-13.
 4. Click through Fleet Command in a browser as a signed-in operator (D-10),
-   including at 375px (D-11).
-5. Phase 4 of 10: player 360, responsible gaming, KYC, support.
+   including at 375px (D-11). This is now the OLDEST unverified thing in the
+   programme: the panel is live, an operator can reach it, and no browser has
+   ever rendered it.
+5. Fleet State reports five states the engine never writes, one of them
+   "Playing" (D-12).
+6. Phase 4 of 10: player 360, responsible gaming, KYC, support.
 
 ### Medium priority
 
@@ -1197,22 +1232,33 @@ D-5 through D-9, in that order, each on its own branch.
    export PATH="/opt/homebrew/bin:$PATH"; source ~/.nvm/nvm.sh
    git fetch origin && git log --oneline -1 origin/main
    git status --short
-   node --test __tests__/horses-*.test.mjs   # expect 699 pass, 0 fail
+   node --test __tests__/horses-*.test.mjs   # expect 704 pass, 0 fail
    curl -s https://smarter.poker/api/health
    ```
-4. Confirm the database is still safe:
+   `psql` is at `/opt/homebrew/bin/psql` and is NOT on the default PATH; nor is
+   `node`, which needs `~/.nvm`. Both exports above are load-bearing.
+4. Confirm the database is still safe, and that the fleet is still publishing:
    ```
    PGPASSWORD=$(grep '^SUPABASE_DB_PASSWORD=' ~/Documents/club-arena/.env | cut -d= -f2- | tr -d '"') \
    psql "host=aws-0-us-west-2.pooler.supabase.com port=5432 dbname=postgres user=postgres.kuklfnapbkmacvwxktbh sslmode=require" \
      -c "select approvals_enabled, enforce_named_roles from ca_operator_policy;" \
-     -c "select count(*) from ca_horse_fleet_heartbeat;"
+     -c "select count(*) beats, now()-max(beat_at) age from ca_horse_fleet_heartbeat;"
    ```
-5. Inspect the three files named in Phase A.
-6. Do NOT modify: `supabase/migrations/2026090312*.sql`,
+   The heartbeat column is `beat_at`, not `created_at`. An age over about
+   fifteen minutes outside a `:55` maintenance break means the engine has
+   stopped publishing, and that is worth reading the engine logs over before
+   touching anything on the console.
+5. Do NOT modify: `supabase/migrations/2026090312*.sql`,
    `2026090314*.sql`, `20260903202500_*.sql`, `20260903222000_*.sql` (all applied
    to production; a change there is a new migration, never an edit), and do not
    revert anything under `docs/horses/`.
-7. Resume at **Phase A, step 1**: delete the AI Model control.
+6. Do NOT re-add a control for the horses that has no reader. If you are adding
+   a settings card and the value it writes is not read by
+   `src/content-engine/pipeline/PipelineCommander.js` or by the Club Arena
+   engine, you are re-creating the defect this session removed, and
+   `__tests__/horses-no-language-model-for-the-fleet.test.mjs` will say so.
+7. Resume at **Phase C**: render Fleet Command in a browser, then Phase 4.
+   Phase A is done and Phase B is confirmed.
 
 ---
 
@@ -1258,18 +1304,21 @@ unrelated code.
 
 ## 25. Final Continuation Summary
 
-**Exact stopping point.** Phases 1, 2 and 3 are built, adversarially reviewed,
-merged and serving. World Hub `main` is `2f68c734da` and production serves it.
-Club Arena `main` carries the engine half and the bundle is published to the
-Hetzner origin. Five migrations are applied and registered. 699 console tests and
-4,884 engine tests pass. Nothing of mine is unpushed and no pull request of mine
-is open. Two things are outstanding: the engine container has not yet restarted
-onto the fleet policy code, and the console still offers an "AI Model" choice for
-the horses.
+**Exact stopping point, updated 2026-09-04 after Phase A.** Phases 1, 2 and 3
+are built, adversarially reviewed, merged and serving, and Phase 3 is now live
+END TO END: the engine container took the fleet policy code on the `:45`
+schedule at 03:06Z and has been publishing state and heartbeats since. Five
+migrations are applied and registered. 704 console tests and 4,884 engine tests
+pass. The AI Model control and the three inert controls beside it are deleted,
+with a guard test that was proved to fail before it was trusted. Nothing is
+unpushed beyond the branch named in the commit strategy below.
 
-**What to work on first.** Remove the AI Model control. Dan asked for it by name
-and it is the one thing in the console that states something untrue about how the
-platform works.
+**What to work on first.** Open Fleet Command in a browser as a signed-in
+operator, including at 375px. It is the oldest unverified thing in the
+programme: three panels shipped, adversarially reviewed and now carrying live
+data, and not one of them has ever been rendered by a browser. Everything else
+in this programme has been proved by reading something; that has been proved by
+reasoning about source. Then start Phase 4.
 
 **Most important locked requirements.** Horses are players and are never treated
 differently from humans. Horses are deterministic and are never described as
@@ -1279,10 +1328,13 @@ policy row says otherwise, and no control reaches inside a hand. Push a branch
 and stop; the workflows publish, including the direct Hetzner publish for Club
 Arena.
 
-**Greatest technical risk.** The fleet policy is a live lever with no reader yet.
-The moment the engine restarts, every field in `ca_horse_fleet_policy` starts
-governing seating for real. It is seeded permissive; do not edit it to "test"
-anything.
+**Greatest technical risk.** The fleet policy HAS its reader now, which converts
+this from a latent risk into a live one. Every field in `ca_horse_fleet_policy`
+governs seating for real, this minute, for 578 seated horses across three clubs.
+It is seeded permissive. DO NOT EDIT IT TO TEST ANYTHING - there is no staging
+copy of the fleet, and a bias or a cap typed into that row to see what happens
+takes effect on the next cycle. Read it with `fn_ca_fleet_policy_effective`;
+change it only through the console's own gated path, and only meaning it.
 
 **Greatest visual risk.** No panel in this programme has ever been rendered by a
 browser in a test. A runtime error in `FleetPanel.jsx`, `StaffPanel.jsx` or

@@ -831,6 +831,34 @@
     grid-column: 1 / -1;
 }
 
+/*
+ * A neutral secondary action. .btnSuccess and .btnDanger are the only other
+ * buttons of this size and both carry a verdict in their colour, which is
+ * wrong for "go and look at the tab that actually owns this". Tokens only,
+ * no raw hex, per the Phase 1 contract.
+ */
+.linkBtn {
+    padding: 8px 14px;
+    border: 1px solid var(--accent-line);
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.linkBtn:hover {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+}
+
+.linkBtn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 .settingItem {
     margin-bottom: 20px;
 }
@@ -1210,8 +1238,10 @@
    .statusActive. Fleet Command is src/components/horses/FleetPanel.jsx and is
    styled by src/components/horses/shared.module.css, which is where every
    panel that is its own module gets its rules. The four grinder_* settings
-   controls moved to the Settings tab and use .settingCard / .settingItem,
-   which that tab already had.
+   controls moved to the Settings tab and used .settingCard / .settingItem,
+   which that tab already had; they were deleted on 2026-09-04 because nothing
+   read them, and the card that replaced them uses the same two classes plus
+   .linkBtn.
 
    .tableCellAvatar (line ~606, outside that block) lost its last reference in
    the same edit and is LEFT IN PLACE: it is a generic table-cell avatar rule,

@@ -193,11 +193,15 @@ bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "descriptive c
 
 Never run `git add`, `git commit`, `git push`, `git pull` individually.
 Never run `vercel deploy` or `vercel --prod`.
-Never call the deploy hook URL **by hand** — one deploy hook DOES exist
-(`VERCEL_HUB_VANGUARD_DEPLOY_HOOK`), and it is owned exclusively by the
-sanctioned daily safety-net workflow `club-arena-scheduled-deploy.yml`
-(CHECK 6c allowlisted). No other caller is permitted; CI enforces this
-(`scripts/ci/check-no-vercel-deploy.mjs`).
+Never call the deploy hook URL. CORRECTED 2026-09-04: this used to say the
+hook was "owned exclusively by the sanctioned daily safety-net workflow
+`club-arena-scheduled-deploy.yml`". **That workflow does not exist.** It was
+retired on 2026-09-03 together with the Club Arena sync it was a safety net
+for, and `scripts/ci/check-no-vercel-deploy.mjs` has had an EMPTY allowlist
+ever since. So the words here promised a safety net that is not running, which
+is worse than having none: an agent reads it, assumes a missed publish gets
+caught, and stops checking. **Nothing may call a deploy hook now.** CI
+enforces it (`scripts/ci/check-no-vercel-deploy.mjs`, exit 1 on any caller).
 (`scripts/antigravity-deploy.sh` was DELETED on 2026-08-27 — issue #653: a
 file the rules name as forbidden, sitting where an agent will find it, is a
 trap. The rule against running it survives as the CI check.)
@@ -222,13 +226,18 @@ If it exits non-zero, your code is NOT deployed. Fix the issue and re-run.
 4. If build succeeds: deployment becomes READY and is auto-promoted to Current (production)
 5. `verify-deploy.js` (called by the push script) confirms production serves the new SHA
 
-There is NO manual promotion step, and no deploy hook in the PUSH path —
-one push = one build = one deployment = auto-promoted to production.
-(One deploy hook exists OUTSIDE the push path: the daily safety net
-`club-arena-scheduled-deploy.yml` POSTs `VERCEL_HUB_VANGUARD_DEPLOY_HOOK`
-so a missed Club Arena sync still publishes. Issue #653 resolved these two
-sentences against reality on 2026-08-27: the hook exists, that workflow owns
-it, and nothing else may ever call it.)
+There is NO manual promotion step and NO deploy hook anywhere in this repo's
+path — one push = one build = one deployment = auto-promoted to production.
+
+CORRECTED 2026-09-04. This paragraph used to describe a daily safety net,
+`club-arena-scheduled-deploy.yml`, POSTing `VERCEL_HUB_VANGUARD_DEPLOY_HOOK`
+"so a missed Club Arena sync still publishes". That was true when issue #653
+resolved it on 2026-08-27 and stopped being true on 2026-09-03, when the Club
+Arena sync was replaced by Club Arena's own origin and both the sync and its
+safety net were deleted. Club Arena no longer publishes through this repo at
+all, and a Vercel rebuild here would not publish it if it did. Its own nets
+live in its own repo: the `*/30` catch-up cron inside `publish-club-arena.yml`,
+`publish-watchdog.yml`, and the orphan sweep in `agent-autopilot.yml`.
 
 ### 1.5 Claiming Success
 
@@ -803,7 +812,11 @@ GitHub's environment to execute:
 - `venue-scraper.yml`
 - `weekly-schedule-scraper.yml`
 - `stale.yml`
-- `club-arena-scheduled-deploy.yml`
+- ~~`club-arena-scheduled-deploy.yml`~~ — **RETIRED 2026-09-03**, together
+  with the Club Arena sync it was the daily deploy-hook safety net for. Club
+  Arena publishes to its own origin now and this repo is not rebuilt for a Club
+  Arena merge. `scripts/ci/check-no-vercel-deploy.mjs` allows NO deploy-hook
+  caller. Do not re-add it.
 - `vercel-uniqueness-check.yml`
 - `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
 - `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
