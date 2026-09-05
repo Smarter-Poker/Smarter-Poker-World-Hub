@@ -60,6 +60,11 @@ import {
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
+// One definition of what each wallet tab means, shared with the API that counts
+// and queries them. See the file header for why it is not a list of type names.
+import { matchesFilter } from '../../lib/diamonds/ledgerFilters';
+// #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
+import styles from './DiamondWalletModal.module.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction type config: Lucide icons, labels, colors (R8-I10)
@@ -128,32 +133,23 @@ const FILTER_OPTIONS = [
     { value: 'refund', label: 'Refunds' },
 ];
 
-const EARNED_TYPES = [
-    'bonus', 'signup_bonus', 'daily_bonus', 'daily_login', 'daily_trivia',
-    'streak_reward', 'achievement', 'challenge',
-    'tournament_prize', 'pvp_win', 'game_reward', 'trivia_reward',
-    'vip_reward', 'vip_stipend',
-    'social_post', 'follow', 'reaction', 'comment', 'share', 'referral',
-    'profile_complete', 'profile_pic', 'video_watch', 'video_favorite',
-    'hendonmob_link', 'venue_review', 'promo_code',
-    'diamond_gift_received', 'diamond_received', 'diamond_gift_refund'
-];
-
-const SPENT_TYPES_EXCLUDE = ['refund', 'tournament_refund', 'pvp_refund'];
-
-// Every transaction type the Gifts tab should show.
-//
-// The filter and the counter each hardcoded only ['diamond_gift_sent',
-// 'diamond_gift_received'], so a gift that was REFUNDED
-// ('diamond_gift_refund') vanished from the Gifts tab entirely: the user saw
-// the money leave and never saw it come back, which reads exactly like a lost
-// transfer. 'diamond_received' was missing for the same reason.
-const GIFT_TX_TYPES = [
-    'diamond_gift_sent',
-    'diamond_gift_received',
-    'diamond_received',
-    'diamond_gift_refund',
-];
+/*
+ * EARNED_TYPES, SPENT_TYPES_EXCLUDE and GIFT_TX_TYPES lived here until
+ * 2026-09-05 and are now in src/lib/diamonds/ledgerFilters.js, shared with the
+ * API so the count, the query and the rendered list are one opinion.
+ *
+ * EARNED_TYPES was a hand-written allowlist of thirty type names, and it had
+ * fallen behind by ten live kinds: `reconciliation` (420 rows, 679,549
+ * diamonds), `pvp_refund` (488 rows), `adjustment` (45,645 diamonds),
+ * `live_gift_received`, `easter_egg`, `training_reward` and others - 941 credit
+ * rows worth 740,908 diamonds a player had been paid and could not find under
+ * Earned. It is replaced by the sign of the amount, which is a fact about the
+ * row rather than a fact about our list, so it cannot go stale. Club Arena
+ * settled this identically on 2026-08-25; the shared module records both.
+ *
+ * If you are about to add a type name to a list to make a tab show a row:
+ * that is the bug, not the fix.
+ */
 
 // ── R8-I4: Date range filter options ──
 const DATE_RANGE_OPTIONS = [
@@ -535,6 +531,19 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         try { return localStorage.getItem(FILTER_CACHE_KEY) || 'all'; } catch (_) { return 'all'; }
     });
     const [total, setTotal] = useState(0);
+    /* Every tab's size over the WHOLE ledger, from the API. `null` until the
+       first response, and again if the count query fails - the badges then
+       render without a number rather than with a wrong one. */
+    const [serverCounts, setServerCounts] = useState(null);
+    /* Lifetime earned / spent / gifts / monthly, summed over the WHOLE ledger
+       by the API. Sent only with a first page, so it is not overwritten with
+       `null` by a Load More. */
+    const [lifetime, setLifetime] = useState(null);
+    /* The tab the in-flight request belongs to. A ref, not the state value,
+       because `fetchTransactions` must keep one identity: it is what the
+       balance-event subscriptions and the pull-to-refresh are built from, and
+       a new identity per tab change would tear those down and rebuild them. */
+    const filterRef = useRef(filter);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedTxId, setExpandedTxId] = useState(null); // ENH-B
     const [showStats, setShowStats] = useState(false); // ENH-G
@@ -718,15 +727,22 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 return;
             }
 
-            const res = await fetch(`/api/store/diamond-transactions?limit=${PAGE_SIZE}&offset=${offset}`, {
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
+            /* The active tab goes to the server, so a page of "Refunds" is a
+               page of refunds rather than 50 raw rows the browser then sieves
+               down to whatever happened to be in them. */
+            const res = await fetch(
+                `/api/store/diamond-transactions?limit=${PAGE_SIZE}&offset=${offset}&filter=${encodeURIComponent(filterRef.current)}`,
+                { headers: { Authorization: `Bearer ${session.access_token}` } }
+            );
 
             if (res.ok) {
                 const data = await res.json();
                 const txns = data.transactions || [];
                 const bal = data.balance ?? 0;
                 const tot = data.total || 0;
+                if (data.counts) setServerCounts(data.counts);
+                // Only a first page carries it; never clear it on a Load More.
+                if (data.lifetime) setLifetime(data.lifetime);
 
                 if (offset === 0) {
                     // Merge the fresh first page into any already-loaded pages so
@@ -808,8 +824,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── ENH-F: Persist filter selection ──
     const handleFilterChange = useCallback((value) => {
         setFilter(value);
+        /* Selecting a tab is now a new QUERY, not a sieve over what is loaded.
+           The rows on screen belong to the old tab, so they are cleared and
+           page one of the new tab is fetched - otherwise "Refunds" would show
+           whichever refunds happened to be among the last tab's rows, which is
+           the defect this whole change exists to remove. */
+        filterRef.current = value;
+        setTransactions([]);
+        setTotal(0);
+        fetchTransactions(0);
         try { localStorage.setItem(FILTER_CACHE_KEY, value); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-    }, []);
+    }, [fetchTransactions]);
 
     // ── ENH-E: Pull-to-refresh on mobile ──
     const handleTouchStart = useCallback((e) => {
@@ -1081,17 +1106,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             }
         }
 
-        // Apply type filter
+        /*
+         * The type filter is applied by the SERVER now (the request carries
+         * `filter`), so what arrives is already the right set. This pass is
+         * kept as a sieve using the SAME shared predicate, for the one case
+         * where the two can differ: a cached first page rendered before the
+         * refetch for a newly-selected tab has landed.
+         */
         if (filter !== 'all') {
-         result = result.filter(tx => {
-                const txType = tx.transaction_type || tx.type;
-                if (filter === 'earned') return EARNED_TYPES.includes(txType);
-                if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
-                if (filter === 'refund') return ['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
-                if (filter === 'purchase') return ['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType);
-                if (filter === 'gifts') return GIFT_TX_TYPES.includes(txType);
-                return txType === filter;
-            });
+            result = result.filter(tx => matchesFilter(tx, filter));
         }
 
         // Apply search filter
@@ -1111,19 +1134,45 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         return result;
     }, [transactions, filter, searchQuery, dateRange]);
 
-    // ── H2: Filter badge counts ──
-    const filterCounts = useMemo(() => {
-        const counts = { all: transactions.length, purchase: 0, earned: 0, spent: 0, refund: 0, gifts: 0 };
-        transactions.forEach(tx => {
-            const txType = tx.transaction_type || tx.type;
-            if (EARNED_TYPES.includes(txType)) counts.earned++;
-            if (tx.amount < 0 && !SPENT_TYPES_EXCLUDE.includes(txType)) counts.spent++;
-            if (['refund', 'tournament_refund', 'pvp_refund'].includes(txType)) counts.refund++;
-            if (['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType)) counts.purchase++;
-            if (GIFT_TX_TYPES.includes(txType)) counts.gifts++;
-        });
-        return counts;
-    }, [transactions]);
+    /*
+     * ── H2: Filter badge counts ── THESE COME FROM THE SERVER.
+     *
+     * They used to be counted here, over `transactions` - the rows currently
+     * LOADED. Measured on production 2026-09-05, a 416-row wallet rendered
+     * All (50), Refunds (31), Earned (48 by sign, 15 by the old allowlist),
+     * Spent (2), Gifts (0), Purchases (0). The ledger actually held 416, 246,
+     * 390, 25, 18 and 11. Every badge was a fact about the first page wearing
+     * the costume of a fact about the account - and Gifts and Purchases told a
+     * player with 18 gifts and 11 purchases that they had none.
+     *
+     * A count of a page cannot be repaired by counting the page more carefully.
+     * `/api/store/diamond-transactions` counts each tab over the whole ledger.
+     * `null` means that count failed; the badge then shows no number rather
+     * than a wrong one.
+     */
+    const filterCounts = serverCounts;
+
+    /*
+     * What the caption strip says, from THIS viewer's tier.
+     *
+     * The artwork's baked-in line promised "30 Days" to everybody. A Lifetime
+     * VIP read that as an expiry they do not have, and a player with no VIP at
+     * all read it as a benefit they had not bought. Every branch below is a
+     * statement that is true for the person looking at it.
+     */
+    const vipCaption = useMemo(() => {
+        if (vipTier === 'lifetime' || vipTier === 'founder') {
+            return 'Lifetime VIP. Your Membership Never Expires.';
+        }
+        if (isVipStatus && vipExpirationDate) {
+            const days = Math.ceil((new Date(vipExpirationDate) - new Date()) / 86400000);
+            if (days > 1) return `Your VIP Membership Unlocks All Premium Features For ${days} More Days.`;
+            if (days === 1) return 'Your VIP Membership Unlocks All Premium Features For One More Day.';
+            return 'Your VIP Membership Has Expired. Renew To Restore Premium Features.';
+        }
+        if (isVipStatus) return 'Your VIP Membership Unlocks All Premium Features.';
+        return 'VIP Unlocks All Premium Features. Tap VIP To See What Is Included.';
+    }, [vipTier, isVipStatus, vipExpirationDate]);
 
     // ── ENH-1: Group filtered transactions by date ──
     const groupedTx = useMemo(() => {
@@ -1145,67 +1194,56 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── ENH-3: Can load more? ──
     const canLoadMore = transactions.length < total;
 
-    // ── ENH-G: Transaction analytics stats (computed from loaded transactions) ──
+    /*
+     * ── ENH-G: Transaction analytics ── LIFETIME FIGURES COME FROM THE SERVER.
+     *
+     * This block used to open `if (!transactions.length) return null` and then
+     * sum `transactions` - the LOADED rows - under the headline "Total Earned".
+     * Its own comment said "computed from loaded transactions". On a 416-row
+     * wallet displaying 50, that lifetime headline was built from 12% of the
+     * ledger, and it moved every time the player pressed Load More.
+     *
+     * `lifetime` is summed over the whole ledger by
+     * /api/store/diamond-transactions, by the sign of the amount, with the same
+     * 5,000 ceiling Club Arena uses - so the two wallets cannot report
+     * different lifetimes for the same ledger. `null` means it could not be
+     * computed, and the panel says so rather than showing zeros.
+     */
     const stats = useMemo(() => {
-        if (!transactions.length) return null;
-        let totalEarned = 0, totalSpent = 0;
-        const sourceMap = {};
-        const now = new Date();
-        const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
-        let weekEarned = 0, weekSpent = 0;
+        if (!lifetime) return null;
+        const totalEarned = lifetime.earned || 0;
+        const totalSpent = lifetime.spent || 0;
+        const weekEarned = lifetime.weekEarned || 0;
+        const weekSpent = lifetime.weekSpent || 0;
 
-        transactions.forEach(tx => {
-            const amt = tx.amount ?? 0;
-            const txType = tx.transaction_type || tx.type;
-            const config = TX_TYPES[txType] || TX_TYPES.adjustment;
-            if (amt >= 0) {
-                totalEarned += amt;
-                if (new Date(tx.created_at) >= weekAgo) weekEarned += amt;
-            } else {
-                totalSpent += Math.abs(amt);
-                if (new Date(tx.created_at) >= weekAgo) weekSpent += Math.abs(amt);
-            }
-            sourceMap[config.label] = (sourceMap[config.label] || 0) + Math.abs(amt);
-        });
+        // Server keys the sources by raw kind; render them by their label.
+        const sourceMap = {};
+        for (const [kind, value] of Object.entries(lifetime.bySource || {})) {
+            const label = (TX_TYPES[kind] || TX_TYPES.adjustment).label;
+            sourceMap[label] = (sourceMap[label] || 0) + value;
+        }
 
         // Top 5 sources
         const topSources = Object.entries(sourceMap || {})
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
 
-        // P2-2: Transfer analytics
-        let giftsSent = 0, giftsReceived = 0, giftCount = 0;
-        const recipientMap = {};
-        transactions.forEach(tx => {
-            const txType = tx.transaction_type || tx.type;
-            if (txType === 'diamond_gift_sent') {
-                giftsSent += Math.abs(tx.amount ?? 0);
-                giftCount++;
-                // Extract recipient name from description
-                const match = (tx.description || '').match(/to (.+?)\s*\[/);
-                if (match) recipientMap[match[1]] = (recipientMap[match[1]] || 0) + Math.abs(tx.amount ?? 0);
-            }
-            if (txType === 'diamond_gift_received') {
-                giftsReceived += Math.abs(tx.amount ?? 0);
-            }
-        });
-        const topRecipients = Object.entries(recipientMap || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        // P2-2: Transfer analytics — whole ledger, same server pass.
+        const giftsSent = lifetime.giftsSent || 0;
+        const giftsReceived = lifetime.giftsReceived || 0;
+        const giftCount = lifetime.giftCount || 0;
+        const topRecipients = Object.entries(lifetime.recipients || {})
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
 
-        // R8-I5: Monthly summary with month-over-month comparison
-        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        let thisMonthEarned = 0, thisMonthSpent = 0, lastMonthEarned = 0, lastMonthSpent = 0;
-        transactions.forEach(tx => {
-            const txDate = new Date(tx.created_at);
-            const amt = tx.amount ?? 0;
-            if (txDate >= thisMonth) {
-                if (amt >= 0) thisMonthEarned += amt;
-                else thisMonthSpent += Math.abs(amt);
-            } else if (txDate >= lastMonth && txDate < thisMonth) {
-                if (amt >= 0) lastMonthEarned += amt;
-                else lastMonthSpent += Math.abs(amt);
-            }
-        });
+        // R8-I5: Monthly summary — whole ledger, same server pass. Computed on
+        // the browser it compared "this month" against "last month" using only
+        // the rows loaded, so a month that had scrolled off read as zero and
+        // the percentage change was measured against nothing.
+        const thisMonthEarned = lifetime.thisMonthEarned || 0;
+        const thisMonthSpent = lifetime.thisMonthSpent || 0;
+        const lastMonthEarned = lifetime.lastMonthEarned || 0;
+        const lastMonthSpent = lifetime.lastMonthSpent || 0;
         const monthlyTrend = {
             thisMonthEarned, thisMonthSpent,
             lastMonthEarned, lastMonthSpent,
@@ -1226,7 +1264,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             giftsSent, giftsReceived, giftCount, topRecipients,
             monthlyTrend, donutData,
         };
-    }, [transactions]);
+    }, [lifetime]);
 
     if (!isOpen) return null;
 
@@ -1302,78 +1340,46 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER : Image-Backed Layout
                 ═══════════════════════════════════════════════ */}
-                <div style={{
-                    position: 'relative',
-                    width: '100%',
-                    maxWidth: 600,
-                    margin: '0 auto 16px auto',
-                    borderRadius: 16,
-                    overflow: 'hidden',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-                    backgroundColor: '#050a15',
-                }}>
-                    <img src="/images/diamond-wallet-bg.jpg" alt="Diamond Wallet" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    
-                    {/* Diamond Balance Overlay */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '65.3%', 
-                        left: 'calc(28.5% + 18px)', 
-                        transform: 'translate(-50%, -50%)',
-                        width: '100%',
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'none',
-                    }}>
-                        <div style={{
-                            fontFamily: "'Rajdhani', sans-serif",
-                            fontSize: 'clamp(24px, 6vw, 36px)',
-                            fontWeight: 900,
-                            letterSpacing: '1px',
-                            background: 'linear-gradient(180deg, #ffffff 0%, #c0e0ff 40%, #0099ff 80%, #005bb5 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.9)) drop-shadow(0 0 12px rgba(0,200,255,0.7))',
-                            textTransform: 'uppercase',
-                            lineHeight: 1,
-                            marginBottom: 4,
-                            transform: 'translateX(2px)',
-                        }}>
+                <div className={styles.art}>
+                    <img
+                        className={styles.artImage}
+                        src="/images/diamond-wallet-bg.jpg"
+                        alt=""
+                        aria-hidden="true"
+                    />
+
+                    {/* Diamond Balance Overlay - measured to the plate bay */}
+                    <div className={`${styles.artReadout} ${styles.artReadoutBalance}`}>
+                        <div className={styles.artFigure}>
                             {(animatedBalance ?? 0).toLocaleString()}
                         </div>
-                        <div style={{
-                            fontFamily: '"Rajdhani", sans-serif',
-                            fontSize: 'clamp(10px, 2.5vw, 14px)',
-                            fontWeight: 700,
-                            color: '#e0f0ff',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1.5px',
-                            textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,180,255,0.6)',
-                        }}>Diamonds</div>
+                        <div className={styles.artLabel}>Diamonds</div>
                     </div>
 
-                    {/* VIP Expiration Overlay */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 'calc(66.6% - 15px)', 
-                        left: '69.7%',
-                        transform: 'translate(-50%, -50%)',
-                        width: '100%',
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'none',
-                    }}>
+                    {/* VIP Expiration Overlay - measured to the plate bay */}
+                    <div className={`${styles.artReadout} ${styles.artReadoutVip}`}>
                         {(() => {
                             let daysLeftText = '--';
                             let isVipActive = isVipStatus;
-                            
-                            if (vipExpirationDate) {
+
+                            /*
+                             * A LIFETIME TIER OUTRANKS ANY DATE ON THE ROW.
+                             *
+                             * This used to test `vipExpirationDate` FIRST and
+                             * only reach the lifetime branch when that column
+                             * was null. 692 of the 1,021 lifetime members carry
+                             * a future `vip_expires_at` anyway - measured on
+                             * production 2026-09-05 - so two thirds of the
+                             * people who bought a membership that never expires
+                             * were shown "Expires: N Days" counting down.
+                             *
+                             * The tier is the fact about what was bought; the
+                             * date is a leftover from how it was granted.
+                             */
+                            if (vipTier === 'lifetime' || vipTier === 'founder') {
+                                daysLeftText = 'Lifetime VIP';
+                                isVipActive = true;
+                            } else if (vipExpirationDate) {
                                 const diff = new Date(vipExpirationDate).getTime() - new Date().getTime();
                                 if (diff > 0) {
                                     daysLeftText = `Expires: ${Math.ceil(diff / (1000 * 60 * 60 * 24))} Days`;
@@ -1383,58 +1389,68 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     isVipActive = false;
                                 }
                             } else if (isVipStatus) {
-                                daysLeftText = (vipTier === 'lifetime' || vipTier === 'founder') ? 'Lifetime VIP' : 'Active VIP';
+                                daysLeftText = 'Active VIP';
                             } else {
                                 daysLeftText = 'Inactive';
                             }
-                            
+
                             return (
-                                <div style={{
-                                    fontFamily: '"Rajdhani", sans-serif',
-                                    fontSize: 'clamp(11px, 3vw, 15px)',
-                                    fontWeight: 800,
-                                    letterSpacing: '1px',
-                                    color: isVipActive ? '#e0f0ff' : '#a0aab5',
-                                    textTransform: 'uppercase',
-                                    fontVariantNumeric: 'normal',
-                                    fontFeatureSettings: '"zero" 0',
-                                    textShadow: isVipActive ? '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)' : 'none',
-                                }}>
+                                <div
+                                    className={`${styles.artLabel} ${isVipActive ? '' : styles.artLabelDim}`}
+                                >
                                     {daysLeftText}
                                 </div>
                             );
                         })()}
                     </div>
 
-                    {/* Buy Now Clickable Hitbox */}
-                    <div 
+                    {/*
+                        BUY AND SEND ARE REAL BUTTONS NOW.
+                        ═══════════════════════════════════════════════════════
+                        They were two bare `<div onClick>` laid over buttons
+                        PAINTED INTO the JPEG: no role, no tabIndex, no key
+                        handler, an accessible name only in `title`. So the two
+                        money controls of this wallet could not be reached by
+                        keyboard at all, and a screen reader announced nothing
+                        where the page's most important actions were. The
+                        artwork still draws them; these carry the behaviour, and
+                        `<button>` brings focus, Enter and Space with it.
+                    */}
+                    <button
+                        type="button"
+                        className={styles.artHitbox}
+                        style={{ left: '10%' }}
                         onClick={() => { onClose(); onBuyClick?.(); }}
-                        style={{
-                            position: 'absolute',
-                            bottom: '10%',
-                            left: '10%',
-                            width: '40%',
-                            height: '10%',
-                            cursor: 'pointer',
-                            zIndex: 10,
-                        }}
-                        title="Buy Diamonds"
-                    />
+                    >
+                        <span className={styles.srOnly}>Buy Diamonds</span>
+                    </button>
 
-                    {/* Send Clickable Hitbox */}
-                    <div 
+                    <button
+                        type="button"
+                        className={styles.artHitbox}
+                        style={{ right: '10%' }}
+                        aria-expanded={showTransfer}
                         onClick={() => { setShowTransfer(v => !v); if (!showTransfer) fetchFriends(); }}
-                        style={{
-                            position: 'absolute',
-                            bottom: '10%',
-                            right: '10%',
-                            width: '40%',
-                            height: '10%',
-                            cursor: 'pointer',
-                            zIndex: 10,
-                        }}
-                        title="Send Diamonds"
-                    />
+                    >
+                        <span className={styles.srOnly}>Send Diamonds To A Friend</span>
+                    </button>
+
+                    {/*
+                        THE ARTWORK'S CAPTION IS COVERED, BECAUSE IT LIES.
+                        ═══════════════════════════════════════════════════════
+                        `diamond-wallet-bg.jpg` has "Your Vip Membership Unlocks
+                        All Premium Features For 30 Days" baked into its bottom
+                        strip - measured to start at 88.0% of the image height.
+                        It is shown to EVERY viewer, so a Lifetime VIP was told
+                        their membership runs out in 30 days, directly beneath a
+                        plate reading "Lifetime VIP". No code could correct a
+                        sentence painted into a raster, so the strip is masked
+                        and the truth is rendered over it from the viewer's own
+                        tier.
+                    */}
+                    <div className={styles.artCaption} aria-live="polite">
+                        {vipCaption}
+                    </div>
                 </div>
 
                 {/* ENH-2: Search Bar */}
@@ -1553,7 +1569,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             }}
                         >
                             {/* H2: Show filter badge counts */}
-                            {opt.label}{transactions.length > 0 ? ` (${filterCounts[opt.value] ?? 0})` : ''}
+                            {/* The number appears only when the SERVER has
+                                supplied it. It used to be gated on
+                                `transactions.length > 0`, which is why every
+                                badge described the loaded page; and `?? 0`
+                                turned "not counted yet" into the confident
+                                claim "you have none". A tab with an unknown
+                                size now shows its name alone. */}
+                            {opt.label}
+                            {filterCounts && typeof filterCounts[opt.value] === 'number'
+                                ? ` (${filterCounts[opt.value].toLocaleString()})`
+                                : ''}
                         </button>
                     ))}
                     {/* ENH-G: Stats toggle */}
