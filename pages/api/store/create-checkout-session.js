@@ -345,7 +345,46 @@ async function prepareCheckout(type, items) {
         if (key !== 'lifetime') {
             throw new CheckoutInputError('INVALID_PLAN', `Unknown lifetime plan: ${key || 'unknown'}`);
         }
-        return { unitAmount: 49900, label: 'Smarter.Poker VIP - Lifetime' };
+
+        /* STRIPE_VIP_LIFETIME_PRICE_ID is the same deal the two subscription
+           terms get: when it is set, the Stripe price object is the source of
+           truth and the amount is managed from the dashboard; when it is not,
+           the server-side constant below still sells the term rather than
+           refusing the sale. Lifetime had no env var at all until now, so it
+           was the one term Dan could not reprice without a deploy. */
+        const priceId = process.env.STRIPE_VIP_LIFETIME_PRICE_ID || null;
+        if (priceId) {
+            let stripePrice = null;
+            try {
+                stripePrice = await stripe.prices.retrieve(priceId);
+            } catch (error) {
+                console.warn('[Checkout] STRIPE_VIP_LIFETIME_PRICE_ID points at an unknown Stripe price:',
+                    priceId, error?.message);
+                throw new CheckoutInputError(
+                    'LIFETIME_NOT_CONFIGURED',
+                    'Lifetime VIP is not available right now. Please contact support.',
+                    503
+                );
+            }
+            /* A lifetime term is a price, not a rate. A recurring price here
+               would charge the player again every interval for something sold
+               as permanent, so refuse it rather than sell it. */
+            if (!stripePrice?.active || stripePrice.recurring) {
+                console.warn('[Checkout] STRIPE_VIP_LIFETIME_PRICE_ID is inactive or recurring:', priceId);
+                throw new CheckoutInputError(
+                    'LIFETIME_NOT_CONFIGURED',
+                    'Lifetime VIP is not available right now. Please contact support.',
+                    503
+                );
+            }
+            return {
+                unitAmount: stripePrice.unit_amount,
+                label: 'Smarter.Poker VIP - Lifetime',
+                priceId,
+            };
+        }
+
+        return { unitAmount: 49900, label: 'Smarter.Poker VIP - Lifetime', priceId: null };
     }
 
     if (type === 'subscription') {
@@ -1147,7 +1186,7 @@ export default async function handler(req, res) {
               };
 
           } else if (type === 'vip_lifetime') {
-              const { unitAmount, label } = preparedCheckout;
+              const { unitAmount, label, priceId: lifetimePriceId } = preparedCheckout;
 
               /* A pending row FIRST, for the same reason the diamond path has
                  one: the webhook settles by purchase_id, can fire more than
@@ -1181,18 +1220,28 @@ export default async function handler(req, res) {
                   });
               }
 
-              sessionConfig.line_items = [{
-                  price_data: {
-                      currency: 'usd',
-                      product_data: {
-                          name: label,
-                          description: 'Every VIP feature, permanently. Never renews, never expires.',
-                      },
-                      // NO `recurring` block: that is what makes this one payment.
-                      unit_amount: unitAmount,
-                  },
-                  quantity: 1,
-              }];
+              /* When STRIPE_VIP_LIFETIME_PRICE_ID is configured, charge the
+                 Stripe price object itself so the dashboard is the place the
+                 amount is changed. `unitAmount` above already came from that
+                 same price, so the pending row and the charge cannot disagree.
+                 Without it, the inline price still sells the term. Either way
+                 there is NO `recurring` block - that is what makes this one
+                 payment rather than a subscription. */
+              sessionConfig.line_items = [
+                  lifetimePriceId
+                      ? { price: lifetimePriceId, quantity: 1 }
+                      : {
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: label,
+                                    description: 'Every VIP feature, permanently. Never renews, never expires.',
+                                },
+                                unit_amount: unitAmount,
+                            },
+                            quantity: 1,
+                        },
+              ];
               sessionConfig.metadata.purchase_id = lifetimeRow.id;
               sessionConfig.metadata.vip_tier = 'lifetime';
 
