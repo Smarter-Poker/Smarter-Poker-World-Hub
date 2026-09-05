@@ -117,7 +117,7 @@ JOB_TIMEOUTS = {
     '/api/cron/trivia-theme-backfill': 300,
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
-    **{f'/api/cron/horse-batch/{i}': 600 for i in range(10)},
+    '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
     '/api/cron/scrape-sports-clips':   300,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
@@ -601,20 +601,18 @@ ALL_CRONS = [
     ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
 
     # ══ WAVE 2 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
-    # Horses infrastructure (10 batches + 3 social/stories)
-    ('/api/cron/horses-social-all',               dict(hour='*/2', minute=0)),
+    # Horses infrastructure. Fleet Content Programme phase 1 (2026-09-05,
+    # workers docs/FLEET-CONTENT-PROGRAMME.md): the ten horse-batch fires
+    # (100 posts/day from the 100 lowest-UUID horses) are replaced by ONE
+    # hourly fleet route that asks "who is due now?" across all 1,000.
+    # horses-social-all moves to hourly because its gate is now the horse's
+    # awake hour, not a minute slot that only :00 fires could hit. :10 and
+    # :30 keep both clear of the Club Arena :55 maintenance break and of the
+    # :00 pile-up.
+    ('/api/cron/horse-posts',                     dict(minute=10)),          # hourly, whole fleet
+    ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
-    ('/api/cron/horse-batch/0',                   dict(hour=0, minute=0)),
-    ('/api/cron/horse-batch/1',                   dict(hour=2, minute=30)),
-    ('/api/cron/horse-batch/2',                   dict(hour=5, minute=0)),
-    ('/api/cron/horse-batch/3',                   dict(hour=7, minute=30)),
-    ('/api/cron/horse-batch/4',                   dict(hour=10, minute=0)),
-    ('/api/cron/horse-batch/5',                   dict(hour=12, minute=30)),
-    ('/api/cron/horse-batch/6',                   dict(hour=15, minute=0)),
-    ('/api/cron/horse-batch/7',                   dict(hour=17, minute=30)),
-    ('/api/cron/horse-batch/8',                   dict(hour=20, minute=0)),
-    ('/api/cron/horse-batch/9',                   dict(hour=22, minute=30)),
     # Trivia tournament lifecycle
     ('/api/cron/trivia-tournaments',              dict(hour=1, minute=0)),
     ('/api/cron/trivia-tournament-rounds',        dict(minute=0)),           # hourly round advance
@@ -995,16 +993,9 @@ WORKERS_PREFERRED = {
     # production fires after deploy will be the validation window.
     '/api/cron/horses-social-all':             '/cron/horses-social-all',
     '/api/cron/horses-stories':                '/cron/horses-stories',
-    '/api/cron/horse-batch/0':                 '/cron/horse-batch/0',
-    '/api/cron/horse-batch/1':                 '/cron/horse-batch/1',
-    '/api/cron/horse-batch/2':                 '/cron/horse-batch/2',
-    '/api/cron/horse-batch/3':                 '/cron/horse-batch/3',
-    '/api/cron/horse-batch/4':                 '/cron/horse-batch/4',
-    '/api/cron/horse-batch/5':                 '/cron/horse-batch/5',
-    '/api/cron/horse-batch/6':                 '/cron/horse-batch/6',
-    '/api/cron/horse-batch/7':                 '/cron/horse-batch/7',
-    '/api/cron/horse-batch/8':                 '/cron/horse-batch/8',
-    '/api/cron/horse-batch/9':                 '/cron/horse-batch/9',
+    # horse-batch/0..9 retired 2026-09-05 (Fleet Content Programme phase 1);
+    # the workers routes remain as a hand-over shim until the next cleanup.
+    '/api/cron/horse-posts':                   '/cron/horse-posts',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
