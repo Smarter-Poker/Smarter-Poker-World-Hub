@@ -27,7 +27,9 @@ const STORE = readFileSync(join(ROOT, 'pages/hub/diamond-store.js'), 'utf8');
 const DATA = readFileSync(join(ROOT, 'src/data/diamondStoreData.js'), 'utf8');
 
 test('the three plans are actually RENDERED, not merely imported', () => {
-  for (const plan of ['daily', 'monthly', 'annual']) {
+  // Dan 2026-09-05: "just vip, monthly, yearly or lifetime". Was
+  // daily/monthly/annual; the Daily Pass is retired and annual is yearly.
+  for (const plan of ['monthly', 'yearly', 'lifetime']) {
     assert.ok(
       new RegExp(`<VIPCard\\s+plan=\\{VIP_MEMBERSHIP\\.${plan}\\}`).test(STORE),
       `VIP_MEMBERSHIP.${plan} is not rendered as a <VIPCard>`
@@ -45,8 +47,14 @@ test('the subscribe control exists and is wired to the handler', () => {
 
 test('handleVIPSubscribe reaches BOTH a diamond path and a Stripe path', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
-  assert.match(STORE, /await startStripeCheckout\(plan\)/, 'cash plans must reach Stripe');
-  assert.match(STORE, /runDailyPassPurchase/, 'the daily pass path must be reachable');
+  assert.match(STORE, /await startStripeCheckout\(plan\)/, 'card plans must reach Stripe');
+  // Was runDailyPassPurchase, deleted with the Daily Pass. The diamond path is
+  // now the plan purchase - and for lifetime it is the ONLY path, because its
+  // one-time card checkout is not built, so this assertion is the one that
+  // keeps lifetime buyable at all.
+  assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
+  assert.match(STORE, /cardCheckoutReady === false/,
+    'lifetime must route to diamonds rather than a checkout that would refuse it');
 });
 
 test('paying for a membership in diamonds is offered and correctly wired', () => {
@@ -56,7 +64,10 @@ test('paying for a membership in diamonds is offered and correctly wired', () =>
     'a money path must send the idempotency key the API accepts');
   assert.match(STORE, /Pay With Diamonds Instead/, 'the option must be visible to the member');
   // The FAQ promises this. If the button goes, the promise becomes false again.
-  assert.ok(/1,999 Diamond Monthly Option/.test(STORE), 'FAQ references the diamond option');
+  // The wording moved on 2026-09-05 when the Daily Pass left the same sentence
+  // and lifetime joined it; the promise is what is pinned, not the phrasing.
+  assert.ok(/1,999 Diamond Monthly/.test(STORE), 'FAQ references the monthly diamond option');
+  assert.ok(/49,900 Lifetime/.test(STORE), 'FAQ references the lifetime diamond option');
 });
 
 test('the diamond cost shown matches the server formula (100 per dollar)', () => {

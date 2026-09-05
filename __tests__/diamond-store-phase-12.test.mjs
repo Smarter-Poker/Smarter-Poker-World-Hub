@@ -50,7 +50,7 @@ test('VIP plan switching and cancellation stay inside the marketplace page', () 
   assert.match(page, /\/api\/store\/vip-membership-status/);
   assert.match(page, /\/api\/store\/switch-vip-plan/);
   assert.match(page, /\/api\/store\/cancel-vip/);
-  assert.match(page, /Switch To Annual/);
+  assert.match(page, /Switch To Yearly/);
   assert.match(page, /Switch To Monthly/);
   assert.match(page, /Schedule End Of Membership/);
   assert.match(page, /role=["']dialog["']/);

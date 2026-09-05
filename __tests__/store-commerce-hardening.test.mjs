@@ -82,9 +82,9 @@ test('refund reconciliation is cumulative and provider-aware', async () => {
 });
 
 test('VIP purchases use one database transaction for debit and entitlement extension', async () => {
-  const [vip, daily, migration] = await Promise.all([
+  // The daily-pass route was deleted on 2026-09-05 with the Daily Pass itself.
+  const [vip, migration] = await Promise.all([
     readFile(new URL('../pages/api/store/purchase-vip-with-diamonds.js', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/api/store/purchase-daily-vip.js', import.meta.url), 'utf8'),
     readFile(
       new URL('../supabase/migrations/20260829150000_store_commerce_atomicity.sql', import.meta.url),
       'utf8'
@@ -92,7 +92,6 @@ test('VIP purchases use one database transaction for debit and entitlement exten
   ]);
 
   assert.match(vip, /purchase_vip_with_diamonds_atomic/);
-  assert.match(daily, /purchase_vip_with_diamonds_atomic/);
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.purchase_vip_with_diamonds_atomic/);
   assert.match(migration, /PERFORM 1\s+FROM public\.profiles[\s\S]*FOR UPDATE/i);
   assert.match(
