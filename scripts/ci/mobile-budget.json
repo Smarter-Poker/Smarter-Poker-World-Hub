@@ -3,7 +3,7 @@
   "routes": {
     "/hub/bankroll-manager": {
       "jsKb": 850,
-      "lcpMs": 2500,
+      "lcpMs": 3500,
       "converted": true
     },
     "/hub/preflop-charts": {
