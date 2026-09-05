@@ -184,6 +184,21 @@ test("the artwork's baked-in 30-day claim is covered by live text", () => {
   assert.match(MODAL, /Lifetime VIP\. Your Membership Never Expires\./);
 });
 
+test('no hover, and not in JavaScript either', () => {
+  /*
+   * Dan 2026-08-29: no hover anywhere in this platform; a press is the
+   * feedback. The rule was being followed in CSS and routed around in JS -
+   * SIX `onMouseEnter`/`onMouseLeave` pairs assigning
+   * `e.currentTarget.style.background` on the close button, the friend rows,
+   * both send buttons and every ledger row. A hover written in JavaScript is
+   * still a hover, and on touch - where this wallet mostly lives - it is a
+   * dead handler that fires never.
+   */
+  assert.doesNotMatch(MODAL, /onMouseEnter/, 'a hover effect written in JS is still a hover');
+  assert.doesNotMatch(MODAL, /onMouseLeave/);
+  assert.doesNotMatch(MODAL, /onMouseOver/);
+});
+
 test('#SMARTERCASINOREALISM: the wallet uses the shared vault vocabulary', () => {
   assert.match(CSS, /#SMARTERCASINOREALISM/);
   assert.match(CSS, /--vault-cyan: #00d4ff/);
