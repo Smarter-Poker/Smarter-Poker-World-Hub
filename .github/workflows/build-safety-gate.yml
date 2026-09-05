@@ -878,6 +878,32 @@ jobs:
             exit 1
           fi
 
+      # CHECK 21: public/ budget (2026-09-05)
+      # Everything under public/ is cloned, traced, deployed and cached by
+      # Vercel on EVERY build whether or not it changed. It had reached 632 MB
+      # across 2,357 files, and an audit could not find a serving reference to
+      # 244 MB of it - a one-off importer's dump, GTO panels the runtime reads
+      # from Supabase Storage instead, Commander images commander.smarter.poker
+      # already serves, 33 *-review.html dev artifacts reachable on the
+      # production domain, and thirteen orphaned intro videos. None of it
+      # arrived deliberately; it arrived one commit at a time because nothing
+      # ever said no.
+      # A RATCHET, like CHECK 16: the number only goes DOWN. Adding a needed
+      # asset is fine - adding one without noticing is not.
+      - name: "CHECK 21: public/ stays inside its budget"
+        run: |
+          echo "## public/ budget" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if node scripts/ci/check-public-budget.mjs 2>&1 | tee /tmp/pubbudget.log; then
+            head -3 /tmp/pubbudget.log >> $GITHUB_STEP_SUMMARY
+          else
+            head -3 /tmp/pubbudget.log >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Try a .webp/.avif, or serve the file from Supabase Storage /" >> $GITHUB_STEP_SUMMARY
+            echo "commander.smarter.poker / ca-static instead of from this build." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
       - name: "CHECK 6: Cron governance (Open Claw migration)"
         run: |
           echo "Enforcing cron governance rules from CLAUDE.md section 11..."
