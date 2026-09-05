@@ -710,8 +710,10 @@ export default async function handler(req, res) {
       // Dan 2026-08-24: "the promo wallet needs to be clickable and have funds
       // sent from it."
       //
-      // Two destinations. 'club' credits a club treasury and is the promotional
-      // path; fn_union_promo_send verifies the club is in union_clubs, without
+      // Two destinations. 'club' credits the club's PROMO WALLET
+      // (clubs.promo_balance - Dan's ruling of 2026-09-05; it used to be the
+      // club treasury, which is where three promo sends went missing that
+      // day); fn_union_promo_send verifies the club is in union_clubs, without
       // which this is a chip mint into any club in the database. 'bbj_main'
       // pushes promo capital into the jackpot, which is the reverse of the
       // backup->promo move above.
@@ -749,12 +751,15 @@ export default async function handler(req, res) {
           success: true,
           message:
             destination === 'club'
-              ? `${Number(amount).toLocaleString()} sent to the club treasury`
+              ? `${Number(amount).toLocaleString()} sent to the club promo wallet`
               : `${Number(amount).toLocaleString()} sent to the main jackpot`,
           destination,
           amount: Number(amount),
           promoAfter: sent.promo_after,
-          clubTreasuryAfter: sent.club_treasury_after ?? null,
+          clubPromoAfter: sent.club_promo_after ?? null,
+          // kept for one release so an older bundle reading the old key sees
+          // null rather than undefined; nothing lands in the treasury now
+          clubTreasuryAfter: null,
         });
       }
 
