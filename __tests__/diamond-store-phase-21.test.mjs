@@ -138,9 +138,15 @@ test('shopper storefront resolves membership server-side and cannot remain stuck
   assert.match(loader, /clearTimeout\(loadTimer\)/);
   assert.match(store, /clearTimeout\(clubShopLoadTimerRef\.current\)/);
 
-  assert.match(api, /defaults to the user's first club membership/);
+  // 2026-09-05: with no clubId the route no longer takes the first
+  // club_members row PostgREST returns (an unordered .limit(1) that landed
+  // Dan on a club with no stock); it prefers the membership with the most
+  // active club_shop_items and falls back to any membership.
+  assert.match(api, /defaults to the member's club with the most active stock/);
   assert.match(api, /\.select\('club_id, role'\)/);
-  assert.match(api, /if \(requestedClubId\) membershipQuery = membershipQuery\.eq\('club_id', requestedClubId\)/);
+  assert.match(api, /\.eq\('club_id', requestedClubId\)/);
+  assert.match(api, /\.from\('club_shop_items'\)[\s\S]{0,200}\.eq\('is_active', true\)/);
+  assert.doesNotMatch(api, /membershipQuery/);
   assert.match(api, /if \(membershipError\) throw membershipError/);
   assert.match(api, /clubId: null/);
   assert.match(api, /clubId,/);

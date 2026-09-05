@@ -105,7 +105,13 @@ const LEDGER_FIELDS =
 
 /** Where a register row came from (ca_mint_ledger.origin, generated from
  *  the op id in 20260904194036_the_mint_hardened). The panel filters on it. */
-const ORIGINS = ['operator', 'journal', 'baseline', 'diamond-mint', 'opening-grant', 'restoration', 'seed', 'deletion'];
+const ORIGINS = [
+  'operator', 'journal', 'baseline', 'diamond-mint', 'opening-grant', 'restoration', 'seed', 'deletion',
+  // Diamond journal origins (20260905041033: the register follows the diamond
+  // journal). Issuance: purchase, reward, promotion, refund, adjustment, arena.
+  // Retirement: spend, bridge (diamonds converted to chips), adjustment.
+  'purchase', 'reward', 'promotion', 'refund', 'adjustment', 'arena', 'spend', 'bridge', 'unclassified',
+];
 
 /** Restored to the original 200 (addendum item 10): the journal is rendered
  *  without a pager on first load, and 50 rows of it is half a screen. */

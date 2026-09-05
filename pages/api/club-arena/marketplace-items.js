@@ -4,7 +4,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * 
  * Fetches available active marketplace items for a club and the user's purchase history.
  * 
- * Query: ?clubId=xxx (optional; defaults to the user's first club membership)
+ * Query: ?clubId=xxx (optional; defaults to the member's club with the most active stock,
+ *                     then any membership - never an unordered "first row")
  *        &itemId=xxx (optional; scopes the response to one active item)
  * Auth: Bearer token (any club member)
  */
@@ -50,16 +51,52 @@ export default async function handler(req, res) {
           // Verify membership (role gates the Manage tab). The spendable
           // balance is the buyer's GLOBAL diamond wallet — the marketplace is
           // funded by diamonds, never chips (Dan, 2026-08-23).
-          let membershipQuery = getSupabase()
-              .from('club_members')
-              .select('club_id, role')
-              .eq('user_id', user.id);
-          if (requestedClubId) membershipQuery = membershipQuery.eq('club_id', requestedClubId);
-          const { data: membership, error: membershipError } = await membershipQuery
-              .limit(1)
-              .maybeSingle();
-
-          if (membershipError) throw membershipError;
+          let membership = null;
+          if (requestedClubId) {
+              const { data, error: membershipError } = await getSupabase()
+                  .from('club_members')
+                  .select('club_id, role')
+                  .eq('user_id', user.id)
+                  .eq('club_id', requestedClubId)
+                  .limit(1)
+                  .maybeSingle();
+              if (membershipError) throw membershipError;
+              membership = data;
+          } else {
+              /*
+               * WHICH CLUB'S SHOP, WHEN NONE WAS ASKED FOR? Not "the first
+               * club_members row PostgREST hands back". That read was
+               * `.limit(1)` with no ORDER BY, so a player in five clubs landed
+               * on whichever the planner returned first - for Dan, Deep Stack
+               * Society with zero items while Shark Club had twelve on sale.
+               * The Hub club shop then said "The Shop Is Currently Empty" and
+               * he concluded diamonds could not buy anything (2026-09-04).
+               * Prefer the membership with the most active stock; a player
+               * with no stocked club still gets their first membership.
+               */
+              const { data: memberships, error: membershipError } = await getSupabase()
+                  .from('club_members')
+                  .select('club_id, role')
+                  .eq('user_id', user.id)
+                  .limit(200);
+              if (membershipError) throw membershipError;
+              const rows = memberships || [];
+              if (rows.length > 1) {
+                  const { data: stock, error: stockError } = await getSupabase()
+                      .from('club_shop_items')
+                      .select('club_id')
+                      .in('club_id', rows.map((m) => m.club_id))
+                      .eq('is_active', true)
+                      .limit(5000);
+                  if (stockError) throw stockError;
+                  const counts = new Map();
+                  for (const row of stock || []) {
+                      counts.set(row.club_id, (counts.get(row.club_id) || 0) + 1);
+                  }
+                  rows.sort((a, b) => (counts.get(b.club_id) || 0) - (counts.get(a.club_id) || 0));
+              }
+              membership = rows[0] || null;
+          }
 
           // A signed-in user without a club gets a valid empty storefront response,
           // allowing the UI to render its existing "No Club Found" state.
