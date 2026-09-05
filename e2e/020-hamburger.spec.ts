@@ -286,11 +286,10 @@ async function openWorldMenu(
   const trigger = page.locator('[data-world-menu-trigger]');
   await expect(trigger, `${world.label} must expose exactly one command trigger`).toHaveCount(1);
   await expect(trigger).toBeVisible();
-  const triggerOwner = await trigger.getAttribute('data-world-menu-trigger');
-  await expect(trigger).toHaveAttribute(
-    'data-menu-symbol',
-    triggerOwner === 'approved-header' ? 'hamburger' : 'command-grid'
-  );
+  // ONE SYMBOL FOR EVERY MENU TRIGGER (Dan 2026-09-05: "about the dots, yes fix
+  // and change it back to hamburger menu only"). The approved header and the
+  // route-fallback dock used to disagree; they no longer do.
+  await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
   await expect(trigger).toHaveAttribute(
     'aria-label',
     new RegExp(`Open ${world.label} Command Menu`, 'i')
@@ -305,7 +304,8 @@ async function openWorldMenu(
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('role', 'dialog');
   await expect(dialog).toHaveAttribute('aria-modal', 'true');
-  await expect(dialog).toHaveAttribute('data-menu-symbol', 'command-grid');
+  // The drawer wears the hamburger too, not the six-node grid (Dan 2026-09-05).
+  await expect(dialog).toHaveAttribute('data-menu-symbol', 'hamburger');
   return { trigger, dialog };
 }
 
@@ -333,13 +333,16 @@ for (const world of WORLDS) {
       'page'
     );
 
-    // The drawer keeps its existing six-node command mark. The approved global
-    // header keeps its hamburger artwork. Neither trigger may regress to a
-    // gear or settings icon.
+    // HAMBURGER EVERYWHERE (Dan 2026-09-05). The six-node grid mark is gone
+    // from both the route-fallback dock trigger and the drawer's own header;
+    // the approved global header keeps its baked hamburger artwork. Neither
+    // trigger may regress to a gear or settings icon.
     if ((await trigger.getAttribute('data-world-menu-trigger')) === 'route-fallback') {
-      await expect(trigger.locator('i')).toHaveCount(6);
+      await expect(trigger.locator('i')).toHaveCount(0);
+      await expect(trigger.locator('.sp-world-command-trigger__nodes svg')).toHaveCount(1);
     }
-    await expect(dialog.locator('.sp-command-grid-mark i')).toHaveCount(6);
+    await expect(dialog.locator('.sp-command-grid-mark i')).toHaveCount(0);
+    await expect(dialog.locator('.sp-command-grid-mark svg')).toHaveCount(1);
     const settingsIconViolations = await trigger.evaluate((control) => {
       const violations: string[] = [];
       if (/^(?:gear|settings)$/i.test(control.getAttribute('data-menu-symbol') || '')) {

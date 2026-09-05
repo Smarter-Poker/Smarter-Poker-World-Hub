@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { X, Search, ChevronRight, ChevronDown, Star, Clock, WifiOff, Pencil } from 'lucide-react';
+import { X, Search, ChevronRight, ChevronDown, Star, Clock, WifiOff, Pencil, Menu } from 'lucide-react';
 import InviteFriendsModal from './InviteFriendsModal';
 import GeevesMenuWidget from './GeevesMenuWidget';
 import ReportBugWidget from './ReportBugWidget';
@@ -1004,7 +1004,7 @@ function HamburgerMenuContent({
         aria-label={`${activeWorld?.label || 'Smarter.Poker'} Command Menu`}
         aria-busy={pendingHref ? 'true' : 'false'}
         data-world-command-menu={activeWorld?.id || 'global'}
-        data-menu-symbol="command-grid"
+        data-menu-symbol="hamburger"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onKeyDown={trapTab}
@@ -1046,12 +1046,22 @@ function HamburgerMenuContent({
           '--world-accent': worldAccent,
         }}
       >
-        {/* World command identity and utilities. The symbol is a six-node
-            command grid. The approved header hamburger remains the menu trigger. */}
+        {/* World command identity and utilities. THE SYMBOL IS THE HAMBURGER
+            (Dan 2026-09-05: "hamburger menu of the World Hub lobby has the 6
+            dots, instead of the hamburger menu icon when you click on it from
+            the lobby. The open hamburger menu displays it").
+
+            It used to be a six-node command grid. That was defensible while the
+            grid was read as a "world command" mark rather than a menu icon, but
+            it is the only icon in the drawer's header and it sits exactly where
+            the control that opened the drawer was - so it reads as that
+            control, wearing the wrong face. The header's own trigger is the
+            hamburger baked into the approved artwork; the drawer now agrees
+            with it. Same tile chrome, one honest symbol. */}
         <div className="sp-command-utility-rail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px 9px' }}>
           <div className="sp-command-brand">
             <span className="sp-command-grid-mark" aria-hidden="true">
-              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+              <Menu size={20} strokeWidth={2.25} />
             </span>
             <span>
               <span className="sp-command-eyebrow">World Command</span>
@@ -1652,27 +1662,28 @@ function HamburgerMenuContent({
           border-bottom: 1px solid rgba(179,198,215,.16);
         }
         .sp-command-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        /* The tile chrome is unchanged - only the symbol inside it. The two
+           repeat() tracks and the round dot nodes they laid out are gone with
+           the six-node grid (Dan 2026-09-05).
+           NO BACKTICKS IN THIS COMMENT: the whole stylesheet is one template
+           literal, so a backtick here closes it and the build dies with
+           "Unexpected token" - which is exactly what happened, and what
+           __tests__/pa-no-undef.test.mjs caught. */
         .sp-command-grid-mark {
           width: 34px;
           height: 34px;
           flex: 0 0 34px;
           display: grid;
-          grid-template-columns: repeat(2, 8px);
-          grid-template-rows: repeat(3, 8px);
-          place-content: center;
-          gap: 2px;
+          place-items: center;
           border: 1px solid rgba(198,214,227,.48);
           border-radius: 3px;
           background: linear-gradient(145deg, #1a232c, #05080c);
           box-shadow: inset 0 1px rgba(255,255,255,.12), 0 0 12px rgba(46,155,255,.18);
+          color: var(--world-accent, #2e9bff);
         }
-        .sp-command-grid-mark i {
+        .sp-command-grid-mark svg {
           display: block;
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--world-accent, #2e9bff);
-          box-shadow: inset 0 1px rgba(255,255,255,.6), 0 0 6px var(--world-accent, #2e9bff);
+          filter: drop-shadow(0 0 6px var(--world-accent, #2e9bff));
         }
         .sp-command-eyebrow, .sp-command-title { display: block; line-height: 1; }
         .sp-command-eyebrow {

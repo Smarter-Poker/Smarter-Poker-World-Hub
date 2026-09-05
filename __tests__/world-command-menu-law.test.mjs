@@ -115,7 +115,19 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(socialSource, /setSidebarOpen\(false\)/);
   assert.match(socialSource, /commandMenuOpen=\{commandMenuOpen\}/);
   assert.match(dockSource, /data-world-menu-trigger="route-fallback"/);
-  assert.match(dockSource, /data-menu-symbol="command-grid"/);
+  /* HAMBURGER EVERYWHERE (Dan 2026-09-05: "about the dots, yes fix and change
+     it back to hamburger menu only"). This used to pin the dock to
+     "command-grid" - a six-node mark on a control whose only job is to open a
+     menu. Every menu trigger on the platform now carries the same symbol: the
+     approved header's baked hamburger, this dock's, and the drawer's own mark.
+     The ban on gear/settings icons is unchanged and still below. */
+  assert.match(dockSource, /data-menu-symbol="hamburger"/);
+  assert.doesNotMatch(dockSource, /data-menu-symbol="command-grid"/);
+  assert.doesNotMatch(
+    dockSource,
+    /Array\.from\(\{ length: 6 \}/,
+    'the six-node grid mark is gone from the dock trigger'
+  );
   assert.match(dockSource, /world\.id === 'social-media'/);
   assert.match(dockSource, /querySelector\('\[data-world-menu-trigger="approved-header"\]'\)/);
   assert.match(dockSource, /min-height: 48px/);

@@ -152,6 +152,75 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
 
+/*
+ * THE PORTRAIT HAS NOW REGRESSED THREE TIMES. #1136 gave it a thin black edge,
+ * #1157 thinned that to half a pixel, #1216 dropped it to `border: 0` while
+ * removing an unrelated black disc, and on 2026-09-05 Dan reported it again:
+ * "ITS OFF SET IN THE WORLD HUB PAGES, AND BACK TO THE THICK BROKEN FRAME
+ * INSTEAD OF THE THIN .5 PIXEL INVISIBLE BLACK FRAME."
+ *
+ * The offset had a second, invisible cause that no assertion covered. The slot
+ * is positioned in PERCENTAGES OF THE PROFILE BUTTON, so the geometry is only
+ * correct while that button is square - and src/index.css ships a global
+ * `@media (max-width: 768px) { button:not(.sp-icon-btn) { min-height: 44px } }`
+ * whose (0,1,1) specificity beat the header's (0,1,0) `aspect-ratio: 1`. On a
+ * 375px phone the box became 26.8 x 44 instead of 26.8 x 26.8, so `top: 46.9%`
+ * put the portrait 8px BELOW the ornament: ring empty above, photo hanging past
+ * it below - the "thick broken frame".
+ *
+ * Pinning the percentages alone could never have caught that; they were right
+ * the whole time. So this test pins the PRECONDITIONS the percentages depend
+ * on, in all three files that can break them.
+ */
+test('the portrait keeps its half-pixel edge and a square button to sit in', () => {
+  // 1. The edge itself, in both headers. Not 0, not 1px - half a pixel.
+  for (const [name, source, slot] of [
+    ['World Hub', header, 'approved-global-header'],
+    ['Commander', commander, 'cmd-approved-header'],
+  ]) {
+    assert.match(
+      source,
+      new RegExp(
+        `\\.${slot}__avatar-slot\\s*\\{[\\s\\S]*?border: 0\\.5px solid rgba\\(0, 0, 0, \\.94\\);`
+      ),
+      `${name}: the portrait's half-pixel edge is gone again`
+    );
+    assert.doesNotMatch(
+      source,
+      new RegExp(`\\.${slot}__avatar-slot\\s*\\{[^}]*border: 0;`),
+      `${name}: border: 0 on the slot is the #1216 regression`
+    );
+
+    // 2. The button the percentages are measured against must stay square: a
+    //    min-height reset that outranks the global touch floor, and no
+    //    min-height reintroduced on the profile button itself.
+    assert.match(
+      source,
+      new RegExp(`\\.${slot}\\s+\\.${slot}__button\\s*\\{[\\s\\S]*?min-height: 0;`),
+      `${name}: without this reset the global 44px touch floor squashes the artwork geometry`
+    );
+    assert.match(
+      source,
+      new RegExp(`\\.${slot}__profile\\s*\\{[\\s\\S]*?aspect-ratio: 1;`),
+      `${name}: the profile hit region must stay square`
+    );
+    assert.doesNotMatch(
+      source,
+      new RegExp(`\\.${slot}__profile\\s*\\{[^}]*min-height:`),
+      `${name}: a min-height on the profile button defeats aspect-ratio and moves the portrait`
+    );
+  }
+
+  // 3. The collision is also excluded at its source, so the next person to read
+  //    index.css learns why before they widen the rule again.
+  const globalCss = readFileSync(join(root, 'src/index.css'), 'utf8');
+  assert.match(
+    globalCss,
+    /button:not\(\.sp-icon-btn\):not\(\.approved-global-header__button\)/,
+    'the global mobile touch floor must not apply to the approved header hit regions'
+  );
+});
+
 test('all global header shimmer and active VIP selector boxes are removed', () => {
   for (const source of [header, commander]) {
     assert.match(source, /data-vip-active=/);
