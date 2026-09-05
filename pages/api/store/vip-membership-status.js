@@ -95,7 +95,7 @@ export default async function handler(req, res) {
         currentPeriodEnd: subscription?.current_period_end || profile?.vip_expires_at || null,
         cancelAtPeriodEnd,
         recurring: !isLifetime && isCardSubscription,
-        canSwitch: !isLifetime && isCardSubscription && !cancelAtPeriodEnd && ['monthly', 'annual'].includes(tier),
+        canSwitch: !isLifetime && isCardSubscription && !cancelAtPeriodEnd && ['monthly', 'yearly'].includes(tier),
         canCancel: !isLifetime && isCardSubscription && !cancelAtPeriodEnd,
         partial: Boolean(subscriptionResult.error),
       },

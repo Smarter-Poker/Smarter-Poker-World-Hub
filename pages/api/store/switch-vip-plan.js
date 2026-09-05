@@ -1,7 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * SWITCH VIP PLAN — monthly <-> annual, prorated.
- * POST /api/store/switch-vip-plan   body: { plan: 'monthly' | 'annual' }
+ * SWITCH VIP PLAN — monthly <-> yearly, prorated.
+ * POST /api/store/switch-vip-plan   body: { plan: 'monthly' | 'yearly' }
  *
  * ═══════════════════════════════════════════════════════════════════════════
  * WHY THIS EXISTS
@@ -93,12 +93,12 @@ const VIP_PLANS = {
         interval: 'month',
         label: 'Smarter.Poker VIP - Monthly',
     },
-    annual: {
-        tier: 'annual',
-        envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID',
+    yearly: {
+        tier: 'yearly',
+        envVar: 'STRIPE_VIP_YEARLY_PRICE_ID',
         unitAmount: 19999,
         interval: 'year',
-        label: 'Smarter.Poker VIP - Annual',
+        label: 'Smarter.Poker VIP - Yearly',
     },
 };
 
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
         if (!target) {
             return res.status(400).json({
                 success: false,
-                error: 'Choose either the monthly or the annual plan',
+                error: 'Choose either the monthly or the yearly plan',
             });
         }
 
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
                 status: live.status,
                 nextInvoiceTotalCents: null,
                 nextInvoiceDate: null,
-                message: `You Are Already On The ${target.tier === 'annual' ? 'Annual' : 'Monthly'} Plan.`,
+                message: `You Are Already On The ${target.tier === 'yearly' ? 'Yearly' : 'Monthly'} Plan.`,
             });
         }
 
@@ -284,9 +284,9 @@ export default async function handler(req, res) {
             nextInvoiceTotalCents,
             nextInvoiceDate,
             message:
-                target.tier === 'annual'
-                    ? 'You Are On The Annual Plan. Your Unused Monthly Time Is Credited To Your Next Invoice.'
-                    : 'You Are On The Monthly Plan. Your Unused Annual Time Is Credited To Your Next Invoice.',
+                target.tier === 'yearly'
+                    ? 'You Are On The Yearly Plan. Your Unused Monthly Time Is Credited To Your Next Invoice.'
+                    : 'You Are On The Monthly Plan. Your Unused Yearly Time Is Credited To Your Next Invoice.',
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }

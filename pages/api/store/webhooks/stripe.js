@@ -617,7 +617,12 @@ async function handleSubscriptionUpdate(subscription) {
         const preservesLifetime = profile.vip_tier === 'lifetime';
         const preservesPrepaidExtension = Number.isFinite(existingExpiryMs)
             && existingExpiryMs > renewalExpiryMs;
-        const tierRank = { daily: 1, monthly: 2, annual: 3, lifetime: 4 };
+        /* 2026-09-05: was { daily: 1, monthly: 2, annual: 3, lifetime: 4 }. The
+       terms are monthly, yearly and lifetime now (Dan), and a 'yearly' renewal
+       scored `undefined || 0` against the old table - it lost every comparison,
+       so a yearly renewal could have been downgraded by a prepaid monthly
+       extension. 'daily' is retired and 'annual' is renamed. */
+    const tierRank = { monthly: 1, yearly: 2, lifetime: 3 };
         const renewalTier = metadata?.vip_tier || 'monthly';
         const effectiveTier = preservesLifetime
             ? 'lifetime'

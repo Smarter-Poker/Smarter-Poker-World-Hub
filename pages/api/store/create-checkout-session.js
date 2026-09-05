@@ -134,7 +134,7 @@ function resolveDiamondPackage(item, catalog) {
 // ═════════════════════════════════════════════════════════════
 // VIP_PRICE_FALLBACK — Daniel's confirmed pricing, in cents, server-side.
 // Both paid tiers were unbuyable because STRIPE_VIP_MONTHLY_PRICE_ID and
-// STRIPE_VIP_ANNUAL_PRICE_ID have never been set in any environment, so every
+// STRIPE_VIP_YEARLY_PRICE_ID have never been set in any environment, so every
 // attempt answered 503 SUBSCRIPTIONS_NOT_CONFIGURED. Creating those prices by
 // hand in the Stripe dashboard was the only thing standing between the
 // product and revenue.
@@ -158,17 +158,30 @@ const VIP_SUBSCRIPTION_PLANS = {
         interval: 'month',
         label: 'Smarter.Poker VIP - Monthly',
     },
-    annual: {
-        tier: 'annual',
-        envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID',
+    yearly: {
+        tier: 'yearly',
+        envVar: 'STRIPE_VIP_YEARLY_PRICE_ID',
         unitAmount: 19999,         // $199.99
         interval: 'year',
-        label: 'Smarter.Poker VIP - Annual',
+        label: 'Smarter.Poker VIP - Yearly',
     },
+    /* LIFETIME IS NOT IN THIS TABLE ON PURPOSE.
+       Dan set it at $499 on 2026-09-05 and it is buyable today - with diamonds,
+       through /api/store/purchase-vip-with-diamonds, which the storefront
+       offers. It is absent HERE because a lifetime purchase is one payment, not
+       a subscription: `mode` at the session build below is `type === 
+       'subscription' ? 'subscription' : 'payment'`, prepareCheckout refuses a
+       price with no `.recurring`, and handleCheckoutCompleted in
+       webhooks/stripe.js has no VIP branch under `mode === 'payment'` at all -
+       a one-time VIP session would be paid and grant NOTHING, silently, and
+       return 200 so Stripe never retries.
+       Adding the card path means a third checkout branch, a webhook branch and
+       an idempotent settlement, and it is being done as its own change. Until
+       then the storefront must not offer a card button for lifetime. */
 };
 
 /**
- * Resolve a client plan key ('monthly' | 'annual', with an optional 'vip-'
+ * Resolve a client plan key ('monthly' | 'yearly', with an optional 'vip-'
  * prefix as produced by VIP_MEMBERSHIP ids) to its server-side Stripe price.
  * Returns null for unknown plans; returns priceId:null when the env var for a
  * known plan is not configured (deployment problem, not a client error).
@@ -261,7 +274,13 @@ function normalizeRedemptionIntent(type, raw) {
     if (type !== 'diamonds' || typeof raw !== 'object' || Array.isArray(raw)) {
         throw new CheckoutInputError('INVALID_REDEMPTION_INTENT', 'Invalid card-funded redemption target');
     }
-    if (raw.kind === 'vip_daily') return { kind: 'vip_daily' };
+    /* 'vip_daily' was the card-funded Daily Pass: buy diamonds, auto-redeem
+       150 of them for 24 hours. The Daily Pass was retired on 2026-09-05 (Dan:
+       the terms are monthly, yearly and lifetime) and this intent with it.
+       Measured before removing: 0 diamond_purchases have ever carried it, so
+       nothing is in flight. An old bundle that still sends it now gets no
+       redemption intent at all, which means it simply receives the diamonds it
+       paid for - the safe direction. */
     if (raw.kind === 'club_shop'
         && UUID_RE.test(String(raw.clubId || ''))
         && UUID_RE.test(String(raw.itemId || ''))) {
@@ -1024,7 +1043,7 @@ export default async function handler(req, res) {
 
           } else if (type === 'subscription') {
               // VIP subscription
-              // SECURITY: The client sends only a plan key ('monthly' | 'annual').
+              // SECURITY: The client sends only a plan key ('monthly' | 'yearly').
               // The Stripe price ID is resolved SERVER-SIDE from env config, so a
               // client can never pair a cheap price with a premium tier claim.
               const { plan, stripePrice: preparedStripePrice } = preparedCheckout;
@@ -1041,7 +1060,7 @@ export default async function handler(req, res) {
                   // quietly charge a different amount.
                   const stripePrice = preparedStripePrice;
                   vipTier = stripePrice.metadata?.vip_tier
-                      || (stripePrice.recurring.interval === 'year' ? 'annual' : plan.tier);
+                      || (stripePrice.recurring.interval === 'year' ? 'yearly' : plan.tier);
 
                   sessionConfig.line_items = [{ price: plan.priceId, quantity: 1 }];
               } else {

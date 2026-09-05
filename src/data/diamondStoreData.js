@@ -324,17 +324,36 @@ export const DIAMOND_PACKAGES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VIP MEMBERSHIP: $19.99/month for all features
+// VIP MEMBERSHIP: ONE product, THREE terms
 // ═══════════════════════════════════════════════════════════════════════════
+//
+// Dan, 2026-09-05, verbatim: "We don't sell bronze silver or gold, just vip,
+// monthly, yearly or lifetime, add lifetime for $499."
+//
+// Two changes on that ruling, and one addition:
+//
+//   • 'annual' is 'yearly'. Dan's word, and it is now the word the database
+//     accepts too (migration 20260905153833 widened vip_subscriptions_tier_check
+//     and the diamond seller to monthly | yearly | lifetime).
+//   • THE DAILY PASS IS RETIRED. A 24-hour, 150-diamond pass is not one of the
+//     terms Dan named. Nothing was ever sold on it - 0 'vip_daily' diamond
+//     transactions, 0 'vip_daily' redemption intents, 0 profiles on that tier -
+//     so retiring it takes nothing from anybody. /api/store/purchase-daily-vip
+//     is gone with it.
+//   • Lifetime is new. $499, and 49,900 diamonds at the platform's standing
+//     rate of 100 diamonds per dollar (the same rate that makes Monthly 1,999
+//     and Yearly 19,999, and that prices the Whale pack at 50,000 for $500).
+//
+// `interval: 'lifetime'` is not a billing period and no code may treat it as
+// one. It is the marker that this term has no end: the diamond purchase writes
+// `vip_tier = 'lifetime'` with a NULL `vip_expires_at`, and expire_lapsed_vip
+// is guarded against both.
+//
+// NOT ONE VIP MEMBERSHIP HAS EVER BEEN SOLD on any plan, by card or diamonds
+// (measured 2026-09-05: vip_subscriptions is empty, and no diamond transaction
+// carries a VIP type). The 21 human lifetime members and 11 active monthly ones
+// were granted. So this lineup changes only what a future buyer is offered.
 export const VIP_MEMBERSHIP = {
-    daily: {
-        id: 'vip-daily',
-        name: 'VIP Daily Pass',
-        price: 150,
-        interval: 'day',
-        isDiamondCost: true,
-        popular: false,
-    },
     monthly: {
         id: 'vip-monthly',
         name: 'VIP Monthly',
@@ -342,12 +361,25 @@ export const VIP_MEMBERSHIP = {
         interval: 'month',
         popular: true,
     },
-    annual: {
-        id: 'vip-annual',
-        name: 'VIP Annual',
+    yearly: {
+        id: 'vip-yearly',
+        name: 'VIP Yearly',
         price: 199.99,
         interval: 'year',
         savings: 39.89, // 2 months free
+        popular: false,
+    },
+    lifetime: {
+        id: 'vip-lifetime',
+        name: 'VIP Lifetime',
+        price: 499,
+        interval: 'lifetime',
+        // One payment, no renewal. Card checkout for this term is not built
+        // yet (it needs a one-time Stripe mode and a webhook branch that do
+        // not exist); until it is, the diamond path is the way to buy it and
+        // the storefront says so rather than offering a button that 400s.
+        oneTime: true,
+        cardCheckoutReady: false,
         popular: false,
     },
 };
@@ -420,7 +452,7 @@ export const VIP_BENEFITS = [
     { icon: '◆', title: 'Entry To VIP-Only Trivia Tournaments', description: 'Trivia Tournaments Are Restricted To VIP Members. The Tournament Buy-In Still Applies Normally', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Higher Daily Diamond Earning Cap', description: 'Earn Up To 150 Diamonds Per Day Instead Of The Free Ceiling Of 110', value: '150 ◆/Day', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Higher Monthly Diamond Earning Cap', description: 'Earn Up To 4,500 Diamonds Per Month Instead Of The Free Ceiling Of 3,300', value: '4,500 ◆/Mo', category: 'Smarter.Poker' },
-    { icon: '◆', title: '500 Bonus Diamonds Credited Every Month', description: 'Credited Automatically To Active Monthly And Annual Subscriptions, And Yours To Keep Forever', value: '500 ◆/Mo', category: 'Smarter.Poker' },
+    { icon: '◆', title: '500 Bonus Diamonds Credited Every Month', description: 'Credited Automatically To Active Monthly And Yearly Subscriptions, And Yours To Keep Forever', value: '500 ◆/Mo', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Up To 5 Custom AI-Generated Avatars', description: 'Free Accounts Get One Custom Avatar, Ever. VIP Holds Five At Once And Can Delete One To Make Room For A New Build', value: '5 Slots', category: 'Smarter.Poker' },
     { icon: '◆', title: 'The Full VIP Avatar Library Unlocked', description: 'Every Locked Avatar In The Selection Pool Opens, Including The Entire VIP-Only Set', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Gold VIP Badge, Crown And Profile Flair', description: 'A Gold Border, Crown Icon And VIP Tag On Your Profile, The Site Header And Every Leaderboard Row', value: 'Exclusive', category: 'Smarter.Poker' },

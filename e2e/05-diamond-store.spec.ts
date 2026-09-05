@@ -410,11 +410,18 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
   });
 
-  test('VIP daily access exposes verified card and diamond settlement controls', async ({ page }) => {
+  /* Was 'VIP daily access exposes verified card and diamond settlement
+     controls'. The Daily Pass was retired on 2026-09-05 (Dan: the terms are
+     monthly, yearly and lifetime) and it had never been sold. Lifetime takes
+     its place in this test because it is the term with the unusual settlement
+     shape now: one payment, diamonds only until its card path is built. */
+  test('VIP lifetime access is offered, and is settled in diamonds', async ({ page }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /Select VIP Daily Pass/ }).click();
-    await expect(page.getByRole('button', { name: /Activate Daily VIP With Diamonds/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Pay For Daily VIP With Card' })).toBeVisible();
+    await page.getByRole('button', { name: /Select VIP Lifetime/ }).click();
+    await expect(page.getByText(/Lifetime VIP Is Bought With Diamonds: 49,900/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Pay With Diamonds Instead: 49,900/ })).toBeVisible();
+    // No card button for a term whose one-time checkout does not exist yet.
+    await expect(page.getByRole('button', { name: /Pay For .* With Card/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
   });
 
@@ -527,7 +534,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, message: 'Annual plan verified.' }),
+        body: JSON.stringify({ success: true, message: 'Yearly plan verified.' }),
       });
     });
     await page.route('**/api/store/cancel-vip', async (route) => {
@@ -541,12 +548,12 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     });
 
     await page.goto('/hub/vip-membership/manage', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Switch To Annual' }).click();
+    await page.getByRole('button', { name: 'Switch To Yearly' }).click();
     const planDialog = page.getByRole('dialog', { name: 'Confirm Plan Switch' });
     await expect(planDialog).toBeVisible();
-    await planDialog.getByRole('button', { name: /Confirm Annual Plan/i }).click();
-    await expect(page.getByText('Annual plan verified.')).toBeVisible();
-    expect(requestedPlan).toBe('annual');
+    await planDialog.getByRole('button', { name: /Confirm Yearly Plan/i }).click();
+    await expect(page.getByText('Yearly plan verified.')).toBeVisible();
+    expect(requestedPlan).toBe('yearly');
     expect(planIdempotencyKey).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
 
     await page.getByRole('button', { name: 'Schedule End Of Membership' }).click();
