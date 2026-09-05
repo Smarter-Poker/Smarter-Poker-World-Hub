@@ -291,18 +291,32 @@ export default async function handler(req, res) {
 
             if (sb) {
                 // Load a random active horse from the DB — they already have real names & profiles
+                /* 2026-09-05: this embed asked for `gto_philosophy`, which is
+                   not a column (the real one is `gto_vs_exploitative`), so the
+                   whole select 42703'd and every training opponent fell back to
+                   the same hardcoded personality. The POST branch below was
+                   corrected on 2026-08-15 and this one was missed. It asked
+                   for `display_name` too, which content_authors also does not
+                   have (`name` / `alias` are the real ones) - so the select had
+                   TWO ways to fail before it could reach the embed.
+                   The embed ALSO needed a relationship to resolve at all:
+                   horse_personality had no foreign key to content_authors, so
+                   PostgREST answered PGRST200. Migration 20260905170000 adds it
+                   while returning the table, and its 100 personalities, from
+                   the zz_archive schema they had been moved to. */
                 const { data: horses, error } = await sb
                     .from('content_authors')
                     .select(`
                         id,
-                        display_name,
+                        name,
+                        alias,
                         avatar_url,
                         horse_personality (
                             aggression_level,
                             humor_level,
                             technical_depth,
                             contrarian_tendency,
-                            gto_philosophy,
+                            gto_vs_exploitative,
                             risk_tolerance
                         )
                     `)
@@ -316,7 +330,10 @@ export default async function handler(req, res) {
                     horse = {
                         // Public-facing fields — looks like a real player
                         id: pick.id,
-                        name: pick.display_name || 'Player',
+                        /* `display_name` is not a column on content_authors
+                           either - the real ones are `name` and `alias`. Same
+                           42703 as the personality field beside it. */
+                        name: pick.name || pick.alias || 'Player',
                         avatar: pick.avatar_url || null,
                         rating,
                         tier: getRankTierName(rating),
@@ -326,7 +343,7 @@ export default async function handler(req, res) {
                             humor: p.humor_level || 5,
                             technical: p.technical_depth || 5,
                             contrarian: p.contrarian_tendency || 5,
-                            gto: p.gto_philosophy || 'balanced',
+                            gto: p.gto_vs_exploitative || 'balanced',
                             risk: p.risk_tolerance || 'moderate',
                         },
                     };
