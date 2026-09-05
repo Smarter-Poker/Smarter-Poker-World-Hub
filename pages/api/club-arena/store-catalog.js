@@ -84,9 +84,12 @@ const VIP_PLANS = [
     {
         id: 'vip-lifetime',
         planKey: 'lifetime',
-        /* No checkoutPlan: card checkout for a one-time term is not built (see
-           the note in create-checkout-session.js). Diamonds buy it today. */
-        checkoutPlan: null,
+        /* Card checkout for this one-time term shipped 2026-09-05 (migration
+           20260905180000 + the mode === 'payment' VIP branch in
+           webhooks/stripe.js). `oneTime` tells the client to send checkout
+           type 'vip_lifetime', not 'subscription'. */
+        checkoutPlan: 'vip-lifetime',
+        oneTime: true,
         name: 'Lifetime VIP',
         period: 'One Payment',
         priceUsd: 499,

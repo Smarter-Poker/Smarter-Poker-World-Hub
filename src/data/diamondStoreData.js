@@ -374,12 +374,14 @@ export const VIP_MEMBERSHIP = {
         name: 'VIP Lifetime',
         price: 499,
         interval: 'lifetime',
-        // One payment, no renewal. Card checkout for this term is not built
-        // yet (it needs a one-time Stripe mode and a webhook branch that do
-        // not exist); until it is, the diamond path is the way to buy it and
-        // the storefront says so rather than offering a button that 400s.
+        /* One payment, no renewal. `oneTime` is what makes the storefront send
+           checkout type 'vip_lifetime' instead of 'subscription', so Stripe
+           opens a payment-mode session rather than a recurring one. The card
+           path shipped 2026-09-05 (migration 20260905180000 + the
+           mode === 'payment' VIP branch in webhooks/stripe.js), so this term is
+           now buyable both ways: $499 by card, 49,900 diamonds. */
         oneTime: true,
-        cardCheckoutReady: false,
+        cardCheckoutReady: true,
         popular: false,
     },
 };
