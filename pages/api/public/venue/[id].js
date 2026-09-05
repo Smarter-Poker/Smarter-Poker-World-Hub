@@ -4,8 +4,14 @@
  * No authentication required - returns only public data
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError, addBreadcrumb } from '../../../../src/lib/sentryWrap';
+
+// 2026-09-04: src/lib/sentry.js was deleted (docs/SENTRY-FREE-TIER-POLICY.md).
+// Same call shape as the old captureError(err, { tags, extra }), routed
+// through the gated reporter: this route is not on the Sentry allowlist, so
+// these become console.error lines that Vercel captures.
+const captureError = (err, ctx = {}) =>
+    reportApiError(err, { url: '/api/public/venue/[id]', method: 'GET' }, { tags: ctx.tags, context: ctx.extra });
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.

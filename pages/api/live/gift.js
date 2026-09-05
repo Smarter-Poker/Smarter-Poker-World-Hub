@@ -24,6 +24,10 @@ import { randomUUID } from 'crypto';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+// Sentry: this route is on the allowlist in docs/SENTRY-FREE-TIER-POLICY.md
+// (it moves chips). reportApiError sends; flushSentry runs before the lambda
+// returns so the event is not frozen with it.
+import { reportApiError, flushSentry } from '../../../src/lib/sentryWrap';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -586,11 +590,25 @@ export default async function handler(req, res) {
             '[live/gift] CRITICAL: Failed to refund sender after credit failure:',
             refundErr
           );
+          // A sender debited and not refunded is exactly the surprise on a
+          // money path that Sentry is kept for.
+          await reportApiError(new Error(`live/gift refund failed: ${refundErr.message || refundErr}`), req, {
+            userId: user.id, money: true,
+            tags: { stage: 'refund_after_credit_failure' },
+            context: { gift_id: giftId, amount: parsedAmount, receiver_id, reason },
+          });
+          await flushSentry();
         } else {
           console.info(`[live/gift] Compensating refund applied for ${user.id}`);
         }
       } catch (err) {
         console.error('[live/gift] CRITICAL: Network error during refund:', err);
+        await reportApiError(err, req, {
+          userId: user.id, money: true,
+          tags: { stage: 'refund_network_error' },
+          context: { gift_id: giftId, amount: parsedAmount, receiver_id, reason },
+        });
+        await flushSentry();
       }
     };
     // ATOMIC credit to receiver. Use the per-gift UUID as reference_id so
@@ -710,6 +728,8 @@ export default async function handler(req, res) {
     // RPC network-threw before returning, attempt a compensating refund.
     // refundSender is only defined after the deduct succeeds so check first.
     console.warn('[live/gift] unhandled error:', err.message);
+    await reportApiError(err, req, { money: true, tags: { stage: 'unhandled' }, context: { credit_success: !!creditSuccess } });
+    await flushSentry();
     if (typeof refundSender === 'function' && !creditSuccess) {
       await refundSender(`uncaught handler error: ${err.message}`);
       return res

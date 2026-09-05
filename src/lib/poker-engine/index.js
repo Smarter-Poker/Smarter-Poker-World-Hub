@@ -27,7 +27,7 @@ const { GameController, getController, getControllerSync } = require('./GameCont
 
 // Phase 10 (2026-07-20 club-arena retirement: TournamentController +
 // TournamentBridge removed — tournaments run on the Club Arena engine.
-// Archived copies: archive/legacy-club-tournaments/.)
+// The archived copies (archive/legacy-club-tournaments/) were deleted 2026-09-04; see git history.)
 const { ClubLedger, TRANSACTION_TYPE } = require('./ClubLedger');
 
 // Phase 48f: Autonomy & Resilience Layer

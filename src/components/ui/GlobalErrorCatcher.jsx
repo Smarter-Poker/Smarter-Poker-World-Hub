@@ -77,15 +77,6 @@ export default function GlobalErrorCatcher() {
             // state-corruption errors invisible during triage.
             console.error('[GlobalErrorCatcher] 🔥 Uncaught error:', event?.error || message);
 
-            // Report to Sentry silently
-            try {
-                if (window.Sentry && event?.error) {
-                    window.Sentry.captureException(event.error, {
-                        tags: { caughtBy: 'GlobalErrorCatcher', type: 'uncaught-error' },
-                        extra: { url: window.location.href },
-                    });
-                }
-            } catch (_) { console.error('[GlobalErrorCatcher] Sentry capture failed:', _?.message || _); }
 
             // In development, expose the underlying error type/message so the
             // toast is actionable. In production, keep it user-friendly.
@@ -113,16 +104,6 @@ export default function GlobalErrorCatcher() {
             // dev-mode toast text that names the underlying error type/message.
             console.error('[GlobalErrorCatcher] 🔥 Unhandled promise rejection:', reason);
 
-            // Report to Sentry silently
-            try {
-                if (window.Sentry) {
-                    const err = reason instanceof Error ? reason : new Error(message);
-                    window.Sentry.captureException(err, {
-                        tags: { caughtBy: 'GlobalErrorCatcher', type: 'unhandled-rejection' },
-                        extra: { url: window.location.href },
-                    });
-                }
-            } catch (_) { console.error('[GlobalErrorCatcher] Sentry capture failed:', _?.message || _); }
 
             // Don't show toast for every failed API call — only critical ones
             // We check if it's a TypeError or ReferenceError (code bugs, not network issues)

@@ -58,6 +58,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+// Sentry: this route is on the allowlist in docs/SENTRY-FREE-TIER-POLICY.md
+// (it moves chips). reportApiError sends; flushSentry runs before the lambda
+// returns so the event is not frozen with it.
+import { reportApiError, flushSentry } from '../../../src/lib/sentryWrap';
 
 /** One tick settles at most this many clubs. Three carry rakeback today. */
 const MAX_CLUBS = 50;
@@ -184,6 +188,14 @@ async function handler(req, res) {
     // A club that refuses settlement is money still owed to real players, so
     // it is an operator-visible failure, not a line in a log nobody reads.
     const status = failures.length > 0 ? 500 : 200;
+    if (failures.length > 0) {
+      await reportApiError(
+        new Error(`rakeback-period-settle: ${failures.length} club(s) refused settlement`),
+        req,
+        { money: true, tags: { stage: 'settle_club_rakeback' }, context: { failures: failures.slice(0, 20), owed, periods_settled: periodsSettled } }
+      );
+      await flushSentry();
+    }
 
     return res.status(status).json({
       status: failures.length > 0 ? 'partial' : 'ok',
@@ -196,6 +208,8 @@ async function handler(req, res) {
       duration_ms: Date.now() - started,
     });
   } catch (err) {
+    await reportApiError(err, req, { money: true, tags: { stage: 'unhandled' } });
+    await flushSentry();
     return res.status(500).json({
       status: 'failed',
       error: err?.message || String(err),

@@ -209,6 +209,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/signup-hardening.test.mjs',
     '__tests__/build-2-deliverables.test.mjs',
     '__tests__/sentry-coverage.test.mjs',
+    '__tests__/sentry-wrap-allowlist.test.mjs',
     '__tests__/phase-3-deliverables.test.mjs',
     '__tests__/phase-4-deliverables.test.mjs',
     // Personal Assistant guards. menu-routes catches dead hamburger links;

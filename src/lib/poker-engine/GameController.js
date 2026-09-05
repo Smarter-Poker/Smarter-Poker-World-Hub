@@ -36,7 +36,7 @@ const { BETTING_STRUCTURES } = require('./ActionValidator');
 // against the canonical `tournaments` table; the World Hub engine's tournament
 // subsystem wrote to the legacy `club_tournaments` table (dead since 2026-03).
 // createTournament now returns a clear error and _recoverTournaments is a
-// no-op. Archived copies: archive/legacy-club-tournaments/.
+// no-op. The archived copies (archive/legacy-club-tournaments/) were deleted 2026-09-04; see git history.
 const { AntiCheat } = require('./AntiCheat');
 const { AntiCheatMonitor } = require('./AntiCheatMonitor');
 const { ClubLedger } = require('./ClubLedger');

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import geoBlocks from './config/geo-blocks.json';
-import { createMiddlewareClient } from './src/lib/supabaseServer';
 
 /**
  * Smarter.Poker Edge Middleware
@@ -12,6 +11,16 @@ import { createMiddlewareClient } from './src/lib/supabaseServer';
  * 4. User-data route JWT presence gate (Bearer token required)
  *    — Defense-in-depth: handlers still do full JWT verification.
  *    — This prevents unauthenticated requests from reaching handlers at all.
+ *
+ * Error reporting (2026-09-04, docs/SENTRY-FREE-TIER-POLICY.md section 3):
+ * the edge runtime has NO Sentry any more (sentry.edge.config.js is gone).
+ * Gates 2-4 are each wrapped in try/catch; a throw is POSTed to
+ * /api/internal/edge-error, which runs in Node and reports through the
+ * server reportApiError() path (allowlisted, budgeted). Reporting never
+ * blocks the request: it is handed to event.waitUntil and swallowed on
+ * failure. Gate 2 fails OPEN on a throw (same as its no-geo behaviour);
+ * gates 3 and 4 fail CLOSED, because an exception inside an auth guard must
+ * not become a bypass.
  */
 
 // ── Geo-block config (compiled in at edge build time) ─────────────────────
@@ -64,192 +73,232 @@ function isAllowPath(pathname: string): boolean {
   return false;
 }
 
-export async function middleware(request: NextRequest) {
-  const { hostname, pathname, search } = request.nextUrl;
-
-  // ── 1. Redirect www → root domain ──────────────────────────────────────
-  if (hostname.startsWith('www.')) {
-    const cleanHost = hostname.replace('www.', '');
-    const newUrl = `https://${cleanHost}${pathname}${search}`;
-    return NextResponse.redirect(newUrl, 301);
-  }
-
-  // ── 2. Jurisdiction gate (geo-block) ───────────────────────────────────
-  // Vercel injects { country, region, city } onto request.geo at the edge.
-  // For local dev (where geo is undefined) we fail-open.
-  if (!isAllowPath(pathname)) {
-    // Operator bypass — value must match ADMIN_ROUTE_SECRET (same secret
-    // that already guards /api/admin). Lets us test blocked regions via
-    // a VPN without being locked out ourselves.
-    const bypass = request.headers.get(ADMIN_BYPASS_HEADER);
-    const bypassOk =
-      bypass && process.env.ADMIN_ROUTE_SECRET && bypass === process.env.ADMIN_ROUTE_SECRET;
-
-    if (!bypassOk) {
-      // @ts-ignore — request.geo is populated by Vercel
-      const geo = (request.geo || {}) as { country?: string; region?: string };
-      const country = (geo.country || '').toUpperCase();
-      const region = (geo.region || '').toUpperCase();
-
-      const countryBlocked = country && DENIED_COUNTRIES.has(country);
-      const stateBlocked = country === 'US' && region && RESTRICTED_US_STATES.has(region);
-
-      if (countryBlocked || stateBlocked) {
-        const reason = countryBlocked ? `country:${country}` : `us-state:${region}`;
-
-        // For API requests, return JSON so the client can detect it
-        if (pathname.startsWith('/api/')) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Service unavailable in your jurisdiction.',
-              reason,
-            },
-            { status: 451 } // RFC 7725 — Unavailable For Legal Reasons
-          );
-        }
-
-        // Browser navigation → redirect to info page
-        const blockedUrl = request.nextUrl.clone();
-        blockedUrl.pathname = '/jurisdiction-blocked';
-        blockedUrl.search = `?reason=${encodeURIComponent(reason)}`;
-        const resp = NextResponse.redirect(blockedUrl, 307);
-        resp.headers.set('x-geo-blocked', reason);
-        return resp;
-      }
+// ── Edge error reporting ───────────────────────────────────────────────────
+// Fire-and-forget POST to the Node route that owns the Sentry call. Shared
+// secret is ADMIN_ROUTE_SECRET (already present at the edge for the geo
+// bypass); the route refuses anything without it so the public cannot spend
+// the Sentry budget by hitting it.
+function reportEdgeError(
+  request: NextRequest,
+  event: NextFetchEvent | undefined,
+  stage: string,
+  err: unknown
+): void {
+  try {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error && err.stack ? String(err.stack).slice(0, 2000) : null;
+    console.error(`[middleware] ${stage} threw:`, message);
+    const secret = process.env.ADMIN_ROUTE_SECRET;
+    if (!secret) return;
+    const target = new URL('/api/internal/edge-error', request.nextUrl.origin);
+    const p = fetch(target.toString(), {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-edge-error-secret': secret,
+      },
+      body: JSON.stringify({
+        stage,
+        message,
+        stack,
+        path: request.nextUrl.pathname,
+        method: request.method,
+      }),
+    })
+      .then(() => undefined)
+      .catch(() => undefined);
+    if (event && typeof event.waitUntil === 'function') {
+      event.waitUntil(p);
     }
+  } catch {
+    /* reporting must never throw */
+  }
+}
+
+// ── 2. Jurisdiction gate (geo-block) ─────────────────────────────────────
+// Vercel injects { country, region, city } onto request.geo at the edge.
+// For local dev (where geo is undefined) we fail-open.
+function geoGate(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (isAllowPath(pathname)) return null;
+
+  // Operator bypass — value must match ADMIN_ROUTE_SECRET (same secret
+  // that already guards /api/admin). Lets us test blocked regions via
+  // a VPN without being locked out ourselves.
+  const bypass = request.headers.get(ADMIN_BYPASS_HEADER);
+  const bypassOk =
+    bypass && process.env.ADMIN_ROUTE_SECRET && bypass === process.env.ADMIN_ROUTE_SECRET;
+  if (bypassOk) return null;
+
+  // @ts-ignore — request.geo is populated by Vercel
+  const geo = (request.geo || {}) as { country?: string; region?: string };
+  const country = (geo.country || '').toUpperCase();
+  const region = (geo.region || '').toUpperCase();
+
+  const countryBlocked = country && DENIED_COUNTRIES.has(country);
+  const stateBlocked = country === 'US' && region && RESTRICTED_US_STATES.has(region);
+
+  if (!(countryBlocked || stateBlocked)) return null;
+
+  const reason = countryBlocked ? `country:${country}` : `us-state:${region}`;
+
+  // For API requests, return JSON so the client can detect it
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Service unavailable in your jurisdiction.',
+        reason,
+      },
+      { status: 451 } // RFC 7725 — Unavailable For Legal Reasons
+    );
   }
 
-  // ── 3. Admin / destructive route guard ─────────────────────────────────
-  // These are one-off migration scripts that should never be publicly accessible.
-  const DESTRUCTIVE_POKER_ROUTES = [
-    '/api/poker/nuclear-import',
-    '/api/poker/full-import',
-    '/api/poker/import-fresh-data',
-    '/api/poker/seed-database',
-    '/api/poker/seed',
-    '/api/poker/create-tables',
-    '/api/poker/setup-venue-scraping',
-  ];
+  // Browser navigation → redirect to info page
+  const blockedUrl = request.nextUrl.clone();
+  blockedUrl.pathname = '/jurisdiction-blocked';
+  blockedUrl.search = `?reason=${encodeURIComponent(reason)}`;
+  const resp = NextResponse.redirect(blockedUrl, 307);
+  resp.headers.set('x-geo-blocked', reason);
+  return resp;
+}
+
+// ── 3. Admin / destructive route guard ───────────────────────────────────
+// These are one-off migration scripts that should never be publicly accessible.
+const DESTRUCTIVE_POKER_ROUTES = [
+  '/api/poker/nuclear-import',
+  '/api/poker/full-import',
+  '/api/poker/import-fresh-data',
+  '/api/poker/seed-database',
+  '/api/poker/seed',
+  '/api/poker/create-tables',
+  '/api/poker/setup-venue-scraping',
+];
+
+function adminGate(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
   const isAdminRoute =
     pathname.startsWith('/api/admin') ||
     pathname.startsWith('/api/debug') ||
     pathname.startsWith('/api/emergency') ||
     DESTRUCTIVE_POKER_ROUTES.includes(pathname);
+  if (!isAdminRoute) return null;
 
-  if (isAdminRoute) {
-    const adminSecret = request.headers.get('x-admin-secret');
-    const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    const hasAdminSecret = envSecret && adminSecret && adminSecret === envSecret;
+  const adminSecret = request.headers.get('x-admin-secret');
+  const envSecret = process.env.ADMIN_ROUTE_SECRET;
+  const hasAdminSecret = envSecret && adminSecret && adminSecret === envSecret;
+  if (hasAdminSecret) return null;
 
-    if (!hasAdminSecret) {
-      // No admin secret = must be a human session. Require both
-      // Bearer auth and (for write methods) a valid MFA cookie.
-      // [Phase 6.1.22] MFA gate at the edge.
-      const authHeader = request.headers.get('authorization');
-      const hasBearer = authHeader?.startsWith('Bearer ') && (authHeader?.length ?? 0) > 20;
+  // No admin secret = must be a human session. Require both
+  // Bearer auth and (for write methods) a valid MFA cookie.
+  // [Phase 6.1.22] MFA gate at the edge.
+  const authHeader = request.headers.get('authorization');
+  const hasBearer = authHeader?.startsWith('Bearer ') && (authHeader?.length ?? 0) > 20;
 
-      if (!hasBearer) {
-        return NextResponse.json(
-          { error: 'Admin routes require authentication.' },
-          { status: 401 }
-        );
-      }
-
-      // Require MFA cookie on any non-GET method. GET handlers are
-      // read-only introspection (health, check-*, list-*) and are
-      // already covered by the Bearer check + handler-level auth.
-      const method = request.method.toUpperCase();
-      if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-        // [2026-08-04] Either factor satisfies the edge gate:
-        //   - `mfa_session`        — 12h, minted on every code check
-        //   - `mfa_trusted_device` — 30d, minted when the user asks
-        //                            to remember this browser
-        // One text code every 30 days must cover every gate, so a
-        // live trusted device is accepted here exactly as a fresh
-        // session cookie is.
-        const mfaCookie = request.cookies.get('mfa_session')?.value;
-        const trustedCookie = request.cookies.get('mfa_trusted_device')?.value;
-        if (!mfaCookie && !trustedCookie) {
-          return NextResponse.json(
-            {
-              error: 'MFA challenge required for admin write actions.',
-              requiresMfa: true,
-            },
-            { status: 403 }
-          );
-        }
-
-        // Lightweight edge-safe shape + expiry check. Full HMAC
-        // verification happens in the handler via
-        // requireMfaEnrolled() from src/lib/mfaGate.js — we can't
-        // use Node crypto in edge runtime without bundling
-        // subtle-crypto wrappers, and doing it twice (edge +
-        // handler) is belt-and-braces.
-        //
-        // Token shape (both cookies):
-        //   <userId>.<issuedAtMs>.<hmac>
-        const MFA_TTL_MS = 12 * 60 * 60 * 1000; // 12h
-        const TRUSTED_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30d
-
-        const isLiveToken = (token: string | undefined, ttlMs: number): boolean => {
-          if (!token) return false;
-          const parts = token.split('.');
-          if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return false;
-          const issuedAt = parseInt(parts[1], 10);
-          if (!Number.isFinite(issuedAt)) return false;
-          return Date.now() - issuedAt <= ttlMs;
-        };
-
-        const trustedOk = isLiveToken(trustedCookie, TRUSTED_TTL_MS);
-        const sessionOk = isLiveToken(mfaCookie, MFA_TTL_MS);
-
-        if (!trustedOk && !sessionOk) {
-          return NextResponse.json(
-            {
-              error: 'MFA session expired — please re-verify.',
-              requiresMfa: true,
-            },
-            { status: 403 }
-          );
-        }
-      }
-    }
+  if (!hasBearer) {
+    return NextResponse.json(
+      { error: 'Admin routes require authentication.' },
+      { status: 401 }
+    );
   }
 
-  // ── 4. User-data JWT presence gate ─────────────────────────────────────
-  // These routes ALWAYS require authentication — reject at the edge
-  // if no Authorization header is present. Handlers still validate the token.
-  // This prevents DB queries from running on guaranteed-to-fail requests.
-  const requiresAuthPrefix = [
-    '/api/rewards/',
-    '/api/bankroll/',
-    '/api/user/',
-    '/api/vip/',
-    '/api/god-mode/',
-    '/api/friends/',
-    '/api/jarvis/',
-    '/api/livekit/',
-    '/api/gto/',
-    '/api/avatar/',
-    '/api/calls/',
-    '/api/geeves/',
-    '/api/session/',
-    '/api/assistant/leaks',
-    '/api/poker-brain/',
-  ];
+  // Require MFA cookie on any non-GET method. GET handlers are
+  // read-only introspection (health, check-*, list-*) and are
+  // already covered by the Bearer check + handler-level auth.
+  const method = request.method.toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return null;
 
-  // Tombstoned endpoints (Operation Grok-Sweep, 2026-05) — return 410 Gone
-  // unconditionally. Skip the JWT gate so the helpful "endpoint removed" message
-  // reaches every caller, not just authenticated ones.
-  const TOMBSTONED_PATHS = new Set<string>([
-    '/api/gto/session-recommendations',
-    '/api/gto/generate-batch',
-    '/api/gto/generate-alternate-lines',
-    '/api/training/generate-batch-questions',
-    '/api/training/test-generate',
-    '/api/training/generate-infinite',
-  ]);
+  // [2026-08-04] Either factor satisfies the edge gate:
+  //   - `mfa_session`        — 12h, minted on every code check
+  //   - `mfa_trusted_device` — 30d, minted when the user asks
+  //                            to remember this browser
+  // One text code every 30 days must cover every gate, so a
+  // live trusted device is accepted here exactly as a fresh
+  // session cookie is.
+  const mfaCookie = request.cookies.get('mfa_session')?.value;
+  const trustedCookie = request.cookies.get('mfa_trusted_device')?.value;
+  if (!mfaCookie && !trustedCookie) {
+    return NextResponse.json(
+      {
+        error: 'MFA challenge required for admin write actions.',
+        requiresMfa: true,
+      },
+      { status: 403 }
+    );
+  }
+
+  // Lightweight edge-safe shape + expiry check. Full HMAC
+  // verification happens in the handler via
+  // requireMfaEnrolled() from src/lib/mfaGate.js — we can't
+  // use Node crypto in edge runtime without bundling
+  // subtle-crypto wrappers, and doing it twice (edge +
+  // handler) is belt-and-braces.
+  //
+  // Token shape (both cookies):
+  //   <userId>.<issuedAtMs>.<hmac>
+  const MFA_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+  const TRUSTED_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30d
+
+  const isLiveToken = (token: string | undefined, ttlMs: number): boolean => {
+    if (!token) return false;
+    const parts = token.split('.');
+    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return false;
+    const issuedAt = parseInt(parts[1], 10);
+    if (!Number.isFinite(issuedAt)) return false;
+    return Date.now() - issuedAt <= ttlMs;
+  };
+
+  const trustedOk = isLiveToken(trustedCookie, TRUSTED_TTL_MS);
+  const sessionOk = isLiveToken(mfaCookie, MFA_TTL_MS);
+
+  if (!trustedOk && !sessionOk) {
+    return NextResponse.json(
+      {
+        error: 'MFA session expired — please re-verify.',
+        requiresMfa: true,
+      },
+      { status: 403 }
+    );
+  }
+  return null;
+}
+
+// ── 4. User-data JWT presence gate ───────────────────────────────────────
+// These routes ALWAYS require authentication — reject at the edge
+// if no Authorization header is present. Handlers still validate the token.
+// This prevents DB queries from running on guaranteed-to-fail requests.
+const requiresAuthPrefix = [
+  '/api/rewards/',
+  '/api/bankroll/',
+  '/api/user/',
+  '/api/vip/',
+  '/api/god-mode/',
+  '/api/friends/',
+  '/api/jarvis/',
+  '/api/livekit/',
+  '/api/gto/',
+  '/api/avatar/',
+  '/api/calls/',
+  '/api/geeves/',
+  '/api/session/',
+  '/api/assistant/leaks',
+  '/api/poker-brain/',
+];
+
+// Tombstoned endpoints (Operation Grok-Sweep, 2026-05) — return 410 Gone
+// unconditionally. Skip the JWT gate so the helpful "endpoint removed" message
+// reaches every caller, not just authenticated ones.
+const TOMBSTONED_PATHS = new Set<string>([
+  '/api/gto/session-recommendations',
+  '/api/gto/generate-batch',
+  '/api/gto/generate-alternate-lines',
+  '/api/training/generate-batch-questions',
+  '/api/training/test-generate',
+  '/api/training/generate-infinite',
+]);
+
+function jwtGate(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
   const isTombstoned = TOMBSTONED_PATHS.has(pathname);
 
   // Durable Leak Finder workers authenticate with a short-lived, purpose-
@@ -267,17 +316,62 @@ export async function middleware(request: NextRequest) {
     && !hasInternalAuditCredential
     && requiresAuthPrefix.some((prefix) => pathname.startsWith(prefix));
 
-  if (needsAuth) {
-    const authHeader = request.headers.get('authorization');
-    const hasBearer = authHeader?.startsWith('Bearer ') && (authHeader?.length ?? 0) > 20;
+  if (!needsAuth) return null;
 
-    if (!hasBearer) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    // Token presence confirmed — handler validates it fully
+  const authHeader = request.headers.get('authorization');
+  const hasBearer = authHeader?.startsWith('Bearer ') && (authHeader?.length ?? 0) > 20;
+
+  if (!hasBearer) {
+    return NextResponse.json(
+      { success: false, error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+  // Token presence confirmed — handler validates it fully
+  return null;
+}
+
+export async function middleware(request: NextRequest, event?: NextFetchEvent) {
+  const { hostname, pathname, search } = request.nextUrl;
+
+  // ── 1. Redirect www → root domain ──────────────────────────────────────
+  if (hostname.startsWith('www.')) {
+    const cleanHost = hostname.replace('www.', '');
+    const newUrl = `https://${cleanHost}${pathname}${search}`;
+    return NextResponse.redirect(newUrl, 301);
+  }
+
+  // ── 2. Jurisdiction gate. Fails OPEN on a throw (a broken gate must not
+  //      take the whole site down; the throw is reported).
+  try {
+    const blocked = geoGate(request);
+    if (blocked) return blocked;
+  } catch (err) {
+    reportEdgeError(request, event, 'geo-block', err);
+  }
+
+  // ── 3. Admin guard. Fails CLOSED on a throw.
+  try {
+    const refused = adminGate(request);
+    if (refused) return refused;
+  } catch (err) {
+    reportEdgeError(request, event, 'admin-guard', err);
+    return NextResponse.json(
+      { error: 'Admin guard unavailable.' },
+      { status: 503 }
+    );
+  }
+
+  // ── 4. JWT presence gate. Fails CLOSED on a throw.
+  try {
+    const refused = jwtGate(request);
+    if (refused) return refused;
+  } catch (err) {
+    reportEdgeError(request, event, 'jwt-gate', err);
+    return NextResponse.json(
+      { success: false, error: 'Authentication gate unavailable.' },
+      { status: 503 }
+    );
   }
 
   return NextResponse.next();

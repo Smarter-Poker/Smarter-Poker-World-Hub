@@ -10,7 +10,6 @@
  *   </HubErrorBoundary>
  */
 import React from 'react';
-import * as Sentry from '@sentry/nextjs';
 import { reportClientCrash } from '../../lib/reportClientCrash';
 import { isChunkError, canAutoReload } from '../../lib/chunkRecovery';
 
@@ -32,9 +31,9 @@ export class HubErrorBoundary extends React.Component {
         // actually threw — the message alone is rarely enough in a tree this deep.
         this.setState({ componentStack: info?.componentStack || null });
 
-        // Durable report. Sentry's browser SDK never initialises in production
-        // (no DSN is baked into the bundle), so the Sentry call below is a
-        // no-op and this is the ONLY path that survives the tab closing.
+        // Durable report. This is the ONLY path that survives the tab closing:
+        // browser Sentry was removed on 2026-09-04 (docs/SENTRY-FREE-TIER-POLICY.md,
+        // section 3), so do not add a Sentry call back here.
         try {
             reportClientCrash({
                 boundary: 'hub',
@@ -60,21 +59,6 @@ export class HubErrorBoundary extends React.Component {
         // Fire optional onError callback so parent can react
         try { this.props.onError?.(error, name); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-        // Report to Sentry silently
-        try {
-            Sentry.captureException(error, {
-                extra: {
-                    boundaryName: name,
-                    componentStack: info?.componentStack,
-                    crashTimestamp: timestamp,
-                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
-                },
-                tags: {
-                    errorBoundary: 'hub-section',
-                    sectionName: name,
-                },
-            });
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     handleReset() {

@@ -15,7 +15,6 @@ import { createClient } from '@supabase/supabase-js';
 import { isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { getOneSignalStatus } from '../../../src/lib/commander/pushNotifications';
 import { getEmailStatus } from '../../../src/lib/emailTemplates';
-import { getSentryStatus } from '../../../src/lib/sentry';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ─── Phase 5.1.4 live-probe helpers ────────────────────────────────────────
@@ -110,7 +109,14 @@ export default async function handler(req, res) {
               anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '[SET]' : '[NOT SET]',
               serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '[SET]' : '[NOT SET]',
           },
-          sentry: getSentryStatus(),
+          // 2026-09-04: server-only, budgeted. docs/SENTRY-FREE-TIER-POLICY.md
+          sentry: {
+            configured: !!(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN),
+            runtime: 'server-only',
+            budget_per_day: 60,
+            per_fingerprint_per_day: 3,
+            environment: process.env.NODE_ENV,
+          },
           push: getOneSignalStatus(),
           twilio: {
               configured: isTwilioConfigured(),
