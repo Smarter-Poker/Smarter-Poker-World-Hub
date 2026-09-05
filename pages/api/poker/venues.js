@@ -26,7 +26,6 @@ const captureError = (err, ctx = {}) =>
 import allVenuesData from '../../../data/all-venues.json';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
 // Home-group coordinate privacy. See src/lib/home-games/geoPrivacy.js —
 // a home group's lat/lng is a person's home address and must never be
 // emitted raw from this (public, unauthenticated) endpoint.

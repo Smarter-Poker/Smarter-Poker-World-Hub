@@ -12,7 +12,6 @@ import { reportApiError, addBreadcrumb } from '../../../../src/lib/sentryWrap';
 // these become console.error lines that Vercel captures.
 const captureError = (err, ctx = {}) =>
     reportApiError(err, { url: '/api/public/venue/[id]', method: 'GET' }, { tags: ctx.tags, context: ctx.extra });
-import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.

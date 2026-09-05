@@ -166,3 +166,21 @@ Stale comments corrected: `PageErrorBoundary.jsx` (two), `HubErrorBoundary.jsx`,
 - Did not touch the Arena repo or the engine (separate PRs per the policy).
 - Alertmanager's receiver (`SLACK_ALERT_URL` / `PAGERDUTY_SERVICE_KEY`) is
   still Dan's decision (policy section 7); this PR does not change it.
+
+
+## Addendum: what the pre-push hook caught
+
+The agent that wrote this was cut off by a rate limit before its own push
+checks ran. The hook found three defects and refused the branch:
+
+- `pages/api/poker/venues.js` and `pages/api/public/venue/[id].js` each carried
+  a duplicate `import { reportApiError }` — the migration away from
+  `src/lib/sentry.js` added a second import beside one that already existed.
+  Babel refused both; `node -c` would have missed it. Duplicates removed.
+- `test_clawbot.js` requires `./pages/api/clawbot/orchestrator`, which exists
+  on no branch — a root-level script that has been dead since the orchestrator
+  was removed, surfaced only because this pass touched the file. Deleted;
+  nothing references it.
+
+Recorded here because a hook that refuses a push is doing exactly the job the
+rest of this document is about.
