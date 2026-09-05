@@ -7,7 +7,6 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
 import { SocialService } from '../../services/SocialService';
 import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
@@ -951,23 +950,19 @@ export const EnhancedPostCreator = ({
       // 👻 Always remove ghost post on error/cancel so feed placeholders don't linger
       ghostPost.remove();
 
-      // Don't log user-initiated cancellations to Sentry — they are intentional
+      // Don't log user-initiated cancellations — they are intentional.
+      // (Browser Sentry was removed 2026-09-04, docs/SENTRY-FREE-TIER-POLICY.md;
+      // console.error is the record now.)
       if (!isCancelled) {
-        try {
-          Sentry.captureException(err, {
-            tags: { area: 'social', action: 'create_post' },
-            extra: {
-              contentLength: content?.length,
-              mediaCount: mediaFiles?.length,
-              userId: user?.id,
-              errorCode: err?.code,
-              errorDetails: err?.details,
-              errorHint: err?.hint,
-            },
-          });
-        } catch (_sentryErr) {
-          /* never let Sentry itself crash the UI */
-        }
+        console.error('[EnhancedPostCreator] create_post failed:', {
+          message: err?.message,
+          code: err?.code,
+          details: err?.details,
+          hint: err?.hint,
+          contentLength: content?.length,
+          mediaCount: mediaFiles?.length,
+          userId: user?.id,
+        });
       }
 
       console.warn('[EnhancedPostCreator] Post creation error:', err);

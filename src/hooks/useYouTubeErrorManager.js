@@ -8,7 +8,7 @@
  * ║  1. DRY postMessage listener with strict origin validation              ║
  * ║  2. Error code-specific messaging (150, 100, 101, 2, 5)                 ║
  * ║  3. Server-side failure reporting to Supabase                           ║
- * ║  4. Sentry error telemetry                                              ║
+ * ║  4. Server-side failure telemetry (reportFailureToServer)               ║
  * ║  5. Thumbnail fallback background for error overlays                    ║
  * ║  6. Reusable <YouTubeErrorOverlay /> component                          ║
  * ╚═══════════════════════════════════════════════════════════════════════════╝
@@ -56,31 +56,10 @@ async function reportFailureToServer(videoId, errorCode, surface) {
     }
 }
 
-// ── Sentry Telemetry (Improvement #4) ─────────────────────────────────────────
-function reportToSentry(videoId, errorCode, surface) {
-    if (typeof window === 'undefined') return;
-    // 2026-09-04: this read window.__SENTRY__ first, which is the SDK's INTERNAL
-    // version carrier and has no captureMessage - so the primary branch could
-    // never fire, and the fallback below depended on window.Sentry, which
-    // nothing assigned. sentry.client.config.js assigns it now; read it first.
-    const Sentry = window.Sentry;
-    if (!Sentry?.captureMessage) {
-        // Fallback: try window.Sentry (standard browser SDK global)
-        if (window.Sentry?.captureMessage) {
-            window.Sentry.captureMessage(`YouTube embed error ${errorCode}`, {
-                level: 'warning',
-                tags: { surface, errorCode: String(errorCode) },
-                extra: { videoId, errorCode, surface, url: `https://www.youtube.com/watch?v=${videoId}` },
-            });
-        }
-        return;
-    }
-    Sentry.captureMessage(`YouTube embed error ${errorCode}`, {
-        level: 'warning',
-        tags: { surface, errorCode: String(errorCode) },
-        extra: { videoId, errorCode, surface, url: `https://www.youtube.com/watch?v=${videoId}` },
-    });
-}
+// ── Telemetry ────────────────────────────────────────────────────────────────
+// The Sentry branch that used to live here (reportToSentry) was removed on
+// 2026-09-04: browser Sentry is gone from the Hub (docs/SENTRY-FREE-TIER-POLICY.md).
+// reportFailureToServer above is the surviving telemetry path.
 
 // ── Main Hook ─────────────────────────────────────────────────────────────────
 /**
@@ -146,12 +125,11 @@ export function useYouTubeErrorManager({
                     console.warn(`[${surface}] YouTube error:`, errorCode, videoId ? `(${videoId})` : '');
                     setYtError(errorCode);
 
-                    // Report to server + Sentry (once per video per session)
+                    // Report to server (once per video per session)
                     const reportKey = `${videoId || 'unknown'}_${errorCode}`;
                     if (videoId && !reportedRef.current.has(reportKey)) {
                         reportedRef.current.add(reportKey);
                         reportFailureToServer(videoId, errorCode, surface);
-                        reportToSentry(videoId, errorCode, surface);
                     }
 
                     // NOTE: onError is NOT called here — the auto-action timer (below)
@@ -293,5 +271,5 @@ export function YouTubeErrorOverlay({
 }
 
 // ── Exports ───────────────────────────────────────────────────────────────────
-export { YOUTUBE_ORIGINS, ERROR_CODES, getErrorInfo, getYouTubeThumbnailUrl, reportFailureToServer, reportToSentry };
+export { YOUTUBE_ORIGINS, ERROR_CODES, getErrorInfo, getYouTubeThumbnailUrl, reportFailureToServer };
 export default useYouTubeErrorManager;

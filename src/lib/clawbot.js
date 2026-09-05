@@ -36,7 +36,7 @@ function getSupabase() {
 export const CLAWBOT_VERSION = '1.0.0';
 
 export const TASK_IDS = {
-  SENTRY_TRIAGE: 'cb-01-sentry-triage',
+  // cb-01-sentry-triage: DELETED 2026-09-04 (docs/SENTRY-FREE-TIER-POLICY.md)
   CRON_HEALTH: 'cb-02-cron-health',
   DEPLOY_HEALTH: 'cb-03-deploy-health',
   DB_PERFORMANCE: 'cb-04-db-performance',
@@ -197,34 +197,8 @@ export function verifyCronAuth(req) {
   return req.headers.authorization === `Bearer ${cronSecret}`;
 }
 
-// ─── Sentry API Client ─────────────────────────────────────────────
-/**
- * Make a request to the Sentry API.
- * Uses SENTRY_TOKEN from environment.
- */
-export async function sentryFetch(path, options = {}) {
-  const token = process.env.SENTRY_TOKEN;
-  if (!token) throw new Error('[ClawBot] SENTRY_TOKEN not configured');
-
-  const baseUrl = 'https://sentry.io/api/0';
-  const url = `${baseUrl}${path}`;
-
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => 'No response body');
-    throw new Error(`Sentry API ${res.status}: ${text}`);
-  }
-
-  return res.json();
-}
+// (The Sentry API client that lived here was deleted 2026-09-04 with the
+// sentry-triage task. docs/SENTRY-FREE-TIER-POLICY.md.)
 
 // ─── GitHub API Client ──────────────────────────────────────────────
 /**

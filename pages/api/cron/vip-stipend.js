@@ -67,6 +67,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+// Sentry: this route is on the allowlist in docs/SENTRY-FREE-TIER-POLICY.md
+// (it moves chips). reportApiError sends; flushSentry runs before the lambda
+// returns so the event is not frozen with it.
+import { reportApiError, flushSentry } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -303,7 +307,8 @@ async function handler(req, res) {
             timestamp: new Date().toISOString(),
         });
     } catch (err) {
-        console.error('[cron/vip-stipend] error:', err?.message || err);
+        await reportApiError(err, req, { money: true, tags: { stage: 'unhandled' }, context: { stats } });
+        await flushSentry();
         return res.status(500).json({ success: false, error: err?.message || 'Internal server error', stats });
     }
 }

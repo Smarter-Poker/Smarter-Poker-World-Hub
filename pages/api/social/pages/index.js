@@ -489,25 +489,14 @@ export default async function handler(req, res) {
                       body: JSON.stringify({ page_id: data.id, locations: [locStr] }),
                   }).then(r => {
                       if (!r.ok) {
-                          console.warn(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
-                          // Report to Sentry so we can track geocoding failures
-                          import('../../../../src/lib/sentry').then(({ captureMessage }) => {
-                              captureMessage(`Geocoding failed for page ${data.id}`, 'warning', {
-                                  tags: { api: 'social-pages', stage: 'geocoding' },
-                                  extra: { page_id: data.id, location: locStr, http_status: r.status },
-                              });
-                          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                          // 2026-09-04: the Sentry forward that used to sit here is gone
+                          // (docs/SENTRY-FREE-TIER-POLICY.md); the console line is the record.
+                          console.warn(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`, { location: locStr });
                       } else {
                           console.debug(`[geocode] Success for page ${data.id}`);
                       }
                   }).catch(e => {
-                      console.warn(`[geocode] Error for page ${data.id}:`, e.message);
-                      import('../../../../src/lib/sentry').then(({ captureError }) => {
-                          captureError(e, {
-                              tags: { api: 'social-pages', stage: 'geocoding' },
-                              extra: { page_id: data.id, location: locStr },
-                          });
-                      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                      console.warn(`[geocode] Error for page ${data.id}:`, e.message, { location: locStr });
                   });
               } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }

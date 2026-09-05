@@ -30,6 +30,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import crypto from 'crypto';
+// Sentry: /api/auth/* is on the allowlist in docs/SENTRY-FREE-TIER-POLICY.md
+// (a sign-in failure is a locked-out player). flushSentry runs before return.
+import { reportApiError, flushSentry } from '../../../src/lib/sentryWrap';
 
 // Admin client (service-role) — module-scoped, created once
 let _adminClient = null;
@@ -86,6 +89,10 @@ export default async function handler(req, res) {
 
     if (insertError) {
       console.error('[commander-sso] Failed to store SSO token:', insertError);
+      await reportApiError(new Error(`commander-sso token insert failed: ${insertError.message || insertError}`), req, {
+        userId: user?.id, tags: { stage: 'store_token' },
+      });
+      await flushSentry();
       return res.status(500).json({ error: 'Failed to create SSO token' });
     }
 
@@ -96,6 +103,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: ssoUrl, email: user.email });
   } catch (err) {
     console.error('[commander-sso] Unexpected error:', err);
+    await reportApiError(err, req, { tags: { stage: 'unhandled' } });
+    await flushSentry();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

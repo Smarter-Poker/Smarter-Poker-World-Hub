@@ -1,5 +1,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { withSentry } from '../../../src/lib/sentry';
+// 2026-09-04: src/lib/sentry.js was deleted (docs/SENTRY-FREE-TIER-POLICY.md).
+// withSentryRoute is the gated reporter: this route is not on the Sentry
+// allowlist, so an unhandled throw is logged to the console (Vercel captures
+// it) and still answered with a generic 500.
+import { withSentryRoute } from '../../../src/lib/sentryWrap';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
 // NOTE: onesignal-server is now a VAPID-backed compatibility shim. See that file.
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -151,4 +155,4 @@ function getSupabase() {
     return _supabase;
 }
 
-export default withSentry(handler);
+export default withSentryRoute(handler);

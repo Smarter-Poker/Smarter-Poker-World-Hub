@@ -31,8 +31,9 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * cries wolf permanently and therefore gets ignored.
  *
  * The `endpoint` values were also stale. Six of the eight handlers exist
- * nowhere at all; `daily-challenge` and `sentry-triage` moved to Open Claw /
- * the workers repo during the Phase 2 migration (CLAUDE.md §11). `location`
+ * nowhere at all; `daily-challenge` moved to Open Claw during the Phase 2
+ * migration (CLAUDE.md §11) and `sentry-triage` was deleted outright on
+ * 2026-09-04 (docs/SENTRY-FREE-TIER-POLICY.md). `location`
  * now records where each job actually lives, so the registry stops implying
  * a local route that was deleted.
  *
@@ -75,7 +76,6 @@ const CRON_REGISTRY = [
 
     // ── Remote jobs (no local handler; telemetry must come from THEIR side) ──
     { name: 'daily-challenge',            location: 'open-claw', intervalMin: 1440,  remote: true, description: 'Generate daily trivia challenge (workers repo)' },
-    { name: 'sentry-triage',              location: 'workers',   intervalMin: 60,    remote: true, description: 'OpenClaw Sentry error triage (workers repo)' },
 
     // REMOVED 2026-08-14: tournament-alerts, content-grinder,
     // diamond-daily-rewards, venue-data-refresh, vip-expiration-check,

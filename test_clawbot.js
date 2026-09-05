@@ -4,7 +4,6 @@ process.env.VERCEL_URL = 'localhost:3000';
 
 const orchestrator = require('./pages/api/clawbot/orchestrator').default;
 const status = require('./pages/api/clawbot/status').default;
-const sentryTriage = require('./pages/api/clawbot/sentry-triage').default;
 
 const mockReq = { 
   method: 'GET',
@@ -26,7 +25,8 @@ async function testAll() {
   console.log(`Status code: ${res.statusCode}`);
   console.log('Status active count:', res.data.clawbot?.summary?.active);
   
-  // NOTE: skip full orchestrator and triage in standard test to avoid side-effects (like github issue creation)
+  // NOTE: skip full orchestrator in standard test to avoid side-effects (like github issue creation).
+  // sentry-triage was deleted 2026-09-04 (docs/SENTRY-FREE-TIER-POLICY.md).
   // we just simulate a dry-run or ensure the handler doesn't crash prior to external fetch
   console.log('--- ClawBot Modules Loaded OK ---');
 }

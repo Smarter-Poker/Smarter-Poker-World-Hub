@@ -23,7 +23,8 @@ import {
 
 // Task metadata for display
 const TASK_CATALOG = [
-  { id: TASK_IDS.SENTRY_TRIAGE, name: 'Sentry Error Triage', domain: 'Operations', enabled: true },
+  // cb-01 Sentry Error Triage was DELETED 2026-09-04 (docs/SENTRY-FREE-TIER-POLICY.md):
+  // it hardcoded Sentry slugs that do not exist and the free tier has no quota to triage.
   { id: TASK_IDS.CRON_HEALTH, name: 'Cron Job Health', domain: 'Operations', enabled: false },
   { id: TASK_IDS.DEPLOY_HEALTH, name: 'Deploy Health Monitor', domain: 'Operations', enabled: false },
   { id: TASK_IDS.DB_PERFORMANCE, name: 'DB Performance Watchdog', domain: 'Data Quality', enabled: false },

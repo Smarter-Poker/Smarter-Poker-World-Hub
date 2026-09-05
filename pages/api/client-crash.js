@@ -3,11 +3,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * HubErrorBoundary and PageErrorBoundary POST here from componentDidCatch.
  *
- * This exists because every other reporting path in this app is a black hole:
- *   - Sentry's browser SDK never initialises (no NEXT_PUBLIC_SENTRY_DSN is
- *     baked into the production bundle), so Sentry.captureException() in the
- *     boundaries does nothing.
- *   - public.sentry_error_log has 0 rows — the snapshot mirror never ran.
+ * This exists because it is the only durable record of a Hub page crash:
+ *   - Browser Sentry was removed from the Hub on 2026-09-04
+ *     (docs/SENTRY-FREE-TIER-POLICY.md, section 3). The boundaries no longer
+ *     call Sentry at all; they POST here.
  *   - PageErrorBoundary's sessionStorage log dies with the tab.
  *
  * So on 2026-08-19 a live page showed "Temporarily Unavailable" and there was

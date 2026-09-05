@@ -3,7 +3,11 @@
  * Supports filtering by id, upcoming, type, tour, search, date range
  * Tries Supabase DB first, falls back to JSON data file
  */
-import { withSentry } from '../../../src/lib/sentry';
+// 2026-09-04: src/lib/sentry.js was deleted (docs/SENTRY-FREE-TIER-POLICY.md).
+// withSentryRoute is the gated reporter: this route is not on the Sentry
+// allowlist, so an unhandled throw is logged to the console (Vercel captures
+// it) and still answered with a generic 500.
+import { withSentryRoute } from '../../../src/lib/sentryWrap';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
 import seriesSourceRegistry from '../../../data/series_source_registry.json';
@@ -690,4 +694,4 @@ async function handler(req, res) {
   }
 }
 
-export default withSentry(handler);
+export default withSentryRoute(handler);

@@ -10,7 +10,11 @@
  *   GET /api/poker/daily-tournaments?state=TX - Filter by state
  *   GET /api/poker/daily-tournaments?venue=Lodge - Search by venue name
  */
-import { withSentry } from '../../../src/lib/sentry';
+// 2026-09-04: src/lib/sentry.js was deleted (docs/SENTRY-FREE-TIER-POLICY.md).
+// withSentryRoute is the gated reporter: this route is not on the Sentry
+// allowlist, so an unhandled throw is logged to the console (Vercel captures
+// it) and still answered with a generic 500.
+import { withSentryRoute } from '../../../src/lib/sentryWrap';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -898,4 +902,4 @@ function countByField(tournaments, field) {
     return counts;
 }
 
-export default withSentry(handler);
+export default withSentryRoute(handler);

@@ -1132,16 +1132,12 @@ export default function App({ Component, pageProps }) {
   );
 }
 
-// Report Web Vitals to Sentry for performance monitoring
+// Web Vitals. The Sentry metrics call that used to sit here was removed on
+// 2026-09-04 (docs/SENTRY-FREE-TIER-POLICY.md): browser Sentry is gone from
+// the Hub, and metrics were never within the free tier anyway.
 export function reportWebVitals({ id, name, label, value }) {
   try {
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.metrics?.distribution(name, value, {
-        tags: { id, label },
-        unit: name === 'CLS' ? 'none' : 'millisecond',
-      });
-    }
-    // Also log to console in development
+    // Log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);
     }

@@ -8,7 +8,6 @@ import { prefetchVideoStart } from '../../lib/reelsPrefetcher';
 import {
   YouTubeErrorOverlay,
   reportFailureToServer,
-  reportToSentry,
 } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
@@ -469,12 +468,11 @@ export function ReelsViewer({ onClose }) {
         if (data?.event === 'onError' && data?.info) {
           const errCode = Number(data.info);
           setYtError(errCode);
-          // Report to server + Sentry (best-effort)
+          // Report to server (best-effort)
           try {
             const vid = getYouTubeVideoId(reels[currentIndex]?.video_url);
             if (vid) {
               reportFailureToServer(vid, errCode, 'Reels');
-              reportToSentry(vid, errCode, 'Reels');
             }
           } catch {
             /* best-effort */

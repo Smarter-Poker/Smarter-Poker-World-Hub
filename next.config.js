@@ -74,7 +74,6 @@
 })();
 
 /** @type {import('next').NextConfig} */
-const { withSentryConfig } = require('@sentry/nextjs');
 const { publicShellManifestEntries } = require('./scripts/pwa/public-shell-precache');
 const { execFileSync } = require('child_process');
 
@@ -1066,55 +1065,13 @@ const nextConfig = {
   },
 };
 
-// Sentry configuration options
-const sentryWebpackPluginOptions = {
-  // Suppresses source map uploading logs during build
-  silent: true,
-
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
-  org: process.env.SENTRY_ORG || 'smarter-software-inc',
-  project: process.env.SENTRY_PROJECT || 'javascript-nextjsmarter-poker-world-hubs',
-
-  // Auth token for source map uploads (optional)
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-
-  // Only upload source maps in production
-  dryRun: process.env.NODE_ENV !== 'production',
-};
-
-// Sentry SDK options
-const sentryOptions = {
-  // [Phase 5.2.1e] Disabled widenClientFileUpload to cut build memory.
-  // With 952 pages + standalone output, widening the source-map upload set
-  // plus autoInstrumentServerFunctions pushed the Vercel 8GB build container
-  // into the kernel OOM killer (SIGKILL) after every mass-file commit.
-  // Narrow upload scope only; errors still symbolicate on the files Sentry
-  // cares about (pages + app routes).
-  widenClientFileUpload: false,
-
-  // Hide source maps from client bundles
-  hideSourceMaps: true,
-
-  // [Phase 5.2.1e] Disabled autoInstrumentServerFunctions — it wraps every
-  // API route with Sentry tracing at build time, allocating a huge closure
-  // map. Runtime Sentry.init() still captures all thrown errors; only the
-  // automatic performance-tracing wrapping is skipped.
-  autoInstrumentServerFunctions: false,
-
-  // Disable verbose logging
-  disableLogger: true,
-
-  // Disable automatic transaction wrapping for middleware
-  // (can cause issues with some Next.js features)
-  autoInstrumentMiddleware: false,
-};
-
-// [OOM FIX] Bypass Sentry webpack plugin entirely.
-// withSentryConfig instruments every route + uploads source maps at build time.
-// On a 950+ page repo this consumes 1-2GB of build RAM and tips us over the
-// Vercel 8GB container limit. Runtime Sentry.init() in sentry.client.config.js
-// still captures all thrown errors — only build-time auto-instrumentation is skipped.
+// [OOM FIX] Sentry's webpack plugin (withSentryConfig) is NOT applied.
+// It instruments every route + uploads source maps at build time; on a 950+
+// page repo that consumes 1-2GB of build RAM and tips us over the Vercel 8GB
+// container limit. 2026-09-04: the unused `withSentryConfig` import and the
+// dead `sentryWebpackPluginOptions` / `sentryOptions` objects that used to sit
+// here were deleted (docs/SENTRY-FREE-TIER-POLICY.md). Runtime Sentry is
+// server-only now and is wired via src/instrumentation.js.
 // [2026-07-25] APPLY the PWA wrapper. It was constructed above with the
 // carefully-tuned NetworkOnly runtimeCaching rules (the "Dan-fix mobile
 // white-screen" mitigations), but the export line read `module.exports =
@@ -1122,6 +1079,6 @@ const sentryOptions = {
 // caching config took effect in production. Wrapping here activates it.
 // withPWA already self-disables when not on Vercel (`disable: !process.env.VERCEL`),
 // so local `next dev` is unaffected. withSentryConfig stays intentionally
-// bypassed (build-time OOM); runtime Sentry is wired via src/instrumentation*.js.
+// bypassed (build-time OOM); runtime Sentry (server only) is wired via src/instrumentation.js.
 const pwaConfig = withPWA(nextConfig);
 module.exports = pwaConfig;

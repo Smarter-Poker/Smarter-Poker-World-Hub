@@ -22,7 +22,11 @@
  *   ?calMonth=2026-08                   Load all events for a specific calendar month (YYYY-MM)
  */
 
-import { withSentry } from '../../../src/lib/sentry';
+// 2026-09-04: src/lib/sentry.js was deleted (docs/SENTRY-FREE-TIER-POLICY.md).
+// withSentryRoute is the gated reporter: this route is not on the Sentry
+// allowlist, so an unhandled throw is logged to the console (Vercel captures
+// it) and still answered with a generic 500.
+import { withSentryRoute } from '../../../src/lib/sentryWrap';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -987,4 +991,4 @@ async function handler(req, res) {
   }
 }
 
-export default withSentry(handler);
+export default withSentryRoute(handler);

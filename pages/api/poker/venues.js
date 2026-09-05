@@ -15,7 +15,14 @@
  *   featured   - if 'true', only featured venues
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
+import { reportApiError, addBreadcrumb } from '../../../src/lib/sentryWrap';
+
+// 2026-09-04: src/lib/sentry.js was deleted (docs/SENTRY-FREE-TIER-POLICY.md).
+// Same call shape as the old captureError(err, { tags, extra }), routed
+// through the gated reporter: this route is not on the Sentry allowlist, so
+// these become console.error lines that Vercel captures.
+const captureError = (err, ctx = {}) =>
+    reportApiError(err, { url: '/api/poker/venues', method: 'GET' }, { tags: ctx.tags, context: ctx.extra });
 import allVenuesData from '../../../data/all-venues.json';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';

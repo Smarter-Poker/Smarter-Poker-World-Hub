@@ -1,5 +1,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+// Sentry: this route is on the allowlist in docs/SENTRY-FREE-TIER-POLICY.md
+// (it moves chips). reportApiError sends; flushSentry runs before the lambda
+// returns so the event is not frozen with it.
+import { reportApiError, flushSentry } from '../../../src/lib/sentryWrap';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -73,7 +77,8 @@ export default async function handler(req, res) {
             truncated: gifts && gifts.length === MAX_GIFT_ROWS,
         });
     } catch (err) {
-        console.error('[live/gifts] fetch error:', err.message);
+        await reportApiError(err, req, { tags: { stage: 'unhandled' } });
+        await flushSentry();
         return res.status(500).json({ error: err.message });
     }
 }
