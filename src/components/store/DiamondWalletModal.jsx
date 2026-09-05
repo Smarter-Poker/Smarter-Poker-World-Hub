@@ -1405,6 +1405,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   // ── ENH-3: Can load more? ──
   const canLoadMore = transactions.length < total;
 
+  /* One definition of "close to the daily cap", read by both the remaining
+     figure and the bar. They each computed it separately before, so a change to
+     one threshold would have left the number warning while the bar did not. */
+  const nearDailyCap = !!dailyLimitInfo && dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8;
+
   /*
    * ── ENH-G: Transaction analytics ── LIFETIME FIGURES COME FROM THE SERVER.
    *
@@ -1775,35 +1780,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           </div>
 
           {/* H7: Diamond Transfer Panel: Type-to-search UX */}
+          {/* One definition of "close to the cap", so the figure and the bar
+              cannot disagree about whether to warn. */}
           {showTransfer && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-                background: 'rgba(255, 255, 255, 0.02)',
-                animation: 'walletFadeIn 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  marginBottom: 8,
-                  letterSpacing: '0.5px',
-                }}
-              >
-                Send Diamonds To A Friend
-              </div>
+            <div className={styles.sendPanel}>
+              <div className={styles.sendTitle}>Send Diamonds To A Friend</div>
               {/* Anti-abuse info */}
-              <div
-                style={{
-                  fontSize: 10,
-                  color: 'rgba(255,255,255,0.3)',
-                  marginBottom: 10,
-                  lineHeight: 1.4,
-                }}
-              >
+              <div className={styles.sendRules}>
                 Standard: 10-100 Per Transfer | 500/Day | 200/Day Per Friend | 60S Cooldown
                 <br />
                 VIP Friends (60+ Days): 10-500 Per Transfer | 2,000/Day
@@ -1812,47 +1795,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               </div>
               {/* P2-4: Daily limit progress bar */}
               {dailyLimitInfo && (
-                <div style={{ marginBottom: 10 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 10,
-                      color: 'rgba(255,255,255,0.4)',
-                      marginBottom: 3,
-                    }}
-                  >
+                <div className={styles.sendMeter}>
+                  <div className={styles.sendMeterRow}>
                     <span>
                       Today: {dailyLimitInfo.sent.toLocaleString()} /{' '}
                       {dailyLimitInfo.limit.toLocaleString()}
                     </span>
                     <span
-                      style={{
-                        color:
-                          dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8 ? '#f87171' : '#58d9ff',
-                      }}
+                      className={`${styles.sendMeterLeft} ${nearDailyCap ? styles.sendMeterLeftLow : ''}`}
                     >
                       {(dailyLimitInfo.limit - dailyLimitInfo.sent).toLocaleString()} Remaining
                     </span>
                   </div>
                   <div
-                    style={{
-                      height: 4,
-                      borderRadius: 2,
-                      background: 'rgba(255,255,255,0.06)',
-                      overflow: 'hidden',
-                    }}
+                    className={styles.sendMeterTrack}
+                    role="progressbar"
+                    aria-label="Diamonds Sent Today"
+                    aria-valuemin={0}
+                    aria-valuemax={dailyLimitInfo.limit}
+                    aria-valuenow={dailyLimitInfo.sent}
                   >
                     <div
+                      className={`${styles.sendMeterFill} ${nearDailyCap ? styles.sendMeterFillLow : ''}`}
                       style={{
                         width: `${Math.min((dailyLimitInfo.sent / dailyLimitInfo.limit) * 100, 100)}%`,
-                        height: '100%',
-                        borderRadius: 2,
-                        transition: 'width 0.3s ease',
-                        background:
-                          dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8
-                            ? 'linear-gradient(90deg, #ffffff, #ef4444)'
-                            : 'linear-gradient(90deg, #58d9ff, #00a8e8)',
                       }}
                     />
                   </div>
