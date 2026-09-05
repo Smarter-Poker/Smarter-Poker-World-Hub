@@ -121,7 +121,33 @@ export default async function handler(req, res) {
                   .maybeSingle());
           }
 
-          if (error || !profile) {
+          /*
+           * A READ ERROR IS NOT A ZERO BALANCE (2026-09-05). This branch used
+           * to answer HTTP 200 { diamonds: 0 } for BOTH "no profile row" and
+           * "the database refused the read". The Club Arena marketplace and
+           * the Hub store take that answer at face value: wallet.loaded=true,
+           * diamonds=0, so every Buy button greyed out with "Insufficient
+           * Diamonds. You Need N More." and the membership plans disabled,
+           * with no error anywhere a player could see. During a Supabase
+           * outage that was every purchase surface at once, silently. Dan,
+           * 2026-09-04: "you get an error message from any and all pages".
+           * A refused read now says so: 503, success:false, and the clients
+           * already render that as a balance-unavailable banner with Retry.
+           * A genuinely missing profile row still gets the honest zero.
+           */
+          if (error) {
+              console.warn('[vip/check-status] profile read failed:', error.message || error);
+              res.setHeader('Cache-Control', 'no-store');
+              return res.status(503).json({
+                  success: false,
+                  error: 'Your diamond balance is unavailable right now. Please try again.',
+                  isVip: false,
+                  diamonds: null,
+                  vipTier: null,
+                  vipExpiresAt: null
+              });
+          }
+          if (!profile) {
               return res.status(200).json({
                   isVip: false,
                   diamonds: 0,

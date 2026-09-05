@@ -144,7 +144,7 @@ export default function GameTrendsDashboard() {
               <div style={{ color: '#fff', fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {trend.game}
               </div>
-              <div style={{ color: '#64748b', fontSize: 11 }}>
+              <div style={{ color: '#64748b', fontSize: 12 }}>
                 {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''} Running
               </div>
             </div>

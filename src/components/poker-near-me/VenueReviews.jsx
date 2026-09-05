@@ -3,6 +3,10 @@
  * Full Yelp-style review system with ratings and sub-category scores.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
+import toast from '../../stores/toastStore';
 
 const CATEGORY_ICONS = {
     dealers: (
@@ -142,6 +146,11 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
     const [showWriteReview, setShowWriteReview] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
+    // Mobile phase 3: the phone back gesture closes the panel instead of
+    // leaving the page, and a drag that merely ends on the scrim does not.
+    useModalHistory(!!isOpen, onClose);
+    const scrim = useScrimDismiss(onClose);
+
     // New review form state
     const [newRating, setNewRating] = useState(0);
     const [newText, setNewText] = useState('');
@@ -237,6 +246,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
     // Submit review
     const submitReview = async () => {
         if (!newRating || !newText.trim() || !userId) return;
+        if (!requireOnlineNow(toast)) return;
         setSubmitting(true);
         setSubmitError('');
         try {
@@ -286,6 +296,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
     // Vote helpful/unhelpful
     const voteReview = async (reviewId, action) => {
+        if (!requireOnlineNow(toast)) return;
         // Optimistic update
         setReviews(prev => prev.map(r =>
             r.id === reviewId ? {
@@ -317,7 +328,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
     if (!isOpen) return null;
 
     return (
-        <div className="vr-overlay" onClick={onClose}>
+        <div className="vr-overlay" role="presentation" {...scrim}>
             <div
                 className="vr-panel"
                 role="dialog"
@@ -327,6 +338,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                 ref={panelRef}
                 onClick={e => e.stopPropagation()}
             >
+                <div className="vr-handle" aria-hidden="true" />
                 <div className="vr-header">
                     <div>
                         <h2>Reviews</h2>
@@ -522,8 +534,19 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
             <style>{`
         .vr-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.75); display: flex; justify-content: flex-end; }
         /* padding-top clears the status bar so the X is reachable (mobile phase 0b). */
-        .vr-panel { width: 100%; max-width: 500px; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 24px; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); animation: slideInRight 0.3s ease-out; }
+        .vr-panel { position: relative; width: 100%; max-width: 500px; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 24px; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); animation: slideInRight 0.3s ease-out; box-sizing: border-box; }
+        .vr-handle { display: none; }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes vrSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        /* Mobile phase 3: a bottom sheet at or below 600px with a drag handle,
+           the 44px X below the status bar, 16px inputs (no iOS zoom). */
+        @media (max-width: 600px) {
+          .vr-overlay { align-items: flex-end; justify-content: stretch; }
+          .vr-panel { max-width: none; max-height: 92dvh; border-left: 0; border-top: 1px solid rgba(255,255,255,0.12); border-radius: 16px 16px 0 0; padding: 8px 16px 0; padding-top: max(env(safe-area-inset-top, 0px), 8px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); animation: vrSlideUp 0.3s ease-out; }
+          .vr-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 0 auto 8px; }
+          .vr-textarea { font-size: 16px; }
+          .vr-submit-btn, .vr-write-btn, .vr-load-more { min-height: 44px; }
+        }
         .vr-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
         .vr-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; }
         .vr-venue-name { font-size: 13px; color: rgba(255,255,255,0.4); margin: 4px 0 0; }
@@ -534,10 +557,10 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-total { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
         .vr-distribution { flex: 1; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
         .vr-rating-bar-row { display: flex; align-items: center; gap: 6px; }
-        .vr-bar-label { font-size: 11px; color: rgba(255,255,255,0.5); width: 20px; text-align: right; }
+        .vr-bar-label { font-size: 12px; color: rgba(255,255,255,0.5); width: 20px; text-align: right; }
         .vr-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
         .vr-bar-fill { height: 100%; background: #ffffff; border-radius: 3px; transition: width 0.3s; }
-        .vr-bar-count { font-size: 11px; color: rgba(255,255,255,0.4); width: 20px; }
+        .vr-bar-count { font-size: 12px; color: rgba(255,255,255,0.4); width: 20px; }
         .vr-write-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; justify-content: center; margin-bottom: 16px; }
         .vr-write-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
         .vr-form-group { margin-bottom: 16px; }
@@ -552,8 +575,10 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-textarea::placeholder { color: rgba(255,255,255,0.25); }
         .vr-submit-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
         .vr-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .vr-sort-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
-        .vr-sort-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+        /* Mobile phase 3: the sort chips wrap; they used to be a sideways strip. */
+        .vr-sort-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 4px; margin-bottom: 16px; }
+        .vr-sort-chip { min-height: 44px; padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; touch-action: manipulation; }
+        .vr-sort-chip:active { background: rgba(255,255,255,0.12); }
         .vr-sort-chip.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); color: #ffffff; }
         .vr-list { display: flex; flex-direction: column; gap: 12px; }
         .vr-loading { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 10px; }
@@ -566,25 +591,25 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-reviewer-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
         .vr-reviewer-info { flex: 1; }
         .vr-reviewer-name { font-size: 14px; font-weight: 600; color: #fff; display: block; }
-        .vr-review-date { font-size: 11px; color: rgba(255,255,255,0.3); }
+        .vr-review-date { font-size: 12px; color: rgba(255,255,255,0.3); }
         .vr-review-text { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; margin: 0; }
         .vr-review-actions { margin-top: 10px; display: flex; gap: 6px; }
-        .vr-helpful-btn { padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
-        .vr-helpful-btn:hover { background: rgba(255,255,255,0.08); }
+        .vr-helpful-btn { min-height: 44px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
+        .vr-helpful-btn:hover, .vr-helpful-btn:active { background: rgba(255,255,255,0.08); }
         .vr-helpful-btn.voted { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #3b82f6; }
-        .vr-unhelpful-btn { padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
-        .vr-unhelpful-btn:hover { background: rgba(239,68,68,0.06); }
+        .vr-unhelpful-btn { min-height: 44px; padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
+        .vr-unhelpful-btn:hover, .vr-unhelpful-btn:active { background: rgba(239,68,68,0.06); }
         .vr-unhelpful-btn.voted { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
         .vr-verified-badge { display: inline-flex; align-items: center; margin-left: 4px; vertical-align: middle; }
         .vr-panel:focus { outline: none; }
         .vr-reviewer-avatar-img { object-fit: cover; }
         .vr-cat-averages { margin-bottom: 16px; padding: 14px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; display: flex; flex-direction: column; gap: 5px; }
-        .vr-cat-averages-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .vr-cat-averages-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
         .vr-verified-count { text-transform: none; letter-spacing: 0; color: #22c55e; font-weight: 600; }
-        .vr-cat-avg-label { font-size: 11px; color: rgba(255,255,255,0.6); width: 96px; flex-shrink: 0; }
-        .vr-cat-avg-val { font-size: 11px; color: rgba(255,255,255,0.75); width: 26px; text-align: right; flex-shrink: 0; }
+        .vr-cat-avg-label { font-size: 12px; color: rgba(255,255,255,0.6); width: 96px; flex-shrink: 0; }
+        .vr-cat-avg-val { font-size: 12px; color: rgba(255,255,255,0.75); width: 26px; text-align: right; flex-shrink: 0; }
         .vr-load-more { width: 100%; padding: 10px; margin-top: 4px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-        .vr-load-more:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #ffffff; }
+        .vr-load-more:hover:not(:disabled), .vr-load-more:active:not(:disabled) { background: rgba(255,255,255,0.1); color: #ffffff; }
         .vr-load-more:disabled { opacity: 0.5; cursor: wait; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>

@@ -198,3 +198,33 @@ test('the league card says how old it is', () => {
 test('no em dashes in the panel source', () => {
   assert.ok(!SRC.includes('—'), 'em dashes are forbidden');
 });
+
+// ── 2026-09-04 (Phase 1 of the horse real-time build plan): the Data Ledger ──
+test('the ledger section reads ca_horse_data_ledger and renders a failed read as failed', () => {
+  assert.ok(SRC.includes("supabase.rpc('ca_horse_data_ledger')"), 'the panel must read the ledger RPC');
+  // a failed read must LOOK failed, never like an empty ledger (which is a
+  // critical audit finding of its own, data_ledger_missing)
+  assert.ok(SRC.includes('The Ledger Read FAILED'), 'a failed ledger read must say so');
+  assert.ok(SRC.includes('data_ledger_missing'), 'an empty ledger must name the audit finding it corresponds to');
+  // the expander is a real button that names its panel, like the others
+  const btn = SRC.indexOf('aria-controls="ledger-panel"');
+  assert.ok(btn > 0, 'the ledger expander must name ledger-panel');
+  assert.ok(SRC.includes('id="ledger-panel"'), 'ledger-panel must exist');
+  const before = SRC.lastIndexOf('<button', btn);
+  const div = SRC.lastIndexOf('<div', btn);
+  assert.ok(before > div, 'the ledger expander must be a <button>, not a div with onClick');
+});
+
+test('the ledger header counts proven and unread receipts, and unread turns the header red', () => {
+  assert.ok(SRC.includes("ledger.filter((r) => r.proven === 'yes').length"), 'proven count');
+  assert.ok(SRC.includes("ledger.filter((r) => r.proven === 'NO').length"), 'unread count');
+  assert.ok(SRC.includes("ledger.some((r) => r.proven === 'NO') ? T.danger"), 'an unread receipt colours the header red');
+});
+
+test('the ledger can be filtered by kind and exported', () => {
+  for (const k of ['receipt', 'table', 'profile', 'mind', 'param', 'state', 'flag', 'all']) {
+    assert.ok(SRC.includes(`'${k}'`), `kind filter ${k}`);
+  }
+  assert.ok(SRC.includes('filePrefix="horse-data-ledger"'), 'CSV export of the ledger');
+  assert.ok(SRC.includes('const LEDGER_COLUMNS = ['), 'export columns declared');
+});

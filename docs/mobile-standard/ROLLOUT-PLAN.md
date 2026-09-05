@@ -81,6 +81,13 @@ wraps; the compare table becomes stacked cards. The existing
 `InteractiveTutorial` keeps working with stacked sections (targets become
 scroll-into-view instead of tab-switch).
 
+**Shipped 2026-09-04** (`docs/changelog/2026-09-04-mobile-phase3-poker-near-me.md`):
+swipe navigation deleted, six panels stacked under an anchor row on both
+pages with lazy mounting, every rail wraps, the map fixed-height with
+`touch-action: pan-y`, VenueCompare a ResponsiveTable, HubPageShell + the
+full upgrade set, eight-step tutorial as a prefix route, budget row
+converted; the old InteractiveTutorial retired.
+
 ## Phase 4: Personal Assistant (MEDIUM)
 
 Files: `pages/hub/personal-assistant/index.js` (748), `sandbox.js` (6,487),

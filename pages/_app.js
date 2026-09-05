@@ -440,19 +440,26 @@ function NavigationGuard({ children }) {
     document.documentElement.style.overflow = '';
     document.documentElement.classList.remove('reels-lock');
 
-    // AGGRESSIVE SCROLL-TO-TOP ON HARD REFRESH / MOUNT (Platform-wide)
+    // SCROLL-TO-TOP ON HARD REFRESH / MOUNT (Platform-wide) - ONCE.
+    //
+    // Corrected 2026-09-04. This used to re-issue scrollTo(0, 0) every 100ms
+    // for the first half second "to defeat browser scroll restoration cache",
+    // and it defeated the READER instead: any thumb that started scrolling
+    // within 500ms of a page landing was yanked back to the top, on every
+    // page of the hub. It is also why the footer hide-on-scroll contract
+    // (e2e/global-footer-visual) was red on main from the day it landed -
+    // the bar hid, then the interval scrolled the page to 0, which correctly
+    // showed it again, 100 to 200ms after the flick.
+    //
+    // `history.scrollRestoration = 'manual'` is what stops the browser
+    // restoring a position; it needs no belt. One immediate scrollTo covers
+    // the first paint, and after that the scroll position belongs to the
+    // person holding the phone.
     if (typeof window !== 'undefined') {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'manual';
       }
-      // Aggressively force scroll to top for the first 500ms to defeat browser scroll restoration cache
-      let scrollAttempts = 0;
-      const scrollInterval = setInterval(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        scrollAttempts++;
-        if (scrollAttempts >= 5) clearInterval(scrollInterval);
-      }, 100);
-      return () => clearInterval(scrollInterval);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -8,8 +8,13 @@
  * - Enhanced visual hierarchy
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
+import { triggerHaptic } from '../../hooks/useHaptics';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
+import toast from '../../stores/toastStore';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
@@ -251,25 +256,27 @@ const VC3_CARD_STYLES = `
                 .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
                 .vc3-city-type-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0; }
                 .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; text-transform: capitalize; }
-                .vc3-city-state:hover { color: #ffffff; }
+                .vc3-city-state:hover,
+                .vc3-city-state:active { color: #ffffff; }
                 .vc3-next-event-header { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
                 .vc3-next-event-label { font-size: 12px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px; }
-                .vc3-next-event-detail { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); }
+                .vc3-next-event-detail { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); }
                 .vc3-next-event-today .vc3-next-event-label { color: #4ade80; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
                 .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
                 .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 60px; }
                 .vc3-fav { position: relative; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; }
-                .vc3-fav:hover { transform: scale(1.15); }
+                .vc3-fav:hover,
+                .vc3-fav:active { transform: scale(1.15); }
                 .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
-                .vc3-distance { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; }
-                .vc3-hours-compact { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; display: block; text-align: right; width: 100%; }
-                .vc3-open-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+                .vc3-distance { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; }
+                .vc3-hours-compact { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; display: block; text-align: right; width: 100%; }
+                .vc3-open-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
                 .vc3-open-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; flex-shrink: 0; animation: livePulse 1.5s ease-in-out infinite; }
                 .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
                 .vc3-open-dot.closed { background: #ef4444; animation: none; }
-                .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 11px; }
+                .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 12px; }
                 .vc3-crowd-meter { margin: 8px 0; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
                 .vc3-crowd-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
                 .vc3-crowd-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -277,10 +284,11 @@ const VC3_CARD_STYLES = `
                 .vc3-crowd-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
                 .vc3-crowd-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease-out 0.3s; }
                 .vc3-rating-row { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; padding: 0 2px; cursor: pointer; transition: opacity 0.2s; }
-                .vc3-rating-row:hover { opacity: 0.85; }
+                .vc3-rating-row:hover,
+                .vc3-rating-row:active { opacity: 0.85; }
                 .vc3-rating-stars { display: flex; gap: 1px; }
                 .vc3-rating-score { font-size: 13px; font-weight: 700; color: #ffffff; }
-                .vc3-rating-count { font-size: 11px; color: rgba(255,255,255,0.4); }
+                .vc3-rating-count { font-size: 12px; color: rgba(255,255,255,0.4); }
 
                 @keyframes livePulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
                 
@@ -289,18 +297,21 @@ const VC3_CARD_STYLES = `
                 .vc3-host-avatar-fallback { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); }
                 .vc3-host-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
                 .vc3-host-name { font-size: 12px; color: #ffffff; font-weight: 600; }
-                .vc3-host-profile-link { font-size: 11px; color: rgba(255,255,255,0.7); text-decoration: none; }
-                .vc3-host-profile-link:hover { color: #ffffff; text-decoration: underline; }
-                .vc3-host-link { font-size: 10px; color: #ffffff; text-decoration: none; margin-left: auto; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
-                .vc3-host-link:hover { background: rgba(255,255,255,0.15); }
+                .vc3-host-profile-link { font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
+                .vc3-host-profile-link:hover,
+                .vc3-host-profile-link:active { color: #ffffff; text-decoration: underline; }
+                .vc3-host-link { font-size: 12px; color: #ffffff; text-decoration: none; margin-left: auto; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
+                .vc3-host-link:hover,
+                .vc3-host-link:active { background: rgba(255,255,255,0.15); }
                 .vc3-schedule { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 600; margin: 4px 0 6px; }
                 .vc3-follow-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
-                .vc3-saves-count { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; }
+                .vc3-saves-count { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; }
                 .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
                 .vc3-pill-message { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
-                .vc3-pill-message:hover { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
+                .vc3-pill-message:hover,
+                .vc3-pill-message:active { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
                 .vc3-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-                .vc3-badge { padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+                .vc3-badge { padding: 3px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
                 .vc3-badge-featured { background: rgba(255,255,255,0.2); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); }
                 .vc3-badge-newcomer { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
                 .vc3-badge-promo { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
@@ -310,13 +321,15 @@ const VC3_CARD_STYLES = `
                     box-shadow: 0 0 12px rgba(34,197,94,0.2);
                     display: inline-flex; align-items: center; gap: 5px; cursor: pointer; transition: all 0.2s;
                 }
-                .vc3-badge-live:hover { background: rgba(34,197,94,0.25); box-shadow: 0 0 16px rgba(34,197,94,0.4); }
+                .vc3-badge-live:hover,
+                .vc3-badge-live:active { background: rgba(34,197,94,0.25); box-shadow: 0 0 16px rgba(34,197,94,0.4); }
                 .vc3-live-dot {
                     width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
                     box-shadow: 0 0 8px #4ade80; animation: livePulse 1.5s ease-in-out infinite;
                 }
                 .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
-                .vc3-badge-checkin:hover { background: rgba(230,81,0,0.25); }
+                .vc3-badge-checkin:hover,
+                .vc3-badge-checkin:active { background: rgba(230,81,0,0.25); }
                 .vc3-data-zone { margin-top: 2px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
                 .vc3-live-info {
                     display: flex; gap: 16px; margin-bottom: 8px; padding: 8px 10px;
@@ -324,29 +337,33 @@ const VC3_CARD_STYLES = `
                 }
                 .vc3-live-stat { display: flex; align-items: center; gap: 6px; }
                 .vc3-live-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
-                .vc3-live-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
+                .vc3-live-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
                 .vc3-hours { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: rgba(255,255,255,0.55); margin: 0 0 6px; font-style: italic; }
                 .vc3-games { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-                .vc3-game-chip { padding: 4px 10px; border-radius: 5px; font-size: 11.5px; font-weight: 600; border: 1px solid; }
+                .vc3-game-chip { padding: 4px 10px; border-radius: 5px; font-size: 12px; font-weight: 600; border: 1px solid; }
                 .vc3-stakes { display: flex; align-items: center; gap: 5px; font-size: 13px; color: rgba(255,255,255,0.9); margin: 0 0 8px; font-weight: 600; }
                 .vc3-trust { padding: 10px 0 8px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; }
                 .vc3-trust-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-                .vc3-trust-label { font-size: 11.5px; font-weight: 700; }
-                .vc3-trust-val { font-size: 11.5px; font-weight: 800; }
+                .vc3-trust-label { font-size: 12px; font-weight: 700; }
+                .vc3-trust-val { font-size: 12px; font-weight: 800; }
                 .vc3-trust-track { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
                 .vc3-trust-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
                 .vc3-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 6px; }
                 .vc3-actions-secondary { display: flex; gap: 6px; }
                 .vc3-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s; }
-                .vc3-icon-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+                .vc3-icon-btn:hover,
+                .vc3-icon-btn:active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
                 .vc3-actions-primary { display: flex; gap: 6px; flex: 1; justify-content: flex-end; }
                 .vc3-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; background: none; }
                 .vc3-pill-checkin { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.25); }
-                .vc3-pill-checkin:hover { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
+                .vc3-pill-checkin:hover,
+                .vc3-pill-checkin:active { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
                 .vc3-pill-schedule { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
-                .vc3-pill-schedule:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
+                .vc3-pill-schedule:hover,
+                .vc3-pill-schedule:active { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
                 .vc3-pill-details { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
-                .vc3-pill-details:hover { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
+                .vc3-pill-details:hover,
+                .vc3-pill-details:active { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
 
                 /* ── Tournament Calendar Button ─────────────────────────── */
                 .vc3-calendar-btn {
@@ -354,12 +371,13 @@ const VC3_CARD_STYLES = `
                     background: linear-gradient(90deg, rgba(74,222,128,0.12), rgba(74,222,128,0.06));
                     border: 1px solid rgba(74,222,128,0.3);
                     border-radius: 6px; padding: 5px 10px;
-                    font-size: 11px; color: #4ade80; font-weight: 700;
+                    font-size: 12px; color: #4ade80; font-weight: 700;
                     cursor: pointer; text-transform: uppercase; letter-spacing: 0.4px;
                     margin-top: 2px; transition: all 0.2s; width: fit-content;
                     box-shadow: 0 2px 6px rgba(74,222,128,0.08);
                 }
-                .vc3-calendar-btn:hover {
+                .vc3-calendar-btn:hover,
+                .vc3-calendar-btn:active {
                     background: linear-gradient(90deg, rgba(74,222,128,0.22), rgba(74,222,128,0.12));
                     box-shadow: 0 0 14px rgba(74,222,128,0.2);
                     border-color: rgba(74,222,128,0.5);
@@ -403,14 +421,15 @@ const VC3_CARD_STYLES = `
                     display: inline-flex; align-items: center; justify-content: center;
                     margin-top: 5px; padding: 3px 10px; border-radius: 5px;
                     background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.28);
-                    color: #60a5fa; font-size: 10px; font-weight: 700;
+                    color: #60a5fa; font-size: 12px; font-weight: 700;
                     text-transform: uppercase; letter-spacing: 0.4px;
                     cursor: pointer; transition: all 0.2s; width: fit-content;
                 }
-                .vc3-more-badge:hover { background: rgba(96,165,250,0.22); box-shadow: 0 0 10px rgba(96,165,250,0.2); }
+                .vc3-more-badge:hover,
+                .vc3-more-badge:active { background: rgba(96,165,250,0.22); box-shadow: 0 0 10px rgba(96,165,250,0.2); }
                 /* Blind levels display in tournament row */
                 .vc3-tourney-blinds {
-                    font-size: 9px; color: rgba(255,255,255,0.35); margin-top: 1px;
+                    font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 1px;
                     font-style: italic;
                 }
                 .vc3-col-right { padding-left: 4px; }
@@ -452,7 +471,7 @@ const VC3_CARD_STYLES = `
                 }
                 .vc3-game-item { justify-content: space-between; }
                 .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; text-transform: capitalize; }
-                .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 11px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
+                .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 12px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
                 
                 .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; align-items: center; }
                 .vc3-stake-item { color: rgba(255,255,255,0.85); font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); justify-content: center; text-align: center; width: 100%; }
@@ -492,18 +511,18 @@ const VC3_CARD_STYLES = `
                     color: #4ade80;
                 }
                 .vc3-tourney-gtd {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 700;
                     color: #fbbf24;
                 }
                 .vc3-tourney-stack {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 600;
                     color: rgba(255,255,255,0.5);
                     margin-top: 1px;
                 }
                 .vc3-tourney-meta {
-                    font-size: 11px;
+                    font-size: 12px;
                     color: rgba(255,255,255,0.5);
                     display: flex;
                     white-space: nowrap;
@@ -514,7 +533,7 @@ const VC3_CARD_STYLES = `
                 }
                 
                 .vc3-empty-state {
-                    font-size: 11px;
+                    font-size: 12px;
                     color: rgba(255,255,255,0.3);
                     font-style: italic;
                     padding: 10px 0;
@@ -533,7 +552,7 @@ const VC3_CARD_STYLES = `
                     border-top: 1px dashed rgba(255,255,255,0.1);
                 }
                 .vc3-hours-small {
-                    font-size: 10px;
+                    font-size: 12px;
                     color: rgba(255,255,255,0.4);
                     font-weight: 500;
                     white-space: nowrap;
@@ -573,7 +592,7 @@ const VC3_CARD_STYLES = `
                     display: flex;
                     align-items: center;
                     gap: 5px;
-                    font-size: 10px;
+                    font-size: 12px;
                     font-weight: 800;
                     text-transform: uppercase;
                     letter-spacing: 0.8px;
@@ -643,7 +662,7 @@ const VC3_CARD_STYLES = `
                     border: 1px solid rgba(59,130,246,0.35);
                     border-radius: 6px;
                     padding: 3px 8px;
-                    font-size: 11px; font-weight: 700;
+                    font-size: 12px; font-weight: 700;
                     color: #60a5fa;
                     letter-spacing: 0.2px;
                     align-self: flex-start;
@@ -651,7 +670,7 @@ const VC3_CARD_STYLES = `
                 .vc3-tourney-item-upcoming { background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.15); }
                 .vc3-tourney-location {
                     display: flex; align-items: center; gap: 4px;
-                    font-size: 10px; color: rgba(255,255,255,0.45);
+                    font-size: 12px; color: rgba(255,255,255,0.45);
                     margin-top: 2px; font-weight: 500;
                     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
                 }
@@ -669,14 +688,24 @@ const VC3_CARD_STYLES = `
                 @keyframes vc3-fade-in { from { opacity: 0; } to { opacity: 1; } }
                 .vc3-checkin-modal { background: linear-gradient(180deg,#1a2744 0%,#0d1626 100%); border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
                 .vc3-checkin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; font-weight: 700; color: #22d3ee; }
-                .vc3-checkin-close { background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-                .vc3-checkin-close:hover { color: #fff; }
+                .vc3-checkin-close { --sp-btn-size: 44px; background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+                .vc3-checkin-close:hover, .vc3-checkin-close:active { color: #fff; }
+                .vc3-checkin-handle { display: none; }
+                /* Mobile phase 3: bottom sheet at or below 600px with a drag handle,
+                   16px textarea (no iOS zoom), 44px actions. */
+                @media (max-width: 600px) {
+                    .vc3-checkin-backdrop { align-items: flex-end; padding: 0; padding-top: max(env(safe-area-inset-top, 0px), 12px); }
+                    .vc3-checkin-modal { max-width: none; border-radius: 16px 16px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); max-height: 92dvh; overflow-y: auto; }
+                    .vc3-checkin-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 0 auto 8px; }
+                    .vc3-checkin-textarea { font-size: 16px; }
+                    .vc3-checkin-actions { flex-wrap: wrap; }
+                }
                 .vc3-checkin-textarea { width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(34,211,238,0.2); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; padding: 10px 12px; resize: vertical; min-height: 80px; line-height: 1.5; }
                 .vc3-checkin-textarea:focus { outline: none; border-color: rgba(34,211,238,0.5); }
                 .vc3-checkin-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-                .vc3-checkin-count { font-size: 11px; color: rgba(255,255,255,0.35); margin-right: auto; }
-                .vc3-checkin-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
-                .vc3-checkin-submit { background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+                .vc3-checkin-count { font-size: 12px; color: rgba(255,255,255,0.35); margin-right: auto; }
+                .vc3-checkin-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+                .vc3-checkin-submit { background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff; border-radius: 8px; min-height: 44px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
                 .vc3-checkin-submit:disabled { opacity: 0.5; cursor: not-allowed; }
                 .vc3-checkin-done { text-align: center; padding: 20px; font-size: 18px; font-weight: 700; color: #22d3ee; }
                 .vc3-checkin-error { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149; font-size: 12px; font-weight: 600; }
@@ -726,6 +755,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     // management, so keyboard and screen-reader users tabbed straight past it.
     const checkinModalRef = useRef(null);
     const checkinOpenerRef = useRef(null);
+    // Mobile phase 3: the back gesture closes the check-in sheet; a drag that
+    // merely ends on the scrim does not.
+    const closeCheckin = useCallback(() => setCheckinModal(false), []);
+    useModalHistory(checkinModal, closeCheckin);
+    const checkinScrim = useScrimDismiss(closeCheckin);
     useEffect(() => {
         if (!checkinModal) return undefined;
         if (typeof document === 'undefined') return undefined;
@@ -809,6 +843,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
     const handleCheckinOpen = (e) => {
         e.stopPropagation();
+        if (!requireOnlineNow(toast)) return;
+        triggerHaptic('light');
         setCheckinError('');
         const defaultMsg = `Checked in at ${venue.name}${venue.city ? ` in ${venue.city}` : ''}`;
         setCheckinMsg(defaultMsg);
@@ -818,6 +854,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
     const handleCheckinSubmit = async () => {
         if (checkinBusy || !checkinMsg.trim()) return;
+        if (!requireOnlineNow(toast)) return;
+        triggerHaptic('success');
         setCheckinBusy(true);
         setCheckinError('');
         try {
@@ -1028,7 +1066,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <button
                         type="button"
                         className={'vc3-fav' + (isFavorited ? ' active' : '')}
-                        onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
+                        onClick={(e) => { e.stopPropagation(); triggerHaptic('light'); onFavorite && onFavorite(e); }}
                         title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
                         aria-label={isFavorited ? `Remove ${venue.name || 'venue'} from saved venues` : `Save ${venue.name || 'venue'}`}
                         aria-pressed={!!isFavorited}
@@ -1213,7 +1251,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 <div className="vc3-col-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>Cash Games</span>
                                     {venue.live_data.tables_running > 0 && (
-                                        <span style={{ color: '#4ade80', fontSize: '10px', backgroundColor: 'rgba(74,222,128,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                        <span style={{ color: '#4ade80', fontSize: '12px', backgroundColor: 'rgba(74,222,128,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                                             {venue.live_data.tables_running} TABLES
                                         </span>
                                     )}
@@ -1252,7 +1290,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 )}
                                 
                                 {venue.live_data.last_updated && (
-                                    <div style={{ fontSize: 9, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                                    <div style={{ fontSize: 12, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
                                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                                         </svg>
@@ -1314,7 +1352,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 color: chipStyle.color || 'rgba(255,255,255,0.65)',
                                                 borderColor: chipStyle.border || 'rgba(255,255,255,0.1)',
                                                 padding: '2px 6px',
-                                                fontSize: '10px'
+                                                fontSize: '12px'
                                             }}>
                                                 {g}{stakeSuffix}
                                             </span>
@@ -1396,7 +1434,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                                                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                                                                     </svg>
-                                                                    <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Today</span>
+                                                                    <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Today</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1446,7 +1484,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                                                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                                                                         </svg>
-                                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>NEXT EVENT: {dateStr}</span>
+                                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>NEXT EVENT: {dateStr}</span>
                                                                     </div>
                                                                 );
                                                             })()}
@@ -1498,7 +1536,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={daysBadgeColor} strokeWidth="2.5" style={{ flexShrink: 0 }}>
                                                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                                                             </svg>
-                                                            <span style={{ color: daysBadgeColor, fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{daysBadgeLabel}</span>
+                                                            <span style={{ color: daysBadgeColor, fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{daysBadgeLabel}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -1539,7 +1577,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                                                         </svg>
-                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Next: {dayLabel}</span>
+                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Next: {dayLabel}</span>
                                                     </div>
                                                     {ntp.total_that_day > 1 && (
                                                         <div className="vc3-more-badge" style={{ marginTop: '4px' }} onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
@@ -1676,7 +1714,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 the modal appeared as a tiny clipped overlay with the 420px-wide panel
                 overflowing it. Portalled to document.body so it escapes the transform. */}
             {checkinModal && typeof document !== 'undefined' && createPortal((
-                <div className="vc3-checkin-backdrop" onClick={e => { e.stopPropagation(); setCheckinModal(false); }}>
+                <div className="vc3-checkin-backdrop" role="presentation" {...checkinScrim}>
                     <div
                         className="vc3-checkin-modal"
                         role="dialog"
@@ -1686,9 +1724,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         ref={checkinModalRef}
                         onClick={e => e.stopPropagation()}
                     >
+                        <div className="vc3-checkin-handle" aria-hidden="true" />
                         <div className="vc3-checkin-header">
                             <span>Check In At {venue.name}</span>
-                            <button className="vc3-checkin-close sp-icon-btn" aria-label="Close" onClick={() => setCheckinModal(false)}>×</button>
+                            <button type="button" className="vc3-checkin-close sp-icon-btn" aria-label="Close" onClick={closeCheckin}>×</button>
                         </div>
                         {checkinDone ? (
                             <div className="vc3-checkin-done">✓ Checked In!</div>
@@ -1707,8 +1746,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 )}
                                 <div className="vc3-checkin-actions">
                                     <span className="vc3-checkin-count">{checkinMsg.length}/280</span>
-                                    <button className="vc3-checkin-cancel" onClick={() => setCheckinModal(false)}>Cancel</button>
-                                    <button className="vc3-checkin-submit" onClick={handleCheckinSubmit} disabled={checkinBusy || !checkinMsg.trim()}>
+                                    <button type="button" className="vc3-checkin-cancel" onClick={closeCheckin}>Cancel</button>
+                                    <button type="button" className="vc3-checkin-submit" onClick={handleCheckinSubmit} disabled={checkinBusy || !checkinMsg.trim()}>
                                         {checkinBusy ? 'Posting...' : 'Post Check-In'}
                                     </button>
                                 </div>

@@ -562,7 +562,7 @@ export default function LivesPage() {
                         onClick={() => router.back()}
                         aria-label="Close"
                         className="sp-icon-btn"
-                        style={{
+                        style={{ '--sp-btn-size': '44px',
                             width: 44,
                             height: 44,
                             minWidth: 44,
@@ -1141,7 +1141,7 @@ export default function LivesPage() {
                             borderBottom: '1px solid rgba(255,255,255,0.08)',
                             alignItems: 'center',
                         }}>
-                            <div style={{
+                            <div style={{ '--sp-btn-size': '80px',
                                 width: 80, height: 56, borderRadius: 8, overflow: 'hidden',
                                 background: '#222', flexShrink: 0,
                             }}>

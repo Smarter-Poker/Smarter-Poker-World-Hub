@@ -3,6 +3,7 @@
  * Allows users to compare 2-3 venues across key metrics.
  */
 import React, { useState, useMemo, useEffect } from 'react';
+import ResponsiveTable from '../ui/ResponsiveTable';
 import { haversineMiles } from './pnm-utils';
 
 const COMPARE_FIELDS = [
@@ -168,7 +169,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             onClick={onClose}
             aria-label="Close comparison"
             style={{
-              padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+              minHeight: 44, padding: '4px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
               border: '1.5px solid rgba(148,163,184,0.2)', background: 'transparent',
               color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -192,9 +193,9 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             style={{
-              width: '100%', padding: '8px 14px', borderRadius: 8,
+              width: '100%', minHeight: 44, padding: '8px 14px', borderRadius: 8,
               border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))',
-              color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none',
+              color: '#e2e8f0', fontSize: 16, fontFamily: 'inherit', outline: 'none',
               marginBottom: 8, boxSizing: 'border-box',
               boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08)',
             }}
@@ -206,8 +207,9 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                 <button
                   key={v.id}
                   onClick={() => toggleVenue(v.id)}
+                  type="button"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
+                    display: 'flex', alignItems: 'center', gap: 8, minHeight: 44,
                     padding: '8px 12px', borderRadius: 8,
                     border: isSelected ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
                     background: isSelected ? 'rgba(255,255,255,0.1)' : 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))',
@@ -234,7 +236,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                   <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {v.name}
                   </span>
-                  <span style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', flexShrink: 0 }}>
                     {v.city}{v.state ? `, ${v.state}` : ''}
                   </span>
                 </button>
@@ -252,18 +254,18 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 8,
               background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)',
-              color: '#ffffff', fontSize: 11, fontWeight: 600,
+              color: '#ffffff', fontSize: 12, fontWeight: 600,
             }}>
               {v.name}
-              <button onClick={() => toggleVenue(v.id)} style={{
+              <button type="button" className="sp-icon-btn" aria-label={`Remove ${v.name}`} onClick={() => toggleVenue(v.id)} style={{ '--sp-btn-size': '44px',
                 background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer',
-                padding: 0, fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
+                padding: 0, fontSize: 18, lineHeight: 1, fontFamily: 'inherit', minWidth: 44, minHeight: 44, width: 44, height: 44,
               }}>×</button>
             </span>
           ))}
           {selectedVenues.length < 3 && (
-            <button onClick={() => setShowPicker(v => !v)} style={{
-              padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+            <button type="button" onClick={() => setShowPicker(v => !v)} style={{
+              minHeight: 44, padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600,
               border: '1.5px dashed rgba(148,163,184,0.2)', background: 'transparent',
               color: 'rgba(148,163,184,0.5)', cursor: 'pointer', fontFamily: 'inherit',
             }}>{showPicker && selectedVenues.length >= 2 ? 'Done' : '+ Add Venue'}</button>
@@ -271,35 +273,26 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
         </div>
       )}
 
-      {/* Comparison table */}
+      {/* Comparison table.
+          Mobile phase 3: a ResponsiveTable (a real table above 768px, one
+          labelled card per metric at or below it) replaces the sideways
+          `overflowX: auto` table, which was "slide to see" on every phone. */}
       {selectedVenues.length >= 2 && (
-        <div style={{ overflowX: 'auto', borderRadius: 12, border: '1.5px solid rgba(148,163,184,0.12)', background: 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr>
-                <th style={{ padding: '10px 14px', textAlign: 'left', color: 'rgba(148,163,184,0.6)', fontWeight: 600, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Metric</th>
-                {selectedVenues.map(v => (
-                  <th key={v.id} style={{ padding: '10px 14px', textAlign: 'center', color: '#ffffff', fontWeight: 700, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 13, minWidth: 120 }}>
-                    {v.name?.length > 18 ? v.name.slice(0, 18) + '…' : v.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARE_FIELDS.slice(1).map((field, i) => (
-                <tr key={field.key} style={{ background: i % 2 === 0 ? 'rgba(13,17,23,0.3)' : 'transparent' }}>
-                  <td style={{ padding: '8px 14px', color: 'rgba(148,163,184,0.7)', fontWeight: 600, borderBottom: '1px solid rgba(148,163,184,0.05)', whiteSpace: 'nowrap' }}>
-                    {field.label}
-                  </td>
-                  {selectedVenues.map(v => (
-                    <td key={v.id} style={{ padding: '8px 14px', textAlign: 'center', color: '#e2e8f0', borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
-                      {getFieldValue(v, field.key, userLocation, liveData, liveLoading)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ borderRadius: 12, border: '1.5px solid rgba(148,163,184,0.12)', background: 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35)', padding: 4 }}>
+          <ResponsiveTable
+            caption="Venue comparison"
+            keyField="key"
+            columns={[
+              { key: 'label', label: 'Metric', align: 'left' },
+              ...selectedVenues.map((v) => ({
+                key: `venue-${v.id}`,
+                label: v.name,
+                align: 'center',
+                render: (row) => getFieldValue(v, row.key, userLocation, liveData, liveLoading),
+              })),
+            ]}
+            rows={COMPARE_FIELDS.slice(1).map((field) => ({ key: field.key, label: field.label }))}
+          />
         </div>
       )}
 

@@ -42,7 +42,7 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             <div className="card-header">
                 <TourBadge tourCode={shortCode} size="small" />
                 {s.series_type && <span className="badge series-type">{s.series_type}</span>}
-                {isVenueEntry && <span className="badge series-type" style={{ background: 'rgba(6,182,212,0.15)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)', padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>Series</span>}
+                {isVenueEntry && <span className="badge series-type" style={{ background: 'rgba(6,182,212,0.15)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>Series</span>}
             </div>
             <h4>{s.name}</h4>
             <p className="card-location">{displayLocation}</p>

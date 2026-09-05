@@ -56,7 +56,12 @@ test('casino realism theme covers the full route family and mobile audit target'
   const theme = read('src/styles/worlds/poker-near-me.css');
   assert.match(theme, /--pnm-blue: #2fa8ff/);
   assert.match(theme, /--pnm-gold: #c8a45d/);
-  assert.match(theme, /@media \(max-width: 700px\)/);
+  // Mobile phase 3 moved the phone audit block from 700px to 768px: the
+  // mobile standard allows exactly three boundaries (900 / 768 / 600) and
+  // 700 was a fourth. The block itself (background position, family nav
+  // padding, 44px controls, one-column grids) is unchanged.
+  assert.match(theme, /@media \(max-width: 768px\)/);
+  assert.doesNotMatch(theme, /@media \(max-width: 700px\)/);
   assert.match(theme, /overflow-x: hidden/);
   assert.match(theme, /min-height: 44px/);
 });

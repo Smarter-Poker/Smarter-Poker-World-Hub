@@ -31,7 +31,7 @@ function StatusBadge({ status }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800,
+      padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 800,
       color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
       letterSpacing: '0.5px', textTransform: 'uppercase',
     }}>
@@ -54,7 +54,7 @@ function StatCard({ label, value, color = '#e0e8f0' }) {
       textAlign: 'center',
     }}>
       <div style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1.2 }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'rgba(148,163,184,0.6)', fontWeight: 600, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
+      <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.6)', fontWeight: 600, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
     </div>
   );
 }
@@ -73,7 +73,7 @@ function SourcePanel({ name, data }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#e0e8f0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{name}</div>
-          <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginTop: 2 }}>
             Last Scrape: {data.last_scrape ? new Date(data.last_scrape).toLocaleTimeString() : 'Never'}
           </div>
         </div>
@@ -87,7 +87,7 @@ function SourcePanel({ name, data }) {
         <StatCard label="Waiting" value={data.players_waiting ?? 0} color="#ffffff" />
       </div>
       {data.batch_id && (
-        <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.25)', marginTop: 8, fontFamily: 'monospace' }}>
+        <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.25)', marginTop: 8, fontFamily: 'monospace' }}>
           Batch: {data.batch_id}
         </div>
       )}
@@ -245,13 +245,13 @@ export default function ScraperHealthDashboard() {
             <span style={{ fontSize: 18, fontWeight: 800, color: '#e0e8f0' }}>Scraper Health</span>
             <StatusBadge status={overallStatus} />
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>
+          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
             {lastChecked ? `Checked: ${lastChecked.toLocaleTimeString()}` : 'Loading...'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={() => setAutoRefresh(!autoRefresh)} style={{
-            padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
             background: autoRefresh ? 'rgba(63,185,80,0.12)' : 'rgba(139,148,158,0.08)',
             border: `1px solid ${autoRefresh ? 'rgba(63,185,80,0.3)' : 'rgba(139,148,158,0.2)'}`,
             color: autoRefresh ? '#3fb950' : '#8b949e',
@@ -259,7 +259,7 @@ export default function ScraperHealthDashboard() {
             {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
           </button>
           <button onClick={() => { setLoading(true); fetchHealth(); fetchMetrics(); }} style={{
-            padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             background: 'linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08))',
             border: '1.5px solid rgba(255,255,255,0.35)', color: '#ffffff',
           }}>
@@ -354,7 +354,7 @@ export default function ScraperHealthDashboard() {
                       </div>
                     )}
                     {hist.length <= 1 && (
-                      <div style={{ color: 'rgba(200,214,229,0.3)', fontSize: 11, textAlign: 'center', padding: 8 }}>
+                      <div style={{ color: 'rgba(200,214,229,0.3)', fontSize: 12, textAlign: 'center', padding: 8 }}>
                         Collecting Performance Data...
                       </div>
                     )}
@@ -386,12 +386,12 @@ export default function ScraperHealthDashboard() {
                     const color = isRecovery ? '#3fb950' : '#ef4444';
                     return (
                       <div key={ev.id} style={{ display: 'flex', gap: 12, borderLeft: `2px solid ${color}`, paddingLeft: 12 }}>
-                        <div style={{ minWidth: 90, color: 'rgba(200,214,229,0.5)', fontSize: 11, paddingTop: 2 }}>
+                        <div style={{ minWidth: 90, color: 'rgba(200,214,229,0.5)', fontSize: 12, paddingTop: 2 }}>
                           {new Date(ev.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                         </div>
                         <div>
                           <div style={{ color: '#e0e8f0', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
-                            {ev.source} <span style={{ color: color, fontSize: 10, padding: '2px 6px', background: isRecovery ? 'rgba(63,185,80,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 4, marginLeft: 6 }}>{ev.type}</span>
+                            {ev.source} <span style={{ color: color, fontSize: 12, padding: '2px 6px', background: isRecovery ? 'rgba(63,185,80,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 4, marginLeft: 6 }}>{ev.type}</span>
                           </div>
                           <div style={{ color: 'rgba(200,214,229,0.8)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{ev.message}</div>
                         </div>
@@ -410,8 +410,8 @@ export default function ScraperHealthDashboard() {
             border: '1.5px solid rgba(148,163,184,0.1)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.25)',
           }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Health Thresholds</div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Health Thresholds</div>
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
               <span><span style={{ color: '#3fb950' }}>Healthy</span>: {health.thresholds?.healthy}</span>
               <span><span style={{ color: '#f59e0b' }}>Stale</span>: {health.thresholds?.stale}</span>
               <span><span style={{ color: '#ef4444' }}>Dead</span>: {health.thresholds?.dead}</span>

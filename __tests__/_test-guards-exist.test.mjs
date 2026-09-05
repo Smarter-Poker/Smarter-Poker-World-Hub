@@ -139,6 +139,9 @@ import './page-tutorials.test.mjs';
 import './pa-closeout-hardening.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
+// Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,
+// the retired swipe navigation, the sheets, the 12px floor and the tutorial.
+import './pnm-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
@@ -181,6 +184,15 @@ import './a-script-never-wears-a-persons-face.law.test.mjs';
 // 2026-09-04: the hub notices a revoked session (it would have looked signed
 // in for seven days; PostgREST checks signatures, not session rows).
 import './the-hub-notices-a-revoked-session.law.test.mjs';
+// 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
+// had been silent for a day: unconfigured, and exiting before its heartbeat).
+import './a-probe-that-cannot-run-says-so.law.test.mjs';
+// 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
+// route added in this commit; this suite pins the auth gate, Twilio call,
+// retry semantics, and house rules (only the six named alerts wake anyone).
+// Imported here because CHECK 8's explicit list needs the `workflow` PAT
+// permission the automation token does not have.
+import './alertmanager-page.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -190,6 +202,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs',
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     '__tests__/the-hub-notices-a-revoked-session.law.test.mjs',
+    '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',

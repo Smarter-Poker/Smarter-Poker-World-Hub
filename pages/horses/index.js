@@ -4732,6 +4732,83 @@ export default function HorsesAdmin() {
                     );
                   })()}
 
+                  {/* ── IS EVERY DIAMOND ACCOUNTED FOR ─────────────────────── */}
+                  {/* Dan 2026-09-04: "all diamond wallets need to be connected
+                      to The Mint. That's where all purchased diamonds come
+                      from, and all earned diamonds derive and send from the
+                      Mint." Since migration 20260905041033 the register
+                      follows the diamond journal: every purchase, reward,
+                      promotion and refund is a mint row from the Mint to the
+                      player, every spend a burn row back to it, and the
+                      register is measured against the live meter (player
+                      balances plus the house account) on every read. */}
+                  {mintOverview?.totals?.diamonds && (() => {
+                    const d = mintOverview.totals.diamonds;
+                    const ok = d.balanced === true;
+                    const originLabel = (o) => ({
+                      purchase: 'Purchased', reward: 'Earned', promotion: 'Promotional', refund: 'Refunded',
+                      adjustment: 'Adjusted', arena: 'Arena', spend: 'Spent', bridge: 'Converted To Chips',
+                      seed: 'Seeded', deletion: 'Deleted Accounts', operator: 'Operator', baseline: 'Baseline',
+                      unclassified: 'Unclassified',
+                    }[o] || o);
+                    const mints24 = (d.by_origin_24h || []).filter((o) => o.action === 'mint');
+                    const burns24 = (d.by_origin_24h || []).filter((o) => o.action === 'burn');
+                    return (
+                      <div className={styles.card} style={{ borderColor: ok ? T.accentLine : T.danger, marginBottom: 20 }}>
+                        <h3 className={styles.sectionTitle} style={{ color: ok ? T.accent : T.danger }}>
+                          {ok ? 'Every Diamond Is Accounted For' : 'The Diamond Register And The Meter Disagree'}
+                        </h3>
+                        <p style={{ color: T.dim, margin: '4px 0 12px' }}>
+                          {ok
+                            ? 'Every Diamond In Every Wallet Was Issued By The Mint: Purchases, Rewards, Promotions And Refunds Are Mint Rows, Every Spend Is A Retirement, And The Register Equals Player Balances Plus The House Account.'
+                            : 'A Diamond Reached A Balance Without A Register Row, Or Left One. The Journal Trigger Makes That Impossible For Journalled Movements, So Find The Writer That Skipped The Journal.'}
+                        </p>
+                        <div className={styles.kpiGrid}>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Register (Issued Net Of Retired)</span>
+                            <span className={styles.kpiValue}>{num(d.register_net, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Meter (Wallets + House)</span>
+                            <span className={styles.kpiValue}>{num(d.meter_total, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Difference</span>
+                            <span className={styles.kpiValue} style={{ color: ok ? T.accent : T.danger }}>{num(d.difference, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>In Player Wallets</span>
+                            <span className={styles.kpiValue}>{num(d.player_diamonds, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>House Account</span>
+                            <span className={styles.kpiValue}>{num(d.house_diamonds, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Issued, Last 24h</span>
+                            <span className={styles.kpiValue}>{num(d.issued_24h, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>Retired, Last 24h</span>
+                            <span className={styles.kpiValue}>{num(d.retired_24h, '0')}</span>
+                          </div>
+                          <div className={styles.kpi}>
+                            <span className={styles.kpiLabel}>24h Diamond Headroom</span>
+                            <span className={styles.kpiValue}>{num(d.headroom_24h, '0')}</span>
+                          </div>
+                        </div>
+                        {(mints24.length > 0 || burns24.length > 0) && (
+                          <p style={{ color: T.muted, fontSize: 12, margin: '10px 0 0' }}>
+                            Last 24h By Origin:{' '}
+                            {mints24.map((o) => `${originLabel(o.origin)} +${num(o.amount, '0')} (${o.operations})`).join(', ')}
+                            {mints24.length > 0 && burns24.length > 0 ? '; ' : ''}
+                            {burns24.map((o) => `${originLabel(o.origin)} -${num(o.amount, '0')} (${o.operations})`).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* ── THE POLICY ─────────────────────────────────────────── */}
                   {/* ca_mint_policy: a per-operation cap and a rolling 24h
                       ceiling, refused in fn_ca_mint and again at commit for
@@ -5216,6 +5293,13 @@ export default function HorsesAdmin() {
                         <option value="restoration">Restoration</option>
                         <option value="seed">Seed</option>
                         <option value="deletion">Deletion</option>
+                        <option value="purchase">Diamonds Purchased</option>
+                        <option value="reward">Diamonds Earned</option>
+                        <option value="promotion">Diamonds Promotional</option>
+                        <option value="refund">Diamonds Refunded</option>
+                        <option value="spend">Diamonds Spent</option>
+                        <option value="bridge">Diamonds Converted To Chips</option>
+                        <option value="adjustment">Diamonds Adjusted</option>
                       </select>
                       <button
                         type="button"

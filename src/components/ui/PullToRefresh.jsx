@@ -151,7 +151,16 @@ export default function PullToRefresh({ onRefresh, disabled = false, scrollRef =
       <div
         className="sp-ptr-content"
         style={{
-          transform: `translateY(${pull}px)`,
+          // NO transform at rest (2026-09-04). `translateY(0px)` is still a
+          // transform, and a transformed ancestor is the containing block for
+          // every `position: fixed` descendant. The Bankroll Manager's world
+          // menu (a fixed drawer rendered inside this wrapper) opened 160px
+          // from the left edge on desktop - pinned to the centred column, not
+          // the viewport - and e2e/020-hamburger.spec.ts was red on main from
+          // the day this wrapper shipped. Any fixed sheet or toast rendered
+          // inside a pull-to-refresh page had the same problem. The transform
+          // exists only while a pull is in progress.
+          transform: pull ? `translateY(${pull}px)` : undefined,
           transition: pull === 0 || refreshing ? 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
           willChange: pull ? 'transform' : 'auto',
         }}

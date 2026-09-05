@@ -54,5 +54,10 @@ test('tour artwork and compact mobile actions have resilient fallbacks', () => {
   const theme = read('src/styles/worlds/poker-near-me.css');
   assert.match(theme, /:is\(\.fav-btn, \.vc3-fav, \.vc3-icon-btn, \.map-recenter-btn\)/);
   assert.match(theme, /min-width: 44px !important/);
-  assert.match(theme, /\.pnm-filter-bar \{\s*min-height: 86px;\s*flex: 0 0 86px;/);
+  // Mobile phase 3: the filter bar WRAPS at phone widths. The 86px fixed
+  // strip this used to pin (min-height: 86px; flex: 0 0 86px; overflow-y:
+  // hidden with a nowrap sideways scroller) clipped its second row and was a
+  // "slide to see" rail; the pin moves to the wrapping rule that replaced it.
+  assert.match(theme, /\.pnm-filter-bar, \.pnm-top-filters, \.ec-filter-bar, \.day-selector, \.ec-day-selector\) \{[^}]*flex-wrap: wrap !important;/s);
+  assert.doesNotMatch(theme, /flex: 0 0 86px/);
 });

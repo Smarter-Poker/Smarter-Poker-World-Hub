@@ -60,7 +60,7 @@ const LOGO_PIN_CSS = `
   margin-top: 2px;
   white-space: nowrap;
   font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.7);

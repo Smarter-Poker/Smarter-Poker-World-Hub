@@ -19,26 +19,39 @@ test('dynamic discovery routes publish their own heading, title, description, an
   assert.match(page, /name: routeMeta\.breadcrumb/);
 });
 
-test('primary discovery tabs implement roving keyboard focus and a labelled panel', () => {
+// Mobile phase 3 (2026-09-04) replaced the ARIA tablist (roving tabindex,
+// one labelled tabpanel that unmounted every other surface) with an in-page
+// anchor row: every surface is a stacked <section aria-labelledby> that is
+// always in the DOM, and the row is a <nav> of plain buttons that scroll to
+// a section and carry aria-current. A tablist would be wrong here because
+// there is no longer a single panel the tabs control. The keyboard model is
+// the native one (every button is in the tab order), so the roving
+// ArrowLeft/ArrowRight/Home/End handler is gone with the tablist. This pin
+// now guards the anchor-row contract instead.
+test('primary discovery surfaces are an anchor row over labelled stacked sections', () => {
   const page = read('pages/hub/poker-near-me/[pnmTab].js');
-  const controller = read('src/components/poker-near-me/discoveryController.js');
-  assert.match(controller, /const PRIMARY_TABS = \[/);
-  assert.match(page, /event\.key === 'ArrowRight'/);
-  assert.match(page, /event\.key === 'ArrowLeft'/);
-  assert.match(page, /event\.key === 'Home'/);
-  assert.match(page, /event\.key === 'End'/);
-  assert.match(page, /tabIndex=\{selected \? 0 : -1\}/);
-  assert.match(page, /aria-controls="pnm-primary-panel"/);
-  assert.match(page, /id="pnm-primary-panel"[\s\S]*role="tabpanel"[\s\S]*aria-labelledby=\{`pnm-tab-\$\{activePrimaryTab\}`\}/);
+  const sections = read('src/components/poker-near-me/pnmSections.js');
+  assert.match(sections, /export const PRIMARY_SECTIONS = \[/);
+  assert.match(page, /<nav\s+className="pnm-top-tabs"\s+aria-label="Poker Near Me sections"/);
+  assert.match(page, /aria-current=\{selected \? 'true' : undefined\}/);
+  assert.doesNotMatch(page, /tabIndex=\{selected \? 0 : -1\}/, 'no roving tabindex: every anchor is in the tab order');
+  assert.doesNotMatch(page, /role="tabpanel"|role="tablist"/);
+  for (const key of ['venues', 'events', 'live', 'map', 'saved', 'more']) {
+    assert.match(page, new RegExp(`id=\\{sectionId\\('${key}'\\)\\}[\\s\\S]{0,200}aria-labelledby="pnm-section-${key}-title"`), `section ${key} is labelled`);
+  }
 });
 
-test('the shared family rail centers its current deep-link destination on mobile', () => {
+// Mobile phase 3: the family rail WRAPS (every link visible at every width),
+// so there is no sideways scroller to centre the active link inside. The
+// centring effect this used to pin (railRef / activeRef / rail.scrollTo)
+// existed only because the rail overflowed; the pin moves to the wrapping
+// rule and to the component no longer scrolling anything.
+test('the shared family rail wraps and still names every destination', () => {
   const nav = read('src/components/poker-near-me/PokerNearMeFamilyNav.jsx');
-  assert.match(nav, /const railRef = useRef\(null\)/);
-  assert.match(nav, /const activeRef = useRef\(null\)/);
-  assert.match(nav, /active\.offsetLeft - \(\(rail\.clientWidth - active\.offsetWidth\) \/ 2\)/);
-  assert.match(nav, /rail\.scrollTo\(\{ left: target, behavior: 'auto' \}\)/);
-  assert.match(nav, /ref=\{active \? activeRef : undefined\}/);
+  const world = read('src/styles/worlds/poker-near-me.css');
+  assert.match(world, /\.pnm-family-nav__rail \{[^}]*flex-wrap: wrap;/s);
+  assert.doesNotMatch(nav, /scrollTo\(|scrollLeft|railRef|activeRef/);
+  assert.match(nav, /aria-current=\{active \? 'page' : undefined\}/);
   assert.match(nav, /poker-near-me\/events-calendar/);
 });
 

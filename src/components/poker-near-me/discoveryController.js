@@ -9,6 +9,12 @@
 export const PAGE_SIZE = 20;
 export const PAGE_SIZE_DAILY = 50;
 export const PAGE_SIZE_LIVE = 30;
+// Mobile phase 3: six panels stack on one page, so each list opens with a
+// short first batch (a 650px venue card times 20 was a 13,000px section at
+// 375) and grows by its PAGE_SIZE per tap of Show More. Everything stays on
+// the page behind a tap, never a swipe.
+export const INITIAL_VISIBLE = 8;
+export const INITIAL_VISIBLE_LIVE = 8;
 export const SEARCH_HISTORY_MAX = 8;
 export const DEFAULT_RADIUS_MILES = 50;
 export const DIRECTORY_PAGE_SIZE = 160;

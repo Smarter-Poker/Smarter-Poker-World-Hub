@@ -587,9 +587,9 @@ test('hand-reviews exports every table to CSV', () => {
   assert.match(body, /toCsv/);
   assert.match(body, /stampedName/);
   const buttons = body.match(/<ExportCsvButton\b/g) || [];
-  // Daily audit, telemetry, league card, leak-tag rates, fleet summary,
-  // flagged hands: six tables, six exports.
-  assert.equal(buttons.length, 6, `expected six CSV exports, found ${buttons.length}`);
+  // Daily audit, telemetry, data ledger (2026-09-04), league card, leak-tag
+  // rates, fleet summary, flagged hands: seven tables, seven exports.
+  assert.equal(buttons.length, 7, `expected seven CSV exports, found ${buttons.length}`);
 });
 
 test('hand-reviews declares explicit [key, header] export columns', () => {
