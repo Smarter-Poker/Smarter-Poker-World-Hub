@@ -211,6 +211,90 @@ test('#SMARTERCASINOREALISM: the wallet uses the shared vault vocabulary', () =>
   assert.doesNotMatch(rules, /:hover/);
 });
 
+test('the cache is stamped with whose ledger it is', () => {
+  /*
+   * `sp-cached-wallet-txns` held rows, balance and VIP tier under a key the
+   * sign-out sweep does not clear (HamburgerMenu clears six others) and with no
+   * record of the owner. Sign out, sign in as someone else on the same device
+   * inside the 60s TTL, open the wallet: the previous account's ledger
+   * rendered until the fetch landed.
+   */
+  assert.match(MODAL, /function getCachedTransactions\(userId\)/);
+  assert.match(MODAL, /if \(!uid \|\| !userId \|\| uid !== userId\) return null;/);
+  assert.match(MODAL, /if \(!userId\) return;/, 'never write an unattributable ledger');
+  assert.match(MODAL, /getCachedTransactions\(getAuthUser\(\)\?\.id\)/);
+});
+
+test('a filter change is never silently dropped', () => {
+  // The mutex used to `return` outright, so selecting a tab while any refresh
+  // was running cleared the rows and never replaced them - the exact defect the
+  // server-side filter exists to remove, arriving by another route.
+  assert.match(
+    MODAL,
+    /if \(fetchInFlightRef\.current\) \{\s*pendingRefetchRef\.current = true;\s*return;/,
+    'an in-flight fetch must DEFER the new request, not discard it'
+  );
+  // And a response must belong to the tab that asked for it.
+  assert.match(MODAL, /const requestedFilter = filterRef\.current;/);
+  assert.match(MODAL, /if \(filterRef\.current !== requestedFilter\)/);
+});
+
+test('a failed refresh does not erase rows that are on screen', () => {
+  // fetchTransactions(0) is the BACKGROUND refresh path too, and the render
+  // checks `error` first - so one dropped request replaced 50 rendered rows
+  // with an error panel.
+  assert.match(MODAL, /if \(offset === 0 && rowCountRef\.current === 0\)/);
+});
+
+test('an empty view says WHICH narrowing emptied it, and offers a way out', () => {
+  // Search and date range are page-local; only the tab is a server query. A
+  // player who left "Last 7 Days" selected was told "No transactions yet" over
+  // a wallet holding hundreds, then advised how to earn their first diamond.
+  assert.match(MODAL, /No Loaded Transactions Match/);
+  assert.match(MODAL, /Nothing In The \$\{DATE_RANGE_OPTIONS/);
+  assert.match(MODAL, /Show Everything/, 'the empty state must offer to clear the filters');
+  assert.match(
+    MODAL,
+    /filter === 'all' && !searchQuery && dateRange === 'all'/,
+    'the "earn your first diamonds" advice may only show when nothing is filtered'
+  );
+});
+
+test('the balance counter cannot stick on NaN or restart from a value never shown', () => {
+  // The same three defects Club Arena's counter was audited for on 2026-08-25.
+  assert.match(MODAL, /const safeTarget = Number\.isFinite\(target\) \? target : 0;/);
+  assert.match(MODAL, /currentRef/, 'the counter must track what was drawn, not the last target');
+  assert.match(MODAL, /prefers-reduced-motion: reduce/);
+});
+
+test('every timer this component starts is cleared on unmount', () => {
+  assert.match(MODAL, /if \(copyTimerRef\.current\) clearTimeout\(copyTimerRef\.current\);/);
+  assert.match(MODAL, /if \(deferredFetchRef\.current\) clearTimeout\(deferredFetchRef\.current\);/);
+  // A bare setTimeout for the receipt reset or the deferred refetch is the bug.
+  assert.doesNotMatch(MODAL, /\n\s*setTimeout\(\(\) => setCopiedTxId\(null\), 2000\);/);
+});
+
+test('an interrupted touch does not wedge the pull-to-refresh banner', () => {
+  // iOS fires touchcancel with no touchend when the system takes the gesture.
+  assert.match(MODAL, /onTouchCancel=\{handleTouchCancel\}/);
+});
+
+test('closing the wallet disarms the Send panel', () => {
+  // transferRecipient and transferAmount survived a close, so reopening found
+  // the panel one tap from re-sending to the last recipient.
+  assert.match(MODAL, /setTransferRecipient\(null\);\s*\n\s*setTransferAmount\(''\);/);
+});
+
+test('the Spent filter is NULL-safe, so a legacy-typed debit cannot vanish', () => {
+  // Two chained .not(...ilike...) are ANDed, and NOT(NULL ILIKE x) is NULL, so
+  // a row with a NULL transaction_type failed the filter and disappeared from
+  // both the Spent list and its badge - while the browser predicate, which
+  // falls back to `type`, would have counted it.
+  const FILTERS = readFileSync(join(ROOT, 'src/lib/diamonds/ledgerFilters.js'), 'utf8');
+  assert.match(FILTERS, /transaction_type\.is\.null,transaction_type\.not\.ilike/);
+  assert.match(FILTERS, /type\.is\.null,type\.not\.ilike/);
+});
+
 test('CLUB ARENA WALLETS STAY IN CLUB ARENA (Dan, 2026-09-05)', () => {
   // The chip wallets are the Arena's. Diamonds are shared; chips are not.
   for (const token of [

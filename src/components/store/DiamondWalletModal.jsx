@@ -81,16 +81,10 @@ import {
   Settings,
   Search,
   X,
-  BarChart3,
-  ChevronDown,
-  Copy,
   Clock,
-  Filter as FilterIcon,
   ArrowUpRight,
   ArrowDownRight,
-  ChevronsUpDown,
   Sparkles,
-  Eye,
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
@@ -487,13 +481,32 @@ const PAGE_SIZE = 50;
 const FILTER_CACHE_KEY = 'sp-wallet-last-filter';
 const DATE_RANGE_CACHE_KEY = 'sp-wallet-date-range';
 
-function getCachedTransactions() {
+/**
+ * THE CACHE IS STAMPED WITH WHOSE IT IS.
+ *
+ * This held a whole ledger - rows, balance, VIP tier - under a key nothing
+ * cleared on sign-out (the sweep in HamburgerMenu clears six other keys, not
+ * this one) and with no record of which account it belonged to. Sign out, let
+ * somebody else sign in on the same device inside the 60-second TTL, open the
+ * wallet: they saw the previous person's transactions and balance until the
+ * fetch landed.
+ *
+ * `UniversalHeader.js` already had the answer for its own cache - refuse a
+ * cached blob whose `userId` is not the current one - so this copies it rather
+ * than inventing a second approach. Owner-stamping is the load-bearing half:
+ * it holds even if a sign-out path forgets to sweep, or the tab is closed
+ * before the sweep runs.
+ */
+function getCachedTransactions(userId) {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const { transactions, balance, total, vip_expiration_date, is_vip, vip_tier, ts } =
+    const { transactions, balance, total, vip_expiration_date, is_vip, vip_tier, ts, uid } =
       JSON.parse(raw);
     if (Date.now() - ts > CACHE_TTL_MS) return null; // stale
+    // No owner recorded means it was written before this fix; treat it as
+    // somebody else's and drop it rather than guessing it is ours.
+    if (!uid || !userId || uid !== userId) return null;
     return { transactions, balance, total, vip_expiration_date, is_vip, vip_tier };
   } catch (_) {
     return null;
@@ -501,6 +514,7 @@ function getCachedTransactions() {
 }
 
 function setCachedTransactions(
+  userId,
   transactions,
   balance,
   total,
@@ -509,9 +523,13 @@ function setCachedTransactions(
   vip_tier
 ) {
   try {
+    // Refuse to write an unattributable ledger; an unstamped blob is exactly
+    // what the next account would read.
+    if (!userId) return;
     localStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
+        uid: userId,
         transactions,
         balance,
         total,
@@ -626,35 +644,71 @@ const SkeletonRow = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal Component
 // ─────────────────────────────────────────────────────────────────────────────
-// ── ENH-A: Animated balance counter hook ──
+/**
+ * ── ENH-A: Animated balance counter hook ──
+ *
+ * Three defects, all of the class Club Arena's own counter was audited for on
+ * 2026-08-25 (`useAnimatedNumber` in PlayerWalletPage.tsx). The same fix is
+ * applied here so the two wallets animate the same number the same way.
+ *
+ *  1. THE START POINT WENT STALE ON EVERY INTERRUPTION. `prevRef` was set to
+ *     the TARGET the moment an animation began, not to what was on screen, and
+ *     the cleanup cancels the frame as soon as the target moves. Two balance
+ *     values landing inside 600ms - the normal case here, since a realtime
+ *     `balance_after` is followed by the refetch's own `setBalance` - made the
+ *     second animation start from the first one's destination, so the figure
+ *     snapped instead of counting. `currentRef` now tracks what was actually
+ *     drawn, written by the frame that draws it.
+ *
+ *  2. A NON-FINITE TARGET WAS PERMANENT. `NaN - 0` is NaN and `NaN === NaN` is
+ *     false, so the guard never caught it, `Math.round(NaN)` committed NaN, and
+ *     every later target computed `NaN - NaN`. The readout would have read
+ *     "NaN" for the life of the modal. One undefined balance from a failed read
+ *     is all it takes.
+ *
+ *  3. REDUCED MOTION IS A SETTING, NOT A SUGGESTION. A player who asked the OS
+ *     for no motion got 600ms of rolling digits on every balance change.
+ */
 function useAnimatedCounter(target, duration = 600) {
-  const [display, setDisplay] = useState(target);
-  const prevRef = useRef(target);
+  const safeTarget = Number.isFinite(target) ? target : 0;
+  const [display, setDisplay] = useState(safeTarget);
+  /** What the screen is showing RIGHT NOW, not what it last settled on. */
+  const currentRef = useRef(safeTarget);
   const rafRef = useRef(null);
 
   useEffect(() => {
-    const from = prevRef.current;
-    const to = target;
-    if (from === to) return;
-    prevRef.current = to;
-    const diff = to - from;
-    const start = performance.now();
+    const from = currentRef.current;
+    const diff = safeTarget - from;
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    if (!Number.isFinite(diff) || diff === 0 || reduceMotion) {
+      currentRef.current = safeTarget;
+      setDisplay(safeTarget);
+      return;
+    }
+
+    const start = performance.now();
     const tick = (now) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
+      const progress = Math.min((now - start) / duration, 1);
       // Ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from + diff * eased));
+      const next = Math.round(from + diff * eased);
+      currentRef.current = next;
+      setDisplay(next);
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(tick);
+      } else {
+        currentRef.current = safeTarget;
       }
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [target, duration]);
+  }, [safeTarget, duration]);
 
   return display;
 }
@@ -691,12 +745,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
        balance-event subscriptions and the pull-to-refresh are built from, and
        a new identity per tab change would tear those down and rebuild them. */
   const filterRef = useRef(filter);
+  /* How many rows are currently rendered. A ref, so the fetch's catch block can
+     ask "is there anything on screen to protect?" without taking `transactions`
+     as a dependency and rebuilding every subscription built on this callback. */
+  const rowCountRef = useRef(0);
+  /* The "Copied!" reset. Held so it can be cancelled on unmount and so a second
+     copy restarts the two seconds rather than inheriting the first one's. */
+  const copyTimerRef = useRef(null);
+  /* The re-run of a fetch that arrived while another was in flight. */
+  const deferredFetchRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedTxId, setExpandedTxId] = useState(null); // ENH-B
   const [showStats, setShowStats] = useState(false); // ENH-G
   const [pullDistance, setPullDistance] = useState(0); // ENH-E
   const [isRefreshing, setIsRefreshing] = useState(false); // ENH-E
-  const fetchedRef = useRef(false);
   const fetchInFlightRef = useRef(false);
   // ── BALANCE-AUTHORITY: a balance-change event landed mid-fetch; refetch after ──
   const pendingRefetchRef = useRef(false);
@@ -865,11 +927,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     }
   }, []);
 
-  // ── BUG-1 FIX: Fetch once on open, filter purely client-side ──
   const fetchTransactions = useCallback(
     async (offset = 0) => {
-      // BUG-R2: Guard against concurrent fetches
-      if (fetchInFlightRef.current) return;
+      /*
+       * A DROPPED FETCH IS NOT A DEFERRED ONE.
+       *
+       * This mutex used to `return` outright, and `pendingRefetchRef` was set
+       * only by the balance refresher - so a fetch requested while any other
+       * was running was thrown away. That mattered most for the one caller who
+       * had already destroyed the old state to make room: selecting a filter
+       * clears the rows, sets total to 0 and asks for page one of the new tab.
+       * If a background refresh happened to be in flight - and this component
+       * starts one on a bus event, a DOM event and a realtime INSERT - the tab
+       * change was swallowed, the list stayed empty with `loading` false
+       * (the return happened before setLoading), and the previous tab's
+       * response then landed and was applied to the new tab.
+       *
+       * That is exactly the defect the server-side filter was built to remove.
+       * A request that arrives during another one is now REMEMBERED and re-run
+       * when the current one finishes.
+       */
+      if (fetchInFlightRef.current) {
+        pendingRefetchRef.current = true;
+        return;
+      }
       fetchInFlightRef.current = true;
       if (offset === 0) {
         setLoading(true);
@@ -893,10 +974,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         /* The active tab goes to the server, so a page of "Refunds" is a
                page of refunds rather than 50 raw rows the browser then sieves
                down to whatever happened to be in them. */
+        const requestedFilter = filterRef.current;
         const res = await fetch(
-          `/api/store/diamond-transactions?limit=${PAGE_SIZE}&offset=${offset}&filter=${encodeURIComponent(filterRef.current)}`,
+          `/api/store/diamond-transactions?limit=${PAGE_SIZE}&offset=${offset}&filter=${encodeURIComponent(requestedFilter)}`,
           { headers: { Authorization: `Bearer ${session.access_token}` } }
         );
+
+        /*
+         * A RESPONSE BELONGS TO THE TAB THAT ASKED FOR IT.
+         *
+         * The tab can change while this request is in the air. Applying a page
+         * of Earned rows under Refunds is the same lie the server-side filter
+         * removed, arriving by a different route - so a response whose tab is
+         * no longer selected is dropped. The `finally` below re-runs the fetch
+         * for whatever tab is current, so nothing is lost by dropping it.
+         */
+        if (filterRef.current !== requestedFilter) {
+          pendingRefetchRef.current = true;
+          return;
+        }
 
         if (res.ok) {
           const data = await res.json();
@@ -928,10 +1024,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           setVipExpirationDate(data.vip_expiration_date || null);
           setIsVipStatus(data.is_vip || false);
           setVipTier(data.vip_tier || null);
-          fetchedRef.current = true;
-          // ── PERF-2: Cache first page for instant re-opens ──
-          if (offset === 0) {
+          /* ── PERF-2: Cache first page for instant re-opens ──
+             Only the unfiltered first page: a cached page of "Refunds" would be
+             restored on the next open under whatever tab was then selected. */
+          if (offset === 0 && filterRef.current === 'all') {
             setCachedTransactions(
+              user.id,
               txns,
               bal,
               tot,
@@ -945,7 +1043,21 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
       } catch (err) {
         console.warn('Failed to load transactions:', err);
-        if (offset === 0) {
+        /*
+         * A FAILED REFRESH MUST NOT ERASE WHAT IS ON SCREEN.
+         *
+         * This read `if (offset === 0) setError(...)`, and the render checks
+         * `error` before anything else - so one dropped request on a flaky
+         * connection replaced fifty rendered transactions with an error panel.
+         * `fetchTransactions(0)` is also the BACKGROUND refresh path (after a
+         * cache hit, and on every balance event), so the failure the player
+         * saw was usually not one they had asked for.
+         *
+         * The error panel is for the case where there is nothing else to show.
+         * With rows on screen the read simply did not refresh, which is not
+         * worth destroying the ledger over.
+         */
+        if (offset === 0 && rowCountRef.current === 0) {
           setError('Failed to load transactions. Please try again.');
         }
       } finally {
@@ -956,7 +1068,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         // run one more first-page fetch so the newest mutation isn't missed.
         if (pendingRefetchRef.current) {
           pendingRefetchRef.current = false;
-          setTimeout(() => {
+          deferredFetchRef.current = setTimeout(() => {
+            deferredFetchRef.current = null;
             fetchTransactions(0);
           }, 0);
         }
@@ -984,9 +1097,23 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     () => () => {
       if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
       if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+      // The receipt-copy reset was neither stored nor cleared before.
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      /* And the deferred refetch: it fired `fetchTransactions(0)` on a zero
+         timer, so navigating away in that instant sent a request for a
+         component that no longer exists. */
+      if (deferredFetchRef.current) clearTimeout(deferredFetchRef.current);
     },
     []
   );
+
+  /* Mirror the rendered row count into the ref the fetch's error path reads.
+     Done in one effect rather than beside all four setTransactions call sites,
+     so the two cannot drift apart. It holds what the last render showed, which
+     is exactly the question "is there anything on screen to protect". */
+  useEffect(() => {
+    rowCountRef.current = transactions.length;
+  }, [transactions]);
 
   // ── ENH-D: Keyboard accessibility: Escape to close ──
   useEffect(() => {
@@ -1038,7 +1165,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   }, []);
 
   const handleTouchEnd = useCallback(async () => {
-    if (pullDistance > 60 && !fetchInFlightRef.current) {
+    /* A pull is honoured even if a background refresh is running. It used to
+       read `&& !fetchInFlightRef.current`, so pulling during one of this
+       component's several automatic refreshes did nothing at all - the banner
+       just vanished with no "Refreshing..." and no result, which reads as a
+       broken gesture. The fetch now defers itself rather than being dropped. */
+    if (pullDistance > 60) {
       setIsRefreshing(true);
       await fetchTransactions();
       setIsRefreshing(false);
@@ -1046,6 +1178,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     setPullDistance(0);
     touchStartY.current = 0;
   }, [pullDistance, fetchTransactions]);
+
+  /* iOS fires `touchcancel` with NO `touchend` when the system takes the
+     gesture - an incoming call, the app switcher, an edge swipe. Without this
+     the pull banner stayed wedged open at the top of the list, with its
+     padding, until the player happened to touch the screen again. */
+  const handleTouchCancel = useCallback(() => {
+    setPullDistance(0);
+    touchStartY.current = 0;
+  }, []);
 
   // ── H7: Fetch friends list when transfer panel opens ──
   const fetchFriends = useCallback(async () => {
@@ -1211,17 +1352,28 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setCooldownSeconds(rateLimit.seconds);
             if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
             cooldownTimerRef.current = setInterval(() => {
+              /* A STATE UPDATER IS NOT A PLACE FOR SIDE EFFECTS.
+                 This block used to clearInterval, null a ref and call
+                 setTransferError from INSIDE the updater. React StrictMode
+                 double-invokes updaters in development, so all three ran twice;
+                 they happen to be idempotent, so nothing broke, but the next
+                 effect added there would not be. The decision is made in the
+                 updater; the effects are done outside it. */
+              let expired = false;
               setCooldownSeconds((prev) => {
                 if (prev <= 1) {
-                  clearInterval(cooldownTimerRef.current);
-                  cooldownTimerRef.current = null;
-                  // Clear the stale "Cooldown: Xs remaining" text
-                  // so the error box doesn't linger after expiry
-                  setTransferError('');
+                  expired = true;
                   return 0;
                 }
                 return prev - 1;
               });
+              if (expired) {
+                clearInterval(cooldownTimerRef.current);
+                cooldownTimerRef.current = null;
+                // Clear the stale "Cooldown: Xs remaining" text
+                // so the error box doesn't linger after expiry
+                setTransferError('');
+              }
             }, 1000);
             setTransferError(`Cooldown: ${rateLimit.seconds}s remaining`);
           } else if (rateLimit?.type === 'daily_limit') {
@@ -1253,7 +1405,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   useEffect(() => {
     if (!isOpen) {
       // Reset state when closing so next open starts fresh
-      fetchedRef.current = false;
       setSearchQuery('');
       setExpandedTxId(null);
       setShowStats(false);
@@ -1265,6 +1416,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       setConfirmTransfer(null);
       setDailyLimitInfo(null);
       setPopupData(null);
+      /* THREE THAT WERE LEFT BEHIND.
+         `transferRecipient` and `transferAmount` survived a close, so reopening
+         the Send panel found it armed with the previous recipient and a
+         pre-filled amount - one tap from re-sending. `error` survived too, so a
+         failed load left the error panel showing on the next open until a fetch
+         replaced it. */
+      setTransferRecipient(null);
+      setTransferAmount('');
+      setError(null);
       // R8-I3: Clear cooldown timer
       setCooldownSeconds(0);
       if (cooldownTimerRef.current) {
@@ -1278,11 +1438,26 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       return;
     }
 
-    // ── PERF-2: Show cached data immediately, then refresh in background ──
-    const cached = getCachedTransactions();
+    /* ── PERF-2: Show cached data immediately, then refresh in background ──
+       Only ever the CURRENT user's cache, and only under the unfiltered tab -
+       the cached page is page one of "all", so restoring it under "Refunds"
+       would show non-refunds beneath a Refunds heading. */
+    const cached = filterRef.current === 'all' ? getCachedTransactions(getAuthUser()?.id) : null;
     if (cached) {
       setTransactions(cached.transactions);
-      setBalance(cached.balance ?? getCachedBalance());
+      /*
+       * BALANCE-AUTHORITY, and this line used to break it.
+       *
+       * It read `cached.balance ?? getCachedBalance()` and assigned
+       * unconditionally - so reopening the wallet inside the 60s TTL after
+       * spending diamonds elsewhere rolled the figure BACKWARDS to the
+       * pre-spend number before the refetch corrected it. The prop sync has
+       * already put the live header value in `balance` by this point, so a
+       * cached number may only fill a gap, never overwrite.
+       */
+      setBalance((prev) =>
+        prev === null || prev === undefined ? (cached.balance ?? getCachedBalance()) : prev
+      );
       setTotal(cached.total);
       if (cached.vip_expiration_date) setVipExpirationDate(cached.vip_expiration_date);
       setIsVipStatus(cached.is_vip || false);
@@ -1566,6 +1741,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -2797,14 +2973,45 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               >
                 {/* R8-I1: Inline SVG diamond (replaces broken PNG) */}
                 <EmptyStateDiamond />
+                {/*
+                    AN EMPTY VIEW IS NOT AN EMPTY WALLET.
+                    ═══════════════════════════════════════════════════════════
+                    The search box and the date range are applied to the rows
+                    the browser has LOADED; only the tab is a server query. So a
+                    player who once picked "Last 7 Days", then had a quiet week,
+                    opened a wallet holding hundreds of transactions and was
+                    told "No transactions yet" - followed by advice on how to
+                    earn their first diamonds. Every branch below now says which
+                    narrowing produced the blank, and offers to undo it.
+                */}
                 <div style={{ fontSize: 13, fontWeight: 500 }}>
                   {searchQuery
-                    ? `No results for "${searchQuery}"`
-                    : filter === 'all'
-                      ? 'No transactions yet'
-                      : `No ${FILTER_OPTIONS.find((o) => o.value === filter)?.label?.toLowerCase() || ''} transactions`}
+                    ? `No Loaded Transactions Match "${searchQuery}"`
+                    : dateRange !== 'all'
+                      ? `Nothing In The ${DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label || 'Selected Range'}`
+                      : filter === 'all'
+                        ? 'No Transactions Yet'
+                        : `No ${FILTER_OPTIONS.find((o) => o.value === filter)?.label || ''} Yet`}
                 </div>
-                {filter === 'all' && !searchQuery && (
+                {/* The way out of a filter the player may have forgotten. */}
+                {(searchQuery || dateRange !== 'all') && (
+                  <button
+                    type="button"
+                    className={styles.emptyReset}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setDateRange('all');
+                      try {
+                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');
+                      } catch (_) {
+                        console.warn('[App] Handled exception:', _?.message || _);
+                      }
+                    }}
+                  >
+                    Show Everything
+                  </button>
+                )}
+                {filter === 'all' && !searchQuery && dateRange === 'all' && (
                   <>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>
                       Earn Diamonds Through Daily Logins, Trivia, And More
@@ -2891,7 +3098,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             if (ok) {
                               setCopiedTxId(tx.id);
                               showStoreToast('success', 'Receipt copied');
-                              setTimeout(() => setCopiedTxId(null), 2000);
+                              clearTimeout(copyTimerRef.current);
+                              copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);
                             }
                           }
                         } else {
@@ -3007,7 +3215,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               e.stopPropagation();
                               if (await copyReceiptToClipboard(tx)) {
                                 setCopiedTxId(tx.id);
-                                setTimeout(() => setCopiedTxId(null), 2000);
+                                clearTimeout(copyTimerRef.current);
+                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);
                               }
                             }}
                             style={{

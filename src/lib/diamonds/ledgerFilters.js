@@ -112,10 +112,31 @@ function applyFilterToQuery(query, filter) {
     case 'earned':
       return query.gt('amount', 0);
     case 'spent':
+      /*
+       * NULL IS NOT "NOT A REFUND" IN SQL, AND THAT WOULD HAVE HIDDEN ROWS.
+       *
+       * This was two chained `.not(...ilike...)`, which PostgREST ANDs. For a
+       * row whose `transaction_type` is NULL, `NOT (NULL ILIKE '%refund%')` is
+       * NULL rather than true, so the row failed the filter and vanished from
+       * both the Spent list and the Spent badge - while the browser predicate
+       * below, which falls back to `type`, would have counted it. The two
+       * halves of one filter disagreeing is the whole class of defect this
+       * module exists to end.
+       *
+       * Measured on production 2026-09-05 before changing it: 631 of 1,433
+       * rows carry a NULL `transaction_type`, but none of those is a debit, so
+       * nothing is missing from Spent today. It was a trap rather than a live
+       * bug - the first debit written with only the legacy `type` column would
+       * have disappeared silently.
+       *
+       * `coalesce` is not expressible in a PostgREST filter, so the refund test
+       * is spelled out: a row is a refund if EITHER column says so. Its
+       * negation - neither column says so, NULL included - is what Spent wants.
+       */
       return query
         .lt('amount', 0)
-        .not('transaction_type', 'ilike', '%refund%')
-        .not('type', 'ilike', '%refund%');
+        .or('transaction_type.is.null,transaction_type.not.ilike.%refund%')
+        .or('type.is.null,type.not.ilike.%refund%');
     case 'refund':
       return query.or('transaction_type.ilike.%refund%,type.ilike.%refund%');
     case 'gifts':

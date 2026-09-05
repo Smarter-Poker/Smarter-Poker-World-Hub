@@ -458,6 +458,31 @@
   background: linear-gradient(90deg, var(--vault-gold), #d99a1c);
 }
 
+/* The way back out of a search or date range that emptied the view. */
+.emptyReset {
+  margin-top: 12px;
+  padding: 7px 16px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-cyan);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.emptyReset:active {
+  transform: translateY(1px);
+}
+
+.emptyReset:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
 /* ── A ledger row ───────────────────────────────────────────────────────── */
 
 /*
