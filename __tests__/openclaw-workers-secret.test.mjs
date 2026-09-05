@@ -144,7 +144,9 @@ test('the horse social and story jobs are still scheduled and still routed to wo
   for (const job of [
     '/api/cron/horses-social-all',
     '/api/cron/horses-stories',
-    '/api/cron/horse-batch/0',
+    // horse-batch/0..9 were replaced by the hourly whole-fleet route on
+    // 2026-09-05 (workers docs/FLEET-CONTENT-PROGRAMME.md, phase 1).
+    '/api/cron/horse-posts',
   ]) {
     assert.ok(src.includes(`'${job}'`), `${job} must remain registered`);
   }
