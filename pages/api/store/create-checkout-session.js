@@ -252,6 +252,9 @@ function computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent = nu
             unitAmount: preparedCheckout.plan.unitAmount,
             interval: preparedCheckout.plan.interval,
         };
+    } else if (type === 'vip_lifetime') {
+        // No interval: a lifetime term is a price, not a rate.
+        intent = { plan: 'lifetime', unitAmount: preparedCheckout.unitAmount };
     } else {
         intent = preparedCheckout.resolvedItems
             .map(({ id, variantId, quantity, price, providerVariant }) => ({
@@ -329,6 +332,20 @@ async function prepareCheckout(type, items) {
             }
         }
         return { resolvedPackages };
+    }
+
+    if (type === 'vip_lifetime') {
+        /* Lifetime is $499 and the amount lives HERE, on the server, exactly
+           like VIP_SUBSCRIPTION_PLANS. The client sends only a plan key, never
+           a price, so a tampered request cannot buy a permanent membership for
+           a dollar. Kept in step with VIP_MEMBERSHIP.lifetime in
+           src/data/diamondStoreData.js, which is display-only. */
+        const item = items[0];
+        const key = String(item?.plan ?? item?.planId ?? item?.id ?? '').replace(/^vip-/, '').toLowerCase();
+        if (key !== 'lifetime') {
+            throw new CheckoutInputError('INVALID_PLAN', `Unknown lifetime plan: ${key || 'unknown'}`);
+        }
+        return { unitAmount: 49900, label: 'Smarter.Poker VIP - Lifetime' };
     }
 
     if (type === 'subscription') {
@@ -637,7 +654,11 @@ export default async function handler(req, res) {
               });
           }
 
-          const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise']);
+          /* 'vip_lifetime' is a ONE-TIME VIP purchase ($499, Dan 2026-09-05).
+             It is its own type rather than a fourth plan under 'subscription'
+             because `mode` below is derived from this string, and a lifetime
+             term must not open a Stripe subscription that would renew. */
+          const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise', 'vip_lifetime']);
           if (!checkoutTypes.has(type)) {
               return res.status(400).json({
                   success: false,
@@ -659,6 +680,12 @@ export default async function handler(req, res) {
                   error: { code: 'INVALID_ITEMS', message: 'A subscription checkout requires one plan' }
               });
           }
+          if (type === 'vip_lifetime' && items.length !== 1) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'INVALID_ITEMS', message: 'A lifetime checkout requires one plan' }
+              });
+          }
 
           const rawCheckoutRequestId = req.headers['x-checkout-request-id'] || req.headers['x-idempotency-key'];
           const checkoutRequestId = validateCheckoutRequestId(rawCheckoutRequestId);
@@ -666,6 +693,15 @@ export default async function handler(req, res) {
               return res.status(400).json({
                   success: false,
                   error: { code: 'INVALID_REQUEST_ID', message: 'Invalid checkout request identifier' }
+              });
+          }
+          if (type === 'vip_lifetime' && !checkoutRequestId) {
+              return res.status(400).json({
+                  success: false,
+                  error: {
+                      code: 'REQUEST_ID_REQUIRED',
+                      message: 'A checkout request identifier is required for a lifetime purchase'
+                  }
               });
           }
           if (type === 'subscription' && !checkoutRequestId) {
@@ -735,6 +771,16 @@ export default async function handler(req, res) {
               .eq('id', user.id)
               .maybeSingle();
           if (profileReadError) throw profileReadError;
+
+          if (type === 'vip_lifetime' && profile?.vip_tier === 'lifetime') {
+              return res.status(409).json({
+                  success: false,
+                  error: {
+                      code: 'LIFETIME_VIP_ALREADY_OWNED',
+                      message: 'You already have Lifetime VIP.'
+                  }
+              });
+          }
 
           if (type === 'subscription') {
               if (profile?.vip_tier === 'lifetime') {
@@ -901,7 +947,7 @@ export default async function handler(req, res) {
           }
 
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
-          const returnRoute = type === 'subscription'
+          const returnRoute = (type === 'subscription' || type === 'vip_lifetime')
               ? '/hub/vip-membership'
               : type === 'merchandise'
                   ? '/hub/merch-store'
@@ -922,6 +968,9 @@ export default async function handler(req, res) {
 
           let sessionConfig = {
               customer: customerId,
+              /* Only a subscription opens a recurring session. 'vip_lifetime'
+                 is one payment and must land in `payment` mode, or Stripe
+                 would renew a membership that by definition never renews. */
               mode: type === 'subscription' ? 'subscription' : 'payment',
               ...(type !== 'subscription' ? { payment_method_types: ['card'] } : {}),
               success_url: safeSuccessUrl,
@@ -1096,6 +1145,56 @@ export default async function handler(req, res) {
                       vip_tier: vipTier
                   }
               };
+
+          } else if (type === 'vip_lifetime') {
+              const { unitAmount, label } = preparedCheckout;
+
+              /* A pending row FIRST, for the same reason the diamond path has
+                 one: the webhook settles by purchase_id, can fire more than
+                 once, and can fire for a charge that is later refunded. Never
+                 create a payable session without a record it can be settled
+                 against - otherwise the money is taken and nothing points at
+                 the membership that was owed. */
+              const { data: lifetimeRow, error: lifetimeInsertErr } = await getSupabase()
+                  .from('vip_lifetime_purchases')
+                  .insert({
+                      user_id: user.id,
+                      price_usd: unitAmount / 100,
+                      status: 'pending',
+                      metadata: {
+                          checkout_request_id: checkoutRequestId,
+                          checkout_intent_hash: checkoutIntentHash,
+                      },
+                  })
+                  .select('id')
+                  .maybeSingle();
+
+              if (lifetimeInsertErr || !lifetimeRow) {
+                  console.warn('[Checkout] Failed to create pending lifetime purchase:',
+                      lifetimeInsertErr?.message);
+                  return res.status(500).json({
+                      success: false,
+                      error: {
+                          code: 'PURCHASE_RECORD_FAILED',
+                          message: 'Could not initialize purchase. Please try again.'
+                      }
+                  });
+              }
+
+              sessionConfig.line_items = [{
+                  price_data: {
+                      currency: 'usd',
+                      product_data: {
+                          name: label,
+                          description: 'Every VIP feature, permanently. Never renews, never expires.',
+                      },
+                      // NO `recurring` block: that is what makes this one payment.
+                      unit_amount: unitAmount,
+                  },
+                  quantity: 1,
+              }];
+              sessionConfig.metadata.purchase_id = lifetimeRow.id;
+              sessionConfig.metadata.vip_tier = 'lifetime';
 
           } else if (type === 'merchandise') {
               // Catalog identity, stock, quantity, and price were already

@@ -956,6 +956,11 @@ export default function DiamondStorePage({ initialTab }) {
       navigator.vibrate(50);
     }
 
+    /* Kept as a tripwire. It routed lifetime to the diamond purchase while its
+       one-time card path did not exist; that path shipped on 2026-09-05 and
+       cardCheckoutReady is true for every term now. If a future term ever
+       arrives without a card path, this still does the honest thing rather
+       than opening a checkout that refuses. */
     if (plan?.cardCheckoutReady === false) {
       if (!user?.id) {
         showStoreToast('error', 'Please Sign In To Purchase VIP.');
@@ -1085,9 +1090,13 @@ export default function DiamondStorePage({ initialTab }) {
         paymentMethod: 'card',
         intent: { plan: plan.id },
       });
+      /* A lifetime term is one payment, so it is its own checkout type - the
+         server derives Stripe `mode` from this string and a subscription mode
+         would renew a membership that never renews. */
+      const checkoutType = plan.oneTime ? 'vip_lifetime' : 'subscription';
       captureStoreEvent('checkout_started', {
         route: 'vip',
-        type: 'subscription',
+        type: checkoutType,
         product: plan.id,
         value_usd: Number(plan.price || 0),
       });
@@ -1099,7 +1108,7 @@ export default function DiamondStorePage({ initialTab }) {
           'X-Checkout-Request-ID': checkoutRequestId,
         },
         body: JSON.stringify({
-          type: 'subscription',
+          type: checkoutType,
           items: [{ plan: plan.id }],
         }),
       });

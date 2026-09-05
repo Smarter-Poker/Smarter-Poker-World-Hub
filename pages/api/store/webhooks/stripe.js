@@ -256,6 +256,37 @@ async function handleCheckoutCompleted(session) {
                     `Diamond card settlement refused: ${settlement?.error || 'unknown_error'}`
                 );
             }
+        } else if (metadata?.type === 'vip_lifetime' && metadata.purchase_id) {
+            /* ADDED 2026-09-05. Until this branch existed there was NO VIP case
+               under `mode === 'payment'` at all: a paid one-time VIP session
+               fell off the end of this chain, granted nothing, and returned 200
+               - which tells Stripe never to retry. The money would have been
+               taken and the membership silently never issued. That is why the
+               storefront offered no card button for Lifetime until now.
+
+               settle_vip_lifetime_card_purchase_atomic is idempotent on the
+               session id: a replay of the same session returns duplicate:true,
+               and a DIFFERENT session pointing at the same purchase row is
+               refused as settlement_conflict rather than granting twice. */
+            const { data: settlement, error: settlementError } = await getSupabase().rpc(
+                'settle_vip_lifetime_card_purchase_atomic',
+                {
+                    p_purchase_id: metadata.purchase_id,
+                    p_session_id: id,
+                    p_payment_intent_id: typeof session.payment_intent === 'string'
+                        ? session.payment_intent
+                        : session.payment_intent?.id || null,
+                }
+            );
+            if (settlementError || !settlement?.success) {
+                /* Throw rather than swallow. A failure here means a paid
+                   customer has no membership, and Stripe's retry is the only
+                   thing that will fix it without a human. */
+                throw settlementError || new Error(
+                    `Lifetime VIP settlement refused: ${settlement?.error || 'unknown_error'}`
+                );
+            }
+
         } else if (metadata?.type === 'merchandise' && metadata.order_id) {
             const { data: orderRow, error: orderReadError } = await getSupabase()
                 .from('merchandise_orders')
