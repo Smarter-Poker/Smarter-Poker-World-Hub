@@ -1,0 +1,591 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  DIAMOND WALLET / #SMARTERCASINOREALISM
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * The World Hub's diamond wallet, brought onto the same machined vocabulary as
+ * the Club Arena vault: obsidian ground, gunmetal structure, chrome type,
+ * electric-blue energy. The rendered artwork supplies the physical realism;
+ * this file frames it and lays live data into its bays. Nothing here pretends
+ * to be the artwork.
+ *
+ * WHY THIS FILE EXISTS AT ALL. Until 2026-09-05 this component was 2,425 lines
+ * carrying 171 inline `style={{}}` objects and not one stylesheet, while every
+ * one of its six siblings in this folder (MarketplaceCommerceNav,
+ * MarketplaceDetailExperience, MarketplaceSubpageShell, MerchPurchaseDialog,
+ * RewardTelemetryConsole, VipMembershipConsole) had a .module.css. Hard-coded
+ * hexes cannot be themed, cannot be reviewed as a set, and cannot be shared -
+ * which is how the wallet drifted away from the rest of the platform's look.
+ *
+ * THE TOKENS ARE THE CLUB ARENA ONES, DELIBERATELY. Dan, 2026-09-05: the two
+ * wallets are "fully integrated ... but separate" - one diamond economy seen
+ * from two places, so they must READ as the same hardware. The values below
+ * mirror src/pages/PlayerWalletPage.css in the Club Arena repo. If you change
+ * a colour here, change it there, or the two halves of one wallet stop
+ * matching.
+ *
+ * NO :hover ANYWHERE (Dan 2026-08-29): a press is the feedback.
+ */
+
+.wallet {
+  --vault-obsidian: #05070a;
+  --vault-carbon: #0d1218;
+  --vault-panel: #0b1017;
+  --vault-panel-raised: #111925;
+  --vault-gunmetal: #27313c;
+  --vault-chrome: #b8c3cd;
+  --vault-chrome-hot: #e6edf3;
+  --vault-cyan: #00d4ff;
+  --vault-blue: #4169e1;
+  --vault-gold: #ffc93c;
+  --vault-green: #35d48a;
+  --vault-muted: #7f8c9b;
+  --vault-radius: 8px;
+  --vault-font-display: 'Rajdhani', 'Roboto Condensed', Inter, system-ui, sans-serif;
+  --vault-font-label: 'Roboto Condensed', 'Rajdhani', Inter, system-ui, sans-serif;
+}
+
+/* ── The rendered artwork and the live figures laid into it ─────────────── */
+
+/*
+ * A container, so the readouts inside are sized and placed against the
+ * ARTWORK rather than the viewport. The plate bays are a fixed fraction of the
+ * image, so everything in them is expressed in cqw/% and the panel scales as
+ * one piece.
+ */
+.art {
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  border-radius: 16px;
+  background-color: #050a15;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.artImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+ * MEASURED, NOT NUDGED.
+ *
+ * These two readouts used to sit at `calc(28.5% + 18px)` and
+ * `calc(66.6% - 15px)` with a `translateX(2px)` on top. A percentage plus a
+ * fixed pixel count lines up at exactly ONE width: at the 600px the panel
+ * reaches on desktop those resolved correctly, and at 375px the balance drifted
+ * about 3% to the right of its plate.
+ *
+ * The values below were measured off diamond-wallet-bg.jpg (796x1024) by
+ * sampling luminance for the dark bay inside each lit plate frame:
+ *   left plate   x 13.9%-47.1% (centre 30.5%), y 56.2%-74.4% (centre 65.3%)
+ *   right plate  x 53.0%-86.4% (centre 69.7%), y 60.1%-68.8% (centre 64.5%)
+ * Pure percentages, so they hold at every width.
+ */
+.artReadout {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.artReadoutBalance {
+  top: 65.3%;
+  left: 30.5%;
+}
+
+.artReadoutVip {
+  top: 64.5%;
+  left: 69.7%;
+}
+
+.artFigure {
+  margin-bottom: 4px;
+  font-family: var(--vault-font-display);
+  font-size: clamp(24px, 6cqw, 36px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #c0e0ff 40%, #0099ff 80%, #005bb5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 12px rgba(0, 200, 255, 0.7));
+}
+
+.artLabel {
+  color: var(--vault-chrome-hot);
+  font-family: var(--vault-font-label);
+  font-size: clamp(10px, 2.5cqw, 14px);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.9),
+    0 0 8px rgba(0, 180, 255, 0.6);
+}
+
+.artLabelDim {
+  color: var(--vault-muted);
+}
+
+/*
+ * The two painted buttons' behaviour. Invisible on purpose - the artwork draws
+ * them - but a real <button>, so focus, Enter and Space all work. The focus
+ * ring is the only thing it paints, and it must stay: an invisible control
+ * that cannot show focus is unusable by the people who most need the outline.
+ */
+.artHitbox {
+  position: absolute;
+  bottom: 10%;
+  width: 40%;
+  height: 10%;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.artHitbox:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+.artHitbox:active {
+  /* No hover in Club Arena; the press is the feedback. */
+  background: rgba(0, 212, 255, 0.12);
+}
+
+/*
+ * The caption strip, covering the artwork's baked-in "For 30 Days" line. 88.0%
+ * is where that text begins in the raster, measured rather than eyeballed; the
+ * panel starts a shade above so no painted pixel peeks out underneath.
+ */
+.artCaption {
+  position: absolute;
+  top: 87.4%;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6%;
+  color: var(--vault-chrome);
+  font-family: var(--vault-font-label);
+  font-size: clamp(9px, 2.1cqw, 13px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(5, 10, 21, 0.86) 0%, #050a15 34%);
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+
+.searchWrap {
+  padding: 8px 16px 4px;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 10px;
+  background: var(--vault-carbon);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* The whole field lights when the input inside it has focus, so the machined
+   frame is what shows focus rather than a ring around a transparent input. */
+.searchField:focus-within {
+  border-color: rgba(0, 212, 255, 0.55);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(0, 212, 255, 0.25);
+}
+
+.searchIcon {
+  flex-shrink: 0;
+  color: var(--vault-muted);
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--vault-chrome-hot);
+  font-family: var(--vault-font-body, Inter, system-ui, sans-serif);
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.searchInput::placeholder {
+  color: var(--vault-muted);
+}
+
+.searchClear {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--vault-gunmetal);
+  color: var(--vault-chrome);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.searchClear:active {
+  transform: translateY(1px);
+}
+
+.searchClear:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+/* ── The filter rail and its badges ─────────────────────────────────────── */
+
+/*
+ * These are the tabs Dan pointed at. The numbers beside them are now counted
+ * over the whole ledger by the API; the styling here is what makes them read
+ * as machined controls rather than generic pills.
+ */
+.filterRail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--vault-gunmetal);
+  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+}
+
+.rangeSelect {
+  flex-shrink: 0;
+  padding: 5px 22px 5px 8px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: var(--vault-radius);
+  background: var(--vault-carbon);
+  background-image: none;
+  color: var(--vault-muted);
+  font-family: var(--vault-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* An active range is a lit control, like a filter that is doing something. */
+.rangeSelectActive {
+  border-color: rgba(0, 212, 255, 0.55);
+  color: var(--vault-cyan);
+}
+
+.rangeSelect:focus-visible,
+.filterChip:focus-visible,
+.statsToggle:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+.filterChip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-chrome);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+/* No hover; a press is the feedback (Dan 2026-08-29). */
+.filterChip:active,
+.statsToggle:active {
+  transform: translateY(1px);
+}
+
+.filterChipOn {
+  border-color: rgba(0, 212, 255, 0.6);
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.18), rgba(0, 212, 255, 0.06));
+  color: var(--vault-cyan);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 14px rgba(0, 212, 255, 0.22);
+}
+
+.statsToggle {
+  composes: filterChip;
+  margin-left: auto;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+.statsToggleOn {
+  border-color: rgba(65, 105, 225, 0.65);
+  background: linear-gradient(180deg, rgba(65, 105, 225, 0.2), rgba(65, 105, 225, 0.07));
+  color: var(--vault-chrome-hot);
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────── */
+
+.closeBtn {
+  --sp-btn-size: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: var(--vault-radius);
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-chrome);
+  font-size: 18px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.closeBtn:active {
+  border-color: #4d5c6d;
+  color: var(--vault-chrome-hot);
+  transform: translateY(1px);
+}
+
+.closeBtn:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+/* ── The Send panel ─────────────────────────────────────────────────────── */
+
+.sendPanel {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vault-gunmetal);
+  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  animation: walletFadeIn 0.2s ease;
+}
+
+.sendTitle {
+  margin-bottom: 8px;
+  color: var(--vault-chrome-hot);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sendRules {
+  margin-bottom: 10px;
+  color: var(--vault-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.sendMeter {
+  margin-bottom: 10px;
+}
+
+.sendMeterRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+  color: var(--vault-muted);
+  font-size: 10px;
+}
+
+.sendMeterLeft {
+  color: var(--vault-cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Near the cap, the figure warns. Gold, not red: approaching a daily limit is
+   a state to notice, not a failure. */
+.sendMeterLeftLow {
+  color: var(--vault-gold);
+}
+
+.sendMeterTrack {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--vault-carbon);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.sendMeterFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vault-cyan), #00a8e8);
+  transition: width 0.3s ease;
+}
+
+.sendMeterFillLow {
+  background: linear-gradient(90deg, var(--vault-gold), #d99a1c);
+}
+
+/* The way back out of a search or date range that emptied the view. */
+.emptyReset {
+  margin-top: 12px;
+  padding: 7px 16px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-cyan);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.emptyReset:active {
+  transform: translateY(1px);
+}
+
+.emptyReset:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+/* ── A ledger row ───────────────────────────────────────────────────────── */
+
+/*
+ * NO HOVER, AND NOT IN JAVASCRIPT EITHER.
+ *
+ * These rows carried onMouseEnter/onMouseLeave handlers that assigned
+ * `e.currentTarget.style.background` - a hover effect written in JS rather than
+ * CSS. That is the no-hover rule (Dan 2026-08-29) routed around rather than
+ * followed, and it also does nothing on touch, where most of these rows are
+ * read. A press is the feedback.
+ */
+.txRow {
+  border-bottom: 1px solid var(--vault-gunmetal);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.txRow:active {
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.txRowOpen {
+  background: rgba(0, 212, 255, 0.05);
+  box-shadow: inset 3px 0 0 var(--vault-cyan);
+}
+
+.txRowMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.txIcon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 10px;
+  background: var(--vault-carbon);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.txBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.txLabel {
+  margin-bottom: 4px;
+  color: var(--vault-chrome-hot);
+  font-family: var(--vault-font-label);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.txDesc {
+  overflow: hidden;
+  color: var(--vault-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txSide {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.txAmount {
+  font-family: var(--vault-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A credit reads as the vault's own energy; a debit as chrome, not alarm red.
+   Spending diamonds is a normal thing to do, not an error. */
+.txAmountIn {
+  color: var(--vault-cyan);
+}
+
+.txAmountOut {
+  color: var(--vault-chrome);
+}
+
+/* Available to assistive technology, absent from the render. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
