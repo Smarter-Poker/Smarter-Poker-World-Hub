@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import { Menu } from 'lucide-react';
 import HamburgerMenu from './HamburgerMenu';
 import { getMenuConfigForPath } from '../../config/hamburgerMenus';
 import { sanitizeFallbackMenuConfig } from '../../config/fallbackMenuSafety.mjs';
@@ -82,13 +83,18 @@ export default function WorldCommandDock() {
           type="button"
           className="sp-world-command-trigger"
           data-world-menu-trigger="route-fallback"
-          data-menu-symbol="command-grid"
+          data-menu-symbol="hamburger"
           aria-label={`Open ${world.label} Command Menu`}
           onClick={() => setIsOpen(true)}
           style={{ '--world-command-accent': world.accent }}
         >
+          {/* HAMBURGER, NOT A SIX-NODE GRID (Dan 2026-09-05: "about the dots,
+              yes fix and change it back to hamburger menu only"). This is a
+              menu trigger, so it wears the symbol every other menu trigger on
+              the platform wears - the approved header's baked hamburger and,
+              since the same day, the drawer's own mark. */}
           <span className="sp-world-command-trigger__nodes" aria-hidden="true">
-            {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+            <Menu size={20} strokeWidth={2.25} />
           </span>
           <span className="sp-world-command-trigger__copy">
             <small>World Command</small>
@@ -142,25 +148,22 @@ export default function WorldCommandDock() {
           background: linear-gradient(90deg, transparent, var(--world-command-accent), transparent);
           box-shadow: 0 0 8px var(--world-command-accent);
         }
+        /* The tile chrome is unchanged - only the symbol inside it. The two
+           repeat() tracks and the round dot nodes they laid out went with the
+           six-node grid (Dan 2026-09-05). */
         .sp-world-command-trigger__nodes {
           width: 34px;
           height: 34px;
           display: grid;
-          grid-template-columns: repeat(2, 8px);
-          grid-template-rows: repeat(3, 8px);
-          place-content: center;
-          gap: 2px;
+          place-items: center;
           border: 1px solid rgba(201,215,227,.36);
           border-radius: 3px;
           background: #05090d;
+          color: var(--world-command-accent);
         }
-        .sp-world-command-trigger__nodes i {
-          width: 7px;
-          height: 7px;
+        .sp-world-command-trigger__nodes svg {
           display: block;
-          border-radius: 50%;
-          background: var(--world-command-accent);
-          box-shadow: inset 0 1px rgba(255,255,255,.6), 0 0 5px var(--world-command-accent);
+          filter: drop-shadow(0 0 5px var(--world-command-accent));
         }
         .sp-world-command-trigger__copy small,
         .sp-world-command-trigger__copy strong { display: block; line-height: 1; }

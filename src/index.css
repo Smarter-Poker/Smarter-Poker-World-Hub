@@ -398,8 +398,20 @@ html.reels-lock {
 @media (max-width: 768px) {
 
   /* Touch target minimum — excludes icon-only buttons (X close, avatar, etc.)
-     Use class .sp-icon-btn on any button that must stay square/circular */
-  button:not(.sp-icon-btn),
+     Use class .sp-icon-btn on any button that must stay square/circular.
+
+     .approved-global-header__button is excluded for the same reason and one
+     more: those buttons are transparent hit regions laid over the approved
+     header ARTWORK, and their size is the artwork's, expressed as percentages
+     of a 1648x168 plane. Forcing them to 44px on a header that is 38.2px tall
+     at 375px defeated `aspect-ratio: 1` on the profile button, which in turn
+     dragged the portrait 8px below the ornament aperture it is measured into —
+     the offset portrait Dan reported on 2026-09-05. It never even bought a
+     touch target: the header clips at `overflow: hidden`, so the extra height
+     was unhittable. UniversalHeader.js also resets min-height in its own
+     stylesheet; this exclusion is here so the intent is visible at the source
+     of the collision rather than only at the site that has to survive it. */
+  button:not(.sp-icon-btn):not(.approved-global-header__button),
   a,
   input,
   select,

@@ -847,6 +847,15 @@ export default function CommanderLayout({ children, title }) {
           box-shadow: 0 0 0 2px #000;
         }
         .cmd-approved-header__button:active { opacity: .76; }
+        /* THE ARTWORK OWNS THE GEOMETRY, NOT A GLOBAL TOUCH FLOOR. The app's
+           mobile touch floor - a max-width 768px media query setting
+           min-height 44px on button (except .sp-icon-btn) - is (0,1,1) and
+           beat these (0,1,0) rules, defeating aspect-ratio 1 on the
+           profile button and dragging the portrait
+           below the ornament aperture on every phone (the same defect Dan
+           reported on the World Hub header, 2026-09-05). This selector is
+           (0,2,0) so it wins without !important. */
+        .cmd-approved-header .cmd-approved-header__button { min-height: 0; }
         .cmd-approved-header__menu { left: 1.7%; width: 7%; }
         .cmd-approved-header__back { left: 8%; width: 12%; }
         .cmd-approved-header__hub { left: 19.1%; width: 12.9%; }
@@ -885,7 +894,11 @@ export default function CommanderLayout({ children, title }) {
              width centred at 50.7% / 46.9%. It was 72% at 50%/50% - 84.8 units
              sitting 3.6 units low, wider than the aperture and nearly as wide as
              the outer edge of the ring, so the photo covered the chrome band on
-             three sides and hung past it at the bottom. */
+             three sides and hung past it at the bottom.
+
+             THESE PERCENTAGES ARE OF THE BUTTON BOX, AND THE BUTTON BOX MUST BE
+             SQUARE - see the min-height reset above. Do not reintroduce a
+             min-height, a fixed height, or padding on these buttons. */
           top: 46.9% !important;
           left: 50.7% !important;
           z-index: 1;
@@ -896,7 +909,10 @@ export default function CommanderLayout({ children, title }) {
           transform: translate(-50%, -50%) !important;
           overflow: hidden;
           box-sizing: border-box;
-          border: 0;
+          /* The half-pixel edge (Dan, restored 2026-09-05: "the thin .5 pixel
+             invisible black frame"). Without it the photo's edge abuts the
+             artwork's chrome band and the two anti-alias into a ragged line. */
+          border: 0.5px solid rgba(0, 0, 0, .94);
           border-radius: 50%;
           background: transparent;
           pointer-events: none;
