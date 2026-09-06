@@ -92,8 +92,9 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
     const mark = page.locator('.pnm-identity-mark').first();
     await expect(mark).toBeVisible({ timeout: 20_000 });
     await expect.poll(async () => {
-      const state = await mark.getAttribute('data-media-state');
-      const image = mark.locator('img');
+      const currentMark = page.locator('.pnm-identity-mark').first();
+      const state = await currentMark.getAttribute('data-media-state');
+      const image = currentMark.locator('img');
       if (state === 'image' && await image.count()) {
         // The live series list can replace its first card while data settles.
         // Dispatch the browser failure signal against whichever first card is
@@ -101,9 +102,15 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
         // replacement render.
         await image.dispatchEvent('error');
       }
-      return mark.getAttribute('data-media-state');
-    }, { timeout: 15_000 }).toBe('fallback');
-    await expect(mark.locator('.pnm-identity-mark__initials')).toBeVisible();
+      return currentMark.evaluate((element) => {
+        const initials = element.querySelector('.pnm-identity-mark__initials');
+        const box = initials?.getBoundingClientRect();
+        return {
+          state: element.getAttribute('data-media-state'),
+          initialsVisible: Boolean(initials && box && box.width > 0 && box.height > 0),
+        };
+      }).catch(() => ({ state: 'replaced', initialsVisible: false }));
+    }, { timeout: 15_000 }).toEqual({ state: 'fallback', initialsVisible: true });
   });
 
   test('tour directory and a real tour detail remain healthy', async ({ page, request }) => {
