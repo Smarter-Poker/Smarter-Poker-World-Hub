@@ -96,7 +96,11 @@ export default function HubPageShell({
         minHeight: '100dvh',
         width: '100%',
         maxWidth: '100vw',
-        overflowX: 'hidden',
+        // `hidden` creates a non-scrolling overflow container and prevents the
+        // approved sticky header from following deep-link auto-scrolls. `clip`
+        // keeps the same horizontal containment without breaking sticky.
+        overflowX: 'clip',
+        overflowY: 'visible',
         boxSizing: 'border-box',
         background,
       }}

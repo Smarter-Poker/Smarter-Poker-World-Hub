@@ -60,6 +60,7 @@ export default function WorldCommandDock() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasHeaderTrigger, setHasHeaderTrigger] = useState(true);
   const [isEmbedded, setIsEmbedded] = useState(true);
+  const isOpenRef = useRef(false);
   const fallbackTriggerRef = useRef(null);
   const lastFocusedTriggerRef = useRef(null);
   const restoreFallbackFocusRef = useRef(false);
@@ -72,6 +73,12 @@ export default function WorldCommandDock() {
   useLayoutEffect(() => {
     const claimApprovedOwner = (event) => {
       if (event.detail?.id !== world?.id) return;
+      if (isOpenRef.current) {
+        queueMicrotask(() => window.dispatchEvent(new CustomEvent('sp:open-approved-world-menu', {
+          detail: { id: world.id },
+        })));
+      }
+      isOpenRef.current = false;
       setIsOpen(false);
       setHasHeaderTrigger(true);
     };
@@ -175,7 +182,10 @@ export default function WorldCommandDock() {
   }, [hasHeaderTrigger]);
 
   useEffect(() => {
-    const close = () => setIsOpen(false);
+    const close = () => {
+      isOpenRef.current = false;
+      setIsOpen(false);
+    };
     router.events.on('routeChangeStart', close);
     return () => router.events.off('routeChangeStart', close);
   }, [router.events]);
@@ -196,7 +206,10 @@ export default function WorldCommandDock() {
           aria-haspopup="dialog"
           aria-expanded={isOpen}
           aria-controls={`sp-world-command-menu-${world.id}`}
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            isOpenRef.current = true;
+            setIsOpen(true);
+          }}
           style={worldMenuStyle}
         >
           {/* HAMBURGER, NOT A SIX-NODE GRID (Dan 2026-09-05: "about the dots,
@@ -217,7 +230,10 @@ export default function WorldCommandDock() {
       {!hasHeaderTrigger && (
         <HamburgerMenu
           isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
+          onClose={() => {
+            isOpenRef.current = false;
+            setIsOpen(false);
+          }}
           direction="left"
           theme="dark"
           menuItems={menuConfig.menuItems}

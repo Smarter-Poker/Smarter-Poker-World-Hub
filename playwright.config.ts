@@ -32,7 +32,7 @@ export default defineConfig({
     {
       name: 'chromium',
       testMatch: /0.*\.spec\.ts/,
-      testIgnore: /022-world-menu-visual\.spec\.ts$/,
+      testIgnore: /02[24]-world-menu-(visual|mobile-phase3)\.spec\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
@@ -42,7 +42,7 @@ export default defineConfig({
     {
       name: 'mobile-chrome',
       testMatch: /0.*\.spec\.ts/,
-      testIgnore: /022-world-menu-visual\.spec\.ts$/,
+      testIgnore: /02[24]-world-menu-(visual|mobile-phase3)\.spec\.ts$/,
       use: {
         ...devices['Pixel 5'],
         storageState: 'playwright/.auth/user.json',
@@ -122,8 +122,32 @@ export default defineConfig({
       },
     },
     {
-      // Mobile performance budget for the ten rollout pages
-      // (docs/mobile-standard/ROLLOUT-PLAN.md). Unauthenticated, 375px,
+      name: 'world-menu-phase3-chromium',
+      testMatch: /024-world-menu-mobile-phase3\.spec\.ts$/,
+      fullyParallel: false,
+      workers: 1,
+      retries: 0,
+      use: {
+        ...devices['iPhone 13'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+      },
+    },
+    {
+      name: 'world-menu-phase3-webkit',
+      testMatch: /024-world-menu-mobile-phase3\.spec\.ts$/,
+      fullyParallel: false,
+      workers: 1,
+      retries: 0,
+      use: {
+        ...devices['iPhone 13'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+      },
+    },
+    {
+      // Mobile performance budget for all thirteen non-Social World roots.
+      // Unauthenticated, 375px,
       // throttled-CPU-free: it measures what ships, not the network.
       name: 'mobile-budget',
       testMatch: /mobile-budget\.spec\.ts$/,

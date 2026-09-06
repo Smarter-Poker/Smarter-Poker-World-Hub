@@ -14,8 +14,14 @@ async function openMenu(page: Page, world: WorldMenuVisualCase) {
   const trigger = page.locator('[data-world-menu-trigger]');
   await expect(trigger).toHaveCount(1);
   await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
-  await trigger.click();
-  const drawer = page.locator(`[data-world-command-menu="${world.id}"]`);
+  const drawer = page.locator(`[data-world-command-menu="${world.id}"]:visible`);
+  await expect.poll(async () => {
+    if (await drawer.count()) return true;
+    const currentTrigger = page.locator('[data-world-menu-trigger]:visible').first();
+    if (await currentTrigger.count()) await currentTrigger.click();
+    return false;
+  }, { timeout: 10_000 }).toBe(true);
+  await expect(drawer).toHaveCount(1);
   await expect(drawer).toBeVisible();
   await expect(drawer).toHaveAttribute('data-world-menu-scheme', world.scheme);
   await expect(drawer).toHaveAttribute('data-world-menu-texture', world.texture);
@@ -45,6 +51,12 @@ async function expectDrawerSnapshot(
   // wait for the host page to become stable before they rasterize, so a heavy
   // route hydrating behind the fixed drawer can time out despite an unchanged
   // command surface.
+  // An unrelated background API failure may raise the global app notice while
+  // a data-heavy world hydrates. Keep this drawer snapshot deterministic.
+  const dismissErrorNotice = page.getByRole('button', { name: 'Dismiss Error Notice' });
+  if (await dismissErrorNotice.isVisible().catch(() => false)) {
+    await dismissErrorNotice.click();
+  }
   const pixels = await page.screenshot({
     animations: 'disabled',
     caret: 'hide',

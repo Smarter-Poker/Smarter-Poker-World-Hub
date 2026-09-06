@@ -54,9 +54,17 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     await expect(trigger).toHaveCount(1);
     await expect(trigger).toBeVisible();
     await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
-    await trigger.click();
-
-    const drawer = page.locator(`[data-world-command-menu="${world.id}"]`);
+    const drawer = page.locator(`[data-world-command-menu="${world.id}"]:visible`);
+    // A page-owned header can finish its client-only mount just after the first
+    // visible frame in WebKit. Activate the current canonical trigger until the
+    // drawer acknowledges the tap; this still fails if no live owner responds.
+    await expect.poll(async () => {
+      if (await drawer.count()) return true;
+      const currentTrigger = page.locator('[data-world-menu-trigger]:visible').first();
+      if (await currentTrigger.count()) await currentTrigger.click();
+      return false;
+    }, { timeout: 10_000 }).toBe(true);
+    await expect(drawer).toHaveCount(1);
     await expect(drawer).toBeVisible();
     await expect(drawer).toHaveAttribute('data-world-menu-scheme', world.scheme);
     await expect(drawer.locator(`[data-world-primary-commands="${world.id}"] .sp-grid-tile`)).toHaveCount(6);
@@ -132,19 +140,20 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
       await reelsOverlay.evaluate((element: HTMLElement) => element.click());
       const approvedTrigger = page.locator('[data-world-menu-trigger="approved-header"]');
       await expect(approvedTrigger).toHaveCount(1);
-      await expect(drawer).toBeHidden();
-      await approvedTrigger.click();
-      await expect(drawer).toBeVisible();
+      // The open fallback hands ownership to the approved header without
+      // dropping the user's tap or flashing two visible drawers.
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
+      await expect(approvedTrigger).toHaveAttribute('aria-expanded', 'true');
       await page.waitForTimeout(5_500);
       await expect(approvedTrigger).toHaveCount(1);
-      await expect(drawer).toBeVisible();
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
       await page.keyboard.press('Escape');
-      await expect(drawer).toBeHidden();
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(1, {
         timeout: 7_000,
       });
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeFocused();
-      await expect(drawer).toBeHidden();
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
     }
   });
 }

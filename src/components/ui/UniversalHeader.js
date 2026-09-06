@@ -120,6 +120,19 @@ export default function UniversalHeader({
     onCommandMenuOpenChange?.(nextOpen);
   };
 
+  // A fallback trigger can be tapped during a slow page-header hydration. If
+  // this approved owner arrives while that fallback drawer is open, accept a
+  // one-shot handoff so the user's tap is not lost when the fallback unmounts.
+  useIsomorphicLayoutEffect(() => {
+    const acceptMenuHandoff = (event) => {
+      if (event.detail?.id !== resolvedHeaderWorld?.id) return;
+      if (onMenuClick && !ownsCanonicalMenu) onMenuClick();
+      else setCommandMenuOpen(true);
+    };
+    window.addEventListener('sp:open-approved-world-menu', acceptMenuHandoff);
+    return () => window.removeEventListener('sp:open-approved-world-menu', acceptMenuHandoff);
+  }, [resolvedHeaderWorld?.id, onMenuClick, ownsCanonicalMenu, isCommandMenuControlled, onCommandMenuOpenChange]);
+
   useIsomorphicLayoutEffect(() => {
     window.dispatchEvent(new CustomEvent('sp:approved-world-menu-owner', {
       detail: { id: resolvedHeaderWorld?.id || null },
