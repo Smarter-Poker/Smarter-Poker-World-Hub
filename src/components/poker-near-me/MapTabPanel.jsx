@@ -82,7 +82,7 @@ export default function MapTabPanel({
             <div className="map-main-section">
                 <div className="map-tab-container" style={{ position: 'relative' }}>
                     {/* Floating Radius Badge */}
-                    <div style={{
+                    <div className="pnm-map-radius-control" style={{
                         position: 'absolute',
                         top: '16px',
                         right: '16px',
@@ -100,6 +100,7 @@ export default function MapTabPanel({
                     }}>
                         <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Radius:</span>
                         <select
+                            aria-label="Map search radius"
                             value={filters.radius}
                             onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
                             style={{

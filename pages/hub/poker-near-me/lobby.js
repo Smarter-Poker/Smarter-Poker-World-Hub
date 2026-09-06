@@ -67,6 +67,10 @@ import {
   useLobbyDialogController,
   useLobbyShareController,
 } from '../../../src/components/poker-near-me/lobby/useLobbyInteractionController';
+import {
+  buildLiveCashGameIndex,
+  findLiveCashGameEntry,
+} from '../../../src/lib/poker-near-me/liveCashGameData';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
@@ -839,29 +843,7 @@ export default function PokerNearMeLobby() {
         }
         // Build name-keyed map for card injection
         if (Array.isArray(j.venues)) {
-          const map = {};
-          j.venues.forEach(v => {
-            const normName = (v.venue_name || '').toLowerCase()
-              .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
-              .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-            const vGames = v.games || [];
-            const totalTables = vGames.reduce((s, g) => s + (g.tables_running || 0), 0);
-            const totalWaiting = vGames.reduce((s, g) => s + (g.players_waiting || 0), 0);
-            // Carry data_mode + is_simulated through so VenueCard can badge a
-            // modelled count instead of presenting it as observed live data.
-            const liveEntry = {
-              tables_running: totalTables,
-              players_waiting: totalWaiting,
-              games: vGames,
-              is_simulated: v.is_simulated === true,
-              data_mode: j.metadata?.data_mode || null,
-              last_updated: v.last_updated,
-              bravo_slug: v.bravo_slug,
-            };
-            if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
-            if (normName) map[normName] = liveEntry;
-          });
-          setLiveDataMap(map);
+          setLiveDataMap(buildLiveCashGameIndex(j));
         }
       })
       .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
@@ -880,11 +862,10 @@ export default function PokerNearMeLobby() {
     setVenues(prev => {
       let changed = false;
       const next = prev.map(venue => {
-        const normName = (venue.name || '').toLowerCase()
-          .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
-          .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-        const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
-        const newLiveData = (liveEntry && liveEntry.tables_running > 0) ? liveEntry : null;
+        const liveEntry = findLiveCashGameEntry(venue, liveDataMap);
+        const newLiveData = liveEntry && Array.isArray(liveEntry.games) && liveEntry.games.length > 0
+          ? liveEntry
+          : null;
         const curTs = venue.live_data?.last_updated;
         const newTs = newLiveData?.last_updated;
         if (!newLiveData && !venue.live_data) return venue;
@@ -2475,7 +2456,9 @@ export default function PokerNearMeLobby() {
       // Tables" label even when the value was a MODEL output. Label it honestly.
       liveGameLabel: (liveDataMode === 'estimated' || liveDataMode === 'mixed')
         ? 'Est. Tables'
-        : 'Live Tables',
+        : liveDataMode === 'live'
+          ? 'Live Tables'
+          : 'Cash Tables',
       // Daily Grind: today's tournaments — authoritative count from API
       // (includes venue daily tournaments + charity events + tour series events)
       dailyCount: todaysTournamentCount || todaysTournaments.length,
@@ -2540,7 +2523,7 @@ export default function PokerNearMeLobby() {
         }
         onMenuClick={() => setMenuOpen(true)}
       >
-      <div className="pnm-lobby-page">
+      <div className="pnm-lobby-page" data-pnm-realism="machined-v2">
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this
             block the delivered HTML has no h1 and none of the twelve internal

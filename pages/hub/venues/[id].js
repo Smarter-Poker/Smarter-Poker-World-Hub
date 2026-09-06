@@ -1851,7 +1851,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           onClose={() => setMenuOpen(false)}
       />
 
-      <main className="venue-page" data-pnm-secondary-foundation="interaction-v1">
+      <main className="venue-page" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {loading && !venue && (
           <div className="loading-state">
             <div className="spinner" />
