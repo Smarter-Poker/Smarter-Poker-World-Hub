@@ -18,7 +18,7 @@ function collectMapRuntimeErrors(page: Page) {
 }
 
 async function clickTopmostDataMarker(page: Page, map: Locator) {
-  const popup = map.locator('.leaflet-popup').last();
+  const actionablePopup = map.locator('.leaflet-popup:has(.fsp-trigger):has(.directions-trigger)').last();
   const candidateGroups = [map.locator('.tour-logo-marker'), map.locator('.venue-map-marker')];
 
   // Production venue data expands the featured-room rail above the map shortly
@@ -45,7 +45,7 @@ async function clickTopmostDataMarker(page: Page, map: Locator) {
         if (!isTopmost) continue;
 
         await candidate.click();
-        if (await popup.isVisible()) return;
+        if (await actionablePopup.isVisible()) return;
       }
     }
   }
@@ -72,7 +72,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
 
     if (await map.locator('.venue-map-marker, .tour-logo-marker').count()) {
       await clickTopmostDataMarker(page, map);
-      const popup = map.locator('.leaflet-popup').last();
+      const popup = map.locator('.leaflet-popup:has(.fsp-trigger):has(.directions-trigger)').last();
       await expect(popup).toBeVisible({ timeout: 10_000 });
       await expect(popup.locator('.fsp-trigger')).toHaveAttribute('data-url', /^\/hub\/(?:venues|tours)\//);
       await expect(popup.locator('.directions-trigger')).toBeVisible();

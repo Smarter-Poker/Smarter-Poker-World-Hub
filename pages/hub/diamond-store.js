@@ -937,12 +937,8 @@ export default function DiamondStorePage({ initialTab }) {
     }
   };
 
-  // VIP subscription: the daily pass is bought with diamonds, the monthly and
-  // annual tiers go straight to a Stripe Checkout subscription session.
-  // VIP subscription: monthly and yearly go straight to a Stripe Checkout
-  // subscription session. Lifetime is a one-time term whose card path is not
-  // built, so the primary button routes it to the diamond purchase instead of
-  // a checkout that would refuse it.
+  // Monthly and yearly use Stripe subscriptions. Lifetime uses the one-time
+  // Stripe checkout path. Every term also retains its Diamond settlement path.
   const handleVIPSubscribe = async () => {
     if (processingRef.current) return;
     if (vipTier === 'lifetime') {
@@ -1071,7 +1067,7 @@ export default function DiamondStorePage({ initialTab }) {
     }
   };
 
-  /** Stripe Checkout, subscription mode, for the cash plans. */
+  /** Stripe Checkout for recurring and one-time card plans. */
   const startStripeCheckout = async (plan) => {
     if (processingRef.current) return;
     // Only the plan key is sent; the server resolves the Stripe price ID from
@@ -1551,15 +1547,12 @@ export default function DiamondStorePage({ initialTab }) {
       : selectedVIP === 'vip-yearly'
         ? VIP_MEMBERSHIP.yearly
         : VIP_MEMBERSHIP.monthly;
-  /* Lifetime is one payment, and its card checkout is not built yet - the
-     session builder has no one-time VIP branch and the webhook has no
-     one-time VIP grant. So the card button is not offered for it, and the
-     label says what is actually available rather than a price that would 400.
-     See VIP_SUBSCRIPTION_PLANS in create-checkout-session.js. */
   const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
   const vipCardReady = selectedVIPPlan?.cardCheckoutReady !== false;
   const vipSubscribeLabel = vipCardReady
-    ? `Subscribe: $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`
+    ? lifetimeSelected
+      ? `Buy VIP Lifetime With Card: $${Number(selectedVIPPlan?.price || 499).toFixed(2)} Once`
+      : `Subscribe With Card: $${Number(selectedVIPPlan?.price || 19.99).toFixed(2)}/${selectedVIPPlan?.interval === 'year' ? 'Year' : 'Month'}`
     : `Lifetime VIP Is Bought With Diamonds: ${Math.round(Number(selectedVIPPlan?.price || 0) * 100).toLocaleString()}`;
 
   return (
@@ -1885,9 +1878,8 @@ export default function DiamondStorePage({ initialTab }) {
                     </button>
                   </div>
 
-                  {/* Pay in diamonds. Every term settles this way at 100
-                    diamonds per dollar, lifetime included - it is the ONLY way
-                    to buy lifetime until its card path is built. */}
+                  {/* Every term can settle in Diamonds at 100 Diamonds per
+                    dollar. Lifetime also has a one-time card checkout. */}
                   {selectedVIPPlan && (
                     <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
                       {(() => {
