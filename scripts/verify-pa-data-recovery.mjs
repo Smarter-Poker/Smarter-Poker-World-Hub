@@ -68,5 +68,5 @@ async function main() {
 try {
   await main();
 } finally {
-  await supabase.auth.signOut().catch(() => {});
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
 }
