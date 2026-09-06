@@ -121,6 +121,8 @@ JOB_TIMEOUTS = {
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
     '/api/cron/scrape-sports-clips':   300,
+    '/api/cron/scrape-poker-clips':    300,
+    '/api/cron/revalidate-poker-clips': 120,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
     # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
     # ingestion stops wherever it was. The scraper walks 23 YouTube channels
@@ -589,6 +591,24 @@ ALL_CRONS = [
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
     ('/api/cron/scrape-sports-clips',             dict(hour=4, minute=0)),
+    # ── Phase 4 (2026-09-06) — poker gets the renewing supply sports had ────
+    # Measured over seven live days: sports drew 285 posts from a pool of
+    # 8,271 scraped clips while poker drew 245 from a frozen array of 150,
+    # using 114 of them in one week. The ledger then refused each for thirty
+    # days, so horses fell through to sports and a POKER platform posted 53.8%
+    # sports. Twice a day rather than the sports scraper's once, because the
+    # poker pool starts at 113 live clips and has the further to climb; it
+    # walks 25 channels per run, least-recently-scraped first.
+    ('/api/cron/scrape-poker-clips',              dict(hour='5,17', minute=20)),
+    # Hourly, 40 clips a run: the whole pool is re-asked well inside a week.
+    # Probing the 149 hard-coded clips found 36 dead (22 gone, 14 embedding-
+    # disabled) that had been postable for months, because the only validity
+    # cache was a Map in process memory that died with the container.
+    ('/api/cron/revalidate-poker-clips',          dict(minute=40)),
+    # Both Phase 4 defects were silent for weeks and both were found by a
+    # person reading rows. A queue that stops draining and a pool that stops
+    # growing look exactly like a quiet week.
+    ('/api/cron/content-supply-watchdog',         dict(minute=50)),
     # /api/cron/scrape-venue-info?batch=1..5 RETIRED 2026-04-25 (Phase 2B.3
     # partial cleanup). Superseded by .github/workflows/venue-scraper.yml +
     # daily_venue_scraper.py which has been the actual scraper since
@@ -986,6 +1006,12 @@ WORKERS_PREFERRED = {
     # (channels_scraped:38, found:100). Dispatcher REQUEST_TIMEOUT=120s
     # easily covers it.
     '/api/cron/scrape-sports-clips':           '/cron/scrape-sports-clips',
+    # ─── Phase 4 (2026-09-06) — poker clip supply, all three workers-side ──
+    # These live in the workers repo beside the sports scraper they are
+    # modelled on; there is no monolith handler for any of them.
+    '/api/cron/scrape-poker-clips':            '/cron/scrape-poker-clips',
+    '/api/cron/revalidate-poker-clips':        '/cron/revalidate-poker-clips',
+    '/api/cron/content-supply-watchdog':       '/cron/content-supply-watchdog',
     # ─── 2B.2(i) — horses-social-friends (parallel session, handler 39) ────
     # Workers repo HEAD b44078b extracted slim HorseSocialEngine.sendFriendRequests +
     # acceptFriendRequests (the handler's only actual deps) so we don't need
