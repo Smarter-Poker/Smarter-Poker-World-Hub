@@ -5,15 +5,21 @@ import test from 'node:test';
 const ROOT = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, ROOT), 'utf8');
 
-test('Club Shop card returns wait for verified club context and normalize Stripe input', async () => {
+test('Club Shop card returns verify independently of mutable catalog context', async () => {
   const source = await read('pages/hub/club-shop/[itemId].js');
   assert.match(source, /const checkoutSessionId = Array\.isArray\(router\.query\.session_id\)/);
   assert.match(
     source,
+    /router\.query\.success !== 'true' \|\| !checkoutSessionId\) return/
+  );
+  assert.doesNotMatch(
+    source,
     /router\.query\.success !== 'true' \|\| !checkoutSessionId \|\| !clubId/
   );
   assert.match(source, /encodeURIComponent\(checkoutSessionId\)/);
-  assert.match(source, /clubId=\$\{encodeURIComponent\(clubId\)\}/);
+  assert.match(source, /const returnClubId = clubId \|\| requestedClubId/);
+  assert.match(source, /clubId=\$\{encodeURIComponent\(returnClubId\)\}/);
+  assert.match(source, /body\.data\?\.walletBalance/);
   assert.doesNotMatch(source, /clubId=\$\{clubId\}.*shallow/);
 });
 
@@ -26,7 +32,7 @@ test('Club Shop card completion is explicit and canceled retries settle cleanly'
   assert.match(source, /let wakeRetry = null/);
   assert.match(source, /if \(wakeRetry\) wakeRetry\(\)/);
   assert.match(source, /redemptionStatus === 'needs_review'/);
-  assert.match(source, /Without Another Card Payment/i);
+  assert.match(source, /Do Not Pay By Card Again/i);
 });
 
 test('card checkout stays in the same browser surface on Club Shop and merchandise', async () => {

@@ -232,48 +232,122 @@ export default async function handler(req, res) {
 
       try {
         const userId = user.id; // From JWT, NOT from req.body
-        const { dailyId, score, evLoss, selectedAction } = req.body;
+        const { dailyId, selectedAction } = req.body;
 
         if (!dailyId) {
           return res.status(400).json({ success: false, error: 'dailyId required' });
         }
+        const today = getTodayCST();
+        const expectedDailyId = `daily-${today}`;
+        if (dailyId !== expectedDailyId) {
+          return res.status(400).json({ success: false, error: 'Daily challenge has expired' });
+        }
+        if (typeof selectedAction !== 'string' || !selectedAction.trim() || selectedAction.length > 80) {
+          return res.status(400).json({ success: false, error: 'A valid selected action is required' });
+        }
+
+        // Never trust score, correctness, EV loss, or the reward decision from
+        // the browser. Reload the same deterministic cache row used by GET and
+        // grade the submitted action against its canonical answer.
+        const { count, error: countError } = await getSupabase()
+          .from('training_question_cache')
+          .select('*', { count: 'exact', head: true })
+          .in('engine_type', ['PIO', 'CHART']);
+        if (countError || !count) {
+          return res.status(503).json({ success: false, error: 'Daily challenge is unavailable' });
+        }
+        const offset = dateHash(today) % count;
+        const { data: cached, error: questionError } = await getSupabase()
+          .from('training_question_cache')
+          .select('question_data')
+          .in('engine_type', ['PIO', 'CHART'])
+          .range(offset, offset)
+          .maybeSingle();
+        if (questionError || !cached?.question_data) {
+          return res.status(503).json({ success: false, error: 'Daily challenge is unavailable' });
+        }
+        let gradedQuestion = cached.question_data;
+        reconcileAnswerKey(gradedQuestion);
+        gradedQuestion = enforceTrainingQuestionContract(gradedQuestion);
+        if (!isTrainingQuestionValid(gradedQuestion)) {
+          return res.status(422).json({ success: false, error: 'Daily challenge did not pass validation' });
+        }
+        const gradedOptions = Array.isArray(gradedQuestion.options) ? gradedQuestion.options : [];
+        const canonicalSelection = gradedOptions.find((option) => {
+          const label = typeof option === 'string' ? option : option?.text;
+          const id = typeof option === 'string' ? option : option?.id;
+          return [label, id].some((value) => String(value || '').toLowerCase() === selectedAction.trim().toLowerCase());
+        });
+        if (!canonicalSelection) {
+          return res.status(400).json({ success: false, error: 'Selected action is not part of today’s challenge' });
+        }
+        const canonicalSelectedLabel = typeof canonicalSelection === 'string'
+          ? canonicalSelection
+          : canonicalSelection.text || canonicalSelection.id;
+        const canonicalSelectedId = typeof canonicalSelection === 'string'
+          ? canonicalSelection
+          : canonicalSelection.id || canonicalSelection.text;
+        const correctOption = gradedOptions.find((option) => (
+          typeof option === 'object' && String(option?.id) === String(gradedQuestion.correctAnswer)
+        ));
+        const correctLabel = gradedQuestion.correctAnswerText
+          || (typeof correctOption === 'object' ? correctOption?.text : correctOption)
+          || gradedQuestion.correctAnswer;
+        const submittedCorrect = String(canonicalSelectedId || '').toLowerCase() === String(gradedQuestion.correctAnswer || '').toLowerCase()
+          || String(canonicalSelectedLabel || '').toLowerCase() === String(correctLabel || '').toLowerCase();
 
         // 2026-07-19 AUDIT FIX: check for an existing completion FIRST so the
         // 25-diamond reward is credited exactly once per user per day.
-        const { data: existing } = await getSupabase()
+        const { data: existing, error: existingError } = await getSupabase()
           .from('training_daily_challenge')
-          .select('user_id')
+          .select('user_id, score, selected_action')
           .eq('user_id', userId)
           .eq('daily_id', dailyId)
           .maybeSingle();
-        const alreadyCompleted = !!existing;
+        if (existingError) {
+          return res.status(503).json({ success: false, error: 'Daily completion status is unavailable' });
+        }
+        let alreadyCompleted = !!existing;
+        let isCorrect = alreadyCompleted ? Number(existing.score) >= 100 : submittedCorrect;
 
-        const { error } = await getSupabase()
-          .from('training_daily_challenge')
-          .upsert(
+        if (!alreadyCompleted) {
+          const { error } = await getSupabase()
+            .from('training_daily_challenge')
+            .insert(
             {
               user_id: userId,
               daily_id: dailyId,
-              score: score || 0,
-              ev_loss: evLoss || 0,
-              selected_action: typeof selectedAction === 'string' ? selectedAction.slice(0, 80) : null,
+              score: isCorrect ? 100 : 0,
+              // This cache generation has frequency-backed strategy evidence,
+              // not provenance-sealed per-action BB values. Preserve unknown
+              // loss as null instead of inventing a one-BB penalty.
+              ev_loss: isCorrect ? 0 : null,
+              selected_action: canonicalSelectedLabel,
               completed_at: new Date().toISOString(),
-            },
-            {
-              onConflict: 'user_id,daily_id',
             }
           );
 
-        if (error) {
-          // Phase 81 — table exists in production (verified 2026-05-07).
-          // A real error here means RLS/FK/auth failure, not missing schema.
-          // Surface the failure so users know the completion didn't persist.
-          console.warn('[HandOfTheDay] Insert error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to record daily challenge completion',
-            code: error.code || 'UPSERT_FAILED',
-          });
+          if (error) {
+            // A concurrent identical request can win the unique key. Re-read
+            // once so a transport retry remains idempotent without overwriting
+            // the first immutable answer.
+            const { data: raced, error: raceError } = await getSupabase()
+              .from('training_daily_challenge')
+              .select('user_id, score')
+              .eq('user_id', userId)
+              .eq('daily_id', dailyId)
+              .maybeSingle();
+            if (raceError || !raced) {
+              console.warn('[HandOfTheDay] Insert error:', error);
+              return res.status(500).json({
+                success: false,
+                error: 'Failed to record daily challenge completion',
+                code: error.code || 'INSERT_FAILED',
+              });
+            }
+            alreadyCompleted = true;
+            isCorrect = Number(raced.score) >= 100;
+          }
         }
 
         // 2026-07-19 AUDIT FIX: the endpoint previously RETURNED
@@ -281,7 +355,7 @@ export default async function handler(req, res) {
         // told users they earned a reward that never landed. Credit for real
         // via the same RPC save-progress uses, only on first completion.
         let diamondsEarned = 0;
-        if (!alreadyCompleted) {
+        if (isCorrect) {
           // Award via award_diamonds_v2 (training_reward catalog key).
           // Amount passed in metadata.reward_diamonds; 1,500 ◆/month family ceiling applies.
           const HOTD_DIAMONDS = 25;
@@ -310,6 +384,9 @@ export default async function handler(req, res) {
           message: alreadyCompleted ? 'Daily challenge already completed today' : 'Daily challenge completed!',
           diamondsEarned,
           alreadyCompleted,
+          isCorrect,
+          score: isCorrect ? 100 : 0,
+          evLoss: isCorrect ? 0 : null,
         });
       } catch (error) {
         console.warn('[HandOfTheDay] Error:', error.message);

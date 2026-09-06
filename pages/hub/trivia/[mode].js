@@ -7,7 +7,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
@@ -29,7 +29,7 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 
-// Phase 55 — gameplay quality floor. Questions tagged below this by the audit
+// Phase 55 - gameplay quality floor. Questions tagged below this by the audit
 // pipeline (qs=2 auto-demoted via 3-strike user reports, qs=4 unclear English,
 // qs=5 legacy un-audited) are excluded from rotation here too.
 const MIN_QUALITY_SCORE = 6;
@@ -43,15 +43,15 @@ import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/confi
 import { Gem } from 'lucide-react';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 
-// Category source of truth is triviaEngine's CATEGORY_MAPPINGS — do not
+// Category source of truth is triviaEngine's CATEGORY_MAPPINGS - do not
 // re-declare category arrays here (three parallel maps had silently drifted).
 // AUDIT FIX (C2): the old comment claimed mtt/cash/icm/gto had dedicated
-// static pages shadowing this dynamic route — those pages do not exist, so
+// static pages shadowing this dynamic route - those pages do not exist, so
 // /hub/trivia/mtt|cash|icm|gto resolve HERE. Without entries in this map,
 // `categories` came back undefined and the paid strategy modes served
 // questions from EVERY category. They now mirror the engine's canonical
 // arrays. (mixed/endless/time-attack/pvp/tournaments DO have static pages;
-// survival is redirected to /hub/trivia/survival-game — see C1 fix below.)
+// survival is redirected to /hub/trivia/survival-game - see C1 fix below.)
 const CATEGORY_MAP = {
     daily: null,
     arcade: null,
@@ -64,7 +64,7 @@ const CATEGORY_MAP = {
     gto: [...CATEGORY_MAPPINGS.gto],
 };
 
-// Lobby image mapping — modes with full-bleed lobby images
+// Lobby image mapping - modes with full-bleed lobby images
 const LOBBY_IMAGES = {
     history: '/images/trivia/lobby-history.jpg',
     rules: '/images/trivia/lobby-rules.jpg',
@@ -106,7 +106,7 @@ export default function TriviaModePage() {
     // 'survival' exists in TRIVIA_MODES (diamondCost: 10) but this page has
     // no renderer for it (`gameState === 'playing' && mode !== 'survival'`),
     // so a direct hit on /hub/trivia/survival showed a paid lobby, charged
-    // 10 diamonds on Start, then rendered a blank game — charge without
+    // 10 diamonds on Start, then rendered a blank game - charge without
     // serving. Redirect to the real game BEFORE anything can charge; the
     // component renders null for this slug (see guard before router.isReady).
     const isSurvivalSlug = mode === 'survival';
@@ -150,7 +150,7 @@ export default function TriviaModePage() {
     const [isPerfectScore, setIsPerfectScore] = useState(false);
     const celebrations = useCelebrations();
 
-    // Server-resolved prize-wheel outcome ({ prizeId, prizeAmount }) — the wheel
+    // Server-resolved prize-wheel outcome ({ prizeId, prizeAmount }) - the wheel
     // only animates to it, it never decides or credits anything itself.
     const [wheelPrize, setWheelPrize] = useState(null);
     const [wheelError, setWheelError] = useState(null);
@@ -166,7 +166,7 @@ export default function TriviaModePage() {
     // values for browser-side diamond credits, and this page no longer makes
     // any. Server payouts carry their own idempotent references
     // (award_trivia_run uses trivia_session_<id>).
-    // id of THIS run's trivia_scores row — the prize wheel's server-side token.
+    // id of THIS run's trivia_scores row - the prize wheel's server-side token.
     const scoreIdRef = useRef(null);
     // Caches the daily-cap-clamped reward so a saving_error retry doesn't
     // re-query the cap (phase 1's own score row would double-count).
@@ -182,7 +182,7 @@ export default function TriviaModePage() {
     // Load questions and user data
     useEffect(() => {
         if (!mode || !modeConfig) return;
-        // AUDIT FIX (C1): survival is redirected to its own page — never
+        // AUDIT FIX (C1): survival is redirected to its own page - never
         // initialize (or later charge) for it here.
         if (mode === 'survival') return;
         // Wait for auth to finish loading before initializing
@@ -191,7 +191,7 @@ export default function TriviaModePage() {
         // authLoading change (sign-in completing in another tab, session
         // refresh re-hydrating AvatarContext). initialize() unconditionally
         // setGameState('loading'), which destroyed an in-progress PAID game
-        // — entry diamonds already deducted, no completion, no refund.
+        // - entry diamonds already deducted, no completion, no refund.
         // Never re-initialize over an active or still-saving run.
         if (['playing', 'saving', 'saving_error'].includes(gameStateRef.current)) return;
 
@@ -224,7 +224,7 @@ export default function TriviaModePage() {
 
                     // Get streak (load current, best AND last_play_date so the
                     // completion handler can tell "already advanced today" from
-                    // "consecutive day" — prevents streak inflation on replays)
+                    // "consecutive day" - prevents streak inflation on replays)
                     const { data: streakData } = await supabase
                         .from('trivia_streaks')
                         .select('current_streak, best_streak, last_play_date')
@@ -237,7 +237,7 @@ export default function TriviaModePage() {
                         setLastPlayDate(streakData.last_play_date || null);
                     }
 
-                    // Personal best for this mode (cheap retention win — data
+                    // Personal best for this mode (cheap retention win - data
                     // is already collected in trivia_scores)
                     try {
                         const { data: bestRow } = await supabase
@@ -255,7 +255,7 @@ export default function TriviaModePage() {
 
                     // Check arcade diamonds. VIPs play free (see startGame), so
                     // they skip the gate. The old `sessionStorage.trivia_paid`
-                    // escape hatch is gone — nothing writes that flag any more.
+                    // escape hatch is gone - nothing writes that flag any more.
                     if (mode === 'arcade' && !vipStatus) {
                         const arcadeCost = modeConfig?.diamondCost || 0;
                         if (arcadeCost > 0) {
@@ -286,11 +286,11 @@ export default function TriviaModePage() {
                 }
 
                 // Load questions (works with or without user).
-                // Pass the RESOLVED user id explicitly — the `userId` state is
+                // Pass the RESOLVED user id explicitly - the `userId` state is
                 // still null inside this closure (stale-closure bug that used
                 // to silently skip the 60-day no-repeat exclusion).
                 // Server-graded runs get their questions from the session at
-                // start time instead (startGame) — pre-loading here would burn
+                // start time instead (startGame) - pre-loading here would burn
                 // 60-day pool entries for questions never actually served.
                 if (serverGraded) {
                     setQuestions([]);
@@ -333,7 +333,7 @@ export default function TriviaModePage() {
 
         initialize();
     }, [mode, modeConfig, avatarUser?.id, authLoading]);
-    // Realtime subscription — live updates. Only the daily page renders the
+    // Realtime subscription - live updates. Only the daily page renders the
     // daily leaderboard, so don't run the 2-query pipeline for other modes.
     useEffect(() => {
         if (!userId || mode !== 'daily') return;
@@ -362,7 +362,7 @@ export default function TriviaModePage() {
 
         // ═══════════════════════════════════════════════════════════
         // STEP 0: Fetch user's 60-day question history to prevent repeats.
-        // GLOBAL exclusion (no mode filter) — a question answered in one
+        // GLOBAL exclusion (no mode filter) - a question answered in one
         // mode must not reappear in another within 60 days. Limit raised to
         // 2000 rows so an active player's full 60-day history is covered.
         // ═══════════════════════════════════════════════════════════
@@ -401,7 +401,7 @@ export default function TriviaModePage() {
         }
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 2: Fallback — random-offset pool fetch + seeded daily shuffle
+        // STEP 2: Fallback - random-offset pool fetch + seeded daily shuffle
         // Phase 55: was using .limit(1500) without offset which always pulled
         //           the same first-1500 by Postgres-internal order. With 8675+
         //           questions in the pool, ~7000 were never reachable. Now uses
@@ -423,11 +423,11 @@ export default function TriviaModePage() {
         let filteredPool = qualityPool.filter(q => !excludedSet.has(q.id));
 
         // Tier-1 fallback: if seen-exclusion empties the pool, drop the seen
-        // filter but KEEP the quality floor — never let qs<6 questions through.
+        // filter but KEEP the quality floor - never let qs<6 questions through.
         if (filteredPool.length < count && qualityPool.length >= count) {
             filteredPool = qualityPool;
         }
-        // Tier-2 fallback: pool-health emergency — only then drop quality floor.
+        // Tier-2 fallback: pool-health emergency - only then drop quality floor.
         if (filteredPool.length < count && poolQuestions.length >= count) {
             filteredPool = poolQuestions;
         }
@@ -518,7 +518,7 @@ export default function TriviaModePage() {
     async function loadDailyLeaderboard() {
         try {
             // Get top streakers (users with best daily trivia streaks).
-            // NOTE: no `profiles(username)` embed here — trivia_streaks.user_id
+            // NOTE: no `profiles(username)` embed here - trivia_streaks.user_id
             // references auth.users, not profiles, so PostgREST cannot resolve
             // the relationship and the whole select fails. Fetch usernames in a
             // second query keyed by id instead.
@@ -652,7 +652,7 @@ export default function TriviaModePage() {
         // a stale flag from an old session buy a free entry. The correct
         // behaviour is to always charge here; TriviaLobby no longer pre-charges.
 
-        // Check mode config for diamond cost — only modes with diamondCost > 0 charge
+        // Check mode config for diamond cost - only modes with diamondCost > 0 charge
         const modeConfig = TRIVIA_MODES[mode];
         const modeCost = modeConfig?.diamondCost || 0;
         const isFreeMode = modeCost === 0;
@@ -668,7 +668,7 @@ export default function TriviaModePage() {
 
         // Server-graded run: open the session BEFORE any charge so a failed
         // start never costs the player anything. The server deals (and
-        // permutes) the questions — no sortByDifficulty / shuffleOptions here,
+        // permutes) the questions - no sortByDifficulty / shuffleOptions here,
         // reshuffling would break the display-index mapping the grader uses.
         if (serverGraded) {
             try {
@@ -710,7 +710,7 @@ export default function TriviaModePage() {
         } = gameResult;
 
         // Server-graded runs: the server regrades the recorded sequence and
-        // pays the reward inside award_trivia_run — the client submits the
+        // pays the reward inside award_trivia_run - the client submits the
         // display-index answers and adopts the server's numbers wholesale.
         // On failure, fall into the saving_error retry state WITHOUT any
         // client-side crediting; a retry re-submits the same session.
@@ -732,7 +732,7 @@ export default function TriviaModePage() {
             }
         }
         const useServerPayout = serverGraded && serverResult != null;
-        // Effective score numbers — the server's when it graded the run, the
+        // Effective score numbers - the server's when it graded the run, the
         // client's (verdict-counted by TriviaGame) otherwise.
         const effCorrectCount = useServerPayout ? (Number(serverResult.correct) || 0) : correctCount;
         const effTotalQuestions = useServerPayout ? (Number(serverResult.total) || totalQuestions) : totalQuestions;
@@ -741,7 +741,7 @@ export default function TriviaModePage() {
             : correctCount * 100 + (timeRemaining || 0) * 2;
 
         // Calculate rewards with streak multiplier.
-        // Arcade is a STAKES mode unconditionally — the pot IS the reward. The
+        // Arcade is a STAKES mode unconditionally - the pot IS the reward. The
         // old `stakePot > 0` qualifier meant a busted run (pot 0) fell through
         // to calculateDiamonds and still paid the full 25 + 15 perfect bonus,
         // which made deliberately busting the pot strictly +EV.
@@ -751,29 +751,29 @@ export default function TriviaModePage() {
         // AUDIT FIX (H1, partial): the client-computed stake pot could reach
         // ~698💎 on a perfect 20-question run (STAKE_VALUES × up to 5x streak
         // multiplier) for a 10💎 entry, and the daily-cap clamp below used to
-        // exempt arcade entirely — DAILY_DIAMOND_CAPS.arcade (40, documented
+        // exempt arcade entirely - DAILY_DIAMOND_CAPS.arcade (40, documented
         // as "max single run 50") was never enforced on the only arcade
         // payout path. Clamp a single run to 50 here, and let the daily cap
         // apply to arcade too (next block). NOTE: this is harm reduction only
-        // — the pot is still computed and credited client-side, so the REAL
+        // - the pot is still computed and credited client-side, so the REAL
         // fix is server-side grading/crediting (e.g. /api/trivia/submit).
         const ARCADE_MAX_RUN_PAYOUT = 50;
         const rawDiamonds = useServerPayout
             // award_trivia_run already recomputed the pot from the recorded
-            // answer sequence, capped it and credited it — adopt its number
+            // answer sequence, capped it and credited it - adopt its number
             // so the result screen agrees with the paid balance.
             ? Math.max(0, Math.floor(Number(serverResult.diamondsAwarded) || 0))
             : isStakesMode
                 ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(Number(stakePot) || 0)))
                 : calculateRewardWithMultiplier(baseDiamonds, userStreak);
 
-        // Daily earnings cap — closes the diamond-farming loop (replay
+        // Daily earnings cap - closes the diamond-farming loop (replay
         // memorized questions for unlimited diamonds). AUDIT FIX (H1): arcade
         // stake-pot payouts are no longer exempt; they clamp against
         // DAILY_DIAMOND_CAPS.arcade like every other reward.
         let diamondsEarned = rawDiamonds;
         let capReached = false;
-        // Server payouts are already capped server-side — never re-clamp them.
+        // Server payouts are already capped server-side - never re-clamp them.
         if (!useServerPayout && userId && rawDiamonds > 0 && (isStakesMode || (modeConfig?.diamondCost || 0) === 0)) {
             if (cappedRewardRef.current == null) {
                 try {
@@ -807,7 +807,7 @@ export default function TriviaModePage() {
             celebrations.triggerConfetti();
         }
 
-        // Update streak for daily mode — the streak advances at most ONCE per
+        // Update streak for daily mode - the streak advances at most ONCE per
         // CST day (dailyDiamondsClaimed covers replays this session; the
         // last_play_date check covers replays after a reload).
         const today = getTodayCST();
@@ -827,7 +827,7 @@ export default function TriviaModePage() {
 
         // Daily trivia: award 10 diamonds for finishing all 10 questions (once per day).
         // AUDIT FIX (M1): gate on the SERVED question count, not on
-        // `totalQuestions` — TriviaGame excludes bought skips from
+        // `totalQuestions` - TriviaGame excludes bought skips from
         // totalQuestions (19 after one skip), so paying for a Skip hint used
         // to silently forfeit the completion bonus for the whole day (the
         // daily_trivia_plays row was still written, making it unrecoverable).
@@ -866,7 +866,7 @@ export default function TriviaModePage() {
 
                 // Phase 2: Award diamonds (only if not already awarded).
                 // Server-graded runs were already paid server-side by
-                // award_trivia_run — crediting here again would double-pay,
+                // award_trivia_run - crediting here again would double-pay,
                 // so only surface the toast and sync the balance.
                 if (savePhaseRef.current < 2) {
                     if (useServerPayout) {
@@ -876,7 +876,7 @@ export default function TriviaModePage() {
                         if (serverResult.newBalance != null) {
                             if (isMountedRef.current) setUserDiamonds(Number(serverResult.newBalance) || userDiamonds);
                         } else {
-                            // newBalance missing from the response — fall back
+                            // newBalance missing from the response - fall back
                             // to a fresh profiles read for the header display.
                             const { data: profile } = await supabase
                                 .from('profiles')
@@ -918,7 +918,7 @@ export default function TriviaModePage() {
             }
         }
 
-        // Achievement evaluation — fires the (previously unreachable)
+        // Achievement evaluation - fires the (previously unreachable)
         // AchievementToast for newly unlocked achievements. Non-fatal.
         if (userId && typeof window !== 'undefined') {
             try {
@@ -940,7 +940,7 @@ export default function TriviaModePage() {
                 const storageKey = `trivia_achievements_unlocked_${userId}`;
                 let prevUnlocked = [];
                 try { prevUnlocked = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { prevUnlocked = []; }
-                // checkNewUnlocks evaluates every predicate defensively — one
+                // checkNewUnlocks evaluates every predicate defensively - one
                 // requirement that references a field we cannot compute client
                 // side must not take the whole scan down.
                 const newlyUnlocked = checkNewUnlocks(stats, prevUnlocked);
@@ -1004,7 +1004,7 @@ export default function TriviaModePage() {
         }
     };
 
-    // Retry function for network drops — resumes from where it left off
+    // Retry function for network drops - resumes from where it left off
     const handleRetrySave = () => {
         setGameState('saving');
         setSaveErrorPayload(null);
@@ -1017,7 +1017,7 @@ export default function TriviaModePage() {
      * fn_trivia_prize_wheel_spin (migration 120500) verifies the score row is
      * ours, perfect and recent, rolls the weighted prize, applies the streak
      * multiplier from trivia_streaks and credits diamonds (or inventory) in one
-     * transaction — UNIQUE(score_id) makes a retry replay the same prize. The
+     * transaction - UNIQUE(score_id) makes a retry replay the same prize. The
      * wheel is then purely cosmetic: it spins to `prizeId` and reports back.
      */
     const openPrizeWheel = async () => {
@@ -1026,12 +1026,12 @@ export default function TriviaModePage() {
         if (!userId || !scoreId) {
             // No verifiable token (guest play, or the score insert failed).
             // Refuse rather than fall back to a client-rolled, client-credited
-            // prize — that path is exactly the mint the RPC exists to close.
+            // prize - that path is exactly the mint the RPC exists to close.
             setWheelError('The prize wheel is unavailable for this run.');
             return;
         }
         try {
-            const response = await fetch('/api/trivia/prize-wheel-spin', {
+            const response = await authedFetch('/api/trivia/prize-wheel-spin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1081,7 +1081,7 @@ export default function TriviaModePage() {
         // Phase 55 fix: previously NOT reset here. If a prior game's save errored
         // mid-phase and the user navigated past the retry UI without retrying,
         // savePhaseRef stayed at the partial value (e.g. 2). The next game's
-        // handleComplete would skip phases <= that value — meaning the user's
+        // handleComplete would skip phases <= that value - meaning the user's
         // new score insert (phase 1) would be silently skipped on every
         // subsequent game until full page reload.
         savePhaseRef.current = 0;
@@ -1122,7 +1122,7 @@ export default function TriviaModePage() {
         );
     }
 
-    // Unknown slug (typo'd deep link, removed mode) — friendly 404 instead of
+    // Unknown slug (typo'd deep link, removed mode) - friendly 404 instead of
     // a permanent blank page
     if (!mode || !modeConfig) {
         return (
@@ -1158,7 +1158,7 @@ export default function TriviaModePage() {
                 noindex={true}
             />
 
-            <div className="trivia-mode-page">
+            <div className={`trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`}>
                 <div className="bg-overlay" />
 
                 <UniversalHeader pageDepth={2} />
@@ -1168,14 +1168,15 @@ export default function TriviaModePage() {
 
                 {/* Out of Diamonds Modal */}
                 {showOutOfDiamonds && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><Gem size={48} color="#00D4FF" /></div>
-                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Out Of Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', fontSize: 14 }}>You Need {modeConfig?.diamondCost || 10} Diamonds To Play This Mode. Visit The Diamond Store To Get More!</p>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
-                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
+                    <div className="diamond-modal" role="dialog" aria-modal="true" aria-labelledby="diamond-modal-title">
+                        <div className="diamond-modal-card">
+                            <div className="diamond-modal-icon"><Gem size={48} aria-hidden="true" /></div>
+                            <span className="diamond-modal-kicker">Vault Access Required</span>
+                            <h3 id="diamond-modal-title">Out Of Diamonds</h3>
+                            <p>You Need {modeConfig?.diamondCost || 10} Diamonds To Play This Mode. Visit The Diamond Store To Get More.</p>
+                            <div className="diamond-modal-actions">
+                                <button type="button" onClick={() => setShowOutOfDiamonds(false)}>Close</button>
+                                <button type="button" className="is-primary" onClick={() => router.push('/hub/diamond-store')}>Get Diamonds</button>
                             </div>
                         </div>
                     </div>
@@ -1242,7 +1243,7 @@ export default function TriviaModePage() {
                     {gameState === 'ready' && (
                         LOBBY_IMAGES[mode] ? (
                             /* Full-bleed image lobby.
-                               AUDIT FIX (H3): was a click-only <div> — the sole
+                               AUDIT FIX (H3): was a click-only <div> - the sole
                                start control for every image-lobby mode was
                                unreachable by keyboard and invisible to screen
                                readers. A real <button> restores focus, Enter/
@@ -1265,6 +1266,13 @@ export default function TriviaModePage() {
                                     loading="lazy" />
                                 {personalBest != null && (
                                     <div className="personal-best-badge">Your Best: {personalBest}</div>
+                                )}
+                                {mode === 'daily' && (
+                                    <div className="daily-lobby-console" aria-hidden="true">
+                                        <span>Daily Knowledge Table</span>
+                                        <strong>Take Your Seat</strong>
+                                        <small>{modeConfig.questionsCount} Questions · {modeConfig.diamondCost || 0} Diamond Entry · One Daily Run</small>
+                                    </div>
                                 )}
                                 {isStarting && (
                                     <div className="starting-overlay">
@@ -1336,11 +1344,11 @@ export default function TriviaModePage() {
                             enableStakes={mode === 'arcade'}
                             enableGhostOpponent={true}
                             ghostAccuracy={communityAccuracy}
-                            // Per-answer server grading — null keeps the
+                            // Per-answer server grading - null keeps the
                             // legacy client-keyed path byte-for-byte.
                             serverGrader={serverGraded ? (args) => serverRun.answer(args) : null}
                             // Reuse this page's out-of-diamonds modal when a hint
-                            // is unaffordable — HintButtons otherwise only shows a
+                            // is unaffordable - HintButtons otherwise only shows a
                             // transient inline notice with no route to the store.
                             onNeedDiamonds={() => setShowOutOfDiamonds(true)}
                             // onDiamondsChange is deliberately NOT passed. It
@@ -1379,7 +1387,7 @@ export default function TriviaModePage() {
                                 {...result}
                                 onPlayAgain={handlePlayAgain}
                                 personalBest={personalBest}
-                                showDailyBonusRow
+                                showDailyBonusRow={mode === 'daily'}
                                 onSpinWheel={openPrizeWheel}
                                 showSpinButton={isPerfectScore && !showPrizeWheel && !wheelSpun}
                                 // onDoubleOrNothing / showDoubleButton are gone
@@ -1405,7 +1413,7 @@ export default function TriviaModePage() {
                                 <div className="daily-results-section">
                                     {/* The daily-completion bonus is now a row in
                                         TriviaResult's reward breakdown
-                                        (showDailyBonusRow) — rendering it here too
+                                        (showDailyBonusRow) - rendering it here too
                                         showed the same diamonds twice. */}
                                     {dailyLeaderboard.length > 0 && (
                                         <div className="daily-leaderboard">
@@ -1486,7 +1494,7 @@ export default function TriviaModePage() {
                         />
                     )}
 
-                    {/* Celebration Effects — called as a function (not <Component/>)
+                    {/* Celebration Effects - called as a function (not <Component/>)
                         so React doesn't see a new component type each render and
                         unmount/remount the confetti mid-celebration */}
                     {celebrations.CelebrationComponents()}
@@ -1567,7 +1575,7 @@ export default function TriviaModePage() {
                     transition: transform 0.3s ease, box-shadow 0.3s ease;
                     max-width: 100%;
                     margin: 0 auto;
-                    /* AUDIT FIX (H3): now a <button> — reset browser button
+                    /* AUDIT FIX (H3): now a <button> - reset browser button
                        chrome back to the old full-bleed div look. */
                     display: block;
                     width: 100%;
@@ -1815,6 +1823,160 @@ export default function TriviaModePage() {
                 .lb-col.accuracy { width: 50px; text-align: center; color: #22c55e; }
                 .lb-col.games { width: 50px; text-align: center; color: rgba(255,255,255,0.5); }
 
+                .diamond-modal {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 9999;
+                    display: grid;
+                    place-items: center;
+                    padding: 18px;
+                    background: rgba(0, 3, 6, 0.9);
+                    backdrop-filter: blur(12px);
+                }
+
+                .diamond-modal-card {
+                    position: relative;
+                    width: min(100%, 390px);
+                    overflow: hidden;
+                    padding: 30px 22px 22px;
+                    border: 1px solid #678598;
+                    border-radius: 2px;
+                    background:
+                        linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 28%),
+                        repeating-linear-gradient(90deg, transparent 0 74px, rgba(37, 200, 255, 0.04) 75px),
+                        linear-gradient(180deg, #111d25, #03080c 72%);
+                    box-shadow: inset 0 0 0 4px #020608, inset 0 0 0 5px rgba(117, 151, 171, 0.34), 0 24px 80px #000;
+                    text-align: center;
+                }
+
+                .diamond-modal-card::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0 0 auto;
+                    height: 3px;
+                    background: linear-gradient(90deg, transparent, #25c8ff, #f2b84b, transparent);
+                }
+
+                .diamond-modal-icon {
+                    width: 76px;
+                    height: 76px;
+                    display: grid;
+                    place-items: center;
+                    margin: 0 auto 14px;
+                    border: 1px solid rgba(37, 200, 255, 0.7);
+                    transform: rotate(45deg);
+                    color: #25c8ff;
+                    background: #06131b;
+                    box-shadow: 0 0 30px rgba(37, 200, 255, 0.22);
+                }
+
+                .diamond-modal-icon svg { transform: rotate(-45deg); }
+                .diamond-modal-kicker { color: #f2b84b; font: 700 11px/1.2 'Orbitron', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+                .diamond-modal-card h3 { margin: 10px 0; color: #edf7fb; font: 700 28px/1.05 'Rajdhani', sans-serif; text-transform: capitalize; }
+                .diamond-modal-card p { margin: 0 auto 22px; color: #a9bac4; font-size: 14px; line-height: 1.55; }
+                .diamond-modal-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 8px; }
+                .diamond-modal-actions button {
+                    min-height: 48px;
+                    border: 1px solid #607b8c;
+                    border-radius: 2px;
+                    background: linear-gradient(180deg, #182832, #071016);
+                    color: #dce8ee;
+                    font: 700 12px/1 'Orbitron', sans-serif;
+                    letter-spacing: 0.05em;
+                    cursor: pointer;
+                }
+                .diamond-modal-actions button.is-primary { border-color: #25c8ff; color: #fff; background: linear-gradient(180deg, #0b4865, #041721); box-shadow: inset 0 1px rgba(255,255,255,.2), 0 0 20px rgba(37,200,255,.14); }
+
+                /* Daily Trivia Casino Floor */
+                .trivia-daily-casino {
+                    --daily-cyan: #25c8ff;
+                    --daily-gold: #f2b84b;
+                    --daily-chrome: #c8d3da;
+                    background:
+                        radial-gradient(circle at 50% 9%, rgba(17, 99, 145, 0.2), transparent 30rem),
+                        repeating-linear-gradient(90deg, transparent 0 119px, rgba(37, 200, 255, 0.018) 120px),
+                        #020608;
+                }
+                .trivia-daily-casino :is(h1, h2, h3, p, button, small, span) { text-transform: capitalize; }
+
+                .trivia-daily-casino .content { width: min(100%, 1320px); margin: 0 auto; padding-inline: clamp(10px, 2.5vw, 32px) !important; }
+                .trivia-daily-casino .lobby-image-wrapper {
+                    min-height: min(780px, calc(100dvh - 96px));
+                    border: 1px solid #66869a !important;
+                    background: #020608;
+                    box-shadow: inset 0 0 0 5px #020608, inset 0 0 0 6px rgba(101, 136, 157, 0.45), 0 18px 60px #000;
+                }
+                .trivia-daily-casino .lobby-image { min-height: inherit; object-fit: cover; filter: saturate(.9) contrast(1.06); }
+                .trivia-daily-casino .lobby-image-wrapper::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    background: linear-gradient(180deg, rgba(0,0,0,.08), transparent 48%, rgba(0,4,7,.88));
+                    box-shadow: inset 0 0 70px #000;
+                }
+                .trivia-daily-casino .personal-best-badge {
+                    z-index: 2;
+                    top: 18px;
+                    right: 18px;
+                    border: 1px solid rgba(242,184,75,.75);
+                    border-radius: 2px;
+                    background: linear-gradient(180deg, #1f1a0d, #090806);
+                    color: #f2d38a;
+                    font: 700 11px/1 'Orbitron', sans-serif;
+                    letter-spacing: .08em;
+                    box-shadow: inset 0 1px rgba(255,255,255,.14);
+                }
+                .daily-lobby-console {
+                    position: absolute;
+                    z-index: 2;
+                    right: clamp(15px, 4vw, 56px);
+                    bottom: clamp(15px, 4vw, 52px);
+                    left: clamp(15px, 4vw, 56px);
+                    display: grid;
+                    gap: 5px;
+                    padding: 18px 20px;
+                    border: 1px solid #7390a1;
+                    border-left: 4px solid #25c8ff;
+                    border-radius: 2px;
+                    background: linear-gradient(90deg, rgba(2,8,12,.96), rgba(6,20,28,.88));
+                    box-shadow: inset 0 1px rgba(255,255,255,.12), 0 10px 30px #000;
+                    text-align: left;
+                }
+                .daily-lobby-console span { color: #f2b84b; font: 700 10px/1.2 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+                .daily-lobby-console strong { color: #f3f7f9; font: 700 clamp(25px, 5vw, 46px)/1 'Rajdhani', sans-serif; text-transform: capitalize; }
+                .daily-lobby-console small { color: #a9bac4; font: 600 12px/1.4 'Inter', sans-serif; }
+
+                .trivia-daily-casino .trivia-game,
+                .trivia-daily-casino .trivia-result,
+                .trivia-daily-casino .daily-leaderboard {
+                    border: 1px solid #607b8c;
+                    border-radius: 2px;
+                    background: linear-gradient(180deg, rgba(12,27,36,.98), rgba(2,8,12,.99));
+                    box-shadow: inset 0 0 0 4px #020608, inset 0 0 0 5px rgba(74,107,126,.35), 0 20px 55px #000;
+                }
+                .trivia-daily-casino .question-card,
+                .trivia-daily-casino .result-card,
+                .trivia-daily-casino .daily-leaderboard { border-radius: 2px !important; }
+                .trivia-daily-casino .question-card { background: radial-gradient(ellipse at center, #092f27, #03120f 75%) !important; border-color: rgba(200,211,218,.38) !important; }
+                .trivia-daily-casino .option,
+                .trivia-daily-casino .next-button,
+                .trivia-daily-casino .action-btn,
+                .trivia-daily-casino .explanation-toggle { min-height: 48px; border-radius: 2px !important; }
+                .trivia-daily-casino .option { border-color: #4e6878 !important; background: linear-gradient(180deg, #14232c, #071016) !important; box-shadow: inset 0 1px rgba(255,255,255,.09); }
+                .trivia-daily-casino .option:hover,
+                .trivia-daily-casino .option:focus-visible { border-color: #25c8ff !important; box-shadow: 0 0 18px rgba(37,200,255,.14), inset 0 1px rgba(255,255,255,.13); }
+                .trivia-daily-casino .progress-fill,
+                .trivia-daily-casino .next-button,
+                .trivia-daily-casino .action-btn.primary { background: linear-gradient(180deg, #1477a2, #073149) !important; }
+                .trivia-daily-casino .daily-leaderboard { padding: 20px; }
+                .trivia-daily-casino .daily-leaderboard h3 { color: #dce7ec; }
+                .trivia-daily-casino .daily-lb-header { border-color: #425865; color: #8299a6; }
+                .trivia-daily-casino .daily-lb-row.you { margin-inline: 0; border-radius: 2px; background: rgba(37,200,255,.1); color: #62d8ff; }
+
+                .trivia-daily-casino .prize-wheel-overlay { background: rgba(0,3,6,.92); backdrop-filter: blur(10px); }
+                .trivia-daily-casino .prize-wheel-container { border-radius: 2px; }
+
                 /* ===== MOBILE OPTIMIZATION ===== */
                 @media (max-width: 768px) {
                     .content {
@@ -1833,6 +1995,21 @@ export default function TriviaModePage() {
                         width: 100%;
                         object-fit: contain;
                     }
+
+                    .trivia-daily-casino .content { padding-top: 64px !important; padding-inline: 8px !important; }
+                    .trivia-daily-casino .lobby-image-wrapper { min-height: calc(100dvh - 78px); max-height: none; }
+                    .trivia-daily-casino .lobby-image { min-height: calc(100dvh - 78px); max-height: none; object-fit: cover; }
+                    .daily-lobby-console { right: 10px; bottom: 78px; left: 10px; padding: 14px; }
+                    .daily-lobby-console small { font-size: 11px; }
+                    .diamond-modal-actions { grid-template-columns: 1fr; }
+                    .trivia-daily-casino .trivia-game,
+                    .trivia-daily-casino .trivia-result { border-inline: 1px solid #607b8c; }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .trivia-daily-casino *, .diamond-modal * { scroll-behavior: auto !important; }
+                    .trivia-daily-casino .lobby-image-wrapper,
+                    .trivia-daily-casino .lobby-image-wrapper:hover { transition: none; transform: none; }
                 }
             `}</style>
         </TriviaErrorBoundary>

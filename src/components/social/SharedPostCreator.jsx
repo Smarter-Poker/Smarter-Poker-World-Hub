@@ -11,6 +11,8 @@ import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import CheckInModal from './CheckInModal';
 import { SharedAvatar as Avatar } from './SharedAvatar';
+import PokerCardPicker from './PokerCardPicker';
+import PokerCardText from './PokerCardText';
 import {
   MAX_MEDIA,
   compressImage,
@@ -42,6 +44,8 @@ export function SharedPostCreator({
   const { avatar: contextAvatar } = useAvatar();
   const [postVisibility, setPostVisibility] = useState('public');
   const [content, setContent] = useState('');
+  const [pokerCardsMarkup, setPokerCardsMarkup] = useState('');
+  const [showPokerCardPicker, setShowPokerCardPicker] = useState(false);
   const [media, setMedia] = useState([]);
   const [thumbPickerIdx, setThumbPickerIdx] = useState(null);
   const [thumbFrames, setThumbFrames] = useState([]);
@@ -192,6 +196,8 @@ export function SharedPostCreator({
     try {
       const draft = localStorage.getItem('sp-post-draft');
       if (draft && !content) setContent(draft);
+      const cardDraft = localStorage.getItem('sp-post-card-draft');
+      if (cardDraft) setPokerCardsMarkup(cardDraft);
     } catch (e) {
       console.warn('[App] Handled exception:', e);
     }
@@ -807,6 +813,27 @@ export function SharedPostCreator({
     inputRef.current?.focus();
   };
 
+  const insertPokerCards = (markup) => {
+    if (!markup) return;
+    setPokerCardsMarkup(markup);
+    setShowPokerCardPicker(false);
+    try {
+      localStorage.setItem('sp-post-card-draft', markup);
+    } catch (e) {
+      console.warn('[App] Handled exception:', e);
+    }
+    inputRef.current?.focus();
+  };
+
+  const clearPokerCards = () => {
+    setPokerCardsMarkup('');
+    try {
+      localStorage.removeItem('sp-post-card-draft');
+    } catch (e) {
+      console.warn('[App] Handled exception:', e);
+    }
+  };
+
   const handlePost = async () => {
     if (isPosting || _submittingRef.current) return; // Double-submit guard
     _submittingRef.current = true;
@@ -815,7 +842,7 @@ export function SharedPostCreator({
     // /api/social/pages/posts, etc.) doesn't leave _submittingRef stuck at
     // true and freeze the Post button until full page reload.
     try {
-      if (!content.trim() && !media.length && !linkPreview && !checkInVenue) {
+      if (!content.trim() && !pokerCardsMarkup && !media.length && !linkPreview && !checkInVenue) {
         _submittingRef.current = false;
         return;
       }
@@ -987,7 +1014,7 @@ export function SharedPostCreator({
                     file: fileToUpload,
                     userId: user.id,
                     folder,
-                    content: content?.trim(),
+                    content: [content?.trim(), pokerCardsMarkup].filter(Boolean).join('\n'),
                     thumbnail: staged.thumbnail,
                   })
                   .catch(reject);
@@ -1005,10 +1032,12 @@ export function SharedPostCreator({
                       setUploadProgress(null);
                       setUploading(false);
                       setContent('');
+                      setPokerCardsMarkup('');
                       setMedia([]);
                       setLinkPreview(null);
                       try {
                         localStorage.removeItem('sp-post-draft');
+                        localStorage.removeItem('sp-post-card-draft');
                       } catch (_) {}
                     }
                   },
@@ -1255,10 +1284,10 @@ export function SharedPostCreator({
         mentions.push(match[1]);
       }
 
-      let finalContent = cleanContent;
+      let finalContent = [cleanContent, pokerCardsMarkup].filter(Boolean).join('\n');
       if (checkInVenue) {
         const prefix = `Checked in at ${checkInVenue.name}`;
-        finalContent = cleanContent ? `${prefix} - ${cleanContent}` : prefix;
+        finalContent = finalContent ? `${prefix} - ${finalContent}` : prefix;
       }
 
       // If posting as a home group, route through /api/social/pages/posts with the group's social_page_id
@@ -1328,6 +1357,7 @@ export function SharedPostCreator({
         }
         if (mountedRef.current) {
           setContent('');
+          setPokerCardsMarkup('');
           setMedia([]);
           setLinkPreview(null);
           // 2026-05-08 (per Dan: "WHEN THE VIDEO FINALLY POSTS, YOU GET A
@@ -1341,6 +1371,7 @@ export function SharedPostCreator({
         }
         try {
           localStorage.removeItem('sp-post-draft');
+          localStorage.removeItem('sp-post-card-draft');
         } catch (e) {
           console.warn('[App] Handled exception:', e);
         }
@@ -1813,6 +1844,41 @@ export function SharedPostCreator({
           )}
         </div>
       </div>
+      {pokerCardsMarkup && (
+        <div style={{ padding: '0 12px 10px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '9px 10px',
+            borderRadius: 10,
+            border: '1px solid #d6b15c',
+            background: 'linear-gradient(135deg, #fffaf0, #fff4d6)',
+          }}>
+            <div style={{ flex: 1, minWidth: 0, lineHeight: 1.8 }}>
+              <div style={{ color: '#8a5a00', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                Poker Cards In This Post
+              </div>
+              <PokerCardText text={pokerCardsMarkup} style={{ color: '#1f2937', fontSize: 13, fontWeight: 700 }} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPokerCardPicker(true)}
+              style={{ border: '1px solid #d6b15c', background: '#fff', color: '#8a5a00', borderRadius: 7, padding: '6px 9px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={clearPokerCards}
+              aria-label="Remove Poker Cards"
+              style={{ border: 0, background: 'transparent', color: '#7c5a12', fontSize: 20, cursor: 'pointer', padding: 3 }}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
       {media.length > 0 && (
         <div style={{ padding: '0 12px 8px' }}>
           <div
@@ -2653,6 +2719,25 @@ export function SharedPostCreator({
           </button>
           <span style={{ color: '#BCC0C4' }}>·</span>
           <button
+            type="button"
+            onClick={() => setShowPokerCardPicker(true)}
+            disabled={uploading}
+            style={{
+              padding: '6px 8px',
+              borderRadius: 6,
+              border: 'none',
+              background: pokerCardsMarkup ? '#FFF4D6' : 'transparent',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              color: pokerCardsMarkup ? '#8A5A00' : '#65676B',
+              fontSize: 14,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Poker Cards
+          </button>
+          <span style={{ color: '#BCC0C4' }}>·</span>
+          <button
             onClick={onGoLive}
             style={{
               padding: '6px 8px',
@@ -2740,7 +2825,7 @@ export function SharedPostCreator({
             disabled={
               isPosting ||
               uploading ||
-              (!content.trim() && !media.length && !linkPreview && !checkInVenue)
+              (!content.trim() && !pokerCardsMarkup && !media.length && !linkPreview && !checkInVenue)
             }
             style={{
               padding: '8px 20px',
@@ -2753,7 +2838,7 @@ export function SharedPostCreator({
               opacity:
                 isPosting ||
                 uploading ||
-                (!content.trim() && !media.length && !linkPreview && !checkInVenue)
+                (!content.trim() && !pokerCardsMarkup && !media.length && !linkPreview && !checkInVenue)
                   ? 0.5
                   : 1,
               flex: 1,
@@ -2818,6 +2903,13 @@ export function SharedPostCreator({
             }
           }}
           onClose={() => setShowCheckInModal(false)}
+        />
+      )}
+      {showPokerCardPicker && (
+        <PokerCardPicker
+          initialMarkup={pokerCardsMarkup}
+          onInsert={insertPokerCards}
+          onClose={() => setShowPokerCardPicker(false)}
         />
       )}
     </div>

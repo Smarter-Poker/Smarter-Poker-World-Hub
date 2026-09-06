@@ -221,6 +221,21 @@ export function rowsOf(payload, ...aliases) {
   return [];
 }
 
+/** Expand the RPC's composition-keyed timing distribution into render rows. */
+export function timingRowsOf(payload) {
+  const root = payloadOf(payload);
+  const distribution = root.distribution && typeof root.distribution === 'object'
+    && !Array.isArray(root.distribution)
+    ? root.distribution
+    : (root.histogram && typeof root.histogram === 'object' && !Array.isArray(root.histogram)
+      ? root.histogram
+      : null);
+  if (!distribution) return [];
+  return Object.entries(distribution)
+    .filter(([, value]) => value && typeof value === 'object' && !Array.isArray(value))
+    .map(([composition, value]) => ({ composition, ...value }));
+}
+
 function numberOrNull(...values) {
   for (const value of values) {
     if (typeof value === 'number' && Number.isFinite(value)) return value;

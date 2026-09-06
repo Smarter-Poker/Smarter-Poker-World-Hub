@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [route, panel, sql, queueBudgetSql, narrowQueueSql] = await Promise.all([
+const [route, panel, sql, queueBudgetSql, narrowQueueSql, healthDisclosureSql] = await Promise.all([
   readFile(path.join(ROOT, 'pages/api/horses/integrity-admin.js'), 'utf8'),
   readFile(path.join(ROOT, 'src/components/horses/IntegrityPanel.jsx'), 'utf8'),
   readFile(path.join(
@@ -20,6 +20,10 @@ const [route, panel, sql, queueBudgetSql, narrowQueueSql] = await Promise.all([
   readFile(path.join(
     ROOT,
     'supabase/migrations/20260906200000_integrity_queue_uses_narrow_indexable_rows.sql'
+  ), 'utf8'),
+  readFile(path.join(
+    ROOT,
+    'supabase/migrations/20260906141131_integrity_health_discloses_latest_detector_run.sql'
   ), 'utf8'),
 ]);
 
@@ -45,6 +49,8 @@ test('the queue consumes the exact ranked RPC response contract', () => {
     'an active queue row must open the nested case summary returned by the RPC');
   assert.match(panel, /queue\.loaded && !queue\.error \? 0 : 'Unknown'/,
     'an omitted zero-count tier must not be presented as an unknown count');
+  assert.match(route, /filteredTotal: Number\.isFinite\(Number\(data\.totals\.filtered_groups\)\)/,
+    'filtered queue pagination must use the filtered total returned by the RPC');
 });
 
 test('the database repeats the verdict guard under the case row lock', () => {
@@ -83,4 +89,38 @@ test('the queue optimization restores the partial index and narrows profiles', (
   assert.match(narrowQueueSql, /pb\.display_name, pb\.username/);
   assert.match(narrowQueueSql, /IF v_sql = v_before THEN/);
   assert.match(narrowQueueSql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_queue/);
+});
+
+test('health reads the Open Claw job name and preserves detector disclosure', () => {
+  assert.match(healthDisclosureSql, /regexp_replace\(replace\(lower\(e\.job_name\)/);
+  assert.match(healthDisclosureSql, /detection_span_minutes/);
+  assert.match(healthDisclosureSql, /detection_thresholds/);
+  assert.match(healthDisclosureSql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_detector_health/);
+});
+
+test('flags render named players and never expose reason JSON as the heading', () => {
+  assert.match(panel, /patternLabel\(first\(row, 'flag_type', 'flagType'\)/);
+  assert.match(panel, /'player_name', 'playerName', 'player_id', 'playerId'/);
+  assert.match(panel, /'player_is_horse', 'playerIsHorse'/);
+  assert.match(panel, /label="Events In Thirty Days"/);
+});
+
+test('timing expands the RPC distribution and renders its exact coverage', () => {
+  assert.match(panel, /timingRowsOf\(timing\.data\)/);
+  assert.match(panel, /label="Adjacent Action Pairs"/);
+  assert.match(panel, /label="Distinct Hands"/);
+  assert.match(panel, /label="Pairs Under 500 Milliseconds"/);
+  assert.match(panel, /label="Hands Sampled"/);
+  assert.match(panel, /label="Sample Truncated"/);
+  assert.match(panel, /booleanLabel\(first\(timingCoverage, 'truncated'\)\)/,
+    'a missing truncation field must remain unknown');
+  assert.doesNotMatch(panel, /Ninety-Fifth Percentile/,
+    'the UI must not ask for a percentile the timing RPC does not return');
+});
+
+test('pair cards render the queue contract absolute net flow field', () => {
+  assert.match(panel, /label="Absolute Net Flow"/);
+  assert.match(panel, /first\(row, 'absolute_net_flow', 'absoluteNetFlow'\)/);
+  assert.doesNotMatch(panel, /label="Net Flow"/,
+    'the pair RPC does not return a top-level directional net_flow field');
 });

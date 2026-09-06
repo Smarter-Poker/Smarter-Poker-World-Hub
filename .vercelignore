@@ -58,6 +58,7 @@ data/pokeratlas-logs/
 !/supabase/migrations/20260905153833_vip_is_monthly_yearly_or_lifetime.sql
 !/supabase/migrations/20260905180000_lifetime_vip_can_be_bought_with_a_card.sql
 !/supabase/migrations/20260906150000_marketplace_phase6_lifetime_and_fulfillment_guards.sql
+!/supabase/migrations/20260906183000_club_shop_price_authorization.sql
 /database/
 /migrations/
 /sql/
@@ -108,6 +109,10 @@ _legacy_sql/
 !/__tests__/marketplace-phase-6-lifetime-checkout-recovery.test.mjs
 !/__tests__/marketplace-phase-6-lifetime-return-expiration.test.mjs
 !/__tests__/marketplace-phase-6-transfer-idempotency.test.mjs
+!/__tests__/marketplace-phase-6-club-card-preflight.test.mjs
+!/__tests__/marketplace-phase-6-club-card-debt-settlement.test.mjs
+!/__tests__/marketplace-phase-6-mutable-idempotency.test.mjs
+!/__tests__/marketplace-phase-6-package-storefront-authority.test.mjs
 !/__tests__/printful-fulfillment.test.mjs
 !/__tests__/merch-catalog-admin.test.mjs
 !/__tests__/marketplace-operations.test.mjs

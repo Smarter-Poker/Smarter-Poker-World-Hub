@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import PokerCardText from './PokerCardText';
 
 const HASHTAG_REGEX = /#(\w{2,30})/g;
 // (?<![\w.]) stops "dan@gmail.com" from rendering "@gmail" as a mention;
@@ -82,7 +83,7 @@ export default function HashtagRenderer({ text, onHashtagClick, onMentionClick, 
                         </a>
                     );
                 }
-                return part;
+                return <PokerCardText key={i} text={part} />;
             })}
         </span>
     );

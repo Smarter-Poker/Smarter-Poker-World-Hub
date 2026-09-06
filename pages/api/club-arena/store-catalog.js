@@ -1,8 +1,8 @@
 /**
  * GET /api/club-arena/store-catalog
  * ═══════════════════════════════════════════════════════════════════════════
- * SINGLE SOURCE OF TRUTH for every purchasable package shown in the Club Arena
- * marketplace: diamond packages and VIP plans. (Chip packages retired.)
+ * Public catalog boundary for every purchasable package shown in the Club
+ * Arena marketplace: Diamond packages and VIP plans. (Chip packages retired.)
  *
  * WHY THIS EXISTS (audit 2026-08-19):
  * The marketplace hard-coded all three tables in
@@ -12,9 +12,9 @@
  * Large diamond pack to $55 in create-checkout-session.js and the marketplace
  * would keep rendering "$50.00" while charging $55.
  *
- * The values below mirror the routes that actually charge:
+ * The values below come from the same authority as the routes that charge:
  *   chips    -> RETIRED 2026-08-19, chips are never sold for diamonds
- *   diamonds -> pages/api/store/create-checkout-session.js (VALID_DIAMOND_PACKAGES)
+ *   diamonds -> public.diamond_packages through diamondPackageCatalog.mjs
  *   vip      -> src/data/diamondStoreData.js (VIP_MEMBERSHIP). The three
  *               terms are monthly, yearly and lifetime (Dan 2026-09-05); the
  *               Daily Pass and its endpoint were retired the same day.
@@ -29,6 +29,11 @@
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import {
+    DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
+    loadDiamondStorefrontPackages,
+} from '../../../src/lib/store/diamondStorefrontCatalog.mjs';
 
 // RETIRED 2026-08-19 — chips can NEVER be bought with diamonds (product rule,
 // Dan). Diamonds are the global purchasable currency; chips are a per-club
@@ -39,17 +44,16 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // asking for it degrades to [] instead of undefined.
 const CHIP_PACKAGES = [];
 
-// Mirrors VALID_DIAMOND_PACKAGES in pages/api/store/create-checkout-session.js
-const DIAMOND_PACKAGES = [
-    { id: 'micro', diamonds: 100, priceUsd: 1.0, bonus: 0, name: 'Micro' },
-    { id: 'small', diamonds: 500, priceUsd: 5.0, bonus: 0, name: 'Small' },
-    { id: 'medium', diamonds: 1000, priceUsd: 10.0, bonus: 0, name: 'Medium' },
-    { id: 'standard', diamonds: 2500, priceUsd: 25.0, bonus: 0, name: 'Standard' },
-    { id: 'large', diamonds: 5000, priceUsd: 50.0, bonus: 0, name: 'Large', popular: true },
-    { id: 'value', diamonds: 10000, priceUsd: 100.0, bonus: 500, name: 'Value' },
-    { id: 'premium', diamonds: 25000, priceUsd: 250.0, bonus: 1250, name: 'Premium' },
-    { id: 'whale', diamonds: 50000, priceUsd: 500.0, bonus: 2500, name: 'Whale' },
-];
+let supabase = null;
+function getSupabase() {
+    if (!supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Store catalog database is not configured');
+        supabase = createClient(url, key);
+    }
+    return supabase;
+}
 
 // 1 diamond = $0.01 (DIAMONDS_PER_DOLLAR = 100 in purchase-vip-with-diamonds.js)
 const DIAMONDS_PER_DOLLAR = 100;
@@ -59,6 +63,7 @@ const VIP_PLANS = [
         id: 'vip-monthly',
         planKey: 'monthly',
         checkoutPlan: 'vip-monthly',
+        cardCheckoutReady: true,
         name: 'Monthly VIP',
         period: 'Per Month',
         priceUsd: 19.99,
@@ -75,6 +80,7 @@ const VIP_PLANS = [
         id: 'vip-yearly',
         planKey: 'yearly',
         checkoutPlan: 'vip-yearly',
+        cardCheckoutReady: true,
         name: 'Yearly VIP',
         period: 'Per Year',
         priceUsd: 199.99,
@@ -84,12 +90,13 @@ const VIP_PLANS = [
     {
         id: 'vip-lifetime',
         planKey: 'lifetime',
-        /* Card checkout for this one-time term shipped 2026-09-05 (migration
-           20260905180000 + the mode === 'payment' VIP branch in
-           webhooks/stripe.js). `oneTime` tells the client to send checkout
-           type 'vip_lifetime', not 'subscription'. */
+        /* Keep the public catalog aligned with the storefront and server gate.
+           The dormant one-time settlement path remains available for recovery,
+           but new Card checkouts stay paused until the complete refund,
+           dispute, and cross-method provenance lifecycle is published. */
         checkoutPlan: 'vip-lifetime',
         oneTime: true,
+        cardCheckoutReady: false,
         name: 'Lifetime VIP',
         period: 'One Payment',
         priceUsd: 499,
@@ -158,16 +165,44 @@ export default async function handler(req, res) {
         }
         if (!applyRateLimit(req, res, LIMITS.read)) return;
 
+        const strict = req.query?.strict === 'true' || req.query?.strict === '1';
+        let diamondCatalog;
+        try {
+            diamondCatalog = await loadDiamondStorefrontPackages(getSupabase(), {
+                allowFallback: !strict,
+                cacheMs: strict ? 0 : undefined,
+            });
+        } catch (catalogError) {
+            console.warn('[store-catalog] current Diamond package catalog unavailable:', catalogError);
+            if (strict) {
+                return res.status(503).json({
+                    success: false,
+                    error: 'Current Diamond Pricing Could Not Be Verified. Please Try Again.',
+                });
+            }
+            diamondCatalog = {
+                packages: DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
+                source: 'fallback',
+            };
+        }
+
         const warnings = verify();
         if (warnings.length > 0) {
             console.warn('[store-catalog] price drift detected:', warnings.join(' | '));
         }
 
-        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        // Repricing, activation, and credit changes must reach the package rail
+        // before a member can authorize Stripe. This public response contains
+        // no credentials, but it is intentionally never served stale.
+        res.setHeader('Cache-Control', 'public, no-store, max-age=0');
         return res.status(200).json({
             success: true,
             chipPackages: CHIP_PACKAGES,
-            diamondPackages: DIAMOND_PACKAGES,
+            diamondPackages: diamondCatalog.packages.map((pkg) => ({
+                ...pkg,
+                priceUsd: pkg.price,
+            })),
+            diamondCatalogSource: diamondCatalog.source,
             vipPlans: VIP_PLANS,
             shopCategories: SHOP_CATEGORIES,
             diamondsPerDollar: DIAMONDS_PER_DOLLAR,

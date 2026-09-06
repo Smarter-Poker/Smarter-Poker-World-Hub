@@ -25,6 +25,12 @@ const COPY = {
     body: 'The Payment And Store Record Match. Your Purchase Is Now Recorded On Your Smarter.Poker Account.',
     Icon: CheckCircle,
   },
+  review: {
+    eyebrow: 'Item Action Required',
+    title: 'Card Payment Complete, Item Pending',
+    body: 'Your Card Payment And Diamond Funding Are Recorded, But The Item Was Not Purchased. Review The Updated Wallet And Current Item Price Before Finishing With Diamonds. Do Not Pay By Card Again.',
+    Icon: AlertTriangle,
+  },
   canceled: {
     eyebrow: 'Checkout Closed',
     title: 'No Payment Was Made',
@@ -70,8 +76,8 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
     <section
       ref={panelRef}
       className={`${styles.panel} ${styles[state.status] || styles.failed}`}
-      role={state.status === 'failed' ? 'alert' : 'status'}
-      aria-live={state.status === 'failed' ? 'assertive' : 'polite'}
+      role={['failed', 'review'].includes(state.status) ? 'alert' : 'status'}
+      aria-live={['failed', 'review'].includes(state.status) ? 'assertive' : 'polite'}
       aria-atomic="true"
       data-checkout-status={state.status}
       tabIndex={-1}
@@ -91,6 +97,12 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
                 <dd>{marketplaceCopy(String(receipt.type).replace(/-/g, ' '))}</dd>
               </div>
             )}
+            {receipt?.label && (
+              <div>
+                <dt>{receipt.purchaseKind === 'club_shop' ? 'Item' : 'Package'}</dt>
+                <dd>{marketplaceCopy(receipt.label)}</dd>
+              </div>
+            )}
             {amount && (
               <div>
                 <dt>Total</dt>
@@ -107,7 +119,7 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
         )}
         {state.status !== 'verifying' && (
           <div className={styles.actions}>
-            {state.status === 'complete' && receiptHref && (
+            {['complete', 'review'].includes(state.status) && receiptHref && (
               <Link href={receiptHref} className={styles.primaryAction}>
                 View Verified Receipt
               </Link>

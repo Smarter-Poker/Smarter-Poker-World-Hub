@@ -10,6 +10,10 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
+import {
+    getMaximumCardFundedClubItemPrice,
+    loadActiveDiamondPackageCatalog,
+} from '../../../src/lib/store/diamondPackageCatalog.mjs';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
@@ -73,6 +77,15 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+async function loadMaximumCardFundedPrice() {
+  const { catalog } = await loadActiveDiamondPackageCatalog(getSupabase(), { cacheMs: 0 });
+  const maximum = getMaximumCardFundedClubItemPrice(catalog);
+  if (!Number.isSafeInteger(maximum) || maximum <= 0) {
+    throw new Error('No active Diamond package can fund a Club Shop item');
+  }
+  return maximum;
 }
 
 async function loadPurchaseLedger(clubId) {
@@ -174,6 +187,18 @@ export default async function handler(req, res) {
         // Read the historical ledger in stable pages. Reporting never uses an
         // item's current price and never combines legacy chips with Diamonds.
         const ledger = await loadPurchaseLedger(clubId);
+        let maximumCardFundedPrice = null;
+        let cardPricingStatus = 'available';
+        try {
+          const { catalog } = await loadActiveDiamondPackageCatalog(getSupabase());
+          maximumCardFundedPrice = getMaximumCardFundedClubItemPrice(catalog) || null;
+        } catch (catalogError) {
+          cardPricingStatus = 'unavailable';
+          console.warn(
+            '[manage-shop] Diamond package limit unavailable for operator display:',
+            catalogError?.message || catalogError
+          );
+        }
         const summary = summarizeShopPurchases(ledger.rows);
         const diamondTotals = totalsForCurrency(summary, PRIMARY_SHOP_CURRENCY);
         const legacyChipTotals = totalsForCurrency(summary, LEGACY_SHOP_CURRENCY);
@@ -211,6 +236,8 @@ export default async function handler(req, res) {
           grossRevenue: diamondTotals.gross,
           refundedRevenue: diamondTotals.refunded,
           totalRevenue: diamondTotals.net,
+          maximumCardFundedPrice,
+          cardPricingStatus,
           report: {
             primaryCurrency: PRIMARY_SHOP_CURRENCY,
             complete: ledger.complete,
@@ -244,7 +271,8 @@ export default async function handler(req, res) {
         }
 
         if (action === 'create') {
-          if (!name?.trim() || !price || price <= 0) {
+          const listPrice = Number(price);
+          if (!name?.trim() || !Number.isSafeInteger(listPrice) || listPrice <= 0) {
             return res.status(400).json({ success: false, error: 'Name and positive price required' });
           }
 
@@ -262,10 +290,34 @@ export default async function handler(req, res) {
           const lim = normalizeOptionalInt(req.body.perUserLimit, { min: 1, label: 'perUserLimit' });
           if (lim.error) return res.status(400).json({ success: false, error: lim.error });
 
-          const salePrice = normalizeOptionalInt(req.body.salePrice, { min: 0, label: 'salePrice' });
+          const salePrice = normalizeOptionalInt(req.body.salePrice, {
+            min: 0,
+            max: 1000000000,
+            label: 'salePrice',
+          });
           if (salePrice.error) return res.status(400).json({ success: false, error: salePrice.error });
-          if (!salePrice.skip && salePrice.value !== null && salePrice.value > parseInt(price)) {
+          if (!salePrice.skip && salePrice.value !== null && salePrice.value > listPrice) {
               return res.status(400).json({ success: false, error: 'salePrice cannot exceed price' });
+          }
+
+          let maximumCardFundedPrice;
+          try {
+            maximumCardFundedPrice = await loadMaximumCardFundedPrice();
+          } catch (catalogError) {
+            console.warn('[manage-shop] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+            return res.status(503).json({
+              success: false,
+              error: 'Current Card pricing could not be verified. Please try again.',
+              code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
+            });
+          }
+          if (listPrice > maximumCardFundedPrice) {
+            return res.status(400).json({
+              success: false,
+              error: `Price cannot exceed ${maximumCardFundedPrice.toLocaleString()} Diamonds`,
+              code: 'CARD_PRICE_LIMIT_EXCEEDED',
+              maximumCardFundedPrice,
+            });
           }
 
           const from = normalizeTimestamp(req.body.availableFrom, 'availableFrom');
@@ -291,7 +343,7 @@ export default async function handler(req, res) {
               club_id: clubId,
               name: name.trim().slice(0, 200),
               description: description?.trim().slice(0, 500) || '',
-              price: parseInt(price),
+              price: listPrice,
               category: cat,
               item_type: ITEM_TYPE_BY_CATEGORY[cat] || null,
               grant_spec: grant.spec,
@@ -322,8 +374,8 @@ export default async function handler(req, res) {
           }
           if (description !== undefined) updates.description = String(description ?? '').trim().slice(0, 500);
           if (price !== undefined) {
-            const p = parseInt(price, 10);
-            if (Number.isNaN(p) || p <= 0) return res.status(400).json({ success: false, error: 'Positive integer price required' });
+            const p = Number(price);
+            if (!Number.isSafeInteger(p) || p <= 0) return res.status(400).json({ success: false, error: 'Positive integer price required' });
             if (p > 1000000000) return res.status(400).json({ success: false, error: 'Price exceeds maximum' });
             updates.price = p;
           }
@@ -349,7 +401,11 @@ export default async function handler(req, res) {
             if (lim2.error) return res.status(400).json({ success: false, error: lim2.error });
             if (!lim2.skip) updates.per_user_limit = lim2.value;
 
-            const sp2 = normalizeOptionalInt(req.body.salePrice, { min: 0, label: 'salePrice' });
+            const sp2 = normalizeOptionalInt(req.body.salePrice, {
+              min: 0,
+              max: 1000000000,
+              label: 'salePrice',
+            });
             if (sp2.error) return res.status(400).json({ success: false, error: sp2.error });
             if (!sp2.skip) updates.sale_price = sp2.value;
 
@@ -381,6 +437,43 @@ export default async function handler(req, res) {
           }
           if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
 
+          const { data: existingItem, error: existingItemError } = await getSupabase()
+            .from('club_shop_items')
+            .select('price, sale_price')
+            .eq('id', itemId)
+            .eq('club_id', clubId)
+            .maybeSingle();
+          if (existingItemError) throw existingItemError;
+          if (!existingItem) return res.status(404).json({ success: false, error: 'Item not found' });
+
+          const candidatePrice = updates.price ?? Number(existingItem.price);
+          const candidateSalePrice = Object.prototype.hasOwnProperty.call(updates, 'sale_price')
+            ? updates.sale_price
+            : existingItem.sale_price;
+          if (candidateSalePrice !== null && Number(candidateSalePrice) > candidatePrice) {
+            return res.status(400).json({ success: false, error: 'salePrice cannot exceed price' });
+          }
+          let maximumCardFundedPrice;
+          try {
+            maximumCardFundedPrice = await loadMaximumCardFundedPrice();
+          } catch (catalogError) {
+            console.warn('[manage-shop] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+            return res.status(503).json({
+              success: false,
+              error: 'Current Card pricing could not be verified. Please try again.',
+              code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
+            });
+          }
+          if (!Number.isSafeInteger(candidatePrice) || candidatePrice <= 0
+              || candidatePrice > maximumCardFundedPrice) {
+            return res.status(400).json({
+              success: false,
+              error: `Price must be between 1 and ${maximumCardFundedPrice.toLocaleString()} Diamonds`,
+              code: 'CARD_PRICE_LIMIT_EXCEEDED',
+              maximumCardFundedPrice,
+            });
+          }
+
           const { error } = await getSupabase()
             .from('club_shop_items')
             .update(updates)
@@ -396,21 +489,46 @@ export default async function handler(req, res) {
 
           const { data: item } = await getSupabase()
             .from('club_shop_items')
-            .select('is_active')
+            .select('is_active, price')
             .eq('id', itemId)
             .eq('club_id', clubId)
             .maybeSingle();
 
           if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
 
+          const nextIsActive = !item.is_active;
+          if (nextIsActive) {
+            let maximumCardFundedPrice;
+            try {
+              maximumCardFundedPrice = await loadMaximumCardFundedPrice();
+            } catch (catalogError) {
+              console.warn('[manage-shop] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+              return res.status(503).json({
+                success: false,
+                error: 'Current Card pricing could not be verified. Please try again.',
+                code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
+              });
+            }
+            const storedPrice = Number(item.price);
+            if (!Number.isSafeInteger(storedPrice) || storedPrice <= 0
+                || storedPrice > maximumCardFundedPrice) {
+              return res.status(400).json({
+                success: false,
+                error: `Price must be between 1 and ${maximumCardFundedPrice.toLocaleString()} Diamonds before activation`,
+                code: 'CARD_PRICE_LIMIT_EXCEEDED',
+                maximumCardFundedPrice,
+              });
+            }
+          }
+
           const { error } = await getSupabase()
             .from('club_shop_items')
-            .update({ is_active: !item.is_active })
+            .update({ is_active: nextIsActive })
             .eq('id', itemId)
             .eq('club_id', clubId);
 
           if (error) throw error;
-          return res.status(200).json({ success: true, isActive: !item.is_active });
+          return res.status(200).json({ success: true, isActive: nextIsActive });
         }
 
         if (action === 'delete') {

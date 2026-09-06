@@ -14,6 +14,12 @@ const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
+import { getClubItemEffectivePrice } from '../../../src/lib/store/clubCardCheckout.mjs';
+import {
+    getClubCardCheckoutQuoteFromCatalog,
+    getMaximumCardFundedClubItemPrice,
+    loadActiveDiamondPackageCatalog,
+} from '../../../src/lib/store/diamondPackageCatalog.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -221,11 +227,98 @@ export default async function handler(req, res) {
           (countResult.data || []).forEach(r => { counts[r.item_id] = (counts[r.item_id] || 0) + 1; });
           const mine = {};
           (mineResult.data || []).forEach(r => { mine[r.item_id] = (mine[r.item_id] || 0) + 1; });
-          const itemsWithCount = items.map(i => ({
-              ...i,
-              purchase_count: counts[i.id] || 0,
-              my_purchase_count: mine[i.id] || 0,
-          }));
+          const walletBalance = Number(profileRow?.diamonds);
+          const walletIsValid = Boolean(profileRow)
+              && profileRow.diamonds !== null
+              && profileRow.diamonds !== ''
+              && Number.isSafeInteger(walletBalance);
+          const packageCatalogPromise = items.length > 0
+              ? loadActiveDiamondPackageCatalog(getSupabase()).catch((packageError) => {
+                  console.warn(
+                      '[marketplace-items] current Diamond package catalog unavailable:',
+                      packageError?.message || packageError
+                  );
+                  return null;
+              })
+              : Promise.resolve(null);
+          const [availabilityRows, packageResult] = await Promise.all([
+              Promise.all(items.map(async (item) => {
+                  const { data, error } = await getSupabase().rpc('fn_shop_item_availability', {
+                      p_club_id: clubId,
+                      p_user_id: user.id,
+                      p_item_id: item.id,
+                  });
+                  if (error) {
+                      console.warn('[marketplace-items] availability check failed:', item.id, error.message);
+                      return [item.id, { ok: false, reason: 'verification_unavailable' }];
+                  }
+                  if (typeof data !== 'string') return [item.id, data || { ok: false, reason: 'verification_unavailable' }];
+                  try {
+                      return [item.id, JSON.parse(data)];
+                  } catch (_) {
+                      return [item.id, { ok: false, reason: 'verification_unavailable' }];
+                  }
+              })),
+              packageCatalogPromise,
+          ]);
+          const availabilityByItem = new Map(availabilityRows);
+          const packageCatalog = packageResult?.catalog || null;
+
+          const itemsWithCount = items.map((i) => {
+              const availability = availabilityByItem.get(i.id) || {
+                  ok: false,
+                  reason: 'verification_unavailable',
+              };
+              const rpcPrice = Number(availability.price);
+              const effectivePrice = availability.ok === true && Number.isSafeInteger(rpcPrice) && rpcPrice >= 0
+                  ? rpcPrice
+                  : getClubItemEffectivePrice(i.price, i.sale_price);
+              const listPriceValue = Number(availability.list_price);
+              const listPrice = availability.ok === true
+                  && Number.isSafeInteger(listPriceValue)
+                  && listPriceValue >= effectivePrice
+                  ? listPriceValue
+                  : Number(i.price);
+              const cardQuote = availability.ok === true
+                  && walletIsValid
+                  && walletBalance >= 0
+                  && packageCatalog
+                  ? getClubCardCheckoutQuoteFromCatalog(effectivePrice, walletBalance, packageCatalog)
+                  : null;
+              let cardCheckoutReason = null;
+              if (availability.ok !== true) cardCheckoutReason = availability.reason || 'unavailable';
+              else if (effectivePrice === 0) cardCheckoutReason = 'card_not_required';
+              else if (!walletIsValid) cardCheckoutReason = 'wallet_unavailable';
+              else if (walletBalance < 0) cardCheckoutReason = 'wallet_debt';
+              else if (!packageCatalog) cardCheckoutReason = 'package_catalog_unavailable';
+              else if (!cardQuote) cardCheckoutReason = 'unsupported_item_price';
+              return {
+                  ...i,
+                  effective_price: effectivePrice,
+                  list_price: listPrice,
+                  on_sale: availability.ok === true
+                      ? availability.on_sale === true
+                      : i.sale_price != null && effectivePrice < Number(i.price),
+                  available: availability.ok === true,
+                  availability_reason: availability.ok === true
+                      ? null
+                      : availability.reason || 'unavailable',
+                  card_checkout_available: Boolean(cardQuote),
+                  card_checkout_reason: cardCheckoutReason,
+                  card_quote: cardQuote ? {
+                      packageId: cardQuote.packageId,
+                      quantity: cardQuote.quantity,
+                      cardChargeCents: cardQuote.cardChargeCents,
+                      cardCharge: cardQuote.cardCharge,
+                      diamondsPurchased: cardQuote.diamondsPurchased,
+                      diamondPurchaseBalance: cardQuote.diamondPurchaseBalance,
+                      diamondShortfall: cardQuote.diamondShortfall,
+                      cardPurchaseBalance: cardQuote.cardPurchaseBalance,
+                  } : null,
+                  purchase_count: counts[i.id] || 0,
+                  my_purchase_count: mine[i.id] || 0,
+              };
+          });
 
           // BUG-12 FIX: Join item name+category into purchases so My Items displays correct info
           //             even if the item was later hidden or deleted from the store.
@@ -278,9 +371,12 @@ export default async function handler(req, res) {
               items: itemsWithCount,
               purchases: flatPurchases,
               // Diamond wallet balance — every marketplace price is in diamonds.
-              balance: Number(profileRow?.diamonds) || 0,
+              balance: walletIsValid ? walletBalance : 0,
               currency: 'diamonds',
-              role: membership.role
+              role: membership.role,
+              maximumCardFundedPrice: packageCatalog
+                  ? getMaximumCardFundedClubItemPrice(packageCatalog)
+                  : null,
           });
       } catch (err) {
           console.warn('[marketplace-items]', err);
