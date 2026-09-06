@@ -846,8 +846,10 @@ def sb_audit(batch_id:str, venues:int, records:int, notes:str=""):
             f"{SUPABASE_URL}/rest/v1/data_audit_log",
             data=json.dumps({"table_name":"venue_daily_tournaments",
                 "action":"tournament_daemon_scrape","batch_id":batch_id,
-                "records_affected":records,"agent_id":"DAILY VENUE TOURNAMENT SCRAPER",
-                "notes":f"Venues:{venues}. {notes}",
+                "agent_id":"DAILY VENUE TOURNAMENT SCRAPER",
+                "record_id":f"batch:{batch_id}",
+                # `records_affected` and `notes` are NOT columns of this table.
+                "new_data":{"records_affected":records,"notes":f"Venues:{venues}. {notes}"},
                 "created_at":datetime.now(timezone.utc).isoformat()}).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}
         )

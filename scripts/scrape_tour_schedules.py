@@ -1158,11 +1158,11 @@ def log_audit(tour_code: str, records_inserted: int, source_url: str):
             "record_id":      str(uuid.uuid4()),
             "table_name":     "tour_event_details",
             "action":         "INSERT",
-            "tour_code":      tour_code,
-            "records_count":  records_inserted,
+            # tour_code / records_count / scrape_script / scrape_timestamp are
+            # NOT columns of this table; new_data is jsonb and takes them.
+            "new_data": {"tour_code": tour_code, "records_count": records_inserted,
+                          "scrape_script": "scripts/scrape_tour_schedules.py", "scrape_timestamp": NOW},
             "batch_id":       BATCH_ID,
-            "scrape_script":  "scripts/scrape_tour_schedules.py",
-            "scrape_timestamp": NOW,
             "scrape_proof":   json.dumps({"notes": "Compliant scrape — Scrapling v4.0 — zero templates", "source_url": source_url}),
         }).execute()
     except Exception as e:
@@ -1176,11 +1176,11 @@ def log_scrape_failure(tour_code: str, url: str, status: int):
             "record_id":      str(uuid.uuid4()),
             "table_name":     "tour_event_details",
             "action":         "SCRAPE_FAIL",
-            "tour_code":      tour_code,
-            "records_count":  0,
+            # tour_code / records_count / scrape_script / scrape_timestamp are
+            # NOT columns of this table; new_data is jsonb and takes them.
+            "new_data": {"tour_code": tour_code, "records_count": 0,
+                          "scrape_script": "scripts/scrape_tour_schedules.py", "scrape_timestamp": NOW},
             "batch_id":       BATCH_ID,
-            "scrape_script":  "scripts/scrape_tour_schedules.py",
-            "scrape_timestamp": NOW,
             "scrape_proof":   json.dumps({"notes": f"HTTP {status} — scrape failed — zero data inserted", "source_url": url}),
         }).execute()
     except Exception:
