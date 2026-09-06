@@ -30,6 +30,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
 let _supabase = null;
@@ -132,6 +133,7 @@ function normalizeOrder(row) {
 
 export default async function handler(req, res) {
     try {
+        setPrivateCommerceResponse(res);
         if (req.method !== 'GET') {
             res.setHeader('Allow', 'GET');
             return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -192,7 +194,6 @@ export default async function handler(req, res) {
         if (error) {
             if (isMissingTable(error)) {
                 console.warn('[merch-order] merchandise_orders missing - migration 20260803120000 not applied yet');
-                res.setHeader('Cache-Control', 'private, no-store');
                 return res.status(200).json({
                     success: true,
                     data: { orders: [], count: 0, total: 0, limit, offset, orders_available: false }
@@ -216,7 +217,6 @@ export default async function handler(req, res) {
 
         // Order history is personal and mutates on fulfillment — never cache it
         // at a shared edge.
-        res.setHeader('Cache-Control', 'private, no-store');
 
         return res.status(200).json({
             success: true,

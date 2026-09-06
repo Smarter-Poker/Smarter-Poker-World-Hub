@@ -91,6 +91,7 @@ import CapHitPopup from '../diamonds/CapHitPopup';
 // One definition of what each wallet tab means, shared with the API that counts
 // and queries them. See the file header for why it is not a list of type names.
 import { matchesFilter } from '../../lib/diamonds/ledgerFilters';
+import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
 // #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
 import styles from './DiamondWalletModal.module.css';
 
@@ -1252,7 +1253,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         setTransferError('Session expired. Please sign in again.');
         return;
       }
-      const res = await fetch('/api/store/diamond-transfer', {
+      const res = await boundedCommerceFetch('/api/store/diamond-transfer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

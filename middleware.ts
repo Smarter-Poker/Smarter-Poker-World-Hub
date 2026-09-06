@@ -272,10 +272,13 @@ export async function middleware(request: NextRequest) {
     const hasBearer = authHeader?.startsWith('Bearer ') && (authHeader?.length ?? 0) > 20;
 
     if (!hasBearer) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       );
+      response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+      response.headers.set('Vary', 'Authorization');
+      return response;
     }
     // Token presence confirmed — handler validates it fully
   }

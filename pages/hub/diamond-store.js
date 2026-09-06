@@ -18,6 +18,7 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 // server-side database queries into the client bundle just to print a count.
 import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 import { marketplaceCopy } from '../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../src/lib/store/boundedCommerceFetch';
 
 // God-Mode Stack
 import supabase from '../../src/lib/supabase';
@@ -904,7 +905,7 @@ export default function DiamondStorePage({ initialTab }) {
         value_usd: Number(pkg.price || 0),
       });
       showStoreToast('success', 'Redirecting to secure checkout...');
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1015,7 +1016,7 @@ export default function DiamondStorePage({ initialTab }) {
         route: 'vip',
         product: planKey,
       });
-      const res = await fetch('/api/store/purchase-vip-with-diamonds', {
+      const res = await boundedCommerceFetch('/api/store/purchase-vip-with-diamonds', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1096,7 +1097,7 @@ export default function DiamondStorePage({ initialTab }) {
         product: plan.id,
         value_usd: Number(plan.price || 0),
       });
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1234,7 +1235,7 @@ export default function DiamondStorePage({ initialTab }) {
       if (!token) throw new Error('Not authenticated');
 
       const idempotencyKey = purchaseTarget.purchaseRequestId;
-      const response = await fetch('/api/club-arena/marketplace-purchase', {
+      const response = await boundedCommerceFetch('/api/club-arena/marketplace-purchase', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1303,7 +1304,7 @@ export default function DiamondStorePage({ initialTab }) {
         value_usd: topUp.price * topUp.quantity,
       });
       const origin = window.location.origin;
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
