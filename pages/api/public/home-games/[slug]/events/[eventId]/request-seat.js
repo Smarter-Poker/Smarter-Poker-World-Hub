@@ -17,8 +17,10 @@
  *       and scheduled_date >= today. 404 on any miss.
  *    3. Upsert commander_home_members (group_id, user_id):
  *         - New member  -> status='pending' (host approves later)
- *         - Existing    -> status left alone (could be approved, pending,
- *                          rejected, etc.)
+ *         - Approved/pending -> status left alone
+ *         - Banned      -> rejected before any RSVP or notification write
+ *         - Declined    -> rejected unless the host explicitly allows a
+ *                          fresh pending request in group settings
  *    4. Upsert commander_home_rsvps (game_id, user_id):
  *         - response    -> 'yes' if capacity available, else 'waitlist'
  *         - is_confirmed=false  (host must confirm)
@@ -44,6 +46,7 @@ import { createClient } from '../../../../../../../src/lib/supabaseServerClient'
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 import { sendPushNotification } from '../../../../../../../src/lib/commander/pushNotifications';
 import { sendDirectMessageBetweenUsers } from '../../../../../../../src/lib/home-games/messenger';
+import { evaluateSeatRequestMembership } from '../../../../../../../src/lib/home-games/membershipPolicy.mjs';
 import { reportApiError } from '../../../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -156,7 +159,7 @@ export default async function handler(req, res) {
     //     `game_type` + `stakes` for a nicer email body.
     const { data: group, error: groupErr } = await supabase
       .from('commander_home_groups')
-      .select('id, owner_id, name')
+      .select('id, owner_id, name, settings')
       .eq('id', groupId)
       .maybeSingle();
     if (groupErr) throw groupErr;
@@ -224,15 +227,29 @@ export default async function handler(req, res) {
     // event.guest_limit above) is this request's total seat demand.
     const alreadyHeldSeat = priorSeats > 0 && spotsNeeded <= priorSeats;
 
-    // 7. Upsert membership (no-op if the user is already a member,
-    //    regardless of status — we don't want to demote an approved
-    //    member to pending by accident).
-    const { data: existingMember } = await supabase
+    // 7. Establish an eligible membership before writing an RSVP. Banned
+    //    members never get a write or a host notification. A declined member
+    //    may make a fresh pending request only when the host opted in with an
+    //    exact boolean setting; no truthy/string coercion is accepted.
+    const { data: existingMember, error: existingMemberErr } = await supabase
       .from('commander_home_members')
       .select('id, status, role')
       .eq('group_id', groupId)
       .eq('user_id', user.id)
       .maybeSingle();
+    if (existingMemberErr) throw existingMemberErr;
+
+    const membershipDecision = evaluateSeatRequestMembership(
+      existingMember?.status ?? null,
+      group.settings
+    );
+    if (!membershipDecision.allowed) {
+      return res.status(membershipDecision.status).json({
+        success: false,
+        code: membershipDecision.code,
+        error: membershipDecision.message,
+      });
+    }
 
     let membership = existingMember;
     if (!existingMember) {
@@ -254,6 +271,24 @@ export default async function handler(req, res) {
         .maybeSingle();
       if (memErr) throw memErr;
       membership = newMember;
+    } else if (membershipDecision.nextStatus === 'pending') {
+      // Compare-and-set so a concurrent host action cannot be overwritten.
+      const { data: reopenedMember, error: reopenErr } = await supabase
+        .from('commander_home_members')
+        .update({ status: 'pending', joined_at: null })
+        .eq('id', existingMember.id)
+        .eq('status', 'declined')
+        .select('id, status, role')
+        .maybeSingle();
+      if (reopenErr) throw reopenErr;
+      if (!reopenedMember) {
+        return res.status(409).json({
+          success: false,
+          code: 'MEMBERSHIP_CHANGED',
+          error: 'Your membership changed while the seat request was being processed. Please try again.',
+        });
+      }
+      membership = reopenedMember;
     }
 
     // 8. Upsert the RSVP itself. We DO NOT set is_confirmed=true — the host
