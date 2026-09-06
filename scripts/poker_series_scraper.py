@@ -561,8 +561,13 @@ def sb_audit(batch_id: str, series_count: int, records: int, notes: str = ""):
             data=json.dumps({
                 "table_name":"poker_events",
                 "action":"poker_series_scraper_scrape","batch_id":batch_id,
-                "records_affected":records,"agent_id":"poker_series_scraper.py",
-                "notes":f"Series:{series_count}. {notes}",
+                "agent_id":"poker_series_scraper.py",
+                "record_id":f"batch:{batch_id}",
+                # `notes` and `records_affected` are NOT columns of this table.
+                # Everything that is not a real column goes in new_data (jsonb).
+                "new_data":{"records_affected":records,
+                            "series_count":series_count,
+                            "notes":notes},
                 "created_at":datetime.now(timezone.utc).isoformat()
             }).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}
