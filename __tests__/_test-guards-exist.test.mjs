@@ -84,6 +84,7 @@ import './club-stats-maintenance-runtime-budget.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
+import './footer-follows-the-reader-not-a-rail.test.mjs';
 import './global-header-approved.test.mjs';
 // 2026-09-04, the "Log Out does nothing" fix. Its sibling guard
 // hamburger-never-regresses runs from `prebuild`, which fires on `npm run

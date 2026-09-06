@@ -2,8 +2,9 @@
  * A CHECK THAT IS RED ON main AND BLOCKS NOBODY STOPS BEING A CHECK.
  *
  * ── WHY ──────────────────────────────────────────────────────────────────────
- * `Global Footer E2E` failed on EVERY run on `main` from 2026-09-04 onward. It
- * was found on 2026-09-06, by accident, while looking at something else.
+ * `Global Footer E2E` failed on EVERY run on this repo's `main` from 2026-09-04
+ * onward. It was found on 2026-09-06, by accident, while looking at something
+ * else.
  *
  * Nothing was broken about the alerting, because there was none. The workflow
  * is not in the `main: no rewinds` ruleset, so a red run blocks no merge, opens
@@ -22,12 +23,32 @@
  * an agent finds out in minutes. So this detector exists for the others, and
  * the others are the majority.
  *
+ * ── IT WATCHED ONE REPO OF SEVEN (fixed 2026-09-06) ──────────────────────────
+ * The first version read `GITHUB_REPOSITORY` and nothing else, so it guarded
+ * the World Hub and left the other six estate repos with no detector at all.
+ * The estate-wide sweep that found that also found what had been hiding in the
+ * dark, and both had been red for days with nobody told:
+ *
+ *   - smarter-poker-commander, `Login Bridge Probe`, red since 2026-09-04. A
+ *     Playwright locator asked for the button's `title` tooltip instead of its
+ *     accessible name, so it could never match.
+ *   - PepNationLab, `Promote to Production`, red since 2026-09-03 - and that
+ *     one was not cosmetic. The author gate held one literal address; the
+ *     estate had moved squash merges onto its own App the same day, so the gate
+ *     refused every commit and PRODUCTION FROZE six commits behind `main` for
+ *     three days while the build stayed green.
+ *   - PepNationLab, `Lighthouse CI`, red since 2026-08-20, its config file
+ *     swept up in an unrelated cleanup of root scripts.
+ *
+ * A detector scoped to one repo is a detector that reports the estate is fine
+ * because the room it is standing in is fine. It sweeps all seven now.
+ *
  * ── WHAT IT DOES ─────────────────────────────────────────────────────────────
- * Ask GitHub for recent completed runs on `main`, keep the newest run per
- * workflow, and report any workflow whose newest run FAILED - with how long it
- * has been failing and over how many consecutive runs. Exits non-zero when
- * anything is over the threshold, so the caller can raise one issue naming all
- * of them.
+ * For each repo: ask GitHub for recent completed runs on `main`, keep the
+ * newest run per workflow, and report any workflow whose newest run FAILED -
+ * with how long it has been failing and over how many consecutive runs. Exits
+ * non-zero when anything is over the threshold, so the caller can raise one
+ * issue naming all of them.
  *
  * Deliberately NOT a list of blessed exceptions. A workflow allowed to be red
  * is a workflow that should be deleted or fixed, and an allowlist here would
@@ -43,37 +64,71 @@
  * failing workflow with an open issue touched since the failures began is
  * already speaking for itself and is reported as `loud`. A failing workflow
  * with nothing open is `SILENT`, and silent is the only thing that alarms.
- * That is the distinction the Global Footer E2E case was made of.
+ * That is the distinction the Global Footer E2E case was made of. Issues are
+ * read from the repo that owns the workflow, never from this one - an issue
+ * here has never silenced an alarm about another repo's `main`.
+ *
+ * ── A BLIND SPOT IS LOUDER THAN A RED CHECK ──────────────────────────────────
+ * The single-repo version failed OPEN on any API error, which is right when the
+ * token is missing or GitHub is down: a watchdog that reports an outage because
+ * it could not reach the API teaches people to ignore it.
+ *
+ * Across seven repos that rule turns dangerous. A token whose installation
+ * quietly loses one repository would read six, skip the seventh, and print a
+ * clean bill of health for an estate it can no longer see all of - which is
+ * this file's own bug, one level up. So:
+ *
+ *   - NO repo readable  -> exit 0. No token, or GitHub is unwell. Say so.
+ *   - SOME readable     -> the unreadable ones are a SCOPE REGRESSION and they
+ *                          alarm on their own, because the token demonstrably
+ *                          works and simply cannot see that repo any more.
  *
  * Usage:
  *   node scripts/ci/check-main-is-green.mjs                # 6h threshold
  *   MAIN_RED_HOURS=24 node scripts/ci/check-main-is-green.mjs
+ *   MAIN_RED_REPOS='owner/a,owner/b' node scripts/ci/check-main-is-green.mjs
+ *   MAIN_RED_REPOS=self node scripts/ci/check-main-is-green.mjs   # this repo only
  *
- * Needs GITHUB_TOKEN (Actions: read) and GITHUB_REPOSITORY, both of which a
- * workflow already has.
+ * Needs a token with Actions:read and Issues:read on every repo in the sweep.
+ * A repo-scoped GITHUB_TOKEN can only ever see its own, so the caller mints an
+ * owner-scoped App token the way `estate-integrity` does; with a repo-scoped
+ * token the six others read as unreadable and say so, rather than reading as
+ * green.
  */
 import process from 'node:process';
 
-const REPO = process.env.GITHUB_REPOSITORY || 'Smarter-Poker/Smarter-Poker-World-Hub';
+/**
+ * The estate, in the same order and with the same names as `REPOS` in Club
+ * Arena's `.github/scripts/estate-integrity.sh`. Keep the two in step: a repo
+ * that exists in one list and not the other is a repo one guard watches and the
+ * other does not.
+ */
+const ESTATE = [
+  'Smarter-Poker/Smarter-Poker-Club-Arena',
+  'Smarter-Poker/Smarter-Poker-World-Hub',
+  'Smarter-Poker/smarter-poker-commander',
+  'Smarter-Poker/commander-shared',
+  'Smarter-Poker/smarter-poker-workers',
+  'Smarter-Poker/Smarter-Poker-Diamond-Arena',
+  'Smarter-Poker/PepNationLab',
+];
+
+const SELF = process.env.GITHUB_REPOSITORY || 'Smarter-Poker/Smarter-Poker-World-Hub';
+const REPOS = (() => {
+  const raw = (process.env.MAIN_RED_REPOS || '').trim();
+  if (!raw) return ESTATE;
+  if (raw === 'self') return [SELF];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+})();
+
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
 const HOURS = Number(process.env.MAIN_RED_HOURS || 6);
 const BRANCH = process.env.MAIN_RED_BRANCH || 'main';
-/**
- * ── IT USED TO SAMPLE, AND SAMPLING HAS A BLIND SPOT (fixed 2026-09-06) ──────
- * The first version read the last 300 completed runs on `main` and took the
- * newest run per workflow. Measured hours later: that window contained only
- * SEVENTEEN of the repo's THIRTY-EIGHT active workflows. The busy ones crowd
- * out the quiet ones - and a workflow that runs rarely is exactly the one whose
- * red goes unnoticed, which is the entire subject of this file.
- *
- * `Global Footer E2E` proved it. It had been failing on main since 2026-09-04,
- * it is the case this detector was written for, and this detector could not
- * see it, because its last run had fallen off the end of the window.
- *
- * So the workflows are ENUMERATED and each is asked for its own latest run on
- * main. It costs one request per workflow instead of three in total, and there
- * is no window for anything to fall out of.
- */
+/** Runs to scan. Enough to see several ticks of every workflow. */
+const PAGES = 3;
 
 if (!TOKEN) {
   console.log('No GITHUB_TOKEN; skipping (a watchdog that cannot ask is not a failure).');
@@ -92,81 +147,76 @@ const api = async (path) => {
   return res.json();
 };
 
-let workflows = [];
-try {
-  const d = await api(`/repos/${REPO}/actions/workflows?per_page=100`);
-  workflows = (d.workflows || []).filter((w) => w.state === 'active');
-} catch (err) {
-  // Fail OPEN. A watchdog that reports an outage because it could not reach the
-  // API teaches people to ignore it.
-  console.log(`Could not list workflows (${err.message}); skipping.`);
-  process.exit(0);
-}
+const hrs = (h) => (h >= 48 ? `${(h / 24).toFixed(1)} days` : `${h.toFixed(1)}h`);
 
-if (workflows.length === 0) {
-  console.log('No active workflows found.');
-  process.exit(0);
-}
-
-// Ask each workflow for ITS OWN recent runs on the branch. A few per workflow
-// is enough to count a failure streak, and nothing can fall out of a window.
-const byWorkflow = new Map();
-let unreadable = 0;
-for (const w of workflows) {
-  try {
+/**
+ * Every workflow in one repo whose newest completed run on BRANCH failed.
+ * Throws if the repo cannot be read at all, so the caller can tell "green"
+ * apart from "invisible".
+ */
+async function scanRepo(repo) {
+  const runs = [];
+  for (let page = 1; page <= PAGES; page++) {
     const d = await api(
-      `/repos/${REPO}/actions/workflows/${w.id}/runs?branch=${encodeURIComponent(BRANCH)}&status=completed&per_page=10`
+      `/repos/${repo}/actions/runs?branch=${encodeURIComponent(BRANCH)}&status=completed&per_page=100&page=${page}`
     );
-    const list = d.workflow_runs || [];
-    if (list.length) byWorkflow.set(w.name, list);
+    const batch = d.workflow_runs || [];
+    runs.push(...batch);
+    if (batch.length < 100) break;
+  }
+
+  if (runs.length === 0) return { repo, workflows: 0, runs: 0, red: [] };
+
+  // Newest first, then group by workflow.
+  runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const byWorkflow = new Map();
+  for (const r of runs) {
+    if (!byWorkflow.has(r.name)) byWorkflow.set(r.name, []);
+    byWorkflow.get(r.name).push(r);
+  }
+
+  const now = Date.now();
+  const red = [];
+  for (const [name, list] of byWorkflow) {
+    const latest = list[0];
+    if (latest.conclusion !== 'failure') continue;
+
+    // How many consecutive failures, and when did the rot start?
+    let consecutive = 0;
+    let firstBad = latest;
+    for (const r of list) {
+      if (r.conclusion !== 'failure') break;
+      consecutive++;
+      firstBad = r;
+    }
+
+    const lastGreen = list.find((r) => r.conclusion === 'success');
+    red.push({
+      repo,
+      name,
+      consecutive,
+      hours: (now - new Date(firstBad.created_at)) / 3_600_000,
+      since: firstBad.created_at,
+      url: latest.html_url,
+      lastGreen: lastGreen ? lastGreen.created_at : null,
+    });
+  }
+
+  return { repo, workflows: byWorkflow.size, runs: runs.length, red };
+}
+
+/**
+ * Open issues in the repo that OWNS the workflow. A workflow already raising
+ * its own alarm there is speaking for itself; an issue in some other repo is
+ * not evidence that anybody is watching this one.
+ */
+async function openIssuesFor(repo) {
+  try {
+    const d = await api(`/repos/${repo}/issues?state=open&per_page=100&sort=updated`);
+    return Array.isArray(d) ? d.filter((i) => !i.pull_request) : [];
   } catch {
-    unreadable++;
+    return []; // unreadable issues -> treat everything as silent, which errs loud
   }
-}
-
-if (byWorkflow.size === 0) {
-  console.log(`Could not read runs for any of ${workflows.length} workflows; skipping.`);
-  process.exit(0);
-}
-const runs = [...byWorkflow.values()].flat();
-
-const now = Date.now();
-const red = [];
-
-for (const [name, list] of byWorkflow) {
-  const latest = list[0];
-  if (latest.conclusion !== 'failure') continue;
-
-  // How many consecutive failures, and when did the rot start?
-  let consecutive = 0;
-  let firstBad = latest;
-  for (const r of list) {
-    if (r.conclusion !== 'failure') break;
-    consecutive++;
-    firstBad = r;
-  }
-
-  const hours = (now - new Date(firstBad.created_at)) / 3_600_000;
-  const lastGreen = list.find((r) => r.conclusion === 'success');
-
-  red.push({
-    name,
-    consecutive,
-    hours,
-    since: firstBad.created_at,
-    url: latest.html_url,
-    lastGreen: lastGreen ? lastGreen.created_at : null,
-    seen: list.length,
-  });
-}
-
-// Open issues, so a workflow that already raised one is not double-reported.
-let openIssues = [];
-try {
-  const d = await api(`/repos/${REPO}/issues?state=open&per_page=100&sort=updated`);
-  openIssues = Array.isArray(d) ? d.filter((i) => !i.pull_request) : [];
-} catch {
-  openIssues = []; // no issues readable -> treat everything as silent, which errs loud
 }
 
 /**
@@ -178,74 +228,116 @@ try {
  * touched since the failures started - a stale issue from last month is not
  * evidence that anyone is watching today.
  */
-const hasOpenAlarm = (name, since) => {
+const hasOpenAlarm = (issues, name, since) => {
   const needle = name.toLowerCase();
   const sinceMs = new Date(since).getTime();
-  return openIssues.some((i) => {
-    const touched = new Date(i.updated_at).getTime();
-    if (touched < sinceMs) return false;
-    const hay = `${i.title} ${i.body || ''}`.toLowerCase();
-    return hay.includes(needle);
+  return issues.some((i) => {
+    if (new Date(i.updated_at).getTime() < sinceMs) return false;
+    return `${i.title} ${i.body || ''}`.toLowerCase().includes(needle);
   });
 };
 
-const hrs = (h) => (h >= 48 ? `${(h / 24).toFixed(1)} days` : `${h.toFixed(1)}h`);
-
-console.log(
-  `Asked ${workflows.length} active workflow(s) for their latest run on ${BRANCH}; ` +
-    `${byWorkflow.size} have run there` +
-    (unreadable ? `, ${unreadable} unreadable` : '') +
-    `.`
+const results = await Promise.all(
+  REPOS.map(async (repo) => {
+    try {
+      return await scanRepo(repo);
+    } catch (err) {
+      return { repo, unreadable: err.message };
+    }
+  })
 );
 
-if (red.length === 0) {
-  console.log(`OK - every workflow's latest run on ${BRANCH} is green or neutral.`);
+const unreadable = results.filter((r) => r.unreadable);
+const readable = results.filter((r) => !r.unreadable);
+
+if (readable.length === 0) {
+  // No token reach at all: missing scopes, or GitHub is unwell. Fail OPEN.
+  console.log(`Could not read any of the ${REPOS.length} repo(s); skipping.`);
+  for (const r of unreadable) console.log(`  ${r.repo}: ${r.unreadable}`);
   process.exit(0);
 }
 
+const red = readable.flatMap((r) => r.red);
+for (const r of readable) {
+  const issues = red.some((x) => x.repo === r.repo) ? await openIssuesFor(r.repo) : [];
+  for (const x of red) if (x.repo === r.repo) x.loud = hasOpenAlarm(issues, x.name, x.since);
+}
+
+const totalRuns = readable.reduce((n, r) => n + r.runs, 0);
+const totalWorkflows = readable.reduce((n, r) => n + r.workflows, 0);
+console.log(
+  `Scanned ${totalRuns} completed runs on ${BRANCH} across ${readable.length}/${REPOS.length} repo(s), ${totalWorkflows} workflows.`
+);
+
+// A repo the token used to see and no longer can is a blind spot, and a blind
+// spot reads as "green" to everybody downstream. It alarms on its own.
+for (const r of unreadable) {
+  console.log(`  BLIND  ${r.repo} - ${r.unreadable}`);
+}
+
 red.sort((a, b) => b.hours - a.hours);
-for (const r of red) r.loud = hasOpenAlarm(r.name, r.since);
+console.log('');
+for (const r of red) {
+  const mark = r.loud ? 'loud ' : r.hours >= HOURS ? 'SILENT' : 'fresh';
+  console.log(
+    `  ${mark} ${r.repo} :: ${r.name} - ${r.consecutive} consecutive failure(s) over ${hrs(r.hours)}` +
+      (r.lastGreen ? `, last green ${r.lastGreen}` : ', no green run in the window') +
+      (r.loud ? ' [an open issue already names it]' : '')
+  );
+}
+if (red.length === 0) console.log(`  every workflow's latest run on ${BRANCH} is green or neutral.`);
+console.log('');
 
 // Alarm only on SILENT failures that have outlived the threshold. Under it is a
 // normal transient - somebody broke main a moment ago and is probably already
 // fixing it.
 const overdue = red.filter((r) => r.hours >= HOURS && !r.loud);
 
-console.log('');
-for (const r of red) {
-  const mark = r.loud ? 'loud ' : r.hours >= HOURS ? 'SILENT' : 'fresh';
-  console.log(
-    `  ${mark} ${r.name} - ${r.consecutive} consecutive failure(s) over ${hrs(r.hours)}` +
-      (r.lastGreen ? `, last green ${r.lastGreen}` : ', no green run in the window') +
-      (r.loud ? ' [an open issue already names it]' : '')
-  );
-}
-console.log('');
-
-if (overdue.length === 0) {
+if (overdue.length === 0 && unreadable.length === 0) {
   const loud = red.filter((r) => r.loud).length;
   console.log(
     `Nothing silent past ${HOURS}h. ${loud} failing workflow(s) already have an open issue; ` +
-      `${red.length - loud - overdue.length} are still fresh.`
+      `${red.length - loud} are still fresh.`
   );
   process.exit(0);
 }
 
-const lines = overdue.map(
-  (r) =>
-    `- **${r.name}** - ${r.consecutive} consecutive failures over ${hrs(r.hours)}` +
-    (r.lastGreen ? `, last green \`${r.lastGreen}\`` : ', no green run in the scanned window') +
-    `\n  ${r.url}`
-);
+const lines = [];
+if (overdue.length) {
+  lines.push(
+    ...overdue.map(
+      (r) =>
+        `- **${r.repo}** :: **${r.name}** - ${r.consecutive} consecutive failures over ${hrs(r.hours)}` +
+        (r.lastGreen ? `, last green \`${r.lastGreen}\`` : ', no green run in the scanned window') +
+        `\n  ${r.url}`
+    )
+  );
+}
+if (unreadable.length) {
+  lines.push(
+    '',
+    'Repositories this detector could NOT read, while it could read others. It is blind there, and blind reads as green:',
+    ...unreadable.map((r) => `- **${r.repo}** - \`${r.unreadable}\``)
+  );
+}
 
 console.log('::group::report');
 console.log(lines.join('\n'));
 console.log('::endgroup::');
 
 console.error('');
-console.error(
-  `::error title=SILENTLY RED ON ${BRANCH.toUpperCase()}::${overdue.length} workflow(s) have been failing on ${BRANCH} for over ${HOURS}h with no open issue naming them: ${overdue
-    .map((r) => r.name)
-    .join(', ')}`
-);
+if (overdue.length) {
+  console.error(
+    `::error title=SILENTLY RED ON ${BRANCH.toUpperCase()}::${overdue.length} workflow(s) have been failing on ${BRANCH} for over ${HOURS}h with no open issue naming them: ${overdue
+      .map((r) => `${r.repo}::${r.name}`)
+      .join(', ')}`
+  );
+}
+if (unreadable.length) {
+  console.error(
+    `::error title=DETECTOR IS BLIND::${unreadable.length} repo(s) could not be read while others could, so their main is unwatched: ${unreadable
+      .map((r) => r.repo)
+      .join(', ')}`
+  );
+}
 process.exit(1);

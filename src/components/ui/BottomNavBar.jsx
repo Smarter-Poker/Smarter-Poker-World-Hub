@@ -189,6 +189,25 @@ const scrollLimitOf = (source) => {
  * The three fixes are ported above and below; the sentence in that file is the
  * reason, so read it before changing either.
  */
+
+/**
+ * ONLY A SCROLLER THAT CAN MOVE VERTICALLY MAY STEER A VERTICAL BEHAVIOUR.
+ *
+ * The video library's filter rail (`.vl-type-toggle-row`) is `overflow-x: auto`
+ * with `scroll-snap-type: x mandatory` below 900px, and the page smooth-scrolls
+ * it on mount to keep the pressed button in view. It therefore emits a stream
+ * of scroll events whose `scrollTop` is permanently 0.
+ *
+ * Read as vertical travel, `0` means "the reader is at the top of the page",
+ * which force-revealed the footer; measured against a fresh seed it could as
+ * easily have read as travel downward and force-hidden it. It is neither. A
+ * row of filter chips moving sideways has no opinion about where the reader is,
+ * and a footer that listens to it is a footer steered by the wrong finger.
+ */
+const canScrollVertically = (source) => {
+  if (isDocumentScroller(source)) return true;
+  return (source.scrollHeight || 0) - (source.clientHeight || 0) > 1;
+};
 function useHideOnScroll(enabled, resetKey) {
   const [hidden, setHidden] = useState(false);
   // True once the scroll listener is actually installed. Server-rendered
@@ -221,7 +240,16 @@ function useHideOnScroll(enabled, resetKey) {
     // switching between two panels cannot read as a jump.
     const travel = new Map();
     let frame = 0;
-    let pending = null;
+    // A SET, NOT A SLOT. This used to be one `pending` variable, so when two
+    // different scrollers fired inside one frame the second overwrote the
+    // first and that scroller's travel was never measured at all. The one
+    // that lost was usually the document - the only scroller this footer
+    // actually follows - and losing a single document event leaves
+    // `travel.get(document).last` stale, so the NEXT event is measured from
+    // the wrong place and the bar sticks. That is the shape of the failure
+    // the video library showed on 2026-09-06: the reader scrolled back up,
+    // the rail's snap fired in the same frame, and the footer stayed parked.
+    const pending = new Set();
 
     // THE FIRST FLICK MUST COUNT (2026-09-04). The first scroll event from a
     // scroller used to do nothing but record where it was, so the bar could
@@ -230,17 +258,19 @@ function useHideOnScroll(enabled, resetKey) {
     // burst of scrolling (the footer contract in e2e/global-footer-visual
     // does exactly that, and so does a programmatic jump) never hid at all,
     // and that check has been red on main since it landed. The document's
-    // starting position is known at install, so it is seeded here; any other
-    // scroller is seeded at its top, which is where a panel is when it mounts.
+    // starting position is known at install, so it is seeded here and its
+    // first flick counts. Any other scroller is seeded by settleOne at the
+    // position its first event reports - see the note there; seeding a panel
+    // at 0 when it is already scrolled invents travel nobody performed.
     const seed = (source, y) => {
       travel.set(source, { last: y, anchor: y, direction: 0 });
     };
     seed(document, scrollTopOf(document));
 
-    const settle = () => {
-      frame = 0;
-      const source = pending;
-      pending = null;
+    const settleOne = (source) => {
+      // A sideways-only scroller reports `scrollTop: 0` forever; it is not a
+      // reader travelling the page. See canScrollVertically.
+      if (!canScrollVertically(source)) return;
 
       const y = scrollTopOf(source);
       const limit = scrollLimitOf(source);
@@ -261,8 +291,14 @@ function useHideOnScroll(enabled, resetKey) {
 
       let state = travel.get(source);
       if (!state) {
-        seed(source, 0);
-        state = travel.get(source);
+        // SEED A NEW SCROLLER WHERE IT ACTUALLY IS, and take no decision from
+        // this first event. Seeding at 0 while a panel sits at 120 invents
+        // 120px of downward travel that nobody performed, and hides the bar.
+        // One sample carries no direction. The document does not pay this
+        // cost - it is seeded with its real position when the listener is
+        // installed, so the first flick on the page still counts.
+        seed(source, y);
+        return;
       }
 
       const direction = y > state.last ? 1 : y < state.last ? -1 : 0;
@@ -303,8 +339,17 @@ function useHideOnScroll(enabled, resetKey) {
       else if (direction === -1 && anchor - y > HIDE_ON_SCROLL_THRESHOLD) setHidden(false);
     };
 
+    const settle = () => {
+      frame = 0;
+      const sources = [...pending];
+      pending.clear();
+      // Every scroller that moved this frame is measured. Coalescing to one
+      // frame is the point; coalescing to one SCROLLER was the bug.
+      for (const source of sources) settleOne(source);
+    };
+
     const onScroll = (event) => {
-      pending = event?.target || null;
+      pending.add(event?.target || document);
       if (frame) return;
       frame = window.requestAnimationFrame(settle);
     };
