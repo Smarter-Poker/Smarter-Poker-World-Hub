@@ -15,15 +15,25 @@ description: How "Cash Games Running" is produced and published, why the Bravo l
 to bring `bravo-live-daemon.py` back, and do not treat its `connect_failed`
 heartbeat as an incident to resolve.
 
-"Cash Games Running" is published from **`scripts/bravo-simulator-daemon.py`**,
-which models each venue's per-game, per-hour, per-weekday activity from **weeks
-of real observed history** already collected in `game_live_history`. These are
-approximate numbers derived from real data — that is the intended product, not a
-stopgap.
+"Cash Games Running" may be published by
+**`scripts/bravo-simulator-daemon.py`** only when `game_live_history` contains
+qualified Bravo observations for the exact venue, game, Central weekday, and
+Central hour. The estimate is the saved context median and requires multiple
+samples across multiple dates. PokerAtlas catalog rows, `games_offered`, room
+capacity, generic traffic curves, and random values can never establish a
+running-table count.
 
-The rule that matters: **publish the estimate, label the estimate.** Never
-present a modelled number as a live observation, and never suppress it for being
-modelled. Both failure modes have already happened in this repo:
+Production truth audit, 2026-09-06: `game_live_history` contains 182,377
+PokerAtlas catalog rows and **0 Bravo rows**; `venue_live_history` contains
+37,155 PokerAtlas catalog rows and **0 Bravo rows**. Therefore no production
+venue currently has a qualified historical activity estimate. Until observed
+history is collected, cards must show their saved catalog with the live count
+unavailable. Do not manufacture a count to fill that gap.
+
+The rule that matters: **publish a qualified estimate, label the estimate.**
+Never present a modelled number as a live observation, and never publish a
+number whose venue/game/time baseline is not backed by qualified observations.
+Both failure modes have already happened in this repo:
 
 - Suppressing it: `total_tables_running` once counted observed tables only. With
   Bravo off that is permanently 0, so the page showed "0 Live Tables" above a
@@ -47,6 +57,11 @@ Simulator rows are identified by `scrape_batch_id` starting `sim-`.
 | per-game `is_simulated` | true for modelled rows |
 | per-game `data_quality` | `modeled_estimate` for modelled rows |
 
+When no qualified context exists, the simulator owns no current count. It
+purges only rows whose batch id starts `sim-`; observed Bravo and PokerAtlas
+catalog rows remain. The API then reports catalog/unknown rather than an
+estimate.
+
 UI consumers must read `data_mode` and label accordingly. `[pnmTab].js` renders
 `N Tables (Approx.)` when `data_mode === 'estimated'`; `LiveGamesFeed` carries
 `dataMode` in `globalStats`.
@@ -55,7 +70,7 @@ UI consumers must read `data_mode` and label accordingly. `[pnmTab].js` renders
 
 | Daemon | Role | Heartbeat |
 |---|---|---|
-| `bravo-simulator-daemon.py` | **PRIMARY cash-games source** | `data/bravo-logs/simulator-heartbeat.json` |
+| `bravo-simulator-daemon.py` | Qualified observed-history estimator; valid-empty with no qualified context | `data/bravo-logs/simulator-heartbeat.json` |
 | `pokeratlas-live-daemon.py` | Game catalogue | `data/pokeratlas-logs/heartbeat.json` |
 | `bravo-live-daemon.py` | Real cash games — **intentionally off** | `data/bravo-logs/heartbeat.json` |
 
@@ -69,8 +84,12 @@ Restart without launchctl: find the pid in the heartbeat and `kill -9 <pid>` —
 launchd respawns it and it re-reads `.env.local`.
 
 `scripts/scraper-watchdog-local.sh` monitors all three, restarting on a stale
-heartbeat, an unhealthy `status`, `consecutive_failures >= 3`, a dead pid, or —
-for the simulator — publishing 0 venues / 0 tables.
+heartbeat, an unhealthy `status`, `consecutive_failures >= 3`, or a dead pid.
+For the simulator, a fresh `idle` heartbeat with `run_status=valid_empty` is
+healthy even with 0 venues / 0 tables; restarting cannot create missing
+evidence. A running/success heartbeat with confirmed saved rows is also healthy
+when the evidence-backed median is 0 tables. A running/success heartbeat that
+unexpectedly saves no rows is still unhealthy.
 
 ## 4. Environment facts (stop re-asking)
 

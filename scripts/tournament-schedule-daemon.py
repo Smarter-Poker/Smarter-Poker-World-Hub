@@ -50,6 +50,13 @@ Usage:
 import argparse, hashlib, io, json, os, re, sys, time, urllib.request, urllib.parse, urllib.error, uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from scraper_data_truth import (
+    QUALITY_INFERRED,
+    RUN_FAILED,
+    RUN_PARTIAL,
+    classify_persisted_run,
+    fully_persisted_venue_ids,
+)
 
 import os as _bh_os, sys as _bh_sys
 _bh_sys.path.insert(0, _bh_os.path.dirname(_bh_os.path.abspath(__file__)))
@@ -154,13 +161,18 @@ def alert_push(msg: str):
             headers={"Title": "Smarter.Poker tournament daemon",
                      "Priority": "high", "Tags": "warning,rotating_light"},
             method="POST")
-        # urllib.request.urlopen(req, timeout=5).read()
-    except Exception:
-        pass
+        with urllib.request.urlopen(req, timeout=5) as response:
+            response.read()
+        return True
+    except Exception as exc:
+        log(f"  [ALERT ERR] ntfy delivery failed: {str(exc)[:120]}")
+        return False
 
 
 def write_heartbeat(cycle: int, venues_done: int, total_rec: int, batch_id: str,
-                    status: str = "running", consecutive_failures: int = 0):
+                    status: str = "running", consecutive_failures: int = 0,
+                    records_attempted: int = 0, records_rejected: int = 0,
+                    run_status: str | None = None, status_reason: str | None = None):
     """Heartbeat for scraper-watchdog-local.sh.
 
     status/consecutive_failures are REQUIRED by the watchdog's health logic — a
@@ -172,8 +184,13 @@ def write_heartbeat(cycle: int, venues_done: int, total_rec: int, batch_id: str,
         with open(LOG_DIR / "heartbeat.json", "w") as f:
             json.dump({"daemon":"tournament-schedule-daemon","cycle":cycle,
                        "venues_done":venues_done,"records_total":total_rec,
+                       "records_saved":total_rec,
+                       "records_attempted":int(records_attempted or 0),
+                       "records_rejected":int(records_rejected or 0),
                        "batch_id":batch_id,"pid":os.getpid(),
                        "status":status,"consecutive_failures":int(consecutive_failures),
+                       "run_status":run_status,
+                       "status_reason":status_reason,
                        "last_seen":datetime.now(timezone.utc).isoformat()}, f, indent=2)
     except Exception: pass
 
@@ -677,7 +694,7 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
         # Provenance, not a rubber stamp: 'scraped_verified' is reserved for
         # structured extractions (__NEXT_DATA__ JSON, labelled buy-in fields).
         # Regex/heuristic block parses are 'scraped_inferred'.
-        "data_quality": quality if quality in ("scraped_verified","scraped_inferred") else "scraped_inferred",
+        "data_quality": quality if quality in ("scraped_verified", QUALITY_INFERRED) else QUALITY_INFERRED,
         "human_verified": False,
         "is_recurring": bool(day),
         "is_special_event": False,
@@ -840,12 +857,13 @@ def deactivate_past_events() -> None:
     if sb_patch_rows("venue_daily_tournaments", params, {"is_active": False}):
         log(f"  [SWEEP] Deactivated rows with event_date < {today}")
 
-def sb_audit(batch_id:str, venues:int, records:int, notes:str=""):
+def sb_audit(batch_id:str, venues:int, records:int, notes:str="") -> bool:
+    """Write a schema-valid immutable audit row and report whether it landed."""
     try:
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/data_audit_log",
             data=json.dumps({"table_name":"venue_daily_tournaments",
-                "action":"tournament_daemon_scrape","batch_id":batch_id,
+                "action":"UPDATE","batch_id":batch_id,
                 "agent_id":"DAILY VENUE TOURNAMENT SCRAPER",
                 "record_id":f"batch:{batch_id}",
                 # `records_affected` and `notes` are NOT columns of this table.
@@ -853,8 +871,56 @@ def sb_audit(batch_id:str, venues:int, records:int, notes:str=""):
                 "created_at":datetime.now(timezone.utc).isoformat()}).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}
         )
-        urllib.request.urlopen(req, timeout=15)
-    except Exception: pass
+        with urllib.request.urlopen(req, timeout=15) as response:
+            response.read()
+        return True
+    except Exception as exc:
+        log(f"  [AUDIT ERR] data_audit_log write failed: {str(exc)[:160]}")
+        return False
+
+
+def write_scraper_metric(cycle_start: datetime, outcome: dict,
+                         venues_scraped: int, venues_with_data: int) -> bool:
+    """Persist the tournament daemon's confirmed-output health record."""
+    payload = {
+        "source": "tournament-schedule-daemon",
+        "cycle_start": cycle_start.isoformat(),
+        "duration_seconds": max(0, int((datetime.now(timezone.utc) - cycle_start).total_seconds())),
+        "venues_scraped": max(0, int(venues_scraped or 0)),
+        "venues_with_data": max(0, int(venues_with_data or 0)),
+        **outcome,
+    }
+
+    def _post(row: dict) -> None:
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/scraper_metrics",
+            data=json.dumps(row).encode(), method="POST",
+            headers={**SB_HDRS, "Prefer":"return=minimal"})
+        with urllib.request.urlopen(req, timeout=15) as response:
+            response.read()
+
+    try:
+        _post(payload)
+        return True
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "ignore")[:500]
+        if exc.code == 400 and any(name in detail for name in (
+                "run_status", "records_attempted", "records_rejected", "status_reason")):
+            legacy = {k: payload[k] for k in (
+                "source", "cycle_start", "duration_seconds", "venues_scraped",
+                "venues_with_data", "errors", "records_saved")}
+            try:
+                _post(legacy)
+                log("  [METRIC ERR] data-truth columns missing; legacy metric written")
+                return False
+            except Exception as legacy_exc:
+                log(f"  [METRIC ERR] legacy retry failed: {str(legacy_exc)[:160]}")
+                return False
+        log(f"  [METRIC ERR] HTTP {exc.code}: {detail}")
+        return False
+    except Exception as exc:
+        log(f"  [METRIC ERR] {str(exc)[:160]}")
+        return False
 
 def save_evidence(name:str, state:str, data:dict) -> str:
     safe = re.sub(r"[^a-zA-Z0-9]","_",name)[:40]
@@ -1629,9 +1695,9 @@ def upsert_key(r: dict) -> tuple:
     return (r.get("venue_id"), r.get("venue_name"), r.get("day_of_week"),
             r.get("event_date"), r.get("start_time"), r.get("buy_in"), r.get("game_type"))
 
-def flush_chunk(chunk_results: list, batch_id: str) -> int:
-    """Expand, dedup and upsert the buffered venues, THEN stamp venue provenance."""
-    all_recs, per_venue = [], {}
+def flush_chunk(chunk_results: list, batch_id: str) -> dict:
+    """Persist a chunk and freshen only venues whose every row was confirmed."""
+    all_recs = []
     for vr in chunk_results:
         for rec in vr.get("records", []):
             # Expand recurring rows to concrete dates. Without this the daemon
@@ -1647,7 +1713,6 @@ def flush_chunk(chunk_results: list, batch_id: str) -> int:
                     row["event_date"] = "1970-01-01"
                 row["scrape_completeness_score"] = completeness_score(row)
                 all_recs.append(row)
-                if vr.get("vid"): per_venue.setdefault(vr["vid"], []).append(row)
 
     # Batch-level dedup: Postgres refuses an ON CONFLICT batch that hits the same
     # key twice, so one duplicate used to reject the whole 100-row request.
@@ -1662,25 +1727,39 @@ def flush_chunk(chunk_results: list, batch_id: str) -> int:
         log(f"  [FLUSH] {dropped} duplicate rows collapsed before upsert")
     all_recs = deduped
 
+    expected_keys_by_venue = {}
+    for row in all_recs:
+        venue_id = row.get("venue_id")
+        if venue_id:
+            expected_keys_by_venue.setdefault(venue_id, set()).add(upsert_key(row))
+
     if not all_recs:
         log(f"  [FLUSH] Chunk: 0 records — nothing to upsert")
-        return 0
+        return {"attempted": 0, "persisted": 0, "rejected": 0,
+                "freshened_venues": 0, "failed_batches": 0}
 
     total = 0
     failed_batches = 0
+    persisted_keys = set()
     for i in range(0, len(all_recs), 100):
         batch = all_recs[i:i+100]
         n = sb_upsert("venue_daily_tournaments", batch)
         total += n
-        if n == 0: failed_batches += 1
+        if n == len(batch):
+            persisted_keys.update(upsert_key(row) for row in batch)
+        else:
+            # A count without row identities cannot prove which rows landed.
+            # Treat the whole batch as freshness-unknown even when n > 0.
+            failed_batches += 1
 
     # Venue provenance is stamped ONLY after rows were actually accepted —
     # has_tournaments=true with a fresh timestamp used to be written even when
     # every upsert had failed, which hid the outage from the coverage math.
-    if total > 0:
+    complete_venue_ids = fully_persisted_venue_ids(expected_keys_by_venue, persisted_keys)
+    if complete_venue_ids:
         for vr in chunk_results:
             if not (vr.get("vid") and vr.get("found")): continue
-            if not per_venue.get(vr["vid"]): continue
+            if vr["vid"] not in complete_venue_ids: continue
             ts = datetime.now(timezone.utc).isoformat()
             if sb_patch_venue(vr["vid"], {
                 "has_tournaments": True,
@@ -1702,8 +1781,15 @@ def flush_chunk(chunk_results: list, batch_id: str) -> int:
     found_count=sum(1 for vr in chunk_results if vr.get("found"))
     status = "OK" if failed_batches == 0 else f"{failed_batches} FAILED BATCHES"
     log(f"  [FLUSH] {len(chunk_results)} venues → "
-        f"{found_count} with data → {total}/{len(all_recs)} records upserted [{status}]")
-    return total
+        f"{found_count} with data → {total}/{len(all_recs)} records upserted → "
+        f"{len(complete_venue_ids)} venues freshened [{status}]")
+    return {
+        "attempted": len(all_recs),
+        "persisted": total,
+        "rejected": max(0, len(all_recs) - total),
+        "freshened_venues": len(complete_venue_ids),
+        "failed_batches": failed_batches,
+    }
 
 # ── Load venues ───────────────────────────────────────────────────────────────
 def load_venues(batch_num: int = 0) -> list:
@@ -2407,13 +2493,19 @@ def main():
     while True:
         cycle+=1
         batch_id=str(uuid.uuid4())
+        cycle_started_at=datetime.now(timezone.utc)
         WRITE_FAILURES=0  # per-cycle write-failure count
 
         if not network_ok():
             connect_failures+=1
             log(f"Network unavailable (streak {connect_failures}) — retry in 5 min")
+            outcome=classify_persisted_run(
+                attempted=0,persisted=0,errors=1,status_reason="network_unavailable")
             write_heartbeat(cycle,0,0,batch_id,status="connect_failed",
-                            consecutive_failures=connect_failures)
+                            consecutive_failures=connect_failures,
+                            run_status=outcome["run_status"],
+                            status_reason=outcome["status_reason"])
+            write_scraper_metric(cycle_started_at,outcome,0,0)
             _die_if_wedged(connect_failures, "network_ok() has failed")
             time.sleep(300); continue
 
@@ -2426,8 +2518,13 @@ def main():
         if not session_mgr.connect():
             connect_failures+=1
             log(f"Browser session failed to start (streak {connect_failures}) — retry in 5 min")
+            outcome=classify_persisted_run(
+                attempted=0,persisted=0,errors=1,status_reason="browser_session_connect_failed")
             write_heartbeat(cycle,0,0,batch_id,status="connect_failed",
-                            consecutive_failures=connect_failures)
+                            consecutive_failures=connect_failures,
+                            run_status=outcome["run_status"],
+                            status_reason=outcome["status_reason"])
+            write_scraper_metric(cycle_started_at,outcome,0,0)
             _die_if_wedged(connect_failures, "the browser session has failed to start")
             if args.batch or args.missing or args.venue_ids:
                 log("Single-pass mode — exiting non-zero so the caller sees the failure.")
@@ -2438,7 +2535,10 @@ def main():
         watchdog_last=time.time()
         consecutive_fails=0
         cycle_records=0
+        cycle_attempted=0
+        cycle_rejected=0
         cycle_venues=0
+        cycle_venues_with_data=0
         chunk_buf: list=[]
         session_unavailable=False
 
@@ -2465,15 +2565,29 @@ def main():
             if time.time()-watchdog_last>WATCHDOG_S and cycle_records==0 and not args.batch:
                 log("90min watchdog — no data — hard exit")
                 if chunk_buf and not args.dry_run:
-                    try: cycle_records += flush_chunk(chunk_buf, batch_id)
+                    try:
+                        flush=flush_chunk(chunk_buf, batch_id)
+                        cycle_records += flush["persisted"]
+                        cycle_attempted += flush["attempted"]
+                        cycle_rejected += flush["rejected"]
                     except Exception as e: log(f"  [WATCHDOG FLUSH ERR] {str(e)[:120]}")
                     chunk_buf=[]
                 try: session_mgr.disconnect()
                 except Exception: pass
                 if not args.dry_run:
                     sb_audit(batch_id, cycle_venues, cycle_records, "watchdog_no_data_exit")
+                    outcome=classify_persisted_run(
+                        attempted=cycle_attempted,persisted=cycle_records,
+                        rejected=cycle_rejected,errors=max(1,WRITE_FAILURES),
+                        status_reason="watchdog_no_persisted_output")
+                    write_scraper_metric(
+                        cycle_started_at,outcome,cycle_venues,cycle_venues_with_data)
                 write_heartbeat(cycle,cycle_venues,cycle_records,batch_id,
-                                status="no_data",consecutive_failures=consecutive_fails)
+                                status="no_data",consecutive_failures=consecutive_fails,
+                                records_attempted=cycle_attempted,
+                                records_rejected=cycle_rejected,
+                                run_status=outcome["run_status"] if not args.dry_run else None,
+                                status_reason=outcome["status_reason"] if not args.dry_run else None)
                 os._exit(1)
 
             # Sleep/wake detection
@@ -2516,17 +2630,15 @@ def main():
                 vr=scrape_venue(venue,session_mgr,batch_id,hm_map,cp_map)
 
                 chunk_buf.append(vr)
-                if vr["found"]: consecutive_fails=0; watchdog_last=time.time()
+                if vr["found"]:
+                    consecutive_fails=0; watchdog_last=time.time()
+                    cycle_venues_with_data+=1
                 else: consecutive_fails+=1
             except Exception as e:
                 log(f"    ❌ {e}")
                 chunk_buf.append({"name":name,"vid":venue.get("id"),"found":False,"records":[]})
-                # Record the attempt even when nothing was found: without this,
-                # unproven venues would re-enter the retry cohort every single
-                # night. has_tournaments is deliberately NOT touched.
-                if venue.get("id"):
-                    sb_patch_venue(venue["id"], {
-                        "schedule_last_scraped_at": datetime.now(timezone.utc).isoformat()})
+                # Do not stamp schedule_last_scraped_at on an exception. That
+                # timestamp is successful persisted output, not an attempt log.
                 consecutive_fails+=1
 
             cycle_venues+=1
@@ -2534,14 +2646,18 @@ def main():
             # ── FLUSH every 25 venues ────────────────────────────────────────
             if len(chunk_buf)>=CHUNK_SIZE:
                 if not args.dry_run:
-                    n=flush_chunk(chunk_buf,batch_id)
-                    cycle_records+=n
+                    flush=flush_chunk(chunk_buf,batch_id)
+                    cycle_records+=flush["persisted"]
+                    cycle_attempted+=flush["attempted"]
+                    cycle_rejected+=flush["rejected"]
                 else:
                     n=sum(len(vr.get("records",[])) for vr in chunk_buf)
                     log(f"  [DRY RUN] Would upsert {n} records from {len(chunk_buf)} venues")
                 chunk_buf=[]
                 write_heartbeat(cycle,cycle_venues,cycle_records,batch_id,
-                                status="running",consecutive_failures=consecutive_fails)
+                                status="running",consecutive_failures=consecutive_fails,
+                                records_attempted=cycle_attempted,
+                                records_rejected=cycle_rejected)
 
             # Circuit breaker
             if consecutive_fails>=CIRCUIT_MAX:
@@ -2557,8 +2673,10 @@ def main():
         # Flush remaining (tail chunk < 25)
         if chunk_buf:
             if not args.dry_run:
-                n=flush_chunk(chunk_buf,batch_id)
-                cycle_records+=n
+                flush=flush_chunk(chunk_buf,batch_id)
+                cycle_records+=flush["persisted"]
+                cycle_attempted+=flush["attempted"]
+                cycle_rejected+=flush["rejected"]
             else:
                 n=sum(len(vr.get("records",[])) for vr in chunk_buf)
                 log(f"  [DRY RUN] Tail chunk: would upsert {n} records")
@@ -2579,22 +2697,48 @@ def main():
         # being LARGE, so the cycle reported [running] with no alert -- the exact
         # silent-failure shape this alerting exists to catch.
         no_venues_loaded = (cycle_venues == 0 and not args.dry_run)
-        cycle_failed = bool(session_unavailable) or WRITE_FAILURES > 0 or no_venues_loaded or (
-            cycle_venues > 20 and cycle_records == 0 and not args.dry_run)
-        cycle_status = "running"
-        if session_unavailable:      cycle_status = "connect_failed"
-        elif no_venues_loaded:       cycle_status = "no_venues_loaded"
-        elif cycle_failed:           cycle_status = "no_data"
+        if args.dry_run:
+            outcome = None
+            cycle_failed = False
+            cycle_status = "dry_run"
+        else:
+            if not sb_audit(batch_id,cycle_venues,cycle_records,
+                            f"Cycle={cycle},Batch={args.batch or 'all'},Sources=5,"
+                            f"PDFs={'yes' if PDF_OK else 'no'},write_failures={WRITE_FAILURES}"):
+                WRITE_FAILURES += 1
 
-        if not args.dry_run:
-            sb_audit(batch_id,cycle_venues,cycle_records,
-                     f"Cycle={cycle},Batch={args.batch or 'all'},Sources=5,"
-                     f"PDFs={'yes' if PDF_OK else 'no'},write_failures={WRITE_FAILURES},"
-                     f"status={cycle_status}")
+            outcome = classify_persisted_run(
+                attempted=cycle_attempted,
+                persisted=cycle_records,
+                rejected=max(cycle_rejected, cycle_attempted - cycle_records),
+                errors=WRITE_FAILURES + int(bool(session_unavailable)) + int(no_venues_loaded),
+                status_reason=(
+                    "browser_session_unavailable" if session_unavailable else
+                    "no_venues_loaded" if no_venues_loaded else ""
+                ),
+            )
+            cycle_failed = outcome["run_status"] in (RUN_FAILED, RUN_PARTIAL)
+            if session_unavailable:
+                cycle_status = "connect_failed"
+            elif no_venues_loaded:
+                cycle_status = "no_venues_loaded"
+            elif outcome["run_status"] == RUN_FAILED:
+                cycle_status = "no_data"
+            elif outcome["run_status"] == RUN_PARTIAL:
+                cycle_status = "degraded"
+            else:
+                cycle_status = "ok"
+
+            write_scraper_metric(
+                cycle_started_at,outcome,cycle_venues,cycle_venues_with_data)
 
         write_heartbeat(cycle,cycle_venues,cycle_records,batch_id,
                         status=cycle_status,
-                        consecutive_failures=1 if cycle_failed else 0)
+                        consecutive_failures=1 if cycle_failed else 0,
+                        records_attempted=cycle_attempted,
+                        records_rejected=cycle_rejected,
+                        run_status=outcome["run_status"] if outcome else None,
+                        status_reason=outcome["status_reason"] if outcome else None)
 
         log(f"\n{'='*70}")
         log(f"CYCLE {cycle} DONE — {cycle_venues} venues processed, "
@@ -2605,12 +2749,13 @@ def main():
         # hid. Page on every failed cycle and shout louder as the streak grows.
         if cycle_failed:
             _ALERT_STREAK += 1
-            alert_push(
+            alert_sent = alert_push(
                 f"Tournament daemon cycle {cycle} FAILED ({cycle_status}) — "
                 f"{cycle_venues} venues, {cycle_records} rows upserted, "
                 f"{WRITE_FAILURES} write failures. "
                 f"Consecutive failed cycles: {_ALERT_STREAK}.")
-            log(f"  [ALERT] failed cycle pushed to ntfy/{ALERT_TOPIC} (streak {_ALERT_STREAK})")
+            if alert_sent:
+                log(f"  [ALERT] failed cycle delivered to ntfy/{ALERT_TOPIC} (streak {_ALERT_STREAK})")
         else:
             if _ALERT_STREAK:
                 log(f"  [ALERT] recovered after {_ALERT_STREAK} failed cycle(s)")

@@ -42,12 +42,18 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading
       // em-dash as "this venue has no live data".
       if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
       if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
-      return <span style={{ color: isModeledCashGameData(live) ? '#c9a85a' : '#52d18b', fontWeight: 700 }}>{cashGameCountLabel(live)}</span>;
+      const color = live.live_count_known === false || live.data_mode === 'catalog'
+        ? '#d8e4ec'
+        : isModeledCashGameData(live) ? '#c9a85a' : '#52d18b';
+      return <span style={{ color, fontWeight: 700 }}>{cashGameCountLabel(live)}</span>;
     }
     case 'waiting_list': {
       const live = findLive(venue);
       if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
       if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
+      if (live.live_count_known === false || live.data_mode === 'catalog') {
+        return <span style={{ color: 'rgba(200,214,229,0.5)' }}>Unknown</span>;
+      }
       const wait = Number(live.players_waiting) || 0;
       const suffix = isModeledCashGameData(live) ? ' Estimated' : ' Waiting';
       return wait > 0 ? <span style={{ color: '#c9a85a', fontWeight: 700 }}>{wait}{suffix}</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;

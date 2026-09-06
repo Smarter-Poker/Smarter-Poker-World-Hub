@@ -38,6 +38,11 @@ const staticPages = [
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
+  // These standalone map/card directories are distinct, self-canonical public
+  // surfaces. Keep them discoverable alongside the unified PNM tour/series
+  // tabs instead of publishing canonical pages that the sitemap omits.
+  { path: '/hub/poker-tours', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/poker-series', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },

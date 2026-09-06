@@ -15,6 +15,8 @@ const STATE_NAMES = {
 const STATE_CODES = Object.fromEntries(Object.entries(STATE_NAMES).map(([code, name]) => [name.toLowerCase(), code]));
 const FEATURES = new Map((usStates?.features || []).map((feature) => [feature?.properties?.name, feature]));
 const BORDER_TOLERANCE_DEGREES = 0.2;
+const US_COUNTRY_LABELS = new Set(['US', 'USA', 'UNITED STATES', 'UNITED STATES OF AMERICA']);
+const TRAVELING_VENUE_TYPES = new Set(['charity', 'series', 'tour']);
 
 function finiteCoordinate(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -89,11 +91,23 @@ export function assessVenueLocation(venue) {
     return { status: 'approximate', mappable: true, reason: 'privacy_protected' };
   }
 
+  const country = String(venue?.country || '').trim().toUpperCase();
+  if (country && !US_COUNTRY_LABELS.has(country)) {
+    return { status: 'conflict', mappable: false, reason: 'country_outside_us' };
+  }
+
   const stateCode = normalizeState(venue?.state || venue?.location_state);
+  if (!stateCode) {
+    const venueType = String(venue?.venue_type || '').trim().toLowerCase();
+    if (TRAVELING_VENUE_TYPES.has(venueType)) {
+      return { status: 'unverified', mappable: false, reason: 'traveling_entity' };
+    }
+    return { status: 'conflict', mappable: false, reason: 'state_unrecognized' };
+  }
   const stateName = stateCode ? STATE_NAMES[stateCode] : null;
   const feature = stateName ? FEATURES.get(stateName) : null;
-  // The simplified shape intentionally omits AK/HI. Do not make a claim when a
-  // canonical boundary is unavailable or when the record is outside the US.
+  // The simplified shape intentionally omits AK/HI. Their canonical state is
+  // known, so keep the point usable but do not claim a polygon match.
   if (!feature) return { status: 'unverified', mappable: true, reason: 'boundary_unavailable' };
   if (polygonsFor(feature).some((polygon) => pointInPolygon(longitude, latitude, polygon))) {
     return { status: 'verified', mappable: true, reason: 'state_coordinate_match' };

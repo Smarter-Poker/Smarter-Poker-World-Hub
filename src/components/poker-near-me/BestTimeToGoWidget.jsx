@@ -1,13 +1,6 @@
 /**
- * NOT CURRENTLY MOUNTED. A repo-wide grep finds no import of this component, so it —
- * and the two endpoints only it calls (/api/poker/game-predictions and
- * /api/poker/venue-predictions-batch) — are unreachable from the UI. It is kept intact
- * (rather than deleted) because reviving it means editing the venue detail page,
- * pages/hub/poker-near-me/[pnmTab].js, which is outside this change's file ownership.
- * The live all-zero-heatmap bug below is fixed either way.
- *
- * BestTimeToGoWidget — Intelligence widget for venue detail pages
- * v2.0 — Enhanced with:
+ * BestTimeToGoWidget: observed-history intelligence for venue detail pages.
+ * v2.0 includes:
  *   - Quiet Hours natural language analysis
  *   - Game-specific ETA predictions (e.g., "Usually opens Omaha Fri 6 PM")
  *   - Mini 7-day activity bar chart
@@ -50,13 +43,17 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
       const gameTypePart = selectedGame ? `&game_type=${encodeURIComponent(selectedGame)}` : '';
 
       Promise.all([
-        fetch(`/api/poker/game-predictions?venue_id=${venueId}`).then(r => r.json()).catch(() => null),
-        fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.json()).catch(() => null),
-        fetch(`/api/poker/venue-predictions-batch?venue_ids=${venueId}`).then(r => r.json()).catch(() => null),
+        fetch(`/api/poker/game-predictions?venue_id=${venueId}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/poker/venue-predictions-batch?venue_ids=${venueId}`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]).then(([predData, heatData, batchData]) => {
         if (!mounted) return;
-        if (predData?.success) setPredictions(predData);
-        if (heatData?.heatmap?.length) setHeatmapData(heatData);
+        setPredictions(predData?.success ? predData : null);
+        setHeatmapData(
+          heatData?.data_mode === 'observed_history' && heatData?.heatmap?.length
+            ? heatData
+            : null
+        );
         // Merge batch data into predictions for quiet hours / game ETA
         if (batchData?.success && batchData.predictions?.[venueId]) {
           setPredictions(prev => ({
@@ -120,7 +117,19 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
   }
 
   if (!hasPredictions && !hasHeatmap && !hasBatchData) {
-    return null; // No data — don't render widget at all
+    return (
+      <div className="bttg-widget bttg-empty" role="status">
+        <div className="bttg-title-row">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8fdcfb" strokeWidth="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+          </svg>
+          <h3>Observed Activity Intelligence</h3>
+        </div>
+        <p>{predictions?.message || 'Verified Activity Patterns Are Not Available For This Venue Yet.'}</p>
+        <small>Best-Time Recommendations Use Positive Observed Tables Only. Modeled Estimates Are Excluded.</small>
+        <style>{STYLES}</style>
+      </div>
+    );
   }
 
   const activePrediction = selectedGame
@@ -139,7 +148,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
         </div>
         {(predictions?.summary?.data_quality || batchInsights?.data_quality) && (
           <span className={`bttg-quality bttg-quality-${(batchInsights?.data_quality || predictions?.summary?.data_quality || '').toLowerCase()}`}>
-            {batchInsights?.data_quality || predictions?.summary?.data_quality} Data
+            {batchInsights?.data_quality || predictions?.summary?.data_quality} Observed History
           </span>
         )}
       </div>
@@ -251,7 +260,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
           </p>
           <div className="bttg-pred-meta">
             {activePrediction.typical_open_range && (
-              <span className="bttg-pred-tag">Active: {activePrediction.typical_open_range}</span>
+              <span className="bttg-pred-tag">Typical Observed Window: {activePrediction.typical_open_range}</span>
             )}
             {activePrediction.peak_days?.length > 0 && (
               <span className="bttg-pred-tag">Peak: {activePrediction.peak_days.join(', ')}</span>
@@ -321,12 +330,15 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
 
 const STYLES = `
   .bttg-widget {
-    background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9));
-    border: 1px solid rgba(0,212,255,0.15);
-    border-radius: 16px;
+    background: #080b10;
+    border: 1px solid rgba(170,184,196,0.34);
+    border-radius: 3px;
     padding: 20px;
     margin: 16px 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 45px rgba(0,0,0,0.28);
   }
+  .bttg-empty p { margin: 12px 0 5px; color: #c7d0d8; font-size: 14px; }
+  .bttg-empty small { color: #718096; font-size: 12px; line-height: 1.45; }
   .bttg-loading {
     display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;
   }

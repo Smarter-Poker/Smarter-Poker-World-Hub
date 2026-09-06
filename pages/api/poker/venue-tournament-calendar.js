@@ -114,7 +114,7 @@ async function handler(req, res) {
             `)
             .eq('venue_id', venueId)
             .eq('is_active', true)
-            .in('data_quality', ['scraped_verified', 'scraped_inferred'])
+            .in('data_quality', ['scraped_verified', 'scraped_inferred', 'manual_research'])
             // is_suppressed is an admin-only manual retirement flag. Every sibling
             // surface (venues.js, daily-tournaments.js, events-calendar.js,
             // tournament-alerts.js) filters it; this route did not, so a

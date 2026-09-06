@@ -50,6 +50,7 @@ Usage:
 """
 
 import json
+import fcntl
 import os
 import re
 import hashlib
@@ -77,6 +78,16 @@ try:
     import browser_heal as _browser_heal
 except Exception:  # pragma: no cover - heal is best-effort
     _browser_heal = None
+
+from scraper_data_truth import (
+    OBSERVATION_OBSERVED,
+    QUALITY_OBSERVED,
+    RUN_FAILED,
+    RUN_PARTIAL,
+    classify_persisted_run,
+    fully_persisted_venue_ids,
+    stable_live_row_id,
+)
 
 
 # Resolve the absolute path to the project root and load ALL env files.
@@ -157,6 +168,7 @@ EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
 HEARTBEAT_FILE = LOG_DIR / 'heartbeat.json'
 COOKIE_CACHE_FILE = LOG_DIR / 'cf_cookies.json'
 PID_FILE = LOG_DIR / 'daemon.pid'  # Prevents dual-instance orphans
+LOCK_FILE = LOG_DIR / 'daemon.lock'
 
 # ============================================================
 # LOGGING
@@ -214,24 +226,70 @@ def _http_error_detail(e):
 
 
 def sb_upsert(table, data):
-    """UPSERT to Supabase REST API with chunked batches and retry."""
+    """UPSERT rows and return the exact deterministic IDs confirmed persisted.
+
+    ``venue_live_tables`` has no natural-key constraint. Every current Bravo
+    payload therefore carries a stable negative primary key so replaying a
+    partially successful publish updates the rows that already landed instead
+    of inserting duplicates. History writers use the same rule with a distinct
+    identity namespace so transport retries cannot duplicate a snapshot.
+    """
     BATCH_SIZE = 100
-    total_saved = 0
+    confirmed_ids = set()
     for i in range(0, len(data), BATCH_SIZE):
         chunk = data[i:i + BATCH_SIZE]
         body = json.dumps(chunk).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/{table}',
-            data=body, method='POST',
-            headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal'}
-        )
-        success = False
+        expected_ids = {int(row['id']) for row in chunk}
         for attempt in range(3):
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/{table}',
+                data=body, method='POST',
+                headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation'}
+            )
             try:
-                urllib.request.urlopen(req, timeout=30)
-                total_saved += len(chunk)
-                success = True
-                break
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    returned = json.loads(response.read() or b'[]')
+                returned_ids = {
+                    int(row['id']) for row in returned
+                    if isinstance(row, dict) and row.get('id') is not None
+                } if isinstance(returned, list) else set()
+                unexpected_ids = returned_ids - expected_ids
+                if not unexpected_ids:
+                    confirmed_ids.update(returned_ids)
+                if returned_ids == expected_ids:
+                    break
+                detail = (
+                    f'{len(returned_ids & expected_ids)}/{len(expected_ids)} '
+                    f'deterministic IDs confirmed; {len(unexpected_ids)} unexpected'
+                )
+                if attempt < 2:
+                    log.warning(
+                        f'  {table} batch {i//BATCH_SIZE + 1}: retry {attempt + 1} '
+                        f'(persistence mismatch: {detail})'
+                    )
+                    time.sleep(2 ** attempt)
+                else:
+                    log.error(
+                        f'{ERROR_SUPABASE}: {table} batch {i//BATCH_SIZE + 1} '
+                        f'FAILED after 3 retries (persistence mismatch: {detail})'
+                    )
+            except urllib.error.HTTPError as e:
+                retryable = e.code in (408, 429) or e.code >= 500
+                detail = _http_error_detail(e)
+                if not retryable:
+                    log.error(
+                        f'{ERROR_SUPABASE}: {table} batch {i//BATCH_SIZE + 1} '
+                        f'PERMANENTLY REJECTED: {detail}'
+                    )
+                    break
+                if attempt < 2:
+                    log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} ({detail})')
+                    time.sleep(2 ** attempt)
+                else:
+                    log.error(
+                        f'{ERROR_SUPABASE}: {table} batch {i//BATCH_SIZE + 1} FAILED '
+                        f'after 3 retries: {detail}'
+                    )
             except Exception as e:
                 if attempt < 2:
                     log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} ({e})')
@@ -241,10 +299,11 @@ def sb_upsert(table, data):
                         f'{ERROR_SUPABASE}: {table} batch {i//BATCH_SIZE + 1} FAILED '
                         f'after 3 retries: {_http_error_detail(e)}'
                     )
-        if not success:
-            return False
-    log.info(f'  Upserted {total_saved}/{len(data)} records in {(len(data) + BATCH_SIZE - 1) // BATCH_SIZE} batches')
-    return True
+    log.info(
+        f'  Upserted {len(confirmed_ids)}/{len(data)} records in '
+        f'{(len(data) + BATCH_SIZE - 1) // BATCH_SIZE} batches'
+    )
+    return confirmed_ids
 
 def sb_delete(table, query):
     """DELETE from Supabase REST API. Returns True only on a confirmed 2xx.
@@ -264,6 +323,24 @@ def sb_delete(table, query):
     except Exception as e:
         log.error(f'{ERROR_SUPABASE}: DELETE {table}?{query[:120]} failed: {_http_error_detail(e)}')
         return False
+
+
+def sb_has_rows(table, query):
+    """Return whether a bounded verification GET still finds matching rows."""
+    req = urllib.request.Request(
+        f'{SUPABASE_URL}/rest/v1/{table}?{query}&select=id&limit=1',
+        headers=SB_HEADERS,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            rows = json.loads(response.read() or b'[]')
+        return bool(rows) if isinstance(rows, list) else None
+    except Exception as e:
+        log.error(
+            f'{ERROR_SUPABASE}: verification GET {table}?{query[:120]} failed: '
+            f'{_http_error_detail(e)}'
+        )
+        return None
 
 # ============================================================
 # BRAVO VENUE SLUG REGISTRY
@@ -1291,36 +1368,37 @@ def save_history_snapshot(batch_id, results):
     """
     try:
         now = datetime.now(timezone.utc).isoformat()
-        rows = []
+        rows_by_id = {}
         for data in results:
             total_tables = sum(g['tables'] for g in data['live_games'])
             total_waiting = sum(w['players_waiting'] for w in data['waitlist'])
-            rows.append({
+            row_id = stable_live_row_id(
+                'bravo-venue-history', batch_id, data['venue_slug'], 'summary'
+            )
+            rows_by_id[row_id] = {
+                'id': row_id,
                 'bravo_slug': data['venue_slug'],
                 'venue_name': data['venue_name'],
                 'total_tables': total_tables,
                 'total_waiting': total_waiting,
                 'game_count': len(data['live_games']),
                 'source': 'bravo',
+                'observation_kind': OBSERVATION_OBSERVED,
                 'snapshot_time': now,
                 'batch_id': batch_id,
-            })
+            }
+        rows = list(rows_by_id.values())
         if not rows:
             return True
-        body = json.dumps(rows).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/venue_live_history',
-            data=body, method='POST',
-            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-        )
-        try:
-            urllib.request.urlopen(req, timeout=15)
+        expected_ids = {int(row['id']) for row in rows}
+        if sb_upsert('venue_live_history', rows) == expected_ids:
             log.info(f'  Saved {len(rows)} venue history snapshots')
             return True
-        except Exception as e:
-            log.error(f'{ERROR_SUPABASE}: venue_live_history insert FAILED '
-                      f'({len(rows)} rows): {_http_error_detail(e)}')
-            return False
+        log.error(
+            f'{ERROR_SUPABASE}: venue_live_history upsert FAILED '
+            f'({len(rows)} rows not fully confirmed)'
+        )
+        return False
     except Exception as e:
         log.error(f'  venue_live_history snapshot error: {type(e).__name__}: {e}')
         return False
@@ -1353,9 +1431,9 @@ def _waiting_for_game(data, game_name):
     keyed by the same game name, so the two must be joined case-insensitively.
     Returns 0 only when the game genuinely has no waitlist entry.
     """
-    target = (game_name or '').strip().lower()
+    target = ' '.join(str(game_name or '').lower().split())
     for w in data.get('waitlist', []):
-        if w['game'].strip().lower() == target:
+        if ' '.join(str(w['game']).lower().split()) == target:
             return w['players_waiting']
     return 0
 
@@ -1370,14 +1448,23 @@ def save_game_history_snapshot(batch_id, results):
     """
     try:
         now = datetime.now(timezone.utc).isoformat()
-        rows = []
+        rows_by_id = {}
         for data in results:
-            live_names = [g['game'].strip().lower() for g in data['live_games']]
+            live_names = {
+                ' '.join(str(g['game']).lower().split())
+                for g in data['live_games']
+            }
             for game in data['live_games']:
-                rows.append({
+                canonical_game_name = ' '.join(str(game['game']).split())
+                game_identity = canonical_game_name.lower()
+                row_id = stable_live_row_id(
+                    'bravo-game-history', batch_id, data['venue_slug'], game_identity
+                )
+                rows_by_id[row_id] = {
+                    'id': row_id,
                     'bravo_slug': data['venue_slug'],
                     'venue_name': data['venue_name'],
-                    'game_type': game['game'],
+                    'game_type': canonical_game_name,
                     'stakes': _parse_stakes(game['game']),
                     'tables': game['tables'],
                     # Real per-game waiting count from the waitlist table.
@@ -1385,39 +1472,43 @@ def save_game_history_snapshot(batch_id, results):
                     # queue was recorded as having nobody waiting.
                     'waiting': _waiting_for_game(data, game['game']),
                     'source': 'bravo',
+                    'observation_kind': OBSERVATION_OBSERVED,
                     'snapshot_time': now,
                     'batch_id': batch_id,
-                })
+                }
             for w in data['waitlist']:
                 # Waitlist-only games (nobody seated yet)
-                if w['game'].strip().lower() not in live_names:
-                    rows.append({
+                canonical_game_name = ' '.join(str(w['game']).split())
+                game_identity = canonical_game_name.lower()
+                if game_identity not in live_names:
+                    row_id = stable_live_row_id(
+                        'bravo-game-history', batch_id, data['venue_slug'], game_identity
+                    )
+                    rows_by_id[row_id] = {
+                        'id': row_id,
                         'bravo_slug': data['venue_slug'],
                         'venue_name': data['venue_name'],
-                        'game_type': w['game'],
+                        'game_type': canonical_game_name,
                         'stakes': _parse_stakes(w['game']),
                         'tables': 0,
                         'waiting': w['players_waiting'],
                         'source': 'bravo',
+                        'observation_kind': OBSERVATION_OBSERVED,
                         'snapshot_time': now,
                         'batch_id': batch_id,
-                    })
+                    }
+        rows = list(rows_by_id.values())
         if not rows:
             return True
-        body = json.dumps(rows).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/game_live_history',
-            data=body, method='POST',
-            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-        )
-        try:
-            urllib.request.urlopen(req, timeout=15)
+        expected_ids = {int(row['id']) for row in rows}
+        if sb_upsert('game_live_history', rows) == expected_ids:
             log.info(f'  Saved {len(rows)} game history rows')
             return True
-        except Exception as e:
-            log.error(f'{ERROR_SUPABASE}: game_live_history insert FAILED '
-                      f'({len(rows)} rows): {_http_error_detail(e)}')
-            return False
+        log.error(
+            f'{ERROR_SUPABASE}: game_live_history upsert FAILED '
+            f'({len(rows)} rows not fully confirmed)'
+        )
+        return False
     except Exception as e:
         log.error(f'  game_live_history snapshot error: {type(e).__name__}: {e}')
         return False
@@ -1434,7 +1525,7 @@ def build_payload_from_results(results, batch_id):
     venues on the normalised name, so a blank name can mis-merge unrelated
     rooms onto a Bravo slug.
     """
-    payload = []
+    records_by_identity = {}
     for data in results:
         if not (data.get('venue_name') or '').strip():
             log.warning(
@@ -1443,67 +1534,87 @@ def build_payload_from_results(results, batch_id):
             )
             continue
         for game in data['live_games']:
+            game_name = ' '.join(str(game['game']).split())
+            identity = (data['venue_slug'], ' '.join(game_name.lower().split()))
             record = {
+                'id': stable_live_row_id('bravo', batch_id, data['venue_slug'], game_name),
                 'bravo_slug': data['venue_slug'],
                 'venue_name': data['venue_name'],
-                'game_name': game['game'],
+                'game_name': game_name,
                 'tables_running': game['tables'],
-                'players_waiting': _waiting_for_game(data, game['game']),
+                'players_waiting': _waiting_for_game(data, game_name),
                 'scrape_timestamp': data['scrape_timestamp'],
                 'scrape_html_hash': data['scrape_html_hash'],
                 'scrape_batch_id': batch_id,
-                'data_quality': 'scraped_verified',
+                'data_quality': QUALITY_OBSERVED,
+                'observation_kind': OBSERVATION_OBSERVED,
                 'source': 'bravo',
             }
-            payload.append(record)
+            existing = records_by_identity.get(identity)
+            if existing:
+                existing['tables_running'] = max(existing['tables_running'], record['tables_running'])
+                existing['players_waiting'] = max(existing['players_waiting'], record['players_waiting'])
+            else:
+                records_by_identity[identity] = record
 
-        live_names = [g['game'].strip().lower() for g in data['live_games']]
+        live_names = {
+            ' '.join(str(g['game']).lower().split())
+            for g in data['live_games']
+        }
         for w in data['waitlist']:
-            if w['game'].strip().lower() not in live_names:
+            if ' '.join(str(w['game']).lower().split()) not in live_names:
+                game_name = ' '.join(str(w['game']).split())
+                identity = (data['venue_slug'], ' '.join(game_name.lower().split()))
                 record = {
+                    'id': stable_live_row_id('bravo', batch_id, data['venue_slug'], game_name),
                     'bravo_slug': data['venue_slug'],
                     'venue_name': data['venue_name'],
-                    'game_name': w['game'],
+                    'game_name': game_name,
                     'tables_running': 0,
                     'players_waiting': w['players_waiting'],
                     'scrape_timestamp': data['scrape_timestamp'],
                     'scrape_html_hash': data['scrape_html_hash'],
                     'scrape_batch_id': batch_id,
-                    'data_quality': 'scraped_verified',
+                    'data_quality': QUALITY_OBSERVED,
+                    'observation_kind': OBSERVATION_OBSERVED,
                     'source': 'bravo',
                 }
-                payload.append(record)
-    return payload
+                existing = records_by_identity.get(identity)
+                if existing:
+                    existing['players_waiting'] = max(existing['players_waiting'], record['players_waiting'])
+                else:
+                    records_by_identity[identity] = record
+    return list(records_by_identity.values())
 
 
 def publish_chunk(chunk_results, batch_id, chunk_num):
     """Publish a chunk of venue results to Supabase immediately.
     
-    Returns (records_saved, success).
+    Returns (confirmed_ids, expected_ids, success).
     """
     payload = build_payload_from_results(chunk_results, batch_id)
     if not payload:
-        return 0, True
+        return set(), set(), True
 
-    if sb_upsert('venue_live_tables', payload):
+    expected_ids = {int(row['id']) for row in payload}
+    confirmed_ids = sb_upsert('venue_live_tables', payload)
+    if confirmed_ids == expected_ids:
         log.info(f'  CHUNK {chunk_num} published: {len(payload)} records from {len(chunk_results)} venues')
-        return len(payload), True
+        return confirmed_ids, expected_ids, True
     else:
         log.error(
             f'{ERROR_SUPABASE}: CHUNK {chunk_num} publish FAILED '
-            f'({len(payload)} records from {len(chunk_results)} venues) — re-queued for retry'
+            f'({len(confirmed_ids)}/{len(payload)} records from {len(chunk_results)} venues confirmed) '
+            '- re-queued idempotently for retry'
         )
-        return 0, False
+        return confirmed_ids, expected_ids, False
 
 
 # ============================================================
 # MAIN SCRAPE CYCLE
 # ============================================================
-# Stale-cleanup safety gates. A cycle that did not see most of the registry
-# must NEVER be allowed to delete the previous batch's rows for the venues it
-# never reached — the live-tables API deliberately serves rows up to 24h old.
-MIN_COVERAGE_FOR_FULL_DELETE = 0.7   # fraction of registry that must be reached
-MAX_BLOCKED_RATIO_FOR_DELETE = 0.2   # abort full delete above this block rate
+# Stale-cleanup safety gate. A cycle that did not cleanly see the whole registry
+# may NEVER delete previous rows for venues it did not reach.
 DELETE_SLUG_BATCH = 40               # slugs per scoped DELETE (URL length cap)
 
 
@@ -1588,6 +1699,9 @@ def run_scrape_cycle(mgr):
     all_results = []        # All results for evidence/history
     chunk_results = []      # Current chunk buffer
     pending_publish = []    # Venues whose chunk publish FAILED — retried at end
+    attempted_ids = set()   # Deterministic row identities submitted this cycle
+    confirmed_ids = set()   # Identities PostgREST returned after persistence
+    no_data_slugs = set()   # Authenticated pages that positively reported no rows
     total_saved = 0
     total_errors = 0
     total_blocked = 0       # CF/HTTP blocks — Bravo refusing us
@@ -1617,8 +1731,10 @@ def run_scrape_cycle(mgr):
             # Flush any accumulated results before reconnect
             if chunk_results:
                 chunk_num += 1
-                saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
-                total_saved += saved
+                confirmed, expected, ok = publish_chunk(chunk_results, batch_id, chunk_num)
+                attempted_ids.update(expected)
+                confirmed_ids.update(confirmed)
+                total_saved = len(confirmed_ids)
                 if not ok:
                     publish_failures += 1
                     pending_publish.extend(chunk_results)
@@ -1656,6 +1772,27 @@ def run_scrape_cycle(mgr):
         data = extract_live_data(html, slug)
         data['batch_id'] = batch_id
 
+        # A page without the authenticated live-games section is not evidence
+        # of zero games. It is a session/markup failure and must not clear the
+        # venue's last-known rows or qualify an empty cycle as healthy.
+        if not data.get('authenticated_markup') or not data.get('live_section_found'):
+            total_errors += 1
+            consecutive_venue_failures += 1
+            log.error(
+                f'  MARKUP/AUTH FAILURE: {slug}: authenticated_marker='
+                f'{data.get("authenticated_markup")}, live_section_found='
+                f'{data.get("live_section_found")} - preserving last-known rows'
+            )
+            continue
+        if (data['live_games'] or data['waitlist']) and not (data.get('venue_name') or '').strip():
+            total_errors += 1
+            consecutive_venue_failures += 1
+            log.error(
+                f'  IDENTITY FAILURE: {slug}: live rows were parsed without a venue name '
+                '- quarantining rows and preserving the last-known batch'
+            )
+            continue
+
         total_tables = sum(g['tables'] for g in data['live_games'])
         total_waiting = sum(w['players_waiting'] for w in data['waitlist'])
 
@@ -1668,6 +1805,7 @@ def run_scrape_cycle(mgr):
             )
         else:
             total_no_data += 1
+            no_data_slugs.add(slug)
             if total_no_data <= 3 or total_no_data % 10 == 0:
                 log.info(f'  [{i+1}/{len(slugs)}] {slug[:28]:28} | no live data')
 
@@ -1678,8 +1816,10 @@ def run_scrape_cycle(mgr):
         # ── CHUNKED PUBLISH: Flush buffer every CHUNK_SIZE venues with data ──
         if len(chunk_results) >= CHUNK_SIZE:
             chunk_num += 1
-            saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
-            total_saved += saved
+            confirmed, expected, ok = publish_chunk(chunk_results, batch_id, chunk_num)
+            attempted_ids.update(expected)
+            confirmed_ids.update(confirmed)
+            total_saved = len(confirmed_ids)
             if not ok:
                 # Do NOT discard the scraped rows — re-queue them for one
                 # retry at the end of the cycle (the docstring's
@@ -1702,8 +1842,10 @@ def run_scrape_cycle(mgr):
     # ── Flush remaining venues in the last partial chunk ──
     if chunk_results:
         chunk_num += 1
-        saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
-        total_saved += saved
+        confirmed, expected, ok = publish_chunk(chunk_results, batch_id, chunk_num)
+        attempted_ids.update(expected)
+        confirmed_ids.update(confirmed)
+        total_saved = len(confirmed_ids)
         if not ok:
             publish_failures += 1
             pending_publish.extend(chunk_results)
@@ -1714,10 +1856,13 @@ def run_scrape_cycle(mgr):
     if pending_publish:
         log.warning(f'Retrying publish for {len(pending_publish)} venues from {publish_failures} failed chunk(s)...')
         chunk_num += 1
-        saved, ok = publish_chunk(pending_publish, batch_id, chunk_num)
-        total_saved += saved
+        before_retry = len(confirmed_ids)
+        confirmed, expected, ok = publish_chunk(pending_publish, batch_id, chunk_num)
+        attempted_ids.update(expected)
+        confirmed_ids.update(confirmed)
+        total_saved = len(confirmed_ids)
         if ok:
-            log.info(f'  Retry succeeded — {saved} records recovered')
+            log.info(f'  Retry succeeded: {total_saved - before_retry} missing records recovered')
             pending_publish = []
         else:
             unpublished_venues = len(pending_publish)
@@ -1725,6 +1870,25 @@ def run_scrape_cycle(mgr):
                 f'{ERROR_SUPABASE}: retry FAILED — {unpublished_venues} venues were scraped '
                 'but never persisted this cycle'
             )
+
+    # Resolve persistence at venue granularity. A venue is confirmed only when
+    # every row built for it is present in PostgREST's response; partial venue
+    # writes may not refresh history or clear its previous batch.
+    expected_ids_by_slug = {}
+    results_by_slug = {}
+    for data in all_results:
+        venue_payload = build_payload_from_results([data], batch_id)
+        if not venue_payload:
+            continue
+        slug = data['venue_slug']
+        expected_ids_by_slug.setdefault(slug, set()).update(
+            int(row['id']) for row in venue_payload
+        )
+        results_by_slug[slug] = data
+    fully_persisted_slugs = fully_persisted_venue_ids(
+        expected_ids_by_slug,
+        confirmed_ids,
+    )
 
     # ── Stale record cleanup ──
     # A partial/aborted cycle must never wipe the previous batch's rows for
@@ -1736,69 +1900,124 @@ def run_scrape_cycle(mgr):
     delete_ok = False
     delete_scope = 'none'
 
-    if total_saved > 0 and not pending_publish:
-        full_delete_safe = (
-            not cycle_aborted
-            and unpublished_venues == 0
-            and coverage >= MIN_COVERAGE_FOR_FULL_DELETE
-            and blocked_ratio <= MAX_BLOCKED_RATIO_FOR_DELETE
+    full_delete_safe = (
+        not cycle_aborted
+        and unpublished_venues == 0
+        and venues_reached == len(slugs)
+        and total_errors == 0
+        and total_blocked == 0
+        and len(confirmed_ids) == len(attempted_ids)
+    )
+    if full_delete_safe:
+        # This also handles a confirmed all-empty cycle: no current-batch rows
+        # exist, so prior observed Bravo rows are retired. Modeled rows belong
+        # to the simulator's independent lifecycle and are never deleted here.
+        delete_scope = 'full'
+        stale_query = (
+            'source=eq.bravo&observation_kind=eq.observed&or='
+            f'(scrape_batch_id.is.null,scrape_batch_id.neq.{batch_id})'
         )
-        if full_delete_safe:
-            delete_scope = 'full'
-            delete_ok = sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
-        else:
-            # Degraded cycle: only retire stale rows for the slugs we actually
-            # re-scraped, leaving untouched venues' previous rows in place.
-            published_slugs = sorted({
-                d['venue_slug'] for d in all_results if (d.get('venue_name') or '').strip()
-            })
-            # ENFORCE the charset the in.() filter below assumes, rather than
-            # trusting it: slugs are re-read from a JSON file on disk, and a
-            # slug containing ',' or ')' would silently widen the DELETE to
-            # venues this cycle never republished — wiping them from the site.
-            unsafe = [s for s in published_slugs if not re.fullmatch(r'[a-z0-9-]+', s)]
-            if unsafe:
-                log.error(
-                    f'  Refusing to include {len(unsafe)} slug(s) with unexpected characters '
-                    f'in the scoped DELETE: {unsafe[:5]}'
-                )
-                published_slugs = [s for s in published_slugs if s not in set(unsafe)]
+        delete_requested = sb_delete('venue_live_tables', stale_query)
+        delete_ok = (
+            delete_requested
+            and sb_has_rows('venue_live_tables', stale_query) is False
+        )
+    else:
+        # A degraded cycle may clear only (a) venues whose complete new payload
+        # persisted or (b) venues whose authenticated live table was positively
+        # empty. Untouched, blocked, parse-failed and partially written venues
+        # keep their last-known rows.
+        refreshable_slugs = sorted(set(fully_persisted_slugs) | no_data_slugs)
+        unsafe = [s for s in refreshable_slugs if not re.fullmatch(r'[a-z0-9-]+', s)]
+        if unsafe:
+            log.error(
+                f'  Refusing to include {len(unsafe)} slug(s) with unexpected characters '
+                f'in the scoped DELETE: {unsafe[:5]}'
+            )
+            refreshable_slugs = [s for s in refreshable_slugs if s not in set(unsafe)]
+        if refreshable_slugs:
             log.warning(
                 f'Degraded cycle (aborted={cycle_aborted}, coverage={coverage:.0%}, '
                 f'blocked={blocked_ratio:.0%}, publish_failures={publish_failures}) — '
-                f'scoping stale cleanup to {len(published_slugs)} re-scraped venues only'
+                f'scoping stale cleanup to {len(refreshable_slugs)} confirmed venues only'
             )
             delete_scope = 'scoped'
             delete_ok = True
-            for j in range(0, len(published_slugs), DELETE_SLUG_BATCH):
-                batch_slugs = published_slugs[j:j + DELETE_SLUG_BATCH]
-                # Slugs are [a-z0-9-] only (see the discovery regex), so they
-                # need no quoting/escaping inside the PostgREST in.() list.
+            for j in range(0, len(refreshable_slugs), DELETE_SLUG_BATCH):
+                batch_slugs = refreshable_slugs[j:j + DELETE_SLUG_BATCH]
                 slug_filter = ','.join(batch_slugs)
-                if not sb_delete(
-                    'venue_live_tables',
-                    f'bravo_slug=in.({slug_filter})&scrape_batch_id=neq.{batch_id}&source=eq.bravo'
+                stale_query = (
+                    f'bravo_slug=in.({slug_filter})&source=eq.bravo'
+                    '&observation_kind=eq.observed'
+                    f'&or=(scrape_batch_id.is.null,scrape_batch_id.neq.{batch_id})'
+                )
+                delete_requested = sb_delete('venue_live_tables', stale_query)
+                if not (
+                    delete_requested
+                    and sb_has_rows('venue_live_tables', stale_query) is False
                 ):
                     delete_ok = False
-        if not delete_ok:
-            log.error(f'{ERROR_SUPABASE}: stale cleanup ({delete_scope}) failed — '
-                      'venue_live_tables may contain duplicate/stale rows')
-    else:
-        log.warning('Skipping stale cleanup: nothing was persisted this cycle')
+        else:
+            log.warning('Skipping stale cleanup: no venue had a confirmed new or empty state')
+    if delete_scope != 'none' and not delete_ok:
+        log.error(f'{ERROR_SUPABASE}: stale cleanup ({delete_scope}) failed - '
+                  'venue_live_tables may contain duplicate/stale rows')
 
     # ── Historical snapshots (only for data that actually reached the DB) ──
     history_write_failures = 0
-    if total_saved > 0:
-        # Same quarantine rule as build_payload_from_results: never write
-        # rows for a venue whose name failed to extract.
-        history_results = [d for d in all_results if (d.get('venue_name') or '').strip()]
+    if fully_persisted_slugs:
+        history_results = [results_by_slug[slug] for slug in sorted(fully_persisted_slugs)]
         if not save_history_snapshot(batch_id, history_results):
             history_write_failures += 1
         if not save_game_history_snapshot(batch_id, history_results):
             history_write_failures += 1
 
-    # Save evidence
+    attempted = len(attempted_ids)
+    rejected = max(0, attempted - total_saved)
+    integrity_errors = total_errors + total_blocked + history_write_failures
+    if unpublished_venues:
+        integrity_errors += unpublished_venues
+    if delete_scope != 'none' and not delete_ok:
+        integrity_errors += 1
+    valid_empty = (
+        attempted == 0
+        and full_delete_safe
+        and delete_ok
+        and total_no_data == len(slugs)
+    )
+    outcome = classify_persisted_run(
+        attempted=attempted,
+        persisted=total_saved,
+        rejected=rejected,
+        errors=integrity_errors,
+        valid_empty=valid_empty,
+        status_reason='all_authenticated_venue_live_tables_confirmed_empty' if valid_empty else '',
+    )
+
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
+    metrics_write_ok = False
+    try:
+        metrics_row = json.dumps({
+            'source': 'bravo',
+            'cycle_start': cycle_start.isoformat(),
+            'duration_seconds': int(duration),
+            'venues_scraped': len(slugs),
+            'venues_with_data': len(all_results),
+            **outcome,
+        }).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
+            data=metrics_row, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        urllib.request.urlopen(req, timeout=10)
+        metrics_write_ok = True
+        log.info('  Scraper metrics recorded')
+    except Exception as e:
+        log.error(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED: {_http_error_detail(e)}')
+
+    # Save evidence after the metrics attempt so the local artifact records
+    # whether the monitoring write itself landed.
     evidence = {
         'batch_id': batch_id,
         'scrape_timestamp': cycle_start.isoformat(),
@@ -1810,10 +2029,14 @@ def run_scrape_cycle(mgr):
         'coverage': round(coverage, 4),
         'blocked_ratio': round(blocked_ratio, 4),
         'total_records_saved': total_saved,
-        'errors': total_errors,
+        'records_attempted': attempted,
+        'records_rejected': rejected,
+        'scrape_errors': total_errors,
+        **outcome,
         'publish_failures': publish_failures,
         'unpublished_venues': unpublished_venues,
         'history_write_failures': history_write_failures,
+        'metrics_write_ok': metrics_write_ok,
         'stale_delete_scope': delete_scope,
         'stale_delete_ok': delete_ok,
         'chunks_published': chunk_num,
@@ -1827,28 +2050,6 @@ def run_scrape_cycle(mgr):
     evidence_file = EVIDENCE_DIR / f'bravo_live_{cycle_start.strftime("%Y%m%d_%H%M%S")}.json'
     with open(evidence_file, 'w') as f:
         json.dump(evidence, f, indent=2)
-
-    # Save performance metrics to Supabase for monitoring dashboard
-    try:
-        metrics_row = json.dumps({
-            'source': 'bravo',
-            'cycle_start': cycle_start.isoformat(),
-            'duration_seconds': int(duration),
-            'venues_scraped': len(slugs),
-            'venues_with_data': len(all_results),
-            'errors': total_errors,
-            'records_saved': total_saved,
-        }).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
-            data=metrics_row, method='POST',
-            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-        )
-        urllib.request.urlopen(req, timeout=10)
-        log.info('  Scraper metrics recorded')
-    except Exception as e:
-        history_write_failures += 1
-        log.error(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED: {_http_error_detail(e)}')
 
     with open(BASE_DIR / 'data' / 'bravo-live-snapshot.json', 'w') as f:
         json.dump({
@@ -1866,14 +2067,9 @@ def run_scrape_cycle(mgr):
     # A chunk that failed but was recovered by the end-of-cycle retry is NOT a
     # degraded cycle (all rows landed); it is still counted in the heartbeat's
     # publish_failures so intermittent DB trouble stays visible.
-    cycle_ok = (
-        not cycle_aborted
-        and unpublished_venues == 0
-        and not (all_results and total_saved == 0)
-        and blocked_ratio <= MAX_BLOCKED_RATIO_FOR_DELETE
-    )
+    cycle_ok = outcome['run_status'] not in (RUN_FAILED, RUN_PARTIAL) and metrics_write_ok
 
-    if cycle_ok and total_saved > 0:
+    if cycle_ok:
         mgr.consecutive_failures = 0
     elif not cycle_ok:
         # Surface the streak to the external watchdog via the heartbeat.
@@ -1892,9 +2088,14 @@ def run_scrape_cycle(mgr):
         'venues_blocked': total_blocked,
         'coverage': round(coverage, 4),
         'errors': total_errors,
+        'run_status': outcome['run_status'],
+        'status_reason': outcome['status_reason'],
+        'records_attempted': attempted,
+        'records_rejected': rejected,
         'publish_failures': publish_failures,
         'unpublished_venues': unpublished_venues,
         'history_write_failures': history_write_failures,
+        'metrics_write_ok': metrics_write_ok,
         'stale_delete_scope': delete_scope,
         'stale_delete_ok': delete_ok,
         'cycle_ok': cycle_ok,
@@ -1917,6 +2118,21 @@ def run_scrape_cycle(mgr):
 # DAEMON LOOP
 # ============================================================
 running = True
+_daemon_lock_handle = None
+
+
+def _acquire_daemon_lock():
+    """Atomically guarantee one Bravo writer for the process lifetime."""
+    handle = open(LOCK_FILE, 'a+')
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        return None
+    except Exception:
+        handle.close()
+        raise
+    return handle
 
 def signal_handler(sig, frame):
     global running
@@ -2029,6 +2245,12 @@ def _hard_kill_on_hang(reason):
 
 
 def main():
+    global _daemon_lock_handle
+    _daemon_lock_handle = _acquire_daemon_lock()
+    if _daemon_lock_handle is None:
+        log.error('Another Bravo live daemon owns the writer lock; exiting')
+        return
+
     log.info('=' * 60)
     log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v3.0 (Chunked Publish)')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
@@ -2040,36 +2262,8 @@ def main():
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
-    # ── PID LOCKFILE: Prevent dual-instance orphans ──
-    # If a previous PID file exists and that process is still running,
-    # give it 30s to finish (one throttle interval), then terminate it.
-    if PID_FILE.exists():
-        try:
-            old_pid = int(PID_FILE.read_text().strip())
-            if old_pid != os.getpid():
-                try:
-                    os.kill(old_pid, 0)  # Check if process is alive
-                    log.warning(f'  ⚠️  Found orphan instance (PID {old_pid}) — sending SIGTERM')
-                    os.kill(old_pid, signal.SIGTERM)
-                    # Give 30s for graceful exit
-                    for _ in range(30):
-                        time.sleep(1)
-                        try:
-                            os.kill(old_pid, 0)
-                        except ProcessLookupError:
-                            break
-                    else:
-                        log.warning(f'  🔴 Orphan did not exit — sending SIGKILL')
-                        try:
-                            os.kill(old_pid, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                    log.info(f'  ✅ Orphan PID {old_pid} terminated')
-                except ProcessLookupError:
-                    log.info(f'  PID file stale (PID {old_pid} not running) — replacing')
-        except (ValueError, OSError):
-            pass
-    # Write our own PID
+    # The OS lock above is authoritative. The PID file remains informational
+    # for launchd/operator tooling and is never used to kill an unrelated PID.
     try:
         PID_FILE.write_text(str(os.getpid()))
         # 'running', not 'starting': scraper-watchdog-local.sh only accepts
@@ -2155,6 +2349,8 @@ def main():
     log.info('🛑 Shutting down, closing session...')
     mgr.disconnect()
     _kill_zombie_browsers()
+    _daemon_lock_handle.close()
+    _daemon_lock_handle = None
     # Remove PID file on clean exit
     try:
         if PID_FILE.exists() and int(PID_FILE.read_text().strip()) == os.getpid():

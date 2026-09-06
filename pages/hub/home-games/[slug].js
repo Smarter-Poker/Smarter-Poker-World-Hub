@@ -297,6 +297,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // request-a-seat flow instead of an error box with no way forward.
   const [seatRequestBusy, setSeatRequestBusy] = useState(false);
   const [seatRequestNote, setSeatRequestNote] = useState('');
+  const [seatRequestGuestCount, setSeatRequestGuestCount] = useState(0);
+  const [seatRequestGuestNames, setSeatRequestGuestNames] = useState('');
   const [seatRequestResult, setSeatRequestResult] = useState(null); // { response, membership }
 
   // Synchronous locks to prevent rapid-fire race conditions
@@ -304,6 +306,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const vouchLockRef = useRef(false);
   const joinLockRef = useRef(false);
   const friendLockRef = useRef(false);
+  const seatRequestLockRef = useRef(false);
   const trackedHomeGameRef = useRef(null);
 
   useEffect(() => {
@@ -460,7 +463,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
             if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
           }
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Follow-state resync failed:', resyncError);
+        toast.error('Follow status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setFollowBusy(false);
       followLockRef.current = false;
@@ -509,7 +515,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           if (typeof listJson.vouch_count === 'number') setVouchCount(listJson.vouch_count);
           if (Array.isArray(listJson.vouchers)) setVouchers(listJson.vouchers);
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Vouch-state resync failed:', resyncError);
+        toast.error('Vouch status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setVouchBusy(false);
       vouchLockRef.current = false;
@@ -618,6 +627,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
     }
     setSeatRequestResult(null);
     setSeatRequestNote('');
+    setSeatRequestGuestCount(0);
+    setSeatRequestGuestNames('');
     setSeatEvent(gameObj);
   };
 
@@ -625,6 +636,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
     setSeatEvent(null);
     setSeatRequestResult(null);
     setSeatRequestNote('');
+    setSeatRequestGuestCount(0);
+    setSeatRequestGuestNames('');
   };
 
   // Open the seat modal for a tournament card. TournamentList hands back its
@@ -937,7 +950,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           else if (st === 'pending_outgoing' || st === 'pending_incoming') setFriendState('pending');
           else setFriendState('none');
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Friend-state resync failed:', resyncError);
+        toast.error('Friend status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setFriendBusy(false);
       friendLockRef.current = false;
@@ -954,7 +970,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // creates the RSVP (or waitlists it when the game is full) and notifies the
   // host by push + DM.
   const submitSeatRequest = async () => {
-    if (!seatEvent?.id || seatRequestBusy) return;
+    if (!seatEvent?.id || seatRequestBusy || seatRequestLockRef.current) return;
     const token = await getAccessToken();
     if (!token) {
       const returnTo = typeof window !== 'undefined'
@@ -963,15 +979,35 @@ export default function PublicHomeGamePage({ data, serverError }) {
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
+    seatRequestLockRef.current = true;
     setSeatRequestBusy(true);
     try {
       const note = seatRequestNote.trim().slice(0, 500);
+      const rawGuestLimit = Number(seatEvent.guest_limit);
+      const guestLimit = seatEvent.allow_guests === true
+        ? (seatEvent.guest_limit == null || !Number.isFinite(rawGuestLimit)
+          ? 10
+          : Math.max(0, Math.min(10, Math.trunc(rawGuestLimit))))
+        : 0;
+      const bringingGuests = Math.min(
+        Math.max(0, Math.trunc(Number(seatRequestGuestCount) || 0)),
+        guestLimit
+      );
+      const guestNames = seatRequestGuestNames
+        .split(',')
+        .map((name) => name.trim().slice(0, 80))
+        .filter(Boolean)
+        .slice(0, bringingGuests);
       const res = await fetch(
         `/api/public/home-games/${encodeURIComponent(page.slug)}/events/${encodeURIComponent(seatEvent.id)}/request-seat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(note ? { message: note } : {}),
+          body: JSON.stringify({
+            message: note || null,
+            bringing_guests: bringingGuests,
+            guest_names: guestNames,
+          }),
         }
       );
       const json = await res.json().catch(() => ({}));
@@ -991,6 +1027,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       console.warn('Seat request error:', err);
       toast.error(err.message || 'Could not send your seat request.');
     } finally {
+      seatRequestLockRef.current = false;
       setSeatRequestBusy(false);
     }
   };
@@ -1004,7 +1041,14 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // so gating on memberStatus alone offered the host a "Request a Seat"
   // panel — which would file a pending membership request against their own
   // group — instead of the seat grid they saw before.
-  const canSeeSeatList = isOwnerViewing || memberStatus === 'active' || memberStatus === 'approved';
+  const canSeeSeatList = isOwnerViewing
+    || ['active', 'approved', 'owner', 'host'].includes(memberStatus);
+  const selectedGuestLimitValue = Number(seatEvent?.guest_limit);
+  const selectedGuestLimit = seatEvent?.allow_guests === true
+    ? (seatEvent?.guest_limit == null || !Number.isFinite(selectedGuestLimitValue)
+      ? 10
+      : Math.max(0, Math.min(10, Math.trunc(selectedGuestLimitValue))))
+    : 0;
 
   return (
     <>
@@ -1272,7 +1316,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
               ) : (
                 <div className="hgs-games-list">
                   {(upcoming_games || []).filter((g) => g.format !== 'tournament').map((g) => {
-                    const seatsLeft = g.max_players ? Math.max(0, g.max_players - (g.rsvp_yes || 0)) : null;
+                    const seatsLeft = g.max_players
+                      ? Math.max(0, g.max_players - (g.rsvp_seats ?? g.rsvp_yes ?? 0))
+                      : null;
                     const dparts = formatDate(g.scheduled_date).split(' ');
                     return (
                       <div key={g.id} className="hgs-game-card">
@@ -1615,6 +1661,46 @@ export default function PublicHomeGamePage({ data, serverError }) {
                     Request A Seat And The Host Gets Your Request Straight Away. They&apos;Ll
                     Approve You And Confirm Your Seat - No Need To Join First.
                   </p>
+                  {selectedGuestLimit > 0 && (
+                    <>
+                      <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-guests">
+                        Bringing Guests?
+                      </label>
+                      <select
+                        id="hgs-seat-request-guests"
+                        className="hgs-seat-request-input"
+                        value={seatRequestGuestCount}
+                        onChange={(e) => {
+                          const count = Math.max(0, Math.min(selectedGuestLimit, Number.parseInt(e.target.value, 10) || 0));
+                          setSeatRequestGuestCount(count);
+                          if (count === 0) setSeatRequestGuestNames('');
+                        }}
+                      >
+                        <option value={0}>No Guests</option>
+                        {Array.from({ length: selectedGuestLimit }, (_, index) => (
+                          <option key={index + 1} value={index + 1}>
+                            {index + 1} Guest{index === 0 ? '' : 's'}
+                          </option>
+                        ))}
+                      </select>
+                      {seatRequestGuestCount > 0 && (
+                        <>
+                          <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-guest-names">
+                            Guest Names (Optional, Comma Separated)
+                          </label>
+                          <input
+                            id="hgs-seat-request-guest-names"
+                            className="hgs-seat-request-input"
+                            value={seatRequestGuestNames}
+                            onChange={(e) => setSeatRequestGuestNames(e.target.value.slice(0, 809))}
+                            maxLength={809}
+                            placeholder="Alex, Jamie"
+                            autoComplete="off"
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
                   <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-note">
                     Add A Note For The Host (Optional)
                   </label>
@@ -1719,6 +1805,8 @@ const pageStyles = `
 .hgs-seat-request-note{margin:0;font-size:13px;color:rgba(255,255,255,.6);line-height:1.5}
 .hgs-seat-request-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.7)}
 .hgs-seat-request-input{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical}
+.hgs-seat-request select.hgs-seat-request-input{min-height:44px;color-scheme:dark}
+.hgs-seat-request input.hgs-seat-request-input{min-height:44px}
 .hgs-seat-textarea:focus{outline:none;border-color:rgba(139,92,246,.6);background:rgba(0,0,0,.4)}
 .hgs-seat-error{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px}
 .hgs-seat-summary{margin:0 0 20px;padding:12px 14px;background:rgba(0,0,0,.25);border-radius:8px}

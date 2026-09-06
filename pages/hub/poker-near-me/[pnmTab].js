@@ -69,6 +69,7 @@ import {
   cashGameCountLabel,
   findLiveCashGameEntry,
   isModeledCashGameData,
+  liveCashGameEntrySignature,
 } from '../../../src/lib/poker-near-me/liveCashGameData';
 import {
   buildDiscoveryUrl,
@@ -515,12 +516,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     // move off today, and the subtitle used to label every count 'Today'.
     tournamentsDay: null,
   });
+  const [mappedVenueCount, setMappedVenueCount] = useState(0);
 
-  // Live table count for map stats (fetched from live-tables API)
+  // Shared count contract separates public directory, map-ready, observed,
+  // and modeled totals so the header never compares unlike quantities.
   const [liveTableCount, setLiveTableCount] = useState(0);
-  // 'live' | 'mixed' | 'estimated' | 'none' from /api/poker/live-tables.
-  // While the Bravo live scraper is intentionally off, the count is modelled
-  // from weeks of real observed history and must be labelled approximate.
+  // 'live' | 'mixed' | 'estimated' | 'catalog' | 'none' from /api/poker/live-tables.
+  // Modeled counts remain explicitly approximate and separate from observations.
   const [liveDataMode, setLiveDataMode] = useState(null);
   // metadata.data_age_minutes — qualifies the figure in the page subtitle.
   const [liveDataAgeMinutes, setLiveDataAgeMinutes] = useState(null);
@@ -645,7 +647,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
   const buildLiveDataMap = useCallback(() => {
     fetch('/api/poker/live-tables')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Live table feed returned ${r.status}`);
+        return r.json();
+      })
       .then((json) => {
         if (json && json.metadata && typeof json.metadata.stale_threshold_hours === 'number') {
           liveStaleMsRef.current = json.metadata.stale_threshold_hours * 3600000;
@@ -700,6 +705,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // GAP FIX: the map can now shrink (see pruning above), so this effect must be
   // allowed to run when it empties — that is exactly the case where a card is
   // still advertising tables that are no longer running.
+  const venueLiveMergeRevision = useMemo(() => venues.map((venue) => (
+    `${venue?.id || venue?.slug || ''}:${liveCashGameEntrySignature(venue?.live_data)}`
+  )).join(','), [venues]);
   useEffect(() => {
     setVenues((prev) => {
       if (prev.length === 0) return prev;
@@ -711,11 +719,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         // with zero games counts as "nothing to show".
         const hasGameData = liveEntry && (liveEntry.games || []).length > 0;
         const newLiveData = hasGameData ? liveEntry : null;
-        // Skip if timestamp hasn't changed (avoid unnecessary object churn)
-        const curTs = venue.live_data?.last_updated;
-        const newTs = newLiveData?.last_updated;
         if (!newLiveData && !venue.live_data) return venue; // no change
-        if (curTs && newTs && curTs === newTs) return venue; // same data
+        if (liveCashGameEntrySignature(venue.live_data) === liveCashGameEntrySignature(newLiveData)) return venue;
         // GAP FIX: the old policy was "never replace existing live_data with
         // null", full stop — so a card kept rendering the last-seen table counts
         // forever once a venue dropped out of the feed. Now a scraper blip is
@@ -732,7 +737,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       });
       return changed ? next : prev; // referential equality guard
     });
-  }, [liveDataMap, isLiveEntryFresh]);
+  }, [liveDataMap, isLiveEntryFresh, venueLiveMergeRevision]);
 
   const [checkinCounts, setCheckinCounts] = useState({});
   useEffect(() => {
@@ -1474,26 +1479,33 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
   const fetchLiveCount = useCallback(async () => {
     try {
-      // FIXED: was cachedFetch — could return 60s-stale data when called via DATA_MUTATED.
-      // Live counts displayed in the map header badge should always be fresh.
-      const res = await fetch('/api/poker/live-tables');
+      const res = await fetch('/api/poker/platform-counts');
       if (!res.ok) return;
       const json = await res.json();
-      if (json && json.metadata) {
-        const meta = json.metadata;
-        if (meta.data_mode) setLiveDataMode(meta.data_mode);
-        if (typeof meta.data_age_minutes === 'number' || meta.data_age_minutes === null) {
-          setLiveDataAgeMinutes(meta.data_age_minutes);
+      const directory = json?.directory;
+      if (directory) {
+        if (Number.isFinite(directory.public_playable)) {
+          setDbStats((previous) => ({ ...previous, total: directory.public_playable }));
         }
-        if (typeof meta.total_tables_running === 'number') {
+        if (Number.isFinite(directory.mapped_public)) setMappedVenueCount(directory.mapped_public);
+      }
+
+      const tableSourceFailed = json?.degraded_sources?.includes('current_tables');
+      const tables = json?.current_tables;
+      if (!tableSourceFailed && tables) {
+        if (tables.data_mode) setLiveDataMode(tables.data_mode);
+        if (typeof tables.age_minutes === 'number' || tables.age_minutes === null) {
+          setLiveDataAgeMinutes(tables.age_minutes);
+        }
+        if (typeof tables.published === 'number') {
           // POLICY (retained): a transient scraper blip does not blank the badge.
-          // BUG FIX: but 'none' / stale data must be allowed to fall to 0 — the old
+          // BUG FIX: but 'none' data must be allowed to fall to 0. The old
           // rule "never decrease to 0" kept a stale non-zero figure on screen under
           // the plain "Live Tables" label indefinitely after the feed had emptied,
           // because setLiveDataMode always overwrote while the count never could.
-          const feedEmpty = meta.data_mode === 'none' || meta.stale === true;
+          const feedEmpty = tables.data_mode === 'none';
           setLiveTableCount((prev) => {
-            if (meta.total_tables_running > 0) return meta.total_tables_running;
+            if (tables.published > 0) return tables.published;
             if (feedEmpty) return 0;
             return prev > 0 ? prev : 0; // transient 0 — keep last known
           });
@@ -2707,18 +2719,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
       // Merge live data immediately to prevent extra renders
       filteredData = filteredData.map((venue) => {
-        const normName = (venue.name || '')
-          .toLowerCase()
-          .replace(/&/g, 'and')
-          .replace(/'/g, '')
-          .replace(/-/g, ' ')
-          .replace(/[^a-z0-9 ]/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const liveEntry =
-          (venue.bravo_slug && liveDataMapRef.current[venue.bravo_slug]) ||
-          liveDataMapRef.current[normName] ||
-          null;
+        const liveEntry = findLiveCashGameEntry(venue, liveDataMapRef.current);
         if (liveEntry && (liveEntry.games || []).length > 0) {
           return { ...venue, _liveMerged: true, live_data: liveEntry };
         }
@@ -3264,7 +3265,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         <h2 id="pnm-section-live-title" className="pnm-section__title">Cash Games Near Me</h2>
         <p className="pnm-section__hint">
           {liveDataMode === 'estimated' || liveDataMode === 'mixed'
-            ? 'Table Counts Are Modelled From Weeks Of Observed History, Not A Live Scrape.'
+            ? 'Estimated Counts Use Qualified Saved Observations, Not A Current Live Report.'
+            : liveDataMode === 'catalog'
+              ? 'Listed Games Are Available, But Current Table Counts Are Unknown.'
             : 'Table Counts Come From The Live Games Feed.'}
         </p>
       </div>
@@ -3772,17 +3775,21 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                   'Loading Live Data...'
                 ) : (
                   <>
-                    {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Venues &nbsp;&bull;&nbsp;
+                    {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Public Venues &nbsp;&bull;&nbsp;
                     {/* UX FIX: 'mixed' means the published total is real observations
                         PLUS simulator output, so it must carry the approximate label
                         too. Pending and offline feeds cannot prove a zero count, so
                         they render a dash instead of a misleading zero. */}
                     {liveDataMode == null || liveDataMode === 'none'
                       ? '-'
+                      : liveDataMode === 'catalog'
+                        ? 'Unknown'
                       : liveTableCount.toLocaleString()}{' '}
                     {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                       ? 'Tables (Approx.)'
-                      : 'Live Tables'}
+                      : liveDataMode === 'catalog'
+                        ? 'Live Table Count'
+                        : 'Live Tables'}
                     {typeof liveDataAgeMinutes === 'number' && liveDataAgeMinutes > 60 && (
                       <span style={{ opacity: 0.6 }}>
                         {' '}
@@ -3807,6 +3814,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               </p>
               <DiscoveryStatusRail
                 venueCount={dbStats.total}
+                mappedVenueCount={mappedVenueCount}
                 liveTableCount={liveTableCount}
                 liveDataMode={liveDataMode}
                 liveDataAgeMinutes={liveDataAgeMinutes}
@@ -3895,7 +3903,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                       <span className="pnm-live-dot" aria-hidden="true" />
                     )}
                     {tab.label}
-                    {tab.key === 'live' && liveTableCount > 0 && (
+                    {tab.key === 'live' && liveTableCount > 0 && ['live', 'mixed', 'estimated'].includes(liveDataMode) && (
                       <span className="pnm-tab-badge">{liveTableCount}</span>
                     )}
                     {tab.key === 'venues' && venues.length > 0 && (
@@ -4083,7 +4091,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               >
                 <span className="pnm-live-dot" />
                 Live Games
-                {liveTableCount > 0 && <span className="pnm-tab-badge">{liveTableCount}</span>}
+                {liveTableCount > 0 && ['live', 'mixed', 'estimated'].includes(liveDataMode) && <span className="pnm-tab-badge">{liveTableCount}</span>}
               </button>
             </div>
 
