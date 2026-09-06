@@ -4,7 +4,7 @@ import { Menu } from 'lucide-react';
 import HamburgerMenu from './HamburgerMenu';
 import { getMenuConfigForPath } from '../../config/hamburgerMenus';
 import { sanitizeFallbackMenuConfig } from '../../config/fallbackMenuSafety.mjs';
-import { resolveWorldMenu } from '../../config/worldMenuNavigation';
+import { getWorldMenuStyleVariables, resolveWorldMenu } from '../../config/worldMenuNavigation';
 
 /**
  * Route-aware safety net for legacy world pages that do not own a shared
@@ -16,6 +16,7 @@ export default function WorldCommandDock() {
   const router = useRouter();
   const path = router.asPath || router.pathname || '/';
   const world = useMemo(() => resolveWorldMenu(path), [path]);
+  const worldMenuStyle = useMemo(() => getWorldMenuStyleVariables(world), [world]);
   const menuConfig = useMemo(
     () => sanitizeFallbackMenuConfig(getMenuConfigForPath(path, null)),
     [path]
@@ -84,9 +85,10 @@ export default function WorldCommandDock() {
           className="sp-world-command-trigger"
           data-world-menu-trigger="route-fallback"
           data-menu-symbol="hamburger"
+          data-world-menu-scheme={world.menuPalette.scheme}
           aria-label={`Open ${world.label} Command Menu`}
           onClick={() => setIsOpen(true)}
-          style={{ '--world-command-accent': world.accent }}
+          style={worldMenuStyle}
         >
           {/* HAMBURGER, NOT A SIX-NODE GRID (Dan 2026-09-05: "about the dots,
               yes fix and change it back to hamburger menu only"). This is a
@@ -117,7 +119,6 @@ export default function WorldCommandDock() {
 
       <style dangerouslySetInnerHTML={{ __html: `
         .sp-world-command-trigger {
-          --world-command-accent: #2e9bff;
           position: fixed;
           top: max(12px, env(safe-area-inset-top, 0px));
           left: max(12px, env(safe-area-inset-left, 0px));
@@ -129,12 +130,12 @@ export default function WorldCommandDock() {
           align-items: center;
           gap: 10px;
           padding: 6px 11px 6px 7px;
-          border: 1px solid rgba(201,215,227,.58);
+          border: 1px solid color-mix(in srgb, var(--world-border, #607080) 84%, white);
           border-radius: 4px;
-          color: #eef5fb;
+          color: var(--world-text, #eef5fb);
           text-align: left;
-          background: linear-gradient(145deg, rgba(25,34,43,.98), rgba(3,7,11,.99));
-          box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 -1px #000, 0 9px 26px rgba(0,0,0,.55);
+          background: linear-gradient(145deg, var(--world-panel, #19222b), var(--world-canvas, #03070b));
+          box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 -1px #000, 0 9px 26px rgba(0,0,0,.55), 0 0 18px var(--world-glow, rgba(46,155,255,.18));
           cursor: pointer;
           touch-action: manipulation;
         }
@@ -145,8 +146,8 @@ export default function WorldCommandDock() {
           bottom: 0;
           left: 10px;
           height: 1px;
-          background: linear-gradient(90deg, transparent, var(--world-command-accent), transparent);
-          box-shadow: 0 0 8px var(--world-command-accent);
+          background: linear-gradient(90deg, transparent, var(--world-accent), var(--world-secondary), transparent);
+          box-shadow: 0 0 8px var(--world-accent);
         }
         /* The tile chrome is unchanged - only the symbol inside it. The two
            repeat() tracks and the round dot nodes they laid out went with the
@@ -156,20 +157,20 @@ export default function WorldCommandDock() {
           height: 34px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(201,215,227,.36);
+          border: 1px solid color-mix(in srgb, var(--world-border, #607080) 74%, white);
           border-radius: 3px;
-          background: #05090d;
-          color: var(--world-command-accent);
+          background: var(--world-canvas, #05090d);
+          color: var(--world-accent);
         }
         .sp-world-command-trigger__nodes svg {
           display: block;
-          filter: drop-shadow(0 0 5px var(--world-command-accent));
+          filter: drop-shadow(0 0 5px var(--world-accent));
         }
         .sp-world-command-trigger__copy small,
         .sp-world-command-trigger__copy strong { display: block; line-height: 1; }
-        .sp-world-command-trigger__copy small { margin-bottom: 5px; color: #75879a; font-size: 8px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-        .sp-world-command-trigger__copy strong { overflow: hidden; color: #eef5fb; font: 600 13px/1 var(--font-rajdhani), Rajdhani, sans-serif; letter-spacing: .07em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-        .sp-world-command-trigger:focus-visible { outline: 2px solid var(--world-command-accent); outline-offset: 3px; }
+        .sp-world-command-trigger__copy small { margin-bottom: 5px; color: var(--world-muted, #75879a); font-size: 8px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+        .sp-world-command-trigger__copy strong { overflow: hidden; color: var(--world-text, #eef5fb); font: 600 13px/1 var(--font-rajdhani), Rajdhani, sans-serif; letter-spacing: .07em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+        .sp-world-command-trigger:focus-visible { outline: 2px solid var(--world-focus, var(--world-accent)); outline-offset: 3px; }
         .sp-world-command-trigger:active { transform: translateY(1px); filter: brightness(1.08); }
         @media (max-width: 430px) {
           .sp-world-command-trigger { min-width: 48px; width: 48px; padding: 6px; grid-template-columns: 34px; }

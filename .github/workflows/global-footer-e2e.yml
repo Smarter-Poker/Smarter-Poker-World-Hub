@@ -86,6 +86,12 @@ jobs:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      - name: Verify premium World menu presentation
+        run: npx playwright test e2e/022-world-menu-visual.spec.ts e2e/023-world-menu-webkit.spec.ts --project=world-menu-visual --project=world-menu-webkit
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       # Mobile performance budget (mobile programme item 10): the ten rollout
       # pages at 375px against scripts/ci/mobile-budget.json. Same server,
       # same build, so it costs one more minute, not another job.

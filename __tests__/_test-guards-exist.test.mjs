@@ -163,6 +163,7 @@ import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
+import './world-menu-presentation.test.mjs';
 import './world-command-navigation-state.test.mjs';
 import './world-copy-policy.test.mjs';
 
