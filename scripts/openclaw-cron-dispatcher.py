@@ -453,6 +453,9 @@ ALL_CRONS = [
     ('/api/cron/scraper-watchdog',          dict(hour='*/2', minute=0)),
     ('/api/cron/venue-game-alerts',         dict(minute=0)),          # every hour
     ('/api/cron/scraper-data-cleanup',      dict(hour=3, minute=0)),
+    # Personal Assistant lifecycle retention. The normal assistant route is
+    # outside pages/api/cron because that directory has a strict CI file cap.
+    ('/api/assistant/retention-maintenance', dict(hour=3, minute=17)),
     ('/api/clawbot/orchestrator',           dict(hour=7, minute=0)),
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),

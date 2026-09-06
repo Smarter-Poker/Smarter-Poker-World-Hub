@@ -146,8 +146,6 @@ async function countOwnerRows(table, userId) {
 }
 
 async function summary(userId) {
-  const retention = await db().rpc('apply_personal_assistant_retention', { p_user_id: userId });
-  if (retention.error) throw retention.error;
   const [
     leaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
     coachResults, bookmarks, equityHistory, templates, sharedScenarios,
@@ -215,16 +213,19 @@ export default async function handler(req, res) {
     const { user, error } = await getServerUserWithFallback(req, db());
     if (error || !user) return res.status(401).json({ success: false, error: 'Authentication Required' });
 
-    if (req.method === 'GET' && req.query.mode === 'export') {
+    if (req.method === 'GET') return res.status(200).json({ success: true, ...(await summary(user.id)) });
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    if (req.method === 'POST' && body.action === 'export') {
       const archive = await buildExport(user.id);
       res.setHeader('Content-Disposition', `attachment; filename="smarter-poker-personal-assistant-${new Date().toISOString().slice(0, 10)}.json"`);
       return res.status(200).json(archive);
     }
-    if (req.method === 'GET') return res.status(200).json({ success: true, ...(await summary(user.id)) });
-
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
     if (req.method === 'POST' && body.action === 'save_retention') {
-      return res.status(200).json({ success: true, preference: await saveRetention(user.id, body.retentionDays) });
+      const preference = await saveRetention(user.id, body.retentionDays);
+      const retention = await db().rpc('apply_personal_assistant_retention', { p_user_id: user.id });
+      if (retention.error) throw retention.error;
+      return res.status(200).json({ success: true, preference, retention: retention.data });
     }
     if (req.method === 'POST' && body.action === 'request_deletion') {
       const scope = String(body.scope || '').toLowerCase();

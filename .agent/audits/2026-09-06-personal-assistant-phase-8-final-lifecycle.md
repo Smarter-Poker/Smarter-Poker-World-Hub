@@ -64,3 +64,30 @@ against `https://smarter.poker`. If the engine health gate does not return Promo
 keep the prior engine cohort active. Database rollback is additive: disable the
 Data workspace and API first; preserve receipts; do not restore retired public
 solver RPCs.
+
+## Final Re-Certification Addendum
+
+The completion sweep found that the original retention implementation ran from
+the Data Controls GET request. That made a nominal read mutate user data and
+meant retention stopped indefinitely when a user did not visit the screen. The
+same sweep found that export receipt creation also occurred through GET.
+
+The final correction makes Data Controls GET strictly read-only, moves export
+to the explicit POST action `export`, applies a newly saved retention policy
+immediately, and adds a bounded service-only daily retention batch. Open Claw
+runs the authenticated maintenance route at 03:17 UTC. The batch uses
+`FOR UPDATE SKIP LOCKED`, clamps its size to 1 through 1,000 owners, reuses the
+audited owner-level purge logic, and is unavailable to browser roles.
+
+Production database migrations `20260906190000` and `20260906190500` were
+applied and recorded. The first REST invocation exposed a stale PostgREST schema
+cache; the second migration explicitly reloaded it. The repeated live probe then
+returned a valid zero-work receipt, and an anonymous invocation was denied.
+
+Re-certification evidence:
+
+- Complete Personal Assistant and leak-engine suite: 181 passed.
+- API contract plus Phase 8 focused suite: 16 passed.
+- Full repository production build: passed with 400 static pages.
+- Personal Assistant performance budgets: all passed.
+- Production database ledger: both corrective migrations applied, zero pending.

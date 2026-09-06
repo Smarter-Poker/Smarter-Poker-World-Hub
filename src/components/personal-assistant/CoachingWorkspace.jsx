@@ -155,10 +155,10 @@ export default function CoachingWorkspace({
     }
   }, [apiRequest, load]);
 
-  const lifecycleRequest = useCallback(async (method = 'GET', body = null, mode = '') => {
+  const lifecycleRequest = useCallback(async (method = 'GET', body = null) => {
     const token = getAccessToken();
     if (!token) throw new Error('Sign In To Manage Your Personal Assistant Data');
-    const response = await fetch(`/api/assistant/data-controls${mode ? `?mode=${encodeURIComponent(mode)}` : ''}`, {
+    const response = await fetch('/api/assistant/data-controls', {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -189,7 +189,7 @@ export default function CoachingWorkspace({
     setLifecycleLoading(true);
     setStatus(null);
     try {
-      const archive = await lifecycleRequest('GET', null, 'export');
+      const archive = await lifecycleRequest('POST', { action: 'export' });
       const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
