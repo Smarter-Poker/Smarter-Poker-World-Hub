@@ -162,6 +162,10 @@ import './store-commerce-hardening.test.mjs';
 // locally, and was reachable from no workflow, no npm script and no import -
 // which is exactly the shape of the 52 guards found unreachable on 2026-09-04.
 import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
+// Trivia lifeline charges are client-requested but server-priced. This guard
+// pins the database replay envelope so a cheaper or differently typed debit
+// can never masquerade as the paid skip.
+import './trivia-lifeline-spend-integrity.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-hub-media-audit.test.mjs';
