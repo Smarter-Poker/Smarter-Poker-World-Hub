@@ -66,6 +66,11 @@ test('swipe-to-close excludes interactive controls and always clears cancelled g
 });
 
 test('open drawer isolates obscured branches and restores their prior accessibility state', () => {
+  assert.match(hamburger, /const changes = new Map\(\)/);
+  assert.match(hamburger, /const isolateBranches = \(\) =>/);
+  assert.match(hamburger, /new MutationObserver\(isolateBranches\)/);
+  assert.match(hamburger, /branchObserver\.observe\(document\.body, \{ childList: true, subtree: true \}\)/);
+  assert.match(hamburger, /branchObserver\.disconnect\(\)/);
   assert.match(hamburger, /sibling\.setAttribute\('inert', ''\)/);
   assert.match(hamburger, /sibling\.setAttribute\('aria-hidden', 'true'\)/);
   assert.match(hamburger, /inert: sibling\.hasAttribute\('inert'\)/);
@@ -73,6 +78,7 @@ test('open drawer isolates obscured branches and restores their prior accessibil
   assert.match(hamburger, /if \(!inert\) element\.removeAttribute\('inert'\)/);
   assert.match(hamburger, /if \(ariaHidden === null\) element\.removeAttribute\('aria-hidden'\)/);
   assert.match(hamburger, /else element\.setAttribute\('aria-hidden', ariaHidden\)/);
+  assert.match(hamburger, /sibling\.matches\?\.\('\[data-world-command-child-overlay="true"\]'\)/);
   assert.match(hamburger, /sibling\.matches\?\.\('\[data-world-command-child-dialog="true"\]'\)/);
   assert.match(hamburger, /e\.target\?\.closest\?\.\('\[data-world-command-child-dialog="true"\]'\)/);
   assert.match(hamburger, /aria-hidden=\{childDialogOpen \? 'true' : undefined\}/);
