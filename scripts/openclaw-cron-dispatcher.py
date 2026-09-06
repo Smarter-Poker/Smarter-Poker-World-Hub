@@ -114,13 +114,14 @@ REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 # flat 120s stays the default for everything else.
 JOB_TIMEOUTS = {
     '/api/internal/login-bridge-probe': 90,   # relay: Commander's two-leg probe takes 10-30s, relay caps at 50s
-    '/api/internal/pnm-integrity-refresh': 300, # exact venue queue rebuild, including polygon assessment
     '/api/cron/trivia-theme-backfill': 300,
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
-    '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
+    **{f'/api/cron/horse-batch/{i}': 600 for i in range(10)},
     '/api/cron/horses-social-all':     600,
     '/api/cron/scrape-sports-clips':   300,
+    '/api/cron/scrape-poker-clips':    300,
+    '/api/cron/revalidate-poker-clips': 120,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
     # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
     # ingestion stops wherever it was. The scraper walks 23 YouTube channels
@@ -569,6 +570,24 @@ ALL_CRONS = [
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
     ('/api/cron/scrape-sports-clips',             dict(hour=4, minute=0)),
+    # ── Phase 4 (2026-09-06) — poker gets the renewing supply sports had ────
+    # Measured over seven live days: sports drew 285 posts from a pool of
+    # 8,271 scraped clips while poker drew 245 from a frozen array of 150,
+    # using 114 of them in one week. The ledger then refused each for thirty
+    # days, so horses fell through to sports and a POKER platform posted 53.8%
+    # sports. Twice a day rather than the sports scraper's once, because the
+    # poker pool starts at 113 live clips and has the further to climb; it
+    # walks 25 channels per run, least-recently-scraped first.
+    ('/api/cron/scrape-poker-clips',              dict(hour='5,17', minute=20)),
+    # Hourly, 40 clips a run: the whole pool is re-asked well inside a week.
+    # Probing the 149 hard-coded clips found 36 dead (22 gone, 14 embedding-
+    # disabled) that had been postable for months, because the only validity
+    # cache was a Map in process memory that died with the container.
+    ('/api/cron/revalidate-poker-clips',          dict(minute=40)),
+    # Both Phase 4 defects were silent for weeks and both were found by a
+    # person reading rows. A queue that stops draining and a pool that stops
+    # growing look exactly like a quiet week.
+    ('/api/cron/content-supply-watchdog',         dict(minute=50)),
     # /api/cron/scrape-venue-info?batch=1..5 RETIRED 2026-04-25 (Phase 2B.3
     # partial cleanup). Superseded by .github/workflows/venue-scraper.yml +
     # daily_venue_scraper.py which has been the actual scraper since
@@ -602,18 +621,20 @@ ALL_CRONS = [
     ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
 
     # ══ WAVE 2 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
-    # Horses infrastructure. Fleet Content Programme phase 1 (2026-09-05,
-    # workers docs/FLEET-CONTENT-PROGRAMME.md): the ten horse-batch fires
-    # (100 posts/day from the 100 lowest-UUID horses) are replaced by ONE
-    # hourly fleet route that asks "who is due now?" across all 1,000.
-    # horses-social-all moves to hourly because its gate is now the horse's
-    # awake hour, not a minute slot that only :00 fires could hit. :10 and
-    # :30 keep both clear of the Club Arena :55 maintenance break and of the
-    # :00 pile-up.
-    ('/api/cron/horse-posts',                     dict(minute=10)),          # hourly, whole fleet
-    ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
+    # Horses infrastructure (10 batches + 3 social/stories)
+    ('/api/cron/horses-social-all',               dict(hour='*/2', minute=0)),
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
+    ('/api/cron/horse-batch/0',                   dict(hour=0, minute=0)),
+    ('/api/cron/horse-batch/1',                   dict(hour=2, minute=30)),
+    ('/api/cron/horse-batch/2',                   dict(hour=5, minute=0)),
+    ('/api/cron/horse-batch/3',                   dict(hour=7, minute=30)),
+    ('/api/cron/horse-batch/4',                   dict(hour=10, minute=0)),
+    ('/api/cron/horse-batch/5',                   dict(hour=12, minute=30)),
+    ('/api/cron/horse-batch/6',                   dict(hour=15, minute=0)),
+    ('/api/cron/horse-batch/7',                   dict(hour=17, minute=30)),
+    ('/api/cron/horse-batch/8',                   dict(hour=20, minute=0)),
+    ('/api/cron/horse-batch/9',                   dict(hour=22, minute=30)),
     # Trivia tournament lifecycle
     ('/api/cron/trivia-tournaments',              dict(hour=1, minute=0)),
     ('/api/cron/trivia-tournament-rounds',        dict(minute=0)),           # hourly round advance
@@ -796,7 +817,6 @@ ALL_CRONS = [
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
     ('_internal/auth-drift-watchdog',             dict(minute='*/5')),      # every 5 min — catches a rotation that missed this host
     ('_internal/pnm-directory-health',            dict(minute=35)),         # hourly — live/snapshot parity, age, and latency
-    ('/api/internal/pnm-integrity-refresh',        dict(hour=5, minute=20)), # daily — elapsed-time freshness + exact anomaly queue
     ('_internal/heartbeat',                       dict(minute='*/15')),     # every 15 min
 ]
 
@@ -966,6 +986,12 @@ WORKERS_PREFERRED = {
     # (channels_scraped:38, found:100). Dispatcher REQUEST_TIMEOUT=120s
     # easily covers it.
     '/api/cron/scrape-sports-clips':           '/cron/scrape-sports-clips',
+    # ─── Phase 4 (2026-09-06) — poker clip supply, all three workers-side ──
+    # These live in the workers repo beside the sports scraper they are
+    # modelled on; there is no monolith handler for any of them.
+    '/api/cron/scrape-poker-clips':            '/cron/scrape-poker-clips',
+    '/api/cron/revalidate-poker-clips':        '/cron/revalidate-poker-clips',
+    '/api/cron/content-supply-watchdog':       '/cron/content-supply-watchdog',
     # ─── 2B.2(i) — horses-social-friends (parallel session, handler 39) ────
     # Workers repo HEAD b44078b extracted slim HorseSocialEngine.sendFriendRequests +
     # acceptFriendRequests (the handler's only actual deps) so we don't need
@@ -995,9 +1021,16 @@ WORKERS_PREFERRED = {
     # production fires after deploy will be the validation window.
     '/api/cron/horses-social-all':             '/cron/horses-social-all',
     '/api/cron/horses-stories':                '/cron/horses-stories',
-    # horse-batch/0..9 retired 2026-09-05 (Fleet Content Programme phase 1);
-    # the workers routes remain as a hand-over shim until the next cleanup.
-    '/api/cron/horse-posts':                   '/cron/horse-posts',
+    '/api/cron/horse-batch/0':                 '/cron/horse-batch/0',
+    '/api/cron/horse-batch/1':                 '/cron/horse-batch/1',
+    '/api/cron/horse-batch/2':                 '/cron/horse-batch/2',
+    '/api/cron/horse-batch/3':                 '/cron/horse-batch/3',
+    '/api/cron/horse-batch/4':                 '/cron/horse-batch/4',
+    '/api/cron/horse-batch/5':                 '/cron/horse-batch/5',
+    '/api/cron/horse-batch/6':                 '/cron/horse-batch/6',
+    '/api/cron/horse-batch/7':                 '/cron/horse-batch/7',
+    '/api/cron/horse-batch/8':                 '/cron/horse-batch/8',
+    '/api/cron/horse-batch/9':                 '/cron/horse-batch/9',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
@@ -1056,7 +1089,6 @@ def _workers_dispatch(path: str) -> bool:
 # hub and the commander Vercel project, which is exactly a failure.
 CRITICAL_JOBS = {
     '/api/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
-    '/api/internal/pnm-integrity-refresh': 2, # daily; two missed exact queue rebuilds page once
     # 2026-09-04: the video-library scraper exited 1 at 06:00 UTC on five
     # consecutive days and every run was logged "executed successfully". A
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
@@ -1065,7 +1097,6 @@ CRITICAL_JOBS = {
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
-    '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
 }
