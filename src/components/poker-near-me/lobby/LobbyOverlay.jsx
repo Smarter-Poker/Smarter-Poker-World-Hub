@@ -367,7 +367,7 @@ export default function LobbyOverlay({
           <picture>
             <source srcSet="/images/lobby-pods/poker-near-me-grid.webp" type="image/webp" />
             <img
-              src="/images/lobby-pods/poker-near-me-grid.png"
+              src="/images/lobby-pods/poker-near-me-grid.webp"
               alt="Poker Near Me Feature Grid"
               loading="eager"
               fetchPriority="high"

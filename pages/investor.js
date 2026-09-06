@@ -16,54 +16,54 @@ import {
 // =========================================================================
 
 
-const MockHubCarousel = () => <img src="/images/pitch/hub_carousel.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Hub"  loading="lazy" />;
-const MockClubCommander = () => <img src="/images/pitch/club_commander.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Club Commander"  loading="lazy" />;
-const MockLiveArena = () => <img src="/images/pitch/live_arena.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Live Arena"  loading="lazy" />;
-const MockGTO = () => <img src="/images/pitch/gto_training.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="GTO Training"  loading="lazy" />;
-const MockDiamondStore = () => <img src="/images/pitch/diamond_store.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Diamond Store"  loading="lazy" />;
-const MockPioSolver = () => <img src="/images/pitch/pio_solver.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="PioSolver"  loading="lazy" />;
-const MockSocialFeed = () => <img src="/images/pitch/social_feed.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Social Feed"  loading="lazy" />;
-const MockArcade = () => <img src="/images/pitch/arcade_hologram.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Arcade"  loading="lazy" />;
+const MockHubCarousel = () => <img src="/images/pitch/hub_carousel.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Hub"  loading="lazy" />;
+const MockClubCommander = () => <img src="/images/pitch/club_commander.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Club Commander"  loading="lazy" />;
+const MockLiveArena = () => <img src="/images/pitch/live_arena.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Live Arena"  loading="lazy" />;
+const MockGTO = () => <img src="/images/pitch/gto_training.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="GTO Training"  loading="lazy" />;
+const MockDiamondStore = () => <img src="/images/pitch/diamond_store.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Diamond Store"  loading="lazy" />;
+const MockPioSolver = () => <img src="/images/pitch/pio_solver.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="PioSolver"  loading="lazy" />;
+const MockSocialFeed = () => <img src="/images/pitch/social_feed.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Social Feed"  loading="lazy" />;
+const MockArcade = () => <img src="/images/pitch/arcade_hologram.webp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Arcade"  loading="lazy" />;
 // 36-SLIDE DATA CONFIGURATION
 // =========================================================================
 
 const SLIDES = [
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_01_title_1772657206089.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_02_problem_1772657217174.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_03_solution_1772657231291.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_04_architecture_1772657248554.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_05_world_hub_1772657260915.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_06_near_me_1772657273400.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_07_vs_atlas_1772657288949.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_08_commander_1772657304115.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_09_arena_1772657316171.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_10_diamond_arena_1772657329877.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_11_gto_1772657342074.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_12_pio_farm_1772657358505.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_13_jarvis_1772657389931.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_14_social_1772657402291.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_15_bankroll_1772657413797.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_16_news_1772657426067.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_17_economy_1772657442694.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_18_store_1772657464365.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_19_arcade_1772657486341.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_20_microtasks_1772657500671.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_21_market_1772657513252.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_22_revenue_1772657526052.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_23_traction_1772657539265.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_24_landscape_1772657549334.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_25_moats_1772657583706.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_26_retention_1772657596435.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_27_architecture_1772657609133.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_28_security_1772657620228.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_29_valuation_1772657633560.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_30_funds_1772657646654.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_31_roadmap_1772657660397.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_32_economics_1772657671248.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_33_team_1772657685623.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_34_why_now_1772657696840.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_35_risk_1772657710214.png' },
-    { type: 'full-image', bgImage: '/images/pitch/v4_slide_36_the_ask_1772657725271.png' }
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_01_title_1772657206089.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_02_problem_1772657217174.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_03_solution_1772657231291.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_04_architecture_1772657248554.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_05_world_hub_1772657260915.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_06_near_me_1772657273400.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_07_vs_atlas_1772657288949.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_08_commander_1772657304115.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_09_arena_1772657316171.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_10_diamond_arena_1772657329877.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_11_gto_1772657342074.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_12_pio_farm_1772657358505.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_13_jarvis_1772657389931.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_14_social_1772657402291.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_15_bankroll_1772657413797.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_16_news_1772657426067.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_17_economy_1772657442694.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_18_store_1772657464365.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_19_arcade_1772657486341.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_20_microtasks_1772657500671.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_21_market_1772657513252.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_22_revenue_1772657526052.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_23_traction_1772657539265.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_24_landscape_1772657549334.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_25_moats_1772657583706.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_26_retention_1772657596435.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_27_architecture_1772657609133.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_28_security_1772657620228.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_29_valuation_1772657633560.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_30_funds_1772657646654.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_31_roadmap_1772657660397.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_32_economics_1772657671248.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_33_team_1772657685623.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_34_why_now_1772657696840.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_35_risk_1772657710214.webp' },
+    { type: 'full-image', bgImage: '/images/pitch/v4_slide_36_the_ask_1772657725271.webp' }
 ];
 
 // =========================================================================
