@@ -15,6 +15,10 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+  dailyTournamentDedupKey,
+  fetchAllDailyTournamentRows,
+} from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 // Any tournament starting before 10:00 AM is treated as a data quality error
 // (scraper artifacts produce 12 AM / 1 AM times that don't exist in reality).
@@ -74,7 +78,7 @@ function getDayNameForDate(dateStr) {
     const clean = dateStr.trim().slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return null;
     const d = new Date(`${clean}T12:00:00Z`);
-    if (isNaN(d.getTime())) return null;
+    if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== clean) return null;
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[d.getUTCDay()];
 }
@@ -161,35 +165,7 @@ async function handler(req, res) {
           const sourceWarnings = [];
           const safeStateParam = state ? state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50) : null;
 
-          // Try to get tournaments from database first
-          let query = getSupabase()
-              .from('venue_daily_tournaments')
-              .select(`
-                  id,
-                  venue_id,
-                  venue_name,
-                  day_of_week,
-                  start_time,
-                  buy_in,
-                  game_type,
-                  format,
-                  guaranteed,
-                  tournament_name,
-                  rebuy_addon,
-                  starting_stack,
-                  blind_levels,
-                  level_duration_minutes,
-                  late_registration,
-                  structure_sheet_url,
-                  parent_tournament_id,
-                  source_url,
-                  last_scraped,
-                  is_active
-              `)
-              .eq('is_active', true)
-              .or('is_suppressed.is.null,is_suppressed.eq.false')
-              .in('data_quality', ['scraped_verified', 'scraped_inferred'])
-              .order('buy_in', { ascending: true });
+          let stateVenueIds = safeStateParam ? [] : null;
 
           // Resolve state to venue IDs before the schedule query. State lives on
           // poker_venues, not venue_daily_tournaments; fetching the full national
@@ -202,10 +178,7 @@ async function handler(req, res) {
                       .eq('state', safeStateParam.toUpperCase())
                       .range(0, 999);
                   if (stateVenueError) throw stateVenueError;
-                  const stateVenueIds = (stateVenues || []).map(v => Number(v.id)).filter(Number.isFinite);
-                  query = stateVenueIds.length > 0
-                      ? query.in('venue_id', stateVenueIds)
-                      : query.eq('venue_id', -1);
+                  stateVenueIds = (stateVenues || []).map(v => Number(v.id)).filter(Number.isFinite);
               } catch (stateVenueErr) {
                   sourceWarnings.push('state_venue_lookup_unavailable');
                   console.warn('[daily-tournaments] state venue lookup failed (non-fatal):', stateVenueErr?.message || stateVenueErr);
@@ -218,79 +191,89 @@ async function handler(req, res) {
           // [B6 FIX] When exact_date is provided (calendar mode), skip day_of_week filter
           // on venue_daily_tournaments — we want ALL recurring ('Daily') events plus any
           // matching date-specific records. Day filter would incorrectly exclude 'Daily' rows.
-          const hasExactDate = !!exact_date;
+          const cleanExactDate = exact_date ? exact_date.trim() : null;
+          const exactDateDay = cleanExactDate ? getDayNameForDate(cleanExactDate) : null;
+          if (cleanExactDate && (!/^\d{4}-\d{2}-\d{2}$/.test(cleanExactDate) || !exactDateDay)) {
+              return res.status(400).json({ success: false, error: 'exact_date must be a valid YYYY-MM-DD date' });
+          }
+          const hasExactDate = Boolean(cleanExactDate);
           // [DT-1 FIX] Strip PostgREST injection chars from targetDay including [ ] ' " ; before
           // interpolating it into the .or() filter string. PostgREST uses [ in operator syntax.
           if (!hasExactDate && day !== 'all') {
               targetDay = (day || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20);
               if (!targetDay) targetDay = getCurrentDay();
-              query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           } else if (hasExactDate) {
               // [B6 FIX v2] Calendar mode: the weekday must come from the REQUESTED date,
               // not from today — otherwise 2026-08-01 (a Saturday) was filtered with
               // today's weekday and showed the wrong recurring tournaments.
-              const dayFromExactDate = getDayNameForDate(exact_date);
-              targetDay = (day || dayFromExactDate || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20) || getCurrentDay();
-              query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
+              targetDay = (day || exactDateDay || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20) || getCurrentDay();
           }
 
-          // Filter by exact venue ID — must be a valid integer to prevent cast errors
-          if (venue_id) {
-              const parsedVenueId = parseInt(venue_id, 10);
-              if (!isNaN(parsedVenueId) && parsedVenueId > 0) {
-                  query = query.eq('venue_id', parsedVenueId);
-              }
-          }
-
-          // Filter by venue name — strip SQL ILIKE wildcards and injection chars to prevent wildcard injection
-          // [A2 FIX] Added single-quote to character class — O'Brien-style names were passing through unsanitized
-          if (venue) {
-              const safeVenue = venue.replace(/[,().%_\\'";]/g, '').trim().slice(0, 100);
-              if (safeVenue) {
-                  query = query.ilike('venue_name', `%${safeVenue}%`);
-              }
-          }
-
-          // Filter by game type — strip SQL ILIKE wildcards
-          if (game_type && game_type !== 'all') {
-              const safeGameType = game_type.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50);
-              if (safeGameType) query = query.ilike('game_type', `%${safeGameType}%`);
-          }
-
-          // Filter by minimum guaranteed prize
-          if (minGuaranteed) {
-              query = query.gte('guaranteed', parseInt(minGuaranteed, 10) || 0);
-          }
-
-          // Filter by buy-in range
-          if (minBuyin) {
-              query = query.gte('buy_in', parseInt(minBuyin, 10) || 0);
-          }
-          if (maxBuyin) {
-              query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
-          }
-
-          // Use a bounded over-fetch rather than reading all 5,000 national rows.
-          // The previous ceiling repeatedly exceeded the production statement
-          // timeout even though the UI serves at most `limit` rows. Two pages of
-          // headroom preserve dedup/filter behavior without the unbounded scan.
           const rawLimit = parseInt(limit, 10);
           const parsedLimit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 999, 1), 5000);
-          const fetchCeiling = parsedLimit > 2500
-              ? parsedLimit
-              : Math.min(Math.max(parsedLimit * 2, 500), 2500);
-          query = query.range(0, fetchCeiling - 1);
+          const parsedVenueId = Number.parseInt(venue_id, 10);
+          const safeVenue = venue ? venue.replace(/[,().%_\\'";]/g, '').trim().slice(0, 100) : null;
+          const safeGameType = game_type && game_type !== 'all'
+              ? game_type.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50)
+              : null;
 
-          const { data: dbTournaments, error } = await query;
+          // Supabase/PostgREST caps responses at 1,000 rows. Build a fresh,
+          // deterministically ordered query for every page so no venue or buy-in
+          // range is silently omitted from national discovery.
+          const buildTournamentQuery = () => {
+              let query = getSupabase()
+                  .from('venue_daily_tournaments')
+                  .select(`
+                      id,
+                      venue_id,
+                      venue_name,
+                      day_of_week,
+                      event_date,
+                      start_time,
+                      buy_in,
+                      game_type,
+                      format,
+                      guaranteed,
+                      tournament_name,
+                      rebuy_addon,
+                      starting_stack,
+                      blind_levels,
+                      level_duration_minutes,
+                      late_registration,
+                      structure_sheet_url,
+                      parent_tournament_id,
+                      source_url,
+                      last_scraped,
+                      is_active
+                  `)
+                  .eq('is_active', true)
+                  .or('is_suppressed.is.null,is_suppressed.eq.false')
+                  .in('data_quality', ['scraped_verified', 'scraped_inferred', 'manual_research']);
 
-          // [P3-A FIX] Harden exact_date sanitization — enforce strict YYYY-MM-DD
-          let targetDateStr = getNextDateForDay(targetDay);
-          if (exact_date) {
-              const cleanDate = exact_date.replace(/[,()_%'"]/g, '').trim().slice(0, 10);
-              if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-                  targetDateStr = cleanDate;
+              if (stateVenueIds) {
+                  query = stateVenueIds.length > 0
+                      ? query.in('venue_id', stateVenueIds)
+                      : query.eq('venue_id', -1);
               }
-          }
+              if (!hasExactDate && day !== 'all') {
+                  query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
+              } else if (hasExactDate) {
+                  query = query.or(`event_date.eq.${cleanExactDate},day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
+              }
+              if (Number.isInteger(parsedVenueId) && parsedVenueId > 0) query = query.eq('venue_id', parsedVenueId);
+              if (safeVenue) query = query.ilike('venue_name', `%${safeVenue}%`);
+              if (safeGameType) query = query.ilike('game_type', `%${safeGameType}%`);
+              if (minGuaranteed) query = query.gte('guaranteed', parseInt(minGuaranteed, 10) || 0);
+              if (minBuyin) query = query.gte('buy_in', parseInt(minBuyin, 10) || 0);
+              if (maxBuyin) query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
+              return query.order('buy_in', { ascending: true }).order('id', { ascending: true });
+          };
+
+          const scheduleResult = await fetchAllDailyTournamentRows(buildTournamentQuery);
+          const dbTournaments = scheduleResult.rows;
+          const error = scheduleResult.error;
+          if (scheduleResult.truncated) sourceWarnings.push('daily_tournament_scan_truncated');
+          const targetDateStr = cleanExactDate || getNextDateForDay(targetDay);
 
           // [P2-C FIX] Run charity + tour queries IN PARALLEL — was sequential (2 round trips).
           // Promise.all reduces API latency by ~50ms on every page load.
@@ -317,29 +300,14 @@ async function handler(req, res) {
               
               // ═══════════════════════════════════════════════════════════
               // DEDUP LAYER: Remove duplicate tournaments from multiple scrape runs
-              // Key: venue_name + start_time + normalized_game_type + buy_in
+              // Key includes schedule identity so a recurring row and a one-off
+              // event on another date cannot erase each other.
               // First occurrence wins (ordered by buy_in ascending from query)
               // ═══════════════════════════════════════════════════════════
               const seenKeys = new Set();
               const dedupedTournaments = [];
               for (const t of dbTournaments) {
-                  // Normalize game type for deduplication
-                  let normGame = (t.game_type || t.tournament_name || 'nlh').toLowerCase().trim();
-                  if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
-                      normGame = 'nlh';
-                  } else if (normGame.includes('plo') || normGame.includes('omaha')) {
-                      normGame = 'omaha';
-                  } else if (normGame.includes('mixed') || normGame.includes('horse')) {
-                      normGame = 'mixed';
-                  }
-                  
-                  const key = [
-                      (t.venue_name || '').toLowerCase().trim(),
-                      // Removed day_of_week which caused 'Daily' vs 'Tuesday' to both show up
-                      (t.start_time || '').toLowerCase().trim(),
-                      normGame,
-                      (t.buy_in || 0).toString()
-                  ].join('|');
+                  const key = dailyTournamentDedupKey(t);
                   
                   if (!seenKeys.has(key)) {
                       seenKeys.add(key);
@@ -807,7 +775,9 @@ async function handler(req, res) {
                   degraded: sourceWarnings.length > 0,
                   source: error ? 'supplemental_sources' : 'venue_daily_tournaments',
                   warnings: sourceWarnings,
-                  fetchCeiling,
+                  pagesFetched: scheduleResult.pagesFetched,
+                  rowsScanned: dbTournaments.length,
+                  truncated: scheduleResult.truncated,
               },
               day: targetDay,
               totalVenues: distinctVenues,

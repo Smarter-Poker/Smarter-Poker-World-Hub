@@ -90,6 +90,30 @@ export function findLiveCashGameEntry(venue, index) {
   return null;
 }
 
+export function liveCashGameEntrySignature(entry) {
+  if (!entry) return 'none';
+  const games = (Array.isArray(entry.games) ? entry.games : [])
+    .map((game) => [
+      String(game?.game || '').trim().toLowerCase(),
+      finiteCount(game?.tables_running),
+      finiteCount(game?.players_waiting),
+      game?.is_simulated === true ? 'estimated' : 'observed',
+      game?.is_stale === true ? 'stale' : 'fresh',
+    ].join(':'))
+    .sort()
+    .join(',');
+  return [
+    entry.last_updated || '',
+    finiteCount(entry.tables_running),
+    finiteCount(entry.tables_running_observed),
+    finiteCount(entry.tables_running_simulated),
+    finiteCount(entry.players_waiting),
+    entry.data_mode || '',
+    entry.is_stale === true ? 'stale' : 'fresh',
+    games,
+  ].join('|');
+}
+
 export function isModeledCashGameData(liveData) {
   return liveData?.data_mode === 'estimated'
     || liveData?.is_simulated === true

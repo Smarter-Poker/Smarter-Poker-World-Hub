@@ -1,6 +1,17 @@
 export const DAILY_TOURNAMENT_PAGE_SIZE = 1000;
 export const DAILY_TOURNAMENT_MAX_ROWS = 50000;
 
+export function isValidIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+export function isValidIsoMonth(value) {
+  if (!/^\d{4}-\d{2}$/.test(value || '')) return false;
+  return isValidIsoDate(`${value}-01`);
+}
+
 /**
  * Exhaust a deterministic Supabase query in bounded 1,000-row pages.
  *
@@ -9,7 +20,7 @@ export const DAILY_TOURNAMENT_MAX_ROWS = 50000;
  * national sampling bias this helper exists to remove, so callers must treat
  * any error or `truncated` result as degraded/incomplete.
  */
-export async function fetchAllDailyTournamentRows(
+export async function fetchAllRows(
   buildQuery,
   { pageSize = DAILY_TOURNAMENT_PAGE_SIZE, maxRows = DAILY_TOURNAMENT_MAX_ROWS } = {},
 ) {
@@ -37,6 +48,13 @@ export async function fetchAllDailyTournamentRows(
   }
 
   return { rows, error: null, truncated: true, pagesFetched };
+}
+
+// Kept as a named compatibility wrapper for the daily-tournaments endpoint and
+// its contract tests. The calendar also uses the generic helper for venues,
+// series, tours, and public Home Games so none of its sources silently sample.
+export function fetchAllDailyTournamentRows(buildQuery, options) {
+  return fetchAllRows(buildQuery, options);
 }
 
 export function normalizeTournamentGame(value) {
@@ -111,4 +129,3 @@ export function classifyScraperHealth({
     reason: runStatus === 'valid_empty' ? (heartbeat.status_reason || 'Source explicitly confirmed no write was required.') : null,
   };
 }
-

@@ -5,6 +5,7 @@
  *   1. venue_daily_tournaments (9,697 active) — recurring venue tournaments
  *   2. poker_series (208) — multi-day series with date ranges
  *   3. tour_stop_events (598) + tour_event_details (462) — traveling tour events
+ *   4. public Commander home-game tournaments
  *
  * GET /api/poker/events-calendar
  *   ?day=Monday|Tuesday|...|all         Day filter (recurring tournaments)
@@ -15,7 +16,7 @@
  *   ?lat=29.7&lng=-95.3&radius=100      GPS + radius (miles)
  *   ?minBuyin=50&maxBuyin=500           Buy-in range
  *   ?gameType=NLH|PLO|Mixed             Game type filter
- *   ?eventType=daily|series|tour|all    Event source filter
+ *   ?eventType=daily|series|tour|home_game|all    Event source filter
  *   ?search=Lodge                       Free text search
  *   ?sort=date|buyin|distance           Sort order
  *   ?offset=0&limit=100                 Pagination
@@ -26,6 +27,11 @@ import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+  fetchAllRows,
+  isValidIsoDate,
+  isValidIsoMonth,
+} from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 // Hoisted out of getVenueInfo's inner loop — this used to run twice per
 // candidate comparison on the hot path.
@@ -54,6 +60,7 @@ const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'fri
 // "next occurrence only" (one row per unique tournament) to avoid millions
 // of projected rows.
 const SMART_AGG_THRESHOLD = 30;
+const CALENDAR_SOURCE_MAX_ROWS = 50000;
 
 function getCurrentDayInfo() {
   const localTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
@@ -257,11 +264,23 @@ async function handler(req, res) {
     limit = safeString(limit) || '200';
     calMonth = safeString(calMonth);
 
+    if (date && !isValidIsoDate(date)) {
+      return res.status(400).json({ success: false, error: 'date must be a valid YYYY-MM-DD date' });
+    }
+    if (calMonth && !isValidIsoMonth(calMonth)) {
+      return res.status(400).json({ success: false, error: 'calMonth must be a valid YYYY-MM month' });
+    }
+    if (date && calMonth) {
+      return res.status(400).json({ success: false, error: 'Use either date or calMonth, not both' });
+    }
+
     const sb = getSupabase();
     const { dayIndex, dayName, dateKey: todayKey } = getCurrentDayInfo();
     const parsedOffset = Math.max(0, parseInt(offset) || 0);
-    // Raise max from 500 → 1000 so wide date ranges return enough results
-    const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 200, 1000));
+    // Month and range feeds stay bounded, while an explicit date drill-down
+    // may return the full day so the calendar count and opened list reconcile.
+    const responseLimit = date ? 10000 : 1000;
+    const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 200, responseLimit));
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
     const hasGps = !isNaN(userLat) && !isNaN(userLng);
@@ -275,7 +294,7 @@ async function handler(req, res) {
     let rangeEnd = new Date(rangeStart);
 
     // calMonth override: load the entire calendar month specified
-    if (calMonth && /^\d{4}-\d{2}$/.test(calMonth)) {
+    if (calMonth) {
       const [cy, cm] = calMonth.split('-').map(Number);
       rangeStart.setFullYear(cy, cm - 1, 1);
       rangeEnd = new Date(cy, cm, 0); // last day of the month
@@ -354,23 +373,21 @@ async function handler(req, res) {
     // response still said success:true / total:0.
     const sourceDegraded = { venues: false, daily: false, series: false, tour: false, home: false };
     try {
-      // [EC4 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
-      // Paginate across up to 3 pages (3,000 venues) to handle full venue table.
-      let venueQ = sb.from('poker_venues')
-        .select('id, name, city, state, latitude, longitude, logo_url, venue_type')
-        .eq('is_active', true);
-      if (safeState) venueQ = venueQ.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
-      if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
-      // Paginate: 3 pages × 1000 = 3000 rows ceiling
-      for (let page = 0; page < 3; page++) {
-        const { data: venueRows, error: venueErr } = await venueQ.range(page * 1000, (page + 1) * 1000 - 1);
-        if (venueErr) {
-          sourceDegraded.venues = true;
-          console.warn('[events-calendar] poker_venues page', page, 'failed:', venueErr.message);
-          break;
-        }
-        if (!venueRows || venueRows.length === 0) break;
-        for (const v of venueRows) {
+      const buildVenueQuery = () => {
+        let query = sb.from('poker_venues')
+          .select('id, name, city, state, latitude, longitude, logo_url, venue_type')
+          .eq('is_active', true)
+          .order('id', { ascending: true });
+        if (safeState) query = query.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
+        if (safeCity) query = query.ilike('city', `%${safeCity}%`);
+        return query;
+      };
+      const venueResult = await fetchAllRows(buildVenueQuery, { maxRows: CALENDAR_SOURCE_MAX_ROWS });
+      if (venueResult.error || venueResult.truncated) {
+        sourceDegraded.venues = true;
+        console.warn('[events-calendar] poker_venues incomplete:', venueResult.error?.message || `exceeded ${CALENDAR_SOURCE_MAX_ROWS} rows`);
+      } else {
+        for (const v of venueResult.rows) {
           venueLocations[v.id] = v;
           if (v.name) {
             const cleanName = v.name.toLowerCase().trim();
@@ -378,7 +395,6 @@ async function handler(req, res) {
             venueNamesList.push({ name: cleanName, venue: v, stripped: stripVenueWords(cleanName) });
           }
         }
-        if (venueRows.length < 1000) break; // no more pages
       }
     } catch (_) {
       sourceDegraded.venues = true;
@@ -427,50 +443,30 @@ async function handler(req, res) {
     let dailyEvents = [];
     if (eventType === 'all' || eventType === 'daily') {
       try {
-        let dq = sb.from('venue_daily_tournaments')
-          // `is_recurring` was selected but never read — recurrence is recomputed
-          // below as `!t.event_date`. Dropped so a schema drift on that column
-          // cannot fail the whole query.
-          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, scrape_timestamp')
-          .eq('is_active', true)
-          // Every other consumer of venue_daily_tournaments (venues.js,
-          // daily-tournaments.js, venue-tournament-calendar.js,
-          // tournament-alerts.js) treats rows below this quality bar as retired.
-          // Without it the calendar advertised events that vanish on click-through.
-          // Both scraped provenances are in-bounds: 'scraped_verified' is a
-          // structured extraction, 'scraped_inferred' a regex/heuristic parse of a
-          // real scrape. Excluding the latter hid every row the daemon writes for
-          // venues without structured markup. 'stale'/'expired' stay excluded.
-          .in('data_quality', ['scraped_verified', 'scraped_inferred'])
-          .or('is_suppressed.is.null,is_suppressed.eq.false');
-
-        if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
-        if (maxBuyin) dq = dq.lte('buy_in', parseInt(maxBuyin));
-        
-        if (safeGameType && safeGameType !== 'all') {
-          dq = dq.ilike('game_type', `%${safeGameType}%`);
-        }
-        if (search) {
-          const s = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
-          if (s) dq = dq.or(`venue_name.ilike.%${s}%,tournament_name.ilike.%${s}%`);
-        }
-
-        // [EC3 FIX] Was .limit(5000) but Supabase project-level cap is 1000 rows per query.
-        // With 9,697 active tournaments, .limit(5000) silently returned only 1000 — 89.7% lost.
-        // Paginate across up to 10 pages (10,000 row ceiling) to retrieve all active tournaments.
-        let allDtRows = [];
-        for (let page = 0; page < 10; page++) {
-          const { data: pageRows, error: pageErr } = await dq.range(page * 1000, (page + 1) * 1000 - 1);
-          if (pageErr) {
-            sourceDegraded.daily = true;
-            console.warn('[events-calendar] venue_daily_tournaments page', page, 'failed:', pageErr.message);
-            break;
+        const buildDailyQuery = () => {
+          let query = sb.from('venue_daily_tournaments')
+            // `is_recurring` was selected but never read; recurrence is
+            // recomputed below as `!t.event_date`.
+            .select('id, venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, scrape_timestamp')
+            .eq('is_active', true)
+            .in('data_quality', ['scraped_verified', 'scraped_inferred', 'manual_research'])
+            .or('is_suppressed.is.null,is_suppressed.eq.false')
+            .order('id', { ascending: true });
+          if (minBuyin) query = query.gte('buy_in', parseInt(minBuyin));
+          if (maxBuyin) query = query.lte('buy_in', parseInt(maxBuyin));
+          if (safeGameType && safeGameType !== 'all') query = query.ilike('game_type', `%${safeGameType}%`);
+          if (search) {
+            const s = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
+            if (s) query = query.or(`venue_name.ilike.%${s}%,tournament_name.ilike.%${s}%`);
           }
-          if (!pageRows || pageRows.length === 0) break;
-          allDtRows = allDtRows.concat(pageRows);
-          if (pageRows.length < 1000) break; // no more pages
+          return query;
+        };
+        const dailyResult = await fetchAllRows(buildDailyQuery, { maxRows: CALENDAR_SOURCE_MAX_ROWS });
+        const dtRows = dailyResult.error || dailyResult.truncated ? [] : dailyResult.rows;
+        if (dailyResult.error || dailyResult.truncated) {
+          sourceDegraded.daily = true;
+          console.warn('[events-calendar] venue_daily_tournaments incomplete:', dailyResult.error?.message || `exceeded ${CALENDAR_SOURCE_MAX_ROWS} rows`);
         }
-        const dtRows = allDtRows;
 
         if (dtRows) {
           for (const t of dtRows) {
@@ -508,6 +504,8 @@ async function handler(req, res) {
             for (const eDate of eventDates) {
               dailyEvents.push({
                 source: 'daily',
+                source_event_id: t.id,
+                daily_tournament_id: t.id,
                 event_date: eDate,
                 is_recurring: !t.event_date,  // flag for display
                 recurrence_label: !t.event_date && useSmartAgg ? (t.day_of_week || 'Weekly') : null,
@@ -545,6 +543,7 @@ async function handler(req, res) {
           }
         }
       } catch (e) {
+        sourceDegraded.daily = true;
         console.warn('[events-calendar] Daily tournaments error:', e.message);
       }
     }
@@ -555,29 +554,26 @@ async function handler(req, res) {
     let seriesEvents = [];
     if (eventType === 'all' || eventType === 'series') {
       try {
-        let sq = sb.from('poker_series')
-          .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url, scrape_timestamp')
-          .not('start_date', 'is', null)
-          // [EC-API-BUG-1 FIX] .eq('is_suppressed', false) silently excluded rows where
-          // is_suppressed = NULL (field never set). Use .or() to match both NULL and false,
-          // same pattern as venue_daily_tournaments at line 326.
-          .or('is_suppressed.is.null,is_suppressed.eq.false');
-
-        if (safeState) sq = sq.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
-        if (safeCity)  sq = sq.ilike('city', `%${safeCity}%`);
-        if (safeGameType && safeGameType !== 'all') sq = sq.ilike('series_type', `%${safeGameType}%`);
-        if (search) {
-          const ss = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
-          if (ss) sq = sq.or(`series_name.ilike.%${ss}%,venue_name.ilike.%${ss}%`);
-        }
-
-        // For series we always want ALL within range — no smart-agg needed (series aren't recurring)
-        // [EC2 FIX] Was .limit(1000) — switched to .range(0,999) for consistency with series.js fix.
-        // poker_series currently has 208 rows, but will grow. Range is explicit about intent.
-        const { data: seriesRows, error: seriesErr } = await sq.range(0, 999);
-        if (seriesErr) {
+        const buildSeriesQuery = () => {
+          let query = sb.from('poker_series')
+            .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url, scrape_timestamp')
+            .not('start_date', 'is', null)
+            .or('is_suppressed.is.null,is_suppressed.eq.false')
+            .order('id', { ascending: true });
+          if (safeState) query = query.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
+          if (safeCity) query = query.ilike('city', `%${safeCity}%`);
+          if (safeGameType && safeGameType !== 'all') query = query.ilike('series_type', `%${safeGameType}%`);
+          if (search) {
+            const ss = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
+            if (ss) query = query.or(`series_name.ilike.%${ss}%,venue_name.ilike.%${ss}%`);
+          }
+          return query;
+        };
+        const seriesResult = await fetchAllRows(buildSeriesQuery, { maxRows: CALENDAR_SOURCE_MAX_ROWS });
+        const seriesRows = seriesResult.error || seriesResult.truncated ? [] : seriesResult.rows;
+        if (seriesResult.error || seriesResult.truncated) {
           sourceDegraded.series = true;
-          console.warn('[events-calendar] poker_series query failed:', seriesErr.message);
+          console.warn('[events-calendar] poker_series incomplete:', seriesResult.error?.message || `exceeded ${CALENDAR_SOURCE_MAX_ROWS} rows`);
         }
 
         if (seriesRows) {
@@ -621,6 +617,7 @@ async function handler(req, res) {
             for (const dk of datesToPush) {
               seriesEvents.push({
                 source: 'series',
+                source_event_id: s.id,
                 event_date: dk,
                 end_date: sEnd,
                 event_name: s.series_name || s.short_name || 'Poker Series',
@@ -654,6 +651,7 @@ async function handler(req, res) {
           }
         }
       } catch (e) {
+        sourceDegraded.series = true;
         console.warn('[events-calendar] Series error:', e.message);
       }
     }
@@ -664,35 +662,26 @@ async function handler(req, res) {
     let tourEvents = [];
     if (eventType === 'all' || eventType === 'tour') {
       try {
-        let tq = sb.from('tour_stop_events')
-          .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller, scrape_timestamp');
-
-        // [EC8 FIX] Removed .eq('is_active', true) — tour_stop_events doesn't have an is_active column
-        // This was throwing an uncaught DB error and silently preventing any tour events from loading.
-        if (safeState) tq = tq.ilike('stop_state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
-        if (minBuyin) tq = tq.gte('buy_in', parseInt(minBuyin));
-        if (maxBuyin) tq = tq.lte('buy_in', parseInt(maxBuyin));
-        if (safeGameType && safeGameType !== 'all') tq = tq.ilike('game_type', `%${safeGameType}%`);
-        if (search) {
-          const ts = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
-          if (ts) tq = tq.or(`event_name.ilike.%${ts}%,stop_name.ilike.%${ts}%,stop_venue.ilike.%${ts}%`);
-        }
-
-        // [B1 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
-        // Paginate across up to 2 pages (2000 row ceiling) to retrieve all active tour events.
-        let allTourRows = [];
-        for (let page = 0; page < 2; page++) {
-          const { data: trPage, error: trErr } = await tq.range(page * 1000, (page + 1) * 1000 - 1);
-          if (trErr) {
-            sourceDegraded.tour = true;
-            console.warn('[events-calendar] tour_stop_events page', page, 'failed:', trErr.message);
-            break;
+        const buildTourQuery = () => {
+          let query = sb.from('tour_stop_events')
+            .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller, scrape_timestamp')
+            .order('id', { ascending: true });
+          if (safeState) query = query.ilike('stop_state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
+          if (minBuyin) query = query.gte('buy_in', parseInt(minBuyin));
+          if (maxBuyin) query = query.lte('buy_in', parseInt(maxBuyin));
+          if (safeGameType && safeGameType !== 'all') query = query.ilike('game_type', `%${safeGameType}%`);
+          if (search) {
+            const ts = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
+            if (ts) query = query.or(`event_name.ilike.%${ts}%,stop_name.ilike.%${ts}%,stop_venue.ilike.%${ts}%`);
           }
-          if (!trPage || trPage.length === 0) break;
-          allTourRows = allTourRows.concat(trPage);
-          if (trPage.length < 1000) break;
+          return query;
+        };
+        const tourResult = await fetchAllRows(buildTourQuery, { maxRows: CALENDAR_SOURCE_MAX_ROWS });
+        const tourRows = tourResult.error || tourResult.truncated ? [] : tourResult.rows;
+        if (tourResult.error || tourResult.truncated) {
+          sourceDegraded.tour = true;
+          console.warn('[events-calendar] tour_stop_events incomplete:', tourResult.error?.message || `exceeded ${CALENDAR_SOURCE_MAX_ROWS} rows`);
         }
-        const tourRows = allTourRows;
 
         if (tourRows) {
           for (const t of tourRows) {
@@ -715,6 +704,7 @@ async function handler(req, res) {
 
             tourEvents.push({
               source: 'tour',
+              source_event_id: t.id,
               event_date: t.start_date || null,
               event_name: t.event_name || t.stop_name || 'Tour Event',
               venue_name: t.stop_venue || null,
@@ -741,6 +731,7 @@ async function handler(req, res) {
           }
         }
       } catch (e) {
+        sourceDegraded.tour = true;
         console.warn('[events-calendar] Tour events error:', e.message);
       }
     }
@@ -758,7 +749,7 @@ async function handler(req, res) {
     if (eventType === 'all' || eventType === 'home_game') {
       try {
         const HG_INACTIVITY_MS = 45 * 24 * 60 * 60 * 1000;
-        const { data: hgRows, error: hgErr } = await sb
+        const buildHomeGameQuery = () => sb
           .from('commander_home_games')
           .select(`id, title, game_type, stakes, buyin_min, buyin_max, scheduled_date, start_time,
                    max_players, rsvp_yes, status, format, neighborhood, approximate_lat, approximate_lng,
@@ -771,10 +762,12 @@ async function handler(req, res) {
           .lte('scheduled_date', rangeEndKey)
           .eq('group.is_private', false)
           .eq('group.is_active', true)
-          .limit(500);
-        if (hgErr) {
+          .order('id', { ascending: true });
+        const homeResult = await fetchAllRows(buildHomeGameQuery, { maxRows: CALENDAR_SOURCE_MAX_ROWS });
+        const hgRows = homeResult.error || homeResult.truncated ? [] : homeResult.rows;
+        if (homeResult.error || homeResult.truncated) {
           sourceDegraded.home = true;
-          console.warn('[events-calendar] home games failed:', hgErr.message);
+          console.warn('[events-calendar] home games incomplete:', homeResult.error?.message || `exceeded ${CALENDAR_SOURCE_MAX_ROWS} rows`);
         } else {
           const nowMs = Date.now();
           for (const hg of hgRows || []) {
@@ -802,6 +795,7 @@ async function handler(req, res) {
 
             homeEvents.push({
               source: 'home_game',
+              source_event_id: hg.id,
               event_date: hg.scheduled_date,
               event_name: hg.title || 'Home Game Tournament',
               venue_name: g.name || 'Private Home Game',
@@ -849,16 +843,24 @@ async function handler(req, res) {
       });
     }
 
-    // Dedup: same venue + same date + same time + same buy_in
+    // Dedup repeated projections of the same source entity only. Distinct
+    // source records can legitimately share venue, date, time, buy-in, and game
+    // type, so a visual signature must never erase one of them.
     const seenKeys = new Set();
     allEvents = allEvents.filter(e => {
-      const key = [
-        (e.venue_name || '').toLowerCase().trim(),
-        e.event_date || '',
-        (e.start_time || '').toLowerCase().trim(),
-        (e.buy_in || 0).toString(),
-        (e.game_type || '').toLowerCase().trim()
-      ].join('|');
+      const stableId = e.source_event_id || e.daily_tournament_id || e.series_id
+        || e.tour_event_id || e.home_game_id || null;
+      const key = stableId
+        ? [e.source || 'unknown', String(stableId), e.event_date || ''].join('|')
+        : [
+            e.source || 'unknown',
+            (e.event_name || '').toLowerCase().trim(),
+            (e.venue_name || '').toLowerCase().trim(),
+            e.event_date || '',
+            (e.start_time || '').toLowerCase().trim(),
+            String(e.buy_in || 0),
+            (e.game_type || '').toLowerCase().trim(),
+          ].join('|');
       if (seenKeys.has(key)) return false;
       seenKeys.add(key);
       return true;
@@ -923,7 +925,12 @@ async function handler(req, res) {
       const gt = e.game_type || 'Unknown';
       gameTypes[gt] = (gameTypes[gt] || 0) + 1;
     }
-    const sourceCounts = { daily: dailyEvents.length, series: seriesEvents.length, tour: tourEvents.length };
+    const sourceCounts = { daily: 0, series: 0, tour: 0, home_game: 0 };
+    for (const event of allEvents) {
+      if (Object.prototype.hasOwnProperty.call(sourceCounts, event.source)) {
+        sourceCounts[event.source] += 1;
+      }
+    }
 
     const responsePayload = {
       success: true,
@@ -941,7 +948,7 @@ async function handler(req, res) {
         // True when a source's query actually errored, so the UI can say
         // "tournaments unavailable" instead of "no results".
         degraded: sourceDegraded,
-        totalBeforeDedup: dailyEvents.length + seriesEvents.length + tourEvents.length,
+        totalBeforeDedup: dailyEvents.length + seriesEvents.length + tourEvents.length + homeEvents.length,
         avgBuyin: buyInCount > 0 ? Math.round(buyInSum / buyInCount) : 0,
         minBuyin: buyInCount > 0 ? buyInMin : 0,
         maxBuyin: buyInCount > 0 ? buyInMax : 0,
@@ -978,7 +985,7 @@ async function handler(req, res) {
     // mistake a cached error body for valid data.
     return res.status(500).json({
       success: false,
-      error: err.message,
+      error: 'Internal server error',
       events: [],
       total: 0,
       dateCounts: {},

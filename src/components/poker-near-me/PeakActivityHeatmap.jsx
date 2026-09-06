@@ -37,8 +37,12 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
       if (params.length) url += '?' + params.join('&');
       
       fetch(url, { signal: controller.signal })
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r;
+        })
         .then(r => r.json())
-        .then(d => { if (mounted) { setData(d); setLoading(false); } })
+        .then(d => { if (mounted) { setData(d); setError(null); setLoading(false); } })
         .catch(e => { if (mounted && e.name !== 'AbortError') { setError(e.message); setLoading(false); } });
     };
 
@@ -59,7 +63,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   }, [venueFilter, gameType]);
 
   const heatmapGrid = useMemo(() => {
-    if (!data?.heatmap) return [];
+    if (!data?.heatmap?.length) return [];
     // Build 7×24 grid
     const grid = [];
     for (let d = 0; d < 7; d++) {
@@ -76,8 +80,8 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   if (loading) {
     return (
       <div style={{
-        background: 'linear-gradient(135deg, #0d1117 0%, #1a2332 100%)',
-        borderRadius: 16, padding: 24, border: '2px solid #3d4f5f',
+        background: '#080b10',
+        borderRadius: 3, padding: 24, border: '1px solid rgba(170,184,196,0.3)',
         position: 'relative', overflow: 'hidden',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
       }}>
@@ -91,13 +95,13 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   if (error || !data?.heatmap?.length) {
     return (
       <div style={{
-        background: 'linear-gradient(135deg, #0d1117 0%, #1a2332 100%)',
-        borderRadius: 16, padding: 24, border: '2px solid #3d4f5f',
+        background: '#080b10',
+        borderRadius: 3, padding: 24, border: '1px solid rgba(170,184,196,0.3)',
         position: 'relative', overflow: 'hidden',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}>
-        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16, fontFamily: 'Rajdhani, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
+        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16, fontFamily: 'Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Activity Patterns</h3>
         <div style={{ color: '#64748b', textAlign: 'center', padding: 24 }}>
           {data?.message || 'Not enough data yet. Heatmap populates within 24-48 hours.'}
         </div>
@@ -107,8 +111,8 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #0d1117 0%, #1a2332 100%)',
-      borderRadius: 16, padding: 20, border: '2px solid #3d4f5f',
+      background: '#080b10',
+      borderRadius: 3, padding: 20, border: '1px solid rgba(170,184,196,0.36)',
       position: 'relative', overflow: 'hidden',
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
       fontFamily: 'Inter, system-ui, sans-serif',
@@ -123,13 +127,18 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
       <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8), transparent)', boxShadow: '0 2px 10px rgba(0,212,255,0.4)' }} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Rajdhani, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
-        {data.best_time && (
+        <div>
+          <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Activity Patterns</h3>
+          <div style={{ color: '#7f91a3', fontSize: 12, marginTop: 3 }}>
+            Positive observed tables across {data.observed_days || 0} days
+          </div>
+        </div>
+        {data.best_time && data.data_mode === 'observed_history' && (
           <div style={{
             background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
-            borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#4ade80',
+            borderRadius: 2, padding: '6px 12px', fontSize: 12, color: '#4ade80',
           }}>
-            Best Time: {data.best_time}
+            Historical Peak: {data.best_time}
           </div>
         )}
       </div>
@@ -203,7 +212,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
       {hoveredCell && (
         <div style={{
           marginTop: 8, padding: '8px 12px',
-          background: 'rgba(0,0,0,0.6)', borderRadius: 8,
+          background: 'rgba(0,0,0,0.6)', borderRadius: 2,
           color: '#fff', fontSize: 13, textAlign: 'center',
           border: '1px solid rgba(0,212,255,0.2)',
         }}>

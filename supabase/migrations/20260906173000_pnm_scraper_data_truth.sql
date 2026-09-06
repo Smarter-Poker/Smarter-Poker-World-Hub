@@ -73,7 +73,7 @@ begin
     into v_unknown
     from public.venue_daily_tournaments
    where data_quality is null
-      or data_quality not in ('scraped_verified', 'scraped_inferred', 'stale', 'expired', 'pending');
+      or data_quality not in ('scraped_verified', 'scraped_inferred', 'manual_research', 'stale', 'expired', 'pending');
   if v_unknown is not null then
     raise exception 'pre-flight failed: unknown venue_daily_tournaments quality values: %', v_unknown;
   end if;
@@ -82,7 +82,7 @@ begin
     into v_unknown
     from public.tour_stop_events
    where data_quality is null
-      or data_quality not in ('scraped_verified', 'scraped_inferred', 'scraped_stealth', 'stale', 'expired', 'pending');
+      or data_quality not in ('scraped_verified', 'scraped_inferred', 'scraped_stealth', 'manual_research', 'stale', 'expired', 'pending');
   if v_unknown is not null then
     raise exception 'pre-flight failed: unknown tour_stop_events quality values: %', v_unknown;
   end if;
@@ -212,7 +212,7 @@ alter table public.venue_live_tables
 
 alter table public.venue_daily_tournaments
   add constraint venue_daily_tournaments_data_quality_truth_check
-  check (data_quality in ('scraped_verified', 'scraped_inferred', 'stale', 'expired', 'pending')) not valid;
+  check (data_quality in ('scraped_verified', 'scraped_inferred', 'manual_research', 'stale', 'expired', 'pending')) not valid;
 
 update public.tour_stop_events
    set data_quality = 'scraped_inferred'
@@ -220,7 +220,7 @@ update public.tour_stop_events
 
 alter table public.tour_stop_events
   add constraint tour_stop_events_data_quality_truth_check
-  check (data_quality in ('scraped_verified', 'scraped_inferred', 'stale', 'expired', 'pending')) not valid;
+  check (data_quality in ('scraped_verified', 'scraped_inferred', 'manual_research', 'stale', 'expired', 'pending')) not valid;
 
 alter table public.venue_live_tables validate constraint venue_live_tables_data_quality_truth_check;
 alter table public.venue_daily_tournaments validate constraint venue_daily_tournaments_data_quality_truth_check;
@@ -333,9 +333,9 @@ commit;
 -- alter table public.venue_live_tables add constraint venue_live_tables_data_quality_check
 --   check (data_quality in ('scraped_verified', 'stale', 'expired'));
 -- alter table public.venue_daily_tournaments add constraint venue_daily_tournaments_data_quality_check
---   check (data_quality in ('scraped_verified', 'stale', 'expired'));
+--   check (data_quality in ('scraped_verified', 'scraped_inferred', 'manual_research', 'stale', 'expired'));
 -- alter table public.tour_stop_events add constraint tour_stop_events_data_quality_check
---   check (data_quality in ('scraped_verified', 'stale', 'expired', 'pending'));
+--   check (data_quality in ('scraped_verified', 'manual_research', 'stale', 'expired', 'pending'));
 -- alter table public.venue_live_tables drop constraint if exists venue_live_tables_observation_kind_check;
 -- alter table public.venue_live_history drop constraint if exists venue_live_history_observation_kind_check;
 -- alter table public.game_live_history drop constraint if exists game_live_history_observation_kind_check;

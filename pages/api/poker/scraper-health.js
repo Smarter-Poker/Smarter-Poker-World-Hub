@@ -19,6 +19,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { classifyScraperHealth } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -31,6 +32,31 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+async function readLatestMetric(supabase, source) {
+  const legacyColumns = 'source, cycle_start, records_saved, venues_scraped, venues_with_data, errors';
+  const truthColumns = `${legacyColumns}, run_status, records_attempted, records_rejected, status_reason`;
+  let result = await supabase
+    .from('scraper_metrics')
+    .select(truthColumns)
+    .eq('source', source)
+    .order('cycle_start', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (result.error && ['42703', 'PGRST204'].includes(result.error.code)) {
+    result = await supabase
+      .from('scraper_metrics')
+      .select(legacyColumns)
+      .eq('source', source)
+      .order('cycle_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (result.data) result.data = { ...result.data, run_status: 'legacy' };
+  }
+  if (result.error) throw new Error(`Failed to fetch scraper metric: ${result.error.message}`);
+  return result.data || null;
 }
 
 export default async function handler(req, res) {
@@ -61,13 +87,18 @@ export default async function handler(req, res) {
     const health = {};
 
     for (const source of sources) {
-      // Latest scrape for this source — one row, not 10,000.
-      const { data: latestRows, error: latestErr } = await supabase
-        .from('venue_live_tables')
-        .select('scrape_timestamp, scrape_batch_id')
-        .eq('source', source)
-        .order('scrape_timestamp', { ascending: false })
-        .limit(1);
+      // Read persisted data and its write-cycle metric together. Fresh source
+      // rows alone cannot prove the latest scraper cycle succeeded.
+      const [latestDataResult, latestMetric] = await Promise.all([
+        supabase
+          .from('venue_live_tables')
+          .select('scrape_timestamp, scrape_batch_id')
+          .eq('source', source)
+          .order('scrape_timestamp', { ascending: false })
+          .limit(1),
+        readLatestMetric(supabase, source),
+      ]);
+      const { data: latestRows, error: latestErr } = latestDataResult;
       if (latestErr) {
         throw new Error(`Failed to fetch live tables: ${latestErr.message}`);
       }
@@ -109,6 +140,9 @@ export default async function handler(req, res) {
 
       const lastScrape = new Date(latestRecord.scrape_timestamp);
       const minutesAgo = Math.round((now - lastScrape) / 60000);
+      const metricMinutesAgo = latestMetric?.cycle_start
+        ? Math.round((now - new Date(latestMetric.cycle_start)) / 60000)
+        : null;
       // `records` is now the size of the LATEST BATCH, which is what the anomaly
       // rule is meant to judge. It used to be every live row for the source.
       const records = sourceData.length;
@@ -118,14 +152,17 @@ export default async function handler(req, res) {
       const tablesRunning = sourceData.reduce((sum, r) => sum + (r.tables_running || 0), 0);
       const playersWaiting = sourceData.reduce((sum, r) => sum + (r.players_waiting || 0), 0);
 
-      let status = 'healthy';
-      if (minutesAgo > 60) {
-        status = 'dead';
-        issues.push(`${source}: data is ${minutesAgo} min old (>60 min = DEAD)`);
-      } else if (minutesAgo > 30) {
-        status = 'stale';
-        issues.push(`${source}: data is ${minutesAgo} min old (>30 min = STALE)`);
-      } else if (records < 10) {
+      const classification = classifyScraperHealth({
+        heartbeat: latestMetric,
+        heartbeatStaleMinutes: metricMinutesAgo,
+        dataStaleMinutes: minutesAgo,
+        healthyMinutes: 30,
+        deadMinutes: 60,
+      });
+      let status = classification.status;
+      if (classification.reason) issues.push(`${source}: ${classification.reason}`);
+
+      if (status !== 'dead' && records < 10) {
         // The old rule also fired on `records > 5000`. That ceiling was measured
         // against EVERY live row for the source, so as venue coverage expanded
         // the endpoint would permanently report 'anomaly' and return HTTP 503 —
@@ -134,7 +171,7 @@ export default async function handler(req, res) {
         // scraper failure signal.
         status = 'anomaly';
         issues.push(`${source}: anomaly detected structurally compromised table counts (${records} tables)`);
-      } else {
+      } else if (status !== 'dead') {
         // Completeness floor: alert if venues drop below ~60% of trailing median
         try {
           const { data: metricsData } = await supabase
@@ -167,6 +204,13 @@ export default async function handler(req, res) {
         tables_running: tablesRunning,
         players_waiting: playersWaiting,
         batch_id: latestRecord.scrape_batch_id,
+        last_cycle: latestMetric?.cycle_start || null,
+        cycle_minutes_ago: metricMinutesAgo,
+        run_status: latestMetric?.run_status || null,
+        records_attempted: latestMetric?.records_attempted ?? null,
+        records_saved: latestMetric?.records_saved ?? null,
+        records_rejected: latestMetric?.records_rejected ?? null,
+        status_reason: classification.reason,
       };
     }
 
@@ -185,8 +229,12 @@ export default async function handler(req, res) {
 
     // A source with zero rows is the WORST failure mode (scraper dead long enough
     // that cleanup purged its rows), so it must escalate to critical/503 too.
-    const overallStatus = issues.length === 0 ? 'healthy' :
-      issues.some(i => i.includes('DEAD') || i.includes('anomaly') || i.includes('NO DATA')) ? 'critical' : 'warning';
+    const scraperStatuses = Object.values(health).map(item => item.status);
+    const overallStatus = scraperStatuses.some(status => ['dead', 'anomaly'].includes(status))
+      ? 'critical'
+      : scraperStatuses.some(status => ['warning', 'stale', 'unknown'].includes(status))
+        ? 'warning'
+        : 'healthy';
 
     // Return 200 for healthy/stale (operational), 503 only for dead/critical
     // This prevents external monitors from flagging normal staleness as outages

@@ -13,6 +13,13 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import {
+  PNM_TRUTH_CONTRACT_VERSION,
+  QUALIFIED_OBSERVED_SOURCES,
+  historicalCoverage,
+  tableCountFromRow,
+} from '../../../src/lib/poker-near-me/dataTruth';
 
 /**
  * Bucket a snapshot by the VENUE's local hour/day instead of UTC.
@@ -58,19 +65,21 @@ function formatHour(h) {
  * Analyze a set of snapshot rows and produce a compact prediction summary.
  */
 function analyzeVenueData(rows, timeZone) {
-  if (!rows || rows.length === 0) return null;
+  const coverage = historicalCoverage(rows);
+  if (!coverage.sufficientForPrediction) return null;
+  const historyRows = coverage.qualifiedRows;
 
   // === Aggregate by game type ===
   const gameTypeBuckets = {};
   const hourCounts = {};  // Global hour aggregation for quiet/peak hours
   const dayCounts = {};   // Global day aggregation
 
-  rows.forEach(row => {
+  historyRows.forEach(row => {
     const parts = getLocalParts(row.snapshot_time, timeZone);
     if (!parts) return;
     const { hour, day } = parts;
     const gameType = gameShortLabel(row.game_type || 'Unknown');
-    const tables = row.tables || 1;
+    const tables = tableCountFromRow(row);
 
     // Global hour/day tracking
     if (!hourCounts[hour]) hourCounts[hour] = { count: 0, tables: 0 };
@@ -97,11 +106,11 @@ function analyzeVenueData(rows, timeZone) {
 
   // === Peak time (global) ===
   const peakHourEntries = Object.entries(hourCounts || {})
-    .map(([h, v]) => ({ hour: parseInt(h), freq: v.count }))
-    .sort((a, b) => b.freq - a.freq);
+    .map(([h, v]) => ({ hour: parseInt(h), freq: v.count, avgTables: v.tables / v.count }))
+    .sort((a, b) => b.avgTables - a.avgTables || b.freq - a.freq);
   const peakDayEntries = Object.entries(dayCounts || {})
-    .map(([d, v]) => ({ day: parseInt(d), freq: v.count }))
-    .sort((a, b) => b.freq - a.freq);
+    .map(([d, v]) => ({ day: parseInt(d), freq: v.count, avgTables: v.tables / v.count }))
+    .sort((a, b) => b.avgTables - a.avgTables || b.freq - a.freq);
 
   const bestHour = peakHourEntries[0] || null;
   const bestDay = peakDayEntries[0] || null;
@@ -113,11 +122,11 @@ function analyzeVenueData(rows, timeZone) {
   const peak_days = peakDayEntries.slice(0, 3).map(d => DAY_SHORT[d.day]);
 
   // === Day activity scores for mini bar chart (7 values, 0-100) ===
-  const maxDayFreq = Math.max(...Object.values(dayCounts || {}).map(d => d.count), 1);
+  const maxDayAverage = Math.max(...Object.values(dayCounts || {}).map(d => d.tables / d.count), 1);
   const day_scores = [];
   for (let d = 0; d < 7; d++) {
     const dc = dayCounts[d];
-    day_scores.push(dc ? Math.round((dc.count / maxDayFreq) * 100) : 0);
+    day_scores.push(dc ? Math.round(((dc.tables / dc.count) / maxDayAverage) * 100) : 0);
   }
 
   // === Quiet hours analysis ===
@@ -182,8 +191,8 @@ function analyzeVenueData(rows, timeZone) {
   game_eta.sort((a, b) => b.confidence - a.confidence);
 
   // === Data quality ===
-  const totalPoints = rows.length;
-  const data_quality = totalPoints >= 100 ? 'Excellent' : totalPoints >= 30 ? 'Good' : 'Limited';
+  const totalPoints = historyRows.length;
+  const data_quality = coverage.observedDays >= 21 ? 'Excellent' : coverage.observedDays >= 14 ? 'Good' : 'Limited';
 
   return {
     best_time,
@@ -193,6 +202,10 @@ function analyzeVenueData(rows, timeZone) {
     day_scores,
     data_quality,
     data_points: totalPoints,
+    observed_days: coverage.observedDays,
+    data_mode: 'observed_history',
+    data_basis: 'positive_observed_tables',
+    truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
     has_data: true,
   };
 }
@@ -265,6 +278,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const venue_ids = safeQ(req.query.venue_ids);
@@ -296,7 +310,13 @@ export default async function handler(req, res) {
     });
 
     if (venueNamesArray.length === 0) {
-      return res.status(200).json({ success: true, predictions: {} });
+      return res.status(200).json({
+        success: true,
+        predictions: {},
+        data_mode: 'none',
+        data_basis: 'positive_observed_tables',
+        truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
+      });
     }
 
     // Resolve each venue's timezone so the buckets below are venue-local.
@@ -335,9 +355,11 @@ export default async function handler(req, res) {
       for (let page = 0; page < HISTORY_MAX_PAGES; page++) {
         const { data, error } = await supabase
           .from('game_live_history')
-          .select('venue_name, game_type, tables, waiting, snapshot_time')
+          .select('venue_name, game_type, tables, waiting, source, batch_id, snapshot_time')
           .gte('snapshot_time', fourWeeksAgo)
           .in('venue_name', batch)
+          .in('source', QUALIFIED_OBSERVED_SOURCES)
+          .gt('tables', 0)
           // DESCENDING: with ascending order the row cap discarded the most
           // RECENT snapshots first, so once a venue set exceeded the cap inside
           // the 28-day window "best time to go" was computed entirely from the
@@ -350,7 +372,13 @@ export default async function handler(req, res) {
             // Table not ready — return empty state for all
             const predictions = {};
             ids.forEach(id => { predictions[id] = { has_data: false }; });
-            return res.status(200).json({ success: true, predictions });
+            return res.status(200).json({
+              success: true,
+              predictions,
+              data_mode: 'none',
+              data_basis: 'positive_observed_tables',
+              truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
+            });
           }
           console.warn('venue-predictions-batch: history query error:', error.message);
           chunkFailed = true;
@@ -395,12 +423,16 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       predictions,
+      data_mode: Object.values(predictions).some((prediction) => prediction?.has_data)
+        ? 'observed_history'
+        : 'none',
+      data_basis: 'positive_observed_tables',
+      truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('venue-predictions-batch error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
-

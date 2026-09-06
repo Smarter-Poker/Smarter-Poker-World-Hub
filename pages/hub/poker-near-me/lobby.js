@@ -54,9 +54,6 @@ import {
   GAME_TYPE_API_PARAM,
   LOBBY_DESTINATIONS,
   POD_FEATURES,
-  VENUE_COUNT_CACHE_AT,
-  VENUE_COUNT_CACHE_KEY,
-  VENUE_COUNT_TTL_MS,
   WIDE_VENUE_LIMIT,
   clearSharedGpsLocation,
   createLobbyJsonLd,
@@ -70,6 +67,7 @@ import {
 import {
   buildLiveCashGameIndex,
   findLiveCashGameEntry,
+  liveCashGameEntrySignature,
 } from '../../../src/lib/poker-near-me/liveCashGameData';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
@@ -828,7 +826,10 @@ export default function PokerNearMeLobby() {
   const [liveDataMap, setLiveDataMap] = useState({});
   const buildLobbyLiveDataMap = useCallback(() => {
     fetch('/api/poker/live-tables')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`Live table feed returned ${r.status}`);
+        return r.json();
+      })
       .then(j => {
         // data_mode is 'live' | 'mixed' | 'estimated' | 'none'. The published
         // total_tables_running can be a MODEL output, so it must never be
@@ -857,8 +858,11 @@ export default function PokerNearMeLobby() {
   // Merge live_data into venue objects whenever venues or liveDataMap changes
   // FIXED: was guarded by _liveMerged one-shot flag — venues only merged once and never updated.
   // Now always re-merges on liveDataMap change, using last_updated timestamp to skip unchanged venues.
+  const venueLiveMergeRevision = useMemo(() => venues.map((venue) => (
+    `${venue?.id || venue?.slug || ''}:${liveCashGameEntrySignature(venue?.live_data)}`
+  )).join(','), [venues]);
   useEffect(() => {
-    if (venues.length === 0 || Object.keys(liveDataMap || {}).length === 0) return;
+    if (venues.length === 0) return;
     setVenues(prev => {
       let changed = false;
       const next = prev.map(venue => {
@@ -866,10 +870,8 @@ export default function PokerNearMeLobby() {
         const newLiveData = liveEntry && Array.isArray(liveEntry.games) && liveEntry.games.length > 0
           ? liveEntry
           : null;
-        const curTs = venue.live_data?.last_updated;
-        const newTs = newLiveData?.last_updated;
         if (!newLiveData && !venue.live_data) return venue;
-        if (curTs && newTs && curTs === newTs) return venue;
+        if (liveCashGameEntrySignature(venue.live_data) === liveCashGameEntrySignature(newLiveData)) return venue;
         changed = true;
         return newLiveData
           ? { ...venue, live_data: newLiveData }
@@ -877,72 +879,40 @@ export default function PokerNearMeLobby() {
       });
       return changed ? next : prev;
     });
-  }, [liveDataMap]); // Only re-run when live data changes, not on every venue update
+  }, [liveDataMap, venueLiveMergeRevision]);
 
 
 
-  // ─── Total venue count (platform-wide, for the stats bar) ───
-  // [AUDIT] This used to fetch and parse /data/all-venues.json (1.72 MB) on the
-  // critical path of EVERY lobby visit, purely to read `.length`.
-  //
-  // It cannot be sourced from /api/poker/venues: that endpoint applies
-  // `.range(offset, offset + limit - 1)` BEFORE computing its `total`, so the
-  // envelope's `total` is the size of the page it just returned (50, or 200 for
-  // the GPS/pod fetches), not the catalogue size. Reading it would put a wrong
-  // number in the stats bar.
-  //
-  // Instead the derived count is cached in localStorage for 24h and the download
-  // is deferred to idle time. A repeat visitor pays nothing at all; a first-time
-  // visitor pays after first paint instead of during it, and the stat falls back
-  // to the loaded venue count until it lands.
-  useEffect(() => {
-    let cancelled = false;
-
+  // ─── Shared platform count contract ───
+  // One small server endpoint now owns catalog, public-directory, map-ready,
+  // observed, and modeled totals. The browser no longer downloads the full
+  // venue snapshot just to derive one ambiguous number.
+  const fetchPlatformCounts = useCallback(async () => {
     try {
-      const cached = parseInt(localStorage.getItem(VENUE_COUNT_CACHE_KEY) || '', 10);
-      const cachedAt = parseInt(localStorage.getItem(VENUE_COUNT_CACHE_AT) || '', 10);
-      if (cached > 0 && cachedAt > 0 && (Date.now() - cachedAt) < VENUE_COUNT_TTL_MS) {
-        setTotalVenueCount(cached);
-        return;
+      const response = await fetch('/api/poker/platform-counts');
+      if (!response.ok) throw new Error(`Platform counts returned ${response.status}`);
+      const payload = await response.json();
+      const publicPlayable = payload?.directory?.public_playable;
+      if (Number.isFinite(publicPlayable) && publicPlayable >= 0) {
+        setTotalVenueCount(publicPlayable);
       }
-    } catch { /* private browsing */ }
 
-    const run = () => {
-      if (cancelled) return;
-      // Stable ?v=1 (never Date.now()) so Vercel's edge cache is not busted.
-      fetch('/data/all-venues.json?v=1')
-        .then(r => r.json())
-        .then(json => {
-          if (cancelled) return;
-          const v = json.venues || json.data || json || [];
-          const count = Array.isArray(v)
-            ? v.filter(venue => venue.venue_type !== 'series' && venue.is_active !== false).length
-            : 0;
-          if (count > 0) {
-            setTotalVenueCount(count);
-            try {
-              localStorage.setItem(VENUE_COUNT_CACHE_KEY, String(count));
-              localStorage.setItem(VENUE_COUNT_CACHE_AT, String(Date.now()));
-            } catch { /* private browsing */ }
-          }
-        })
-        .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
-    };
-
-    let idleId = null;
-    let timeoutId = null;
-    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(run, { timeout: 5000 });
-    } else {
-      timeoutId = setTimeout(run, 2500);
+      const tableSourceFailed = payload?.degraded_sources?.includes('current_tables');
+      const tables = payload?.current_tables;
+      if (!tableSourceFailed && tables) {
+        setLiveDataMode(tables.data_mode || 'none');
+        if (Number.isFinite(tables.published)) setLiveGameCount(tables.published);
+      }
+    } catch (error) {
+      console.warn('[PokerNearMeLobby] Platform count contract unavailable:', error?.message || error);
     }
-
-    return () => {
-      cancelled = true;
-      if (idleId !== null && typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleId);
-      if (timeoutId !== null) clearTimeout(timeoutId);
-    };
   }, []);
+
+  useEffect(() => {
+    fetchPlatformCounts();
+    const refreshTimer = setInterval(fetchPlatformCounts, 5 * 60 * 1000);
+    return () => clearInterval(refreshTimer);
+  }, [fetchPlatformCounts]);
 
   // ─── Refresh all data callback ───
   const handleRefreshAll = useCallback(() => {
@@ -982,7 +952,8 @@ export default function PokerNearMeLobby() {
     }
     // Re-fetch live game count + rebuild liveDataMap so VenueCards update too
     buildLobbyLiveDataMap();
-  }, [fetchVenues, searchQuery, fetchTours, fetchSeries, fetchDaily, fetchFavorites, fetchSearchHistory, userId, buildLobbyLiveDataMap]);
+    fetchPlatformCounts();
+  }, [fetchVenues, searchQuery, fetchTours, fetchSeries, fetchDaily, fetchFavorites, fetchSearchHistory, userId, buildLobbyLiveDataMap, fetchPlatformCounts]);
 
   // ─── Live games refresh handled by <LiveGamesFeed> component ───
 

@@ -10,6 +10,13 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import {
+  PNM_TRUTH_CONTRACT_VERSION,
+  QUALIFIED_OBSERVED_SOURCES,
+  historicalCoverage,
+  tableCountFromRow,
+} from '../../../src/lib/poker-near-me/dataTruth';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -103,6 +110,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const venue_id = safeQ(req.query.venue_id);
@@ -139,9 +147,12 @@ export default async function handler(req, res) {
       if (!venueRow?.name) {
         return res.status(200).json({
           success: true,
-          message: 'Not enough historical data. Predictions will be available after 7+ days of tracking.',
+          message: 'Verified observed history is not available for this venue yet.',
           predictions: [],
           summary: null,
+          data_mode: 'none',
+          data_basis: 'positive_observed_tables',
+          truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
         });
       }
       resolvedVenueName = venueRow.name;
@@ -155,13 +166,15 @@ export default async function handler(req, res) {
     // stopped responding to current traffic.
     let query = supabase
       .from('game_live_history')
-      .select('venue_name, game_type, stakes, tables, waiting, snapshot_time')
+      .select('venue_name, game_type, stakes, tables, waiting, source, batch_id, snapshot_time')
       .gte('snapshot_time', fourWeeksAgo)
+      .in('source', QUALIFIED_OBSERVED_SOURCES)
+      .gt('tables', 0)
       .order('snapshot_time', { ascending: false });
 
     if (resolvedVenueName) {
       const likeSafe = resolvedVenueName.replace(/[%_\\]/g, '').trim().slice(0, 100);
-      if (likeSafe) query = query.ilike('venue_name', `%${likeSafe}%`);
+      if (likeSafe) query = query.ilike('venue_name', likeSafe);
     } else if (safeVenueId) {
       // Non-numeric venue_id: treat it as a literal bravo_slug. Exact match only —
       // the old `ilike %slug%` half matched unrelated venues.
@@ -173,32 +186,47 @@ export default async function handler(req, res) {
       if (error.code === '42P01' || error.code === '42703') {
         // Table or column doesn't exist yet — graceful empty state
         console.warn('game-predictions: game_live_history not ready yet. Returning empty state.');
-        return res.status(200).json({ success: true, predictions: [], message: 'Game history data populating. Check back soon.' });
+        return res.status(200).json({
+          success: true,
+          predictions: [],
+          summary: null,
+          data_mode: 'none',
+          data_basis: 'positive_observed_tables',
+          truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
+          message: 'Verified game history is not available yet.',
+        });
       }
       throw error;
     }
 
-    if (!data || data.length === 0) {
+    const coverage = historicalCoverage(data);
+    if (!coverage.sufficientForPrediction) {
       return res.status(200).json({
         success: true,
-        message: 'Not enough historical data. Predictions will be available after 7+ days of tracking.',
+        message: 'Predictions require positive observed tables across at least 7 distinct days.',
         predictions: [],
         summary: null,
+        data_mode: 'none',
+        data_basis: 'positive_observed_tables',
+        data_points: coverage.dataPoints,
+        observed_days: coverage.observedDays,
+        truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       });
     }
+    const historyData = coverage.qualifiedRows;
 
     // Group by game type (bucketed in the venue's local time, not UTC)
     const gameTypeBuckets = {};
     const venueTz = resolvedVenueState && IANA_TZ[resolvedVenueState]
       ? IANA_TZ[resolvedVenueState]
-      : await resolveVenueTimezone(supabase, safeVenueId, resolvedVenueName || data[0]?.venue_name);
+      : await resolveVenueTimezone(supabase, safeVenueId, resolvedVenueName || historyData[0]?.venue_name);
 
-    data.forEach(row => {
+    historyData.forEach(row => {
       const parts = getLocalParts(row.snapshot_time, venueTz);
       if (!parts) return;
       const { hour, day } = parts;
       const gameType = gameShortLabel(row.game_type || 'Unknown');
-      const tables = row.tables || 1;
+      const tables = tableCountFromRow(row);
 
       if (!gameTypeBuckets[gameType]) {
         gameTypeBuckets[gameType] = {
@@ -206,12 +234,14 @@ export default async function handler(req, res) {
           dayCounts: {},
           totalSnapshots: 0,
           stakesSet: new Set(),
+          observedDates: new Set(),
         };
       }
 
       const bucket = gameTypeBuckets[gameType];
       bucket.totalSnapshots++;
       if (row.stakes) bucket.stakesSet.add(row.stakes);
+      bucket.observedDates.add(new Date(row.snapshot_time).toISOString().slice(0, 10));
 
       // Track hour frequency
       if (!bucket.hourCounts[hour]) bucket.hourCounts[hour] = { tables: 0, count: 0 };
@@ -229,19 +259,19 @@ export default async function handler(req, res) {
       // Find peak hour
       const hourEntries = Object.entries(bucket.hourCounts || {})
         .map(([h, v]) => ({ hour: parseInt(h), avgTables: v.tables / v.count, frequency: v.count }))
-        .sort((a, b) => b.frequency - a.frequency);
+        .sort((a, b) => b.avgTables - a.avgTables || b.frequency - a.frequency);
 
       // Find peak day
       const dayEntries = Object.entries(bucket.dayCounts || {})
         .map(([d, v]) => ({ day: parseInt(d), avgTables: v.tables / v.count, frequency: v.count }))
-        .sort((a, b) => b.frequency - a.frequency);
+        .sort((a, b) => b.avgTables - a.avgTables || b.frequency - a.frequency);
 
       const peakHour = hourEntries[0] || null;
       const peakDay = dayEntries[0] || null;
       const quietHour = hourEntries[hourEntries.length - 1] || null;
 
       // Confidence based on data points (more data = higher confidence)
-      const confidence = Math.min(Math.round((bucket.totalSnapshots / 50) * 100), 100);
+      const confidence = Math.min(Math.round((bucket.observedDates.size / 28) * 100), 95);
 
       // Build typical open time range
       const activeHours = hourEntries.filter(h => h.frequency >= 2).map(h => h.hour).sort((a, b) => a - b);
@@ -267,12 +297,14 @@ export default async function handler(req, res) {
         quiet_hour: quietHour ? { hour: quietHour.hour, label: formatHour(quietHour.hour) } : null,
         confidence,
         data_points: bucket.totalSnapshots,
+        observed_days: bucket.observedDates.size,
+        data_basis: 'positive_observed_tables',
         prediction,
       };
     }).sort((a, b) => b.data_points - a.data_points);
 
     // Overall summary
-    const totalDataPoints = data.length;
+    const totalDataPoints = historyData.length;
     const topGame = predictions[0];
     const summary = topGame
       ? {
@@ -280,7 +312,7 @@ export default async function handler(req, res) {
             ? `${topGame.peak_days[0]} at ${topGame.typical_open_time}`
             : null,
           most_popular_game: topGame.game_type,
-          data_quality: totalDataPoints >= 100 ? 'Excellent' : totalDataPoints >= 30 ? 'Good' : 'Limited',
+          data_quality: coverage.observedDays >= 21 ? 'Excellent' : coverage.observedDays >= 14 ? 'Good' : 'Limited',
         }
       : null;
 
@@ -292,6 +324,10 @@ export default async function handler(req, res) {
       period: '28 days',
       timezone: venueTz,
       data_points: totalDataPoints,
+      observed_days: coverage.observedDays,
+      data_mode: 'observed_history',
+      data_basis: 'positive_observed_tables',
+      truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       predictions,
       summary,
       analyzed_at: new Date().toISOString(),
@@ -299,6 +335,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Game predictions error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

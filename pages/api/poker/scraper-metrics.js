@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -23,10 +24,13 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   try {
     const supabase = getSupabase();
-    const hours = parseInt(req.query.hours) || 24;
+    const hoursParam = Array.isArray(req.query.hours) ? req.query.hours[0] : req.query.hours;
+    const parsedHours = Number.parseInt(hoursParam, 10);
+    const hours = Math.min(Math.max(Number.isFinite(parsedHours) ? parsedHours : 24, 1), 168);
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
@@ -48,7 +52,16 @@ export default async function handler(req, res) {
 
     // Calculate summaries
     const summarize = (rows) => {
-      if (rows.length === 0) return { cycles: 0, avg_duration: 0, total_errors: 0, avg_records: 0 };
+      if (rows.length === 0) return {
+        cycles: 0,
+        avg_duration: 0,
+        total_errors: 0,
+        avg_records: 0,
+        successful_cycles: 0,
+        partial_cycles: 0,
+        failed_cycles: 0,
+        valid_empty_cycles: 0,
+      };
       const totalDuration = rows.reduce((s, r) => s + (r.duration_seconds || 0), 0);
       // Column is `errors` (see 20260329_scraper_infrastructure.sql) — reading
       // r.error_count always yielded undefined, so totals were permanently 0.
@@ -59,6 +72,10 @@ export default async function handler(req, res) {
         avg_duration: Math.round(totalDuration / rows.length),
         total_errors: totalErrors,
         avg_records: Math.round(totalRecords / rows.length),
+        successful_cycles: rows.filter(row => row.run_status === 'success').length,
+        partial_cycles: rows.filter(row => row.run_status === 'partial').length,
+        failed_cycles: rows.filter(row => row.run_status === 'failed').length,
+        valid_empty_cycles: rows.filter(row => row.run_status === 'valid_empty').length,
         last_cycle: rows[rows.length - 1],
       };
     };
@@ -67,6 +84,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       period_hours: hours,
       since,
+      contract_version: '2026-09-06.1',
       bravo: {
         summary: summarize(bravo),
         history: bravo.map(m => ({
@@ -75,6 +93,10 @@ export default async function handler(req, res) {
           records: m.records_saved,
           venues: m.venues_scraped,
           errors: m.errors || 0,
+          run_status: m.run_status || 'legacy',
+          records_attempted: m.records_attempted ?? null,
+          records_rejected: m.records_rejected ?? null,
+          status_reason: m.status_reason || null,
         })),
       },
       pokeratlas: {
@@ -85,6 +107,10 @@ export default async function handler(req, res) {
           records: m.records_saved,
           venues: m.venues_scraped,
           errors: m.errors || 0,
+          run_status: m.run_status || 'legacy',
+          records_attempted: m.records_attempted ?? null,
+          records_rejected: m.records_rejected ?? null,
+          status_reason: m.status_reason || null,
         })),
       },
     });

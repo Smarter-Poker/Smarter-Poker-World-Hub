@@ -60,7 +60,7 @@ const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 
 const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
 const COLLAPSE_THRESHOLD = 5; // Show first N games, collapse rest
-const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes — show warning banner
+const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000;
 
 // Skeleton loading
 const renderSkeletons = (count = 4) => (
@@ -112,8 +112,8 @@ function resolveVenueDetailId(rawId) {
  * count was therefore presented as a real-time scrape. Modelled rows now read
  * "ESTIMATED".
  */
-function SourceBadge({ source, isSimulated }) {
-    if (isSimulated) {
+function SourceBadge({ source, dataMode }) {
+    if (dataMode === 'estimated') {
         return (
             <span style={{
                 fontSize: 12, letterSpacing: '0.3px',
@@ -124,12 +124,23 @@ function SourceBadge({ source, isSimulated }) {
                 borderRadius: 4,
                 fontWeight: 800,
                 textTransform: 'uppercase',
-            }} title="Modelled from observed history - not a live scrape">
+            }} title="Modeled from saved venue and schedule data, not a live observation">
                 ESTIMATED
             </span>
         );
     }
-    const isLive = source === 'bravo' || source === 'pokeratlas';
+    if (dataMode === 'mixed') {
+        return (
+            <span style={{
+                fontSize: 12, letterSpacing: '0.3px', color: '#fbbf24',
+                background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+                padding: '2px 6px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase',
+            }} title="Observed and modeled rows are shown together">
+                OBSERVED + ESTIMATED
+            </span>
+        );
+    }
+    const isLive = dataMode === 'live';
     return (
         <span style={{
             fontSize: 12, letterSpacing: '0.3px',
@@ -140,7 +151,7 @@ function SourceBadge({ source, isSimulated }) {
             fontWeight: 800,
             textTransform: 'uppercase',
         }}>
-            {isLive ? 'LIVE DATA' : 'CATALOG'}
+            {isLive ? 'LIVE OBSERVED' : (source === 'catalog' ? 'CATALOG' : 'NO CURRENT DATA')}
         </span>
     );
 }
@@ -212,10 +223,6 @@ function LiveGamesFeed({
     const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null, dataMode: null });
     const [isDataStale, setIsDataStale] = useState(false);
     
-    // ─── REALTIME BUFFER STATE ───
-    const realtimeBufferRef = useRef([]);
-    const flushTimerRef = useRef(null);
-
     // ─── Filters & Persistence ───
     // [LGF1 FIX] Was read at render time on every re-render— moved to useRef so localStorage
     // is only read once on mount, not on every parent-triggered re-render.
@@ -365,15 +372,17 @@ function LiveGamesFeed({
             // - venue_live_tables was measured at 100+ full queries/min. The
             // API sets s-maxage=60 + stale-while-revalidate, so letting the
             // CDN answer keeps the feed at most one minute behind, which is
-            // already the API's own freshness contract. The realtime payloads
-            // themselves still update seat counts instantly; this fetch only
-            // fills in venues the buffer could not map.
+            // already the API's own freshness contract. Realtime events trigger
+            // this contracted fetch instead of bypassing provenance checks.
             const res = await fetch('/api/poker/live-tables');
             if (res.ok) {
                 const json = await res.json();
                 const mapping = {};
                 (json.venues || []).forEach(v => {
-                    const totalTables = (v.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
+                    const calculatedTables = (v.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
+                    const totalTables = Number.isFinite(Number(v.tables_running_total))
+                        ? Number(v.tables_running_total)
+                        : calculatedTables;
                     const totalWait = (v.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
                     const sources = (v.games || []).map(g => g ? g.source : null).filter(Boolean);
                     const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
@@ -390,11 +399,12 @@ function LiveGamesFeed({
                         const next = { ...mapping };
                         // Per-venue fallback: if a venue was successfully scraped previously but is MISSING
                         // from the current payload (due to Cloudflare 403 or scraper crash), preserve it
-                        // for up to 4 hours to prevent flickering to 0 tables (static catalog fallback).
+                        // until the shared freshness threshold to prevent one
+                        // partial response from flickering a venue to zero.
                         for (const key of Object.keys(prev || {})) {
                             if (!next[key]) {
                                 const lastAge = prev[key].last_updated ? (Date.now() - new Date(prev[key].last_updated).getTime()) : Infinity;
-                                if (lastAge < 14400000) { // 4 hours
+                                if (lastAge < STALE_THRESHOLD_MS) {
                                     next[key] = prev[key];
                                     console.warn(`[LGF] Venue ${key} missing from live payload. Preserving cache (Age: ${Math.round(lastAge/60000)}m).`);
                                 }
@@ -421,17 +431,13 @@ function LiveGamesFeed({
                         tables: json.metadata.total_tables_running || 0,
                         waiting: json.metadata.total_players_waiting || 0,
                         lastScrape: json.metadata.last_scrape || null,
-                        // 'estimated' means these counts are modelled from weeks of
-                        // real observed history, not a live scrape. Label accordingly.
+                        // Preserve the API's observed versus modeled classification.
                         dataMode: json.metadata.data_mode || null,
                     });
                 }
                 setLastRefreshTime(new Date());
                 // Check staleness
-                if (json.metadata?.last_scrape) {
-                    const age = Date.now() - new Date(json.metadata.last_scrape).getTime();
-                    setIsDataStale(age > STALE_THRESHOLD_MS);
-                }
+                setIsDataStale(json.metadata?.stale === true);
                 
                 // Notify rest of platform (Game Trends & Heatmaps)
                 busEmit.dataMutated('live_tables');
@@ -484,76 +490,11 @@ function LiveGamesFeed({
         const liveChannel = supabase.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, (payload) => {
                 if (!payload) return;
-                const { eventType } = payload;
-
-                if (eventType === 'DELETE') {
-                    // Trigger a debounced full re-fetch when ANY game is deleted (table broken/closed)
-                    // We must fetchGlobalLiveData because Supabase default replica identity only provides the row id
-                    // on DELETEs, making it impossible to confidently map the deletion to a specific venue/game locally.
-                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                    debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
-                    return;
-                }
-
-                if (eventType !== 'UPDATE' && eventType !== 'INSERT') return;
-                const newRec = payload.new;
-                if (!newRec?.bravo_slug || !newRec?.game_name) return; // Guard null game fields
-                
-                // Buffer the incoming realtime payloads
-                realtimeBufferRef.current.push(newRec);
-
-                // Flush buffer to React state every 800ms to prevent render thrashing
-                if (!flushTimerRef.current) {
-                    flushTimerRef.current = setTimeout(() => {
-                        flushTimerRef.current = null;
-                        const buffer = [...realtimeBufferRef.current];
-                        realtimeBufferRef.current = [];
-                        
-                        setLiveData(prev => {
-                            const nextState = { ...prev };
-                            let needsRefetch = false;
-
-                            for (const rec of buffer) {
-                                const match = nextState[rec.bravo_slug];
-                                if (!match) {
-                                    needsRefetch = true;
-                                    continue;
-                                }
-                                
-                                const nextV = { ...match, games: [...(match.games || [])] };
-                                const mappedGame = {
-                                    game: String(rec.game_name).trim(),
-                                    tables_running: rec.tables_running || 0,
-                                    players_waiting: rec.players_waiting || 0,
-                                    source: rec.source || 'bravo',
-                                    buyin: rec.buyin_range || null,
-                                    runs: rec.runs_schedule || null,
-                                    data_quality: rec.data_quality || null,
-                                    _rowId: rec.id, // track DB row for dedup
-                                };
-                                
-                                const gameIdx = nextV.games.findIndex(g => g && g.game === mappedGame.game);
-                                if (gameIdx !== -1) {
-                                    nextV.games[gameIdx] = mappedGame;
-                                } else {
-                                    nextV.games.push(mappedGame);
-                                }
-                                
-                                nextV.totalTables = (nextV.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
-                                nextV.totalWait = (nextV.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
-                                
-                                nextState[rec.bravo_slug] = nextV;
-                            }
-
-                            if (needsRefetch) {
-                                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                                debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
-                            }
-                            
-                            return nextState;
-                        });
-                    }, 800);
-                }
+                // Never merge raw realtime rows directly into UI state. That bypassed
+                // batch selection, staleness, and provenance rules and could promote a
+                // simulator insert to a live observation. Re-fetch the contracted API.
+                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
                 // Notify rest of platform (Game Trends & Heatmaps) of instantaneous change via EventBus
                 // DEBOUNCED: Prevents DDOSing companion API routes during rapid batch mutations
                 if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
@@ -566,7 +507,6 @@ function LiveGamesFeed({
         return () => { 
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
-            if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
             if (liveChannel) supabase.removeChannel(liveChannel);
         };
     }, [fetchGlobalLiveData]);
@@ -653,7 +593,7 @@ function LiveGamesFeed({
 
         let list = [];
 
-        // PRIMARY: Map live data when available
+        // PRIMARY: map current observed or modeled activity when available.
         const liveMapped = liveEntries.map(liveEntry => {
             const parentVenue = findParentVenue(liveEntry.bravo_slug, liveEntry.venue_name);
             const logoUrl = getVenueLogoUrl(parentVenue || { website: null });
@@ -688,14 +628,16 @@ function LiveGamesFeed({
                 // the live feed reports no games (see the stakes fallback below).
                 stakes_cash: parentVenue?.stakes_cash || null,
                 waitEstimate: waitEst,
-                // PROVENANCE: /api/poker/live-tables publishes is_simulated (every game
-                // modelled) and has_simulated_data (some games modelled). These were
-                // dropped here, so a modelled table count rendered with a pulsing green
-                // dot and a red "LIVE DATA" badge. Carry them to the card.
+                // Preserve API provenance so an estimate never receives live styling.
                 is_simulated: !!liveEntry.is_simulated,
                 has_simulated_data: !!liveEntry.has_simulated_data,
+                data_mode: liveEntry.data_mode || 'none',
+                is_stale: !!liveEntry.is_stale,
                 _hasParentVenue: !!parentVenue,
-                _isLive: true,
+                _hasPublishedActivity: !liveEntry.is_stale && liveEntry.totalTables > 0,
+                _isLive: !liveEntry.is_stale
+                    && liveEntry.totalTables > 0
+                    && (liveEntry.data_mode === 'live' || liveEntry.data_mode === 'mixed'),
             };
         });
 
@@ -741,7 +683,10 @@ function LiveGamesFeed({
                     waitEstimate: null,
                     is_simulated: false,
                     has_simulated_data: false,
+                    data_mode: 'catalog',
+                    is_stale: false,
                     _hasParentVenue: true,
+                    _hasPublishedActivity: false,
                     _isLive: false,
                 };
             });
@@ -761,15 +706,15 @@ function LiveGamesFeed({
         }
 
         // 2. Filter by Distance
-        // POLICY: Live venues whose parent record couldn't be matched (no lat/lng) must
-        // NOT be silently dropped when a radius filter is active — they have real game data
-        // and may be near the user; we just haven't linked them to coordinates yet.
-        // Strategy: split into located vs unlocated, distance-filter only located ones, // then append ONLY unlocated LIVE venues at the end so active feed always has content.
+        // Current activity whose parent record could not be matched has no coordinates.
+        // Keep those observed or modeled rows visible after distance-filtering while
+        // excluding unlocated catalog-only rooms.
         if (effectiveLocation && filterRadius !== 'any') {
             const located = list.filter(v => v.latitude && v.longitude);
-            // Append unlocated venues ONLY if they have active live data (_isLive === true).
+            // Keep unlocated rows only when the activity contract publishes a
+            // current observed or modeled count for them.
             // Unlocated catalog venues should be dropped to avoid spamming the local feed with unverified locations.
-            const unlocatedActive = list.filter(v => (!v.latitude || !v.longitude) && v._isLive);
+            const unlocatedActive = list.filter(v => (!v.latitude || !v.longitude) && v._hasPublishedActivity);
             
             const effectiveRadius = isNaN(Number(filterRadius)) ? 50 : Number(filterRadius);
             const inRadius = located.filter(v => calcDist(v) <= effectiveRadius);
@@ -952,7 +897,8 @@ function LiveGamesFeed({
         // WIRING FIX: keyed by String(id), matching VenuesTabPanel.jsx.
         const checkinCount = (checkinCounts && Number(checkinCounts[String(v.id)])) || 0;
         // Modelled (simulated) rows must never be dressed up as a real-time scrape.
-        const isModelled = !!(v.is_simulated || v.has_simulated_data);
+        const isModelled = v.data_mode === 'estimated';
+        const isMixed = v.data_mode === 'mixed';
         const initColor = getInitialsColor(v.id || 0);
         const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const trustScore = v.trust_score || 0;
@@ -1055,7 +1001,7 @@ function LiveGamesFeed({
                                             {[v.city, v.state].filter(Boolean).join(', ')}
                                         </span>
                                     )}
-                                    <SourceBadge source={v.primarySource} isSimulated={isModelled} />
+                                    <SourceBadge source={v.primarySource} dataMode={v.data_mode} />
                                 </div>
                             </div>
                         </div>
@@ -1089,11 +1035,15 @@ function LiveGamesFeed({
                             render "{n} Tables Running" with a pulsing live dot for them —
                             a closed 30-table room advertised "30 Tables Running". Live rows
                             keep the running badge; catalog rows state capacity honestly. */}
-                        {v._isLive && isModelled ? (
+                        {v._hasPublishedActivity && isModelled ? (
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                                title="Modelled from weeks of observed history - not a live scrape">
+                                title="Modeled from saved venue and schedule data, not a live observation">
                                 {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Estimated
+                            </span>
+                        ) : v._hasPublishedActivity && isMixed ? (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                {v.totalTables} Tables Observed + Estimated
                             </span>
                         ) : v._isLive ? (
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -1125,8 +1075,8 @@ function LiveGamesFeed({
                             </span>
                         )}
 
-                        {!v._isLive && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>No Live Data</span>
+                        {!v._hasPublishedActivity && (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>{v.is_stale ? 'No Current Data' : 'No Live Data'}</span>
                         )}
                     </div>
 
@@ -1337,7 +1287,7 @@ function LiveGamesFeed({
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data - Intelligence Engines Are Syncing</div>
                         <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
-                            Live Scrapers Are Temporarily Offline. Showing Last-Known Game Data - No Information Has Been Lost.
+                            Live Scrapers Are Temporarily Offline. Last-Known Rows Remain Visible With Freshness Labels.
                         </div>
                     </div>
                     <button
@@ -1369,7 +1319,7 @@ function LiveGamesFeed({
                             {globalStats.dataMode === 'estimated' ? 'Estimated Table Counts' : 'Some Table Counts Are Estimated'}
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
-                            Cards Marked ESTIMATED Are Modelled From Weeks Of Observed History, Not A Live Scrape.
+                            Cards Marked ESTIMATED Use Saved Venue And Schedule Data, Not A Live Observation.
                         </div>
                     </div>
                 </div>
@@ -1430,9 +1380,9 @@ function LiveGamesFeed({
                                     {/* The list below is hard-capped at 200 cards; say so
                                         rather than reporting a total the list never reaches. */}
                                     {mergedVenues.length > 200 ? (
-                                        <>Showing <span style={{ color: '#ef4444', fontWeight: 800 }}>200</span> Of {mergedVenues.length} Live Venues</>
+                                        <>Showing <span style={{ color: '#ef4444', fontWeight: 800 }}>200</span> Of {mergedVenues.length} Poker Venues</>
                                     ) : (
-                                        <><span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Live Venues</>
+                                        <><span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Poker Venues</>
                                     )}
                                     {filterGameType !== 'all' && <span style={{ color: '#3fb950' }}> · {filterGameType.toUpperCase()}</span>}
                                     {filterStakes !== 'any' && <span style={{ color: '#ffffff' }}> · {filterStakes}/+</span>}

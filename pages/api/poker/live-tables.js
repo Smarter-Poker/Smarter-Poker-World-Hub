@@ -25,6 +25,12 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { resolveVenueName } from './venue-dedup';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+  PNM_TRUTH_CONTRACT_VERSION,
+  activityRowBasis,
+  activityRowWins,
+  latestActivityRowsByVenueAndBasis,
+} from '../../../src/lib/poker-near-me/dataTruth';
 
 // Decode HTML entities and fix pipe separators in venue names
 function cleanVenueName(str) {
@@ -82,13 +88,7 @@ const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000;   // 3 hours — after this, flag
 // silently truncated. Paginate with .range() instead (same pattern as
 // events-calendar.js / daily-tournaments.js).
 const PAGE_SIZE = 1000;
-const MAX_PAGES = 12; // 12,000-row ceiling
-
-// Rows written by bravo-simulator-daemon.py use scrape_batch_id 'sim-<uuid>'.
-// They are modelled estimates, NOT scraped observations.
-function isSimulatedRow(row) {
-    return typeof row?.scrape_batch_id === 'string' && row.scrape_batch_id.startsWith('sim-');
-}
+const MAX_PAGES = 50; // 50,000-row safety ceiling
 
 /**
  * Fetch every row for a query by paging with .range().
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
       const listCutoffIso = new Date(Date.now() - MAX_AGE_MS).toISOString();
       const { rows, error, truncated } = await fetchAllPages(() => supabase
         .from('venue_live_tables')
-        .select('bravo_slug, venue_name, scrape_timestamp, scrape_batch_id')
+        .select('bravo_slug, venue_name, scrape_timestamp, scrape_batch_id, source, data_quality')
         .gte('scrape_timestamp', listCutoffIso)
         .order('venue_name'));
 
@@ -139,13 +139,23 @@ export default async function handler(req, res) {
         console.warn('Live tables list error:', error);
         return res.status(500).json({ error: 'Database query failed' });
       }
+      if (truncated) {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(503).json({
+          error: 'Live table directory exceeded the safe query window',
+          venues: [],
+          truncated: true,
+        });
+      }
 
       // Deduplicate by bravo_slug; a venue is flagged simulated only when
       // EVERY retained row for it came from the simulator.
       const bySlug = new Map();
       for (const row of rows) {
         if (!row.bravo_slug) continue;
-        const sim = isSimulatedRow(row);
+        const basis = activityRowBasis(row);
+        if (basis === 'unqualified') continue;
+        const sim = basis === 'estimated';
         const existing = bySlug.get(row.bravo_slug);
         if (!existing) {
           bySlug.set(row.bravo_slug, {
@@ -191,45 +201,26 @@ export default async function handler(req, res) {
       console.warn('Live tables query error:', error);
       return res.status(500).json({ error: 'Database query failed' });
     }
-
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 1: VENUE-AWARE BATCH FILTERING
-    // When a scrape cycle partially fails, some venues don't receive
-    // new batch records. Grouping strictly by global `source` drops them.
-    // Instead, find the latest batch_id PER VENUE, and discard all
-    // older rows for that venue. Also discard games older than 3 hours.
-    // ═══════════════════════════════════════════════════════════
-    const latestBatchByVenue = {}; // venue key → { batch_id, timestamp }
-    for (const row of (data || [])) {
-      const key = row.bravo_slug || normalizeForMatch(cleanVenueName(row.venue_name));
-      const ts = new Date(row.scrape_timestamp).getTime();
-      if (!latestBatchByVenue[key] || ts > latestBatchByVenue[key].timestamp) {
-        latestBatchByVenue[key] = { batch_id: row.scrape_batch_id, timestamp: ts };
-      }
+    if (truncated) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(503).json({
+        error: 'Live table activity exceeded the safe query window',
+        metadata: { truncated: true, contract_version: PNM_TRUTH_CONTRACT_VERSION },
+        venues: [],
+      });
     }
 
-    // Filter: only keep rows from the latest batch per venue + not too stale
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 1: VENUE- AND PROVENANCE-AWARE BATCH FILTERING
+    // When a scrape cycle partially fails, some venues don't receive
+    // new batch records. Grouping strictly by global `source` drops them.
+    // Instead, find the latest batch_id per venue and provenance class.
+    // ═══════════════════════════════════════════════════════════
+    // Keep the newest observed and modeled batch independently for each venue.
+    // A newer estimate must never suppress an older valid observation.
     let dedupedRows = 0;
-    let batchFilteredRows = 0;
-
-    const batchFiltered = (data || []).filter(row => {
-      const key = row.bravo_slug || normalizeForMatch(cleanVenueName(row.venue_name));
-      const latestBatch = latestBatchByVenue[key];
-      const ts = new Date(row.scrape_timestamp).getTime();
-      
-      // Drop zombie data older than 3 hours
-      if (Date.now() - ts > MAX_AGE_MS) {
-          batchFilteredRows++;
-          return false;
-      }
-
-      // If we know the latest batch for this venue, only keep matching rows
-      if (latestBatch && row.scrape_batch_id && row.scrape_batch_id !== latestBatch.batch_id) {
-        batchFilteredRows++;
-        return false;
-      }
-      return true;
-    });
+    const batchFiltered = latestActivityRowsByVenueAndBasis(data || []);
+    const batchFilteredRows = Math.max(0, (data || []).length - batchFiltered.length);
 
     // ═══════════════════════════════════════════════════════════
     // LAYER 2: CROSS-SOURCE ALIAS MERGE
@@ -297,9 +288,10 @@ export default async function handler(req, res) {
       const resolvedSlug = resolveSlug(row);
       const gameName = row.game_name.trim();
       const src = row.source || 'bravo';
-      const isSim = isSimulatedRow(row);
+      const basis = activityRowBasis(row);
+      const isSim = basis === 'estimated';
       // Only genuinely scraped Bravo rows carry real-time authority.
-      const isRealBravo = src === 'bravo' && !isSim;
+      const isRealBravo = basis === 'observed';
 
       // Track cross-source merges for diagnostics
       if (resolvedSlug !== row.bravo_slug) {
@@ -312,9 +304,6 @@ export default async function handler(req, res) {
           bravo_slug: resolvedSlug,
           last_updated: row.scrape_timestamp,
           games: [],
-          _latestOriginStamp: new Date(row.scrape_timestamp).getTime(),
-          _seenGames: new Set(),
-          _hasBravoData: isRealBravo,
           _hasLiveIndicators: false, // true if any game has waitlist or is real scraped bravo
           _hasSimulatedData: false,
           _hasRealData: false,
@@ -324,39 +313,24 @@ export default async function handler(req, res) {
 
       const venueData = grouped[resolvedSlug];
       venueData._sources.add(src);
-
-      // If this venue already has real Bravo data, prefer Bravo's venue name.
-      // Simulator rows must NEVER trigger this purge — they would delete genuine
-      // scraped PokerAtlas rows in favour of modelled ones.
-      if (isRealBravo && !venueData._hasBravoData) {
+      const rowStamp = new Date(row.scrape_timestamp).getTime();
+      const currentStamp = new Date(venueData.last_updated).getTime();
+      if (Number.isFinite(rowStamp) && (!Number.isFinite(currentStamp) || rowStamp > currentStamp)) {
+        venueData.last_updated = row.scrape_timestamp;
+      }
+      if (isRealBravo) {
         venueData.venue_name = resolveVenueName(cleanVenueName(row.venue_name));
-        venueData._hasBravoData = true;
-        // Real Bravo just arrived — purge all previous PokerAtlas catalog games
-        // (PA "tables" are catalog estimates, not actual live counts)
-        dedupedRows += venueData.games.length; // count purged PA rows BEFORE clearing
-        venueData.games = [];
-        venueData._seenGames = new Set();
       }
 
-      // If we already have REAL Bravo data for this venue, skip PokerAtlas catalog rows
-      // entirely — they only add noise (tables_running=0 estimates)
-      if (venueData._hasBravoData && src === 'pokeratlas') {
-        dedupedRows++;
-        continue;
-      }
-
-      // Timestamp-based staleness filter (within same batch)
-      const stampDiff = venueData._latestOriginStamp - new Date(row.scrape_timestamp).getTime();
-      if (stampDiff > 5 * 60 * 1000) {
-        dedupedRows++;
-        continue;
-      }
-      
-      // Game-name dedup: first occurrence wins (data ordered by timestamp desc)
-      if (!venueData._seenGames.has(gameName)) {
-        venueData._seenGames.add(gameName);
-        const rowStamp = new Date(row.scrape_timestamp).getTime();
-        venueData.games.push({
+      // Dedup within the normalized game only. An observation replaces an
+      // estimate for that game, while estimates for other games remain valid
+      // supplements. The input is newest-first, so equal-basis duplicates keep
+      // the newest row.
+      const gameKey = gameName.toLowerCase().replace(/\s+/g, ' ').trim();
+      const existingIndex = venueData.games.findIndex((game) => game._gameKey === gameKey);
+      const existing = existingIndex >= 0 ? venueData.games[existingIndex] : null;
+      const gameEntry = {
+          _gameKey: gameKey,
           game: gameName,  // use sanitized variable, never raw row.game_name
           tables_running: row.tables_running || 0,
           players_waiting: row.players_waiting || 0,
@@ -366,23 +340,20 @@ export default async function handler(req, res) {
           // PROVENANCE: simulator rows are modelled, not observed. The row's own
           // data_quality says 'scraped_verified' — do not repeat that claim.
           is_simulated: isSim,
+          observation_kind: basis === 'observed' ? 'observed' : 'modeled',
           data_quality: isSim ? 'modeled_estimate' : (row.data_quality || null),
           scraped_at: row.scrape_timestamp || null,
           age_minutes: Number.isFinite(rowStamp) ? Math.round((Date.now() - rowStamp) / 60000) : null,
-        });
-        if (isSim) {
-          venueData._hasSimulatedData = true;
-        } else {
-          venueData._hasRealData = true;
-        }
-        // Track if this venue has real live indicators:
-        // Real scraped Bravo data is real-time; PA data is only "live" if players are
-        // actually waiting. Simulated rows are NEVER a live indicator.
-        if (!isSim && (src === 'bravo' || (row.players_waiting && row.players_waiting > 0))) {
-          venueData._hasLiveIndicators = true;
-        }
-      } else {
+      };
+      if (existing && !activityRowWins(existing, gameEntry)) {
         dedupedRows++;
+        continue;
+      }
+      if (existingIndex >= 0) {
+        venueData.games[existingIndex] = gameEntry;
+        dedupedRows++;
+      } else {
+        venueData.games.push(gameEntry);
       }
     }
 
@@ -396,6 +367,10 @@ export default async function handler(req, res) {
     let newestStamp = null;
     let oldestStamp = null;
     for (const vd of venuesWithMeta) {
+      vd._hasSimulatedData = vd.games.some((game) => game.is_simulated);
+      vd._hasRealData = vd.games.some((game) => !game.is_simulated);
+      vd._hasLiveIndicators = vd._hasRealData;
+      vd.games = vd.games.map(({ _gameKey, ...game }) => game);
       const stamps = vd.games
         .map(g => new Date(g.scraped_at).getTime())
         .filter(t => Number.isFinite(t));
@@ -418,8 +393,26 @@ export default async function handler(req, res) {
       // Publishing the split (and a per-venue data_mode mirroring the top-level
       // one) means a consumer no longer has to reconstruct provenance from the
       // per-game flags to label the number honestly.
-      const vSim = vd.games.reduce((s, g) => s + (g.is_simulated ? (g.tables_running || 0) : 0), 0);
-      const vReal = vd.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.tables_running || 0)), 0);
+      const vSimRaw = vd.games.reduce((s, g) => s + (g.is_simulated ? (g.tables_running || 0) : 0), 0);
+      const vRealRaw = vd.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.tables_running || 0)), 0);
+      vd.tables_running_last_known = vRealRaw + vSimRaw;
+
+      // Retain stale rows for identity and diagnostics, but never publish their
+      // table counts as current activity. Each game keeps its last-known value
+      // in a separate field so downstream tools can explain the cutoff.
+      if (vd.is_stale) {
+        vd.games = vd.games.map((game) => ({
+          ...game,
+          last_known_tables_running: game.tables_running || 0,
+          last_known_players_waiting: game.players_waiting || 0,
+          tables_running: 0,
+          players_waiting: 0,
+          is_stale: true,
+        }));
+      }
+
+      const vSim = vd.is_stale ? 0 : vSimRaw;
+      const vReal = vd.is_stale ? 0 : vRealRaw;
       vd.tables_running_observed = vReal;
       vd.tables_running_simulated = vSim;
       vd.tables_running_total = vReal + vSim;
@@ -428,7 +421,7 @@ export default async function handler(req, res) {
         : (vSim > 0 ? 'estimated' : 'none');
     }
 
-    const venues = venuesWithMeta.map(({ _seenGames, _latestOriginStamp, _hasBravoData, _hasLiveIndicators, _hasSimulatedData, _hasRealData, _sources, ...v }) => v);
+    const venues = venuesWithMeta.map(({ _hasLiveIndicators, _hasSimulatedData, _hasRealData, _sources, ...v }) => v);
 
     // LIVE tables: only count from venues with real-time indicators
     // (real scraped Bravo data OR PokerAtlas venues with actual players waiting).
@@ -439,7 +432,10 @@ export default async function handler(req, res) {
     let simulatedVenueCount = 0;
     let staleVenueCount = 0;
     for (const vd of venuesWithMeta) {
-      if (vd.is_stale) staleVenueCount++;
+      if (vd.is_stale) {
+        staleVenueCount++;
+        continue;
+      }
       const simTables = vd.games.reduce((s, g) => s + (g.is_simulated ? (g.tables_running || 0) : 0), 0);
       const realTables = vd.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.tables_running || 0)), 0);
       totalSimulatedTables += simTables;
@@ -459,8 +455,8 @@ export default async function handler(req, res) {
     // PUBLISHING POLICY (owner decision, 2026-08-01)
     // The Bravo live scraper is intentionally not being run. "Cash Games
     // Running" is published from bravo-simulator-daemon.py, which models each
-    // venue's per-game, per-hour, per-weekday activity from weeks of REAL
-    // observed history in game_live_history.
+    // venue's per-game, per-hour, per-weekday activity from qualified saved
+    // observations in game_live_history.
     //
     // So a modelled table is a publishable number, not something to hide — but
     // it must never be dressed up as an observation. The split is:
@@ -495,12 +491,25 @@ export default async function handler(req, res) {
 
     const dataAgeMinutes = newestStamp === null ? null : Math.round((now - newestStamp) / 60000);
     const oldestDataAgeMinutes = oldestStamp === null ? null : Math.round((now - oldestStamp) / 60000);
+    const venuesWithCurrentActivity = venuesWithMeta.filter((venueData) => (
+      !venueData.is_stale && venueData.tables_running_total > 0
+    ));
+    const observedVenueCount = venuesWithCurrentActivity.filter((venueData) => (
+      venueData.tables_running_observed > 0
+    )).length;
+    const estimatedVenueCount = venuesWithCurrentActivity.filter((venueData) => (
+      venueData.tables_running_simulated > 0
+    )).length;
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
     return res.status(200).json({
       metadata: {
-        venues_with_live_data: venues.length,
+        contract_version: PNM_TRUTH_CONTRACT_VERSION,
+        venues_with_live_data: observedVenueCount,
+        venues_with_activity_rows: venues.length,
+        venues_with_current_activity: venuesWithCurrentActivity.length,
+        venues_with_estimated_activity: estimatedVenueCount,
         // What the UI displays. Live when observed, otherwise the modelled
         // estimate. Never back-filled with catalog capacity. Read data_mode
         // (and per-game is_simulated) to label it correctly.

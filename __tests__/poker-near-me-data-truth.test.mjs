@@ -4,7 +4,10 @@ import assert from 'node:assert/strict';
 import {
   classifyScraperHealth,
   dailyTournamentDedupKey,
+  fetchAllRows,
   fetchAllDailyTournamentRows,
+  isValidIsoDate,
+  isValidIsoMonth,
 } from '../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 test('daily tournament retrieval exhausts more than one PostgREST page in order', async () => {
@@ -37,6 +40,28 @@ test('pagination never serves a biased partial result after a later-page error',
 
   assert.deepEqual(result.rows, []);
   assert.equal(result.error.message, 'timeout');
+});
+
+test('generic paging contract is reusable across every calendar source', async () => {
+  const calls = [];
+  const result = await fetchAllRows(() => ({
+    range: async (lower, upper) => {
+      calls.push([lower, upper]);
+      return { data: lower === 0 ? [{ id: 1 }, { id: 2 }] : [{ id: 3 }], error: null };
+    },
+  }), { pageSize: 2, maxRows: 10 });
+  assert.deepEqual(result.rows.map((item) => item.id), [1, 2, 3]);
+  assert.deepEqual(calls, [[0, 1], [2, 3]]);
+  assert.equal(result.truncated, false);
+});
+
+test('calendar date validators reject impossible dates and months', () => {
+  assert.equal(isValidIsoDate('2026-02-28'), true);
+  assert.equal(isValidIsoDate('2026-02-29'), false);
+  assert.equal(isValidIsoDate('2026-13-01'), false);
+  assert.equal(isValidIsoDate('2026-9-01'), false);
+  assert.equal(isValidIsoMonth('2026-12'), true);
+  assert.equal(isValidIsoMonth('2026-13'), false);
 });
 
 test('dedup identity preserves distinct days and named events', () => {

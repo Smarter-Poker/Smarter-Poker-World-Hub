@@ -5,6 +5,7 @@
  *   - 9,697 daily venue tournaments (recurring + dated)
  *   - 208 poker series
  *   - 598+ tour stop events
+ *   - Public Commander home-game tournaments
  *
  * Features:
  *   - Always-visible horizontal filter dropdowns (matching Poker Near Me)
@@ -104,6 +105,7 @@ const EVENT_TYPES = [
   { key: 'daily',  label: 'Daily tournaments' },
   { key: 'series', label: 'Poker series' },
   { key: 'tour',   label: 'Tour events' },
+  { key: 'home_game', label: 'Home-game tournaments' },
 ];
 
 const SORT_OPTIONS = [
@@ -205,7 +207,16 @@ const SOURCE_COLORS = {
   daily:  { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
   series: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
   tour:   { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
+  home_game: { bg: 'rgba(216, 187, 125, 0.12)', border: 'rgba(216, 187, 125, 0.42)', text: '#D8BB7D', label: 'Home Game' },
 };
+
+async function fetchCalendarData(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  if (data?.success === false) throw new Error(data.error || 'Failed to fetch events');
+  return data;
+}
 
 /* ───── SVG icons replaced by Lucide (see imports). Local components removed. ───── */
 const SearchIcon    = (props) => <Search size={18} aria-hidden {...props} />;
@@ -228,8 +239,10 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
     if (event.venue_id && event.source === 'daily') return `/hub/venues/${event.venue_id}`;
     if (event.series_id) return `/hub/series/${event.series_id}`;
     if (event.tour_code && event.source === 'tour') return `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
+    if (event.source === 'home_game' && event.club_code) return `/home-game/${encodeURIComponent(event.club_code)}`;
+    if (event.source === 'home_game' && event.home_game_id) return '/hub/home-games';
     return null;
-  }, [event.venue_id, event.series_id, event.tour_code, event.source]);
+  }, [event.venue_id, event.series_id, event.tour_code, event.source, event.club_code, event.home_game_id]);
 
   // Memoize favicon fallback URL — was rebuilt on every render of every card
   const officialLogoFallback = useMemo(() => {
@@ -605,12 +618,27 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   const { data: apiData, error, isLoading: loading, mutate } = useSWR(
     apiUrl,
-    (url) => fetch(url).then(r => r.json()).then(data => {
-      if (data && data.success === false) throw new Error(data.error || 'Failed to fetch API events');
-      return data;
-    }),
+    fetchCalendarData,
     { fallback: swrFallback, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
+
+  const selectedDateUrl = useMemo(() => {
+    if (viewMode !== 'calendar' || !selectedCalDate) return null;
+    const url = new URL(apiUrl, 'https://smarter.poker');
+    url.searchParams.delete('calMonth');
+    url.searchParams.set('date', selectedCalDate);
+    url.searchParams.set('limit', '10000');
+    return `${url.pathname}?${url.searchParams.toString()}`;
+  }, [apiUrl, selectedCalDate, viewMode]);
+
+  const {
+    data: selectedDateData,
+    error: selectedDateError,
+    isLoading: selectedDateLoading,
+  } = useSWR(selectedDateUrl, fetchCalendarData, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
 
   useVenueRealtime((payload) => {
     // Drop irrelevant payloads from other tables the master hook listens to
@@ -685,8 +713,9 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   const selectedCalEvents = useMemo(() => {
     if (!selectedCalDate) return [];
-    return events.filter(e => e.event_date === selectedCalDate);
-  }, [events, selectedCalDate]);
+    return (selectedDateData?.events || []).filter(e => e.event_date === selectedCalDate);
+  }, [selectedDateData, selectedCalDate]);
+  const selectedCalTotal = selectedDateData?.total ?? selectedCalEvents.length;
 
   // Aggregate events by venue for Map View
   const mapEvents = useMemo(() => {
@@ -764,7 +793,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     <>
       <SEOHead
         title="Poker Events Calendar - Find Any Tournament"
-        description="Search thousands of poker tournaments by date, location, buy-in, and game type. Daily tournaments, series events, and tour stops - all in one place."
+        description="Search poker tournaments by date, location, buy-in, and game type. Daily tournaments, series, tours, and public home games are all in one place."
         canonical="/hub/events-calendar"
       />
       <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
@@ -822,7 +851,8 @@ export default function EventsCalendarPage({ fallbackData }) {
                 &middot; {[
                   stats.sources.daily > 0 && `${stats.sources.daily.toLocaleString()} Daily`,
                   stats.sources.series > 0 && `${stats.sources.series.toLocaleString()} Series`,
-                  stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`
+                  stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`,
+                  stats.sources.home_game > 0 && `${stats.sources.home_game.toLocaleString()} Home Game`
                 ].filter(Boolean).join(' · ')}
               </span>
             )}
@@ -1110,9 +1140,13 @@ export default function EventsCalendarPage({ fallbackData }) {
                 <div className="ec-cal-events">
                   <h3 className="ec-cal-events-title">
                     {formatDateFull(selectedCalDate)}
-                    <span className="ec-cal-events-count">{selectedCalEvents.length} event{selectedCalEvents.length !== 1 ? 's' : ''}</span>
+                    <span className="ec-cal-events-count">{selectedCalTotal} event{selectedCalTotal !== 1 ? 's' : ''}</span>
                   </h3>
-                  {selectedCalEvents.length === 0 ? (
+                  {selectedDateLoading ? (
+                    <p className="ec-cal-no-events" role="status">Loading Every Event For This Date...</p>
+                  ) : selectedDateError ? (
+                    <p className="ec-cal-no-events" role="alert">Events For This Date Could Not Be Loaded.</p>
+                  ) : selectedCalEvents.length === 0 ? (
                     <p className="ec-cal-no-events">No Events Scheduled For This Date.</p>
                   ) : (
                     selectedCalEvents.map((evt, idx) => (
