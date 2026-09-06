@@ -3,6 +3,7 @@ export const PERSONAL_ASSISTANT_COPY_CLASS = 'pa-copy-policy';
 const EM_DASH_CHARACTER = String.fromCharCode(0x2014);
 const EM_DASH = new RegExp(`\\s*${EM_DASH_CHARACTER}\\s*`, 'g');
 const WORD_START = /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/g;
+const VERBATIM_SELECTOR = 'pre,code,[data-pa-verbatim]';
 
 export function normalizePersonalAssistantSeparators(value) {
   if (typeof value !== 'string' || !value.includes(EM_DASH_CHARACTER)) return value;
@@ -19,7 +20,15 @@ export function normalizePersonalAssistantCopy(value) {
   return titleCasePersonalAssistantCopy(normalizePersonalAssistantSeparators(value));
 }
 
+export function isPersonalAssistantVerbatimElement(element) {
+  return Boolean(
+    element?.matches?.(VERBATIM_SELECTOR)
+    || element?.closest?.(VERBATIM_SELECTOR),
+  );
+}
+
 function normalizeAttributes(element) {
+  if (isPersonalAssistantVerbatimElement(element)) return;
   for (const name of ['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip']) {
     const current = element.getAttribute?.(name);
     if (!current) continue;
@@ -30,7 +39,10 @@ function normalizeAttributes(element) {
 
 function isCopyTextNode(node) {
   const parent = node?.parentElement;
-  return !parent || !['SCRIPT', 'STYLE', 'TEXTAREA', 'TEMPLATE'].includes(parent.tagName);
+  return !parent || (
+    !['SCRIPT', 'STYLE', 'TEXTAREA', 'TEMPLATE'].includes(parent.tagName)
+    && !isPersonalAssistantVerbatimElement(parent)
+  );
 }
 
 export function applyPersonalAssistantCopyPolicy(root) {

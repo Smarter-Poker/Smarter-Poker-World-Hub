@@ -1758,10 +1758,19 @@ export default function VirtualSandbox() {
         restoreScenario(JSON.parse(payload));
         sessionStorage.removeItem('shared-sandbox-state');
         toast.success('Shared scenario loaded');
+      } else {
+        toast.error('That shared scenario has expired · open the original link again');
       }
     } catch (err) {
       console.warn('Failed to parse shared state payload', err);
+      sessionStorage.removeItem('shared-sandbox-state');
       toast.error('That shared scenario could not be read');
+    } finally {
+      // This transport is deliberately single-use. Remove its flag after the
+      // hand-off so a refresh cannot silently reopen an empty Sandbox.
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('loadShared');
+      window.history.replaceState(window.history.state, '', `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.query.loadShared]);
