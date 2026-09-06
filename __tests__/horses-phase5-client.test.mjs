@@ -30,6 +30,7 @@ import {
   queueUrl,
   rowsOf,
   sanctionBody,
+  timingRowsOf,
   timingUrl,
 } from '../src/components/horses/integrityAdmin.js';
 import {
@@ -165,6 +166,20 @@ test('response helpers preserve metadata and pending sanction operation IDs', ()
   });
   assert.equal(pending.length, 1);
   assert.equal(pending[0].op_id, 'keep-me');
+});
+
+test('timing distribution objects become one row per participant composition', () => {
+  assert.deepEqual(timingRowsOf({
+    distribution: {
+      horse_horse: { adjacent_pairs: 12, median_ms: 400 },
+      human_human: { adjacent_pairs: 3, median_ms: 900 },
+    },
+  }), [
+    { composition: 'horse_horse', adjacent_pairs: 12, median_ms: 400 },
+    { composition: 'human_human', adjacent_pairs: 3, median_ms: 900 },
+  ]);
+  assert.deepEqual(timingRowsOf({ histogram: {} }), []);
+  assert.deepEqual(timingRowsOf({ rows: [{ bucket: 'wrong-shape' }] }), []);
 });
 
 test('a recorded gap outranks a live detector status', () => {

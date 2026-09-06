@@ -43,6 +43,7 @@ import {
   queueUrl,
   rowsOf,
   sanctionBody,
+  timingRowsOf,
   timingUrl,
 } from './integrityAdmin';
 import {
@@ -143,6 +144,12 @@ function toneClass(tone) {
   if (tone === 'warn') return styles.warnNote;
   if (tone === 'good') return styles.goodNote;
   return styles.infoNote;
+}
+
+function booleanLabel(value) {
+  if (value === true) return 'Yes';
+  if (value === false) return 'No';
+  return 'Unknown';
 }
 
 function Fact({ label, children, mono = false }) {
@@ -328,7 +335,7 @@ function SimpleRecordCard({ row, kind }) {
     : kind === 'hands'
       ? `Hand ${id || 'Unknown'}`
       : kind === 'timing'
-        ? first(row, 'label', 'bucket', 'player_name', 'playerName') || 'Timing Observation'
+        ? `${compositionLabel(first(row, 'composition'))} Timing`
         : first(row, 'title', 'reason', 'flag_type', 'flagType') || 'Integrity Flag';
 
   return (
@@ -365,10 +372,11 @@ function SimpleRecordCard({ row, kind }) {
         )}
         {kind === 'timing' && (
           <>
-            <Fact label="Participant Type">{first(row, 'participant_type', 'participantType') || 'Unknown'}</Fact>
-            <Fact label="Hands Covered">{num(first(row, 'hands_covered', 'handsCovered', 'hand_count'), 'Unknown')}</Fact>
+            <Fact label="Participant Composition">{compositionLabel(first(row, 'composition'))}</Fact>
+            <Fact label="Adjacent Action Pairs">{num(first(row, 'adjacent_pairs', 'adjacentPairs'), 'Unknown')}</Fact>
+            <Fact label="Distinct Hands">{num(first(row, 'distinct_hands', 'distinctHands'), 'Unknown')}</Fact>
             <Fact label="Median Decision Time">{num(first(row, 'median_ms', 'medianMs'), 'Unknown')} Milliseconds</Fact>
-            <Fact label="Ninety-Fifth Percentile">{num(first(row, 'p95_ms', 'p95Ms'), 'Unknown')} Milliseconds</Fact>
+            <Fact label="Pairs Under 500 Milliseconds">{num(first(row, 'under_500ms', 'under500ms'), 'Unknown')}</Fact>
           </>
         )}
         {kind === 'hands' && (
@@ -646,7 +654,8 @@ export default function IntegrityPanel({
 
   const pairRows = rowsOf(pairs.data, 'pairs');
   const flagRows = rowsOf(flags.data, 'flags');
-  const timingRows = rowsOf(timing.data, 'timing', 'buckets');
+  const timingRows = timingRowsOf(timing.data);
+  const timingCoverage = first(payloadOf(timing.data), 'coverage') || {};
   const handRows = rowsOf(hands.data, 'hands');
   const liveHealth = healthOf(health.data);
 
@@ -1103,7 +1112,20 @@ export default function IntegrityPanel({
             </div>
           </div>
           {renderListState(timing, timingRows, { title: 'No Timing Distribution Was Produced', detail: 'The Selected Window Contains No Comparable Actions. This Does Not Mean No Integrity Risk Exists.' })}
-          {timingRows.map((row, index) => <SimpleRecordCard key={String(first(row, 'id', 'bucket') || index)} row={row} kind="timing" />)}
+          {timing.loaded && !timing.error && (
+            <div className={styles.card}>
+              <h3 className={styles.cardTitle}>Timing Sample Coverage</h3>
+              <dl className={styles.factGrid}>
+                <Fact label="Since">{when(first(timingCoverage, 'since'), true)}</Fact>
+                <Fact label="As Of">{when(first(timingCoverage, 'as_of', 'asOf'), true)}</Fact>
+                <Fact label="Hands Sampled">{num(first(timingCoverage, 'hands_sampled', 'handsSampled'), 'Unknown')}</Fact>
+                <Fact label="Actions Sampled">{num(first(timingCoverage, 'actions_sampled', 'actionsSampled'), 'Unknown')}</Fact>
+                <Fact label="Adjacent Pairs">{num(first(timingCoverage, 'adjacent_pairs', 'adjacentPairs'), 'Unknown')}</Fact>
+                <Fact label="Sample Truncated">{booleanLabel(first(timingCoverage, 'truncated'))}</Fact>
+              </dl>
+            </div>
+          )}
+          {timingRows.map((row, index) => <SimpleRecordCard key={String(first(row, 'composition') || index)} row={row} kind="timing" />)}
         </section>
       )}
 
@@ -1164,7 +1186,7 @@ export default function IntegrityPanel({
               <Fact label="Hands In Last Run">{num(first(liveHealth, 'last_scanned_hands', 'lastScannedHands'), 'Unknown')}</Fact>
               <Fact label="Newest Finding">{when(first(liveHealth, 'newest_finding_at', 'newestFindingAt'), true)}</Fact>
               <Fact label="Detection Span In Minutes">{num(first(liveHealth, 'detection_span_minutes', 'detectionSpanMinutes'), 'Unknown')}</Fact>
-              <Fact label="Aggregates Across Runs">{first(first(liveHealth, 'detection_thresholds', 'detectionThresholds'), 'aggregates_across_runs', 'aggregatesAcrossRuns') === true ? 'Yes' : 'No'}</Fact>
+              <Fact label="Aggregates Across Runs">{booleanLabel(first(first(liveHealth, 'detection_thresholds', 'detectionThresholds'), 'aggregates_across_runs', 'aggregatesAcrossRuns'))}</Fact>
               <Fact label="Unscanned From">{when(first(liveHealth, 'unscanned_from', 'unscannedFrom'), true)}</Fact>
               <Fact label="Unscanned To">{when(first(liveHealth, 'unscanned_to', 'unscannedTo'), true)}</Fact>
             </dl>

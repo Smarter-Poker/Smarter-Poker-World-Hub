@@ -51,6 +51,10 @@ landed, so Phase 5 was not considered released.
    source fields the RPC does not return. They now show the flag type, named
    player with horse or human disclosure, flagged time, and thirty-day event
    count from the exact RPC fields.
+9. The Timing panel looked for an array and fields including `p95_ms`, while
+   its RPC returns a composition-keyed distribution with no percentile. That
+   false-empty path is replaced with exact per-composition timing rows and an
+   explicit sample-coverage card, including the truncation flag.
 
 ## Production Database Evidence
 
