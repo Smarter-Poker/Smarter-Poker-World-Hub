@@ -1,5 +1,5 @@
 /**
- * PRIZE WHEEL COMPONENT — Spin-to-win reward system
+ * PRIZE WHEEL COMPONENT - Spin-to-win reward system
  * Appears after completing daily trivia
  *
  * TRUST MODEL (read before changing):
@@ -24,7 +24,7 @@ const SPIN_DURATION_MS = 4000;
 
 // Prize pool configuration.
 // NOTE: the 'mystery' segment used to award an item_type of 'mystery_box'
-// that nothing in the app ever opened, displayed or consumed — a dead-end
+// that nothing in the app ever opened, displayed or consumed - a dead-end
 // reward. Until a box-opening flow exists it pays real diamonds while
 // keeping the "???" surprise reveal.
 const PRIZES = [
@@ -38,7 +38,7 @@ const PRIZES = [
     { id: 'mystery', label: '???', icon: Gift, color: '#f472b6', weight: 2, reward: { type: 'diamonds', amount: 15 } },
 ];
 
-// Weighted random selection (fallback only — see trust model above)
+// Weighted random selection (fallback only - see trust model above)
 function selectPrize() {
     const totalWeight = PRIZES.reduce((sum, p) => sum + p.weight, 0);
     let random = Math.random() * totalWeight;
@@ -66,7 +66,7 @@ export default function PrizeWheel({
     onComplete,
     onClose,
     streakMultiplier = 1,
-    prizeId = null, // server-resolved outcome — preferred
+    prizeId = null, // server-resolved outcome - preferred
     prizeAmount = null // server-resolved amount (multiplier already applied)
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
@@ -134,7 +134,7 @@ export default function PrizeWheel({
             const finalReward = { ...prize.reward, prizeId: prize.id, baseAmount, serverResolved };
 
             if (serverResolved && Number.isFinite(Number(prizeAmount))) {
-                // Server already applied any multiplier — never re-apply.
+                // Server already applied any multiplier - never re-apply.
                 finalReward.amount = Math.max(0, Math.floor(Number(prizeAmount)));
                 finalReward.appliedMultiplier = 1;
             } else if (finalReward.type === 'diamonds') {
@@ -173,7 +173,7 @@ export default function PrizeWheel({
             // from authenticated), because a read-then-write let a modified
             // client set `quantity` to anything. The write goes through
             // fn_trivia_grant_item, which grants to auth.uid() only, clamps the
-            // amount to 1..5 and increments atomically — so it is safe to
+            // amount to 1..5 and increments atomically - so it is safe to
             // expose to the browser and it cannot lose a concurrent grant the
             // way the old read-modify-write could.
             //
@@ -207,7 +207,7 @@ export default function PrizeWheel({
                 // and show a "we'll retry" message instead of the success toast.
                 // claimingRef MUST be released here, otherwise the CLAIM
                 // button stays permanently inert after one transient network
-                // failure — the opposite of the retry the copy promises.
+                // failure - the opposite of the retry the copy promises.
                 if (_persistFailed) {
                     claimingRef.current = false;
                     if (isMountedRef.current) {
@@ -230,7 +230,7 @@ export default function PrizeWheel({
                 <div className="prize-wheel-container">
                     <h2 className="title">
                         <Star className="star-icon" />
-                        DAILY SPIN
+                        Daily Spin
                         <Star className="star-icon" />
                     </h2>
 
@@ -294,7 +294,7 @@ export default function PrizeWheel({
                                     {result.reward.type === 'streak_shield' && 'Streak Shield'}
                                     {result.reward.type === 'arcade_ticket' && 'Free Arcade Entry'}
                                 </span>
-                                {/* Make the streak multiplier visible — it was
+                                {/* Make the streak multiplier visible - it was
                                     previously applied silently at claim time,
                                     hiding the value of the streak system. */}
                                 {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
@@ -316,7 +316,7 @@ export default function PrizeWheel({
                             variant="primary"
                             size="lg"
                         >
-                            {isSpinning ? 'SPINNING...' : 'SPIN THE WHEEL'}
+                            {isSpinning ? 'Spinning...' : 'Spin The Wheel'}
                         </HexButton>
                     ) : (
                         <HexButton
@@ -324,13 +324,13 @@ export default function PrizeWheel({
                             variant="primary"
                             size="lg"
                         >
-                            {claimError ? 'RETRY CLAIM' : 'CLAIM REWARD'}
+                            {claimError ? 'Retry Claim' : 'Claim Reward'}
                         </HexButton>
                     )}
 
                     {/* Skip is only an escape hatch BEFORE the spin. Leaving it
                         up during/after the spin let a player discard a prize
-                        they had already won with one mis-tap — and, combined
+                        they had already won with one mis-tap - and, combined
                         with re-opening the wheel, fish for a better roll. */}
                     {onClose && !isSpinning && !result && !hasSpunRef.current && (
                         <button className="skip-btn" type="button" onClick={onClose}>
@@ -375,7 +375,7 @@ export default function PrizeWheel({
                 }
                 
                 /* :global() is styled-jsx / CSS-Modules syntax and is INVALID
-                   inside a plain <style> element — browsers dropped this rule
+                   inside a plain <style> element - browsers dropped this rule
                    entirely, so the title stars rendered unstyled. */
                 .title .star-icon {
                     color: #ffd700;
