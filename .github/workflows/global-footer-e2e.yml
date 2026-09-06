@@ -39,6 +39,9 @@ jobs:
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
 
+      - name: Verify Phase 3 static World menu contracts
+        run: node --test __tests__/world-menu-mobile-phase3.test.mjs
+
       - name: Build production application
         run: npm run build -- --webpack
         env:
