@@ -44,6 +44,13 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
   };
 
   const insertion = formatPokerCards(hand, board);
+  const boardPrompt = board.length < 3
+    ? `Build The Flop · ${board.length}/3`
+    : board.length === 3
+      ? 'Flop Complete · Add The Turn'
+      : board.length === 4
+        ? 'Turn Added · Add The River'
+        : 'River Complete';
 
   return (
     <div
@@ -101,16 +108,7 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
             { id: 'board', label: 'Board', cards: board, limit: 5 },
           ].map((area) => (
             <div
-              role="button"
-              tabIndex={0}
               key={area.id}
-              onClick={() => setZone(area.id)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  setZone(area.id);
-                }
-              }}
               style={{
                 minHeight: 92,
                 padding: 10,
@@ -119,30 +117,47 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
                 border: zone === area.id ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.12)',
                 background: zone === area.id ? 'rgba(245,158,11,0.10)' : 'rgba(255,255,255,0.04)',
                 color: '#fff',
-                cursor: 'pointer',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12, fontWeight: 800 }}>
-                <span>{area.label}</span><span style={{ color: '#94a3b8' }}>{area.cards.length}/{area.limit}</span>
-              </div>
+              <button
+                type="button"
+                aria-pressed={zone === area.id}
+                aria-label={`Select ${area.label}`}
+                onClick={() => setZone(area.id)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: 0,
+                  marginBottom: 5,
+                  border: 0,
+                  background: 'transparent',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  textAlign: 'left',
+                }}
+              >
+                <span>{area.label}</span>
+                <span aria-live="polite" style={{ color: '#94a3b8' }}>{area.cards.length}/{area.limit}</span>
+              </button>
+              {area.id === 'board' && (
+                <div aria-live="polite" style={{ color: '#fbbf24', fontSize: 10, fontWeight: 800, marginBottom: 5 }}>
+                  {boardPrompt}
+                </div>
+              )}
               <div style={{ minHeight: 48, display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto' }}>
                 {area.cards.length ? area.cards.map((card, index) => (
-                  <span
+                  <button
+                    type="button"
                     key={`${card.rank}${card.suit}`}
-                    role="button"
-                    tabIndex={0}
                     aria-label={`Remove ${card.rank}${card.suit}`}
-                    onClick={(event) => { event.stopPropagation(); remove(area.id, index); }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        remove(area.id, index);
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() => remove(area.id, index)}
+                    style={{ cursor: 'pointer', padding: 0, border: 0, background: 'transparent' }}
                   >
                     <PokerCardImage rank={card.rank} suit={card.suit} size="preview" selected />
-                  </span>
+                  </button>
                 )) : (
                   <span style={{ color: '#64748b', fontSize: 12 }}>Tap Cards Below To Add Them Here</span>
                 )}
@@ -168,6 +183,7 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
                       key={`${rank}${suit.id}`}
                       onClick={() => choose(card)}
                       disabled={selected || full}
+                      aria-pressed={selected}
                       aria-label={`Add ${rank} of ${suit.name.toLowerCase()} to ${zone}`}
                       style={{
                         padding: 0,

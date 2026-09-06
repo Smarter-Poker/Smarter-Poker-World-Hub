@@ -76,4 +76,10 @@ test('picker forbids duplicates and respects hand and board limits', () => {
   assert.match(source, /hand\.length >= 6/);
   assert.match(source, /board\.length >= 5/);
   assert.match(source, /Each Card Uses The Club Arena Deck/);
+  assert.match(source, /Build The Flop/);
+  assert.match(source, /Flop Complete · Add The Turn/);
+  assert.match(source, /Turn Added · Add The River/);
+  assert.match(source, /River Complete/);
+  assert.match(source, /aria-pressed=\{zone === area\.id\}/);
+  assert.doesNotMatch(source, /<span[\s\S]{0,160}role="button"/);
 });
