@@ -815,6 +815,10 @@ export default function PokerToursPage({ initialTours = [] }) {
             <Head>
                 <title>Poker Tours - Traveling Poker Series & Circuits | Smarter.Poker</title>
                 <meta name="description" content="Browse all major poker tours including WSOP, WPT, MSPT, RGPS and more. Find upcoming series, tour stops, and schedules." />
+                <link rel="canonical" href="https://smarter.poker/hub/poker-tours" />
+                <meta property="og:title" content="Poker Tours Directory | Smarter.Poker" />
+                <meta property="og:description" content="Browse traveling poker tours, upcoming stops, and tournament circuits in one national directory." />
+                <meta property="og:url" content="https://smarter.poker/hub/poker-tours" />
             
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
                     "@context": "https://schema.org",

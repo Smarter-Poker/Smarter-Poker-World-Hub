@@ -811,6 +811,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const hasLiveData = venue && venue.live_data && venue.live_data.tables_running > 0;
     const hasCashGameSignal = Boolean(venue?.live_data && Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0);
     const modeledCashGames = isModeledCashGameData(venue?.live_data);
+    const catalogCashGames = venue?.live_data?.data_mode === 'catalog';
+    const unavailableCashGames = venue?.live_data?.live_count_known === false && !catalogCashGames;
     const publishedCashGameLabel = cashGameCountLabel(venue?.live_data);
     // BUG FIX: the meter renders when `hasLiveData || checkinCount > 0`, but the level was
     // only computed when hasLiveData was true — so a venue with no live table data and N
@@ -1253,8 +1255,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         {hasCashGameSignal ? (
                             <>
                                 <div className="vc3-col-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>{modeledCashGames ? 'Estimated Cash Games' : 'Cash Games'}</span>
-                                    <span className="vc3-cash-count" data-modeled={modeledCashGames ? 'true' : 'false'}>
+                                    <span>{catalogCashGames ? 'Catalog Cash Games' : modeledCashGames ? 'Estimated Cash Games' : 'Cash Games'}</span>
+                                    <span className="vc3-cash-count" data-modeled={modeledCashGames ? 'true' : 'false'} data-catalog={catalogCashGames ? 'true' : 'false'} data-unavailable={unavailableCashGames ? 'true' : 'false'}>
                                         {publishedCashGameLabel}
                                     </span>
                                 </div>
@@ -1268,7 +1270,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 <div key={`live-game-${gameName.replace(/\\s+/g,'-')}-${buyin.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-game-item">
                                                     <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
                                                     <span className="vc3-game-tables">
-                                                        {g?.is_simulated ? 'Approx. ' : ''}{Number(g?.tables_running) || 0} {Number(g?.tables_running) === 1 ? 'Table' : 'Tables'}
+                                                        {g?.observation_kind === 'catalog' || g?.live_count_known === false
+                                                            ? 'Live Count Unknown'
+                                                            : <>{g?.is_simulated ? 'Approx. ' : ''}{Number(g?.tables_running) || 0} {Number(g?.tables_running) === 1 ? 'Table' : 'Tables'}</>}
                                                     </span>
                                                 </div>
                                             );
@@ -1296,7 +1300,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                                         </svg>
-                                        {modeledCashGames ? `Modeled From Saved Cash-Game Data${staleInfo.age ? ` · ${staleInfo.age}` : ''}` : (staleInfo.stale ? 'Stale Data' : `Updated ${staleInfo.age}`)}
+                                        {catalogCashGames
+                                            ? `Catalog Updated ${staleInfo.age || 'Recently'}`
+                                            : modeledCashGames
+                                                ? `Modeled From Saved Cash-Game Data${staleInfo.age ? ` · ${staleInfo.age}` : ''}`
+                                                : (staleInfo.stale ? 'Stale Data' : `Updated ${staleInfo.age}`)}
                                     </div>
                                 )}
                             </>

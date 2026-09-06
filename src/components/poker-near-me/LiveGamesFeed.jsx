@@ -6,6 +6,12 @@ import { normalizeGameName } from './normalize-game';
 import { PAGE_SIZE_LIVE, INITIAL_VISIBLE_LIVE } from './discoveryController';
 import { busEmit } from '../../engine/EventBus';
 import ReportGameModal from './ReportGameModal';
+import {
+    buildLiveCashGameEntry,
+    buildVenueDirectoryIdentityIndex,
+    expireCachedLiveCashGameMap,
+    findVenueDirectoryEntry,
+} from '../../lib/poker-near-me/liveCashGameData';
 
 // ─── HTML entity decoder (handles &amp; &lt; &gt; &quot; &#39; etc.) ───
 function decodeHtmlEntities(str) {
@@ -27,33 +33,6 @@ function decodeHtmlEntities(str) {
     result = result.replace(/\s{2,}/g, ' ').trim();
     return result;
 }
-
-// ─── Normalize venue name for fuzzy matching ───
-function normalizeVenueName(name) {
-    if (!name) return '';
-    return decodeHtmlEntities(name)
-        .toLowerCase()
-        .replace(/&/g, 'and')
-        .replace(/'/g, '')
-        .replace(/-/g, ' ')
-        .replace(/[^a-z0-9 ]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-// ─── Significant words for word-overlap matching ───
-// Stop words: common venue, location, and tournament-series terms that cause false positives
-const STOP_WORDS = new Set([
-    'casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in',
-    'bar', 'lounge', 'club', 'card', 'house', 'center', 'spa',
-    'las', 'vegas', 'city', 'park', 'lake', 'valley', 'north', 'south', 'east', 'west',
-    'series', 'classic', 'championship', 'tournament',
-]);
-function getSignificantWords(normalized) {
-    return normalized.split(' ').filter(w => w.length >= 3 && !STOP_WORDS.has(w));
-}
-// Tour/series entries should never be matched as physical venues
-const SERIES_PATTERN = /\b(series|classic|championship|circuit)\b/i;
 
 // Dynamically import map to avoid SSR issues
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
@@ -113,6 +92,17 @@ function resolveVenueDetailId(rawId) {
  * "ESTIMATED".
  */
 function SourceBadge({ source, dataMode }) {
+    if (dataMode === 'catalog') {
+        return (
+            <span style={{
+                fontSize: 12, letterSpacing: '0.3px', color: '#d8e4ec',
+                background: 'rgba(170,184,196,0.1)', border: '1px solid rgba(170,184,196,0.28)',
+                padding: '2px 6px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase',
+            }} title="Game listing only; current table count is unknown">
+                CATALOG
+            </span>
+        );
+    }
     if (dataMode === 'estimated') {
         return (
             <span style={{
@@ -124,7 +114,7 @@ function SourceBadge({ source, dataMode }) {
                 borderRadius: 4,
                 fontWeight: 800,
                 textTransform: 'uppercase',
-            }} title="Modeled from saved venue and schedule data, not a live observation">
+            }} title="Modeled from qualified saved observations, not a current live report">
                 ESTIMATED
             </span>
         );
@@ -364,6 +354,26 @@ function LiveGamesFeed({
     const fetchGlobalLiveData = useCallback(async (isRealtimeEvent = false) => {
         if (!isRealtimeEvent) setLiveLoading(true);
         if (isRealtimeEvent) setIsRefreshing(true);
+        const preserveFreshnessQualifiedCache = () => {
+            const cached = lastGoodLiveDataRef.current;
+            if (!cached || Object.keys(cached).length === 0) return false;
+            const aged = expireCachedLiveCashGameMap(cached, Date.now(), STALE_THRESHOLD_MS);
+            lastGoodLiveDataRef.current = aged;
+            setLiveData(aged);
+            const entries = Object.values(aged);
+            if (!entries.some(entry => entry?.live_count_known !== false)) {
+                const catalogAvailable = entries.some(entry => entry?.data_mode === 'catalog');
+                setGlobalStats(previous => ({
+                    ...previous,
+                    venues: 0,
+                    tables: 0,
+                    waiting: 0,
+                    dataMode: catalogAvailable ? 'catalog' : 'none',
+                }));
+                setIsDataStale(entries.some(entry => entry?.is_stale === true));
+            }
+            return true;
+        };
         try {
             // [2026-08-30 DB-load pass] Realtime-triggered refetches used a
             // ?_t=Date.now() cache-buster, which made every one of them a CDN
@@ -379,14 +389,20 @@ function LiveGamesFeed({
                 const json = await res.json();
                 const mapping = {};
                 (json.venues || []).forEach(v => {
-                    const calculatedTables = (v.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
-                    const totalTables = Number.isFinite(Number(v.tables_running_total))
-                        ? Number(v.tables_running_total)
-                        : calculatedTables;
-                    const totalWait = (v.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
+                    const contracted = buildLiveCashGameEntry(v, json.metadata);
                     const sources = (v.games || []).map(g => g ? g.source : null).filter(Boolean);
-                    const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
-                    mapping[v.bravo_slug] = { ...v, totalTables, totalWait, primarySource };
+                    const primarySource = contracted.data_mode === 'catalog'
+                        ? 'catalog'
+                        : sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
+                    if (v.bravo_slug) {
+                        mapping[v.bravo_slug] = {
+                            ...v,
+                            ...contracted,
+                            totalTables: contracted.tables_running,
+                            totalWait: contracted.players_waiting,
+                            primarySource,
+                        };
+                    }
                 });
 
                 // ── SCRAPER FALLBACK POLICY ──────────────────────────────────────
@@ -414,9 +430,10 @@ function LiveGamesFeed({
                         return next;
                     });
                     setIsScraperDead(false);
-                } else if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
-                    // Scrapers returned nothing (0 venues total) — preserve last-known data silently
-                    console.warn('[LGF] Scraper returned 0 venues - preserving last-known data, feed intact.');
+                } else if (preserveFreshnessQualifiedCache()) {
+                    // Preserve identity during an outage, but age every cached
+                    // count through the same three-hour truth window as the API.
+                    console.warn('[LGF] Scraper returned 0 venues - preserving identity with freshness-qualified counts.');
                     setIsScraperDead(true);
                 } else {
                     // Very first load with 0 venues — nothing to preserve
@@ -443,19 +460,16 @@ function LiveGamesFeed({
                 busEmit.dataMutated('live_tables');
             } else {
                 // HTTP error — preserve last-known data
-                if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
-                    console.warn('[LGF] API HTTP error - preserving last-known data.');
-                    setIsScraperDead(true);
-                    // Do NOT clear isDataStale — offline data continues aging.
+                if (preserveFreshnessQualifiedCache()) {
+                    console.warn('[LGF] API HTTP error - preserving freshness-qualified cached data.');
                 }
+                setIsScraperDead(true);
             }
         } catch (e) {
             console.warn('Fetch global live data error:', e);
             // Network failure — preserve last-known data
-            if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
-                setIsScraperDead(true);
-                // Do NOT clear isDataStale — offline data continues aging.
-            }
+            preserveFreshnessQualifiedCache();
+            setIsScraperDead(true);
         }
         setLiveLoading(false);
         setIsRefreshing(false);
@@ -515,25 +529,7 @@ function LiveGamesFeed({
     const mergedVenues = useMemo(() => {
         const liveEntries = Object.values(liveData || {});
 
-        // Build multi-layer lookups from parent venues for enrichment
-        const venueByName = {};       // exact lowercase name → venue
-        const venueBySlug = {};       // exact slug/bravo_slug → venue
-        const venueByNormName = {};   // normalized name → venue
-        const venueWordIndex = [];    // [{words: [...], venue}] for word-overlap matching
-        for (const v of venues) {
-            if (v.name) {
-                venueByName[v.name.toLowerCase()] = v;
-                const norm = normalizeVenueName(v.name);
-                if (norm) venueByNormName[norm] = v;
-                const sigWords = getSignificantWords(norm);
-                if (sigWords.length > 0) venueWordIndex.push({ words: sigWords, venue: v });
-            }
-            if (v.bravo_slug) venueBySlug[v.bravo_slug] = v;
-            // Also index by 'slug' — all-venues.json uses 'slug' not 'bravo_slug'
-            if (v.slug && !venueBySlug[v.slug]) venueBySlug[v.slug] = v;
-            // Track PA slugs so external sources match perfectly without hard aliases
-            if (v.pokeratlas_slug && !venueBySlug[v.pokeratlas_slug]) venueBySlug[v.pokeratlas_slug] = v;
-        }
+        const directoryIndex = buildVenueDirectoryIdentityIndex(venues);
 
         // 4-layer parent venue finder: slug → stripped slug → decoded name → word overlap
         // Hardcoded alias fallback for critical mismatches not correctly populated in poker_venues
@@ -548,47 +544,15 @@ function LiveGamesFeed({
         };
 
         const findParentVenue = (bravoSlug, venueName) => {
-            if (!bravoSlug && !venueName) return null;
-            
-            // Layer 1: Exact slug match
-            if (bravoSlug && venueBySlug[bravoSlug]) return venueBySlug[bravoSlug];
-            // Layer 1.5: Alias match 
-            if (bravoSlug && KNOWN_ALIASES[bravoSlug] && venueBySlug[KNOWN_ALIASES[bravoSlug]]) {
-                return venueBySlug[KNOWN_ALIASES[bravoSlug]];
-            }
-            // Layer 2: Strip pa- prefix from bravo slug
-            if (bravoSlug && bravoSlug.startsWith('pa-')) {
-                const stripped = bravoSlug.slice(3);
-                if (venueBySlug[stripped]) return venueBySlug[stripped];
-            }
-            // Layer 3: HTML-decoded exact name match
-            const decodedName = decodeHtmlEntities(venueName || '');
-            if (decodedName && venueByName[decodedName.toLowerCase()]) return venueByName[decodedName.toLowerCase()];
-            // Layer 3b: Normalized name match (strips &→and, punctuation, etc.)
-            const normName = normalizeVenueName(venueName);
-            if (normName && venueByNormName[normName]) return venueByNormName[normName];
-            // Layer 4: Significant word overlap (≥0.6 score, skip series/tour entries)
-            if (normName) {
-                const queryWords = getSignificantWords(normName);
-                if (queryWords.length >= 1) {
-                    let bestMatch = null;
-                    let bestScore = 0;
-                    for (const entry of venueWordIndex) {
-                        // Skip tour/series entries — they're not physical venues
-                        if (SERIES_PATTERN.test(entry.venue.name || '')) continue;
-                        if (entry.venue.venue_type === 'series' || entry.venue.venue_type === 'tour') continue;
-                        const shared = queryWords.filter(w => entry.words.includes(w)).length;
-                        const score = shared / Math.max(queryWords.length, entry.words.length);
-                        const minShared = queryWords.length >= 2 ? 2 : 1;
-                        if (shared >= minShared && score >= 0.6 && score > bestScore) {
-                            bestScore = score;
-                            bestMatch = entry.venue;
-                        }
-                    }
-                    if (bestMatch) return bestMatch;
-                }
-            }
-            return null;
+            const direct = findVenueDirectoryEntry({
+                bravo_slug: bravoSlug,
+                venue_name: decodeHtmlEntities(venueName || ''),
+            }, directoryIndex);
+            if (direct) return direct;
+            const aliasedSlug = bravoSlug && KNOWN_ALIASES[bravoSlug];
+            return aliasedSlug
+                ? findVenueDirectoryEntry({ bravo_slug: aliasedSlug }, directoryIndex)
+                : null;
         };
 
         let list = [];
@@ -597,7 +561,7 @@ function LiveGamesFeed({
         const liveMapped = liveEntries.map(liveEntry => {
             const parentVenue = findParentVenue(liveEntry.bravo_slug, liveEntry.venue_name);
             const logoUrl = getVenueLogoUrl(parentVenue || { website: null });
-            const waitEst = liveEntry.totalWait > 0 
+            const waitEst = liveEntry.live_count_known !== false && liveEntry.totalWait > 0
                 ? estimateWaitTime(liveEntry.totalWait, liveEntry.totalTables) 
                 : null;
             
@@ -605,8 +569,8 @@ function LiveGamesFeed({
                 bravo_slug: liveEntry.bravo_slug,
                 name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
                 venue_name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
-                totalTables: liveEntry.totalTables || 0,
-                totalWait: liveEntry.totalWait || 0,
+                totalTables: liveEntry.live_count_known === false ? null : (liveEntry.totalTables || 0),
+                totalWait: liveEntry.live_count_known === false ? null : (liveEntry.totalWait || 0),
                 games: liveEntry.games || [],
                 last_updated: liveEntry.last_updated,
                 primarySource: liveEntry.primarySource || 'bravo',
@@ -632,6 +596,8 @@ function LiveGamesFeed({
                 is_simulated: !!liveEntry.is_simulated,
                 has_simulated_data: !!liveEntry.has_simulated_data,
                 data_mode: liveEntry.data_mode || 'none',
+                live_count_known: liveEntry.live_count_known !== false,
+                has_catalog_data: !!liveEntry.has_catalog_data,
                 is_stale: !!liveEntry.is_stale,
                 _hasParentVenue: !!parentVenue,
                 _hasPublishedActivity: !liveEntry.is_stale && liveEntry.totalTables > 0,
@@ -652,7 +618,7 @@ function LiveGamesFeed({
             if (v.bravo_slug) liveSlugs.add(v.bravo_slug);
         });
         const catalogMapped = venues
-            .filter(v => v.games_offered && v.games_offered.length > 0 && v.poker_tables > 0)
+            .filter(v => v.games_offered && v.games_offered.length > 0)
             .filter(v => !liveIds.has(v.id) && !liveSlugs.has(v.bravo_slug) && !liveSlugs.has(v.slug)) // Exclude those already in live data
             .map(v => {
                 const logoUrl = getVenueLogoUrl(v);
@@ -660,9 +626,18 @@ function LiveGamesFeed({
                     bravo_slug: v.bravo_slug || v.slug || `venue-${v.id}`,
                     name: v.name,
                     venue_name: v.name,
-                    totalTables: v.poker_tables || 0,
+                    // Room capacity is not current activity. Keep the live
+                    // count unknown and carry capacity in its own field.
+                    totalTables: null,
                     totalWait: 0,
-                    games: (v.games_offered || []).map(g => ({ game: g, tables_running: 0, source: 'catalog' })),
+                    games: (v.games_offered || []).map(g => ({
+                        game: g,
+                        tables_running: null,
+                        players_waiting: null,
+                        source: 'catalog',
+                        observation_kind: 'catalog',
+                        live_count_known: false,
+                    })),
                     last_updated: null,
                     primarySource: 'catalog',
                     id: v.id,
@@ -684,6 +659,9 @@ function LiveGamesFeed({
                     is_simulated: false,
                     has_simulated_data: false,
                     data_mode: 'catalog',
+                    live_count_known: false,
+                    has_catalog_data: true,
+                    catalog_capacity: v.poker_tables || null,
                     is_stale: false,
                     _hasParentVenue: true,
                     _hasPublishedActivity: false,
@@ -846,7 +824,11 @@ function LiveGamesFeed({
                         </div>
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
                             {g.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: 12 }}>{g.players_waiting} Waiting</span>}
-                            {isPASource ? (
+                            {g.observation_kind === 'catalog' || g.live_count_known === false ? (
+                                <span style={{ color: '#d8e4ec', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 12 }}>
+                                    {g.runs || 'Live count unknown'}
+                                </span>
+                            ) : isPASource ? (
                                 <span style={{ color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 12 }}>
                                     {g.runs || `~${g.tables_running} est.`}
                                 </span>
@@ -890,8 +872,8 @@ function LiveGamesFeed({
     // ─── RENDER: LIVE VENUE CARD (PREMIUM UPGRADE) ───
     const renderLiveVenueCard = (v, index) => {
         const dist = calcDist(v);
-        // BUG FIX: catalog rows set totalTables = poker_tables (room CAPACITY, no live
-        // data), so a closed 30-table room was scoring HOT. Only live counts are heat.
+        // Only current count-bearing evidence contributes to heat. Catalog room
+        // capacity is carried separately and never becomes a running-table count.
         const heat = getHeatLevel(v._isLive ? v.totalTables : 0);
         const isFav = favorites && favorites[v.id];
         // WIRING FIX: keyed by String(id), matching VenuesTabPanel.jsx.
@@ -899,6 +881,7 @@ function LiveGamesFeed({
         // Modelled (simulated) rows must never be dressed up as a real-time scrape.
         const isModelled = v.data_mode === 'estimated';
         const isMixed = v.data_mode === 'mixed';
+        const isCatalog = v.data_mode === 'catalog';
         const initColor = getInitialsColor(v.id || 0);
         const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const trustScore = v.trust_score || 0;
@@ -995,7 +978,7 @@ function LiveGamesFeed({
                                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
                                     {v.name}
                                 </h3>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
                                     {(v.city || v.state) && (
                                         <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)' }}>
                                             {[v.city, v.state].filter(Boolean).join(', ')}
@@ -1030,15 +1013,16 @@ function LiveGamesFeed({
 
                     {/* === LIVE BADGES === */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                        {/* BUG FIX: catalog rows carry poker_tables (room capacity) in
-                            totalTables and have no live feed at all, yet this badge used to
-                            render "{n} Tables Running" with a pulsing live dot for them —
-                            a closed 30-table room advertised "30 Tables Running". Live rows
-                            keep the running badge; catalog rows state capacity honestly. */}
-                        {v._hasPublishedActivity && isModelled ? (
+                        {/* Catalog room capacity is not live activity. Live rows keep
+                            the running badge; catalog rows keep the count unknown. */}
+                        {isCatalog ? (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(170,184,196,0.1)', color: '#d8e4ec', border: '1px solid rgba(170,184,196,0.28)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                Games Listed, Live Count Unknown
+                            </span>
+                        ) : v._hasPublishedActivity && isModelled ? (
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                                title="Modeled from saved venue and schedule data, not a live observation">
+                                title="Modeled from qualified saved observations, not a current live report">
                                 {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Estimated
                             </span>
                         ) : v._hasPublishedActivity && isMixed ? (
@@ -1075,8 +1059,16 @@ function LiveGamesFeed({
                             </span>
                         )}
 
-                        {!v._hasPublishedActivity && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>{v.is_stale ? 'No Current Data' : 'No Live Data'}</span>
+                        {!v._hasPublishedActivity && !isCatalog && (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>
+                                {v.is_stale
+                                    ? 'No Current Data'
+                                    : v.data_mode === 'live'
+                                      ? 'No Tables Reported'
+                                      : v.data_mode === 'estimated'
+                                        ? 'No Tables Estimated'
+                                        : 'No Live Data'}
+                            </span>
                         )}
                     </div>
 
@@ -1302,7 +1294,7 @@ function LiveGamesFeed({
 
             {/* ─── MODELLED DATA BANNER ───
                 /api/poker/live-tables reports metadata.data_mode ('live' | 'mixed' |
-                'estimated'). It was captured into globalStats.dataMode and then never
+                'estimated' | 'catalog'). It was captured into globalStats.dataMode and then never
                 rendered, so modelled table counts were presented to users as a live
                 scrape. Surface it. */}
             {(globalStats.dataMode === 'estimated' || globalStats.dataMode === 'mixed') && !selectedVenue && (
@@ -1319,9 +1311,19 @@ function LiveGamesFeed({
                             {globalStats.dataMode === 'estimated' ? 'Estimated Table Counts' : 'Some Table Counts Are Estimated'}
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
-                            Cards Marked ESTIMATED Use Saved Venue And Schedule Data, Not A Live Observation.
+                            Cards Marked ESTIMATED Use Qualified Saved Observations, Not A Current Live Report.
                         </div>
                     </div>
+                </div>
+            )}
+
+            {globalStats.dataMode === 'catalog' && !selectedVenue && (
+                <div style={{
+                    margin: '0 16px 12px', padding: '10px 16px', borderRadius: 4,
+                    background: 'rgba(170,184,196,0.06)', border: '1px solid rgba(170,184,196,0.22)',
+                    color: '#d8e4ec', fontSize: 12,
+                }}>
+                    PokerAtlas game listings are available. Current table and waitlist counts are unknown.
                 </div>
             )}
 

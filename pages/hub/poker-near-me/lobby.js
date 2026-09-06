@@ -333,7 +333,7 @@ export default function PokerNearMeLobby() {
   const [page, setPage] = useState(0);
   const [checkinCounts, setCheckinCounts] = useState({});
   const [liveGameCount, setLiveGameCount] = useState(0);
-  // 'live' | 'mixed' | 'estimated' | 'none' — from /api/poker/live-tables metadata
+  // 'live' | 'mixed' | 'estimated' | 'catalog' | 'none' from live-tables metadata
   const [liveDataMode, setLiveDataMode] = useState(null);
   const [totalVenueCount, setTotalVenueCount] = useState(0);
   const [todaysTournamentCount, setTodaysTournamentCount] = useState(0);
@@ -831,7 +831,7 @@ export default function PokerNearMeLobby() {
         return r.json();
       })
       .then(j => {
-        // data_mode is 'live' | 'mixed' | 'estimated' | 'none'. The published
+        // data_mode is 'live' | 'mixed' | 'estimated' | 'catalog' | 'none'. The published
         // total_tables_running can be a MODEL output, so it must never be
         // labelled "Live Tables" unconditionally (see
         // .agent/workflows/live-cash-games-policy.md).
@@ -2421,15 +2421,17 @@ export default function PokerNearMeLobby() {
     });
 
     return {
-      liveGameCount: liveGameCount,
+      liveGameCount: liveDataMode === 'catalog' ? 'Unknown' : liveGameCount,
       // /api/poker/live-tables publishes data_mode ('live' | 'mixed' | 'estimated'
-      // | 'none'). The lobby used to render the number under a hardcoded "Live
+      // | 'catalog' | 'none'). The lobby used to render the number under a hardcoded "Live
       // Tables" label even when the value was a MODEL output. Label it honestly.
       liveGameLabel: (liveDataMode === 'estimated' || liveDataMode === 'mixed')
         ? 'Est. Tables'
         : liveDataMode === 'live'
           ? 'Live Tables'
-          : 'Cash Tables',
+          : liveDataMode === 'catalog'
+            ? 'Live Count'
+            : 'Cash Tables',
       // Daily Grind: today's tournaments — authoritative count from API
       // (includes venue daily tournaments + charity events + tour series events)
       dailyCount: todaysTournamentCount || todaysTournaments.length,

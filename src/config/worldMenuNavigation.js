@@ -33,13 +33,13 @@ const PURPOSE_BY_WORLD = Object.freeze({
   trivia: 'Daily Play, Arcade Modes, Competition, And Results',
   'social-media': 'Publishing, Friends, Messaging, Reels, And Pages',
   'diamond-arena': 'Competition, Schedule, Rankings, And Rewards',
-  'my-clubs': 'Clubs, Venues, Home Games, And Club Pages',
+  'my-clubs': 'Managed Clubs, Club Pages, Community, And Club Tools',
   'video-library': 'Strategy Video, Saved Content, And Watch History',
   'odds-calculator': 'Odds, Equity, ICM, Ranges, And Hand Analysis',
   'bankroll-manager': 'Sessions, Trips, Reports, Rules, And Exports',
   'toke-tracker': 'Shifts, Tokes, Taxes, Venues, And Dealer Records',
   'preflop-charts': 'Ranges, Speed Drills, Progress, And Tutorials',
-  'poker-near-me': 'Venues, Events, Live Games, Maps, And Saved Places',
+  'poker-near-me': 'Venues, Home Games, Events, Live Games, Maps, And Saved Places',
   marketplace: 'Diamonds, Merchandise, Clubs, VIP, And Orders',
 });
 

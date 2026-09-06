@@ -12,20 +12,15 @@
  *  Flow:
  *    1. Resolve the slug → social_page (must be page_type='home_game',
  *       is_public=true). 404 on miss.
- *    2. Resolve the eventId → commander_home_games row. Must be in the
- *       same group_id as the page's linked_entity_id, status='scheduled',
- *       and scheduled_date >= today. 404 on any miss.
- *    3. Upsert commander_home_members (group_id, user_id):
- *         - New member  -> status='pending' (host approves later)
- *         - Approved/pending -> status left alone
- *         - Banned      -> rejected before any RSVP or notification write
- *         - Declined    -> rejected unless the host explicitly allows a
- *                          fresh pending request in group settings
- *    4. Upsert commander_home_rsvps (game_id, user_id):
- *         - response    -> 'yes' if capacity available, else 'waitlist'
- *         - is_confirmed=false  (host must confirm)
- *         - message     -> optional note from body.message (≤500 chars)
- *         - bringing_guests, guest_names honored if event.allow_guests
+ *    2. Resolve the eventId → commander_home_games row in the same group.
+ *       The transactional RPC authoritatively checks scheduled/confirmed
+ *       state, cancellation, RSVP deadline, start time and publication.
+ *    3. Call request_public_home_game_seat with the visitor's JWT. The
+ *       database performs membership eligibility, membership creation,
+ *       guest clamping, RSVP upsert and capacity placement atomically.
+ *       Group owners and event hosts are eligible without a membership row.
+ *    4. Consume the RPC's authoritative RSVP response. The capacity trigger
+ *       may return 'waitlist' even when the request initially asked for yes.
  *    5. Return the rsvp + membership status so the UI can render
  *       "Waiting for host approval" or "You're on the waitlist".
  *
@@ -37,16 +32,15 @@
  *      by a login redirect.)
  *
  *  Idempotency:
- *    - Upserts on both tables, so retries are safe. A re-POST with the
- *      same body will overwrite the response/message/guest fields and
- *      return the same row.
+ *    - The RPC upserts the RSVP and safely serializes membership/capacity
+ *      changes, so retries return the canonical row.
  */
 
 import { createClient } from '../../../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 import { sendPushNotification } from '../../../../../../../src/lib/commander/pushNotifications';
 import { sendDirectMessageBetweenUsers } from '../../../../../../../src/lib/home-games/messenger';
-import { evaluateSeatRequestMembership } from '../../../../../../../src/lib/home-games/membershipPolicy.mjs';
+import { getUserScopedClient, mapRpcError } from '../../../../../../../src/lib/home-games/rpcBridge';
 import { reportApiError } from '../../../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -108,22 +102,19 @@ export default async function handler(req, res) {
     // nothing ever checked it — unlisted pages still accepted seat requests,
     // notified the host and inserted pending members. 404 (not 403) so an
     // unlisted page stays indistinguishable from a missing one.
-    if (page.is_public === false) {
+    if (page.is_public !== true) {
       return res.status(404).json({ success: false, error: 'Home game not found' });
     }
 
     const groupId = String(page.linked_entity_id);
 
-    // 4. Resolve eventId → scheduled upcoming event in this group
-    // Timezone safety: toISOString() is UTC, so from ~5pm local onward in US
-    // timezones the UTC date is already tomorrow — an evening seat request for
-    // TONIGHT's game would be rejected as "no longer accepting seat requests".
-    // Shift 12h west so the cutoff never runs ahead of any US local date; the
-    // rsvp_closes_at check below still enforces the host's real deadline.
-    const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // 4. Resolve eventId for privacy-safe notification/response context. The
+    // RPC below repeats and locks every authorization/state check before any
+    // membership or RSVP mutation, so these reads are not a security or
+    // capacity decision.
     const { data: event, error: eventErr } = await supabase
       .from('commander_home_games')
-      .select('id, group_id, host_id, scheduled_date, start_time, status, max_players, rsvp_yes, allow_guests, guest_limit, title, rsvp_closes_at, cancelled_at')
+      .select('id, group_id, host_id, scheduled_date, start_time, title')
       .eq('id', eventId)
       .maybeSingle();
 
@@ -136,30 +127,10 @@ export default async function handler(req, res) {
       // just 404 it to prevent cross-group event enumeration.
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
-    // phase40: state + time-window gate. Public seat requests are only
-    // valid for games that are actively scheduled/confirmed, not cancelled,
-    // whose scheduled_date is today-or-later, and whose rsvp_closes_at (if
-    // set) hasn't elapsed.
-    const acceptingStatuses = new Set(['scheduled', 'confirmed']);
-    if (!acceptingStatuses.has(event.status) || event.cancelled_at || event.scheduled_date < today) {
-      return res.status(400).json({
-        success: false,
-        error: 'This game is no longer accepting seat requests',
-      });
-    }
-    if (event.rsvp_closes_at && new Date(event.rsvp_closes_at).getTime() <= Date.now()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Seat requests are closed for this event',
-      });
-    }
-
-    // 4b. Load the group row for host owner_id + display name. We'll need
-    //     these for the notification dispatch in step 9. Also cheap to use
-    //     `game_type` + `stakes` for a nicer email body.
+    // 4b. Load the group row for notification dispatch only.
     const { data: group, error: groupErr } = await supabase
       .from('commander_home_groups')
-      .select('id, owner_id, name, settings')
+      .select('id, owner_id, name')
       .eq('id', groupId)
       .maybeSingle();
     if (groupErr) throw groupErr;
@@ -173,7 +144,7 @@ export default async function handler(req, res) {
     // 5. Sanitize body
     const body = req.body || {};
     const message = (typeof body.message === 'string' ? body.message : '').trim().slice(0, 500);
-    let bringingGuests = Number.isFinite(Number(body.bringing_guests)) ? Math.max(0, parseInt(body.bringing_guests, 10)) : 0;
+    const bringingGuests = Number.isFinite(Number(body.bringing_guests)) ? Math.max(0, parseInt(body.bringing_guests, 10)) : 0;
     const guestNamesRaw = Array.isArray(body.guest_names) ? body.guest_names : [];
     const guestNames = guestNamesRaw
       .filter((n) => typeof n === 'string')
@@ -181,233 +152,86 @@ export default async function handler(req, res) {
       .filter(Boolean)
       .slice(0, 10);
 
-    // Enforce guest rules
-    if (bringingGuests > 0) {
-      if (!event.allow_guests) {
-        bringingGuests = 0;
-      } else if (event.guest_limit && bringingGuests > event.guest_limit) {
-        bringingGuests = event.guest_limit;
+    // 6. One caller-scoped RPC owns every mutation and the capacity decision.
+    // Supplying the bearer JWT is essential: the function requires auth.uid()
+    // to equal p_caller_user_id and rejects service-role-only calls.
+    const callerSupabase = getUserScopedClient(token);
+    const { data: seatResult, error: seatRequestErr } = await callerSupabase.rpc(
+      'request_public_home_game_seat',
+      {
+        p_group_id: groupId,
+        p_game_id: eventId,
+        p_caller_user_id: user.id,
+        p_bringing_guests: bringingGuests,
+        p_guest_names: guestNames,
+        p_message: message || null,
       }
-    }
-
-    // 6. Determine waitlist vs yes based on capacity.
-    //    NOTE: this is a read of a denormalized counter, so it is only a first
-    //    guess — step 8b re-checks it against the real rows after the write.
-    let response = 'yes';
-    const spotsNeeded = 1 + bringingGuests;
-    const currentYes = Number(event.rsvp_yes || 0);
-    if (event.max_players && currentYes + spotsNeeded > event.max_players) {
-      response = 'waitlist';
-    }
-
-    // 6b. Did this user already hold a confirmed-yes seat before this request?
-    //     A re-POST (editing the message, changing guests) must never knock an
-    //     existing seat holder onto the waitlist in step 8b just because the
-    //     game is already at capacity — they are part of that capacity.
-    const { data: priorRsvp } = await supabase
-      .from('commander_home_rsvps')
-      // audit F-22: bringing_guests is needed to compare SEAT COUNTS, not
-      // just row existence.
-      .select('id, response, bringing_guests')
-      .eq('game_id', eventId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    // audit F-22: this was `priorRsvp?.response === 'yes'` — pure row
-    // existence. An existing yes-RSVP could then re-POST with MORE guests and
-    // skip the capacity recount below entirely, because it "already held a
-    // seat". A party of 1 could become a party of 6 past max_players.
-    //
-    // Only the seats being ADDED are new demand, so exempt the request from
-    // the recount only when it is not asking for more than it already holds.
-    const priorSeats = priorRsvp?.response === 'yes'
-      ? 1 + Math.max(0, Number(priorRsvp.bringing_guests) || 0)
-      : 0;
-    // `spotsNeeded` (= 1 + bringingGuests, already clamped to
-    // event.guest_limit above) is this request's total seat demand.
-    const alreadyHeldSeat = priorSeats > 0 && spotsNeeded <= priorSeats;
-
-    // 7. Establish an eligible membership before writing an RSVP. Banned
-    //    members never get a write or a host notification. A declined member
-    //    may make a fresh pending request only when the host opted in with an
-    //    exact boolean setting; no truthy/string coercion is accepted.
-    const { data: existingMember, error: existingMemberErr } = await supabase
-      .from('commander_home_members')
-      .select('id, status, role')
-      .eq('group_id', groupId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (existingMemberErr) throw existingMemberErr;
-
-    const membershipDecision = evaluateSeatRequestMembership(
-      existingMember?.status ?? null,
-      group.settings
     );
-    if (!membershipDecision.allowed) {
-      return res.status(membershipDecision.status).json({
+
+    if (seatRequestErr) {
+      const mapped = mapRpcError(seatRequestErr);
+      return res.status(mapped.status).json({
         success: false,
-        code: membershipDecision.code,
-        error: membershipDecision.message,
+        code: mapped.error,
+        error: mapped.message,
       });
     }
-
-    let membership = existingMember;
-    if (!existingMember) {
-      const { data: newMember, error: memErr } = await supabase
-        .from('commander_home_members')
-        .insert({
-          group_id: groupId,
-          user_id: user.id,
-          role: 'member',
-          status: 'pending',
-          joined_at: null,
-          notifications_enabled: true,
-          notify_announcements: true,
-          notify_new_games: true,
-          notify_game_reminders: true,
-          notify_rsvp_updates: true,
-        })
-        .select('id, status, role')
-        .maybeSingle();
-      if (memErr) throw memErr;
-      membership = newMember;
-    } else if (membershipDecision.nextStatus === 'pending') {
-      // Compare-and-set so a concurrent host action cannot be overwritten.
-      const { data: reopenedMember, error: reopenErr } = await supabase
-        .from('commander_home_members')
-        .update({ status: 'pending', joined_at: null })
-        .eq('id', existingMember.id)
-        .eq('status', 'declined')
-        .select('id, status, role')
-        .maybeSingle();
-      if (reopenErr) throw reopenErr;
-      if (!reopenedMember) {
-        return res.status(409).json({
-          success: false,
-          code: 'MEMBERSHIP_CHANGED',
-          error: 'Your membership changed while the seat request was being processed. Please try again.',
-        });
-      }
-      membership = reopenedMember;
+    if (!seatResult?.success || !seatResult?.rsvp || !seatResult?.membership) {
+      throw new Error('INVALID_SEAT_REQUEST_RESPONSE');
     }
 
-    // 8. Upsert the RSVP itself. We DO NOT set is_confirmed=true — the host
-    //    must manually approve so the address stays private until they do.
-    //    Use ON CONFLICT (game_id, user_id) to keep this idempotent.
-    const rsvpPayload = {
-      game_id: eventId,
-      user_id: user.id,
-      response,
-      bringing_guests: bringingGuests,
-      guest_names: guestNames,
-      message: message || null,
-      is_confirmed: false,
-      updated_at: new Date().toISOString(),
-    };
+    const rsvp = seatResult.rsvp;
+    const membership = seatResult.membership;
 
-    const { data: rsvp, error: rsvpErr } = await supabase
-      .from('commander_home_rsvps')
-      .upsert(rsvpPayload, { onConflict: 'game_id,user_id' })
-      .select('id, response, is_confirmed, bringing_guests, message, responded_at, updated_at')
-      .maybeSingle();
-
-    if (rsvpErr) throw rsvpErr;
-
-    // 8b. Post-write capacity re-check (self-correcting overbooking guard).
-    //     Step 6 reads event.rsvp_yes and step 8 writes the row — that is a
-    //     non-atomic read-then-write, so two requests racing for the last seat
-    //     can both read the same rsvp_yes, both pass the check, and both land on
-    //     response='yes', putting the game past max_players. There is no atomic
-    //     seat-claim RPC available, so instead of pretending the race can't
-    //     happen we detect it after the fact: re-count the actual yes rows (each
-    //     row occupies 1 seat + its guests) and, if the game is now over
-    //     capacity, demote THIS request to waitlist. Last writer loses, so the
-    //     RSVP that got there first keeps its seat, and this caller is told the
-    //     truth instead of being promised a seat that doesn't exist.
-    if (response === 'yes' && event.max_players && !alreadyHeldSeat) {
-      try {
-        const { data: yesRows, error: recountErr } = await supabase
-          .from('commander_home_rsvps')
-          .select('user_id, bringing_guests')
-          .eq('game_id', eventId)
-          .eq('response', 'yes');
-        if (recountErr) throw recountErr;
-
-        const seatsTaken = (yesRows || []).reduce(
-          (sum, r) => sum + 1 + Math.max(0, Number(r.bringing_guests) || 0),
-          0
-        );
-
-        if (seatsTaken > event.max_players) {
-          // Only touch our own row, and only while it is still 'yes', so a host
-          // action that landed in between isn't clobbered.
-          const { data: demoted, error: demoteErr } = await supabase
-            .from('commander_home_rsvps')
-            .update({ response: 'waitlist', updated_at: new Date().toISOString() })
-            .eq('game_id', eventId)
-            .eq('user_id', user.id)
-            .eq('response', 'yes')
-            .select('id');
-          if (demoteErr) throw demoteErr;
-          if (demoted && demoted.length > 0) response = 'waitlist';
-        }
-      } catch (capacityErr) {
-        // Non-fatal: fall back to the step 6 decision rather than failing the
-        // request, but log it — a silent failure here means an overbooked game.
-        console.warn('[request-seat] capacity re-check failed:', capacityErr?.message || capacityErr);
-      }
-    }
-
-    // 9. Fire host notifications (in-app row + email). This block MUST NEVER
+    // 7. Fire host notifications (in-app row, push and direct message). This
+    //    block MUST NEVER
     //    cause the main request to fail. We await it so it completes before
     //    the lambda returns (fire-and-forget isn't reliable on Vercel
     //    serverless), but wrap the whole thing in a try/catch.
     try {
-      await dispatchHostNotification(supabase, {
-        req,
-        host_user_id: group.owner_id,
-        requester_user_id: user.id,
-        group_id: group.id,
-        group_name: group.name,
-        event,
-        rsvp: {
-          response,
-          bringing_guests: bringingGuests,
-          message: message || null,
-        },
-      });
+      // The group owner owns membership approval; a separately designated
+      // event host owns game/RSVP operations. Notify both authorized actors,
+      // de-duplicating the common case where they are the same user. Never
+      // fan this private requester payload out to the broader member roster.
+      const notificationRecipients = [...new Set(
+        [group.owner_id, event.host_id].filter(Boolean).map(String)
+      )];
+      await Promise.all(notificationRecipients.map((recipientUserId) => (
+        dispatchHostNotification(supabase, {
+          req,
+          host_user_id: recipientUserId,
+          requester_user_id: user.id,
+          group_id: group.id,
+          group_name: group.name,
+          event,
+          rsvp: {
+            response: rsvp.response,
+            bringing_guests: rsvp.bringing_guests,
+            message: rsvp.message,
+          },
+        })
+      )));
     } catch (notifyErr) { console.warn('[App] Handled exception:', notifyErr?.message || notifyErr); }
 
-    // 10. Done. The caller gets back enough info to render the confirmation UI.
+    // 8. Done. The caller gets back enough info to render the confirmation UI.
     //    Do NOT include event.address, host PII, or other members' RSVPs here.
     return res.status(200).json({
       success: true,
       data: {
-        rsvp: {
-          id: rsvp?.id,
-          response,
-          is_confirmed: false,
-          bringing_guests: bringingGuests,
-          message: rsvp?.message || null,
-          responded_at: rsvp?.responded_at,
-          updated_at: rsvp?.updated_at,
-        },
-        membership: {
-          status: membership?.status || 'pending',
-          is_new: !existingMember,
-        },
+        rsvp,
+        membership,
         event: {
           id: event.id,
           title: event.title,
           scheduled_date: event.scheduled_date,
           start_time: event.start_time,
         },
-        wait_for_host_approval: !rsvp?.is_confirmed,
+        wait_for_host_approval: seatResult.wait_for_host_approval === true,
       },
     });
   } catch (err) {
     console.warn('[request-seat] error:', err);
-    return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -520,7 +344,6 @@ async function dispatchHostNotification(supabase, ctx) {
   try {
     const { error: notifErr } = await supabase.from('notifications').insert({
       user_id: host_user_id,
-      type: 'home_game_seat_request',
       // _push:'inline' stops the DB mirror trigger double-pushing this row;
       // the explicit sendPushNotification() below owns delivery.
       type: 'home_game_seat_request',

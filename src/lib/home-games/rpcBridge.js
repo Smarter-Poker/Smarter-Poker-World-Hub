@@ -41,6 +41,8 @@ export function mapRpcError(err) {
 
   switch (errName) {
     case 'AUTH_REQUIRED': return { status: 401, error: errName, message: 'Sign in to continue.' };
+    case 'UNAUTHORIZED': return { status: 401, error: errName, message: 'Sign in again to request a seat.' };
+    case 'MISSING_PARAMS': return { status: 400, error: errName, message: 'The home game and event are required.' };
 
     // ── Seat-race and eligibility errors (audit 2026-08-14) ──────────────
     // The hardened claim/change/start RPCs raise these as P0001 domain
@@ -70,6 +72,13 @@ export function mapRpcError(err) {
     case 'NOT_YOUR_RESERVATION':
       return { status: 403, error: errName, message: 'That seat belongs to another player.' };
     case 'MEMBER_WRONG_GROUP': return { status: 403, error: errName, message: raw };
+    case 'MEMBERSHIP_BANNED':
+      return { status: 403, error: errName, message: 'You cannot request a seat in this home game.' };
+    case 'MEMBERSHIP_DECLINED':
+      return { status: 409, error: errName, message: 'The host has declined this membership request.' };
+    case 'PUBLIC_HOME_GAME_NOT_FOUND':
+      return { status: 404, error: errName, message: 'Home game not found.' };
+    case 'GROUP_NOT_FOUND':
     case 'GAME_NOT_FOUND':
     case 'TABLE_NOT_FOUND':
     case 'MEMBER_NOT_FOUND':
@@ -87,6 +96,10 @@ export function mapRpcError(err) {
       return { status: 409, error: errName, message: 'This table is not open for seat claims right now.' };
     case 'GAME_CANCELLED':
       return { status: 409, error: errName, message: 'This game has been cancelled.' };
+    case 'GROUP_INACTIVE':
+      return { status: 409, error: errName, message: 'This home game is not accepting seat requests.' };
+    case 'GAME_NOT_OPEN_FOR_RSVP':
+      return { status: 409, error: errName, message: 'This game is not accepting seat requests.' };
     case 'TABLE_CANCELLED':
       return { status: 409, error: errName, message: 'This table has been cancelled.' };
     case 'TABLE_ENDED':
@@ -97,7 +110,13 @@ export function mapRpcError(err) {
     case 'RSVP_DEADLINE_PASSED':
       return { status: 409, error: errName, message: 'RSVPs are closed for this game.' };
     case 'GAME_START_TIME_PASSED':
+    case 'GAME_ALREADY_STARTED':
       return { status: 409, error: errName, message: 'This game has already started.' };
+    case 'MEMBERSHIP_CHANGED':
+    case 'MEMBERSHIP_CONFLICT':
+      return { status: 409, error: errName, message: 'Your membership changed while this request was processed. Please try again.' };
+    case 'MEMBERSHIP_STATE_INVALID':
+      return { status: 409, error: errName, message: 'This membership cannot request a seat right now.' };
     case 'RESERVATION_INACTIVE':
     case 'RESERVATION_ALREADY_INACTIVE':
       return { status: 409, error: errName, message: 'That reservation is no longer active - refresh to see the latest.' };

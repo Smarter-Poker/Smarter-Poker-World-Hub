@@ -94,13 +94,108 @@ test('fresh zero-output success is unhealthy unless explicitly valid-empty', () 
   assert.equal(zero.status, 'warning');
 
   const validEmpty = classifyScraperHealth({
-    heartbeat: { run_status: 'valid_empty', records_saved: 0, errors: 0, status_reason: 'observed data covers all modeled venues' },
+    heartbeat: { run_status: 'valid_empty', records_attempted: 0, records_saved: 0, records_rejected: 0, errors: 0, status_reason: 'observed data covers all modeled venues' },
     heartbeatStaleMinutes: 1,
     dataStaleMinutes: 900,
     healthyMinutes: 25,
     deadMinutes: 45,
   });
   assert.equal(validEmpty.status, 'healthy');
+});
+
+test('fresh progress and maintenance checkpoints are healthy zero-write outcomes', () => {
+  for (const runStatus of ['progress', 'maintenance']) {
+    const checkpoint = classifyScraperHealth({
+      heartbeat: {
+        run_status: runStatus,
+        records_saved: 0,
+        records_attempted: 0,
+        records_rejected: 0,
+        errors: 0,
+        status_reason: `${runStatus}_confirmed`,
+      },
+      heartbeatStaleMinutes: 1,
+      dataStaleMinutes: 900,
+      healthyMinutes: 25,
+      deadMinutes: 45,
+    });
+    assert.equal(checkpoint.status, 'healthy');
+    assert.equal(checkpoint.reason, `${runStatus}_confirmed`);
+  }
+
+  const malformed = classifyScraperHealth({
+    heartbeat: {
+      run_status: 'progress',
+      records_saved: 1,
+      records_attempted: 1,
+      records_rejected: 0,
+      errors: 0,
+    },
+    heartbeatStaleMinutes: 1,
+    dataStaleMinutes: 1,
+    healthyMinutes: 25,
+    deadMinutes: 45,
+  });
+  assert.equal(malformed.status, 'warning');
+  assert.match(malformed.reason, /progress.*zero-write/i);
+});
+
+test('nonlegacy health cannot accept missing truth counts as a healthy success', () => {
+  const result = classifyScraperHealth({
+    heartbeat: { run_status: 'success', records_saved: 12, errors: 0 },
+    heartbeatStaleMinutes: 2,
+    dataStaleMinutes: 2,
+    healthyMinutes: 30,
+    deadMinutes: 60,
+  });
+  assert.equal(result.status, 'warning');
+  assert.match(result.reason, /missing attempted or rejected/i);
+});
+
+test('scraper health cannot be held green by future-dated metrics or source rows', () => {
+  const heartbeat = {
+    run_status: 'success',
+    records_attempted: 3,
+    records_saved: 3,
+    records_rejected: 0,
+    errors: 0,
+  };
+  const futureMetric = classifyScraperHealth({
+    heartbeat,
+    heartbeatStaleMinutes: -10,
+    dataStaleMinutes: 1,
+    healthyMinutes: 30,
+    deadMinutes: 60,
+  });
+  const futureData = classifyScraperHealth({
+    heartbeat,
+    heartbeatStaleMinutes: 1,
+    dataStaleMinutes: -10,
+    healthyMinutes: 30,
+    deadMinutes: 60,
+  });
+
+  assert.equal(futureMetric.status, 'warning');
+  assert.match(futureMetric.reason, /future timestamp/);
+  assert.equal(futureData.status, 'warning');
+  assert.match(futureData.reason, /future timestamp/);
+});
+
+test('a success metric with rejected or unconfirmed rows is not healthy', () => {
+  for (const heartbeat of [
+    { run_status: 'success', records_attempted: 3, records_saved: 2, records_rejected: 1, errors: 0 },
+    { run_status: 'success', records_attempted: 3, records_saved: 2, records_rejected: 0, errors: 0 },
+  ]) {
+    const health = classifyScraperHealth({
+      heartbeat,
+      heartbeatStaleMinutes: 1,
+      dataStaleMinutes: 1,
+      healthyMinutes: 25,
+      deadMinutes: 45,
+    });
+    assert.equal(health.status, 'warning');
+    assert.match(health.reason, /attempted|persist/i);
+  }
 });
 
 test('a fresh failed metric is dead and a partial metric is warning', () => {

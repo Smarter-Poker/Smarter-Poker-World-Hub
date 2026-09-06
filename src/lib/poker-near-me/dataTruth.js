@@ -1,13 +1,15 @@
 /**
  * Shared provenance rules for Poker Near Me activity data.
  *
- * Current activity may combine observed and modeled rows, but an observed row
- * always wins for the same venue and game. Historical recommendations are
- * stricter: only positive table counts from an approved observed source may
- * drive a prediction or heatmap.
+ * Current activity may combine observed and modeled rows, while catalog rows
+ * preserve game identity with no live count. A current observed row wins for
+ * the same venue and game; a stale observation yields to a current saved-data
+ * estimate. Historical recommendations are stricter: only
+ * positive table counts from an approved observed source may drive a
+ * prediction or heatmap.
  */
 
-export const PNM_TRUTH_CONTRACT_VERSION = '2026-09-06.1';
+export const PNM_TRUTH_CONTRACT_VERSION = '2026-09-06.2';
 
 export const QUALIFIED_OBSERVED_SOURCES = Object.freeze([
   'bravo',
@@ -23,6 +25,10 @@ const OBSERVED_SOURCE_SET = new Set(QUALIFIED_OBSERVED_SOURCES);
 
 function normalizedToken(value) {
   return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+export function isExpiredActivityRow(row) {
+  return normalizedToken(row?.data_quality) === 'expired';
 }
 
 export function nonNegativeTableCount(value) {
@@ -53,6 +59,22 @@ export function isModeledActivityRow(row) {
     || kind.includes('estimat');
 }
 
+/**
+ * Catalog rows prove that a venue offers a game, but they do not observe or
+ * model how many tables are running. PokerAtlas is a catalog source even for
+ * legacy rows written before observation_kind was added.
+ */
+export function isCatalogActivityRow(row) {
+  if (!row) return false;
+  const kind = normalizedToken(row.observation_kind);
+  if (kind) return kind === 'catalog';
+  const source = normalizedToken(row.source);
+  const quality = normalizedToken(row.data_quality);
+  return source === 'pokeratlas'
+    || source === 'poker_atlas'
+    || quality.includes('catalog');
+}
+
 export function isQualifiedObservedActivityRow(row) {
   if (!row || isModeledActivityRow(row)) return false;
   const kind = normalizedToken(row.observation_kind);
@@ -63,6 +85,11 @@ export function isQualifiedObservedActivityRow(row) {
 }
 
 export function activityRowBasis(row) {
+  // Expired rows are retained for auditability only. In particular, the
+  // PokerAtlas cleanup migration marks CTA/non-room discoveries expired so
+  // no public catalog consumer can revive them as valid venue identity.
+  if (isExpiredActivityRow(row)) return 'unqualified';
+  if (isCatalogActivityRow(row)) return 'catalog';
   if (isModeledActivityRow(row)) return 'estimated';
   if (isQualifiedObservedActivityRow(row)) return 'observed';
   return 'unqualified';
@@ -80,17 +107,67 @@ function rowTimestamp(row) {
 }
 
 /**
- * Decide whether an incoming row may replace the selected row for the same
- * venue and normalized game. Observed evidence always beats a model, even
- * when the model was published more recently; equal-basis rows use freshness.
+ * A current count must be backed by observed or modeled evidence with a
+ * readable, non-future timestamp inside the caller's freshness window.
+ * Catalog identity is deliberately never a current count.
  */
-export function activityRowWins(existing, incoming) {
+export function isCurrentActivityRow(row, {
+  now = Date.now(),
+  maxCurrentAgeMs,
+} = {}) {
+  const basis = activityRowBasis(row);
+  if (basis !== 'observed' && basis !== 'estimated') return false;
+  if (normalizedToken(row?.data_quality) === 'stale') return false;
+  if (!Number.isFinite(now)
+    || !Number.isFinite(maxCurrentAgeMs)
+    || maxCurrentAgeMs < 0) return false;
+  const stamp = rowTimestamp(row);
+  const age = now - stamp;
+  return stamp > 0 && age >= 0 && age <= maxCurrentAgeMs;
+}
+
+/**
+ * Decide whether an incoming row may replace the selected row for the same
+ * venue and normalized game. Observed evidence beats a model while both are
+ * inside the caller's current-activity window. When only one count-bearing row
+ * is current, that row wins so a stale observation cannot suppress a fresh
+ * saved-data estimate. Equal-basis rows use freshness.
+ */
+export function activityRowWins(existing, incoming, {
+  now = null,
+  maxCurrentAgeMs = null,
+} = {}) {
   if (!existing) return activityRowBasis(incoming) !== 'unqualified';
   const existingBasis = activityRowBasis(existing);
   const incomingBasis = activityRowBasis(incoming);
   if (incomingBasis === 'unqualified') return false;
   if (existingBasis === 'unqualified') return true;
-  if (existingBasis !== incomingBasis) return incomingBasis === 'observed';
+  const hasCurrentWindow = Number.isFinite(now)
+    && Number.isFinite(maxCurrentAgeMs)
+    && maxCurrentAgeMs >= 0;
+  const isCountBearing = (basis) => basis === 'observed' || basis === 'estimated';
+  if (hasCurrentWindow
+    && existingBasis !== incomingBasis
+    && isCountBearing(existingBasis)
+    && isCountBearing(incomingBasis)) {
+    const freshness = { now, maxCurrentAgeMs };
+    const existingIsCurrent = isCurrentActivityRow(existing, freshness);
+    const incomingIsCurrent = isCurrentActivityRow(incoming, freshness);
+    if (existingIsCurrent !== incomingIsCurrent) return incomingIsCurrent;
+  }
+  if (hasCurrentWindow && existingBasis !== incomingBasis
+    && (existingBasis === 'catalog' || incomingBasis === 'catalog')) {
+    const countBearingRow = existingBasis === 'catalog' ? incoming : existing;
+    const countBearingIsCurrent = isCurrentActivityRow(countBearingRow, {
+      now,
+      maxCurrentAgeMs,
+    });
+    if (!countBearingIsCurrent) return incomingBasis === 'catalog';
+  }
+  const authority = { catalog: 1, estimated: 2, observed: 3 };
+  if (existingBasis !== incomingBasis) {
+    return (authority[incomingBasis] || 0) > (authority[existingBasis] || 0);
+  }
   return rowTimestamp(incoming) > rowTimestamp(existing);
 }
 
@@ -152,12 +229,22 @@ export function latestActivityRowsByVenueAndBasis(rows) {
 export function aggregateCurrentActivity(rows, normalizeGame = (value) => String(value || 'Unknown')) {
   const latestRows = latestActivityRowsByVenueAndBasis(rows);
   const byVenueGame = new Map();
+  const catalogRowsSelected = latestRows.filter((row) => activityRowBasis(row) === 'catalog');
+  const catalogVenues = new Set(catalogRowsSelected.map(venueKey));
+  const catalogGames = new Set(catalogRowsSelected.map((row) => (
+    `${venueKey(row)}:${normalizedToken(normalizeGame(row?.game_name || row?.game_type || 'Unknown'))}`
+  )));
 
   for (const row of latestRows) {
     const game = normalizeGame(row?.game_name || row?.game_type || 'Unknown');
     const key = `${venueKey(row)}:${normalizedToken(game)}`;
     const basis = activityRowBasis(row);
-    const current = byVenueGame.get(key) || { game, observed: [], estimated: [] };
+    const current = byVenueGame.get(key) || {
+      game,
+      observed: [],
+      estimated: [],
+      catalog: [],
+    };
     current[basis].push(row);
     byVenueGame.set(key, current);
   }
@@ -166,21 +253,44 @@ export function aggregateCurrentActivity(rows, normalizeGame = (value) => String
   const basisByGame = {};
   let observedTables = 0;
   let estimatedTables = 0;
+  let hasObservedEvidence = false;
+  let hasEstimatedEvidence = false;
 
   for (const entry of byVenueGame.values()) {
-    const basis = entry.observed.length > 0 ? 'observed' : 'estimated';
+    const basis = entry.observed.length > 0
+      ? 'observed'
+      : entry.estimated.length > 0
+        ? 'estimated'
+        : 'catalog';
+    if (basis === 'catalog') {
+      continue;
+    }
     const count = entry[basis].reduce((sum, row) => sum + tableCountFromRow(row), 0);
     counts[entry.game] = (counts[entry.game] || 0) + count;
     if (!basisByGame[entry.game]) basisByGame[entry.game] = new Set();
     basisByGame[entry.game].add(basis);
-    if (basis === 'observed') observedTables += count;
-    else estimatedTables += count;
+    if (basis === 'observed') {
+      hasObservedEvidence = true;
+      observedTables += count;
+    } else {
+      hasEstimatedEvidence = true;
+      estimatedTables += count;
+    }
   }
 
   const publishedTables = observedTables + estimatedTables;
-  const dataMode = observedTables > 0
-    ? (estimatedTables > 0 ? 'mixed' : 'live')
-    : (estimatedTables > 0 ? 'estimated' : 'none');
+  const dataMode = hasObservedEvidence
+    ? (hasEstimatedEvidence ? 'mixed' : 'live')
+    : (hasEstimatedEvidence
+      ? 'estimated'
+      : (catalogGames.size > 0 && latestRows.every((row) => activityRowBasis(row) === 'catalog')
+        ? 'catalog'
+        : 'none'));
+
+  const qualifiedRows = latestRows.filter((row) => {
+    const basis = activityRowBasis(row);
+    return basis === 'observed' || basis === 'estimated';
+  }).length;
 
   return {
     counts,
@@ -192,8 +302,13 @@ export function aggregateCurrentActivity(rows, normalizeGame = (value) => String
     observedTables,
     estimatedTables,
     publishedTables,
+    catalogRows: catalogRowsSelected.length,
+    catalogGameCount: catalogGames.size,
+    catalogVenueCount: catalogVenues.size,
+    liveCountKnown: qualifiedRows > 0,
     sourceRows: Array.isArray(rows) ? rows.length : 0,
-    qualifiedRows: latestRows.length,
+    qualifiedRows,
+    selectedRows: latestRows.length,
   };
 }
 

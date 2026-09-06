@@ -6,6 +6,32 @@ import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils
 import { toast } from 'react-hot-toast';
 import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeMemberId(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return UUID_PATTERN.test(normalized) ? normalized : null;
+}
+
+function normalizeRosterMember(row) {
+  const memberId = normalizeMemberId(row?.member_id || row?.id);
+  const role = String(row?.role || row?.member_role || '').toLowerCase();
+  const relationship = String(row?.relationship || '').toLowerCase();
+  const canRemove = row?.can_remove === true
+    && Boolean(memberId)
+    && !['follower', 'owner', 'host'].includes(relationship)
+    && !['owner', 'host'].includes(role);
+
+  return {
+    ...row,
+    member_id: memberId,
+    role: row?.role || row?.member_role || (relationship === 'follower' ? 'follower' : 'member'),
+    status: row?.status || row?.member_status || (relationship === 'follower' ? 'following' : null),
+    can_remove: canRemove,
+  };
+}
+
 function AnnounceModal({ isOpen, onClose, onSend, sending }) {
   const [message, setMessage] = useState('');
 
@@ -87,7 +113,7 @@ export default function HomeGameRosterPage() {
       if (data.success) {
         // Sort roster
         const roleWeight = { owner: 4, host: 4, admin: 3, core: 2, member: 1, follower: 0 };
-        const sorted = (data.roster || []).sort((a, b) => {
+        const sorted = (data.roster || []).map(normalizeRosterMember).sort((a, b) => {
           if (a.status !== 'banned' && b.status === 'banned') return -1;
           if (a.status === 'banned' && b.status !== 'banned') return 1;
           
@@ -147,17 +173,25 @@ export default function HomeGameRosterPage() {
   }
 
   async function handleRemove(memberId) {
+    const normalizedMemberId = normalizeMemberId(memberId);
+    if (!normalizedMemberId) {
+      toast.error('This roster entry cannot be removed until its membership ID is available.');
+      return;
+    }
     if (!confirm('Are you sure you want to remove this player from the group?')) return;
     try {
       const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ member_id: memberId })
+        body: JSON.stringify({ member_id: normalizedMemberId })
       });
       if (res.ok) {
         toast.success('Player removed');
         fetchRoster();
+      } else {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error?.message || data?.error || 'Failed to remove player');
       }
     } catch (err) {
       toast.error('Failed to remove player');
@@ -244,7 +278,7 @@ export default function HomeGameRosterPage() {
               </thead>
               <tbody className="divide-y divide-[#4A5E78]">
                 {roster.map(p => (
-                  <tr key={p.user_id || p.id} className={`hover:bg-[#132240]/50 transition-colors ${p.status === 'banned' ? 'opacity-50' : ''}`}>
+                  <tr key={p.user_id || p.member_id} className={`hover:bg-[#132240]/50 transition-colors ${p.status === 'banned' ? 'opacity-50' : ''}`}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#1A2C4D] flex items-center justify-center overflow-hidden shrink-0">
@@ -281,8 +315,8 @@ export default function HomeGameRosterPage() {
                             <MessageSquare className="w-4 h-4" />
                           </button>
                         )}
-                        {p.role !== 'owner' && p.role !== 'host' && (
-                          <button onClick={() => handleRemove(p.member_id || p.id)} className="p-2 bg-[#1A2C4D] rounded text-[#EF4444] hover:bg-[#EF4444]/20 transition-colors" title="Remove">
+                        {p.can_remove && p.member_id && (
+                          <button onClick={() => handleRemove(p.member_id)} className="p-2 bg-[#1A2C4D] rounded text-[#EF4444] hover:bg-[#EF4444]/20 transition-colors" title="Remove">
                             <UserX className="w-4 h-4" />
                           </button>
                         )}

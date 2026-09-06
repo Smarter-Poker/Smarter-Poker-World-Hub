@@ -101,12 +101,17 @@ export default function GameTrendsDashboard() {
   const dataMode = data?.data_mode || 'none';
   const isEstimated = dataMode === 'estimated';
   const isMixed = dataMode === 'mixed';
-  const heading = isEstimated
+  const isCatalog = dataMode === 'catalog';
+  const heading = isCatalog
+    ? 'Cash Game Catalog'
+    : isEstimated
     ? 'Estimated Game Activity'
     : isMixed
       ? 'Observed + Estimated Activity'
       : 'Observed Game Activity';
-  const totalLabel = isEstimated
+  const totalLabel = isCatalog
+    ? 'Games Listed'
+    : isEstimated
     ? 'Estimated Tables'
     : isMixed
       ? 'Published Tables'
@@ -118,10 +123,10 @@ export default function GameTrendsDashboard() {
       borderRadius: 3, padding: 20, border: '1px solid rgba(170,184,196,0.3)',
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 45px rgba(0,0,0,0.3)',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>{heading}</h3>
         <div style={{ color: isEstimated ? '#d8bb7d' : '#8fdcfb', fontSize: 12 }}>
-          {data?.total_games_now || 0} {totalLabel}
+          {isCatalog ? (data?.catalog_game_count || 0) : (data?.total_games_now || 0)} {totalLabel}
         </div>
       </div>
 
@@ -137,7 +142,7 @@ export default function GameTrendsDashboard() {
         </div>
       )}
 
-      {!data?.has_historical_data && dataMode !== 'none' && (
+      {!data?.has_historical_data && dataMode !== 'none' && !isCatalog && (
         <div style={{
           background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)',
           borderRadius: 2, padding: '8px 12px', marginBottom: 12, fontSize: 12,

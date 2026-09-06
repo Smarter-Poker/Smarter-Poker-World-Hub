@@ -129,12 +129,17 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       // carrying a discovery page's intentionally delayed URL synchronizer into
       // Playwright's synthetic `page.goto()` for the next family.
       const routePage = await context.newPage();
+      const pageErrors: string[] = [];
+      routePage.on('pageerror', (error) => pageErrors.push(error.message));
       await routePage.setViewportSize({ width: 390, height: 844 });
       const response = await routePage.goto(route, { waitUntil: 'domcontentloaded' });
       expect(response?.status(), route).toBe(200);
       expect(new URL(routePage.url()).pathname, route).toBe(route);
       await expect(routePage.locator('main')).toHaveCount(1);
+      await expect(routePage.locator('body')).toHaveClass(/world-poker-near-me/);
+      await expect(routePage.locator('[data-footer-world="poker-near-me"]')).toHaveCount(1);
       await expectNoOverflow(routePage, route);
+      expect(pageErrors, `${route} uncaught errors: ${pageErrors.join(' | ')}`).toEqual([]);
       await routePage.close();
     }
 
@@ -151,6 +156,63 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await expect(lobbyPage.locator('main')).toHaveCount(1);
     await expectNoOverflow(lobbyPage, '/hub/poker-near-me/lobby');
     await lobbyPage.close();
+  });
+
+  test('Home Games Near Me inherits machined panels and full touch targets', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const response = await page.goto('/hub/home-games/near-me', { waitUntil: 'domcontentloaded' });
+    expect(response?.status()).toBe(200);
+    await page.waitForLoadState('load');
+    await expect(page.locator('body')).toHaveClass(/world-poker-near-me/);
+    await expect(page.locator('[data-footer-world="poker-near-me"]')).toHaveCount(1);
+
+    const panel = page.locator('[data-pnm-secondary-foundation] .cmd-panel').first();
+    // In local WebKit the dev server can briefly detach/re-attach the global
+    // stylesheet while a newly compiled route receives HMR. Poll the complete
+    // frame atomically so the assertion cannot land inside that dev-only swap.
+    await expect.poll(() => panel.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const before = getComputedStyle(element, '::before');
+      return {
+        widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+        styles: [style.borderTopStyle, style.borderRightStyle, style.borderBottomStyle, style.borderLeftStyle],
+        radius: style.borderRadius,
+        decoration: before.content,
+      };
+    }), { timeout: 15_000 }).toEqual({
+      widths: ['1px', '1px', '1px', '1px'],
+      styles: ['solid', 'solid', 'solid', 'solid'],
+      radius: '3px',
+      decoration: 'none',
+    });
+
+    const hostBox = await page.getByRole('link', { name: 'Host A Game' }).boundingBox();
+    expect(hostBox?.height).toBeGreaterThanOrEqual(44);
+    await expectNoOverflow(page, '/hub/home-games/near-me');
+  });
+
+  test('Poker Tours keeps search and filter controls usable at 390x844', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const response = await page.goto('/hub/poker-tours', { waitUntil: 'domcontentloaded' });
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('body')).toHaveClass(/world-poker-near-me/);
+
+    await expect.poll(() => page.evaluate(() => {
+      const search = document.querySelector('.tours-search-bar-input');
+      const selects = [...document.querySelectorAll('.tours-date-select')];
+      const searchBox = search?.getBoundingClientRect();
+      const selectBoxes = selects.map((select) => select.getBoundingClientRect());
+      return {
+        searchUsable: Boolean(searchBox && searchBox.width >= 160 && searchBox.height >= 44),
+        selectCount: selects.length,
+        selectsUsable: selectBoxes.every((box) => box.height >= 44),
+      };
+    }), { timeout: 15_000 }).toEqual({
+      searchUsable: true,
+      selectCount: 2,
+      selectsUsable: true,
+    });
+    await expectNoOverflow(page, '/hub/poker-tours');
   });
 
   test('forced colors preserve visible selected and focus states', async ({ page, browserName }) => {
@@ -222,6 +284,23 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await trigger.click();
     const drawer = page.getByRole('dialog', { name: 'Poker Near Me Command Menu' });
     await expect(drawer).toBeVisible();
+    const drawerFrame = await drawer.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const after = getComputedStyle(element, '::after');
+      return {
+        rightBorder: style.borderRightWidth,
+        rightBorderStyle: style.borderRightStyle,
+        radius: style.borderRadius,
+        clipPath: style.clipPath,
+        decoration: after.content,
+      };
+    });
+    expect(drawerFrame.rightBorder).toBe('1px');
+    expect(drawerFrame.rightBorderStyle).toBe('solid');
+    expect(drawerFrame.radius).toBe('0px');
+    expect(drawerFrame.clipPath).toBe('none');
+    expect(drawerFrame.decoration).toBe('none');
+
     const selected = drawer.locator(".sp-grid-tile[aria-current='page']");
     await expect(selected).toHaveCount(1);
     const frame = await selected.evaluate((element) => {

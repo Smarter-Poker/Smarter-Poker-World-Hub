@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import test from 'node:test';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const readJson = (path) => JSON.parse(read(path));
 
 test('Poker Near Me shared navigation preserves stable discovery routes', () => {
   const nav = read('src/components/poker-near-me/PokerNearMeFamilyNav.jsx');
@@ -66,6 +67,29 @@ test('casino realism theme covers the full route family and mobile audit target'
   assert.match(theme, /min-height: 44px/);
 });
 
+test('public venue and home-game routes resolve to the Poker Near Me command world', () => {
+  const registry = readJson('src/config/world-footer-navigation.json');
+  const pokerNearMe = registry.worlds.find((world) => world.id === 'poker-near-me');
+  const myClubs = registry.worlds.find((world) => world.id === 'my-clubs');
+
+  assert.ok(pokerNearMe, 'Poker Near Me world must exist');
+  assert.ok(myClubs, 'My Clubs world must exist');
+  for (const prefix of ['/hub/poker-near-me', '/hub/venues', '/hub/home-games']) {
+    assert.ok(
+      pokerNearMe.routePrefixes.includes(prefix),
+      `${prefix} must inherit the Poker Near Me command menu and footer`
+    );
+    assert.equal(
+      myClubs.routePrefixes.includes(prefix),
+      false,
+      `${prefix} cannot have ambiguous command-world ownership`
+    );
+  }
+
+  const allPrefixes = registry.worlds.flatMap((world) => world.routePrefixes);
+  assert.equal(new Set(allPrefixes).size, allPrefixes.length, 'world route prefixes must be unique');
+});
+
 test('the project-bound cinematic environment asset is present and optimized', () => {
   const asset = new URL('../public/images/pnm-redesign/casino-command-map-v1.webp', import.meta.url);
   assert.equal(existsSync(asset), true);
@@ -74,4 +98,33 @@ test('the project-bound cinematic environment asset is present and optimized', (
 
   const canvas = read('src/components/poker-near-me/lobby/LobbyCanvas.jsx');
   assert.match(canvas, /casino-command-map-v1\.webp/);
+});
+
+test('Poker Near Me command surfaces keep continuous edges and full touch targets', () => {
+  const style = read('src/styles/worlds/poker-near-me-machined.css');
+  assert.match(
+    style,
+    /body\.world-poker-near-me \.sp-drawer::after,[\s\S]*?\.sp-world-command-trigger::after\s*\{[\s\S]*?content:\s*none !important;/
+  );
+  assert.match(
+    style,
+    /\.tours-search-clear, \.tour-fav-btn, \.tc-stepper button\)\s*\{[\s\S]*?width:\s*44px !important;[\s\S]*?min-width:\s*44px !important;[\s\S]*?height:\s*44px !important;[\s\S]*?min-height:\s*44px !important;/
+  );
+  assert.match(
+    style,
+    /\[data-pnm-secondary-foundation='interaction-v1'\] \.cmd-panel\s*\{[\s\S]*?border:\s*1px solid[\s\S]*?border-radius:\s*3px !important;/
+  );
+  assert.match(
+    style,
+    /\[data-pnm-secondary-foundation='interaction-v1'\] \.cmd-panel::before\s*\{[\s\S]*?content:\s*none !important;/
+  );
+  assert.match(style, /\.sort-results-label, \.results-showing, \.vc3-empty-state,[\s\S]*?color:\s*#8fa0b2 !important;/);
+  assert.match(style, /\.pnm-tab-badge\s*\{[\s\S]*?background:\s*#b4232b !important;/);
+  assert.match(style, /\.pnm-page \.primary-btn\s*\{[\s\S]*?background:\s*#12648c !important;/);
+});
+
+test('Home Games page CSS is hydration-stable', () => {
+  const homeGames = read('pages/hub/home-games.js');
+  assert.match(homeGames, /<style dangerouslySetInnerHTML=\{\{ __html: `/);
+  assert.doesNotMatch(homeGames, /<style>\{`\s*\.hg-page\s*\{/);
 });

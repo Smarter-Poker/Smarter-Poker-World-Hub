@@ -145,6 +145,36 @@ body.world-poker-near-me .pnm-location-card__cash[data-modeled='true'] {
   background: rgba(64, 47, 16, 0.36);
 }
 
+body.world-poker-near-me .vc3-cash-count[data-catalog='true'],
+body.world-poker-near-me .pnm-location-card__cash[data-catalog='true'],
+body.world-poker-near-me .vc3-cash-count[data-unavailable='true'],
+body.world-poker-near-me .pnm-location-card__cash[data-unavailable='true'] {
+  color: #d8e4ec !important;
+  border-color: rgba(170, 184, 196, 0.34) !important;
+  background: rgba(75, 91, 104, 0.22) !important;
+}
+
+/* Stable AA text colors on the physical black panels. Several legacy values
+   used translucent gray or white-on-bright-red; their computed contrast fell
+   below 4.5:1 at the actual 12px/13px sizes. */
+body.world-poker-near-me :is(
+  .sort-results-label, .results-showing, .vc3-empty-state,
+  .vc3-tourney-blinds, .vc3-tourney-stack, .vc3-tourney-meta,
+  .venue-page .trust-text
+) {
+  color: #8fa0b2 !important;
+}
+
+body.world-poker-near-me .pnm-tab-badge {
+  color: #fff !important;
+  background: #b4232b !important;
+}
+
+body.world-poker-near-me .pnm-page .primary-btn {
+  color: #fff !important;
+  background: #12648c !important;
+}
+
 /* Map is an instrument panel, not a glass widget. */
 body.world-poker-near-me :is(.venue-map-container, .vmp-map-container, .map-tab-container) {
   overflow: hidden;
@@ -186,6 +216,15 @@ body.world-poker-near-me .sp-drawer {
   box-shadow: 14px 0 52px rgba(0, 0, 0, 0.72), inset -1px 0 rgba(255, 255, 255, 0.035) !important;
 }
 
+/* The generic command drawer and fallback trigger carry a short, faded
+   decorative underline. On the black PNM finish its transparent endpoints
+   read as a snapped border at the top corners. Keep one ordinary perimeter
+   edge instead of stacking a fragment over it. */
+body.world-poker-near-me .sp-drawer::after,
+body.world-poker-near-me .sp-world-command-trigger::after {
+  content: none !important;
+}
+
 body.world-poker-near-me .sp-drawer :is(
   .sp-command-utility-rail, .sp-command-context, .sp-menu-row, .sp-grid-tile,
   .sp-command-search, .sp-command-utility-button, input, button, a
@@ -217,6 +256,39 @@ body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile, .sp-command
   outline-offset: 2px !important;
 }
 
+/* Home Games Near Me still uses the older Commander primitives inside its
+   PNM secondary foundation. Remove that system's 5px masked plaque and 4px
+   button frames so this reachable PNM surface keeps the same continuous,
+   small-radius machined geometry as the rest of discovery. */
+body.world-poker-near-me [data-pnm-secondary-foundation='interaction-v1'] .cmd-panel {
+  border: 1px solid var(--pnm-v2-edge) !important;
+  border-radius: 3px !important;
+  background: #070c12 !important;
+  box-shadow: var(--pnm-v2-inset), 0 18px 42px rgba(0, 0, 0, 0.36) !important;
+}
+
+body.world-poker-near-me [data-pnm-secondary-foundation='interaction-v1'] .cmd-panel::before {
+  content: none !important;
+}
+
+body.world-poker-near-me :is(
+  [data-pnm-secondary-foundation='interaction-v1'], .pnm-location-topbar
+) :is(.cmd-btn, .cmd-input) {
+  min-height: 44px !important;
+  border-width: 1px !important;
+  border-radius: 2px !important;
+}
+
+/* Icon-only controls whose component defaults predate the shared 44px floor.
+   The mobile global rule grows button height but cannot override their fixed
+   widths, leaving a narrow touch target. */
+body.world-poker-near-me :is(.tours-search-clear, .tour-fav-btn, .tc-stepper button) {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
 /* Scrims stay opaque and cinematic. */
 body.world-poker-near-me :is(
   .vr-overlay, .rgm-overlay, .sl-modal-overlay, .pnm-sheet,
@@ -227,6 +299,35 @@ body.world-poker-near-me :is(
 }
 
 @media (max-width: 768px) {
+  /* Poker Tours previously compressed its search input to ~3px because two
+     fixed-width selects shared the same 346px row. Give search and filters
+     separate instrument rows while retaining a single continuous frame. */
+  body.world-poker-near-me .tours-search-wrap {
+    height: auto !important;
+    min-height: 89px;
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 0;
+  }
+
+  body.world-poker-near-me .tours-search-bar-input {
+    min-width: 160px !important;
+    height: 44px;
+  }
+
+  body.world-poker-near-me .tours-search-wrap > .tours-date-divider:first-of-type {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 1px;
+    background: rgba(170, 184, 196, 0.22);
+  }
+
+  body.world-poker-near-me .tours-date-select {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    height: 44px;
+  }
+
   body.world-poker-near-me .vc3-cash-count {
     max-width: 48%;
     overflow: hidden;

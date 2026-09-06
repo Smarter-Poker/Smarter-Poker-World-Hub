@@ -1517,9 +1517,11 @@ export default function ManageHomeGamePage() {
                       className="w-full h-10 px-3 cmd-input"
                     >
                       <option value="private">Private - Invite Only</option>
-                      <option value="friends">Friends - Visible To Friends</option>
                       <option value="public">Public - Anyone Can Find</option>
                     </select>
+                    <p className="text-xs text-[#4A5E78] mt-1">
+                      Private groups require an invitation. Public groups can appear in Poker Near Me.
+                    </p>
                   </div>
                 </div>
               </div>

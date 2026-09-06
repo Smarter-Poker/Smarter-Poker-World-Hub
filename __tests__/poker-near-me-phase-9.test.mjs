@@ -40,6 +40,38 @@ test('checked-in venue snapshots carry the live integrity contract', async () =>
     assert.ok(snapshot.venues.filter((venue) => venue.location_quality.status === 'conflict')
       .every((venue) => venue.location_quality.mappable === false));
   }
+
+  for (const path of [
+    'data/poker-venue-directory-snapshot.json',
+    'public/data/poker-venue-directory-snapshot.json',
+  ]) {
+    const snapshot = JSON.parse(await read(path));
+    assert.equal(snapshot.metadata.public_count, snapshot.venues.length);
+    assert.ok(snapshot.venues.every((venue) => venue.location_quality?.status));
+  }
+});
+
+test('offline fallbacks retire the audited foreign room without hiding traveling poker entities', async () => {
+  for (const path of ['data/all-venues.json', 'public/data/all-venues.json']) {
+    const snapshot = JSON.parse(await read(path));
+    const foreignRoom = snapshot.venues.find((venue) => Number(venue.id) === 2912);
+    assert.ok(foreignRoom, `${path} must retain the tombstone for audit history`);
+    assert.equal(foreignRoom.country, 'FR');
+    assert.equal(foreignRoom.is_active, false);
+    assert.equal(foreignRoom.is_suppressed, true);
+    for (const id of [2834, 2835, 3115, 3116]) {
+      const traveling = snapshot.venues.find((venue) => Number(venue.id) === id);
+      assert.equal(traveling?.is_active, true, `${path} must keep traveling entity ${id} searchable`);
+    }
+  }
+
+  for (const path of [
+    'data/poker-venue-directory-snapshot.json',
+    'public/data/poker-venue-directory-snapshot.json',
+  ]) {
+    const snapshot = JSON.parse(await read(path));
+    assert.equal(snapshot.venues.some((venue) => Number(venue.id) === 2912), false);
+  }
 });
 
 test('admin correction surface is role-gated, MFA-gated, atomic, and audit logged', async () => {

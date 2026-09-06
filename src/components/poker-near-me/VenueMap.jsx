@@ -817,10 +817,9 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   return (
     <div
       style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}
-      // The map is ONE control (mobile phase 3): its pins and cluster orbs are
-      // Leaflet markers with role="button" at 30-58px, the same sanction the
-      // Preflop 13x13 matrix and the peak-activity heat map record in
-      // e2e/mobile-budget.spec.ts. Text inside the map stays at 12px or more.
+      // The map is treated as one keyboard control, while its pointer-operated
+      // pins and cluster orbs still preserve the shared 44px touch floor.
+      // Text inside the map stays at 12px or more.
       data-allow-small-target="true"
     >
       {/* Premium loading skeleton */}

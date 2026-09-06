@@ -521,7 +521,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // Shared count contract separates public directory, map-ready, observed,
   // and modeled totals so the header never compares unlike quantities.
   const [liveTableCount, setLiveTableCount] = useState(0);
-  // 'live' | 'mixed' | 'estimated' | 'none' from /api/poker/live-tables.
+  // 'live' | 'mixed' | 'estimated' | 'catalog' | 'none' from /api/poker/live-tables.
   // Modeled counts remain explicitly approximate and separate from observations.
   const [liveDataMode, setLiveDataMode] = useState(null);
   // metadata.data_age_minutes — qualifies the figure in the page subtitle.
@@ -2719,18 +2719,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
       // Merge live data immediately to prevent extra renders
       filteredData = filteredData.map((venue) => {
-        const normName = (venue.name || '')
-          .toLowerCase()
-          .replace(/&/g, 'and')
-          .replace(/'/g, '')
-          .replace(/-/g, ' ')
-          .replace(/[^a-z0-9 ]/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const liveEntry =
-          (venue.bravo_slug && liveDataMapRef.current[venue.bravo_slug]) ||
-          liveDataMapRef.current[normName] ||
-          null;
+        const liveEntry = findLiveCashGameEntry(venue, liveDataMapRef.current);
         if (liveEntry && (liveEntry.games || []).length > 0) {
           return { ...venue, _liveMerged: true, live_data: liveEntry };
         }
@@ -3276,7 +3265,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         <h2 id="pnm-section-live-title" className="pnm-section__title">Cash Games Near Me</h2>
         <p className="pnm-section__hint">
           {liveDataMode === 'estimated' || liveDataMode === 'mixed'
-            ? 'Table Counts Use Saved Venue And Schedule Data, Not A Live Observation.'
+            ? 'Estimated Counts Use Qualified Saved Observations, Not A Current Live Report.'
+            : liveDataMode === 'catalog'
+              ? 'Listed Games Are Available, But Current Table Counts Are Unknown.'
             : 'Table Counts Come From The Live Games Feed.'}
         </p>
       </div>
@@ -3791,10 +3782,14 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                         they render a dash instead of a misleading zero. */}
                     {liveDataMode == null || liveDataMode === 'none'
                       ? '-'
+                      : liveDataMode === 'catalog'
+                        ? 'Unknown'
                       : liveTableCount.toLocaleString()}{' '}
                     {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                       ? 'Tables (Approx.)'
-                      : 'Live Tables'}
+                      : liveDataMode === 'catalog'
+                        ? 'Live Table Count'
+                        : 'Live Tables'}
                     {typeof liveDataAgeMinutes === 'number' && liveDataAgeMinutes > 60 && (
                       <span style={{ opacity: 0.6 }}>
                         {' '}
@@ -3908,7 +3903,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                       <span className="pnm-live-dot" aria-hidden="true" />
                     )}
                     {tab.label}
-                    {tab.key === 'live' && liveTableCount > 0 && (
+                    {tab.key === 'live' && liveTableCount > 0 && ['live', 'mixed', 'estimated'].includes(liveDataMode) && (
                       <span className="pnm-tab-badge">{liveTableCount}</span>
                     )}
                     {tab.key === 'venues' && venues.length > 0 && (
@@ -4096,7 +4091,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               >
                 <span className="pnm-live-dot" />
                 Live Games
-                {liveTableCount > 0 && <span className="pnm-tab-badge">{liveTableCount}</span>}
+                {liveTableCount > 0 && ['live', 'mixed', 'estimated'].includes(liveDataMode) && <span className="pnm-tab-badge">{liveTableCount}</span>}
               </button>
             </div>
 

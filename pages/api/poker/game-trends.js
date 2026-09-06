@@ -9,9 +9,12 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { fetchAllRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
   PNM_TRUTH_CONTRACT_VERSION,
+  activityRowBasis,
   aggregateCurrentActivity,
+  isCurrentActivityRow,
   sameTrendSnapshotContract,
 } from '../../../src/lib/poker-near-me/dataTruth';
 
@@ -25,9 +28,9 @@ function getSupabase() {
   return _supabase;
 }
 
-const PAGE_SIZE = 1000;
-const MAX_PAGES = 10;
+const MAX_CURRENT_ROWS = 10000;
 const MAX_AGE_MS = 3 * 60 * 60 * 1000;
+const MAX_SNAPSHOT_AGE_MS = 3 * 60 * 60 * 1000;
 const SNAPSHOT_KEY = 'game_trends_snapshot_v2';
 
 function emptyResponse(message = 'No qualified activity is available right now.') {
@@ -52,32 +55,51 @@ export default async function handler(req, res) {
 
   try {
     const supabase = getSupabase();
-    const since = new Date(Date.now() - MAX_AGE_MS).toISOString();
-    let currentData = [];
-    let currentErr = null;
-
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const { data: pageRows, error } = await supabase
+    const responseNow = Date.now();
+    const since = new Date(responseNow - MAX_AGE_MS).toISOString();
+    const responseNowIso = new Date(responseNow).toISOString();
+    const currentResult = await fetchAllRows(() => supabase
         .from('venue_live_tables')
-        .select('game_name, tables_running, source, data_quality, bravo_slug, venue_name, scrape_batch_id, scrape_timestamp')
+        .select('id, game_name, tables_running, source, data_quality, observation_kind, bravo_slug, venue_name, scrape_batch_id, scrape_timestamp')
         .gte('scrape_timestamp', since)
+        .lte('scrape_timestamp', responseNowIso)
         .order('scrape_timestamp', { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      if (error) {
-        currentErr = error;
-        break;
-      }
-      if (!pageRows || pageRows.length === 0) break;
-      currentData = currentData.concat(pageRows);
-      if (pageRows.length < PAGE_SIZE) break;
+        .order('id', { ascending: false }), { maxRows: MAX_CURRENT_ROWS });
+
+    if (currentResult.error || currentResult.truncated) {
+      console.warn('Game trends: activity query incomplete:', currentResult.error?.message || 'row ceiling reached');
+      return res.status(200).json({
+        ...emptyResponse('Activity data could not be completely verified right now.'),
+        degraded: true,
+        truncated: currentResult.truncated,
+      });
     }
 
-    if (currentErr) {
-      console.warn('Game trends: activity query failed:', currentErr.message);
-      return res.status(200).json(emptyResponse('Activity data could not be verified right now.'));
-    }
-
+    // The timestamp range alone is insufficient: a daemon may explicitly
+    // mark a recent row stale. Keep recent catalog identity, but allow only
+    // freshness-qualified observed/modeled rows to contribute a trend count.
+    const currentData = currentResult.rows.filter((row) => {
+      const basis = activityRowBasis(row);
+      return basis === 'catalog' || isCurrentActivityRow(row, {
+        now: responseNow,
+        maxCurrentAgeMs: MAX_AGE_MS,
+      });
+    });
     const current = aggregateCurrentActivity(currentData, gameShortLabel);
+    if (current.qualifiedRows === 0) {
+      const catalogAvailable = current.catalogGameCount > 0;
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      return res.status(200).json({
+        ...emptyResponse(catalogAvailable
+          ? 'Cash games are listed, but current table counts are unknown.'
+          : 'No qualified activity is available right now.'),
+        data_mode: catalogAvailable ? 'catalog' : 'none',
+        catalog_game_count: current.catalogGameCount,
+        catalog_venue_count: current.catalogVenueCount,
+        source_rows: current.sourceRows,
+        qualified_rows: 0,
+      });
+    }
     let previousCounts = {};
     let previousBasis = {};
     let previousSnapshot = null;
@@ -93,7 +115,12 @@ export default async function handler(req, res) {
         previousSnapshot = typeof saved.value === 'string'
           ? JSON.parse(saved.value)
           : saved.value;
-        if (sameTrendSnapshotContract(previousSnapshot)) {
+        const previousSavedAt = Date.parse(String(previousSnapshot?.saved_at || ''));
+        const previousAge = responseNow - previousSavedAt;
+        if (sameTrendSnapshotContract(previousSnapshot)
+          && Number.isFinite(previousSavedAt)
+          && previousAge >= 0
+          && previousAge <= MAX_SNAPSHOT_AGE_MS) {
           previousCounts = previousSnapshot.counts;
           previousBasis = previousSnapshot.basis_by_game;
           hasHistoricalData = Object.keys(previousCounts).length > 0
@@ -104,7 +131,10 @@ export default async function handler(req, res) {
       console.warn('Game trends: prior snapshot could not be read:', snapshotError?.message || snapshotError);
     }
 
-    const allGames = new Set([...Object.keys(current.counts), ...Object.keys(previousCounts)]);
+    // Absence from the current contracted snapshot is not a zero observation.
+    // Do not manufacture a current zero/trend for games present only in the
+    // prior snapshot.
+    const allGames = new Set(Object.keys(current.counts));
     const trends = [];
     for (const game of allGames) {
       const currentTables = current.counts[game] || 0;
@@ -138,7 +168,7 @@ export default async function handler(req, res) {
 
     const savedAt = previousSnapshot?.saved_at ? new Date(previousSnapshot.saved_at).getTime() : 0;
     const shouldSave = current.qualifiedRows > 0
-      && (!Number.isFinite(savedAt) || Date.now() - savedAt >= 30 * 60 * 1000);
+      && (!Number.isFinite(savedAt) || responseNow - savedAt >= 30 * 60 * 1000);
     if (shouldSave) {
       try {
         const value = JSON.stringify({
@@ -166,6 +196,8 @@ export default async function handler(req, res) {
       data_mode: current.dataMode,
       source_rows: current.sourceRows,
       qualified_rows: current.qualifiedRows,
+      catalog_game_count: current.catalogGameCount,
+      catalog_venue_count: current.catalogVenueCount,
       has_historical_data: hasHistoricalData,
       truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       message: current.dataMode === 'none' ? 'No qualified activity is available right now.' : null,

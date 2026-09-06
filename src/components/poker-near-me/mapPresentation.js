@@ -99,7 +99,9 @@ function venueLogo(venue) {
 
 export function createPokerVenueIcon(L, venue, options = {}) {
   const compact = options.variant === 'compact';
-  const size = compact ? 40 : 44;
+  // Leaflet divIcons are the actual pointer target. Keep both density variants
+  // at the shared 44px touch floor instead of shrinking compact-map pins.
+  const size = 44;
   const labelMax = compact ? 20 : 22;
   const maxWidth = compact ? 120 : 140;
   const labelClass = compact ? 'vmp-pin-label' : 'venue-pin-label';
@@ -125,8 +127,10 @@ export function createPokerTourIcon(L, venue, options = {}) {
   const color = pokerTourColor(venue?.tour_code);
   const code = escapeHtml(String(venue?.tour_code || 'TOUR').slice(0, 4));
   const logo = venue?.logo_url ? escapeHtml(venue.logo_url) : '';
-  const circleSize = compact ? 32 : 36;
-  const overlap = compact ? 8 : 0;
+  // The compact two-logo stop remains visually denser, but its outer divIcon
+  // must still expose at least a 44px-wide touch target.
+  const circleSize = compact ? 40 : 36;
+  const overlap = compact ? 10 : 0;
   const width = compact ? circleSize + 4 : circleSize + 16;
   const height = compact ? (circleSize * 2) - overlap + 4 : circleSize + 16;
   const top = compact ? 0 : 8;
@@ -159,11 +163,11 @@ export function createPokerTourIcon(L, venue, options = {}) {
 export function createPokerClusterIcon(L, cluster, options = {}) {
   const compact = options.variant === 'compact';
   const count = cluster.getChildCount();
-  // Cluster digits never drop below 12px (mobile phase 3 text floor); the
-  // two smallest orbs grew by 2px so the digits still sit inside the ring.
+  // Cluster digits never drop below 12px, and every clickable density tier
+  // preserves the shared 44px touch floor on both map variants.
   const tiers = compact
-    ? [[100, 54, 14, 3], [50, 46, 13, 2.5], [20, 40, 12, 2], [10, 36, 12, 2], [0, 30, 12, 2]]
-    : [[100, 58, 15, 3], [50, 48, 14, 2.5], [20, 42, 13, 2], [10, 36, 12, 2], [0, 32, 12, 2]];
+    ? [[100, 54, 14, 3], [50, 46, 13, 2.5], [20, 44, 12, 2], [10, 44, 12, 2], [0, 44, 12, 2]]
+    : [[100, 58, 15, 3], [50, 48, 14, 2.5], [20, 44, 13, 2], [10, 44, 12, 2], [0, 44, 12, 2]];
   const [, size, fontSize, borderWidth] = tiers.find(([minimum]) => count >= minimum);
   const intense = count >= 50;
   const gradient = count >= 100
@@ -213,8 +217,13 @@ export function buildPokerVenuePopupHtml(venue, options = {}) {
   const liveGames = Array.isArray(venue?.live_data?.games) ? venue.live_data.games : [];
   const cashLabel = cashGameCountLabel(venue?.live_data);
   const modeledCash = isModeledCashGameData(venue?.live_data);
+  const catalogCash = venue?.live_data?.data_mode === 'catalog';
+  const unavailableCash = venue?.live_data?.live_count_known === false && !catalogCash;
   const gameLabels = liveGames.slice(0, 3).map((game) => {
     if (typeof game === 'string') return game;
+    if (game?.observation_kind === 'catalog' || game?.live_count_known === false) {
+      return `${game?.game || 'Cash game'}: live count unknown`;
+    }
     const count = Number(game?.tables_running) || 0;
     return `${game?.game || 'Cash game'}: ${game?.is_simulated ? 'approx. ' : ''}${count}`;
   });
@@ -227,7 +236,7 @@ export function buildPokerVenuePopupHtml(venue, options = {}) {
   const distance = Number.isFinite(venue?._distanceMi)
     ? `<span style="margin-left:auto;font-size: 12px;color:#94a3b8;">${venue._distanceMi < 1 ? '<1 mi' : `${venue._distanceMi.toFixed(1)} mi`}</span>`
     : '';
-  return `<div class="pnm-map-dossier" style="min-width:${compact ? 210 : 240}px;max-width:320px;padding:${compact ? '14px 16px 12px' : '16px 18px 14px'};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><img src="${logo}" alt="" style="width:${compact ? 32 : 36}px;height:${compact ? 32 : 36}px;border-radius:3px;object-fit:cover;background:#fff;border:1px solid rgba(170,184,196,.42);" onerror="this.src='${DEFAULT_LOGO}';" /><div style="flex:1;min-width:0;"><div style="font-size:${compact ? 14 : 15}px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div><div style="display:flex;gap:6px;font-size: 12px;color:#94a3b8;">${city}${city && state ? ', ' : ''}${state}${distance}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span style="padding:3px 9px;border-radius:2px;background:${theme.badgeBg};color:${theme.fill};font-size: 12px;font-weight:700;">${type}</span>${status ? `<span style="padding:3px 8px;border-radius:2px;background:${status === 'OPEN' ? 'rgba(34,197,94,.14)' : 'rgba(239,68,68,.12)'};color:${status === 'OPEN' ? '#52d18b' : '#ff6870'};font-size: 12px;font-weight:800;">${status}</span>` : ''}${cashLabel ? `<span style="font-size: 12px;color:${modeledCash ? '#d8bb7d' : '#52d18b'};font-weight:700;">${escapeHtml(cashLabel)}</span>` : ''}</div>${gameLabels.length ? `<div style="font-size: 12px;color:#94a3b8;margin-bottom:8px;">${escapeHtml(gameLabels.join(', '))}</div>` : ''}${compact ? '' : `<div style="font-size: 12px;color:${trust.color};margin-bottom:10px;">Trust: ${trust.label}${venue?.trust_score ? ` (${escapeHtml(String(venue.trust_score))}/5)` : ''}</div>`}<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="fsp-trigger" data-url="${detailPath}" data-title="${name}" style="flex:1;padding:8px 12px;border-radius:2px;background:#aab8c4;color:#05070b;font-size: 12px;font-weight:800;border:1px solid #dbe5ec;cursor:pointer;">View Details</button><button class="directions-trigger" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}" style="padding:8px 12px;border-radius:2px;background:#0a121a;color:#fff;font-size: 12px;font-weight:700;border:1px solid rgba(170,184,196,.3);cursor:pointer;">Directions</button>${!compact && phone ? `<a href="tel:${escapeHtml(phone)}" style="padding:8px 10px;border-radius:2px;color:#52d18b;border:1px solid rgba(82,209,139,.3);font-size: 12px;text-decoration:none;">Call</a>` : ''}</div></div>`;
+  return `<div class="pnm-map-dossier" style="min-width:${compact ? 210 : 240}px;max-width:320px;padding:${compact ? '14px 16px 12px' : '16px 18px 14px'};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><img src="${logo}" alt="" style="width:${compact ? 32 : 36}px;height:${compact ? 32 : 36}px;border-radius:3px;object-fit:cover;background:#fff;border:1px solid rgba(170,184,196,.42);" onerror="this.src='${DEFAULT_LOGO}';" /><div style="flex:1;min-width:0;"><div style="font-size:${compact ? 14 : 15}px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div><div style="display:flex;gap:6px;font-size: 12px;color:#94a3b8;">${city}${city && state ? ', ' : ''}${state}${distance}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span style="padding:3px 9px;border-radius:2px;background:${theme.badgeBg};color:${theme.fill};font-size: 12px;font-weight:700;">${type}</span>${status ? `<span style="padding:3px 8px;border-radius:2px;background:${status === 'OPEN' ? 'rgba(34,197,94,.14)' : 'rgba(239,68,68,.12)'};color:${status === 'OPEN' ? '#52d18b' : '#ff6870'};font-size: 12px;font-weight:800;">${status}</span>` : ''}${cashLabel ? `<span style="font-size: 12px;color:${catalogCash || unavailableCash ? '#d8e4ec' : modeledCash ? '#d8bb7d' : '#52d18b'};font-weight:700;">${escapeHtml(cashLabel)}</span>` : ''}</div>${gameLabels.length ? `<div style="font-size: 12px;color:#94a3b8;margin-bottom:8px;">${escapeHtml(gameLabels.join(', '))}</div>` : ''}${compact ? '' : `<div style="font-size: 12px;color:${trust.color};margin-bottom:10px;">Trust: ${trust.label}${venue?.trust_score ? ` (${escapeHtml(String(venue.trust_score))}/5)` : ''}</div>`}<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="fsp-trigger" data-url="${detailPath}" data-title="${name}" style="flex:1;padding:8px 12px;border-radius:2px;background:#aab8c4;color:#05070b;font-size: 12px;font-weight:800;border:1px solid #dbe5ec;cursor:pointer;">View Details</button><button class="directions-trigger" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}" style="padding:8px 12px;border-radius:2px;background:#0a121a;color:#fff;font-size: 12px;font-weight:700;border:1px solid rgba(170,184,196,.3);cursor:pointer;">Directions</button>${!compact && phone ? `<a href="tel:${escapeHtml(phone)}" style="padding:8px 10px;border-radius:2px;color:#52d18b;border:1px solid rgba(82,209,139,.3);font-size: 12px;text-decoration:none;">Call</a>` : ''}</div></div>`;
 }
 
 export function buildPokerTourPopupHtml(venue, options = {}) {

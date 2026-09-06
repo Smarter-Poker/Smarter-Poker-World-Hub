@@ -1,10 +1,13 @@
 import {
   PNM_TRUTH_CONTRACT_VERSION,
+  activityRowBasis,
   aggregateCurrentActivity,
+  isCurrentActivityRow,
 } from './dataTruth.js';
 
-export const PNM_COUNT_CONTRACT_VERSION = '2026-09-06.1';
+export const PNM_COUNT_CONTRACT_VERSION = '2026-09-06.2';
 export const PNM_CURRENT_ACTIVITY_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+export const PNM_CATALOG_RETENTION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 function finiteNonNegative(value) {
   const parsed = Number(value);
@@ -70,14 +73,31 @@ export function buildDirectoryCountContract({
 export function buildCurrentActivityCountContract(rows, {
   now = Date.now(),
   maxAgeMs = PNM_CURRENT_ACTIVITY_MAX_AGE_MS,
+  catalogMaxAgeMs = PNM_CATALOG_RETENTION_MAX_AGE_MS,
 } = {}) {
   const input = Array.isArray(rows) ? rows : [];
-  const freshRows = input.filter((row) => {
+  const rowAge = (row) => {
     const timestamp = rowTimestamp(row);
-    return timestamp !== null && now - timestamp >= 0 && now - timestamp <= maxAgeMs;
+    return timestamp === null ? null : now - timestamp;
+  };
+  const retainedRows = input.filter((row) => {
+    const age = rowAge(row);
+    if (age === null || age < 0) return false;
+    const basis = activityRowBasis(row);
+    if (basis === 'catalog') return age <= catalogMaxAgeMs;
+    if (basis !== 'observed' && basis !== 'estimated') return false;
+    return isCurrentActivityRow(row, { now, maxCurrentAgeMs: maxAgeMs });
   });
-  const activity = aggregateCurrentActivity(freshRows);
-  const timestamps = freshRows.map(rowTimestamp).filter(Number.isFinite);
+  const currentWindowRows = retainedRows.filter((row) => {
+    const age = rowAge(row);
+    return age !== null && age <= maxAgeMs;
+  });
+  const activity = aggregateCurrentActivity(retainedRows);
+  const countBearingRows = retainedRows.filter((row) => {
+    const basis = activityRowBasis(row);
+    return basis === 'observed' || basis === 'estimated';
+  });
+  const timestamps = countBearingRows.map(rowTimestamp).filter(Number.isFinite);
   const newest = timestamps.length ? Math.max(...timestamps) : null;
 
   return {
@@ -85,15 +105,21 @@ export function buildCurrentActivityCountContract(rows, {
     estimated: activity.estimatedTables,
     published: activity.publishedTables,
     data_mode: activity.dataMode,
-    venues_with_fresh_rows: new Set(freshRows.map((row) => (
+    live_count_known: activity.liveCountKnown,
+    catalog_venues: activity.catalogVenueCount,
+    catalog_games: activity.catalogGameCount,
+    venues_with_fresh_rows: new Set(countBearingRows.map((row) => (
       String(row?.bravo_slug || row?.venue_name || row?.venue_id || '').trim().toLowerCase()
     )).filter(Boolean)).size,
     rows_scanned: input.length,
-    rows_fresh: freshRows.length,
+    rows_fresh: currentWindowRows.length,
+    rows_retained: retainedRows.length,
     rows_qualified: activity.qualifiedRows,
+    rows_catalog: activity.catalogRows,
     as_of: newest === null ? null : new Date(newest).toISOString(),
     age_minutes: newest === null ? null : Math.max(0, Math.round((now - newest) / 60000)),
     freshness_threshold_minutes: Math.round(maxAgeMs / 60000),
+    catalog_retention_minutes: Math.round(catalogMaxAgeMs / 60000),
     truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
   };
 }

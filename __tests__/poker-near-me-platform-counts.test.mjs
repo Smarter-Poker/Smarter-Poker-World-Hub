@@ -49,6 +49,20 @@ test('current table count excludes stale and unqualified catalog rows', () => {
       bravo_slug: 'catalog', game_name: 'NLH', tables_running: 88, source: 'pokeratlas',
       scrape_batch_id: 'pa-catalog', scrape_timestamp: '2026-09-06T11:58:00.000Z',
     },
+    {
+      bravo_slug: 'catalog-retained', game_name: 'PLO', tables_running: 77, source: 'pokeratlas',
+      scrape_batch_id: 'pa-catalog-older', scrape_timestamp: '2026-09-06T06:00:00.000Z',
+    },
+    {
+      bravo_slug: 'expired-catalog', game_name: 'CTA', tables_running: 66, source: 'pokeratlas',
+      observation_kind: 'catalog', data_quality: 'expired',
+      scrape_batch_id: 'pa-expired', scrape_timestamp: '2026-09-06T11:59:00.000Z',
+    },
+    {
+      bravo_slug: 'quality-stale', game_name: 'NLH', tables_running: 55, source: 'bravo',
+      observation_kind: 'observed', data_quality: 'stale',
+      scrape_batch_id: 'observed-stale', scrape_timestamp: '2026-09-06T11:59:00.000Z',
+    },
   ];
 
   const current = buildCurrentActivityCountContract(rows, { now: NOW });
@@ -57,7 +71,11 @@ test('current table count excludes stale and unqualified catalog rows', () => {
   assert.equal(current.published, 7);
   assert.equal(current.data_mode, 'mixed');
   assert.equal(current.rows_fresh, 3);
+  assert.equal(current.rows_retained, 4);
   assert.equal(current.rows_qualified, 2);
+  assert.equal(current.rows_catalog, 2);
+  assert.equal(current.catalog_venues, 2);
+  assert.equal(current.rows_scanned, 7);
 });
 
 test('platform envelope rejects any non-reconciling totals', () => {
@@ -86,7 +104,18 @@ test('platform count endpoint fully pages both directory and current activity', 
   assert.match(source, /fetchAllRows\(\(\) => buildPublicQuery\(\)\.order\('id'/);
   assert.match(source, /if \(publicRowsResult\.truncated\) throw new Error/);
   assert.match(source, /if \(result\.truncated\) throw new Error/);
+  assert.match(source, /PNM_CATALOG_RETENTION_MAX_AGE_MS/);
   assert.doesNotMatch(source, /\.range\(0, 999\)/);
+});
+
+test('platform count fallback uses the exact public directory snapshot', () => {
+  const source = read('pages/api/poker/platform-counts.js');
+  const snapshot = JSON.parse(read('data/poker-venue-directory-snapshot.json'));
+
+  assert.match(source, /buildSnapshotVenueDirectory/);
+  assert.match(source, /directorySnapshotData\?\.venues/);
+  assert.doesNotMatch(source, /all-venues\.json/);
+  assert.equal(snapshot.metadata.public_count, snapshot.venues.length);
 });
 
 test('live tables fails closed instead of publishing a nationally sampled result', () => {

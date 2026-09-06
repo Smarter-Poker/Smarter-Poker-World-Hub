@@ -1,10 +1,11 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import allVenuesData from '../../../data/all-venues.json';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
+import { buildSnapshotVenueDirectory } from '../../../src/lib/poker-near-me/venueDirectoryServer';
 import {
+  PNM_CATALOG_RETENTION_MAX_AGE_MS,
   PNM_CURRENT_ACTIVITY_MAX_AGE_MS,
   buildCurrentActivityCountContract,
   buildDirectoryCountContract,
@@ -24,38 +25,33 @@ function getSupabase() {
   return supabaseClient;
 }
 
-function snapshotVenues() {
-  const rows = allVenuesData?.venues || allVenuesData?.data || allVenuesData || [];
-  return (Array.isArray(rows) ? rows : [])
-    .filter((venue) => venue?.is_active !== false)
-    .filter((venue) => venue?.is_suppressed !== true)
-    .filter((venue) => Number(venue?.id) !== 3109)
-    .filter((venue) => venue?.canonical_venue_id == null)
-    .filter((venue) => !['series', 'tour', 'home_game'].includes(
-      String(venue?.venue_type || '').toLowerCase()
-    ));
-}
-
 function snapshotDirectoryContract() {
-  const candidates = snapshotVenues();
-  const integrity = applyVenueIntegrity(candidates);
   const metadata = directorySnapshotData?.metadata || {};
+  // Counts must degrade to the same projected, integrity-filtered source used by
+  // discovery and the sitemap. Falling back to the older broad all-venues export
+  // made the lobby claim 512 public venues while only 398 venue routes existed.
+  const directory = buildSnapshotVenueDirectory({
+    params: { limit: 1000 },
+    venues: directorySnapshotData?.venues || [],
+    metadata,
+  });
+  const sourceCandidates = Number(metadata.source_candidate_count);
   return buildDirectoryCountContract({
     catalogActive: null,
-    rawPublicRows: candidates.length,
-    integritySummary: integrity.summary,
-    publicOutput: integrity.venues.length,
+    rawPublicRows: Number.isFinite(sourceCandidates) ? sourceCandidates : directory.total,
+    integritySummary: directory.data_integrity,
+    publicOutput: directory.total,
     source: 'static_snapshot',
-    revision: metadata.data_revision
-      || (metadata.projected_sha256 ? `snapshot:${metadata.projected_sha256.slice(0, 16)}` : null),
+    revision: directory.data_revision,
   });
 }
 
-async function fetchLiveRows(supabase, cutoffIso) {
+async function fetchLiveRows(supabase, cutoffIso, nowIso) {
   return fetchAllRows(() => supabase
       .from('venue_live_tables')
       .select('venue_name,bravo_slug,game_name,tables_running,source,data_quality,observation_kind,scrape_batch_id,scrape_timestamp')
       .gte('scrape_timestamp', cutoffIso)
+      .lte('scrape_timestamp', nowIso)
       .order('scrape_timestamp', { ascending: false })
       .order('id', { ascending: false }), { maxRows: MAX_CONTRACT_ROWS });
 }
@@ -141,8 +137,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const cutoffIso = new Date(now - PNM_CURRENT_ACTIVITY_MAX_AGE_MS).toISOString();
-    const result = await fetchLiveRows(supabase, cutoffIso);
+    const cutoffIso = new Date(now - Math.max(
+      PNM_CURRENT_ACTIVITY_MAX_AGE_MS,
+      PNM_CATALOG_RETENTION_MAX_AGE_MS,
+    )).toISOString();
+    const result = await fetchLiveRows(supabase, cutoffIso, new Date(now).toISOString());
     if (result.truncated) throw new Error(`Current activity exceeded ${MAX_CONTRACT_ROWS} rows`);
     currentTables = {
       ...buildCurrentActivityCountContract(result.rows, { now }),

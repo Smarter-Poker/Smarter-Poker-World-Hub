@@ -29,6 +29,11 @@ import dynamic from 'next/dynamic';
 import { createClient } from '@supabase/supabase-js';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
+import {
+  buildLiveCashGameIndex,
+  findLiveCashGameEntry,
+} from '../../../src/lib/poker-near-me/liveCashGameData';
+import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching';
 
 const BestTimeToGoWidget = dynamic(
   () => import('../../../src/components/poker-near-me/BestTimeToGoWidget'),
@@ -279,7 +284,8 @@ const PUBLIC_VENUE_FIELDS = [
   'poker_atlas_url', 'pokeratlas_url', 'has_tournaments',
   'trust_score', 'is_featured', 'commander_enabled',
   'profile_photo_url', 'cover_photo_url', 'logo_url',
-  'about', 'tagline', 'slug', 'games_offered', 'stakes_cash', 'poker_tables',
+  'about', 'tagline', 'slug', 'bravo_slug', 'pokeratlas_slug',
+  'games_offered', 'stakes_cash', 'poker_tables',
   'follower_count', 'social_links', 'timezone',
   'last_scraped', 'last_scraped_at',
 ];
@@ -815,27 +821,43 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   // Fetch Bravo live table data (scraped real-time from Bravo Poker Live)
   useEffect(function () {
     if (!venue || !venue.name) return;
+    var cancelled = false;
+    var controller = new AbortController();
     setBravoLiveLoading(true);
-    fetch('/api/poker/live-tables?search=' + encodeURIComponent(venue.name))
-      .then(function (r) { return r.json(); })
-      .then(function (json) {
-        if (json.venues && json.venues.length > 0) {
-          // Find best match by name similarity
-          var venueLower = venue.name.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-          var best = json.venues.find(function (v) {
-            var bName = (v.venue_name || '').toLowerCase().replace(/[^a-z0-9\s]/g, '');
-            return bName === venueLower || bName.includes(venueLower) || venueLower.includes(bName);
-          }) || null;
-          // If no name match, try the first result if only 1 venue returned
-          if (!best && json.venues.length === 1) best = json.venues[0];
-          setBravoLiveTables(best);
-        } else {
-          setBravoLiveTables(null);
+    (async function loadVenueActivity() {
+      try {
+        // Prefer a source identity key, then use the shared deterministic core
+        // matcher over a bounded name search. Never accept "the first" fuzzy
+        // result: generic names can describe multiple independent rooms.
+        var exactSlug = venue.bravo_slug
+          || (venue.pokeratlas_slug ? 'pa-' + venue.pokeratlas_slug : null);
+        var searchCore = normalizeVenueName(venue.name) || venue.name;
+        var urls = [];
+        if (exactSlug) {
+          urls.push('/api/poker/live-tables?venue=' + encodeURIComponent(exactSlug));
         }
-      })
-      .catch(function () { setBravoLiveTables(null); })
-      .finally(function () { setBravoLiveLoading(false); });
-  }, [venue]);
+        urls.push('/api/poker/live-tables?search=' + encodeURIComponent(searchCore));
+
+        var matched = null;
+        for (var requestUrl of Array.from(new Set(urls))) {
+          var response = await fetch(requestUrl, { signal: controller.signal });
+          if (!response.ok) continue;
+          var json = await response.json();
+          matched = findLiveCashGameEntry(venue, buildLiveCashGameIndex(json));
+          if (matched) break;
+        }
+        if (!cancelled) setBravoLiveTables(matched);
+      } catch (error) {
+        if (!cancelled && error?.name !== 'AbortError') setBravoLiveTables(null);
+      } finally {
+        if (!cancelled) setBravoLiveLoading(false);
+      }
+    })();
+    return function () {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [venue?.id, venue?.name, venue?.bravo_slug, venue?.pokeratlas_slug]);
 
   // Fetch waitlist data for board display
   var fetchWaitlist = async function () {
@@ -1886,16 +1908,27 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
                 { label: venue.name },
               ]}
-              status={(bravoLiveTables?.games || []).some(function (game) { return !game.is_simulated && (game.tables_running || 0) > 0; })
-                ? 'Live tables observed'
-                : (bravoLiveTables?.games || []).some(function (game) { return game.is_simulated; })
-                  ? 'Modeled activity available'
-                  : 'Venue profile available'}
-              statusTone={(bravoLiveTables?.games || []).some(function (game) { return !game.is_simulated && (game.tables_running || 0) > 0; })
+              status={bravoLiveTables?.data_mode === 'live'
+                ? ((bravoLiveTables?.games || []).some(function (game) { return (game.tables_running || 0) > 0; })
+                  ? 'Live tables observed'
+                  : 'Live feed current, no tables reported')
+                : bravoLiveTables?.data_mode === 'mixed'
+                  ? 'Observed and modeled activity available'
+                  : bravoLiveTables?.data_mode === 'estimated'
+                    ? 'Modeled activity available'
+                    : bravoLiveTables?.data_mode === 'catalog'
+                      ? 'Catalog games listed, live count unknown'
+                      : 'Venue profile available'}
+              statusTone={bravoLiveTables?.data_mode === 'live'
                 ? 'live'
-                : (bravoLiveTables?.games || []).some(function (game) { return game.is_simulated; }) ? 'modeled' : 'neutral'}
+                : ['mixed', 'estimated'].includes(bravoLiveTables?.data_mode) ? 'modeled' : 'neutral'}
               freshness={bravoLiveTables?.last_updated
-                ? { label: 'Live feed timestamp available', dateTime: bravoLiveTables.last_updated }
+                ? {
+                  label: bravoLiveTables?.data_mode === 'catalog'
+                    ? 'Catalog timestamp available'
+                    : 'Live feed timestamp available',
+                  dateTime: bravoLiveTables.last_updated,
+                }
                 : { label: 'Venue profile record' }}
               metrics={[
                 { label: 'Location', value: [venue.city, venue.state].filter(Boolean).join(', ') || 'See venue details' },
@@ -2078,26 +2111,48 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {bravoLiveTables && bravoLiveTables.games && bravoLiveTables.games.length > 0 && (function () {
               var runningGames = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) > 0; });
+              var catalogGames = bravoLiveTables.games.filter(function (g) { return g.observation_kind === 'catalog'; });
+              var catalogOnly = bravoLiveTables.data_mode === 'catalog' && catalogGames.length > 0;
+              var displayedGames = catalogOnly ? catalogGames : runningGames;
               // Simulator rows intentionally carry source==='bravo'; is_simulated is
               // the API's authoritative flag. Never present modeled counts as live.
-              var allCountsSimulated = runningGames.length > 0 && runningGames.every(function (g) { return g.is_simulated; });
-              var anySimulated = (bravoLiveTables.games || []).some(function (g) { return g.is_simulated; });
+              var allCountsSimulated = bravoLiveTables.data_mode === 'estimated';
+              var anySimulated = (bravoLiveTables.games || []).some(function (g) { return g.is_simulated && g.live_count_known !== false && !g.is_stale; });
+              var anyObserved = (bravoLiveTables.games || []).some(function (g) { return !g.is_simulated && g.observation_kind === 'observed' && g.live_count_known !== false && !g.is_stale; });
+              var mixedCounts = bravoLiveTables.data_mode === 'mixed';
               var waitlistOnly = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) === 0 && (g.players_waiting || 0) > 0; });
               var totalTablesRunning = runningGames.reduce(function (sum, g) { return sum + (g.tables_running || 0); }, 0);
-              if (runningGames.length === 0 && waitlistOnly.length === 0) return null;
+              if (displayedGames.length === 0 && waitlistOnly.length === 0) return null;
               return (
               <section className="bravo-live-banner">
                 <div className="bravo-live-header">
                   <div className="bravo-live-title-row">
-                    <span className="bravo-live-pulse" />
-                    <h2 className="bravo-live-title">Live Games Right Now</h2>
+                    {anyObserved && !mixedCounts && <span className="bravo-live-pulse" />}
+                    <h2 className="bravo-live-title">{catalogOnly
+                      ? 'Cash Games Listed'
+                      : allCountsSimulated
+                        ? 'Estimated Cash-Game Activity'
+                        : mixedCounts
+                          ? 'Observed And Estimated Cash Games'
+                          : 'Live Games Right Now'}</h2>
                     <span className="bravo-live-count">
-                      {totalTablesRunning} {totalTablesRunning === 1 ? 'Table' : 'Tables'}{allCountsSimulated ? ' Estimated' : ' Running'}
+                      {catalogOnly
+                        ? 'Live Count Unknown'
+                        : totalTablesRunning + ' ' + (totalTablesRunning === 1 ? 'Table' : 'Tables') + (allCountsSimulated
+                          ? ' Estimated'
+                          : mixedCounts
+                            ? ' Observed + Estimated'
+                            : ' Running')}
                     </span>
                     {allCountsSimulated && (
                       <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}
                             title="Modeled from historical activity patterns, not a live observation">
                         Modeled
+                      </span>
+                    )}
+                    {mixedCounts && (
+                      <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}>
+                        Mixed Sources
                       </span>
                     )}
                   </div>
@@ -2108,7 +2163,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   )}
                 </div>
                 <div className="bravo-live-games-grid">
-                  {runningGames.map(function (g, idx) {
+                  {displayedGames.map(function (g, idx) {
                     var totalTables = g.tables_running || 0;
                     var waiting = g.players_waiting || 0;
                     return (
@@ -2116,11 +2171,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                         <div className="bravo-game-name">{g.game}</div>
                         <div className="bravo-game-stats">
                           <span className="bravo-game-tables">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={catalogOnly ? '#d8e4ec' : (allCountsSimulated || mixedCounts ? '#f59e0b' : '#4ade80')} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                               <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                             </svg>
-                            {totalTables} {totalTables === 1 ? 'Table' : 'Tables'}
+                            {catalogOnly ? 'Live count unknown' : totalTables + ' ' + (totalTables === 1 ? 'Table' : 'Tables')}
                           </span>
                           {waiting > 0 && (
                             <span className="bravo-game-waiting">
@@ -2160,7 +2215,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                 )}
                 <div className="bravo-live-footer">
-                  <span className="bravo-live-source">Data From {(bravoLiveTables.games || []).some(function(g) { return g.source === 'bravo' && !g.is_simulated; }) ? 'Bravo Poker Live' : (anySimulated ? 'Smarter.Poker Estimates (modeled)' : 'Smarter.Poker Intelligence')}</span>
+                  <span className="bravo-live-source">Data From {catalogOnly
+                    ? 'PokerAtlas Catalog'
+                    : mixedCounts
+                      ? 'Bravo Poker Live + Smarter.Poker Estimates'
+                      : anyObserved
+                        ? 'Bravo Poker Live'
+                        : (anySimulated ? 'Smarter.Poker Estimates (modeled)' : 'Smarter.Poker Intelligence')}</span>
                   <button
                     className="bravo-live-scroll-btn"
                     onClick={function () {
