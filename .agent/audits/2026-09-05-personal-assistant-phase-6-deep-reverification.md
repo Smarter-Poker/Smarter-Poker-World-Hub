@@ -10,6 +10,7 @@ Phase 7 did not begin during this work.
 
 - Solver cache rows could be promoted by an arbitrary named source when their structure looked sealed. The Sandbox and audit engine now share the strict verified-solver predicate and fail closed for untrusted source identities.
 - The previous exact matcher could certify hands without enough situation context. Matcher version 3 requires pot, villain position, action history, street, sizing, cards, board, format, table size, and stack identity before a decision can receive exact solver evidence.
+- Fresh unpriced rows from matcher version 2 could be treated as current for 24 hours because only verified rows carried matcher provenance. Every result now carries matcher version 3, and any row from an older matcher is forced through re-audit immediately.
 - Live hand actions did not retain enough bet and raise geometry for exact sizing matches. The engine, lobby recorder, history writer, and parser now preserve pre-action pot and bet state, player investment, raise-to amount, and normalized sizing.
 - Raise sizing used an incomplete denominator. It now measures the raise increment beyond the call against the pot after the call.
 - Modern and legacy Club Arena identity streams could independently page and count the same hand. One global signed cursor boundary now merges, sorts, deduplicates, and slices both streams.
@@ -44,7 +45,13 @@ Phase 7 did not begin during this work.
 
 ## Publication And Production Verification
 
-Publication evidence, deployed revision, post-deployment watchdog, authenticated account reconciliation, and the live browser matrix are recorded below after the required release completes.
+- Pull request #1409 squash-merged the deep audit remediation as `60c8cb289caf4871a59d3435510fe4e355c0eefc`.
+- Production health reported revision `9bea100e`, a verified descendant of that merge, with healthy status.
+- Mainline Build Safety Gate run `34006468913` passed on that deployed descendant.
+- Deployment-triggered Personal Assistant Production Watchdog run `34006669147` passed.
+- The deployed Chromium, mobile Chrome, desktop Safari, and iPhone Safari matrix passed 60 applicable journeys with four intentional desktop-only viewport skips.
+- A first protected Daniel-account reconciliation retained 37 history rows without duplication, scanned all 1,468 Club Arena records across eight batches, recovered 579 private-card records, preserved 19 findings, covered all 32 corrective destinations, and returned a five-question verified drill with hidden answers.
+- That receipt also exposed the matcher-freshness defect described above before phase closure. Its correction and final post-deployment reconciliation are the last release gate for this audit.
 
 ## Scope Note
 

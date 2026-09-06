@@ -445,6 +445,7 @@ test('recorded bets without normalized sizing remain unpriced', async () => {
 
   assert.equal(result.solverMatches, 1);
   assert.equal(result.solverVerified, 0);
+  assert.match(result.analyses[0].decisions[0].solverSource, /hand-audit-v3:unpriced$/);
 });
 
 test('forced blind postings are excluded from hero decision counts', async () => {

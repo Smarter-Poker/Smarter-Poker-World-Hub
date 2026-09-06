@@ -644,9 +644,14 @@ export async function auditParsedHands(db, userId, hands, {
         ev_loss: solverVerified ? grade.evLoss : null,
         ev_loss_measured: solverVerified && !!grade.evLossMeasured,
         solver_verified: solverVerified,
+        // Every result, including an honest unpriced result, carries the
+        // matcher version. Otherwise a freshly written v2 unpriced row looks
+        // current to v3 and can skip the mandatory re-audit indefinitely.
         solver_source: lookupFailed
           ? LOOKUP_FAILED_SOURCE
-          : (solverVerified ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}` : candidate?.question_data?.source || null),
+          : (solverVerified
+            ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}`
+            : `${candidate?.question_data?.source ? `${candidate.question_data.source}|` : ''}${MATCHER_VERSION}:unpriced`),
         match_tier: candidate?.matchTier || null,
         audited_at: now,
         updated_at: now,
@@ -927,12 +932,12 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
     const hasUntrustedClassification = rows.some(row =>
       row.solver_verified !== true && row.classification !== 'unpriced');
-    const hasLegacyVerification = rows.some(row =>
-      row.solver_verified === true && !String(row.solver_source || '').includes(`|${MATCHER_VERSION}`));
+    const hasMatcherDrift = rows.some(row =>
+      !String(row.solver_source || '').includes(MATCHER_VERSION));
     const hasLookupFailure = rows.some(row => row.solver_source === LOOKUP_FAILED_SOURCE);
     const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
     const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
-    if (partialAudit || hasUntrustedClassification || hasLegacyVerification || hasLookupFailure || staleUnpricedAudit) {
+    if (partialAudit || hasUntrustedClassification || hasMatcherDrift || hasLookupFailure || staleUnpricedAudit) {
       handsQueuedForRetry += 1;
       return true;
     }
