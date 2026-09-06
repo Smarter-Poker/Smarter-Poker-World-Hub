@@ -1,6 +1,6 @@
 # Trivia Phase 1 Release Report
 
-Status: **RELEASE IN PROGRESS — World Hub deployment and live smoke remain**  
+Status: **COMPLETE**  
 Phase: 1 of 12 — Control Plane, Production Baseline, and Competitive Containment  
 Release date: September 6, 2026  
 Implementation baseline: `d8109a3a2933f2d2611dac1f7257a53c11f30522`  
@@ -19,8 +19,11 @@ be built without exposing browser-owned records or untracked diamond movement.
 - Retired the legacy PvP cleanup and tournament lifecycle schedules from Vercel,
   OpenClaw, and worker routing. Retired worker endpoints return authenticated
   `410 Gone`, `Cache-Control: no-store`, and a zero-movement receipt.
-- Made PvP and tournament pages and APIs fail closed while disabled, including
-  generic session start/answer/submit branches and settlement/cron routes.
+- Made PvP and tournament pages and public APIs fail closed while disabled,
+  including generic session start/answer/submit branches and public settlement.
+  The secret-authenticated PvP recovery sweep remains manually available so a
+  kill switch cannot strand funded escrow; it is unscheduled, non-cacheable,
+  validates authoritative state, and had an empty queue in production smoke.
 - Replaced browser-owned competitive mutation with service-role-only database
   contracts, strict RLS/ACLs, exact function grants, and caller-bound reads.
 - Added normalized PvP session links and active seats, immutable settlement
@@ -108,24 +111,49 @@ received no payout.
 - Optimized Next.js production build: passed; 400 static pages generated.
 - Migration rehearsal: passed and rolled back without residue.
 - Production database verification: `52/52` passed.
+- Descendant main Playwright matrix: `733 passed`, `24 intentionally skipped`,
+  `0 failed` across 757 tests.
 - Whitespace/error checks: passed.
 - Latest-main overlap audit: upstream changes in shared test/package/scheduler
   files were preserved before release.
 
-## Remaining publication evidence
-
-The following fields remain open until the World Hub merge, Vercel deployment,
-OpenClaw deployment, and authenticated smoke complete:
+## World Hub publication evidence
 
 | Evidence | Status |
 |---|---|
-| World Hub pull request | pending |
-| World Hub merge SHA | pending |
-| Required CI | pending |
-| Vercel production deployment and exact `/api/health` SHA | pending |
-| OpenClaw dispatcher deployment and remote checksum | pending |
-| Authenticated/anonymous live smoke artifact | pending |
-| Final gate timestamp | pending |
+| Phase 1 pull request | [#1468](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1468) |
+| Phase 1 merge SHA | `8b63c09c1c6adb42c1824b170337a989a4d15ac7` at `2026-09-06T12:53:52Z` |
+| Recovery-smoke correction | [#1471](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1471), merge `852facdfb84b775166590aa2b8477143a3c230f7` |
+| Phase 1 required CI | [Build Safety run 34034465668](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34034465668), passed |
+| Correction required CI | [Build Safety run 34035111677](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34035111677) and [Chromium/WebKit run 34035111674](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34035111674), passed |
+| Descendant main E2E | [run 34036532041](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34036532041), passed on `43770e7d12355b268a9ce29b8a89a7048c4b3bd3`: 733 passed, 24 intentionally skipped, 0 failed in 10.6 minutes |
+| Descendant Build Safety | [run 34036532058](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34036532058), passed |
+| OpenClaw deployment | [run 34034465451](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34034465451), passed with remote checksum/service verification |
+| Vercel production deployment | GitHub deployment `6293362295`, [production URL](https://hub-vanguard-ipwhggd93-smarter-poker.vercel.app), passed |
+| Verified descendant deployment | GitHub deployment `6293584009`, [production URL](https://hub-vanguard-c3txwwgsd-smarter-poker.vercel.app), passed; `/api/health` reported app/database healthy on exact SHA `43770e7d12355b268a9ce29b8a89a7048c4b3bd3` |
+| Exact smoke health SHA | `852facdfb84b775166590aa2b8477143a3c230f7` |
+| Authenticated/anonymous smoke | `docs/trivia/evidence/phase1-production-smoke-20260906-1319utc.json`, passed at `2026-09-06T13:19:06.337Z` |
+| Smoke artifact SHA-256 | `ad0414ca2a20d76cd9b8e206783419248ed7fe6914347cd33b69e3f1b6ce81a4` |
+| Post-smoke database verifier | `52 passed, 0 failed`; rollback-only browser matrix `70/70` denied |
+| Rendered production inspection | Desktop cinematic layout and `390x844` mobile image-first stack passed; 13 middle modes, Daily Trivia, Quick Stakes, and two maintenance states visible |
+| Final gate timestamp | `2026-09-06T13:50:59.091Z` |
+
+The live smoke covered anonymous, signed-in, and cron-secret calls. It proved all
+disabled public entry/play surfaces returned non-cacheable `503` receipts, both
+disabled pages redirected, three retired routes returned `404`, and the authorized
+recovery sweep returned a non-cacheable healthy receipt with `scanned=0` and
+`settled=0`. Its temporary zero-cost session was removed. Before/after row counts
+and every competitive diamond transaction count/net value were identical.
+
+Three predecessor main E2E runs were concurrency-cancelled when newer commits
+landed; their logs contain no assertion failure. The uninterrupted descendant
+run above is the terminal broad regression proof. A path-level comparison from
+the correction merge to `43770e7d` found one Phase 1 overlap: an unrelated,
+additive Personal Assistant entry in `scripts/openclaw-cron-dispatcher.py`.
+Direct inspection confirmed that no retired competitive Trivia schedule was
+restored. A concurrent deterministic-seeder update also moved Trivia onto the
+shared trusted-solver-matrix boundary; it was outside the Phase 1 release diff
+and passed the descendant build and browser matrix.
 
 ## Rollback and incident policy
 
@@ -142,6 +170,7 @@ OpenClaw deployment, and authenticated smoke complete:
 
 ## Exit gate
 
-Phase 1 closes only after the pending publication evidence above passes and the
-release report is updated to the exact deployed merge SHA. Until then, the phase
-remains in progress and all competitive switches remain off.
+Phase 1 is closed: the descendant main E2E passed, this report and its immutable
+smoke artifact are published through the guarded release workflow, and
+production health resolved to a descendant with all Phase 1 behavior intact.
+All four competitive switches remain off for Phases 5 and 6.
