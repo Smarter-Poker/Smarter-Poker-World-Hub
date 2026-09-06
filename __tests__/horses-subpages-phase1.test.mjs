@@ -588,13 +588,25 @@ test('hand-reviews exports every table to CSV', () => {
   assert.match(body, /stampedName/);
   const buttons = body.match(/<ExportCsvButton\b/g) || [];
   // Daily audit, telemetry, data ledger (2026-09-04), league card, leak-tag
-  // rates, fleet summary, flagged hands: seven tables, seven exports.
-  assert.equal(buttons.length, 7, `expected seven CSV exports, found ${buttons.length}`);
+  // rates, fleet summary, flagged hands, and from 2026-09-06 the tournament
+  // scoreboard, the frequency leaks and the solver agreement: ten tables,
+  // ten exports.
+  assert.equal(buttons.length, 10, `expected ten CSV exports, found ${buttons.length}`);
 });
 
 test('hand-reviews declares explicit [key, header] export columns', () => {
   const body = read('pages/horses/hand-reviews.js');
-  for (const name of ['AUDIT_COLUMNS', 'TELEMETRY_COLUMNS', 'LEAGUE_COLUMNS', 'TREND_COLUMNS', 'FLEET_COLUMNS', 'HAND_COLUMNS']) {
+  for (const name of [
+    'AUDIT_COLUMNS',
+    'TELEMETRY_COLUMNS',
+    'LEAGUE_COLUMNS',
+    'TREND_COLUMNS',
+    'FLEET_COLUMNS',
+    'HAND_COLUMNS',
+    'TOURNAMENT_COLUMNS',
+    'FREQUENCY_COLUMNS',
+    'AGREEMENT_COLUMNS',
+  ]) {
     assert.match(body, new RegExp(`const\\s+${name}\\s*=\\s*\\[`), `${name} must be declared`);
   }
 });
