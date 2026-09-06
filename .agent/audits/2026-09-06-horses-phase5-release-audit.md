@@ -40,7 +40,8 @@ landed, so Phase 5 was not considered released.
    contract. It showed a missing zero-count tier as `Unknown`, ignored the
    singular `tier_reason`, and could not open the nested active-case summary.
    The panel now treats a successfully loaded missing tier as zero, renders
-   `tier_reason`, and reads `case.id`. A release test pins all three mappings.
+   `tier_reason`, reads `case.id`, and preserves `totals.filtered_groups` for
+   filtered pagination. A release test pins all four mappings.
 
 ## Production Database Evidence
 

@@ -449,6 +449,9 @@ function normalizeQueue(data) {
     groups,
     rows: groups,
     total: Number.isFinite(Number(data.totals.groups)) ? Number(data.totals.groups) : null,
+    filteredTotal: Number.isFinite(Number(data.totals.filtered_groups))
+      ? Number(data.totals.filtered_groups)
+      : null,
     tierTotals: data.totals.by_tier || {},
     patternTotals: data.totals.by_pattern || {},
     compositionTotals: data.totals.by_composition || {},
