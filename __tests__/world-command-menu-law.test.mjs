@@ -160,6 +160,7 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(friendsSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(reelsSource, /showOverlay && \([\s\S]*?<UniversalHeader/);
+  assert.match(reelsSource, /if \(menuOpenRef\.current\) return;/);
   // Mobile phase 3 (2026-09-04): the lobby used to float UniversalHeader in
   // an absolute wrapper (zIndex 10050, pointerEvents none) above a
   // 100vh stage. The lobby is document flow on HubPageShell now, which

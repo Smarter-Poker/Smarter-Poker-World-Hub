@@ -2017,7 +2017,13 @@ export default function ReelsPage() {
       }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') slideToPrevRef.current();
-      if (e.key === 'Escape') router.push('/hub/social-media');
+      // The command drawer owns Escape while it is open. Without this guard,
+      // both window listeners run for the same keypress: the drawer closes and
+      // Reels also navigates back to Social Media.
+      if (e.key === 'Escape') {
+        if (menuOpenRef.current) return;
+        router.push('/hub/social-media');
+      }
       // BUG FIX: Space bar is the universal play/pause shortcut — was missing
       // NOTE: Uses DOM state (videoRef.current.paused) and iframeRef for YouTube
       // to avoid stale closures since this effect only re-runs on [router]
