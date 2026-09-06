@@ -410,6 +410,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
 
   test('Leak Finder coaching workspace exposes evidence, goals, timeline, and weekly reporting', async ({ page }, testInfo) => {
     const leakId = '11111111-1111-4111-8111-111111111111';
+    const coachingWrites = [];
     await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -433,6 +434,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     }));
     await page.route('**/api/assistant/coaching', async route => {
       if (route.request().method() === 'POST') {
+        coachingWrites.push(route.request().postDataJSON());
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, result: {} }) });
         return;
       }
@@ -465,8 +467,12 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await activateControl(page.getByRole('button', { name: 'Coaching' }), testInfo.project.name);
     await expect(page.getByRole('heading', { name: 'Your Evidence-Backed Improvement Plan' })).toBeVisible();
     await expect(page.getByText('pa7-test-receipt')).toBeVisible();
+    await page.getByLabel('Analysis Depth').selectOption('expert');
+    await expect.poll(() => coachingWrites.some(write => write?.action === 'save_preferences' && write?.preferences?.analysisDepth === 'expert')).toBe(true);
     await activateControl(page.getByRole('button', { name: 'Evidence', exact: true }), testInfo.project.name);
     await expect(page.getByText('Source-To-Training Trace')).toBeVisible();
+    await expect(page.getByLabel('Expert Analysis Provenance')).toBeVisible();
+    await expect(page.getByText('Evidence Fingerprint')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Exact Sandbox Spot' })).toBeVisible();
     await activateControl(page.getByRole('button', { name: 'Timeline', exact: true }), testInfo.project.name);
     await expect(page.getByText('From Detection To Real-Play Confirmation')).toBeVisible();

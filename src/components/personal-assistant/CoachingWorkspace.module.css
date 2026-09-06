@@ -18,6 +18,9 @@
 .commandHeader h2 { font-size: clamp(25px, 7vw, 42px); }
 .commandHeader p, .panel p, .statePanel p { margin: 0; color: #9cb4c2; line-height: 1.5; }
 .eyebrow { display: inline-flex; gap: 6px; align-items: center; color: var(--coach-accent); font: 700 11px/1.2 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; }
+.commandControls { display: grid; gap: 8px; min-width: min(100%, 210px); }
+.depthControl { display: grid; gap: 5px; color: #9cb4c2; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.depthControl select { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid rgba(115, 190, 224, .58); border-radius: 0; background: #04121c; color: #fff; font: 700 12px/1.2 sans-serif; }
 .receipt { min-width: 190px; padding: 12px; border: 1px solid rgba(255, 198, 109, .55); background: rgba(255, 198, 109, .07); }
 .receipt span, .receipt strong { display: block; }
 .receipt span { color: #9cb4c2; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
@@ -89,6 +92,10 @@
 .evidenceChain small { margin-top: 4px; color: #8da6b3; overflow-wrap: anywhere; }
 .evidenceChain > div[data-state="unpriced"] { border-color: rgba(255, 198, 109, .5); }
 .evidenceChain > div[data-state="unavailable"] { border-color: rgba(255, 107, 122, .42); }
+.provenanceGrid { display: grid; gap: 7px; margin: 12px 0 0; }
+.provenanceGrid div { min-width: 0; padding: 9px 10px; border: 1px solid rgba(115, 190, 224, .22); background: rgba(3, 13, 21, .62); }
+.provenanceGrid dt { color: #7e9aa9; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.provenanceGrid dd { margin: 5px 0 0; color: #eaf8ff; font: 700 11px/1.35 "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
 .coverageList { display: grid; gap: 7px; margin: 12px 0 0; }
 .coverageList div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(115, 190, 224, .18); padding-bottom: 7px; }
 .coverageList dt { color: #8da6b3; }.coverageList dd { margin: 0; font: 700 13px monospace; color: #fff; }
@@ -101,9 +108,11 @@
 .timelineList li::before { content: ""; position: absolute; left: -20px; top: 5px; width: 9px; height: 9px; background: var(--coach-accent); box-shadow: 0 0 12px rgba(99, 231, 255, .7); }
 .timelineList time { color: var(--coach-gold); font: 700 11px monospace; }
 .timelineList strong, .timelineList small { display: block; }.timelineList small { color: #829ba8; margin-top: 3px; }
-.goalList li { padding: 12px; border: 1px solid rgba(115, 190, 224, .28); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.goalList li { padding: 12px; border: 1px solid rgba(115, 190, 224, .28); display: grid; gap: 10px; }
 .goalList strong, .goalList small { display: block; }.goalList small { color: #829ba8; margin-top: 4px; }
-.goalList button { min-height: 40px; border: 1px solid rgba(77, 224, 165, .5); background: rgba(77, 224, 165, .08); color: #68efb3; cursor: pointer; }
+.goalActions { display: flex; flex-wrap: wrap; gap: 7px; }
+.goalList button { min-height: 44px; padding: 8px 11px; border: 1px solid rgba(77, 224, 165, .5); background: rgba(77, 224, 165, .08); color: #68efb3; cursor: pointer; }
+.goalList .removeGoal { border-color: rgba(255, 107, 122, .5); background: rgba(255, 107, 122, .08); color: #ff8290; }
 .reportMetrics { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 15px 0; }
 .reportMetrics > div { padding: 13px; border: 1px solid rgba(115, 190, 224, .26); }
 .reportMetrics strong { display: block; margin-top: 6px; font: 700 20px monospace; }
@@ -124,12 +133,13 @@
   .viewNav button { flex-direction: column; gap: 4px; }
   .priorityList button { grid-template-columns: 30px minmax(0, 1fr) 18px; }
   .confidence { grid-column: 2; justify-self: start; }
-  .goalList li { align-items: stretch; flex-direction: column; }
+  .goalActions { display: grid; grid-template-columns: 1fr; }
   .actionRow > * { width: 100%; }
 }
 
 @media (min-width: 760px) {
   .commandHeader { flex-direction: row; align-items: center; justify-content: space-between; padding: 22px; }
+  .provenanceGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .coachGrid, .goalsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .evidenceGrid { grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); }
   .metricGrid { grid-column: 1 / -1; grid-template-columns: repeat(4, 1fr); }
