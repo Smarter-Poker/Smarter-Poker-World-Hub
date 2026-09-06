@@ -58,6 +58,9 @@ landed, so Phase 5 was not considered released.
 10. Pair cards requested a top-level `net_flow` field the ranked-pair RPC does
     not return, making every live value appear unknown. The card now renders
     the contract's `absolute_net_flow` under an exact "Absolute Net Flow" label.
+11. The queue's initial loading state also rendered an unknown-state alert
+    before the route had answered. Initial load now shows only its loading
+    message; unknown remains reserved for a completed unreadable response.
 
 ## Production Database Evidence
 
