@@ -62,8 +62,10 @@ test.describe('Poker Near Me phase 15 secondary interaction foundation', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole('tablist', { name: 'Poker Near Me sections' })).toBeVisible({ timeout: 30_000 });
-    await expectInteractionFloor(page.getByRole('tab'), 'primary discovery tabs');
+    await expect(page.locator('.pnm-page')).toHaveAttribute('data-pnm-hydrated', 'true', { timeout: 30_000 });
+    const navigation = page.getByRole('navigation', { name: 'Poker Near Me sections' });
+    await expect(navigation).toBeVisible({ timeout: 30_000 });
+    await expectInteractionFloor(navigation.getByRole('button'), 'primary discovery anchors');
     await expectInteractionFloor(page.locator('.pnm-filter-select'), 'discovery filters');
     await expectNoOverflow(page, '390x844 map');
   });

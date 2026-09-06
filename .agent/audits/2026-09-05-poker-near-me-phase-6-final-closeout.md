@@ -94,7 +94,7 @@ destinations are included in the sitemap and two account-specific destinations
 ## Verification completed before publication
 
 - Full prebuild suite: 603 passed.
-- Poker Near Me focused suite: 109 passed.
+- Poker Near Me focused suite: 110 passed.
 - Marketplace release suite: 218 passed after synchronizing two stale tests
   with the current membership paths and removing two prohibited comment bars.
 - TypeScript no-emit check: passed.
@@ -113,7 +113,29 @@ destinations are included in the sitemap and two account-specific destinations
 - Four unreferenced Poker Near Me render assets retired, removing about 1.12 MB
   without changing any runtime reference.
 
-Production publication remains incomplete until the PR is merged, the live
-health SHA includes the merge, the Open Claw dispatcher matches the merged
-source, the authenticated refresh succeeds exactly, and representative live
-desktop and 390 by 844 browser checks pass.
+## Post-publication regression closure
+
+The first production release merged in PR 1397 and was served by the custom
+domain at revision `c9e490ea`. The production route, sitemap, desktop, 390 by
+844 mobile, Chromium, and WebKit checks passed. Open Claw was active with a
+matching dispatcher hash, and the authenticated integrity refresh completed
+with 603 source rows and 603 synchronized rows.
+
+The broader non-blocking repository E2E run then exposed stale Phase 6 through
+16 assertions plus two real timing defects. The follow-up closeout:
+
+- moves the lobby skip link ahead of the global header in keyboard order;
+- prevents a closed Report Game component from registering a modal-history
+  entry when its lazy Live panel mounts;
+- gives PNM-owned same-document history entries their own marker instead of
+  copying Next.js private router state;
+- preserves a physical 44-pixel minimum for map area actions while the mobile
+  sheet settles;
+- synchronizes historical tests and image baselines with the shipped anchor
+  navigation and rendered layouts; and
+- pins the closed-modal and PNM-history contracts in permanent unit and
+  cross-engine regression coverage.
+
+Final publication evidence is attached to the merge request and production
+deployment records so the repository document does not depend on a mutable
+deployment alias.

@@ -340,13 +340,16 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       // This is a view-state transition inside one already-mounted discovery
       // application. A native entry preserves live map/realtime state and gives
       // Back/Forward real semantics; router.push can refetch this dynamic Pages
-      // route in WebKit even when `shallow` is requested.
+      // route in WebKit even when `shallow` is requested. Do not copy Next's
+      // private `__N` marker from the current entry: these are PNM-owned
+      // same-document states, and marking them as Next navigations lets its
+      // popstate handler consume or replace the browser's Forward entry.
       window.history.pushState(
         {
-          ...window.history.state,
+          spPnmDiscovery: true,
           as: newUrl,
           url: newUrl,
-          options: { ...window.history.state?.options, shallow: true, scroll: false },
+          options: { shallow: true, scroll: false },
         },
         '',
         newUrl
@@ -517,6 +520,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const [liveDataAgeMinutes, setLiveDataAgeMinutes] = useState(null);
 
   // UI states
+  const [isHydrated, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [venueLoading, setVenueLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -541,6 +545,12 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   // Read by backgroundFetchArgs() from timer/event callbacks that outlive this render.
   searchOverlayOpenRef.current = showGlobalSearch;
+
+  // The discovery anchor row is server-rendered for crawlability, so its mere
+  // visibility does not prove that client-side navigation handlers are ready.
+  // Publish an explicit interactive-state contract for tests and assistive
+  // tooling that need to activate controls immediately after navigation.
+  useEffect(() => setIsHydrated(true), []);
 
   // Map fullscreen modal state
   const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -3776,7 +3786,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         )}
 
         <PullToRefresh onRefresh={refreshDiscovery} disabled={anySheetOpen}>
-          <div className="pnm-page">
+          <div className="pnm-page" data-pnm-hydrated={isHydrated ? 'true' : 'false'}>
             <div className="space-bg"></div>
             <div className="space-overlay"></div>
 

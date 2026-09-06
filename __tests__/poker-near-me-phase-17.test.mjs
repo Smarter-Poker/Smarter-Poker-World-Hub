@@ -11,7 +11,9 @@ test('discovery navigation distinguishes user history from filter synchronizatio
   assert.match(page, /const pushDiscoverySurface = \(nextState\) =>/);
   assert.match(page, /window\.history\.pushState\(/);
   assert.match(page, /window\.history\.replaceState\(/);
-  assert.match(page, /options: \{ \.\.\.window\.history\.state\?\.options, shallow: true, scroll: false \}/);
+  assert.match(page, /spPnmDiscovery: true/);
+  assert.match(page, /options: \{ shallow: true, scroll: false \}/);
+  assert.doesNotMatch(page, /window\.history\.pushState\(\s*\{\s*\.\.\.window\.history\.state/);
   assert.match(page, /`\$\{window\.location\.pathname\}\$\{window\.location\.search\}`/);
   assert.match(page, /window\.addEventListener\('popstate', restoreDiscoveryState\)/);
   assert.match(page, /window\.removeEventListener\('popstate', restoreDiscoveryState\)/);
@@ -20,6 +22,12 @@ test('discovery navigation distinguishes user history from filter synchronizatio
   assert.match(page, /const addressSlug = normalizeRouteSlug\(/);
   assert.match(page, /if \(addressSlug !== pathSlug\) return/);
   assert.doesNotMatch(page, /const currentUrl = router\.asPath/);
+});
+
+test('closed report-game shells never pollute discovery history', async () => {
+  const reportGameModal = await source('src/components/poker-near-me/ReportGameModal.jsx');
+  assert.match(reportGameModal, /useModalHistory\(!!isOpen, onClose\)/);
+  assert.doesNotMatch(reportGameModal, /useModalHistory\(true, onClose\)/);
 });
 
 test('restored routes remain explicit to assistive technology', async () => {
