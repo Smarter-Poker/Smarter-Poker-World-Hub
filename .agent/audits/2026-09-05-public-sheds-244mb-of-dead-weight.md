@@ -98,17 +98,62 @@ nowhere.
   pattern works here — and it is three times the size of everything removed
   above. It is the next piece, not this one.
 
-## Two dangling references found on the way (not caused here)
+## Three "dangling references" - and what they actually turned out to be
 
-- `src/lib/poker-engine/CardAssets.js:30` returns `` `/cards/backs/${style}.png` ``
-  and **`public/cards/backs/` does not exist**.
-- `merchandise_items.image_url` has 5 rows pointing at `/merch/*.jpg` and
-  **`public/merch/` does not exist**.
-- `LeaderboardWidget.tsx:101` builds `/avatars/avatar1..10.png`; **those files
-  do not exist either**.
+An earlier draft of this note reported three broken-image references as live
+production defects. **That was wrong on all three, and this is the correction.**
+Each was checked properly afterwards:
 
-Broken images today, unrelated to this deletion. Filed here so they are not
-rediscovered as fallout from it.
+1. **`/merch/*.jpg` on five `merchandise_items` rows: NOT a defect.**
+   `MerchStore.jsx` carries an explicit `UNSHIPPED_MERCH_IMAGES` set naming
+   exactly those paths, with the reasoning above it: "These paths were seeded
+   before their product photography was shipped. Let the card render its
+   deliberate category placeholder immediately instead of issuing a guaranteed
+   404." Somebody had already thought about this and handled it well. Nothing to
+   fix, and "fixing" it would have been damage.
+
+2. **`/cards/backs/${style}.png` in `src/lib/poker-engine/CardAssets.js`: dead
+   code, now deleted.** The live helper is `src/lib/CardAssets.js`, which
+   returns `/images/card-backs/<color>.jpg` - and those files exist. Nothing
+   imported the poker-engine copy, not even the test sitting two directories
+   below it, which requires `../../CardAssets` (the live one). Note the
+   surrounding subsystem IS live: `pages/api/poker/*` imports GameController,
+   RateLimiter, AntiCheat and authMiddleware from `src/lib/poker-engine/`.
+   Only that one file was orphaned, and only that one file was removed.
+
+3. **`/avatars/avatar1..10.png` in `LeaderboardWidget.tsx`: dead code, now
+   deleted.** Nothing in the repo imported the component or its
+   `generateMockLeaderboard`, which invents fifteen players ('PokerShark99',
+   'BluffMaster', 'TheNit'), assigns them `Math.random()` scores and random
+   up/down trends. No player has ever seen it. It is deleted rather than left
+   in place because the next agent to search for a leaderboard would find a
+   ready-made one that fabricates its rows, and the real leaderboards
+   (`LeaderboardDisplay`, `/api/poker/leaderboards`) are elsewhere.
+
+The lesson is the one this whole audit keeps repeating: a reference that looks
+dangling is a hypothesis, not a finding. Two of these were in code nothing
+runs, and the third was already solved by someone who left a comment saying so.
+
+## Still open, and it is Dan's call
+
+Those same five legacy merch rows - Stealth and Gold Card Protector ($24.99),
+100-Chip Travel Set ($79.99), 500-Chip Pro Set ($199.99), Premium Playing Cards
+($14.99) - are `is_active = true`, carry stock, have **no Printful mapping**,
+and have **never been ordered** (0 orders each). Every other item in the store
+is Printful-fulfilled.
+
+They are not a money-integrity hazard: `purchase-with-diamonds` finds no
+mapping, sets `automaticFulfillment = false`, and records the order as
+`fulfillmentMode: 'manual'`. That is a deliberate path, not a leak. But it does
+mean a player can spend up to 19,999 diamonds on a chip set with no photograph
+and no supplier behind it, and the only thing standing between that and a
+support ticket is that nobody has tried in a month.
+
+Left alone on purpose. CLAUDE.md 10.6 gives agents the money decisions on PAST
+events and reserves "what is sold, and at what price" for Dan. Deactivating five
+live products is merchandising, not correction. **Recommendation: deactivate
+them until photography and a supplier exist, or point them at real products.**
+One `update merchandise_items set is_active = false` and it is done.
 
 ## Hardening
 
