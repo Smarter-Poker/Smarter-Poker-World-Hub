@@ -27,6 +27,15 @@ landed, so Phase 5 was not considered released.
    in production for an unrelated solver guard. The collision was detected
    before any write. The integrity guard uses verified-unused version
    `20260906170000`.
+5. Authenticated production smoke testing found the queue and pairs endpoints
+   intermittently exceeded PostgREST's eight-second statement budget. The hot
+   JSON numeric extractor ran tens of thousands of PL/pgSQL calls per request.
+   Migration `20260906180000` replaces it with a lower-overhead immutable SQL
+   function while preserving its validation and server-only ACL. The remaining
+   plan showed the root query defect: it scanned 176,593 rows to keep 7,070 and
+   serialized every column of `profiles` 12,682 times. Migration
+   `20260906200000` restores the exact partial-index predicate and reads only
+   the three profile columns the queue needs.
 
 ## Production Database Evidence
 
@@ -68,10 +77,26 @@ landed, so Phase 5 was not considered released.
 - Static scans found no Phase 5 TODO, FIXME, HACK, mock-data, hidden horse
   exclusion, unsafe `.single()`, evidence delete, or chip-movement path.
 
+## PostgREST Recovery Verification
+
+- Before the query fix, a direct service-role PostgREST queue request failed
+  with PostgreSQL `57014 canceling statement due to statement timeout` at the
+  eight-second boundary. The authenticated queue and pairs routes returned 503.
+- An extracted `EXPLAIN ANALYZE` proved a sequential scan of all 176,593
+  `collusion_tracking` rows, with 169,523 discarded after the scan.
+- The rollback benchmark for the narrow, indexable queue completed in 1,569 ms
+  versus 12,100 ms for the captured failing plan.
+- After applying the fix, five consecutive PostgREST queue requests returned
+  25 rows successfully in 2,974 to 4,759 ms.
+- Authenticated production requests then passed for health, queue, pairs,
+  flags, timing, and hands. The case endpoint returned the expected structured
+  `case_not_found` response for a nonexistent UUID.
+- A more aggressive evidence-pagination rewrite measured 6,727 ms in rollback
+  and was discarded. It was never applied or committed.
+
 ## Remaining Release Gate
 
 The repository change must land on current `origin/main`, CI must pass, Git
 integration must publish that exact main commit, production health must report
 the exact SHA, and authenticated desktop plus 375px checks must pass. Until all
 of those are true, this audit does not call Phase 5 published.
-

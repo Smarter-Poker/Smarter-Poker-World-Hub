@@ -6,12 +6,20 @@ import path from 'node:path';
 import test from 'node:test';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [route, panel, sql] = await Promise.all([
+const [route, panel, sql, queueBudgetSql, narrowQueueSql] = await Promise.all([
   readFile(path.join(ROOT, 'pages/api/horses/integrity-admin.js'), 'utf8'),
   readFile(path.join(ROOT, 'src/components/horses/IntegrityPanel.jsx'), 'utf8'),
   readFile(path.join(
     ROOT,
     'supabase/migrations/20260906170000_integrity_sanctions_follow_human_decisions.sql'
+  ), 'utf8'),
+  readFile(path.join(
+    ROOT,
+    'supabase/migrations/20260906180000_integrity_queue_numeric_extraction_stays_inside_postgrest_budget.sql'
+  ), 'utf8'),
+  readFile(path.join(
+    ROOT,
+    'supabase/migrations/20260906200000_integrity_queue_uses_narrow_indexable_rows.sql'
   ), 'utf8'),
 ]);
 
@@ -48,4 +56,22 @@ test('the replacement RPC remains server-only', () => {
   assert.match(sql, /SET search_path = public, pg_temp/);
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_sanction\([^)]+\) FROM PUBLIC, anon, authenticated/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.fn_ca_integrity_sanction\([^)]+\) TO service_role/);
+});
+
+test('the hot numeric extractor uses SQL and remains server-only', () => {
+  assert.match(queueBudgetSql, /LANGUAGE sql/i);
+  assert.match(queueBudgetSql, /IMMUTABLE/i);
+  assert.doesNotMatch(queueBudgetSql, /LANGUAGE plpgsql/i);
+  assert.match(queueBudgetSql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_json_numeric\(jsonb, text\) FROM PUBLIC, anon, authenticated/);
+  assert.match(queueBudgetSql, /GRANT EXECUTE ON FUNCTION public\.fn_ca_integrity_json_numeric\(jsonb, text\) TO service_role/);
+});
+
+test('the queue optimization restores the partial index and narrows profiles', () => {
+  assert.match(narrowQueueSql, /'c\.status = ''open'''/);
+  assert.match(narrowQueueSql, /'coalesce\(pa\.is_horse, false\)'/);
+  assert.match(narrowQueueSql, /'coalesce\(pb\.is_horse, false\)'/);
+  assert.match(narrowQueueSql, /pa\.display_name, pa\.username/);
+  assert.match(narrowQueueSql, /pb\.display_name, pb\.username/);
+  assert.match(narrowQueueSql, /IF v_sql = v_before THEN/);
+  assert.match(narrowQueueSql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_queue/);
 });
