@@ -295,6 +295,24 @@ test('LAW 4: the table-socket probe opens a REAL socket and waits for the felt',
     assert.ok(PROBE.includes(`'${outcome}'`), `the probe distinguishes ${outcome}`);
   }
 
+  // EVERY outcome is registered in PROBE_OUTCOMES, both ways. The 2026-09-06
+  // audit found `construct_failed` and `closed_before_snapshot` shipped and
+  // documented nowhere - an outcome that exists only in code is a page with no
+  // page to turn to.
+  const listed = [...(CODE.match(/export const PROBE_OUTCOMES = Object\.freeze\(\[([\s\S]*?)\]\)/) || [])[1]
+    .matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  const produced = [...CODE.matchAll(/finish\(\s*'([a-z_]+)'/g)].map((m) => m[1]);
+  // `construct_failed` is set directly rather than through finish(), so read
+  // the assignments too - a scan that misses a producer passes everything.
+  produced.push(...[...CODE.matchAll(/result\.outcome = '([a-z_]+)'/g)].map((m) => m[1]));
+  assert.ok(produced.length >= 8, `the outcome scan found only ${produced.length} producers - it is broken, not the code`);
+  for (const o of new Set(produced)) {
+    assert.ok(listed.includes(o), `outcome '${o}' is produced but not in PROBE_OUTCOMES`);
+  }
+  for (const o of listed) {
+    assert.ok(produced.includes(o), `PROBE_OUTCOMES lists '${o}' but nothing produces it`);
+  }
+
   // It closes what it opens. A probe that leaks a socket every five minutes
   // walks into the per-user cap and then reports an outage it caused.
   assert.match(PROBE, /ws\.close\(1000, 'probe complete'\)/);

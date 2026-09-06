@@ -77,6 +77,7 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { isDedicatedProbeAccount } from '../../../src/lib/probeIdentity';
+import { unconfiguredProbe } from '../../../src/lib/probeUnconfigured';
 
 export const config = { maxDuration: 60 };
 
@@ -239,12 +240,15 @@ export function openTableSocket(engineBase, tableId, token, timeoutMs = SOCKET_T
     };
 
     const timer = setTimeout(() => {
-      finish(
-        result.opened ? 'no_snapshot' : 'handshake_timeout',
-        result.opened
-          ? `socket opened but no SNAPSHOT arrived within ${timeoutMs}ms`
-          : `socket never opened within ${timeoutMs}ms`
-      );
+      // Two OUTCOMES, written as two literals rather than one ternary, because
+      // an outcome hidden inside an expression is one the registry scan cannot
+      // see - which is how the audit's first version of that law passed while
+      // two outcomes were unregistered.
+      if (result.opened) {
+        finish('no_snapshot', `socket opened but no SNAPSHOT arrived within ${timeoutMs}ms`);
+      } else {
+        finish('handshake_timeout', `socket never opened within ${timeoutMs}ms`);
+      }
     }, timeoutMs);
 
     ws.onopen = () => {
@@ -300,6 +304,34 @@ export function openTableSocket(engineBase, tableId, token, timeoutMs = SOCKET_T
   });
 }
 
+/**
+ * EVERY outcome this probe can report, in one place.
+ *
+ * The outcome is the diagnosis - it is what the ops email says, what the
+ * heartbeat records, and what the runbook is organised by - so an outcome that
+ * exists in code and nowhere else is a page with no page to turn to. The
+ * 2026-09-06 audit found two of them (`construct_failed`, `closed_before_snapshot`)
+ * already shipped and undocumented.
+ *
+ * The law pins that every `finish('...')` in this file appears here and that
+ * nothing here is unused, so a new outcome cannot be added quietly. When you
+ * add one, add its section to
+ * `club-arena/docs/runbooks/tables-say-reconnecting.md` in the same change:
+ * the two repos cannot check each other, so that half is on you.
+ */
+export const PROBE_OUTCOMES = Object.freeze([
+  'ok',
+  'no_snapshot',
+  'handshake_timeout',
+  'closed_before_snapshot',
+  'refused',
+  'auth_refused',
+  'table_not_found',
+  'rate_limited',
+  'probe_outdated',
+  'construct_failed',
+]);
+
 /** Outcomes that mean the platform is fine and the PROBE needs attention. */
 export const PROBE_FAULT_OUTCOMES = Object.freeze(['probe_outdated']);
 
@@ -309,25 +341,36 @@ async function handler(req, res) {
 
   const admin = getAdmin();
   const anon = getAnon();
+  // A PROBE THAT CANNOT RUN SAYS SO WHERE PROBES SPEAK. Every early return
+  // below goes through `unconfiguredProbe`, which writes a 'failed' heartbeat
+  // FIRST and then returns the 500 - because a probe that writes no row is
+  // indistinguishable from one that was never scheduled, and the dashboard
+  // cannot draw a red badge for a row that does not exist. That is
+  // recovery-probe's 2026-09-04 defect, and it is law here
+  // (`__tests__/a-probe-that-cannot-run-says-so.law.test.mjs`).
   if (!admin || !anon) {
-    return res.status(500).json({ status: 'unconfigured', error: 'Missing Supabase env vars' });
+    // `admin` may be the thing that is missing; the helper is fail-open and
+    // still returns the 500 with no client to write through.
+    return unconfiguredProbe(res, admin, 'table-socket-probe', 'Missing Supabase env vars');
   }
   if (typeof WebSocket === 'undefined') {
-    // Node 22 has this global. Reporting it is better than crashing: an
-    // unconfigured probe must never look like a broken platform.
-    return res.status(500).json({
-      status: 'unconfigured',
-      error: 'No global WebSocket in this runtime - the probe cannot take the client path.',
-    });
+    return unconfiguredProbe(
+      res,
+      admin,
+      'table-socket-probe',
+      'No global WebSocket in this runtime - the probe cannot take the client path.'
+    );
   }
 
   const email = (process.env.PROBE_LOGIN_EMAIL || '').trim();
   const password = process.env.PROBE_LOGIN_PASSWORD;
   if (!email || !password) {
-    return res.status(500).json({
-      status: 'unconfigured',
-      error: 'Missing PROBE_LOGIN_EMAIL or PROBE_LOGIN_PASSWORD. See pages/api/cron/login-probe.js for setup.',
-    });
+    return unconfiguredProbe(
+      res,
+      admin,
+      'table-socket-probe',
+      'Missing PROBE_LOGIN_EMAIL or PROBE_LOGIN_PASSWORD. See pages/api/cron/login-probe.js for setup.'
+    );
   }
 
   // Never run as a person. One gate, shared with login-probe.
