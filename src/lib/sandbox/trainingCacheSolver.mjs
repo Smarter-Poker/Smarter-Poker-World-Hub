@@ -4,13 +4,7 @@
  * two products agree on the same hand, action ids, frequencies, and solver EVs.
  */
 
-const VERIFIED_SOURCES = new Set([
-  'DETERMINISTIC_SOLVER',
-  'PIO_DATABASE',
-  'PIO',
-  'CHART',
-  'local_solver_ranges',
-]);
+import { isVerifiedSolverQuestion } from '../training/solverDecisionEvidence.js';
 
 const ACTION_LABELS = {
   c: 'Check', x: 'Check', f: 'Fold', call: 'Call',
@@ -63,7 +57,10 @@ export function canonicalBoard(value) {
 
 export function isCanonicalTrainingQuestion(question) {
   if (!question || typeof question !== 'object') return false;
-  if (!VERIFIED_SOURCES.has(String(question.source || ''))) return false;
+  // Keep Sandbox trust identical to Training Arena and Leak Finder. Warehouse
+  // labels such as PIO are claims, not proof, unless the provenance seal is
+  // complete; local chart sources retain the shared verifier's narrow carveout.
+  if (!isVerifiedSolverQuestion(question)) return false;
   if (String(question.dataQuality || '').toUpperCase() === 'SIMULATED') return false;
   const frequencies = question.gtoFrequencies;
   return !!frequencies && typeof frequencies === 'object'

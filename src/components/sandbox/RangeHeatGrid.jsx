@@ -15,6 +15,7 @@ import { Flame } from 'lucide-react';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
 import { BottomSheet, PAStyles, Segmented } from './paKit';
 import { RANKS, parseRange, cellLabel, comboWeight, countCombos } from './RangeExplorer';
+import { isRangeGridNavigationKey, nextRangeGridIndex } from '../../lib/personal-assistant/rangeGridNavigation.mjs';
 
 const ORDER = 'AKQJT98765432';
 
@@ -67,6 +68,7 @@ export default function RangeHeatGrid({
     const [pickHigh, setPickHigh] = useState(null);
     const [pickLow, setPickLow] = useState(null);
     const [pickSuit, setPickSuit] = useState('s');
+    const [activeIndex, setActiveIndex] = useState(0);
 
     const boardRanks = useMemo(
         () => (Array.isArray(boardCards) ? boardCards : []).map(c => c?.[0]).filter(Boolean),
@@ -239,38 +241,54 @@ export default function RangeHeatGrid({
                 )}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, minmax(0,1fr))', gap: 1, marginBottom: S.md }}>
-                {grid.flat().map(cell => {
-                    const tier = tierFor(cell.strength);
-                    const on = selected && selected.i === cell.i && selected.j === cell.j;
-                    return (
-                        <button
-                            key={`${cell.i},${cell.j}`}
-                            type="button"
-                            onClick={() => {
-                                setSelected({ i: cell.i, j: cell.j });
-                                // Keep the 44px picker in sync with a direct tap.
-                                setPickHigh(Math.min(cell.i, cell.j));
-                                setPickLow(Math.max(cell.i, cell.j));
-                                if (cell.i !== cell.j) setPickSuit(cell.i < cell.j ? 's' : 'o');
-                            }}
-                            aria-label={`${cell.label}, ${tier.label}${cell.inRange ? '' : ', outside range'}`}
-                            aria-pressed={!!on}
-                            style={{
-                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: F.caption, fontWeight: 700, lineHeight: 1, borderRadius: 4, padding: 0,
-                                background: cell.inRange ? `${tier.colour}3D` : T.surface2,
-                                border: `1px solid ${on ? T.text : cell.inRange ? `${tier.colour}66` : T.border}`,
-                                color: cell.inRange ? T.text : T.textDim,
-                                opacity: cell.inRange ? 1 : 0.35,
-                                cursor: 'pointer', touchAction: 'manipulation',
-                                WebkitTapHighlightColor: 'transparent',
-                            }}
-                        >
-                            {RANKS[Math.min(cell.i, cell.j)]}{RANKS[Math.max(cell.i, cell.j)]}
-                        </button>
-                    );
-                })}
+            <div className="pa-range-grid-scroll" data-hscroll="true" style={{ marginBottom: S.md }}>
+                <div className="pa-range-grid" role="grid" aria-label={`${villainLabel} range versus board`} style={{ display: 'grid', gridTemplateColumns: 'repeat(13, minmax(0,1fr))', gap: 1 }}>
+                    {grid.flat().map((cell, index) => {
+                        const tier = tierFor(cell.strength);
+                        const on = selected && selected.i === cell.i && selected.j === cell.j;
+                        return (
+                            <button
+                                key={`${cell.i},${cell.j}`}
+                                type="button"
+                                role="gridcell"
+                                data-range-grid-index={index}
+                                tabIndex={activeIndex === index ? 0 : -1}
+                                onFocus={() => setActiveIndex(index)}
+                                onKeyDown={(event) => {
+                                    if (!isRangeGridNavigationKey(event.key)) return;
+                                    event.preventDefault();
+                                    const next = nextRangeGridIndex(index, event.key);
+                                    setActiveIndex(next);
+                                    event.currentTarget.closest('[role="grid"]')
+                                        ?.querySelector(`[data-range-grid-index="${next}"]`)
+                                        ?.focus({ preventScroll: false });
+                                }}
+                                onClick={() => {
+                                    setActiveIndex(index);
+                                    setSelected({ i: cell.i, j: cell.j });
+                                    // Keep the 44px picker in sync with a direct tap.
+                                    setPickHigh(Math.min(cell.i, cell.j));
+                                    setPickLow(Math.max(cell.i, cell.j));
+                                    if (cell.i !== cell.j) setPickSuit(cell.i < cell.j ? 's' : 'o');
+                                }}
+                                aria-label={`${cell.label}, ${tier.label}${cell.inRange ? '' : ', outside range'}`}
+                                aria-selected={!!on}
+                                style={{
+                                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: F.caption, fontWeight: 700, lineHeight: 1, borderRadius: 4, padding: 0,
+                                    background: cell.inRange ? `${tier.colour}3D` : T.surface2,
+                                    border: `1px solid ${on ? T.text : cell.inRange ? `${tier.colour}66` : T.border}`,
+                                    color: cell.inRange ? T.text : T.textDim,
+                                    opacity: cell.inRange ? 1 : 0.35,
+                                    cursor: 'pointer', touchAction: 'manipulation',
+                                    WebkitTapHighlightColor: 'transparent',
+                                }}
+                            >
+                                {RANKS[Math.min(cell.i, cell.j)]}{RANKS[Math.max(cell.i, cell.j)]}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Legend · text tier labels, never colour alone */}

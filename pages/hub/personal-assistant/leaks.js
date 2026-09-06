@@ -1864,7 +1864,11 @@ export default function LeakFinderPage() {
     } catch (e) {
       /* user dismissed */
     }
-    toast('Copy this link: ' + url);
+    toast(
+      <span>
+        Copy This Link: <span data-pa-verbatim="true">{url}</span>
+      </span>,
+    );
   }, []);
 
   // ─── Spaced-repetition review queue ──────────────────────────────────────

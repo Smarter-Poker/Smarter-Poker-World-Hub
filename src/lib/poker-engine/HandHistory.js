@@ -24,6 +24,7 @@ class HandHistoryRecorder {
    * @param {string} config.tableId
    * @param {string} config.clubId
    * @param {string} config.variant - Game variant
+   * @param {string} [config.format] - 'cash' or 'tournament'
    * @param {string} config.bettingStructure
    * @param {number} config.smallBlind
    * @param {number} config.bigBlind
@@ -33,6 +34,7 @@ class HandHistoryRecorder {
     this.tableId = config.tableId;
     this.clubId = config.clubId;
     this.variant = config.variant;
+    this.format = config.format || null;
     this.bettingStructure = config.bettingStructure;
     this.smallBlind = config.smallBlind;
     this.bigBlind = config.bigBlind;
@@ -54,6 +56,7 @@ class HandHistoryRecorder {
       clubId: this.clubId,
       handNumber: data.handNumber,
       variant: this.variant,
+      format: this.format,
       bettingStructure: this.bettingStructure,
       smallBlind: this.smallBlind,
       bigBlind: this.bigBlind,
@@ -144,6 +147,9 @@ class HandHistoryRecorder {
    * @param {string} action.type - fold/check/call/bet/raise/all_in
    * @param {number} [action.amount]
    * @param {boolean} [action.auto] - Was this an auto-action (timeout)
+   * @param {number} [action.potBefore] - Pot immediately before the action
+   * @param {number} [action.currentBetBefore] - Street wager to call before the action
+   * @param {number} [action.raiseTo] - Exact street total after a raise
    */
   recordAction(street, action) {
     if (!this._currentHand) return;
@@ -151,13 +157,19 @@ class HandHistoryRecorder {
     const streetData = this._currentHand.streets[street];
     if (!streetData) return;
     
-    streetData.actions.push({
+    const recorded = {
       playerId: action.playerId,
       type: action.type,
       amount: action.amount || 0,
       auto: action.auto || false,
       timestamp: Date.now(),
-    });
+    };
+    for (const field of ['potBefore', 'currentBetBefore', 'raiseTo', 'sizingPct']) {
+      if (action[field] !== null && action[field] !== undefined && Number.isFinite(Number(action[field]))) {
+        recorded[field] = Number(action[field]);
+      }
+    }
+    streetData.actions.push(recorded);
   }
 
   /**

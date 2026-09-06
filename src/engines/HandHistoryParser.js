@@ -442,6 +442,8 @@ export function getHeroDecisionPoints(hand) {
 
     const points = [];
     const streets = ['preflop', 'flop', 'turn', 'river'];
+    const opponents = (hand.players || []).filter(player => String(player.id) !== String(hand.hero.id));
+    const completedActions = [];
 
     for (const streetName of streets) {
         const streetData = hand.streets[streetName];
@@ -476,11 +478,28 @@ export function getHeroDecisionPoints(hand) {
                     holeCards: hand.hero.holeCards,
                     action: action.action,
                     amount: action.amount,
+                    amountBB: action.amountBB,
+                    potBeforeBB: action.potBeforeBB,
+                    sizingPct: action.sizingPct,
                     position: hand.hero.position,
                     nodeClass,
+                    villainPosition: [...prior].reverse()
+                        .find(a => !a.isHero && (a.action === 'bet' || a.action === 'raise'))?.position
+                        || (opponents.length === 1 ? opponents[0].position : '')
+                        || '',
+                    priorActions: [...completedActions, ...prior].map(priorAction => ({
+                        street: priorAction.street || streetName,
+                        position: priorAction.position,
+                        action: priorAction.action,
+                        sizingPct: priorAction.sizingPct,
+                    })),
                 });
             }
         }
+        completedActions.push(...streetData.actions.map(streetAction => ({
+            ...streetAction,
+            street: streetName,
+        })));
     }
 
     return points;

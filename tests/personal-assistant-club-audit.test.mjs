@@ -11,6 +11,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const { HandHistoryRecorder } = require('../src/lib/poker-engine/HandHistory.js');
+const { GameStateMachine, GAME_VARIANT } = require('../src/lib/poker-engine/GameStateMachine.js');
 
 let passed = 0;
 let failed = 0;
@@ -45,11 +46,13 @@ const clubRow = {
   id: 'hand-42',
   hand_number: 42,
   game_variant: 'nlhe',
+  big_blind: 1,
   players: [{ userId, seat: 0 }, { userId: villainId, seat: 1 }],
   board: [],
   summary: JSON.stringify({
     id: 'table_42',
     format: 'cash',
+    bigBlind: 1,
     buttonSeat: 0,
     players: [
       { id: userId, displayName: 'Hero', seatIndex: 0, holeCards: [51, 46] },
@@ -58,7 +61,7 @@ const clubRow = {
     streets: {
       preflop: {
         actions: [
-          { playerId: userId, type: 'raise', amount: 2.5 },
+          { playerId: userId, type: 'raise', amount: 2.5, potBefore: 1.5, sizingPct: 66 },
           { playerId: villainId, type: 'fold' },
         ],
       },
@@ -68,6 +71,30 @@ const clubRow = {
     },
   }),
 };
+
+function auditDb(question, captured = []) {
+  return {
+    rpc: async (_name, args) => {
+      captured.push(...args.p_rows);
+      return { data: { success: true, upserted: args.p_rows.length, removed: 0 }, error: null };
+    },
+    from(table) {
+      if (table === 'training_question_cache') {
+        const chain = {
+          select: () => chain,
+          like: () => chain,
+          eq: () => chain,
+          limit: async () => ({ data: [{ question_id: 'context-q', game_id: 'cash-postflop', question_data: question }], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        return { upsert: async () => ({ error: null }) };
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+}
 
 await test('converts Club Arena integer cards to canonical solver cards', () => {
   assert.equal(cardCode(51), 'As');
@@ -101,7 +128,7 @@ await test('uses only the authenticated hero private fact to recover a folded ha
     ...clubRow,
     summary: null,
     players: [{ userId, seat: 0 }, { userId: villainId, seat: 1 }],
-    actions: [{ userId, street: 'preflop', action: 'raise', amount: 2.5 }],
+    actions: [{ userId, street: 'preflop', action: 'raise', amount: 2.5, potBefore: 1.5, sizingPct: 66 }],
     hole_cards: {},
     created_at: '2026-08-30T12:00:00.000Z',
   };
@@ -139,7 +166,7 @@ await test('uses only the authenticated hero private fact to recover a folded ha
             question_id: 'private-fact-q', game_id: 'cash-rfi', question_data: {
               source: 'DETERMINISTIC_SOLVER',
               solverProvenance,
-              scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+              scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
               options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
             },
           }], error: null }),
@@ -168,6 +195,9 @@ await test('uses the shared training question and persists an exact audit decisi
       heroHand: 'AKo',
       nodeType: 'preflop_open',
       boardCards: [],
+      villainPosition: 'BB',
+      potSize: 1.5,
+      actionHistory: [],
     },
     options: [{ id: 'raise', text: 'Raise' }, { id: 'fold', text: 'Fold' }],
     correctAnswer: 'raise',
@@ -207,6 +237,86 @@ await test('uses the shared training question and persists an exact audit decisi
   assert.equal(upserts[0].classification, 'best');
 });
 
+await test('maps a recorder-backed pot-sized bet to one exact solver action', async () => {
+  const summary = JSON.parse(clubRow.summary);
+  summary.bigBlind = 1;
+  summary.streets.preflop = { actions: [] };
+  summary.streets.flop = {
+    cards: ['Qs', '7h', '2c'],
+    actions: [{ playerId: userId, type: 'bet', amount: 2, potBefore: 6 }],
+  };
+  const hand = normalizeClubArenaHand({ ...clubRow, big_blind: 1, summary: JSON.stringify(summary) }, userId);
+  const question = {
+    source: 'DETERMINISTIC_SOLVER',
+    solverProvenance,
+    heroCards: ['As', 'Kh'],
+    scenario: {
+      street: 'flop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo',
+      nodeType: 'hero_bets_or_checks', boardCards: ['Qs', '7h', '2c'], potSize: 6,
+      actionHistory: [],
+    },
+    options: [{ id: 'b33', text: 'Bet 33%' }, { id: 'b75', text: 'Bet 75%' }],
+    correctAnswer: 'b33',
+    gtoFrequencies: { b33: 100, b75: 0 },
+  };
+  const result = await auditParsedHands(auditDb(question), userId, [hand], { reconcileExisting: false });
+  const flop = result.analyses[0].decisions.find(decision => decision.street === 'flop');
+  assert.equal(flop.solverVerified, true);
+  assert.equal(flop.playerAction, 'bet');
+  assert.equal(flop.classification, 'best');
+});
+
+await test('grades an explicitly sized raise only with the exact pot, villain, and action line', async () => {
+  const summary = JSON.parse(clubRow.summary);
+  summary.bigBlind = 1;
+  summary.streets.preflop = { actions: [] };
+  summary.streets.flop = {
+    cards: ['Qs', '7h', '2c'],
+    actions: [
+      { playerId: villainId, type: 'bet', amount: 3, potBefore: 6 },
+      { playerId: userId, type: 'raise', amount: 9, potBefore: 9, sizingPct: 75 },
+    ],
+  };
+  const hand = normalizeClubArenaHand({ ...clubRow, big_blind: 1, summary: JSON.stringify(summary) }, userId);
+  const baseQuestion = {
+    source: 'DETERMINISTIC_SOLVER',
+    solverProvenance,
+    heroCards: ['As', 'Kh'],
+    scenario: {
+      street: 'flop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo',
+      nodeType: 'hero_faces_bet', boardCards: ['Qs', '7h', '2c'], potSize: 9,
+      actionHistory: [{ street: 'flop', position: 'BB', action: 'bet_50' }],
+    },
+    options: [{ id: 'raise_50', text: 'Raise 50%' }, { id: 'raise_75', text: 'Raise 75%' }],
+    correctAnswer: 'raise_75',
+    gtoFrequencies: { raise_50: 0, raise_75: 100 },
+  };
+  const exact = await auditParsedHands(auditDb(baseQuestion), userId, [hand], { reconcileExisting: false });
+  assert.equal(exact.solverVerified, 1);
+
+  for (const scenarioOverride of [
+    { potSize: 8 },
+    { potSize: undefined },
+    { villainPosition: 'SB' },
+    { actionHistory: undefined },
+    { actionHistory: [{ street: 'flop', position: 'BB', action: 'bet_33' }] },
+  ]) {
+    const mismatch = {
+      ...baseQuestion,
+      scenario: { ...baseQuestion.scenario, ...scenarioOverride },
+    };
+    const result = await auditParsedHands(auditDb(mismatch), userId, [hand], { reconcileExisting: false });
+    assert.equal(result.solverVerified, 0);
+    assert.equal(result.unpriced, 1, 'the mismatched flop decision remains unpriced');
+  }
+
+  const noSizingSummary = structuredClone(summary);
+  delete noSizingSummary.streets.flop.actions[1].sizingPct;
+  const ambiguousHand = normalizeClubArenaHand({ ...clubRow, big_blind: 1, summary: JSON.stringify(noSizingSummary) }, userId);
+  const ambiguous = await auditParsedHands(auditDb(baseQuestion), userId, [ambiguousHand], { reconcileExisting: false });
+  assert.equal(ambiguous.solverVerified, 0, 'raise amount alone cannot prove a solver percentage');
+});
+
 await test('bounds and parallelizes independent solver-cache lookups', async () => {
   const pairs = [
     { cards: [51, 48], hand: 'AA' },
@@ -223,7 +333,7 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
     question_data: {
       source: 'DETERMINISTIC_SOLVER',
       solverProvenance,
-      scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: hand, nodeType: 'preflop_open', boardCards: [] },
+      scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: hand, nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
       options: [{ id: 'raise', text: 'Raise' }],
       correctAnswer: 'raise',
       gtoFrequencies: { raise: 100 },
@@ -273,7 +383,7 @@ await test('batches atomic replacement at the database hand-id ceiling', async (
   const question = {
     source: 'DETERMINISTIC_SOLVER',
     solverProvenance,
-    scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+    scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
     options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
   };
   const db = {
@@ -320,7 +430,7 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
   const question = {
     source: 'DETERMINISTIC_SOLVER',
     solverProvenance,
-    scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+    scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
     options: [{ id: 'raise', text: 'Raise' }, { id: 'fold', text: 'Fold' }],
     correctAnswer: 'raise',
     gtoFrequencies: { raise: 100, fold: 0 },
@@ -406,7 +516,7 @@ await test('skips a complete, current Club Arena audit without repeating solver 
             data: [{
               hand_external_id: 'club-arena:hand-42',
               solver_verified: true,
-              solver_source: 'DETERMINISTIC_SOLVER|hand-audit-v2',
+              solver_source: 'DETERMINISTIC_SOLVER|hand-audit-v3',
               classification: 'best',
               updated_at: '2026-08-29T12:00:00.000Z',
             }],
@@ -574,7 +684,7 @@ await test('pages beyond 100 reconciled Club Arena hands and reaches a complete 
             data: ids.map(handExternalId => ({
               hand_external_id: handExternalId,
               solver_verified: true,
-              solver_source: 'DETERMINISTIC_SOLVER|hand-audit-v2',
+              solver_source: 'DETERMINISTIC_SOLVER|hand-audit-v3',
               classification: 'best',
               updated_at: '2026-08-30T12:00:00.000Z',
             })),
@@ -608,7 +718,9 @@ await test('pages beyond 100 reconciled Club Arena hands and reaches a complete 
   assert.equal(second.truncated, false);
   assert.equal(second.complete, true);
   assert.equal(second.continuation, null);
-  assert.equal(handQueries, 3);
+  // Both recorder membership shapes share one boundary and are queried on
+  // every page; this prevents a sparse legacy stream from being skipped.
+  assert.equal(handQueries, 4);
 });
 
 await test('retries a stale unpriced Club Arena audit after the solver refresh window', async () => {
@@ -616,7 +728,7 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
   const question = {
     source: 'DETERMINISTIC_SOLVER',
     solverProvenance,
-    scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+    scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
     options: [{ id: 'raise', text: 'Raise' }],
     correctAnswer: 'raise',
     gtoFrequencies: { raise: 100 },
@@ -707,6 +819,7 @@ await test('persists authoritative Club Arena cards, board, payouts, rake, and p
     tableId: 'table-1',
     clubId: 'club-1',
     variant: 'nlhe',
+    format: 'cash',
     bettingStructure: 'no-limit',
     smallBlind: 0.5,
     bigBlind: 1,
@@ -723,7 +836,10 @@ await test('persists authoritative Club Arena cards, board, payouts, rake, and p
   recorder.recordHoleCards(userId, [51, 46]);
   recorder.recordHoleCards(villainId, [0, 5]);
   recorder.recordCommunityCards('flop', [48, 44, 40]);
-  recorder.recordAction('preflop', { playerId: userId, type: 'raise', amount: 2.5 });
+  recorder.recordAction('preflop', {
+    playerId: userId, type: 'raise', amount: 2.5,
+    potBefore: 1.5, currentBetBefore: 1, raiseTo: 2.5, sizingPct: 75,
+  });
   recorder.recordShowdown({ shownCards: [{ playerId: userId, cards: [51, 46] }] });
   recorder.recordShowdown({
     winners: [{ playerId: userId, amount: 5 }],
@@ -744,6 +860,70 @@ await test('persists authoritative Club Arena cards, board, payouts, rake, and p
   const persistedSummary = JSON.parse(inserts[0].summary);
   assert.deepEqual(persistedSummary.players[0].holeCards, [51, 46]);
   assert.equal(persistedSummary.winners[0].playerId, userId);
+  assert.equal(persistedSummary.format, 'cash');
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(persistedSummary.streets.preflop.actions[0])
+      .filter(([key]) => ['potBefore', 'currentBetBefore', 'raiseTo', 'sizingPct'].includes(key))),
+    { potBefore: 1.5, currentBetBefore: 1, raiseTo: 2.5, sizingPct: 75 },
+  );
+});
+
+await test('carries a real engine raise size through recorder persistence into exact audit grading', async () => {
+  const inserts = [];
+  const supabase = {
+    from: () => ({ insert: async row => { inserts.push(row); return { error: null }; } }),
+  };
+  const recorder = new HandHistoryRecorder({
+    supabase, tableId: 'engine-table', clubId: 'club-1', variant: 'nlhe', format: 'cash',
+    bettingStructure: 'no-limit', smallBlind: 1, bigBlind: 2,
+  });
+  recorder.beginHand({
+    handId: 'engine-sized-raise', handNumber: 2, buttonSeat: 0,
+    players: [
+      { id: userId, displayName: 'Hero', seatIndex: 0, stack: 100 },
+      { id: villainId, displayName: 'Villain', seatIndex: 1, stack: 100 },
+    ],
+  });
+  recorder.recordHoleCards(userId, [51, 46]);
+  recorder.recordHoleCards(villainId, [0, 5]);
+
+  const game = new GameStateMachine({ variant: GAME_VARIANT.HOLDEM, smallBlind: 1, bigBlind: 2 });
+  game.on('action_processed', data => recorder.recordAction(data.street, {
+    playerId: data.playerId,
+    type: data.action.type,
+    amount: data.action.amount,
+    potBefore: data.potBefore,
+    currentBetBefore: data.currentBetBefore,
+    raiseTo: data.currentBet,
+    sizingPct: data.sizingPct,
+  }));
+  game.startHand([
+    { id: userId, stack: 100, seatIndex: 0 },
+    { id: villainId, stack: 100, seatIndex: 1 },
+  ]);
+  assert.equal(game.processAction(userId, { type: 'raise', amount: 8 }).success, true);
+  await recorder.completeHand([
+    { playerId: userId, stack: 93 },
+    { playerId: villainId, stack: 98 },
+  ]);
+
+  const persisted = JSON.parse(inserts[0].summary);
+  const recordedRaise = persisted.streets.preflop.actions[0];
+  assert.equal(recordedRaise.sizingPct, 150);
+  assert.equal(recordedRaise.potBefore, 3);
+  const hand = normalizeClubArenaHand(inserts[0], userId);
+  const question = {
+    source: 'DETERMINISTIC_SOLVER', solverProvenance,
+    scenario: {
+      street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo',
+      nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [],
+    },
+    options: [{ id: 'r100', text: 'Raise 100%' }, { id: 'r150', text: 'Raise 150%' }],
+    correctAnswer: 'r150', gtoFrequencies: { r100: 0, r150: 100 },
+  };
+  const audit = await auditParsedHands(auditDb(question), userId, [hand], { reconcileExisting: false });
+  assert.equal(audit.solverVerified, 1);
+  assert.equal(audit.analyses[0].decisions[0].classification, 'best');
 });
 
 await test('makes each Personal Assistant tool card one full-card button', () => {

@@ -291,6 +291,11 @@ class GameStateMachine {
       throw new Error('No active betting round');
     }
 
+    const potBefore = this.potCalculator.totalPot;
+    const currentBetBefore = this.bettingRound.currentBet;
+    const actingRoundPlayer = this.bettingRound.players
+      .find(roundPlayer => String(roundPlayer.id) === String(playerId));
+    const playerInvestedBefore = Number(actingRoundPlayer?.invested) || 0;
     const result = this.bettingRound.processAction(playerId, action);
 
     if (!result.success) {
@@ -321,11 +326,28 @@ class GameStateMachine {
       potAfter: this.potCalculator.totalPot,
     });
 
+    let sizingPct = null;
+    if (result.action.type === ACTION_TYPES.BET && potBefore > 0) {
+      sizingPct = (result.action.amount / potBefore) * 100;
+    } else if (result.action.type === ACTION_TYPES.RAISE) {
+      // Solver raise sizes are the raise increment beyond a call, divided by
+      // the pot after calling. This remains correct after a prior hero wager
+      // because BettingRound tracks the actor's street investment exactly.
+      const toCallBefore = Math.max(0, currentBetBefore - playerInvestedBefore);
+      const potAfterCall = potBefore + toCallBefore;
+      const raiseIncrement = result.action.amount - toCallBefore;
+      if (potAfterCall > 0 && raiseIncrement > 0) sizingPct = (raiseIncrement / potAfterCall) * 100;
+    }
+
     this.emit('action_processed', {
       playerId,
       action: result.action,
       street: this.phase,
       potTotal: this.potCalculator.totalPot,
+      potBefore,
+      currentBetBefore,
+      playerInvestedBefore,
+      sizingPct,
       currentBet: this.bettingRound.currentBet,
     });
 

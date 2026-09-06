@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import test from 'node:test';
-import { normalizePersonalAssistantCopy } from '../src/lib/personal-assistant/copyPolicy.mjs';
+import {
+  applyPersonalAssistantCopyPolicy,
+  isPersonalAssistantVerbatimElement,
+  normalizePersonalAssistantCopy,
+} from '../src/lib/personal-assistant/copyPolicy.mjs';
 
 const routeFiles = [
   'pages/hub/personal-assistant/index.js',
@@ -37,6 +41,68 @@ test('Personal Assistant copy normalizer replaces separators and empty-value mar
   assert.equal(normalizePersonalAssistantCopy("player's hand can't load"), "Player's Hand Can't Load");
 });
 
+test('copy policy preserves technical content while normalizing ordinary UI copy', () => {
+  const ordinaryParent = { tagName: 'P', matches: () => false, closest: () => null };
+  const codeParent = { tagName: 'CODE', matches: selector => selector.includes('code'), closest: () => null };
+  const verbatimParent = { tagName: 'SPAN', matches: () => false, closest: () => ({ dataset: { paVerbatim: 'true' } }) };
+  const ordinaryText = { nodeType: 3, nodeValue: 'open saved hand', parentElement: ordinaryParent };
+  const codeText = { nodeType: 3, nodeValue: '{"heroPosition":"small blind"}', parentElement: codeParent };
+  const urlText = { nodeType: 3, nodeValue: 'https://smarter.poker/sandbox/aBc123?x=foo', parentElement: verbatimParent };
+  const normalInput = {
+    matches: () => false,
+    closest: () => null,
+    attributes: { placeholder: 'search saved hands' },
+    getAttribute(name) { return this.attributes[name] || null; },
+    setAttribute(name, value) { this.attributes[name] = value; },
+  };
+  const technicalInput = {
+    matches: selector => selector.includes('[data-pa-verbatim]'),
+    closest: () => null,
+    attributes: { placeholder: '{"heroPosition":"small blind"}' },
+    getAttribute(name) { return this.attributes[name] || null; },
+    setAttribute(name, value) { this.attributes[name] = value; },
+  };
+  const nodes = [ordinaryText, codeText, urlText];
+  const root = {
+    nodeType: 1,
+    matches: () => false,
+    closest: () => null,
+    getAttribute: () => null,
+    querySelectorAll: () => [normalInput, technicalInput],
+  };
+  const previous = {
+    document: globalThis.document,
+    Node: globalThis.Node,
+    NodeFilter: globalThis.NodeFilter,
+  };
+
+  try {
+    globalThis.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1, DOCUMENT_FRAGMENT_NODE: 11 };
+    globalThis.NodeFilter = { SHOW_TEXT: 4 };
+    globalThis.document = {
+      createTreeWalker: () => {
+        let index = 0;
+        return { nextNode: () => nodes[index++] || null };
+      },
+    };
+    applyPersonalAssistantCopyPolicy(root);
+  } finally {
+    for (const [name, value] of Object.entries(previous)) {
+      if (value === undefined) delete globalThis[name];
+      else globalThis[name] = value;
+    }
+  }
+
+  assert.equal(ordinaryText.nodeValue, 'Open Saved Hand');
+  assert.equal(codeText.nodeValue, '{"heroPosition":"small blind"}');
+  assert.equal(urlText.nodeValue, 'https://smarter.poker/sandbox/aBc123?x=foo');
+  assert.equal(normalInput.attributes.placeholder, 'Search Saved Hands');
+  assert.equal(technicalInput.attributes.placeholder, '{"heroPosition":"small blind"}');
+  assert.equal(isPersonalAssistantVerbatimElement(codeParent), true);
+  assert.equal(isPersonalAssistantVerbatimElement(verbatimParent), true);
+  assert.equal(isPersonalAssistantVerbatimElement(ordinaryParent), false);
+});
+
 test('every Personal Assistant route installs the shared copy policy', async () => {
   for (const file of routeFiles) {
     const source = await readFile(file, 'utf8');
@@ -52,11 +118,21 @@ test('copy policy covers body text, placeholders, dynamic mutations, and accessi
   assert.match(source, /characterData: true/);
   assert.match(source, /attributeFilter: \['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'\]/);
   assert.match(source, /text-transform: capitalize !important/);
+  assert.match(source, /:is\(pre, code, \[data-pa-verbatim\]\)/);
+  assert.match(source, /text-transform: none !important/);
   const policy = await readFile('src/lib/personal-assistant/copyPolicy.mjs', 'utf8');
   assert.match(policy, /normalizePersonalAssistantCopy/);
   assert.match(policy, /titleCasePersonalAssistantCopy/);
   assert.match(policy, /normalizePersonalAssistantCopy\(root\.nodeValue/);
   assert.match(policy, /normalizePersonalAssistantCopy\(textNode\.nodeValue/);
+  assert.match(policy, /isPersonalAssistantVerbatimElement/);
+});
+
+test('shared signed-out state links to the canonical login route', async () => {
+  const source = await readFile('src/components/sandbox/paKit.jsx', 'utf8');
+  assert.match(source, /href = '\/auth\/login'/);
+  assert.doesNotMatch(source, /href = '\/auth'/);
+  await readFile('pages/auth/login.js', 'utf8');
 });
 
 test('owned Personal Assistant surfaces contain no banned em dash in SSR or exported copy', async () => {

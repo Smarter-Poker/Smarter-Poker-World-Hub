@@ -11,6 +11,19 @@ import {
 
 const canonicalQuestion = {
   source: 'DETERMINISTIC_SOLVER',
+  solverProvenance: {
+    verified: true,
+    scenarioHash: 'sandbox-completion-fixture',
+    solverVersion: 'fixture-1',
+    solverBinaryChecksum: 'a'.repeat(64),
+    machineId: 'M1',
+    pipelineCommit: 'b'.repeat(40),
+    manifestVersion: 'fixture-1',
+    manifestChecksum: 'c'.repeat(64),
+    sourceArtifactChecksum: 'd'.repeat(64),
+    qualityStatus: 'validated',
+    auditedAt: '2026-08-31T12:00:00.000Z',
+  },
   heroHand: 'T9s',
   scenario: {
     heroHand: 'T9s',
@@ -39,6 +52,7 @@ test('canonical board parsing accepts strings and card arrays', () => {
 
 test('only verified non-simulated training questions are solver evidence', () => {
   assert.equal(isCanonicalTrainingQuestion(canonicalQuestion), true);
+  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, solverProvenance: undefined }), false);
   assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, source: 'GROK' }), false);
   assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, dataQuality: 'SIMULATED' }), false);
 });
@@ -141,5 +155,6 @@ test('wiring guards cover cached persistence, canonical source priority, and liv
   assert.match(hooks, /resultsBySession/);
   assert.match(stats, /dataSources:[\s\S]+live_count/);
   assert.match(hub, /payload\?\.hand \|\| payload\?\.question/);
-  assert.match(hub, /raw\.heroCards\.slice\(0, 2\)\.join\(''\)/);
+  assert.match(hub, /resolveDailyHeroHand\(raw, scenario\)/);
+  assert.doesNotMatch(hub, /raw\.heroCards\.slice\(0, 2\)\.join\(''\)/);
 });

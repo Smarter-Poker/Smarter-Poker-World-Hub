@@ -64,6 +64,16 @@ test('user content, social posts, and comments are protected from title casing',
   assert.match(policySource, /text-transform: none !important/);
 });
 
+test('technical and explicitly verbatim content are protected in both DOM normalization and CSS', () => {
+  const preserve = policySource.slice(policySource.indexOf('const PRESERVE_SELECTOR'), policySource.indexOf('].join('));
+  assert.match(preserve, /'code'/);
+  assert.match(preserve, /'pre'/);
+  assert.match(preserve, /'\[data-pa-verbatim\]'/);
+  assert.match(policySource, /input, textarea, select, code, pre, kbd, samp/);
+  assert.match(policySource, /\[data-pa-verbatim\]/);
+  assert.match(policySource, /:is\(input, textarea\)\[data-pa-verbatim\]::placeholder/);
+});
+
 test('the preserve list names user content by marker, never by a bare element (2026-09-04: `article` took the Personal Assistant system cards out of title case)', () => {
   const preserve = policySource.slice(policySource.indexOf('const PRESERVE_SELECTOR'), policySource.indexOf('].join('));
   assert.doesNotMatch(preserve, /'article'/, 'a bare element name exempts every <article> in every world');

@@ -799,13 +799,14 @@ async function getSolverTrainingEvidence(db, userId) {
 
   const auditResult = await fetchPagedRows((from, to) => db
       .from('hand_audit_decisions')
-      .select('game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
+      .select('hand_external_id, game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
       .eq('user_id', userId)
       .eq('solver_verified', true)
-      // Matcher v2 proves street order, concrete postflop combos, variant,
+      // Matcher v3 additionally proves normalized pot, sizing, villain and
+      // prior-action context alongside street order, concrete postflop combos,
       // stack/table identity and action sizing. Legacy rows are deliberately
       // excluded until the idempotent Club Arena sync re-audits their hands.
-      .like('solver_source', '%|hand-audit-v2')
+      .like('solver_source', '%|hand-audit-v3')
       .lte('audited_at', evidenceSnapshot)
       .order('audited_at', { ascending: false })
       .order('id', { ascending: false })
@@ -1125,8 +1126,15 @@ export default async function handler(req, res) {
       // Append solver-derived leaks. Their occurrence count is the number of
       // actual mistaken decisions, their denominator is the situation group's
       // sample count, and BB loss is zero unless exact per-action EVs exist.
+      const solverSourceHands = new Map();
       for (const solverLeak of solverEvidence.leaks) {
-        const { _sample_count, _mistake_count, _ev_measured_count, ...persistableSolverLeak } = solverLeak;
+        const {
+          _sample_count,
+          _mistake_count,
+          _ev_measured_count,
+          _mistaken_hand_external_ids,
+          ...persistableSolverLeak
+        } = solverLeak;
         const existingLeak = existingLeakMap[solverLeak.leak_type];
         const currentValue = solverLeak.current_frequency;
         const optimalRange = [0, solverLeak.optimal_frequency];
@@ -1143,6 +1151,7 @@ export default async function handler(req, res) {
           totalSamples: _sample_count,
           mistakeCount: _mistake_count,
         });
+        solverSourceHands.set(solverLeak.leak_type, _mistaken_hand_external_ids || []);
       }
 
       // Save detected leaks and link hand examples
@@ -1204,7 +1213,10 @@ export default async function handler(req, res) {
         });
 
         // Link hand examples (single hand-history fetch, batch save)
-        const leaksWithIds = detectedLeaks.filter(l => l.id);
+        const leaksWithIds = detectedLeaks.filter(l => l.id).map(leak => ({
+          ...leak,
+          sourceHandExternalIds: solverSourceHands.get(leak.leak_type) || null,
+        }));
         let handExamplesSync = { persisted: true, linked: 0 };
         if (!identitiesComplete) {
           handExamplesSync = { persisted: false, linked: 0, reason: 'identity_read_failed' };
@@ -1500,42 +1512,71 @@ function toCardCodes(cards) {
 
 /**
  * Link relevant hand examples to all detected leaks.
- * Fetches recent hands ONCE, matches each leak's pattern against them, and
- * saves all examples in a single batch upsert.
+ * Fetches exact audited source hands for solver groups and bounded recent
+ * candidates for statistical leaks, then saves one idempotent batch.
  * `leaksWithIds` entries need: id, leak_type, avg_ev_loss_bb.
  */
-async function linkHandExamples(userId, leaksWithIds) {
+export async function linkHandExamples(userId, leaksWithIds, db = getSupabase()) {
   try {
-    // Get recent hands that might show these leaks (single fetch for all leaks)
-    const { data: hands, error: handsErr } = await getSupabase()
-      .from('hand_history')
-      // user_id → players containment (there is no user_id column).
-      // 2026-08-16: hole_cards is a MAP keyed by user id (showdown-revealed
-      // holdings only), not a bare array · see the engine writer in
-      // services/supabase/handHistory.ts. Select it raw and pick the hero's
-      // entry below; aliasing the whole map to `hero_cards` would have put
-      // every player's shown cards into the example.
-      .select('id, actions, players, summary, hole_cards, board, button_seat, pot_size, created_at')
-      .contains('players', JSON.stringify([{ userId }]))
-      .order('created_at', { ascending: false })
-      .limit(100);
+    const exactExternalIds = [...new Set(leaksWithIds
+      .flatMap(leak => Array.isArray(leak.sourceHandExternalIds) ? leak.sourceHandExternalIds : [])
+      .filter(id => String(id).startsWith('club-arena:'))
+      .map(id => String(id).slice('club-arena:'.length))
+      .filter(Boolean))];
+    const needsStatisticalCandidates = leaksWithIds.some(leak => leak.sourceHandExternalIds === null);
+    const handsById = new Map();
+    const readErrors = [];
+    const select = 'id, actions, players, summary, hole_cards, board, button_seat, pot_size, created_at';
+    const readOwnedHands = async (membershipKey, ids = null) => {
+      let query = db.from('hand_history')
+        .select(select)
+        // Both writer generations are owner-scoped here. Never fetch an exact
+        // audit id first and check ownership in application code afterward.
+        .contains('players', JSON.stringify([{ [membershipKey]: userId }]));
+      if (ids) query = query.in('id', ids);
+      const result = await query.order('created_at', { ascending: false }).limit(ids ? ids.length : 100);
+      if (result.error) readErrors.push(result.error);
+      for (const hand of result.data || []) handsById.set(String(hand.id), hand);
+    };
 
-    if (handsErr) {
-      console.warn('[LeakDetect] hand_history fetch for examples failed:', handsErr.message);
+    if (needsStatisticalCandidates) {
+      await Promise.all([readOwnedHands('userId'), readOwnedHands('id')]);
+    }
+    for (let index = 0; index < exactExternalIds.length; index += 100) {
+      const batch = exactExternalIds.slice(index, index + 100);
+      await Promise.all([readOwnedHands('userId', batch), readOwnedHands('id', batch)]);
+    }
+
+    if (readErrors.length > 0) {
+      console.warn('[LeakDetect] hand_history fetch for examples failed:', readErrors[0].message);
       return { persisted: false, linked: 0, reason: 'hand_history_read_failed' };
     }
+    const hands = [...handsById.values()]
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))
+        || String(b.id).localeCompare(String(a.id)));
     if (!hands || hands.length === 0) return { persisted: true, linked: 0 };
 
     const examples = [];
 
     for (const leak of leaksWithIds) {
+      const exactSourceIds = Array.isArray(leak.sourceHandExternalIds)
+        ? new Set(leak.sourceHandExternalIds
+          .filter(id => String(id).startsWith('club-arena:'))
+          .map(id => String(id).slice('club-arena:'.length)))
+        : null;
       let count = 0;
       for (const rawHand of hands) {
+        if (exactSourceIds && !exactSourceIds.has(String(rawHand.id))) continue;
         const hand = normalizeAuditHand(rawHand, userId);
         const summary = parseHandSummary(rawHand.summary);
         const summaryHero = (summary?.players || []).find(p =>
           String(p?.id ?? p?.userId ?? p?.playerId) === String(userId));
-        const leakMatch = checkHandForLeak(hand, leak.leak_type);
+        // Solver groups already identify the exact mistaken decision rows.
+        // Heuristic pattern matching here could attach an unrelated hand, so
+        // only legacy statistical leaks use checkHandForLeak.
+        const leakMatch = exactSourceIds
+          ? { action: 'solver-graded mistake', street: leak.leak_category || null }
+          : checkHandForLeak(hand, leak.leak_type);
         if (!leakMatch) continue;
 
         // COLUMN FIX 2026-08-15: this insert has NEVER succeeded. It wrote
@@ -1583,7 +1624,7 @@ async function linkHandExamples(userId, leaksWithIds) {
 
     // Single batch upsert; duplicates are ignored via the unique index on
     // (leak_id, hand_history_id)
-    const { error: upsertErr } = await getSupabase()
+    const { error: upsertErr } = await db
       .from('leak_hand_examples')
       .upsert(examples, { onConflict: 'leak_id,hand_history_id', ignoreDuplicates: true });
 
@@ -1592,7 +1633,7 @@ async function linkHandExamples(userId, leaksWithIds) {
       console.warn('[LeakDetect] Batch example upsert failed, falling back:', upsertErr.message);
       let linked = 0;
       for (const example of examples) {
-        const { data: existing } = await getSupabase()
+        const { data: existing } = await db
           .from('leak_hand_examples')
           .select('id')
           .eq('leak_id', example.leak_id)
@@ -1602,7 +1643,7 @@ async function linkHandExamples(userId, leaksWithIds) {
         if (existing) {
           linked += 1;
         } else {
-          const { error: insErr } = await getSupabase().from('leak_hand_examples').insert(example);
+          const { error: insErr } = await db.from('leak_hand_examples').insert(example);
           if (insErr) {
             console.warn('[LeakDetect] Failed to link hand example:', insErr.message);
             return { persisted: false, linked, reason: 'example_write_failed' };
