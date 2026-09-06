@@ -5,6 +5,7 @@ dotenv.config({ path: '.env.local' });
 
 export default defineConfig({
   testDir: './e2e',
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -31,6 +32,7 @@ export default defineConfig({
     {
       name: 'chromium',
       testMatch: /0.*\.spec\.ts/,
+      testIgnore: /022-world-menu-visual\.spec\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
@@ -40,6 +42,7 @@ export default defineConfig({
     {
       name: 'mobile-chrome',
       testMatch: /0.*\.spec\.ts/,
+      testIgnore: /022-world-menu-visual\.spec\.ts$/,
       use: {
         ...devices['Pixel 5'],
         storageState: 'playwright/.auth/user.json',
@@ -91,6 +94,32 @@ export default defineConfig({
       name: 'footer-webkit',
       testMatch: /global-footer-visual\.spec\.ts$/,
       use: { ...devices['iPhone 13'] },
+    },
+    {
+      name: 'world-menu-visual',
+      testMatch: /022-world-menu-visual\.spec\.ts$/,
+      fullyParallel: false,
+      workers: 1,
+      retries: 0,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+        locale: 'en-US',
+        timezoneId: 'UTC',
+      },
+    },
+    {
+      name: 'world-menu-webkit',
+      testMatch: /023-world-menu-webkit\.spec\.ts$/,
+      fullyParallel: false,
+      workers: 1,
+      retries: 0,
+      use: {
+        ...devices['iPhone 13'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+      },
     },
     {
       // Mobile performance budget for the ten rollout pages
