@@ -30,6 +30,12 @@ test('closed report-game shells never pollute discovery history', async () => {
   assert.doesNotMatch(reportGameModal, /useModalHistory\(true, onClose\)/);
 });
 
+test('the lobby LCP image is not delayed by a cosmetic opacity reveal', async () => {
+  const lobbyCanvas = await source('src/components/poker-near-me/lobby/LobbyCanvas.jsx');
+  assert.match(lobbyCanvas, /transition: 'none'/);
+  assert.doesNotMatch(lobbyCanvas, /transition: ['"]opacity/);
+});
+
 test('restored routes remain explicit to assistive technology', async () => {
   const [page, world] = await Promise.all([
     source('pages/hub/poker-near-me/[pnmTab].js'),
