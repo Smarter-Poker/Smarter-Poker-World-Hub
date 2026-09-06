@@ -35,6 +35,15 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { serviceClient, deterministicOptionOrder, optionOrderSeed } from './tournament-lifecycle';
+import {
+    isTriviaPvpReleased,
+    rejectUnavailableTriviaPvp,
+} from '../../../src/lib/trivia/pvpReleaseControl.mjs';
+import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import { validateTriviaSessionAnswerReceipt } from '../../../src/lib/trivia/awardResponsePolicy.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -66,6 +75,29 @@ export default async function handler(req, res) {
         }
         const idx = Number.isInteger(displayIndex) ? displayIndex : -1;
 
+        // Resolve the server-owned mode before the first mutation. Competitive
+        // controls apply to the generic grading route as well as their named
+        // entry routes; a guessed session id cannot bypass containment.
+        const { data: session, error: sessionErr } = await sb
+            .from('trivia_sessions')
+            .select('id, user_id, mode, status, question_ids, permutations, created_at')
+            .eq('id', sessionId)
+            .maybeSingle();
+        if (sessionErr) {
+            console.warn('[trivia session-answer] session load failed:', sessionErr.message || sessionErr);
+            return res.status(500).json({ success: false, error: 'session_load_failed' });
+        }
+        if (!session) return res.status(404).json({ success: false, error: 'session_not_found' });
+        if (session.user_id !== userId) {
+            return res.status(403).json({ success: false, error: 'not_your_session' });
+        }
+        if (session.mode === 'pvp' && !isTriviaPvpReleased(process.env)) {
+            return rejectUnavailableTriviaPvp(res);
+        }
+        if (session.mode === 'tournaments' && !areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
+        }
+
         // --- RECORD (atomic, first answer wins) ---------------------------
         const { data: recorded, error: recordErr } = await sb.rpc('record_trivia_session_answer', {
             p_session_id: sessionId,
@@ -77,33 +109,38 @@ export default async function handler(req, res) {
             console.warn('[trivia session-answer] record failed:', recordErr.message || recordErr);
             return res.status(500).json({ success: false, error: 'record_failed' });
         }
-        if (!recorded || recorded.success === false) {
+        if (recorded?.success === false) {
             const code = recorded?.error === 'session_not_found' ? 404
                 : recorded?.error === 'session_closed' ? 409
                 : recorded?.error === 'session_expired' ? 410
                 : 400;
             return res.status(code).json({ success: false, error: recorded?.error || 'record_rejected' });
         }
-        const storedDisplayIndex = Number.isInteger(recorded?.stored?.d) ? recorded.stored.d : -1;
 
         // --- GRADE THE STORED ANSWER (key never leaves the server raw) ----
-        const [{ data: session, error: sessErr }, { data: keyRow, error: keyErr }] = await Promise.all([
-            sb.from('trivia_sessions')
-                .select('permutations')
-                .eq('id', sessionId)
-                .maybeSingle(),
-            sb.from('trivia_questions')
-                .select('id, correct_index, options, explanation, engine_metadata')
-                .eq('id', questionId)
-                .maybeSingle(),
-        ]);
-        if (sessErr || keyErr || !keyRow) {
+        const { data: keyRow, error: keyErr } = await sb
+            .from('trivia_questions')
+            .select('id, correct_index, options, explanation, engine_metadata')
+            .eq('id', questionId)
+            .maybeSingle();
+        if (keyErr || !keyRow) {
             console.warn('[trivia session-answer] grade lookup failed:',
-                (sessErr || keyErr)?.message || sessErr || keyErr || 'question_missing');
+                keyErr?.message || keyErr || 'question_missing');
             return res.status(500).json({ success: false, error: 'grading_failed' });
         }
 
         const optionCount = Array.isArray(keyRow.options) ? keyRow.options.length : 0;
+        const answerReceipt = validateTriviaSessionAnswerReceipt(recorded, {
+            requestedDisplayIndex: idx,
+            optionCount,
+            questionCount: Array.isArray(session.question_ids) ? session.question_ids.length : 0,
+            sessionCreatedAt: session.created_at,
+        });
+        if (!answerReceipt.ok) {
+            console.warn('[trivia session-answer] malformed persistence receipt:', answerReceipt.error);
+            return res.status(502).json({ success: false, error: 'invalid_answer_persistence_receipt' });
+        }
+        const storedDisplayIndex = answerReceipt.storedDisplayIndex;
         const stored = (session?.permutations && typeof session.permutations === 'object')
             ? session.permutations
             : {};
@@ -139,7 +176,7 @@ export default async function handler(req, res) {
             wasCorrect,
             correctDisplayIndex,
             storedDisplayIndex,
-            fresh: recorded.fresh !== false,
+            fresh: answerReceipt.fresh,
             explanation: typeof keyRow.explanation === 'string' ? keyRow.explanation : null,
             solverMetadata,
         });

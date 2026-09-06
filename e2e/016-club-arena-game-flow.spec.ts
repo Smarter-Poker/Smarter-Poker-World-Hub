@@ -106,15 +106,21 @@ test.describe('Club Arena — Engine Mutation Endpoints Fail Closed', () => {
 });
 
 test.describe('Club Arena — Tournament Registration Auth Wall', () => {
-  test('POST /api/trivia/tournament-enter rejects no-auth', async ({ request }) => {
-    // This is the post-Phase-37 atomic-entry endpoint. It MUST require auth
-    // and MUST verify against the user's diamond balance. The page-level
-    // entry path can no longer write to trivia_tournament_entries directly.
+  test('POST /api/trivia/tournament-enter fails closed while tournaments are contained', async ({ request }) => {
+    // Phase 1 checks the private release control before allocating a database
+    // client or evaluating a player. With the default-off deployment, even an
+    // unauthenticated caller receives the same non-cacheable maintenance wall.
     const response = await request.post('/api/trivia/tournament-enter', {
       data: { tournament_id: '00000000-0000-0000-0000-000000000000' },
       failOnStatusCode: false
     });
-    expect(response.status(), 'should be 401 not-authenticated').toBe(401);
+    expect(response.status(), 'default-off tournament entry should be unavailable').toBe(503);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: false,
+      error: 'tournaments_temporarily_unavailable'
+    });
+    expect(response.headers()['cache-control']).toContain('no-store');
   });
 
   test('POST /api/club-arena/shop-items rejects no-auth', async ({ request }) => {

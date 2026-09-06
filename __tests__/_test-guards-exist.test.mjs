@@ -170,6 +170,9 @@ import './training-phase6-release-harness.test.mjs';
 import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
+import './trivia-pvp-containment.test.mjs';
+import './trivia-tournament-containment.test.mjs';
+import './trivia-ui-foundation.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';
@@ -254,6 +257,12 @@ const REQUIRED_TEST_FILES = [
     // recover leaked locks and you stomp live ones, refuse to stomp live ones
     // and a leaked lock strands the app forever. The guard pins BOTH halves.
     '__tests__/scroll-lock.test.mjs',
+    // The Trivia lobby catalogue is the shared contract for all fifteen
+    // destinations, the retained Daily/Quick Stakes artwork, and the two
+    // competitive modes that must fail closed until their audits land.
+    '__tests__/trivia-ui-foundation.test.mjs',
+    '__tests__/trivia-pvp-containment.test.mjs',
+    '__tests__/trivia-tournament-containment.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image

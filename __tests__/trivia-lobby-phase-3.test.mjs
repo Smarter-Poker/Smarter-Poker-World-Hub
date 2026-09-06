@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { TRIVIA_MIDDLE_MODES } from '../src/config/triviaModeRegistry.mjs';
 
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
@@ -41,8 +42,7 @@ test('mode filters support roving keyboard navigation and keep the active choice
 });
 
 test('phase five keeps every game definition, artwork, and destination intact', () => {
-    const cards = LOBBY.slice(LOBBY.indexOf('const MODE_CARDS = ['), LOBBY.indexOf('const MODE_FILTERS = ['));
-    assert.equal((cards.match(/image: '\/images\/trivia\/modes-v2\//g) || []).length, 13);
-    assert.equal((cards.match(/\n\s*id: '/g) || []).length, 13);
+    assert.equal(TRIVIA_MIDDLE_MODES.length, 13);
+    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-v2/')));
     assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { TRIVIA_MIDDLE_MODES } from '../src/config/triviaModeRegistry.mjs';
 
 const ROOT = process.cwd();
 const read = file => readFileSync(join(ROOT, file), 'utf8');
@@ -20,7 +21,7 @@ const verifiedScores = read('supabase/migrations/20260827191000_trivia_verified_
 const replaySettlement = read('supabase/migrations/20260827231000_trivia_phase6_settlement_replay.sql');
 
 test('lobby exposes every public game and uses recoverable, prefetched routes', () => {
-    assert.match(lobby, /id: 'time-attack'/);
+    assert.ok(TRIVIA_MIDDLE_MODES.some(mode => mode.id === 'time-attack'));
     assert.ok(existsSync(join(ROOT, 'public/images/trivia/modes-v2/time-attack.webp')));
     assert.match(lobby, /await router\.push\(getModeRoute\(modeId\)\)/);
     assert.match(lobby, /setRouteError\('That game could not be opened/);
@@ -73,7 +74,9 @@ test('session start owns canonical run sizes and atomic entry charging', () => {
 
 test('settlement persists a verified score atomically and closes wheel forgery paths', () => {
     assert.match(submit, /rpc\('award_trivia_run_v2'/);
-    assert.match(submit, /scoreId: award\?\.score_id/);
+    assert.match(submit, /validateTriviaAwardResponse\(award/);
+    assert.match(submit, /scoreId: receipt\.scoreId/);
+    assert.match(submit, /invalid_award_receipt/);
     assert.match(replaySettlement, /COALESCE\(p_answered,0\)>=p_total/);
     assert.match(verifiedScores, /REVOKE INSERT, UPDATE, DELETE ON public\.trivia_scores FROM anon, authenticated/);
     assert.match(verifiedScores, /server_verified IS NOT TRUE OR v_score\.session_id IS NULL/);
