@@ -90,6 +90,8 @@ test('marketplace visual language contains no legacy green or purple accent toke
   ]) {
     assert.doesNotMatch(scopedSource, new RegExp(token.replace(/[()]/g, '\\$&')));
   }
+  assert.match(WALLET, /const MARKETPLACE_ANALYTICS_COLORS/);
+  assert.doesNotMatch(WALLET, /hsl\(\$\{/);
 });
 
 test('dual payment language remains visible after the realism pass', () => {

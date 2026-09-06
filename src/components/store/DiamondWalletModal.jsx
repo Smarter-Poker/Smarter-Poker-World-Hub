@@ -96,6 +96,7 @@ import {
   clearCommerceRequestId,
   getOrCreateCommerceRequestId,
 } from '../../lib/store/checkoutIntentStore';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 // #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
 import styles from './DiamondWalletModal.module.css';
 
@@ -103,6 +104,16 @@ import styles from './DiamondWalletModal.module.css';
 // Transaction type config: Lucide icons, labels, colors (R8-I10)
 // ─────────────────────────────────────────────────────────────────────────────
 const ICON_SIZE = 16;
+const MARKETPLACE_ANALYTICS_COLORS = [
+  '#00d4ff',
+  '#58d9ff',
+  '#3b82f6',
+  '#8aa8b8',
+  '#f59e0b',
+  '#ef4444',
+  '#c4d3da',
+  '#06b6d4',
+];
 const TX_TYPES = {
   // Purchases & Spending
   purchase: { Icon: ShoppingCart, label: 'Purchase', color: '#ef4444' },
@@ -242,7 +253,7 @@ function parseRateLimitError(errorText) {
 // ── Title Case & Clean Description helpers ──
 const toTitleCase = (str) => {
   if (!str) return '';
-  return str
+  return marketplaceCopy(str
     .toLowerCase()
     .split(' ')
     .map((word) => {
@@ -256,7 +267,7 @@ const toTitleCase = (str) => {
       }
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
-    .join(' ');
+    .join(' '));
 };
 
 const formatDescription = (desc) => {
@@ -460,7 +471,7 @@ const DonutChart = ({ data }) => {
                 whiteSpace: 'nowrap',
               }}
             >
-              {d.label}
+              {marketplaceCopy(d.label)}
             </span>
             <span
               style={{
@@ -1297,12 +1308,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       if (data.success) {
         clearCommerceRequestId(transferIntent);
         const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
-        const successMsg = `Sent ${amount} diamonds to ${recipient.display_name || recipient.username}${tierLabel}!`;
+        const successMsg = `Sent ${amount} Diamonds To ${recipient.display_name || recipient.username}${tierLabel}!`;
         setTransferSuccess(successMsg);
         // P2-1: StoreToast for premium notification
         showStoreToast(
           'success',
-          successMsg +
+          'Diamond Transfer Completed.' +
             (data.dailyRemaining != null ? ` ${data.dailyRemaining} diamonds remaining today.` : '')
         );
         setTransferAmount('');
@@ -1675,20 +1686,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     };
 
     // R8-I6: Donut chart data: category breakdown with colors
-    const categoryColors = [
-      '#00d4ff',
-      '#58d9ff',
-      '#f59e0b',
-      '#8aa8b8',
-      '#ef4444',
-      '#c4d3da',
-      '#3b82f6',
-      '#06b6d4',
-    ];
     const donutData = topSources.map(([name, amount], i) => ({
       label: name,
       value: amount,
-      color: categoryColors[i % categoryColors.length],
+      color: MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
     }));
 
     return {
@@ -1743,6 +1744,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           flexDirection: 'column',
           animation: 'walletFadeScale 0.3s cubic-bezier(0.16,1,0.3,1)',
           fontFamily: "'Inter', -apple-system, sans-serif",
+          textTransform: 'capitalize',
           overflow: 'hidden',
         }}
       >
@@ -2064,7 +2066,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                           style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }}
                         />
                       )}
-                      <span style={{ color: '#ffffff', fontSize: 13, fontWeight: 600, flex: 1 }}>
+                      <span
+                        data-user-content="true"
+                        data-preserve-case="true"
+                        style={{ color: '#ffffff', fontSize: 13, fontWeight: 600, flex: 1 }}
+                      >
                         {transferRecipient.display_name || transferRecipient.username}
                       </span>
                       {transferRecipient.is_vip && <Crown size={12} color="#eab308" />}
@@ -2119,7 +2125,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 cursor: 'pointer',
                               }}
                             >
-                              {r.display_name || r.username}
+                              <span data-user-content="true" data-preserve-case="true">
+                                {r.display_name || r.username}
+                              </span>
                               {r.lastAmount != null && (
                                 <span style={{ color: 'rgba(0,212,255,0.6)', fontSize: 10 }}>
                                   {r.lastAmount}
@@ -2289,11 +2297,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     </div>
                                   )}
                                   <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 13 }}>
+                                    <div
+                                      data-user-content="true"
+                                      data-preserve-case="true"
+                                      style={{ fontWeight: 600, fontSize: 13 }}
+                                    >
                                       {f.display_name || f.username}
                                     </div>
                                     {f.display_name && f.username && (
                                       <div
+                                        data-user-content="true"
+                                        data-preserve-case="true"
                                         style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}
                                       >
                                         @{f.username}
@@ -2436,7 +2450,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   }}
                 >
                   {cooldownSeconds > 0 && <Clock size={12} color="#f87171" />}
-                  {cooldownSeconds > 0 ? `Cooldown: ${cooldownSeconds}s Remaining` : transferError}
+                  {cooldownSeconds > 0
+                    ? `Cooldown: ${cooldownSeconds}s Remaining`
+                    : marketplaceCopy(transferError)}
                 </div>
               )}
               {transferSuccess && (
@@ -2450,7 +2466,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     borderRadius: 6,
                   }}
                 >
-                  {transferSuccess}
+                  <span data-user-content="true" data-preserve-case="true">
+                    {transferSuccess}
+                  </span>
                 </div>
               )}
               {/* #5: Confirmation dialog */}
@@ -2479,7 +2497,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     Send{' '}
                     <strong style={{ color: '#00d4ff' }}>{confirmTransfer.amount} Diamonds</strong>{' '}
                     To{' '}
-                    <strong style={{ color: '#ffffff' }}>
+                    <strong
+                      data-user-content="true"
+                      data-preserve-case="true"
+                      style={{ color: '#ffffff' }}
+                    >
                       {confirmTransfer.recipient?.display_name ||
                         confirmTransfer.recipient?.username}
                     </strong>
@@ -2647,7 +2669,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         width: `${(amount / stats.topSources[0][1]) * 100}%`,
                         height: '100%',
                         borderRadius: 2,
-                        background: `hsl(${200 + i * 30}, 70%, 55%)`,
+                        background:
+                          MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
                       }}
                     />
                   </div>
@@ -2659,7 +2682,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       minWidth: 80,
                     }}
                   >
-                    {name}: {amount.toLocaleString()}
+                    {marketplaceCopy(name)}: {amount.toLocaleString()}
                   </span>
                 </div>
               ))}
@@ -2906,11 +2929,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             width: `${(amount / stats.topRecipients[0][1]) * 100}%`,
                             height: '100%',
                             borderRadius: 2,
-                            background: `hsl(${25 + i * 15}, 80%, 55%)`,
+                            background:
+                              MARKETPLACE_ANALYTICS_COLORS[
+                                (i + 4) % MARKETPLACE_ANALYTICS_COLORS.length
+                              ],
                           }}
                         />
                       </div>
                       <span
+                        data-user-content="true"
+                        data-preserve-case="true"
                         style={{
                           fontSize: 9,
                           color: 'rgba(255,255,255,0.45)',
@@ -2966,7 +2994,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               >
                 <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>&#X26A0;&#XFE0F;</div>
                 <div style={{ fontSize: 13, marginBottom: 14, color: 'rgba(255, 255, 255, 0.45)' }}>
-                  {error}
+                  {marketplaceCopy(error)}
                 </div>
                 <button
                   onClick={() => fetchTransactions()}

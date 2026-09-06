@@ -119,6 +119,85 @@ test('the transfer API requires the durable key and resolves terminal replays be
   assert.doesNotMatch(api, /TRANSFER_IDEMPOTENCY_WINDOW_MS/);
 });
 
+test('normal completion and concurrent recovery reconcile each side effect exactly once', async () => {
+  const displayStart = api.indexOf('function transferDisplayName(value)');
+  const idStart = api.indexOf('function transferSideEffectId(transferId, kind)', displayStart);
+  const classifyStart = api.indexOf('function classifyTransferDebit', idStart);
+  const reconcileStart = api.indexOf('async function reconcileCompletedTransferSideEffects');
+  const reconcileEnd = api.indexOf('\n\n// Phase 1:', reconcileStart);
+  assert.ok(
+    displayStart > -1 && idStart > displayStart && classifyStart > idStart
+      && reconcileStart > classifyStart && reconcileEnd > reconcileStart,
+    'deterministic side-effect helpers must remain independently testable'
+  );
+
+  const factory = new Function(
+    'createHash',
+    'getSupabase',
+    `${api.slice(displayStart, idStart)}\n${api.slice(idStart, classifyStart)}\n`
+      + `${api.slice(reconcileStart, reconcileEnd)}\n`
+      + 'return { reconcileCompletedTransferSideEffects, transferSideEffectId };'
+  );
+  const { reconcileCompletedTransferSideEffects, transferSideEffectId } = factory(
+    createHash,
+    () => { throw new Error('the test must inject its database client'); }
+  );
+
+  const rows = new Map();
+  const writes = [];
+  const database = {
+    from(table) {
+      return {
+        async upsert(row, options) {
+          await Promise.resolve();
+          writes.push({ table, row, options });
+          const key = `${table}:${row.id}`;
+          if (!rows.has(key)) rows.set(key, row);
+          return { error: null };
+        },
+      };
+    },
+  };
+  const effect = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    recipientId: '00000000-0000-4000-8000-000000000002',
+    amount: 125,
+    clientIp: '203.0.113.9',
+    senderName: 'VIP Pro',
+    transferId: '0123456789abcdef0123456789abcdef',
+  };
+
+  await Promise.all([
+    reconcileCompletedTransferSideEffects(effect, database),
+    reconcileCompletedTransferSideEffects(effect, database),
+    reconcileCompletedTransferSideEffects(effect, database),
+  ]);
+
+  assert.equal(rows.size, 2, 'one IP audit and one notification must survive concurrent replay');
+  assert.equal(writes.length, 6, 'all three paths may attempt both conflict-safe writes');
+  assert.ok(writes.every(write => write.options?.onConflict === 'id'));
+  assert.ok(writes.every(write => write.options?.ignoreDuplicates === true));
+  assert.equal(
+    transferSideEffectId(effect.transferId, 'ip-audit'),
+    transferSideEffectId(effect.transferId, 'ip-audit')
+  );
+  assert.notEqual(
+    transferSideEffectId(effect.transferId, 'ip-audit'),
+    transferSideEffectId(effect.transferId, 'notification')
+  );
+  const notification = rows.get(
+    `notifications:${transferSideEffectId(effect.transferId, 'notification')}`
+  );
+  assert.equal(notification.data.transfer_id, effect.transferId);
+  assert.match(notification.message, /^VIP Pro Sent You 125 Diamonds$/);
+
+  assert.equal(
+    [...api.matchAll(/await reconcileCompletedTransferSideEffects\(\{/g)].length,
+    3,
+    'receipt replay, orphan recovery, and normal completion must share one reconciler'
+  );
+});
+
 test('the wallet retains ambiguous intents and clears only authoritative terminal results', () => {
   const start = wallet.indexOf('const handleTransfer = useCallback');
   const end = wallet.indexOf('\n  useEffect(() => {', start);

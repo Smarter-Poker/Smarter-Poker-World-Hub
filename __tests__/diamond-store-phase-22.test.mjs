@@ -182,12 +182,37 @@ test('remote Marketplace inventory and account telemetry cannot reintroduce bann
     'src/components/store/RewardTelemetryConsole.jsx',
     'src/components/store/ShoppingCart.jsx',
     'src/components/store/StoreCards.js',
+    'src/components/store/StoreToast.jsx',
+    'src/components/store/DiamondWalletModal.jsx',
     'src/components/diamond-store/CheckoutStatusPanel.jsx',
   ].map(read));
 
   boundaries.forEach(source => {
     assert.match(source, /marketplaceCopy/);
   });
+});
+
+test('wallet and toast dynamic prose enforce the copy contract at their render boundaries', async () => {
+  const [wallet, toast] = await Promise.all([
+    read('src/components/store/DiamondWalletModal.jsx'),
+    read('src/components/store/StoreToast.jsx'),
+  ]);
+
+  assert.match(wallet, /textTransform:\s*'capitalize'/);
+  assert.match(wallet, /marketplaceCopy\(transferError\)/);
+  assert.match(wallet, /marketplaceCopy\(error\)/);
+  assert.ok(
+    (wallet.match(/data-user-content="true"/g) || []).length >= 7,
+    'every wallet identity surface must keep its authored capitalization'
+  );
+  assert.match(
+    wallet,
+    /data-user-content="true"[\s\S]*?data-preserve-case="true"[\s\S]*?>\s*@\{f\.username\}/,
+    'the secondary friend handle must bypass title-case presentation'
+  );
+  assert.doesNotMatch(wallet, /marketplaceCopy\([^)]*(?:display_name|username)/);
+  assert.match(toast, /const copyMessage = marketplaceCopy\(message\)/);
+  assert.match(toast, /message:\s*copyMessage/);
 });
 
 test('private VIP reads reject anonymous requests before database initialization', async () => {
