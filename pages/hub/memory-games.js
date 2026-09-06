@@ -44,7 +44,6 @@ import toast from '../../src/stores/toastStore';
 // Mobile phase 0a / 0c foundation
 import HubPageShell from '../../src/components/ui/HubPageShell';
 import PullToRefresh from '../../src/components/ui/PullToRefresh';
-import ResponsiveTable from '../../src/components/ui/ResponsiveTable';
 import { useLoadFailsafe, useInitialLoadRef } from '../../src/hooks/useLoadFailsafe';
 import { useModalHistory } from '../../src/hooks/useModalHistory';
 import { useHaptics } from '../../src/hooks/useHaptics';
@@ -53,18 +52,16 @@ import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
+const ResponsiveTable = dynamic(() => import('../../src/components/ui/ResponsiveTable'), { ssr: false });
 import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DIAMOND ENGINE - Import Supabase-powered version
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
-import leaderboardService from '../../src/services/LeaderboardService';
 const GameCostPopup = dynamic(() => import('../../src/components/gates/GameCostPopup'), { ssr: false });
 import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult } from '../../src/games/ELOService';
-import gameSessionService from '../../src/services/GameSessionService';
-import achievementService from '../../src/services/AchievementService';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 // busEmit not needed at page level - DiamondEngine auto-emits, useTrainingBus has own import
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
@@ -78,6 +75,12 @@ const JarvisExplanationDialog = dynamic(() => import('../../src/components/memor
 const OutOfDiamondsModal = dynamic(() => import('../../src/components/gates/OutOfDiamondsModal'), { ssr: false });
 const ScenarioFilterPanel = lazyScreen(() => import('../../src/games/ScenarioFilterPanel'), 260);
 const ComboPopup = dynamic(() => import('../../src/components/memory-games/modals/ComboPopup'), { ssr: false });
+
+// Reporting workflows are requested only after a scored session or when the
+// leaderboard opens, so they stay out of the initial mobile route bundle.
+const getLeaderboardService = () => import('../../src/services/LeaderboardService').then((module) => module.default);
+const getGameSessionService = () => import('../../src/services/GameSessionService').then((module) => module.default);
+const getAchievementService = () => import('../../src/services/AchievementService').then((module) => module.default);
 
 const SpotTrainerGame = lazyScreen(() => import('../../src/games/SpotTrainerGame'), 420);
 const TournamentModeGame = lazyScreen(() => import('../../src/games/TournamentModeGame'), 420);
@@ -902,7 +905,7 @@ export default function MemoryGamesPage() {
 
             // 1. Update leaderboard (only if passed)
             if (passed) {
-                leaderboardService.updateLeaderboard(
+                getLeaderboardService().then((leaderboardService) => leaderboardService.updateLeaderboard(
                     user.id,
                     gameMode,
                     currentLevel,
@@ -910,7 +913,7 @@ export default function MemoryGamesPage() {
                     result.score, // accuracy
                     timeTaken,
                     null // sessionId
-                ).then(res => {
+                )).then(res => {
                 }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
             }
 
@@ -949,7 +952,7 @@ export default function MemoryGamesPage() {
             const newGamesPlayed = gamesPlayed + 1;
 
             // 5. Record game session for analytics
-            gameSessionService.recordSession(user.id, {
+            getGameSessionService().then((gameSessionService) => gameSessionService.recordSession(user.id, {
                 gameMode,
                 level: currentLevel,
                 scenarioId: currentScenario?.id || currentScenario?.title,
@@ -959,7 +962,7 @@ export default function MemoryGamesPage() {
                 diamondsSpent: isVIP || currentLevel <= 3 ? 0 : GAME_COST,
                 diamondsEarned: 0,
                 completed: true
-            }).then(sessionResult => {
+            })).then(sessionResult => {
                 if (sessionResult?.success) loadMemoryDashboard(true);
             }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
@@ -968,7 +971,7 @@ export default function MemoryGamesPage() {
                 ...(memoryDashboard?.per_mode_best || []).map(modeRow => modeRow.game_mode).filter(Boolean),
                 gameMode,
             ]));
-            achievementService.checkAndUnlock(user.id, {
+            getAchievementService().then((achievementService) => achievementService.checkAndUnlock(user.id, {
                 gamesPlayed: newGamesPlayed,
                 accuracy: result.score,
                 timeTaken,
@@ -978,7 +981,7 @@ export default function MemoryGamesPage() {
                 aiScenariosCompleted: useAIGeneration ? 1 : 0,
                 currentStreak: consecutivePasses,
                 modesPlayed,
-            }).then(unlocked => {
+            })).then(unlocked => {
                 if (unlocked.length > 0) {
                 }
             }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
@@ -1374,6 +1377,7 @@ export default function MemoryGamesPage() {
     const loadLeaderboard = useCallback(async () => {
         setLeaderboardLoading(true);
         try {
+            const leaderboardService = await getLeaderboardService();
             const result = await leaderboardService.getLeaderboard(leaderboardMode, null, 50);
             if (result.success) {
                 setLeaderboardData(result.leaderboard);

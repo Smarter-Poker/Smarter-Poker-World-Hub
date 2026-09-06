@@ -247,7 +247,7 @@ const WORLDS: WorldCase[] = [
     primary: items([
       ['/hub/poker-near-me/lobby', 'Nearby'],
       ['/hub/poker-near-me/venues', 'Venues'],
-      ['/hub/poker-near-me/events', 'Events'],
+      ['/hub/poker-near-me/series', 'Events'],
       ['/hub/poker-near-me/live-games', 'Games'],
       ['/hub/poker-near-me/map', 'Map'],
       ['/hub/poker-near-me/saved', 'Saved'],
@@ -583,27 +583,24 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
       await expect(dialog).toBeVisible();
       await reelsOverlay.evaluate((element: HTMLElement) => element.click());
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(0);
-      await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(1);
-      await expect(dialog).toHaveCount(1);
-      await expect(dialog).toBeHidden();
-
-      await page.locator('[data-world-menu-trigger="approved-header"]').click();
-      await expect(dialog).toBeVisible();
+      const approvedTrigger = page.locator('[data-world-menu-trigger="approved-header"]');
+      await expect(approvedTrigger).toHaveCount(1);
+      await expect(approvedTrigger).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
       await page.keyboard.press('?');
       await expect(page.locator('[data-reels-shortcuts-overlay="true"]')).toHaveCount(0);
       await page.waitForTimeout(5_500);
-      await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(1);
-      await expect(dialog).toBeVisible();
+      await expect(approvedTrigger).toHaveCount(1);
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
       await page.keyboard.press('Escape');
-      await expect(dialog).toBeHidden();
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
 
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(1, {
         timeout: 7_000,
       });
       await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(0);
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeFocused();
-      await expect(dialog).toHaveCount(1);
-      await expect(dialog).toBeHidden();
+      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
     }
   });
 }

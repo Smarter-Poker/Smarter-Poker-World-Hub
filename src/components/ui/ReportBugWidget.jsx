@@ -1,5 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { getAccessToken } from '../../lib/authUtils';
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])';
 
 // ─── Priority config ───────────────────────────────────────────────────────
 const PRIORITIES = [
@@ -25,7 +28,7 @@ const CATEGORIES = [
 // Global counter for unique per-instance button IDs (SSR-safe — only incremented on client)
 let _widgetCounter = 0;
 
-export default function ReportBugWidget({ contextPath, theme = 'dark', instanceId }) {
+export default function ReportBugWidget({ contextPath, theme = 'dark', instanceId, onOpenChange }) {
     const isLight = theme === 'light';
     // Unique button ID per instance — eliminates duplicate DOM ID when
     // both HamburgerMenu and GlobalReportBugButton render on the same page.
@@ -44,6 +47,19 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
     const [description, setDescription] = useState('');
     const [submitting, setSubmitting]   = useState(false);
     const [result, setResult]           = useState(null); // { success, ticketId } | null
+    const [portalReady, setPortalReady] = useState(false);
+    const triggerRef = useRef(null);
+    const dialogRef = useRef(null);
+    const closeRef = useRef(null);
+
+    useEffect(() => setPortalReady(true), []);
+
+    useEffect(() => {
+        onOpenChange?.(open);
+        return () => {
+            if (open) onOpenChange?.(false);
+        };
+    }, [open, onOpenChange]);
 
     const currentPage = contextPath || (typeof window !== 'undefined' ? window.location.pathname : 'unknown');
 
@@ -56,9 +72,50 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
     }, []);
 
     const handleClose = useCallback(() => {
+        onOpenChange?.(false);
         setOpen(false);
         setTimeout(reset, 300);
-    }, [reset]);
+    }, [onOpenChange, reset]);
+
+    useEffect(() => {
+        if (!open || typeof document === 'undefined') return undefined;
+        const previousFocus = document.activeElement;
+        const focusTimer = window.setTimeout(() => closeRef.current?.focus(), 0);
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                handleClose();
+                return;
+            }
+            if (event.key !== 'Tab' || !dialogRef.current) return;
+            const controls = Array.from(dialogRef.current.querySelectorAll(FOCUSABLE))
+                .filter((element) => element.offsetParent !== null);
+            if (!controls.length) return;
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown, true);
+        return () => {
+            window.clearTimeout(focusTimer);
+            document.removeEventListener('keydown', onKeyDown, true);
+            // Parent drawer inertness is controlled by a React state update.
+            // Wait through the next commit before returning focus to its trigger.
+            window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
+                    const target = triggerRef.current?.isConnected ? triggerRef.current : previousFocus;
+                    target?.focus?.();
+                });
+            });
+        };
+    }, [open, handleClose]);
 
     // Listen for openBugReport() dispatch — open ONLY if this instance is visible.
     // This correctly skips the hidden widget inside a closed HamburgerMenu drawer.
@@ -117,11 +174,13 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
         <>
             {/* Trigger Button */}
             <button
+                ref={triggerRef}
+                type="button"
                 id={btnId}
                 onClick={() => setOpen(true)}
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    width: '100%', padding: '11px 16px', borderRadius: 10,
+                    width: '100%', minHeight: 44, padding: '11px 16px', borderRadius: 10,
                     background: isLight ? 'transparent' : 'rgba(255,255,255,0.08)',
                     border: isLight ? '1px solid rgba(0,132,255,0.35)' : '1px solid rgba(255,255,255,0.25)',
                     color: isLight ? '#0084FF' : '#e5e7eb',
@@ -147,33 +206,41 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                     }
                 }}
             >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 Report A Bug
             </button>
 
             {/* Modal Overlay */}
-            {open && (
+            {open && portalReady && createPortal((
                 <div
+                    data-world-command-child-overlay="true"
                     onClick={handleClose}
                     style={{
                         position: 'fixed', inset: 0, zIndex: 99999,
                         background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 16, animation: 'rbw-fadeIn 0.15s ease-out',
+                        padding: 'max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))',
+                        animation: 'rbw-fadeIn 0.15s ease-out', overflowY: 'auto',
                     }}
                 >
                     <div
+                        ref={dialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={`${btnId}-title`}
+                        data-world-command-child-dialog="true"
                         onClick={e => e.stopPropagation()}
                         style={{
                             background: 'linear-gradient(160deg, #181c2a 0%, #0d1117 100%)',
                             border: '1px solid rgba(255,255,255,0.2)',
                             borderRadius: 18, padding: 0,
                             maxWidth: 420, width: '100%',
+                            maxHeight: 'calc(100dvh - 32px)',
                             boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
                             animation: 'rbw-slideUp 0.2s ease-out',
-                            overflow: 'hidden',
+                            overflowX: 'hidden', overflowY: 'auto', overscrollBehavior: 'contain',
                         }}
                     >
                         {/* ── Header ── */}
@@ -188,18 +255,21 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                     background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}>
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Report A Bug</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Goes Directly To Support</div>
+                                    <div id={`${btnId}-title`} style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Report A Bug</div>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Goes Directly To Support</div>
                                 </div>
                             </div>
                             <button
+                                ref={closeRef}
+                                type="button"
+                                aria-label="Close Bug Report"
                                 onClick={handleClose}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 22, lineHeight: 1, padding: '4px 6px', borderRadius: 6, fontFamily: 'inherit' }}
+                                style={{ width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 22, lineHeight: 1, padding: 0, borderRadius: 6, fontFamily: 'inherit' }}
                                 onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
                                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
                             >×</button>
@@ -223,9 +293,10 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                     </div>
                                 )}
                                 <button
+                                    type="button"
                                     onClick={handleClose}
                                     style={{
-                                        marginTop: 24, width: '100%', padding: '11px',
+                                        marginTop: 24, width: '100%', minHeight: 44, padding: '11px',
                                         borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.08)',
                                         color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                     }}
@@ -241,9 +312,10 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                     Please Email <a href="mailto:support@smarter.poker" style={{ color: '#3b82f6' }}>Support@Smarter.Poker</a> Directly.
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => setResult(null)}
                                     style={{
-                                        marginTop: 20, padding: '10px 24px',
+                                        marginTop: 20, minHeight: 44, padding: '10px 24px',
                                         borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)',
                                         color: '#e5e7eb', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                     }}
@@ -257,7 +329,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
 
                                 {/* Category Quick-Picks */}
                                 <div style={{ marginBottom: 16 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
                                         Category
                                     </div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -267,7 +339,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                                 type="button"
                                                 onClick={() => handleCategoryPick(cat)}
                                                 style={{
-                                                    padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                                                    minHeight: 44, padding: '8px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                                                     cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                                                     background: category === cat ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
                                                     border: category === cat ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.08)',
@@ -282,7 +354,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
 
                                 {/* Subject */}
                                 <div style={{ marginBottom: 14 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
                                         Subject <span style={{ color: '#00d4ff' }}>*</span>
                                     </div>
                                     <input
@@ -292,8 +364,9 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                         placeholder="Brief Description Of The Issue..."
                                         maxLength={120}
                                         required
+                                        aria-label="Bug Report Subject"
                                         style={{
-                                            width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 14,
+                                            width: '100%', minHeight: 44, padding: '10px 12px', borderRadius: 10, fontSize: 16,
                                             background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
                                             color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                                             transition: 'border-color 0.2s',
@@ -305,7 +378,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
 
                                 {/* Priority */}
                                 <div style={{ marginBottom: 14 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
                                         Priority
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
@@ -314,8 +387,9 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                                 key={p.key}
                                                 type="button"
                                                 onClick={() => setPriority(p.key)}
+                                                aria-pressed={priority === p.key}
                                                 style={{
-                                                    flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 13,
+                                                    flex: 1, minHeight: 44, padding: '8px 6px', borderRadius: 10, fontSize: 13,
                                                     fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                                     transition: 'all 0.15s', textAlign: 'center',
                                                     background: priority === p.key ? p.bg : 'rgba(255,255,255,0.04)',
@@ -327,14 +401,14 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                             </button>
                                         ))}
                                     </div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5 }}>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 5 }}>
                                         {selectedPriority.desc}
                                     </div>
                                 </div>
 
                                 {/* Description */}
                                 <div style={{ marginBottom: 16 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
                                         What Happened? <span style={{ color: '#00d4ff' }}>*</span>
                                     </div>
                                     <textarea
@@ -344,8 +418,9 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                         required
                                         rows={4}
                                         maxLength={2000}
+                                        aria-label="What Happened"
                                         style={{
-                                            width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13,
+                                            width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 16,
                                             background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
                                             color: '#fff', outline: 'none', fontFamily: 'inherit', resize: 'vertical',
                                             lineHeight: 1.6, boxSizing: 'border-box', minHeight: 96,
@@ -354,7 +429,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                         onFocus={e => e.target.style.borderColor = 'rgba(0,212,255,0.5)'}
                                         onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                                     />
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'right', marginTop: 3 }}>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'right', marginTop: 3 }}>
                                         {description.length}/2000
                                     </div>
                                 </div>
@@ -365,10 +440,10 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                     padding: '8px 12px', borderRadius: 8,
                                     background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)',
                                 }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                                     </svg>
-                                    <span style={{ fontSize: 11, color: 'rgba(0,212,255,0.7)' }}>
+                                    <span style={{ fontSize: 12, color: 'rgba(0,212,255,0.7)' }}>
                                         Page URL And Device Info Will Be Included Automatically
                                     </span>
                                 </div>
@@ -378,7 +453,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                                     type="submit"
                                     disabled={submitting || !subject.trim() || !description.trim()}
                                     style={{
-                                        width: '100%', padding: '12px',
+                                        width: '100%', minHeight: 44, padding: '12px',
                                         borderRadius: 12, border: 'none',
                                         background: (submitting || !subject.trim() || !description.trim())
                                             ? 'rgba(255,255,255,0.08)'
@@ -404,12 +479,20 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                         )}
                     </div>
                 </div>
-            )}
+            ), document.body)}
 
             <style>{`
                 @keyframes rbw-fadeIn  { from { opacity: 0 } to { opacity: 1 } }
                 @keyframes rbw-slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
                 @keyframes rbw-spin    { to { transform: rotate(360deg) } }
+                @media (prefers-reduced-motion: reduce) {
+                    [data-world-command-child-overlay="true"],
+                    [data-world-command-child-dialog="true"],
+                    [data-world-command-child-dialog="true"] * {
+                        animation: none !important;
+                        transition: none !important;
+                    }
+                }
             `}</style>
         </>
     );

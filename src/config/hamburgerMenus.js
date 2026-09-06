@@ -659,7 +659,7 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.section('Browse'),
             createMenuItem.navigation('Venues', '/hub/poker-near-me/venues'),
-            createMenuItem.navigation('Events', '/hub/poker-near-me/events'),
+            createMenuItem.navigation('Events', '/hub/poker-near-me/series'),
             createMenuItem.navigation('Live Games', '/hub/poker-near-me/live-games'),
             createMenuItem.navigation('Map View', '/hub/poker-near-me/map'),
             createMenuItem.navigation('Saved', '/hub/poker-near-me/saved'),

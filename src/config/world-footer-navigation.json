@@ -216,7 +216,7 @@
       "items": [
         { "href": "/hub/poker-near-me/lobby", "label": "Nearby", "title": "Poker Near Me Lobby", "icon": "radar" },
         { "href": "/hub/poker-near-me/venues", "label": "Venues", "title": "Poker Venues", "icon": "map" },
-        { "href": "/hub/poker-near-me/events", "label": "Events", "title": "Nearby Poker Events", "icon": "calendar" },
+        { "href": "/hub/poker-near-me/series", "label": "Events", "title": "Nearby Poker Events", "icon": "calendar" },
         { "href": "/hub/poker-near-me/live-games", "label": "Games", "title": "Live Games", "icon": "cards" },
         { "href": "/hub/poker-near-me/map", "label": "Map", "title": "Map View", "icon": "mapPinned" },
         { "href": "/hub/poker-near-me/saved", "label": "Saved", "title": "Saved Places", "icon": "bookmark" }

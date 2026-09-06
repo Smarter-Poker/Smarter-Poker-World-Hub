@@ -96,10 +96,16 @@ jobs:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
-      # Mobile performance budget (mobile programme item 10): the ten rollout
-      # pages at 375px against scripts/ci/mobile-budget.json. Same server,
+      - name: Verify Phase 3 mobile World menu behavior
+        run: npx playwright test e2e/024-world-menu-mobile-phase3.spec.ts --project=world-menu-phase3-chromium --project=world-menu-phase3-webkit --workers=1
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      # Mobile performance budget: all thirteen non-Social World roots at
+      # 375px against scripts/ci/mobile-budget.json. Same server,
       # same build, so it costs one more minute, not another job.
-      - name: Mobile performance budget (ten rollout pages)
+      - name: Mobile performance budget (thirteen World roots)
         run: npx playwright test e2e/mobile-budget.spec.ts --project=mobile-budget --workers=2
         env:
           CI: true
