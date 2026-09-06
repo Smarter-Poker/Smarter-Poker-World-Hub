@@ -261,6 +261,9 @@ export function BottomSheet({
     const [mounted, setMounted] = useState(false);
     const sheetRef = useRef(null);
     const previouslyFocused = useRef(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
+    const closeSheet = useCallback(() => onCloseRef.current?.(), []);
 
     useEffect(() => { setMounted(true); }, []);
 
@@ -282,7 +285,7 @@ export function BottomSheet({
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation?.();
-                onClose?.();
+                closeSheet();
                 return;
             }
             if (e.key !== 'Tab' || !sheetRef.current) return;
@@ -311,7 +314,7 @@ export function BottomSheet({
             document.body.style.overflow = prevOverflow;
             try { previouslyFocused.current?.focus?.({ preventScroll: true }); } catch (e) { /* node gone */ }
         };
-    }, [open, onClose]);
+    }, [open, closeSheet]);
 
     const motionProps = reduce
         ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
@@ -556,7 +559,6 @@ export function useThrottledRefresh(fn, { enabled = true, minIntervalMs = 60000,
             document.removeEventListener('visibilitychange', onVisible);
             extra.forEach(([name, h]) => window.removeEventListener(name, h));
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [enabled, run, events.join('|')]);
 
     return run;
