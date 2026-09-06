@@ -54,7 +54,11 @@ test('reward detail readouts describe earnings rather than purchase settlement',
   assert.match(storePage, /<PageTransition disableInitialAnimation>/);
   assert.match(detail, /<PageTransition disableInitialAnimation>/);
   assert.match(transition, /disableInitialAnimation = false/);
-  assert.match(transition, /initial=\{disableInitialAnimation \? false : 'initial'\}/);
+  assert.match(
+    transition,
+    /if \(disableInitialAnimation\) \{[\s\S]*?<div className=\{className\}/,
+    'first-frame storefront content must use the static, opacity-safe path',
+  );
 });
 
 test('fulfillment pagination preserves the current queue and uses an in-page operation dialog', async () => {
