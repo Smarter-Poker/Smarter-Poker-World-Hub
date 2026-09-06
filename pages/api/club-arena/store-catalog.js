@@ -63,6 +63,7 @@ const VIP_PLANS = [
         id: 'vip-monthly',
         planKey: 'monthly',
         checkoutPlan: 'vip-monthly',
+        cardCheckoutReady: true,
         name: 'Monthly VIP',
         period: 'Per Month',
         priceUsd: 19.99,
@@ -79,6 +80,7 @@ const VIP_PLANS = [
         id: 'vip-yearly',
         planKey: 'yearly',
         checkoutPlan: 'vip-yearly',
+        cardCheckoutReady: true,
         name: 'Yearly VIP',
         period: 'Per Year',
         priceUsd: 199.99,
@@ -88,12 +90,13 @@ const VIP_PLANS = [
     {
         id: 'vip-lifetime',
         planKey: 'lifetime',
-        /* Card checkout for this one-time term shipped 2026-09-05 (migration
-           20260905180000 + the mode === 'payment' VIP branch in
-           webhooks/stripe.js). `oneTime` tells the client to send checkout
-           type 'vip_lifetime', not 'subscription'. */
+        /* Keep the public catalog aligned with the storefront and server gate.
+           The dormant one-time settlement path remains available for recovery,
+           but new Card checkouts stay paused until the complete refund,
+           dispute, and cross-method provenance lifecycle is published. */
         checkoutPlan: 'vip-lifetime',
         oneTime: true,
+        cardCheckoutReady: false,
         name: 'Lifetime VIP',
         period: 'One Payment',
         priceUsd: 499,
