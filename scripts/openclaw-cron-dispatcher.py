@@ -925,6 +925,18 @@ DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
 WORKERS_PREFERRED = {
     # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
     # REMOVED: These must run locally via Python; workers HTTP routes just report status.
+    #
+    # EXCEPT video-library-reels, restored here 2026-09-06. It was a SCRIPT_JOB
+    # not in this map, so `_should_skip_on_secondary` skipped it on the ONLY
+    # host that fires - the library gained 1,573 videos between 2026-04-22 and
+    # today while the reels feed gained none, and the daily job reported itself
+    # as running the whole time. A 2026-09-04 pass corrected the script's flag
+    # from --sync-captions to --limit 100, which was right and changed nothing,
+    # because the script never executes on that host.
+    #
+    # The workers route now does BOTH halves - caption sync and the bridge -
+    # so routing it here is what makes the fix reachable.
+    '/api/cron/video-library-reels':    '/cron/video-library-reels',
     # ─── 2B.2(c) Batch A+B — lowest-risk: scrapers, content gen, log cleanup ───
     # Each verified to return 200 from openclaw via private net before flip.
     # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
