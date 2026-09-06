@@ -292,17 +292,21 @@ test.describe('10. News Hub — Filters & Layout', () => {
     test.skip(index < 0, 'no source chip reported any articles in this environment');
 
     const rows = page.locator('.news-list-item');
-    const before = await rows.count();
-
-    await chips.nth(index).click();
+    // Source counts hydrate while this test is selecting a chip, so the visual
+    // chip order is not a stable identity. Activate the source by its accessible
+    // name and wait for the server-backed filtered list to settle.
+    const sourceChip = chips.filter({ hasText: source }).first();
+    await sourceChip.click();
+    await expect(sourceChip).toHaveAttribute('aria-pressed', 'true');
 
     await expect(page.getByRole('heading', { name: /Filtered Stories/i }).first()).toBeVisible({
       timeout: 15_000,
     });
     // Every remaining row belongs to the chosen source.
+    await expect(rows.first()).toBeVisible({ timeout: 15_000 });
     await expect(rows.filter({ hasNotText: source })).toHaveCount(0);
     const filtered = await rows.count();
-    expect(filtered).toBeLessThanOrEqual(before);
+    expect(filtered).toBeGreaterThan(0);
 
     const clearChip = page.locator('.source-filters').getByRole('button', { name: /^Clear$/ });
     await expect(clearChip).toBeVisible();
@@ -312,7 +316,8 @@ test.describe('10. News Hub — Filters & Layout', () => {
       timeout: 15_000,
     });
     await expect(clearChip).toHaveCount(0);
-    expect(await rows.count()).toBeGreaterThanOrEqual(filtered);
+    await expect(sourceChip).toHaveAttribute('aria-pressed', 'false');
+    await expect(rows.filter({ hasNotText: source }).first()).toBeVisible({ timeout: 15_000 });
 
     await expectNoCrash(page, crashes);
   });
