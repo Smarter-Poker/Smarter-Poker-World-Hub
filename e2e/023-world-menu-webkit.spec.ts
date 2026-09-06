@@ -48,9 +48,14 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     expect(metrics.minControlHeight).toBeGreaterThanOrEqual(44);
     expect(metrics.bodyOverflow).toBe('hidden');
 
-    const lastAction = drawer.locator('a[href], button:not([disabled])').last();
-    await lastAction.scrollIntoViewIfNeeded();
-    await expect(lastAction).toBeVisible();
+    await expect.poll(() => drawer.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      const actions = element.querySelectorAll('a[href], button:not([disabled])');
+      const lastAction = actions.item(actions.length - 1);
+      if (!lastAction) return false;
+      const box = lastAction.getBoundingClientRect();
+      return box.top >= 0 && box.bottom <= window.innerHeight;
+    })).toBe(true);
 
     await page.keyboard.press('Escape');
     await expect(drawer).toBeHidden();
