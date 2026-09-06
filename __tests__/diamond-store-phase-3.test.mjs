@@ -88,7 +88,7 @@ test('diamond checkout closes the rapid double-tap window and reports progress',
   assert.match(STORE, /if \(processingRef\.current\) return;/);
   assert.match(STORE, /setBusyPackageId\(pkg\.id\);\s*setStoreProcessing\(true\)/);
   assert.match(STORE, /busyPackageId=\{busyPackageId\}/);
-  assert.match(SHOWCASE, /disabled=\{isProcessing\}/);
+  assert.match(SHOWCASE, /disabled=\{isProcessing \|\| catalogState !== 'database'\}/);
   assert.match(SHOWCASE, /aria-busy=\{busyPackageId === pkg\.id\}/);
   assert.match(SHOWCASE, /Opening Checkout\.\.\./);
 });

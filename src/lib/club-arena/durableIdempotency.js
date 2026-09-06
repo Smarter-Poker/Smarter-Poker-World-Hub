@@ -22,6 +22,10 @@
 const { createHash } = require('crypto');
 
 const TTL_SECONDS = 300;
+// fn_idempotency_finish deletes (rather than stores) any response whose status
+// is 500 or greater. Passing this value to the RPC releases a claim without
+// changing the HTTP status that the route sends to the client.
+const RELEASE_SENTINEL_STATUS = 599;
 
 function scopedKey(route, key) {
     return createHash('sha256')
@@ -38,7 +42,7 @@ function scopedKey(route, key) {
  *          already been sent (replayed result, or 409 while the first attempt
  *          is still running).
  */
-async function beginIdempotent(supabase, req, res, route) {
+async function beginIdempotent(supabase, req, res, route, options = {}) {
     const key = req.headers['x-idempotency-key'];
     if (!key || typeof key !== 'string' || key.length < 8) {
         res.status(400).json({ success: false, error: 'X-Idempotency-Key header required' });
@@ -66,12 +70,29 @@ async function beginIdempotent(supabase, req, res, route) {
         const originalJson = res.json.bind(res);
         res.json = (body) => {
             const status = res.statusCode || 200;
+            let shouldCache = true;
+            try {
+                if (typeof options.shouldCacheResponse === 'function') {
+                    shouldCache = options.shouldCacheResponse(status, body) === true;
+                } else if (options.cacheFailures === false) {
+                    shouldCache = status >= 200 && status < 300;
+                }
+            } catch (err) {
+                // A route predicate is response-cache policy, never part of the
+                // financial operation. Release the claim if that policy fails.
+                shouldCache = false;
+                console.warn('[idempotency] cache policy threw:', err?.message || err);
+            }
             // MUST be awaited before the response flushes: the serverless
             // instance is frozen the instant it does, so a fire-and-forget RPC
             // is routinely killed in flight. The row then stays 'processing'
             // until expiry and every retry gets a 409 for the full TTL.
             const done = supabase
-                .rpc('fn_idempotency_finish', { p_key: durableKey, p_status: status, p_body: body })
+                .rpc('fn_idempotency_finish', {
+                    p_key: durableKey,
+                    p_status: shouldCache ? status : RELEASE_SENTINEL_STATUS,
+                    p_body: body,
+                })
                 .then(({ error }) => {
                     if (error) console.warn('[idempotency] finish failed:', error.message);
                 })
@@ -100,4 +121,4 @@ async function beginIdempotent(supabase, req, res, route) {
     return { proceed: false };
 }
 
-module.exports = { beginIdempotent, scopedKey, TTL_SECONDS };
+module.exports = { beginIdempotent, scopedKey, TTL_SECONDS, RELEASE_SENTINEL_STATUS };

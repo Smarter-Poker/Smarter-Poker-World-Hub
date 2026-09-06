@@ -51,6 +51,7 @@ const SECTION_COPY = {
 export default function SmarterStoreShowcase({
   activeTab,
   packages = [],
+  catalogState = 'database',
   isProcessing = false,
   busyPackageId = null,
   onBuy,
@@ -121,6 +122,13 @@ export default function SmarterStoreShowcase({
           <div className={styles.sectionBar}>
             <h2>Choose Your Stack</h2>
             <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
+            <span role="status" aria-live="polite">
+              {catalogState === 'database'
+                ? 'Current Pricing Verified'
+                : catalogState === 'loading'
+                  ? 'Verifying Current Pricing'
+                  : 'Current Pricing Unavailable'}
+            </span>
             <span id="diamond-package-scroll-hint" className={styles.mobileHint}>
               Swipe To Compare Packages Or Use Arrow Keys
             </span>
@@ -136,13 +144,17 @@ export default function SmarterStoreShowcase({
                 <button
                   type="button"
                   onClick={() => onBuy(pkg)}
-                  disabled={isProcessing}
+                  disabled={isProcessing || catalogState !== 'database'}
                   aria-busy={busyPackageId === pkg.id}
                   aria-label={`Buy ${pkg.name}, ${Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
                 >
                   {busyPackageId === pkg.id
                     ? 'Opening...'
-                    : `$${Number(pkg.price || 0).toFixed(2)}`}
+                    : catalogState === 'database'
+                      ? `$${Number(pkg.price || 0).toFixed(2)}`
+                      : catalogState === 'loading'
+                        ? 'Verifying...'
+                        : 'Pricing Unavailable'}
                 </button>
               </article>
             ))}
@@ -176,7 +188,7 @@ export default function SmarterStoreShowcase({
                   <button
                     type="button"
                     onClick={() => onBuy(pkg)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || catalogState !== 'database'}
                     aria-busy={busyPackageId === pkg.id}
                     aria-label={
                       busyPackageId === pkg.id
@@ -184,7 +196,11 @@ export default function SmarterStoreShowcase({
                         : `Buy ${pkg.name}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
                     }
                   >
-                    {busyPackageId === pkg.id ? 'Opening Checkout...' : 'Buy Now'}
+                    {busyPackageId === pkg.id
+                      ? 'Opening Checkout...'
+                      : catalogState === 'database'
+                        ? 'Buy Now'
+                        : 'Pricing Unavailable'}
                   </button>
                 </footer>
               </article>

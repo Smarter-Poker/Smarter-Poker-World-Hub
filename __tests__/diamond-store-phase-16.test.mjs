@@ -160,8 +160,8 @@ test('anonymous financial requests authenticate before payload and idempotency v
 
   const clubAuth = clubPurchase.indexOf('getServerUserWithFallback(req, supabase)');
   assert.ok(clubAuth > -1);
-  assert.ok(clubAuth < clubPurchase.indexOf("const allowed = new Set(['clubId', 'itemId'])"));
-  assert.ok(clubAuth < clubPurchase.indexOf("const { clubId, itemId } = req.body || {}"));
+  assert.ok(clubAuth < clubPurchase.indexOf("const allowed = new Set(['clubId', 'itemId', 'expectedPrice'])"));
+  assert.ok(clubAuth < clubPurchase.indexOf("const { clubId, itemId, expectedPrice } = req.body || {}"));
 });
 
 test('verified Stripe returns expose only the opaque request identity for exact cleanup', async () => {

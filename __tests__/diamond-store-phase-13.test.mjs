@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import {
+  getClubDiamondPurchaseProjection,
+  getClubItemEffectivePrice,
+  normalizeClubCardQuote,
+} from '../src/lib/store/clubCardCheckout.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -67,7 +72,7 @@ test('club item detail closes double-submit windows and persists card intent ser
   assert.match(clubDetail, /if \(processingRef\.current\) return/);
   assert.match(clubDetail, /processingRef\.current = true/);
   assert.match(clubDetail, /processingRef\.current = false/);
-  assert.match(clubDetail, /redemptionIntent: \{ kind: 'club_shop'/);
+  assert.match(clubDetail, /redemptionIntent:\s*\{[\s\S]*?kind: 'club_shop'/);
   assert.doesNotMatch(clubDetail, /smarter_poker_pending_club_detail_card_purchase/);
   assert.match(clubDetail, /Sign In To Buy This Item/);
   assert.match(clubDetail, /Retry Live Inventory/);
@@ -79,10 +84,68 @@ test('club item detail closes double-submit windows and persists card intent ser
   assert.match(clubDetail, /Card Checkout Is Unavailable For This Item Price\./);
   assert.match(clubDetail, /Sign In Again Before Authorizing A Diamond Purchase\./);
   assert.match(clubDetail, /const diamondReviewTriggerRef = useRef\(null\)/);
-  assert.match(clubDetail, /const cardCharge = cardTopUp \? cardTopUp\.price \* cardTopUp\.quantity/);
+  assert.match(clubDetail, /normalizeClubCardQuote\(item\?\.card_quote\)/);
+  assert.match(clubDetail, /expectedPrice: Number\(item\.price\)/);
+  assert.match(clubDetail, /expectedCardChargeCents: cardQuote\.cardChargeCents/);
   assert.match(clubDetail, /Card Checkout Charges/);
-  assert.match(clubDetail, /Leaves <strong>\{cardRemainder\.toLocaleString\(\)\} Diamonds/);
+  assert.match(clubDetail, /diamondPurchaseBalance\.toLocaleString\(\)/);
+  assert.match(clubDetail, /cardPurchaseBalance\.toLocaleString\(\)/);
   assert.match(clubDetail, /noindex/);
+});
+
+test('Club Shop card projections retain the member balance that existed before checkout', () => {
+  const quote = normalizeClubCardQuote({
+    packageId: 'standard',
+    quantity: 6,
+    cardCharge: 150,
+    cardChargeCents: 15000,
+    diamondsPurchased: 15000,
+    diamondPurchaseBalance: 479405,
+    diamondShortfall: 0,
+    cardPurchaseBalance: 494405,
+  });
+
+  assert.deepEqual(quote, {
+    packageId: 'standard',
+    quantity: 6,
+    cardCharge: 150,
+    cardChargeCents: 15000,
+    diamondsPurchased: 15000,
+    diamondPurchaseBalance: 479405,
+    diamondShortfall: 0,
+    cardPurchaseBalance: 494405,
+  });
+  assert.equal(quote?.diamondPurchaseBalance, 479405);
+  assert.equal(quote?.cardPurchaseBalance, 494405);
+  assert.equal(normalizeClubCardQuote(null), null);
+  assert.equal(normalizeClubCardQuote({ ...quote, cardChargeCents: 14999 }), null);
+  assert.equal(normalizeClubCardQuote({ ...quote, cardPurchaseBalance: -500 }), null);
+  assert.deepEqual(getClubDiamondPurchaseProjection(15000, 10000), {
+    itemPrice: 15000,
+    walletBalance: 10000,
+    hasDebt: false,
+    shortfall: 5000,
+    remainingBalance: 0,
+  });
+  assert.equal(getClubDiamondPurchaseProjection(15000, -500)?.hasDebt, true);
+  assert.match(store, /normalizeClubCardQuote\(item\.card_quote\)/);
+  assert.match(store, /expectedPrice: Number\(item\.price\)/);
+  assert.match(store, /expectedCardChargeCents: cardQuote\.cardChargeCents/);
+  assert.match(store, /Diamonds Leave \$\{diamondPurchaseBalance\.toLocaleString\(\)\}/);
+  assert.match(store, /Leaves \$\{cardPurchaseBalance\.toLocaleString\(\)\}/);
+  assert.doesNotMatch(read('src/lib/store/clubCardCheckout.mjs'), /DIAMOND_PACKAGES/);
+});
+
+test('Club Shop sale prices match the atomic price used by checkout and purchase controls', () => {
+  assert.equal(getClubItemEffectivePrice(15000, 9000), 9000);
+  assert.equal(getClubItemEffectivePrice(15000, 0), 0);
+  assert.equal(getClubItemEffectivePrice(15000, null), 15000);
+  assert.equal(getClubItemEffectivePrice(15000, 16000), 15000);
+  assert.match(read('pages/api/club-arena/marketplace-items.js'), /effective_price: effectivePrice/);
+  assert.match(store, /price: effectivePrice/);
+  assert.match(store, /on_sale: i\.on_sale === true \|\| effectivePrice < listPrice/);
+  assert.match(clubDetail, /price: effectivePrice/);
+  assert.match(clubDetail, /Card Checkout Is Paused Until Your Diamond Wallet Returns To Zero Or Above\./);
 });
 
 test('catalog normalization comments describe the deployed defensive contract', () => {

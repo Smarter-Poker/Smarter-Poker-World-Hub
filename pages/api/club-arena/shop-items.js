@@ -17,6 +17,10 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
+import {
+    getMaximumCardFundedClubItemPrice,
+    loadActiveDiamondPackageCatalog,
+} from '../../../src/lib/store/diamondPackageCatalog.mjs';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 // 2026-08-19 (audit pass 4): this route and manage-shop.js are the two admin
@@ -42,6 +46,15 @@ function sb() {
         _sb = createClient(url, key, { auth: { persistSession: false } });
     }
     return _sb;
+}
+
+async function loadMaximumCardFundedPrice() {
+    const { catalog } = await loadActiveDiamondPackageCatalog(sb(), { cacheMs: 0 });
+    const maximum = getMaximumCardFundedClubItemPrice(catalog);
+    if (!Number.isSafeInteger(maximum) || maximum <= 0) {
+        throw new Error('No active Diamond package can fund a Club Shop item');
+    }
+    return maximum;
 }
 
 async function verifyAdmin(token, clubId) {
@@ -87,12 +100,28 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'name required' });
             }
             const trimmedName = String(name).trim().slice(0, 200);
-            const numPrice = Math.floor(Number(price));
-            if (!numPrice || numPrice <= 0) {
+            const numPrice = Number(price);
+            if (!Number.isSafeInteger(numPrice) || numPrice <= 0) {
                 return res.status(400).json({ success: false, error: 'price must be positive integer' });
             }
-            if (numPrice > 1000000000) {
-                return res.status(400).json({ success: false, error: 'price exceeds maximum' });
+            let maximumCardFundedPrice;
+            try {
+                maximumCardFundedPrice = await loadMaximumCardFundedPrice();
+            } catch (catalogError) {
+                console.warn('[shop-items] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+                return res.status(503).json({
+                    success: false,
+                    error: 'Current Card pricing could not be verified. Please try again.',
+                    code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
+                });
+            }
+            if (numPrice > maximumCardFundedPrice) {
+                return res.status(400).json({
+                    success: false,
+                    error: `price cannot exceed ${maximumCardFundedPrice.toLocaleString()} Diamonds`,
+                    code: 'CARD_PRICE_LIMIT_EXCEEDED',
+                    maximumCardFundedPrice,
+                });
             }
             const cat = VALID_CATEGORIES.includes(category) ? category : 'Time Banks';
 
@@ -133,15 +162,40 @@ export default async function handler(req, res) {
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
             const { data: existing } = await sb()
                 .from('club_shop_items')
-                .select('id, is_active')
+                .select('id, is_active, price')
                 .eq('id', itemId)
                 .eq('club_id', clubId)
                 .maybeSingle();
             if (!existing) return res.status(404).json({ success: false, error: 'item_not_found' });
 
+            const nextIsActive = !existing.is_active;
+            if (nextIsActive) {
+                let maximumCardFundedPrice;
+                try {
+                    maximumCardFundedPrice = await loadMaximumCardFundedPrice();
+                } catch (catalogError) {
+                    console.warn('[shop-items] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Current Card pricing could not be verified. Please try again.',
+                        code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
+                    });
+                }
+                const storedPrice = Number(existing.price);
+                if (!Number.isSafeInteger(storedPrice) || storedPrice <= 0
+                    || storedPrice > maximumCardFundedPrice) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `price must be between 1 and ${maximumCardFundedPrice.toLocaleString()} Diamonds before activation`,
+                        code: 'CARD_PRICE_LIMIT_EXCEEDED',
+                        maximumCardFundedPrice,
+                    });
+                }
+            }
+
             const { data, error } = await sb()
                 .from('club_shop_items')
-                .update({ is_active: !existing.is_active })
+                .update({ is_active: nextIsActive })
                 .eq('id', itemId)
                 .eq('club_id', clubId)
                 .select()
@@ -170,8 +224,8 @@ export default async function handler(req, res) {
                 updates.description = description ? String(description).trim().slice(0, 500) : null;
             }
             if (price !== undefined) {
-                const p = Math.floor(Number(price));
-                if (!Number.isFinite(p) || p <= 0 || p > 1000000000) {
+                const p = Number(price);
+                if (!Number.isSafeInteger(p) || p <= 0 || p > 1000000000) {
                     return res.status(400).json({ success: false, error: 'invalid price' });
                 }
                 updates.price = p;
@@ -209,6 +263,40 @@ export default async function handler(req, res) {
 
             if (Object.keys(updates).length === 0) {
                 return res.status(400).json({ success: false, error: 'no fields to update' });
+            }
+
+            const { data: existingItem, error: existingItemError } = await sb()
+                .from('club_shop_items')
+                .select('price, sale_price')
+                .eq('id', itemId)
+                .eq('club_id', clubId)
+                .maybeSingle();
+            if (existingItemError) throw existingItemError;
+            if (!existingItem) return res.status(404).json({ success: false, error: 'item_not_found' });
+
+            const candidatePrice = updates.price ?? Number(existingItem.price);
+            if (existingItem.sale_price !== null && Number(existingItem.sale_price) > candidatePrice) {
+                return res.status(400).json({ success: false, error: 'sale price cannot exceed price' });
+            }
+            let maximumCardFundedPrice;
+            try {
+                maximumCardFundedPrice = await loadMaximumCardFundedPrice();
+            } catch (catalogError) {
+                console.warn('[shop-items] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+                return res.status(503).json({
+                    success: false,
+                    error: 'Current Card pricing could not be verified. Please try again.',
+                    code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
+                });
+            }
+            if (!Number.isSafeInteger(candidatePrice) || candidatePrice <= 0
+                || candidatePrice > maximumCardFundedPrice) {
+                return res.status(400).json({
+                    success: false,
+                    error: `price must be between 1 and ${maximumCardFundedPrice.toLocaleString()} Diamonds`,
+                    code: 'CARD_PRICE_LIMIT_EXCEEDED',
+                    maximumCardFundedPrice,
+                });
             }
 
             const { error } = await sb()
