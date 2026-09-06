@@ -21,6 +21,9 @@ const recoverySource = readFileSync(join(ROOT, 'src/components/ui/WorldCommandMe
 const headerSource = readFileSync(join(ROOT, 'src/components/ui/UniversalHeader.js'), 'utf8');
 const appSource = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
 const socialSource = readFileSync(join(ROOT, 'pages/hub/social-media/index.js'), 'utf8');
+const friendsSource = readFileSync(join(ROOT, 'pages/hub/friends.js'), 'utf8');
+const messengerSource = readFileSync(join(ROOT, 'pages/hub/messenger.js'), 'utf8');
+const reelsSource = readFileSync(join(ROOT, 'pages/hub/reels.js'), 'utf8');
 const pokerNearMeLobbySource = readFileSync(join(ROOT, 'pages/hub/poker-near-me/lobby.js'), 'utf8');
 const auditInventory = JSON.parse(
   readFileSync(join(ROOT, '.agent/audits/2026-08-31-world-hub-menu-route-inventory.json'), 'utf8')
@@ -128,10 +131,35 @@ test('the approved hamburger trigger covers routes without duplicating the heade
     /Array\.from\(\{ length: 6 \}/,
     'the six-node grid mark is gone from the dock trigger'
   );
-  assert.match(dockSource, /world\.id === 'social-media'/);
-  assert.match(dockSource, /querySelector\('\[data-world-menu-trigger="approved-header"\]'\)/);
+  assert.doesNotMatch(
+    dockSource,
+    /world\.id === 'social-media'/,
+    'Social signed-out and empty-state shells must retain the route fallback'
+  );
+  assert.match(dockSource, /APPROVED_TRIGGER_SELECTOR/);
+  assert.match(dockSource, /useLayoutEffect/);
+  assert.match(dockSource, /isTriggerUsable/);
+  assert.match(dockSource, /style\.pointerEvents === 'none'/);
+  assert.match(dockSource, /\[hidden\], \[inert\], \[aria-hidden="true"\]/);
+  assert.match(dockSource, /visibilityObserver\.observe/);
+  assert.match(dockSource, /if \(usable\) setIsOpen\(false\)/);
+  assert.match(dockSource, /attributeFilter: \['aria-hidden', 'class', 'hidden', 'inert', 'style'\]/);
   assert.match(dockSource, /min-height: 48px/);
   assert.match(dockSource, /@media \(max-width: 430px\)/);
+  for (const [label, source] of [
+    ['Friends', friendsSource],
+    ['Messenger', messengerSource],
+    ['Reels', reelsSource],
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /import HamburgerMenu|const HamburgerMenu = dynamic/,
+      `${label} must delegate its Social command drawer to UniversalHeader`
+    );
+  }
+  assert.match(friendsSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
+  assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
+  assert.match(reelsSource, /showOverlay && \([\s\S]*?<UniversalHeader/);
   // Mobile phase 3 (2026-09-04): the lobby used to float UniversalHeader in
   // an absolute wrapper (zIndex 10050, pointerEvents none) above a
   // 100vh stage. The lobby is document flow on HubPageShell now, which

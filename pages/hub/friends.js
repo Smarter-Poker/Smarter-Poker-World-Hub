@@ -17,7 +17,6 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getAuthUser } from '../../src/lib/authUtils';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { friendPreferences } from '../../src/services/preferences-service';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
@@ -1170,19 +1169,10 @@ function FriendsPage() {
                 {/* Header - Universal Header */}
                 <UniversalHeader
                     pageDepth={1}
-                    onMenuClick={() => setMenuOpen(true)}
-                />
-
-                {/* Hamburger Menu */}
-                <HamburgerMenu
-                    isOpen={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                    direction="left"
-                    theme="dark"
-                    user={user}
-                    showProfile={true}
-                    menuItems={menuConfig.menuItems}
-                    bottomLinks={menuConfig.bottomLinks}
+                    commandMenuOpen={menuOpen}
+                    onCommandMenuOpenChange={setMenuOpen}
+                    commandMenuItems={menuConfig.menuItems}
+                    commandMenuBottomLinks={menuConfig.bottomLinks}
                 />
 
                 {/* Stats Bar */}

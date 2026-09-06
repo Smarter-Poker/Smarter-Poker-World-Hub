@@ -29,6 +29,45 @@ type WorldCase = {
 const items = (pairs: Array<[string, string]>): Array<{ href: string; label: string }> =>
   pairs.map(([href, label]) => ({ href, label }));
 
+async function installReelsFixture(page: Page) {
+  const fixture = [{
+    id: 'phase-2-menu-audit-reel',
+    author_id: 'phase-2-menu-audit-author',
+    caption: 'Phase 2 Menu Audit',
+    video_url: 'https://media.smarter.poker.test/phase-2-menu-audit.mp4',
+    thumbnail_url: null,
+    view_count: 0,
+    like_count: 0,
+    comment_count: 0,
+    created_at: '2026-09-06T00:00:00.000Z',
+    is_public: true,
+    source_type: 'user',
+  }];
+  await page.route('**/rest/v1/social_reels*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'content-range': '0-0/1' },
+      body: JSON.stringify(fixture),
+    });
+  });
+  await page.route('**/rest/v1/profiles*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        id: 'phase-2-menu-audit-author',
+        username: 'MenuAudit',
+        avatar_url: null,
+        full_name: 'Menu Audit',
+      }]),
+    });
+  });
+  await page.route('https://media.smarter.poker.test/phase-2-menu-audit.mp4', async (route) => {
+    await route.fulfill({ status: 204, body: '' });
+  });
+}
+
 const WORLDS: WorldCase[] = [
   {
     id: 'personal-assistant',
@@ -462,6 +501,101 @@ for (const entry of FALLBACK_SECONDARY_CASES) {
     await expect(page.getByText('Unhandled Runtime Error', { exact: true })).toHaveCount(0);
   });
 }
+
+for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
+  test(`Social Media retains a tappable Facebook command menu on ${path}`, async ({ page }) => {
+    if (path === '/hub/reels') await installReelsFixture(page);
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+
+    const trigger = page.locator('[data-world-menu-trigger="route-fallback"]');
+    await expect(page.locator('[data-world-menu-trigger]')).toHaveCount(1);
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toBeVisible();
+    await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
+    await expect(trigger).toHaveAttribute('data-world-menu-scheme', 'facebook');
+    await expect.poll(() => trigger.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return Boolean(hit && (hit === element || element.contains(hit)));
+    })).toBe(true);
+
+    await trigger.click();
+    const dialog = page.locator('[data-world-command-menu="social-media"]');
+    await expect(dialog).toHaveCount(1);
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('data-world-menu-scheme', 'facebook');
+    await expect(dialog).toHaveAttribute('data-responsive-composition', 'preserved');
+    const primaryTiles = dialog.locator('[data-world-primary-commands="social-media"] .sp-grid-tile');
+    await expect(primaryTiles).toHaveCount(6);
+    const facebookColors = await dialog.evaluate((element) => {
+      const active = element.querySelector('.sp-grid-tile[aria-current="page"]');
+      const inactive = element.querySelector('.sp-grid-tile:not([aria-current="page"])');
+      return {
+        activeBackground: active ? getComputedStyle(active).backgroundColor : '',
+        activeBorder: active ? getComputedStyle(active).borderColor : '',
+        inactiveBackground: inactive ? getComputedStyle(inactive).backgroundColor : '',
+        inactiveText: inactive ? getComputedStyle(inactive).color : '',
+      };
+    });
+    expect(facebookColors).toEqual({
+      activeBackground: 'rgb(231, 243, 255)',
+      activeBorder: 'rgb(24, 119, 242)',
+      inactiveBackground: 'rgb(255, 255, 255)',
+      inactiveText: 'rgb(5, 5, 5)',
+    });
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    if (path === '/hub/reels') {
+      const reelsOverlay = page.locator('[data-reels-overlay-trigger="true"]');
+      await expect(reelsOverlay).toHaveCount(1);
+      await trigger.click();
+      await expect(dialog).toBeVisible();
+      await reelsOverlay.evaluate((element: HTMLElement) => element.click());
+      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(0);
+      await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(1);
+      await expect(dialog).toHaveCount(1);
+      await expect(dialog).toBeHidden();
+
+      await page.locator('[data-world-menu-trigger="approved-header"]').click();
+      await expect(dialog).toBeVisible();
+      await page.waitForTimeout(5_500);
+      await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(1);
+      await expect(dialog).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+
+      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(1, {
+        timeout: 7_000,
+      });
+      await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(0);
+      await expect(dialog).toHaveCount(1);
+      await expect(dialog).toBeHidden();
+    }
+  });
+}
+
+test('Social client navigation never paints duplicate hamburger triggers', async ({ page }) => {
+  await page.goto('/hub/friends', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(1);
+  await page.evaluate(() => {
+    const state = { max: document.querySelectorAll('[data-world-menu-trigger]').length };
+    (window as Window & { __triggerAudit?: { max: number } }).__triggerAudit = state;
+    new MutationObserver(() => {
+      state.max = Math.max(state.max, document.querySelectorAll('[data-world-menu-trigger]').length);
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+
+  await page.locator('[data-world-menu-trigger="route-fallback"]').click();
+  await page.locator('[data-world-primary-commands="social-media"] .sp-grid-tile[href="/hub/social-media"]').click();
+  await expect(page).toHaveURL(/\/hub\/social-media(?:\?|$)/);
+  await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(1);
+  expect(await page.evaluate(() => (
+    (window as Window & { __triggerAudit?: { max: number } }).__triggerAudit?.max || 0
+  ))).toBe(1);
+});
 
 test('Bankroll Log deep links preserve the visible authorization gate and clean their URL', async ({ page }) => {
   await page.goto('/hub/bankroll-manager?view=log-session', { waitUntil: 'domcontentloaded' });

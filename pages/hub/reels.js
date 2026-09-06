@@ -15,7 +15,6 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -127,6 +126,7 @@ export default function ReelsPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuOpenRef = useRef(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [savedReels, setSavedReels] = useState(new Set());
   const [showHeart, setShowHeart] = useState(false);
@@ -221,16 +221,27 @@ export default function ReelsPage() {
   // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
   const [showOverlay, setShowOverlay] = useState(false);
   const hudTimerRef = useRef(null);
-  const revealOverlay = () => {
-    setShowOverlay(true);
-    setShowReactionPicker(false);
-    setShowMoreMenu(false);
+  const scheduleHudHide = () => {
     clearTimeout(hudTimerRef.current);
     hudTimerRef.current = setTimeout(() => {
+      if (menuOpenRef.current) return;
       setShowOverlay(false);
       setShowReactionPicker(false);
       setShowMoreMenu(false);
     }, 5000);
+  };
+  const revealOverlay = () => {
+    setShowOverlay(true);
+    setShowReactionPicker(false);
+    setShowMoreMenu(false);
+    scheduleHudHide();
+  };
+  const handleCommandMenuOpenChange = (open) => {
+    menuOpenRef.current = open;
+    setMenuOpen(open);
+    clearTimeout(hudTimerRef.current);
+    setShowOverlay(true);
+    if (!open) scheduleHudHide();
   };
   const pullStartY = useRef(null);
 
@@ -2279,8 +2290,7 @@ export default function ReelsPage() {
               autoUnmuteRetryTimersRef.current = [];
             }
             setShowOverlay(true);
-            clearTimeout(hudTimerRef.current);
-            hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
+            scheduleHudHide();
           }
           if (data.info === 2) {
             // Paused
@@ -2698,29 +2708,17 @@ export default function ReelsPage() {
       </Head>
 
       {/* Universal Header */}
-      <div
-        style={{
-          opacity: showOverlay ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-          pointerEvents: showOverlay ? 'auto' : 'none',
-          position: 'relative',
-          zIndex: 200,
-        }}
-      >
-        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-      </div>
-
-      {/* Hamburger Menu */}
-      <HamburgerMenu
-        isOpen={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        direction="left"
-        theme="dark"
-        user={user}
-        showProfile={false}
-        menuItems={menuConfig.menuItems}
-        bottomLinks={menuConfig.bottomLinks}
-      />
+      {showOverlay && (
+        <div style={{ position: 'relative', zIndex: 200 }}>
+          <UniversalHeader
+            pageDepth={1}
+            commandMenuOpen={menuOpen}
+            onCommandMenuOpenChange={handleCommandMenuOpenChange}
+            commandMenuItems={menuConfig.menuItems}
+            commandMenuBottomLinks={menuConfig.bottomLinks}
+          />
+        </div>
+      )}
 
       {/* Upload Modal */}
       {showUploadModal && (
@@ -2969,6 +2967,7 @@ export default function ReelsPage() {
         {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
         {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}
         <div
+          data-reels-overlay-trigger="true"
           onTouchStart={(e) => {
             // Record swipe start position
             swipeStartRef.current = {

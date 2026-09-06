@@ -61,6 +61,8 @@ const C = {
  * @param {Object} props
  * @param {Function} [props.onMenuClick]
  * @param {Function} [props.onBackClick]
+ * @param {Array} [props.commandMenuItems]
+ * @param {Array} [props.commandMenuBottomLinks]
  */
 // ── Header data cache freshness window ────────────────────────────────────
 // The header is rendered per-page (it is NOT mounted in _app), so it remounts on
@@ -88,6 +90,8 @@ export default function UniversalHeader({
   onBackClick, // Override for back navigation
   commandMenuOpen,
   onCommandMenuOpenChange,
+  commandMenuItems = [],
+  commandMenuBottomLinks = [],
 }) {
   const router = useRouter();
   const [fallbackMenuOpen, setFallbackMenuOpen] = useState(false);
@@ -1500,8 +1504,8 @@ export default function UniversalHeader({
           direction="left"
           theme="dark"
           user={user}
-          menuItems={[]}
-          bottomLinks={[]}
+          menuItems={commandMenuItems}
+          bottomLinks={commandMenuBottomLinks}
           menuKey={router.asPath || 'global-header-default'}
         />
       )}
