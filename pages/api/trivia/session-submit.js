@@ -53,6 +53,15 @@ import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diam
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS, getModeConfig } from '../../../src/lib/trivia/triviaEngine';
 import { computeStakePot, ARCADE_MAX_RUN_PAYOUT, CASH_OUT_MIN_ANSWERED } from '../../../src/lib/trivia/arcadeStakes';
+import {
+    isTriviaPvpReleased,
+    rejectUnavailableTriviaPvp,
+} from '../../../src/lib/trivia/pvpReleaseControl.mjs';
+import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import { validateTriviaAwardResponse } from '../../../src/lib/trivia/awardResponsePolicy.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -134,7 +143,7 @@ export default async function handler(req, res) {
         // --- LOAD THE SESSION (service role; RLS blocks client writes) ----
         const { data: session, error: loadErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, question_ids, permutations, status, created_at, expires_at, answers, settlement_result')
+            .select('id, user_id, mode, question_ids, permutations, status, created_at, expires_at, answers, settlement_result, score, correct_count, diamonds_awarded')
             .eq('id', sessionId)
             .maybeSingle();
         if (loadErr) {
@@ -149,6 +158,12 @@ export default async function handler(req, res) {
         if (session.user_id !== userId) {
             return res.status(403).json({ success: false, error: 'not_your_session' });
         }
+        if (session.mode === 'pvp' && !isTriviaPvpReleased(process.env)) {
+            return rejectUnavailableTriviaPvp(res);
+        }
+        if (session.mode === 'tournaments' && !areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
+        }
         const replaying = session.status === 'submitted';
         if (session.status !== 'open' && !replaying) {
             return res.status(409).json({ success: false, error: 'session_closed' });
@@ -161,6 +176,10 @@ export default async function handler(req, res) {
             (Number.isFinite(expiresMs) && Date.now() > expiresMs)
             || (!Number.isFinite(expiresMs) && ageMs > SESSION_TTL_MS)
         );
+        // `deadlinePassed` is advisory response metadata only. The locked
+        // award_trivia_run_v2 transaction is the deadline authority: checking
+        // and closing here would leave a TOCTOU window in which another submit
+        // could cross expires_at after this read but before the SQL award.
 
         const mode = session.mode;
         const rosterIds = (Array.isArray(session.question_ids) ? session.question_ids : [])
@@ -310,35 +329,41 @@ export default async function handler(req, res) {
             console.warn('[trivia session-submit] award_trivia_run failed:', awardErr.message || awardErr);
             return res.status(500).json({ success: false, error: 'award_failed' });
         }
-        if (award && award.success === false) {
+        if (award?.success === false) {
             // The function's conditional UPDATE lost the race, so another
             // request already closed and paid this session.
-            const code = award.error === 'session_not_found' ? 404 : 409;
+            const code = award.error === 'session_not_found' ? 404
+                : award.error === 'session_expired' ? 410
+                : 409;
             return res.status(code).json({ success: false, error: award.error || 'award_rejected' });
         }
-
-        const settledCorrect = Number.isFinite(Number(award?.correct_count))
-            ? Number(award.correct_count)
-            : correct;
-        const settledScore = Number.isFinite(Number(award?.score))
-            ? Number(award.score)
-            : score;
+        const verifiedAward = validateTriviaAwardResponse(award, {
+            sessionId,
+            score: replaying ? session.score : score,
+            correct: replaying ? session.correct_count : correct,
+            ...(replaying
+                ? { diamonds: session.diamonds_awarded, requireReplay: true }
+                : { maxDiamonds: diamonds }),
+        });
+        if (!verifiedAward.ok) {
+            console.warn('[trivia session-submit] malformed award receipt:', verifiedAward.error);
+            return res.status(502).json({ success: false, error: 'invalid_award_receipt' });
+        }
+        const receipt = verifiedAward.receipt;
 
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         return res.status(200).json({
             success: true,
             sessionId,
             mode,
-            correct: settledCorrect,
+            correct: receipt.correct,
             total,
-            score: settledScore,
-            scoreId: award?.score_id ?? null,
-            diamondsAwarded: Number.isFinite(Number(award?.diamonds_awarded))
-                ? Number(award.diamonds_awarded)
-                : diamonds,
-            dailyBonusAwarded: Number(award?.daily_bonus_awarded) || 0,
-            newBalance: award?.new_balance ?? null,
-            replayed: award?.replayed === true,
+            score: receipt.score,
+            scoreId: receipt.scoreId,
+            diamondsAwarded: receipt.diamondsAwarded,
+            dailyBonusAwarded: receipt.dailyBonusAwarded,
+            newBalance: receipt.newBalance,
+            replayed: receipt.replayed,
             deadlinePassed,
             perQuestion,
         });

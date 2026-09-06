@@ -10,20 +10,33 @@ import { acquireScrollLock } from '../../lib/scrollLock';
 // The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
 // deductDiamonds. Entry price now comes from the engine config only.
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
+import {
+    TRIVIA_FEATURED_MODE,
+    TRIVIA_MIDDLE_MODES as MODE_CARDS,
+    TRIVIA_MODE_FILTER_COUNTS as MODE_FILTER_COUNTS,
+    TRIVIA_MODE_FILTERS as MODE_FILTERS,
+    TRIVIA_QUICK_STAKES_MODE,
+    getTriviaModeRoute as getModeRoute,
+    resolveTriviaModeAvailability,
+} from '../../config/triviaModeRegistry.mjs';
 
 const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
 
-const MODE_ROUTES = {
-    survival: '/hub/trivia/survival-game',
-    endless: '/hub/trivia/endless',
-    mixed: '/hub/trivia/mixed',
-    pvp: '/hub/trivia/pvp',
-    tournaments: '/hub/trivia/tournaments',
-};
-
-function getModeRoute(modeId) {
-    return MODE_ROUTES[modeId] || `/hub/trivia/${modeId}`;
-}
+const MODE_ICONS = Object.freeze({
+    'target': Target,
+    'banknote': Banknote,
+    'calculator': Calculator,
+    'trophy': Trophy,
+    'calendar': Calendar,
+    'graduation-cap': GraduationCap,
+    'heart': Heart,
+    'infinity': Infinity,
+    'shuffle': Shuffle,
+    'timer': Timer,
+    'swords': Swords,
+    'book-open': BookOpen,
+    'brain': Brain,
+});
 
 /**
  * ENTRY PRICING — display only.
@@ -56,206 +69,20 @@ function getEntryCost(modeId) {
 /** Modes whose entry price is a stake / tournament fee rather than fixed. */
 const VARIABLE_COST_MODES = new Set(['pvp', 'tournaments']);
 
-const MODE_CARDS = [
-    // TOP ROW - Strategy Modes (MTT, Cash, GTO)
-    {
-        id: 'mtt',
-        code: '01',
-        category: 'strategy',
-        name: 'MTT Scenarios',
-        description: 'Multi-table Tournament Situations and Decisions',
-        icon: Target,
-        color: '#f97316',
-        glowColor: '#f97316',
-        diamondReward: 5,
-        perfectBonus: 10,
-        image: '/images/trivia/modes-v2/mtt.webp'
-    },
-    {
-        id: 'cash',
-        code: '02',
-        category: 'strategy',
-        name: 'Cash Game',
-        description: 'Deep Stack Scenarios, Implied Odds, Table Dynamics',
-        icon: Banknote,
-        color: '#31a24c',
-        glowColor: '#31a24c',
-        diamondReward: 5,
-        perfectBonus: 10,
-        image: '/images/trivia/modes-v2/cash.webp'
-    },
-    {
-        id: 'icm',
-        code: '03',
-        category: 'strategy',
-        name: 'ICM & Chip EV',
-        description: 'Tournament Equity, Chip Value vs $EV Decisions',
-        icon: Calculator,
-        color: '#2374e1',
-        glowColor: '#2374e1',
-        diamondReward: 5,
-        perfectBonus: 10,
-        image: '/images/trivia/modes-v2/icm.webp'
-    },
-    // ROW 2 - Core Trivia
-    {
-        id: 'history',
-        code: '04',
-        category: 'knowledge',
-        name: 'Poker History',
-        description: 'Iconic Moments, Famous Hands, Legendary Players',
-        icon: Trophy,
-        color: '#FFD700',
-        glowColor: '#FFD700',
-        diamondReward: 3,
-        perfectBonus: 5,
-        image: '/images/trivia/modes-v2/history.webp'
-    },
-    {
-        id: 'tournaments',
-        code: '05',
-        category: 'competitive',
-        name: 'Tournaments',
-        description: 'Daily 7 PM CST Brackets with Big Prize Pools',
-        icon: Calendar,
-        color: '#FFD700',
-        glowColor: '#FFD700',
-        diamondReward: 'Prize pool',
-        perfectBonus: null,
-        image: '/images/trivia/modes-v2/tournaments.webp'
-    },
-    {
-        id: 'pro',
-        code: '06',
-        category: 'knowledge',
-        name: 'Pro Knowledge',
-        description: 'Strategy Concepts, GTO Basics, Advanced Trivia',
-        icon: GraduationCap,
-        color: '#9D4EDD',
-        glowColor: '#9D4EDD',
-        diamondReward: 5,
-        perfectBonus: 10,
-        image: '/images/trivia/modes-v2/pro.webp'
-    },
-    // ROW 3 - Challenge Modes
-    {
-        id: 'survival',
-        code: '07',
-        category: 'challenge',
-        name: 'Survival Mode',
-        description: '10 Levels, 20 Questions Each. All Categories Combined!',
-        icon: Heart,
-        color: '#f02849',
-        glowColor: '#f02849',
-        diamondReward: '10+',
-        perfectBonus: null,
-        image: '/images/trivia/modes-v2/survival.webp'
-    },
-    {
-        id: 'endless',
-        code: '08',
-        category: 'challenge',
-        name: 'Endless Mode',
-        description: 'All Questions, Random Order. Answer Until You Miss!',
-        icon: Infinity,
-        color: '#8b5cf6',
-        glowColor: '#8b5cf6',
-        diamondReward: '1+/Q',
-        perfectBonus: null,
-        image: '/images/trivia/modes-v2/endless.webp'
-    },
-    {
-        id: 'mixed',
-        code: '09',
-        category: 'challenge',
-        name: 'Mixed Mode',
-        description: 'Seven Poker Categories, Rotating Every Question',
-        icon: Shuffle,
-        color: '#00D4FF',
-        glowColor: '#00D4FF',
-        diamondReward: '5+ / +10 perfect',
-        perfectBonus: null,
-        image: '/images/trivia/modes-v2/mixed.webp'
-    },
-    // ROW 4 - Competitive
-    {
-        id: 'time-attack',
-        code: '10',
-        category: 'challenge',
-        name: 'Time Attack',
-        description: 'Thirty Seconds. Answer as Many as You Can.',
-        icon: Timer,
-        color: '#14b8a6',
-        glowColor: '#14b8a6',
-        diamondReward: '1 / correct',
-        perfectBonus: null,
-        image: '/images/trivia/modes-v2/time-attack.webp'
-    },
-    {
-        id: 'pvp',
-        code: '11',
-        category: 'competitive',
-        name: '1v1 Battle',
-        description: 'Challenge Real Players for Diamonds!',
-        icon: Swords,
-        color: '#f02849',
-        glowColor: '#f02849',
-        diamondReward: '1.8x stake',
-        perfectBonus: null,
-        image: '/images/trivia/modes-v2/pvp.webp'
-    },
-    {
-        id: 'rules',
-        code: '12',
-        category: 'knowledge',
-        name: 'Rules Quiz',
-        description: 'Test Your Understanding of Official Poker Rules',
-        icon: BookOpen,
-        color: '#4a90d9',
-        glowColor: '#4a90d9',
-        diamondReward: 3,
-        perfectBonus: 5,
-        image: '/images/trivia/modes-v2/rules.webp'
-    },
-    {
-        id: 'gto',
-        code: '13',
-        category: 'competitive',
-        name: 'GTO Master',
-        description: 'Solver-based Scenarios Combining MTT, Cash, and ICM',
-        icon: Brain,
-        color: '#a855f7',
-        glowColor: '#a855f7',
-        diamondReward: 8,
-        perfectBonus: 15,
-        image: '/images/trivia/modes-v2/gto.webp'
-    }
-];
-
-const MODE_FILTERS = [
-    { id: 'all', label: 'All Modes' },
-    { id: 'strategy', label: 'Strategy' },
-    { id: 'knowledge', label: 'Knowledge' },
-    { id: 'challenge', label: 'Challenge' },
-    { id: 'competitive', label: 'Competitive' },
-];
-
-const MODE_FILTER_COUNTS = Object.fromEntries(
-    MODE_FILTERS.map(filter => [
-        filter.id,
-        filter.id === 'all'
-            ? MODE_CARDS.length
-            : MODE_CARDS.filter(mode => mode.category === filter.id).length,
-    ])
-);
-
 
 /**
  * onDiamondsChange is still accepted (index.js passes it) but is intentionally
  * unused: this component no longer moves diamonds, so it has no delta to
  * report. The destination pages emit their own balance updates.
  */
-export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyCompleted = false, currentStreak = 0, onDiamondsChange }) {
+export default function TriviaLobby({
+    userDiamonds = 0,
+    isVip = false,
+    dailyCompleted = false,
+    currentStreak = 0,
+    onDiamondsChange,
+    modeAvailability,
+}) {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('all');
     const filterRailRef = useRef(null);
@@ -288,6 +115,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     const filteredModes = activeFilter === 'all'
         ? MODE_CARDS
         : MODE_CARDS.filter(mode => mode.category === activeFilter);
+    const availabilityFor = modeId => resolveTriviaModeAvailability(modeId, modeAvailability);
+    const liveModeCount = filteredModes.filter(mode => availabilityFor(mode.id).enabled).length;
+    const maintenanceModeCount = filteredModes.length - liveModeCount;
+    const dailyAvailability = availabilityFor(TRIVIA_FEATURED_MODE.id);
+    const quickStakesAvailability = availabilityFor(TRIVIA_QUICK_STAKES_MODE.id);
 
     const revealFilter = (filterIndex, { focus = false } = {}) => {
         // Wait for React to apply the active state before measuring. Scrolling
@@ -391,6 +223,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     };
 
     const prefetchMode = modeId => {
+        if (!availabilityFor(modeId).enabled) return;
         const route = getModeRoute(modeId);
         if (prefetchedRoutesRef.current.has(route)) return;
         prefetchedRoutesRef.current.add(route);
@@ -442,6 +275,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     };
 
     const _startModeInner = (modeId) => {
+        const availability = availabilityFor(modeId);
+        if (!availability.enabled) {
+            setRouteError(availability.message);
+            return;
+        }
+
         // Block daily if already completed
         if (modeId === 'daily' && dailyCompleted) return;
 
@@ -472,15 +311,15 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 screen-reader users are served by the labelled inner button. */}
             <div
                 className="daily-trivia-banner"
-                onClick={() => !dailyCompleted && startMode('daily')}
-                style={{ cursor: dailyCompleted ? 'default' : 'pointer' }}
+                onClick={() => !dailyCompleted && dailyAvailability.enabled && startMode(TRIVIA_FEATURED_MODE.id)}
+                style={{ cursor: dailyCompleted || !dailyAvailability.enabled ? 'default' : 'pointer' }}
             >
                 <img
-                    src="/images/trivia/daily-trivia-header-final.webp?v=v6"
-                    alt="Daily Trivia - 10 Questions Fresh Every Day"
+                    src={TRIVIA_FEATURED_MODE.image}
+                    alt={TRIVIA_FEATURED_MODE.imageAlt}
                     className="daily-trivia-banner__image"
-                    width={1024}
-                    height={309}
+                    width={TRIVIA_FEATURED_MODE.imageWidth}
+                    height={TRIVIA_FEATURED_MODE.imageHeight}
                     fetchpriority="high"
                     decoding="async"
                 />
@@ -490,10 +329,14 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     className="daily-trivia-banner__button"
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (!dailyCompleted) startMode('daily');
+                        if (!dailyCompleted && dailyAvailability.enabled) startMode(TRIVIA_FEATURED_MODE.id);
                     }}
-                    disabled={dailyCompleted}
-                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia - free, once per day'}
+                    disabled={dailyCompleted || !dailyAvailability.enabled}
+                    aria-label={dailyCompleted
+                        ? 'Daily Trivia Completed'
+                        : dailyAvailability.enabled
+                            ? 'Start Daily Trivia - free, once per day'
+                            : dailyAvailability.message}
                 />
                 {currentStreak > 0 && !dailyCompleted && (
                     <div className="daily-streak-chip" title={`${currentStreak} day streak`}>
@@ -525,7 +368,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         aria-live="polite"
                         aria-atomic="true"
                     >
-                        <i aria-hidden /> {filteredModes.length} LIVE {filteredModes.length === 1 ? 'MODE' : 'MODES'}
+                        <i aria-hidden /> {liveModeCount} LIVE
+                        {maintenanceModeCount > 0 ? ` / ${maintenanceModeCount} MAINTENANCE` : ''}
                     </span>
                 </div>
 
@@ -556,10 +400,14 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                 <div className="modes-grid" id="trivia-mode-grid">
                     {filteredModes.map((mode) => {
-                        const Icon = mode.icon;
+                        const Icon = MODE_ICONS[mode.icon] || Brain;
+                        const availability = availabilityFor(mode.id);
+                        const unavailable = !availability.enabled;
                         const cost = getEntryCost(mode.id);
                         const variableCost = VARIABLE_COST_MODES.has(mode.id);
-                        const costText = isVip
+                        const costText = unavailable
+                            ? 'UNAVAILABLE'
+                            : isVip
                             ? 'VIP FREE'
                             : variableCost
                                 ? 'VARIABLE'
@@ -572,12 +420,16 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                             <button
                                 key={mode.id}
                                 type="button"
-                                className="mode-image-card"
+                                className={`mode-image-card${unavailable ? ' mode-image-card--maintenance' : ''}`}
+                                data-mode-availability={availability.state}
                                 onClick={() => startMode(mode.id)}
-                                onPointerEnter={() => prefetchMode(mode.id)}
-                                onFocus={() => prefetchMode(mode.id)}
-                                disabled={isRouting}
-                                aria-label={`${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' diamonds' : ''}` : ''}.`}
+                                onPointerEnter={() => availability.enabled && prefetchMode(mode.id)}
+                                onFocus={() => availability.enabled && prefetchMode(mode.id)}
+                                disabled={isRouting || unavailable}
+                                title={unavailable ? availability.message : undefined}
+                                aria-label={unavailable
+                                    ? `${mode.name}. ${availability.message}`
+                                    : `${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' diamonds' : ''}` : ''}.`}
                                 style={{ '--mode-color': mode.color, '--mode-glow': `${mode.glowColor}80` }}
                             >
                                 <div className="mode-image-card__art">
@@ -593,7 +445,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         draggable="false"
                                     />
                                     <span className="mode-image-card__code" aria-hidden>{mode.code}</span>
-                                    <span className="mode-image-card__status" aria-hidden><i /> LIVE</span>
+                                    <span className="mode-image-card__status" aria-hidden><i /> {availability.label.toUpperCase()}</span>
                                     <span className="mode-image-card__icon" aria-hidden>
                                         <Icon size={18} strokeWidth={1.7} />
                                     </span>
@@ -606,7 +458,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         {mode.id}
                                     </span>
                                     <h3>{mode.name}</h3>
-                                    <p>{mode.description}</p>
+                                    <p>{unavailable ? availability.message : mode.description}</p>
 
                                     <div className="mode-image-card__telemetry" aria-hidden>
                                         <span>
@@ -620,7 +472,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                     </div>
 
                                     <span className="mode-image-card__launch" aria-hidden>
-                                        Launch Mode <ArrowUpRight size={15} />
+                                        {unavailable ? 'Temporarily Unavailable' : 'Launch Mode'} <ArrowUpRight size={15} />
                                     </span>
                                 </div>
                             </button>
@@ -634,22 +486,26 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 <button
                     type="button"
                     className="quick-stakes-banner"
-                    onClick={() => startMode('arcade')}
-                    onPointerEnter={() => prefetchMode('arcade')}
-                    onFocus={() => prefetchMode('arcade')}
-                    disabled={isRouting}
-                    aria-label={`Quick Stakes - timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
+                    onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
+                    onPointerEnter={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
+                    onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
+                    disabled={isRouting || !quickStakesAvailability.enabled}
+                    aria-label={quickStakesAvailability.enabled
+                        ? `${TRIVIA_QUICK_STAKES_MODE.name} - ${TRIVIA_QUICK_STAKES_MODE.description}. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost(TRIVIA_QUICK_STAKES_MODE.id)} diamonds`}.`
+                        : quickStakesAvailability.message}
                 >
                     <img
-                        src="/images/trivia/quick-stakes.webp?v=v6"
+                        src={TRIVIA_QUICK_STAKES_MODE.image}
                         alt=""
                         aria-hidden
                         className="quick-stakes-banner__img"
+                        width={TRIVIA_QUICK_STAKES_MODE.imageWidth}
+                        height={TRIVIA_QUICK_STAKES_MODE.imageHeight}
                         loading="lazy"
                         decoding="async"
                     />
                     <span className="quick-stakes-banner__chip" aria-hidden>
-                        {isVip ? 'VIP: free' : <>{getEntryCost('arcade')} <Gem size={11} /> To Play</>}
+                        {isVip ? 'VIP: free' : <>{getEntryCost(TRIVIA_QUICK_STAKES_MODE.id)} <Gem size={11} /> To Play</>}
                     </span>
                 </button>
             </div>
@@ -1785,6 +1641,42 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     .daily-trivia-banner:hover {
                         transform: none;
                     }
+                }
+
+                .mode-image-card--maintenance,
+                .mode-image-card--maintenance:hover,
+                .mode-image-card--maintenance:focus-visible {
+                    cursor: not-allowed;
+                    transform: none;
+                    border-color: rgba(200, 164, 93, 0.62);
+                    box-shadow:
+                        inset 0 0 0 1px rgba(200, 164, 93, 0.08),
+                        0 10px 28px rgba(0, 0, 0, 0.3);
+                }
+
+                .mode-image-card--maintenance::before {
+                    background: #c8a45d;
+                    box-shadow: 0 0 10px rgba(200, 164, 93, 0.42);
+                }
+
+                .mode-image-card--maintenance .mode-image-card__img,
+                .mode-image-card--maintenance:hover .mode-image-card__img {
+                    transform: none;
+                    filter: grayscale(0.64) saturate(0.46) brightness(0.72);
+                }
+
+                .mode-image-card--maintenance .mode-image-card__status {
+                    border-color: rgba(200, 164, 93, 0.48);
+                    color: #ead7a8;
+                }
+
+                .mode-image-card--maintenance .mode-image-card__status i {
+                    background: #c8a45d;
+                    box-shadow: 0 0 8px rgba(200, 164, 93, 0.72);
+                }
+
+                .mode-image-card--maintenance .mode-image-card__launch {
+                    color: #c8b98f;
                 }
 
                 .dm-hitbox:focus-visible {

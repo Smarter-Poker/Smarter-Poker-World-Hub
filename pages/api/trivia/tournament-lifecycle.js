@@ -13,7 +13,8 @@
  *     ->  final standings  ->  atomic, idempotent prize payout
  *
  * It is driven by /api/cron/trivia-tournament-tick (Vercel cron) and can also
- * be poked manually with the CRON_SECRET for ops/debug.
+ * remains dormant and may only be invoked manually with CRON_SECRET during an
+ * approved recovery. Phase 1 has no Vercel, OpenClaw or worker schedule for it.
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (same convention as every other
  * cron-facing route in this repo). Never callable by an end user.
@@ -44,6 +45,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
+import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 
 // ───────────────────────────────────────────────────────────────────────────
 // TUNABLES
@@ -1123,6 +1128,9 @@ export default async function handler(req, res) {
         // This route settles tournaments and moves diamonds — it should not have
         // its own weaker copy of the check.
         if (!requireAdminSecret(req, res, { label: 'tournament-lifecycle' })) return;
+        if (!areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
+        }
 
         const body = req.body || {};
         const tournamentId =

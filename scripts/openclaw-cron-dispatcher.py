@@ -639,7 +639,9 @@ ALL_CRONS = [
     ('/api/cron/content-health-check',            dict(hour=6, minute=0)),   # self-healing monitor
     # Log / state cleanup
     ('/api/cron/purge-idempotency-keys',          dict(hour=8, minute=30)),
-    ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
+    # RETIRED 2026-09-06: the legacy PvP cleanup made settlement decisions in
+    # a separate worker path. Competitive Trivia remains fail-closed while the
+    # single atomic settlement authority is built and verified.
 
     # ══ WAVE 2 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Horses infrastructure. Fleet Content Programme phase 1 (2026-09-05,
@@ -654,9 +656,9 @@ ALL_CRONS = [
     ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
-    # Trivia tournament lifecycle
-    ('/api/cron/trivia-tournaments',              dict(hour=1, minute=0)),
-    ('/api/cron/trivia-tournament-rounds',        dict(minute=0)),           # hourly round advance
+    # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
+    # predate the server-owned nightly engine. Phase 1 keeps competitive play
+    # fail-closed; Phase 6 will add one versioned 8 PM America/Chicago job.
     # User-facing reports / analytics aggregates
     ('/api/cron/training-daily-report',           dict(hour=8, minute=0)),
     ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
@@ -942,7 +944,6 @@ WORKERS_PREFERRED = {
     # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
     '/api/cron/scraper-data-cleanup':   '/cron/scraper-data-cleanup',
     '/api/cron/purge-idempotency-keys': '/cron/purge-idempotency-keys',
-    '/api/cron/trivia-pvp-cleanup':     '/cron/trivia-pvp-cleanup',
     '/api/cron/refresh-venue-json':     '/cron/refresh-venue-json',
     '/api/cron/content-health-check':   '/cron/content-health-check',
     '/api/cron/trivia-daily-generator': '/cron/trivia-daily-generator',
@@ -1001,8 +1002,8 @@ WORKERS_PREFERRED = {
     '/api/cron/scrape-charity-schedules':      '/cron/scrape-charity-schedules',
     '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
-    '/api/cron/trivia-tournament-rounds':      '/cron/trivia-tournament-rounds',
-    '/api/cron/trivia-tournaments':            '/cron/trivia-tournaments',
+    # Legacy Trivia tournament workers retired with their schedules on
+    # 2026-09-06. Direct worker calls return an authenticated 410 tombstone.
     # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04
     # '/api/cron/vip-diamond-stipend' - REMOVED 2026-09-01. Nothing schedules it
     # any more (see the VIP STIPEND note in the schedule block above), and

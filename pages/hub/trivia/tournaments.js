@@ -1,7 +1,7 @@
 /**
  * TOURNAMENTS PAGE — Route: /hub/trivia/tournaments
  * Daily bracket tournament with registration, bracket view, and round play
- * Tournaments start daily at 7PM CST, each round lasts 24 hours
+ * Tournaments are planned for 8 PM Central Time; each round lasts 24 hours.
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -28,6 +28,13 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { prizeSchedule, splitPrizePool } from '../../../src/lib/trivia/prizeSchedule';
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
+import { triviaTournamentPageReleaseResult } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+
+// Direct navigation cannot boot the legacy tournament client while the
+// nightly server-owned tournament engine is being rebuilt.
+export function getServerSideProps() {
+    return triviaTournamentPageReleaseResult(process.env);
+}
 
 export default function TournamentsPage() {
     useTrainingBus('trivia-tournaments');
@@ -1007,7 +1014,7 @@ export default function TournamentsPage() {
                                                         <Calendar size={14} />
                                                         <span>{new Date(tournament.start_time).toLocaleDateString()}</span>
                                                         <Clock size={14} />
-                                                        <span>7:00 PM CST</span>
+                                                        <span>8:00 PM Central</span>
                                                     </div>
                                                 </div>
                                                 <div className="tournament-action">
@@ -1076,7 +1083,7 @@ export default function TournamentsPage() {
                                     <div className="no-tournaments">
                                         <Trophy size={48} color="rgba(255,255,255,0.2)" />
                                         <p>No Tournaments Scheduled Yet.</p>
-                                        <span>Daily Tournaments Start At 7 PM CST!</span>
+                                        <span>Nightly Tournaments Start At 8 PM Central Time!</span>
                                     </div>
                                 </MetalFrame>
                             )}

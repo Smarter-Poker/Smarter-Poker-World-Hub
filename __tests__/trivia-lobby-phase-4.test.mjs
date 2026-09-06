@@ -2,18 +2,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { TRIVIA_MIDDLE_MODES } from '../src/config/triviaModeRegistry.mjs';
 
 const ROOT = process.cwd();
 const LOBBY = readFileSync(join(ROOT, 'src/components/trivia/TriviaLobby.jsx'), 'utf8');
 const HUB_CSS = readFileSync(join(ROOT, 'src/styles/trivia/TriviaHub.module.css'), 'utf8');
-const CARD_DEFINITIONS = LOBBY.slice(
-    LOBBY.indexOf('const MODE_CARDS = ['),
-    LOBBY.indexOf('const MODE_FILTERS = ['),
-);
 
 test('phase five keeps all thirteen modes, artwork files, and the established route handoff', () => {
-    assert.equal((CARD_DEFINITIONS.match(/\n\s*id: '/g) || []).length, 13);
-    assert.equal((CARD_DEFINITIONS.match(/image: '\/images\/trivia\/modes-v2\//g) || []).length, 13);
+    assert.equal(TRIVIA_MIDDLE_MODES.length, 13);
+    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-v2/')));
     assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });
 
