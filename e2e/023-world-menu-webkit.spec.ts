@@ -4,6 +4,61 @@ import { WORLD_MENU_VISUAL_CASES } from './fixtures/world-menu-cases';
 test.use({ storageState: { cookies: [], origins: [] } });
 test.describe.configure({ mode: 'serial', timeout: 60_000 });
 
+async function expectTriggerPainted(page: Page) {
+  const trigger = page.locator('[data-world-menu-trigger]');
+  await expect(trigger).toHaveCount(1);
+
+  // This project runs after a nine-minute, 203-route production soak on the
+  // same CI runner. WebKit can expose the server-rendered header node before
+  // its first paint has caught up with that load. The old generic five-second
+  // assertion failed at that intermediate frame even though the same build
+  // paints consistently in isolated and production stress runs. Keep a hard,
+  // bounded availability gate, and print the complete ancestor paint chain if
+  // the trigger is still not visible on the first observation so a genuine
+  // regression is diagnosable from CI without another instrumentation deploy.
+  let paintedWithinBaseline = false;
+  try {
+    await trigger.waitFor({ state: 'visible', timeout: 5_000 });
+    paintedWithinBaseline = true;
+  } catch (_) {
+    // The final assertion below remains authoritative. This branch only adds
+    // diagnostics once the former gate boundary has actually been exceeded.
+  }
+
+  if (!paintedWithinBaseline) {
+    const paintState = await trigger.evaluate((element) => {
+      const ancestors = [];
+      let node: HTMLElement | null = element as HTMLElement;
+      while (node && ancestors.length < 10) {
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        ancestors.push({
+          tag: node.tagName.toLowerCase(),
+          id: node.id || null,
+          className: typeof node.className === 'string' ? node.className : null,
+          display: style.display,
+          visibility: style.visibility,
+          opacity: style.opacity,
+          contentVisibility: style.contentVisibility,
+          width: Math.round(rect.width * 100) / 100,
+          height: Math.round(rect.height * 100) / 100,
+        });
+        node = node.parentElement;
+      }
+      return {
+        readyState: document.readyState,
+        bodyClass: document.body.className,
+        triggerConnected: element.isConnected,
+        ancestors,
+      };
+    });
+    console.warn(`[world-menu-paint-pending] ${JSON.stringify(paintState)}`);
+  }
+
+  await expect(trigger).toBeVisible({ timeout: 20_000 });
+  return trigger;
+}
+
 async function installReelsFixture(page: Page) {
   const fixture = [{
     id: 'phase-2-menu-audit-reel',
@@ -50,9 +105,7 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
       await page.addInitScript(() => window.sessionStorage.setItem('news-intro-seen', 'true'));
     }
     await page.goto(world.path, { waitUntil: 'domcontentloaded' });
-    const trigger = page.locator('[data-world-menu-trigger]');
-    await expect(trigger).toHaveCount(1);
-    await expect(trigger).toBeVisible();
+    const trigger = await expectTriggerPainted(page);
     await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
     const drawer = page.locator(`[data-world-command-menu="${world.id}"]:visible`);
     // A page-owned header can finish its client-only mount just after the first
