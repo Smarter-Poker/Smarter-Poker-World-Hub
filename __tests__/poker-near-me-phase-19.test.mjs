@@ -95,6 +95,15 @@ test('simulator converts zero-only catalog history into honest publishable estim
   assert.match(simulator, /'data_quality':     sim_data_quality\(\)/);
 });
 
+test('simulator rejects scraped navigation labels before they become venues', async () => {
+  const simulator = await source('scripts/bravo-simulator-daemon.py');
+  assert.match(simulator, /def _is_noise_venue\(venue_name: str, venue_slug: str = ''\)/);
+  assert.match(simulator, /'view live info'/);
+  assert.match(simulator, /'wait list registration'/);
+  assert.match(simulator, /if _is_noise_venue\(canonical_name, slug\):/);
+  assert.match(simulator, /and not _is_noise_venue\(name, slug\)/);
+});
+
 test('machined map artwork and control geometry stay optimized and continuous', async () => {
   const asset = new URL('../public/images/pnm-redesign/map-command-render-v2.webp', import.meta.url);
   const info = await stat(asset);
