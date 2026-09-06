@@ -20,7 +20,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -43,20 +43,6 @@ function getStreetFromBoard(board) {
     if (board.length >= 3) return 'Flop';
     return 'Preflop';
 }
-
-// Map raw solver action codes ('c', 'f', 'x', 'b33', 'r250', 'allin') to
-// display labels so options, gtoAction, and grading share one vocabulary
-const codeToLabel = (a) => {
-    if (a === 'c') return 'Call';
-    if (a === 'f') return 'Fold';
-    if (a === 'x') return 'Check';
-    const m = /^b(\d+)$/.exec(a);
-    if (m) return `Bet ${m[1]}%`;
-    const r = /^r(\d+)$/.exec(a);
-    if (r) return `Raise ${r[1]}%`;
-    if (a === 'allin') return 'All-In';
-    return a;
-};
 
 // Standard GTO action distractor pool
 const ACTION_POOL = [
@@ -117,143 +103,67 @@ export default async function handler(req, res) {
 
           const { format, position, stack } = req.query;
 
-          // ●●● 2026-07-19 AUDIT FIX (wave-1 live sweep): the old
-          // exact-count + random-OFFSET sampling scanned deep into a 2M-row
-          // filtered set — statement timeouts made this endpoint 500 on ~90%
-          // of requests. Replace with a uuid-pivot sample: ids are uuid v4
-          // (uniform), so `id >= random-uuid ORDER BY id LIMIT 1` is a single
-          // indexed probe. Wrap-around to the first row if the pivot lands
-          // past the last id. ●●●
+          // UUID-pivot sampling stays indexed, but all row access and policy
+          // interpretation is owned by the canonical service.
           const randomUuid = require('crypto').randomUUID();
-
-          const buildSpotQuery = (withPivot) => {
-              let q = getSupabase()
-                  .from('solved_spots_gold')
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2');
-              if (format === 'cash') q = q.ilike('game_type', '%cash%');
-              if (format === 'mtt') q = q.ilike('game_type', '%mtt%');
-              if (position) { const safePos = sanitizeParam(position, 10); if (safePos) q = q.ilike('scenario_hash', `%_${safePos}_%`); }
-              if (stack) q = q.eq('stack_depth', parseInt(stack, 10));
-              if (withPivot) q = q.gte('id', randomUuid);
-              return q.order('id', { ascending: true }).limit(1);
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+          const safePosition = position ? sanitizeParam(position, 10) : null;
+          const filters = {
+              gameTypeLike: format === 'cash' ? '%cash%' : format === 'mtt' ? '%mtt%' : undefined,
+              position: safePosition || undefined,
+              stackDepth: stack ? parseInt(stack, 10) : undefined,
+              orderBy: 'id',
+              ascending: true,
+              // Normalization can reject an untrusted V1 row. Read a small
+              // indexed window so one rejected pivot row cannot hide valid
+              // policies that immediately follow it.
+              limit: 25,
           };
-
-          let { data: spots, error: spotErr } = await buildSpotQuery(true);
-          if (!spotErr && (!spots || spots.length === 0)) {
-              // Pivot landed past the last matching id — wrap to the start
-              ({ data: spots, error: spotErr } = await buildSpotQuery(false));
-          }
-          if (spotErr) {
-              console.warn('[SpotDrill] Spot fetch error:', spotErr);
-              return res.status(500).json({ success: false, error: 'Failed to fetch spot' });
-          }
-          if (!spots || spots.length === 0) {
-              return res.status(404).json({ success: false, error: 'No spots found matching filters' });
+          let result = await policyService.listSolvedRecords({ ...filters, idGte: randomUuid });
+          if (result.records.length === 0) result = await policyService.listSolvedRecords(filters);
+          const record = result.records[0];
+          if (!record) {
+              return res.status(404).json({ success: false, error: 'No trusted spots found matching filters' });
           }
 
-          const spot = spots[0];
-          const matrix = selectTrustedSolverMatrix(spot);
-          if (!matrix) {
+          const handSeed = parseInt(randomUuid.replace(/-/g, '').slice(0, 8), 16);
+          const randomHand = policyService.pickHolding(record, handSeed);
+          if (!randomHand) {
               return res.status(200).json({
-                  success: false,
-                  error: 'Spot has no trusted strategy data - retry',
-                  retry: true,
+                  success: false, error: 'Spot has no policy holding - retry', retry: true,
               });
           }
-          const actions = matrix.actions || [];
-          const frequencies = matrix.frequencies || {};
-
-          if (actions.length === 0) {
-              // No action data — try again (skip this spot)
+          const key = policyService.keyForRecord(record);
+          const answer = policyService.answerFromRecord(record, key, { holdingClass: randomHand });
+          if (answer.kind === 'unavailable') {
               return res.status(200).json({
-                  success: false,
-                  error: 'Spot has no action data - retry',
-                  retry: true,
+                  success: false, error: 'Spot has no policy answer - retry', retry: true,
               });
           }
-
-          // 2026-07-19 AUDIT FIX: `cash`/`spin` game_type families store RAW
-          // combo weights (not 0-1 frequencies). Normalize per hand so the
-          // ">10% frequency" filter and displayed percentages are correct
-          // for every family. Argmax (the graded answer) is scale-invariant.
-          const normalizedFreq = (hand) => {
-              const raw = {};
-              let handTotal = 0;
-              for (const action of actions) {
-                  const f = frequencies[action]?.[hand] || 0;
-                  raw[action] = f;
-                  handTotal += f;
-              }
-              const divisor = handTotal > 1.001 ? handTotal : 1;
-              const out = {};
-              for (const action of actions) out[action] = raw[action] / divisor;
-              return out;
-          };
-
-          // Pick a random hand that has frequency data
-          const allHands = Object.keys(frequencies[actions[0]] || {});
-          const handsWithData = allHands.filter(hand => {
-              const norm = normalizedFreq(hand);
-              let maxFreq = 0;
-              for (const action of actions) {
-                  if (norm[action] > maxFreq) maxFreq = norm[action];
-              }
-              return maxFreq > 0.1; // Hand must have a clear action (>10% frequency)
-          });
-
-          if (handsWithData.length === 0) {
-              return res.status(200).json({
-                  success: false,
-                  error: 'No hands with clear actions - retry',
-                  retry: true,
-              });
-          }
-
-          const randomHand = handsWithData[Math.floor(Math.random() * handsWithData.length)];
-
-          // Find the correct GTO action (highest frequency for this hand)
-          let correctAction = actions[0];
-          let correctFreq = 0;
-          const actionBreakdown = {};
-          const handFreqs = normalizedFreq(randomHand);
-
-          for (const action of actions) {
-              const freq = handFreqs[action] || 0;
-              actionBreakdown[action] = Math.round(freq * 1000) / 10; // percentage
-              if (freq > correctFreq) {
-                  correctFreq = freq;
-                  correctAction = action;
-              }
-          }
-
+          const correct = answer.actions.reduce((best, action) =>
+              !best || action.frequency > best.frequency ? action : best, null);
+          const displayBreakdown = Object.fromEntries(answer.actions.map((action) => [
+              action.label, Math.round(action.frequency * 1000) / 10,
+          ]));
+          const options = generateOptions(correct.label, answer.actions.map((action) => action.label));
+          const spot = record.metadata;
           const board = parseBoardFromHash(spot.scenario_hash);
-          const heroPosition = extractPositionFromHash(spot.scenario_hash);
-          const street = getStreetFromBoard(board);
-          // Map raw solver codes to display labels and dedupe (e.g. 'c' -> 'Call'
-          // colliding with pool 'Call') so grading compares like-for-like
-          const displayCorrect = codeToLabel(correctAction);
-          const displayActions = [...new Set(actions.map(codeToLabel))];
-          const displayBreakdown = {};
-          for (const [action, pct] of Object.entries(actionBreakdown)) {
-              const label = codeToLabel(action);
-              displayBreakdown[label] = Math.round(((displayBreakdown[label] || 0) + pct) * 10) / 10;
-          }
-          const options = generateOptions(displayCorrect, displayActions);
 
           return res.status(200).json({
               success: true,
               spot: {
                   id: spot.id,
                   board,
-                  street,
-                  heroPosition,
+                  street: getStreetFromBoard(board),
+                  heroPosition: extractPositionFromHash(spot.scenario_hash),
                   stackDepth: spot.stack_depth,
                   gameType: spot.game_type,
                   heroHand: randomHand,
-                  gtoAction: displayCorrect,
-                  gtoFrequency: Math.round(correctFreq * 1000) / 10,
+                  gtoAction: correct.label,
+                  gtoFrequency: Math.round(correct.frequency * 1000) / 10,
                   actionBreakdown: displayBreakdown,
                   options,
+                  solverPolicy: policyService.consumerEnvelope(answer, 'spot-drill'),
               },
           });
 

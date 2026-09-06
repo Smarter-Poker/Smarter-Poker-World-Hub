@@ -667,7 +667,8 @@ test('reports and custom solve do not manufacture successful activity', () => {
   assert.doesNotMatch(reports, /Demo data for illustration|Sample data is being displayed/);
   assert.match(customSolve, /data\?\.solution\?\.actions/);
   assert.doesNotMatch(customSolve, /gameId: 'custom-solve'|accuracy: 100/);
-  assert.match(solverApi, /source: 'solved_spots_gold'/);
+  assert.match(solverApi, /source: answer\.sourceArtifact\.system/);
+  assert.match(solverApi, /solverPolicy: answer/);
   assert.match(solverApi, /source: 'modeled_baseline'/);
   assert.doesNotMatch(solverApi, /from\('solver_queue'\)|status: 'queued'|queued for precise solving/);
 });

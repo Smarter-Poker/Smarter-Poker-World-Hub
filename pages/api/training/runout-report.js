@@ -19,7 +19,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -35,42 +35,6 @@ function getSupabase() {
 // Card constants for building 52-card deck (used by runout simulation)
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUITS = ['s', 'h', 'd', 'c'];
-/**
- * Calculate aggregate "strategy aggression" as a proxy for EV
- * when hand_evs is not available. Higher raise/bet frequency = higher EV spot for IP player.
- */
-function calculateAggressionIndex(strategyMatrix) {
-    if (!strategyMatrix) return 0;
-    const actions = strategyMatrix.actions || [];
-    const frequencies = strategyMatrix.frequencies || {};
-
-    let totalBetRaise = 0;
-    let totalCheckCall = 0;
-    let totalFold = 0;
-    let handCount = 0;
-
-    for (const action of actions) {
-        const freqs = frequencies[action] || {};
-        const a = action.toLowerCase();
-        const isBetRaise = a === 'r' || a === 'b' || a === 'raise' || a === 'bet' || a === 'allin';
-        const isFold = a === 'f' || a === 'fold';
-
-        for (const [hand, freq] of Object.entries(freqs || {})) {
-            if (freq > 0) {
-                if (isBetRaise) totalBetRaise += freq;
-                else if (isFold) totalFold += freq;
-                else totalCheckCall += freq;
-                handCount++;
-            }
-        }
-    }
-
-    // Aggression index: (bet+raise) - fold as a EV proxy
-    const total = totalBetRaise + totalCheckCall + totalFold;
-    if (total === 0) return 0;
-    return ((totalBetRaise - totalFold) / total) * 100;
-}
-
 export default async function handler(req, res) {
   try {
       withTiming(res);
@@ -110,59 +74,35 @@ export default async function handler(req, res) {
               }
           }
 
-          // Get current spot's aggression index as baseline
-          const { data: currentSpot } = await getSupabase()
-              .from('solved_spots_gold')
-              .select('strategy_matrix, strategy_matrix_v2')
-              .eq('scenario_hash', safeHash)
-              .maybeSingle();
-
-          const currentMatrix = currentSpot ? selectTrustedSolverMatrix(currentSpot) : null;
-          if (currentSpot && !currentMatrix) {
-              return res.status(422).json({
-                  success: false,
-                  error: 'This spot has no trusted solver strategy available',
-              });
-          }
-          const baselineAggression = currentMatrix ? calculateAggressionIndex(currentMatrix) : 0;
-
-          // Query all child spots for possible runout cards
-          // A child has the same scenario_hash but with 2 more characters (one more card)
-          // Use the full current hash + 2 wildcard chars for precision
-
-          const { data: childSpots, error } = await getSupabase()
-              .from('solved_spots_gold')
-              // 2026-08-15 CHECK 13 fix: hand_evs is not a top-level column — it
-              // lives INSIDE the strategy_matrix jsonb. Selecting it 42703'd the
-              // whole query, so the runout report always 500'd.
-              .select('scenario_hash, strategy_matrix, strategy_matrix_v2')
-              .ilike('scenario_hash', `${safeHash}__`)
-              .limit(200);
-
-          if (error) {
-              console.warn('[RunoutReport] Query error:', error);
-              return res.status(500).json({ success: false, error: 'Database query failed' });
-          }
-
-          // Build a map of next-card → child spot data
-          const childMap = {};
-          (childSpots || []).forEach(spot => {
-              const childBoard = parseBoardFromHash(spot.scenario_hash);
-              // Only consider spots that are exactly 1 card deeper
-              if (childBoard.length === currentBoard.length + 1) {
-                  const nextCard = childBoard[currentBoard.length];
-                  if (nextCard) {
-                      const childMatrix = selectTrustedSolverMatrix(spot);
-                      if (!childMatrix) return;
-                      const childAggression = calculateAggressionIndex(childMatrix);
-                      childMap[nextCard.toLowerCase()] = {
-                          aggression: childAggression,
-                          ev_delta: childAggression - baselineAggression,
-                          handEvs: childMatrix.hand_evs,
-                      };
-                  }
-              }
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+          const currentResult = await policyService.listSolvedRecords({
+              scenarioHash: safeHash, limit: 1,
           });
+          const currentRecord = currentResult.records[0] || null;
+          const baselinePolicy = currentRecord
+              ? policyService.answerFromRecord(
+                  currentRecord, policyService.keyForRecord(currentRecord), { mode: 'aggregate' },
+              )
+              : policyService.aggregateRecords([], {}, {});
+          const baselineAggression = currentRecord
+              ? policyService.aggressionIndex(currentRecord) ?? 0 : 0;
+
+          const { records: childSpots } = await policyService.listSolvedRecords({
+              scenarioHashLike: `${safeHash}__`, limit: 200,
+          });
+          const childMap = {};
+          for (const record of childSpots) {
+              const childBoard = parseBoardFromHash(record.metadata.scenario_hash);
+              if (childBoard.length !== currentBoard.length + 1) continue;
+              const nextCard = childBoard[currentBoard.length];
+              if (!nextCard) continue;
+              const childAggression = policyService.aggressionIndex(record);
+              if (childAggression === null) continue;
+              childMap[nextCard.toLowerCase()] = {
+                  aggression: childAggression,
+                  ev_delta: childAggression - baselineAggression,
+              };
+          }
 
           // Build the runout report for all 52 cards
           const runouts = {};
@@ -186,6 +126,7 @@ export default async function handler(req, res) {
               currentBoard,
               childrenFound: Object.keys(childMap || {}).length,
               baselineAggression: Math.round(baselineAggression * 100) / 100,
+              solverPolicy: policyService.consumerEnvelope(baselinePolicy, 'runout-report'),
           });
 
       } catch (err) {
