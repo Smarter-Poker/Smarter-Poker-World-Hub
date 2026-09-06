@@ -200,6 +200,54 @@ separate seven-day chip-flow detector, and 18 pairs overlapped an open
 sources and makes overlap visible rather than presenting either source as the
 whole detector population.
 
+### 2.1 Queue ranking contract
+
+The queue is one row per canonical unordered player pair, not one row per
+detector observation. `player_a_id` is the lower UUID and `player_b_id` is the
+higher UUID for grouping only; the evidence keeps the detector's original
+direction. The active population combines open `collusion_tracking` rows with
+`ca_collusion_signals` rows. It reports the total observations, distinct
+patterns, detector sources, first and last seen times, maximum suspicion score,
+money-flow measures, participant composition and any attached case state.
+
+Ranking is lexicographic and explainable. It never manufactures one decimal
+"risk score" from unlike evidence:
+
+1. **Active case.** A pair already attached to an open or investigating case
+   remains at the top until the operator resolves it.
+2. **Multiple signal families.** Evidence from both source tables or from
+   multiple independent pattern families ranks next.
+3. **Seven-day money flow.** A `ca_collusion_signals` observation, including
+   its separately labelled chip-flow and duel-repeat variants, ranks next.
+4. **Chip-dump pattern.** A `collusion_tracking` `CHIP_DUMP` ranks next.
+5. **Other non-timing evidence.** `SOFT_PLAY`, `WIN_RATE_ANOMALY` or an
+   unresolved anti-cheat flag ranks next.
+6. **Timing only.** Pairs whose only evidence is `TIMING_CORRELATION` remain
+   reachable and paginated in the final tier.
+
+Within a tier, the stable tie-break order is distinct evidence windows
+descending, absolute net flow descending for money-flow tiers, gross flow
+descending, evidence sample size descending, last seen descending, then the
+two canonical player UUIDs ascending. Null measures sort last. Raw detector
+scores are disclosed inside their own family but never compared across
+families. The API returns the tier and the reasons that placed the pair there,
+so the console can explain the order without reverse-engineering it.
+
+Every response returns unfiltered totals for each tier, pattern and participant
+composition before applying an operator's view filters. The default composition
+is all players and `p_include_horses` defaults to true. An operator may narrow
+the view to horse / horse, horse / human or human / human, but composition never
+changes rank and is never an implicit exclusion. A dedicated timing-only view
+and its own count keep the 6,078-plus correlated HorseLogic rows visible without
+letting them bury chip-flow evidence.
+
+Pagination uses the complete ranking tuple as a cursor rather than offset, with
+a bounded page size. The queue state is also explicit: `review_available` when
+groups exist, `nothing_to_review` when a healthy producing source has no active
+groups, `nothing_produced` when the detector has not produced an observation,
+and `unknown` when a source or its health cannot be read. The console must not
+infer any of these states from an empty array.
+
 **Therefore I3 (multi-accounting link graph) is DEFERRED**, for the same reason
 Phase 4 deferred markers of harm: `signup_abuse_log` and `user_devices` are
 both empty, so the graph would have no edges and the panel could not be told
@@ -207,7 +255,7 @@ apart from a broken one. It needs the device and signup pipeline first, and
 that is not console work. Say so on the tab rather than shipping an empty
 graph.
 
-**I5 (bot and RTA indicators) SHIPS NARROWED.** `horse_decision_latency` has 57
+**I5 (bot and RTA indicators) SHIPS NARROWED.** `horse_decision_latency` has 84
 rows and there is no equivalent table for humans, so a timing distribution
 comparing the two cannot be built honestly yet. What ships is the distribution
 that CAN be read from `hand_history.actions[]`, with the horse rows beside the
