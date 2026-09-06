@@ -26,6 +26,7 @@ import {
 } from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
 
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
@@ -491,7 +492,7 @@ export default function ShoppingCart() {
         },
       };
       const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
-      const res = await fetch('/api/store/create-checkout-session', {
+      const res = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -570,7 +571,7 @@ export default function ShoppingCart() {
 
     setCheckingOut(true);
     try {
-      const res = await fetch('/api/store/purchase-with-diamonds', {
+      const res = await boundedCommerceFetch('/api/store/purchase-with-diamonds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

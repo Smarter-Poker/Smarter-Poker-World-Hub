@@ -11,6 +11,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
@@ -49,7 +50,9 @@ const PURCHASE_ERRORS = {
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
       return res.status(405).json({ success: false, error: 'POST only' });
     }
 

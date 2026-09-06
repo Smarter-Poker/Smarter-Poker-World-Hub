@@ -32,6 +32,7 @@ import { randomUUID, createHash } from 'crypto';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 const { requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 let _supabase = null;
 function getSupabase() {
@@ -201,6 +202,7 @@ export default async function handler(req, res) {
     // unresolvable in the catch and the refund would silently never run.
     let refundSender = null;
     try {
+        setPrivateCommerceResponse(res);
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }

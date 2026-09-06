@@ -9,6 +9,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { LEDGER_FILTERS, applyFilterToQuery } = require('../../../src/lib/diamonds/ledgerFilters');
 
 let _supabase = null;
@@ -27,6 +28,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -132,7 +134,6 @@ export default async function handler(req, res) {
 
       // Response includes the LIVE balance — never let the browser serve a
       // cached pre-transaction balance right after a purchase/transfer.
-      res.setHeader('Cache-Control', 'private, no-store');
 
       /*
        * A failed COUNT must not blank the wallet. The rows are what the

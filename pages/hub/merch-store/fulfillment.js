@@ -9,6 +9,9 @@ import { acquireScrollLock } from '../../../src/lib/scrollLock';
 import supabase from '../../../src/lib/supabase';
 import styles from './fulfillment.module.css';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
+
+const FULFILLMENT_AUTH_TIMEOUT_MS = 20000;
 
 function itemLabel(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -27,25 +30,40 @@ export default function MerchandiseFulfillmentConsole() {
   const operationDialogRef = useRef(null);
   const operationTitleRef = useRef(null);
   const operationTriggerRef = useRef(null);
+  const loadAbortRef = useRef(null);
 
   const loadOrders = useCallback(async ({ append = false, cursor = null } = {}) => {
     const requestId = ++requestRef.current;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    let authTimer = null;
     setState({ kind: 'loading', message: 'Refreshing protected fulfillment queue…' });
-    const user = await ensureAuthReady(supabase);
-    const token = getAccessToken();
-    if (requestId !== requestRef.current) return;
-    if (!user?.id || !token) {
-      ordersRef.current = [];
-      setOrders([]);
-      setState({ kind: 'auth', message: 'Sign in with a store-operator account.' });
-      return;
-    }
     try {
+      const authDeadline = new Promise((_resolve, reject) => {
+        authTimer = setTimeout(() => {
+          const error = new Error('Operator Session Check Timed Out. Retry The Secure Queue Read.');
+          error.name = 'CommerceTimeoutError';
+          reject(error);
+        }, FULFILLMENT_AUTH_TIMEOUT_MS);
+      });
+      const user = await Promise.race([ensureAuthReady(supabase), authDeadline]);
+      if (authTimer) clearTimeout(authTimer);
+      authTimer = null;
+      const token = getAccessToken();
+      if (requestId !== requestRef.current) return;
+      if (!user?.id || !token) {
+        ordersRef.current = [];
+        setOrders([]);
+        setState({ kind: 'auth', message: 'Sign in with a store-operator account.' });
+        return;
+      }
       const params = new URLSearchParams({ limit: '50' });
       if (cursor) params.set('cursor', cursor);
-      const response = await fetch(`/api/store/fulfillment-operations?${params}`, {
+      const response = await boundedCommerceFetch(`/api/store/fulfillment-operations?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
+        signal: controller.signal,
       });
       const body = await response.json().catch(() => null);
       if (requestId !== requestRef.current) return;
@@ -65,17 +83,26 @@ export default function MerchandiseFulfillmentConsole() {
       });
     } catch (error) {
       if (requestId !== requestRef.current) return;
+      if (error?.name === 'AbortError') return;
       if (!append) {
         ordersRef.current = [];
         setOrders([]);
       }
       setState({ kind: 'error', message: error?.message || 'Queue unavailable' });
+    } finally {
+      if (authTimer) clearTimeout(authTimer);
+      if (loadAbortRef.current === controller) loadAbortRef.current = null;
+      controller.abort();
     }
   }, []);
 
   useEffect(() => {
     void loadOrders();
-    return () => { requestRef.current += 1; };
+    return () => {
+      requestRef.current += 1;
+      loadAbortRef.current?.abort();
+      loadAbortRef.current = null;
+    };
   }, [loadOrders]);
 
   useEffect(() => {
@@ -133,7 +160,7 @@ export default function MerchandiseFulfillmentConsole() {
 
     setBusyId(order.id);
     try {
-      const response = await fetch('/api/store/fulfillment-operations', {
+      const response = await boundedCommerceFetch('/api/store/fulfillment-operations', {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

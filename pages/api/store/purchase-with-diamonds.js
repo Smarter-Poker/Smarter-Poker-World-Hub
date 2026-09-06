@@ -4,6 +4,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 const {
   requireEmailVerified,
@@ -117,6 +118,7 @@ async function recordFulfillmentState(orderId, update) {
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'POST');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -140,6 +142,15 @@ export default async function handler(req, res) {
 
     if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > MAX_BODY_BYTES) {
       return res.status(413).json({ success: false, error: 'Request body too large' });
+    }
+    const allowedFields = new Set(['items', 'shipping']);
+    const unknownFields = Object.keys(req.body || {})
+      .filter((field) => !allowedFields.has(field));
+    if (unknownFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Unknown fields: ${unknownFields.join(', ')}`,
+      });
     }
     const clientKey = readPurchaseKey(req);
     if (!clientKey) {

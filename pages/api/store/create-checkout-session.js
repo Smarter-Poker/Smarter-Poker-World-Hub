@@ -9,11 +9,21 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 const {
     isPrintfulReady,
     resolvePrintfulMapping,
 } = require('../../../src/lib/store/printfulFulfillment');
+
+const MAX_CHECKOUT_BODY_BYTES = 64 * 1024;
+const CHECKOUT_BODY_FIELDS = new Set([
+    'type',
+    'items',
+    'successUrl',
+    'cancelUrl',
+    'redemptionIntent',
+]);
 
 let _supabase = null;
 function getSupabase() {
@@ -621,11 +631,13 @@ async function findExistingCheckout(type, userId, checkoutRequestId, intentHash)
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
       if (req.method !== 'POST') {
+          res.setHeader('Allow', 'POST');
           return res.status(405).json({
               success: false,
               error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
@@ -683,6 +695,25 @@ export default async function handler(req, res) {
               emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
           }
           if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+          const bodyBytes = Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8');
+          if (bodyBytes > MAX_CHECKOUT_BODY_BYTES) {
+              return res.status(413).json({
+                  success: false,
+                  error: { code: 'BODY_TOO_LARGE', message: 'Checkout request body is too large' }
+              });
+          }
+          const unknownFields = Object.keys(req.body || {})
+              .filter((field) => !CHECKOUT_BODY_FIELDS.has(field));
+          if (unknownFields.length > 0) {
+              return res.status(400).json({
+                  success: false,
+                  error: {
+                      code: 'UNKNOWN_FIELDS',
+                      message: `Unknown checkout fields: ${unknownFields.join(', ')}`
+                  }
+              });
+          }
 
           const { type, items, successUrl, cancelUrl, redemptionIntent: rawRedemptionIntent } = req.body || {};
 

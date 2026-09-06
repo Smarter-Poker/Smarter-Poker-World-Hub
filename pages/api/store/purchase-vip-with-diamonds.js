@@ -23,6 +23,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 let _supabase = null;
 function getSupabase() {
@@ -138,7 +139,9 @@ function buildReferenceId(userId, clientKey) {
 
 export default async function handler(req, res) {
   try {
+      setPrivateCommerceResponse(res);
       if (req.method !== 'POST') {
+          res.setHeader('Allow', 'POST');
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
@@ -168,6 +171,19 @@ export default async function handler(req, res) {
               emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
           }
           if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+          if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > 512) {
+              return res.status(413).json({ success: false, error: 'Request body too large' });
+          }
+          const allowedFields = new Set(['plan', 'idempotencyKey']);
+          const unknownFields = Object.keys(req.body || {})
+              .filter((field) => !allowedFields.has(field));
+          if (unknownFields.length > 0) {
+              return res.status(400).json({
+                  success: false,
+                  error: `Unknown fields: ${unknownFields.join(', ')}`
+              });
+          }
 
           // ── Resolve the plan + cost SERVER-SIDE from the plan key ────────
           const planKey = req.body && typeof req.body.plan === 'string' ? req.body.plan.trim().toLowerCase() : '';
