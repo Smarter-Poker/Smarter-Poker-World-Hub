@@ -156,11 +156,11 @@ The final broad two-project Playwright sweep exposed a release-test wiring gap:
 the location-header and map-signal captures were selecting the same implicit
 snapshot name for desktop and mobile despite having separate reviewed
 baselines. Both assertions now bind explicitly to their project-specific
-baseline. The shared-map marker probe also performs hit testing and activation
-atomically so a legitimate live-data marker refresh cannot detach the locator
-between those two operations. This closes the last deterministic failures and
-the remaining retry-only PNM signal without weakening any visual, geometry, or
-interaction assertion.
+baseline. The shared-map marker probe also performs hit testing, activation,
+and popup-contract capture atomically so a legitimate live-data marker refresh
+cannot detach either the marker or its actions between assertions. This closes
+the last deterministic failures and the remaining retry-only PNM signal without
+weakening any visual, geometry, or interaction assertion.
 
 Final publication evidence is attached to the merge request and production
 deployment records so the repository document does not depend on a mutable
