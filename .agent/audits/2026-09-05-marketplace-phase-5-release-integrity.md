@@ -29,6 +29,11 @@ also offers Diamond settlement.
   removed, and the repository text gate now reports no banned long bar.
 - The repaired repository lint runner generated `.cache/eslint` without an
   ignore rule. The generated cache is now excluded from source control.
+- Production publication exposed fourteen broken symbolic links under the
+  training image directory. Their timestamped targets had been removed in a
+  public-asset cleanup, and Vercel failed after a successful compile while
+  packaging the first dangling link. The unreferenced links are removed, and
+  the public-asset budget gate now rejects every symbolic link before merge.
 
 ## Preserved Boundaries
 

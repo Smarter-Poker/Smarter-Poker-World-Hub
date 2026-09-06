@@ -63,6 +63,7 @@ function walk(dir) {
   let bytes = 0;
   let files = 0;
   const biggest = [];
+  const symlinks = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -70,25 +71,37 @@ function walk(dir) {
       bytes += sub.bytes;
       files += sub.files;
       biggest.push(...sub.biggest);
+      symlinks.push(...sub.symlinks);
     } else if (entry.isFile()) {
       const size = statSync(path).size;
       bytes += size;
       files += 1;
       biggest.push({ path, size });
+    } else if (entry.isSymbolicLink()) {
+      symlinks.push(path);
     }
   }
   biggest.sort((a, b) => b.size - a.size);
-  return { bytes, files, biggest: biggest.slice(0, 10) };
+  return { bytes, files, biggest: biggest.slice(0, 10), symlinks };
 }
 
 const mb = (n) => `${(n / 1_000_000).toFixed(1)} MB`;
 
-const { bytes, files, biggest } = walk('public');
+const { bytes, files, biggest, symlinks } = walk('public');
 const overBytes = bytes - BUDGET_BYTES;
 const overFiles = files - BUDGET_FILES;
 
 console.log(`public/ is ${mb(bytes)} across ${files} files.`);
 console.log(`budget:  ${mb(BUDGET_BYTES)} across ${BUDGET_FILES} files.`);
+
+if (symlinks.length > 0) {
+  console.error('');
+  console.error('::error title=public/ CONTAINS SYMBOLIC LINKS::Vercel production packaging requires real public assets. Symbolic links can resolve differently or point at deleted files during artifact collection.');
+  console.error('');
+  console.error('Replace or remove these symbolic links:');
+  for (const path of symlinks.sort()) console.error(`  ${path}`);
+  process.exit(1);
+}
 
 if (overBytes <= 0 && overFiles <= 0) {
   const slack = mb(-overBytes);
