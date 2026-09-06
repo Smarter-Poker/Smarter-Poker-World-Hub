@@ -88,6 +88,7 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
       bodyTransform: window.getComputedStyle(document.body).textTransform,
       titleViolations: document.title.includes(mark) ? 1 : 0,
       textViolations: [...document.querySelectorAll('body *')]
+        .filter(element => !['SCRIPT', 'STYLE', 'TEXTAREA', 'TEMPLATE'].includes(element.tagName))
         .filter(element => !element.closest('pre,code,[data-pa-verbatim]'))
         .reduce((count, element) => (
           count + [...element.childNodes]
