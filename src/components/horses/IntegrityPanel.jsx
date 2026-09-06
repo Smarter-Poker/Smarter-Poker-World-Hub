@@ -353,7 +353,7 @@ function SimpleRecordCard({ row, kind }) {
             <Fact label="Player A"><Participant name={participantName(row, 'a')} horse={participantIsHorse(row, 'a')} /></Fact>
             <Fact label="Player B"><Participant name={participantName(row, 'b')} horse={participantIsHorse(row, 'b')} /></Fact>
             <Fact label="Gross Flow">{num(first(row, 'gross_flow', 'grossFlow'), 'Unknown')}</Fact>
-            <Fact label="Net Flow">{num(first(row, 'net_flow', 'netFlow'), 'Unknown')}</Fact>
+            <Fact label="Absolute Net Flow">{num(first(row, 'absolute_net_flow', 'absoluteNetFlow'), 'Unknown')}</Fact>
           </>
         )}
         {kind === 'flags' && (

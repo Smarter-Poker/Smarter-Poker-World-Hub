@@ -117,3 +117,10 @@ test('timing expands the RPC distribution and renders its exact coverage', () =>
   assert.doesNotMatch(panel, /Ninety-Fifth Percentile/,
     'the UI must not ask for a percentile the timing RPC does not return');
 });
+
+test('pair cards render the queue contract absolute net flow field', () => {
+  assert.match(panel, /label="Absolute Net Flow"/);
+  assert.match(panel, /first\(row, 'absolute_net_flow', 'absoluteNetFlow'\)/);
+  assert.doesNotMatch(panel, /label="Net Flow"/,
+    'the pair RPC does not return a top-level directional net_flow field');
+});

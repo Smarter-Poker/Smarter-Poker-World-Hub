@@ -55,6 +55,9 @@ landed, so Phase 5 was not considered released.
    its RPC returns a composition-keyed distribution with no percentile. That
    false-empty path is replaced with exact per-composition timing rows and an
    explicit sample-coverage card, including the truncation flag.
+10. Pair cards requested a top-level `net_flow` field the ranked-pair RPC does
+    not return, making every live value appear unknown. The card now renders
+    the contract's `absolute_net_flow` under an exact "Absolute Net Flow" label.
 
 ## Production Database Evidence
 
