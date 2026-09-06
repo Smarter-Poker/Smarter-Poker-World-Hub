@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 const trainingPage = read('pages/hub/training/daily-challenge.js');
+const trainingApi = read('pages/api/training/hand-of-the-day.js');
 const trainingCss = read('src/styles/training/daily-challenge-casino.module.css');
 const goalsPage = read('pages/hub/training/daily-goals.js');
 const goalsCss = read('src/styles/training/daily-goals-casino.module.css');
@@ -53,6 +54,19 @@ test('Daily GTO result persistence has a real retry path', () => {
   assert.match(trainingPage, /setPendingSave\(\{ action, isCorrect, today \}\)/);
   assert.match(trainingPage, /await saveAnswer\(pendingSave\)/);
   assert.match(trainingPage, /savingAnswer \? 'Saving Result' : 'Retry Save'/);
+});
+
+test('Daily GTO grading and rewards are server authoritative and truthful', () => {
+  assert.doesNotMatch(trainingPage, /score:\s*isCorrect/);
+  assert.doesNotMatch(trainingPage, /evLoss:\s*isCorrect/);
+  assert.match(trainingPage, /evLoss=\{resultIsCorrect \? 0 : undefined\}/);
+  assert.match(trainingApi, /dailyId !== expectedDailyId/);
+  assert.match(trainingApi, /Never trust score, correctness, EV loss, or the reward decision from/);
+  assert.match(trainingApi, /const submittedCorrect =/);
+  assert.match(trainingApi, /score: isCorrect \? 100 : 0/);
+  assert.match(trainingApi, /ev_loss: isCorrect \? 0 : null/);
+  assert.match(trainingApi, /if \(isCorrect\) \{/);
+  assert.doesNotMatch(trainingApi, /const \{ dailyId, score, evLoss, selectedAction \} = req\.body/);
 });
 
 test('Daily layouts are mobile first, accessible, and motion safe', () => {

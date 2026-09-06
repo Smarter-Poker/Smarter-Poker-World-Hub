@@ -218,7 +218,7 @@ export default function DailyChallengePage() {
 
   useEffect(() => {
     fetchChallenge();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Bus listener
   useEffect(() => {
@@ -241,10 +241,7 @@ export default function DailyChallengePage() {
     const saveResponse = await authedFetch('/api/training/hand-of-the-day', {
       method: 'POST',
       body: JSON.stringify({
-        userId: user.id,
         dailyId: dailyId || `daily-${today}`,
-        score: isCorrect ? 100 : 0,
-        evLoss: isCorrect ? 0 : 1,
         selectedAction: action,
       }),
     });
@@ -488,7 +485,7 @@ export default function DailyChallengePage() {
                         verdict={resultIsCorrect ? 'correct' : 'incorrect'}
                         userAction={selected || ''}
                         solverAction={correctAnswer}
-                        evLoss={0}
+                        evLoss={resultIsCorrect ? 0 : undefined}
                         whyShort={resultIsCorrect ? "Solver-correct." : `Solver prefers ${correctAnswer}.`}
                         compact
                       />
