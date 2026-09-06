@@ -32,6 +32,7 @@ import {
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -230,6 +231,8 @@ export default async function handler(req, res) {
       }
 
       question = enforceTrainingQuestionContract(question);
+      question = new SolverPolicyService({ db: getSupabase() })
+        .attachToQuestion(question, 'get-question');
       if (!isTrainingQuestionValid(question)) {
         console.warn('[Training] Question rejected by integrity contract:', question?.questionContract?.issues);
         return res.status(422).json({

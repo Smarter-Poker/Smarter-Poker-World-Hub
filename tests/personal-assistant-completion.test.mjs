@@ -148,7 +148,8 @@ test('wiring guards cover cached persistence, canonical source priority, and liv
   const hub = fs.readFileSync(new URL('../pages/hub/personal-assistant/index.js', import.meta.url), 'utf8');
   const hooks = fs.readFileSync(new URL('../src/hooks/useAssistant.js', import.meta.url), 'utf8');
 
-  assert.ok(analyze.indexOf(".from('training_question_cache')") < analyze.indexOf(".from('solved_spots_gold')"));
+  assert.ok(analyze.indexOf(".from('training_question_cache')") < analyze.indexOf('new SolverPolicyService'));
+  assert.doesNotMatch(analyze, /\.from\(['"]solved_spots_gold['"]\)/);
   assert.match(analyze, /if \(cached[\s\S]+persistSandboxAnalysis\([\s\S]+cached\.data/);
   assert.doesNotMatch(stats, /sandbox_sessions!inner/);
   assert.doesNotMatch(hooks, /sandbox_results\s*\(/);

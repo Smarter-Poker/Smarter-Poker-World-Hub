@@ -57,7 +57,7 @@ async function testGodMode() {
                 console.log();
                 console.log('   Sample Hand: AhKd');
                 console.log(`   └─ Best Action: ${sampleHand.best_action}`);
-                console.log(`   └─ Max EV: ${sampleHand.max_ev.toFixed(2)}`);
+                console.log(`   └─ Max EV: ${sampleHand.max_ev === null ? 'not supplied' : sampleHand.max_ev.toFixed(2)}`);
                 console.log(`   └─ Is Mixed: ${sampleHand.is_mixed ? 'Yes' : 'No'}`);
             }
         }
