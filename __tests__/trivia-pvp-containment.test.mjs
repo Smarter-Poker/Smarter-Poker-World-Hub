@@ -797,6 +797,8 @@ test('entry, public settlement and direct page all use the server-only gate', ()
     assert.match(pvpPage, /async function handleHorseMatch\(stake\) \{[\s\S]{0,80}!pvpHorsesEnabled/);
     assert.doesNotMatch(settlementCron, /isTriviaPvpReleased|rejectUnavailableTriviaPvp/,
         'the authenticated sweep must still drain/refund funded matches while entry is off');
+    assert.match(settlementCron, /Cache-Control', 'private, no-store, max-age=0'/,
+        'private recovery receipts must never be cached');
     assert.match(settlementCron, /settlePvpMatch\(sb, match, \{ force: true \}\)/);
 });
 
@@ -881,6 +883,8 @@ test('the containment suite is wired into build and the blocking PR guard', () =
     assert.match(productionSmoke, /payload\?\.version.*=== expectedWorldHubSha/s);
     assert.match(productionSmoke, /signInWithPassword/);
     assert.match(productionSmoke, /temporaryFixtureRemoved: true/);
+    assert.match(productionSmoke, /expectAuthorizedPvpRecovery\(cronHeaders\)/);
+    assert.match(productionSmoke, /expected an empty contained queue/);
     assert.match(productionSmoke, /\.range\(offset, offset \+ 999\)/);
     assert.match(productionSmoke, /\['upcoming', 'registration', 'active'\]/);
     assert.match(productionSmoke, /databaseProjectRef: PROJECT_REF/);

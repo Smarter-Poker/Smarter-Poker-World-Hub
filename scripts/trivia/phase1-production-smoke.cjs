@@ -179,6 +179,32 @@ async function expectRetired(route) {
     return { route, status: response.status };
 }
 
+async function expectAuthorizedPvpRecovery(headers) {
+    const route = '/api/cron/pvp-settle';
+    const response = await fetch(`${baseUrl}${route}`, {
+        method: 'GET',
+        redirect: 'manual',
+        headers: { 'cache-control': 'no-cache', ...headers },
+    });
+    const payload = await response.json().catch(() => null);
+    invariant(response.status === 200, `${route}/cron-authorized: expected 200, received ${response.status}`);
+    invariant(payload?.success === true, `${route}/cron-authorized: recovery sweep was not healthy`);
+    invariant(payload?.scanned === 0, `${route}/cron-authorized: expected an empty contained queue`);
+    invariant(payload?.settled === 0, `${route}/cron-authorized: unexpectedly settled a match`);
+    invariant(Array.isArray(payload?.results) && payload.results.length === 0,
+        `${route}/cron-authorized: unexpected settlement records`);
+    invariant(/no-store/i.test(response.headers.get('cache-control') || ''),
+        `${route}/cron-authorized: private recovery response is cacheable`);
+    return {
+        route,
+        caller: 'cron-authorized',
+        status: response.status,
+        healthy: true,
+        scanned: 0,
+        settled: 0,
+    };
+}
+
 async function authenticateProbe(url, anonKey) {
     const email = process.env.PROBE_LOGIN_EMAIL || process.env.TEST_USER_EMAIL;
     const password = process.env.PROBE_LOGIN_PASSWORD || process.env.TEST_USER_PASSWORD;
@@ -273,9 +299,7 @@ async function main() {
         apiProbes.push(await expectUnavailable('/api/cron/trivia-tournament-tick', {
             method: 'GET', headers: cronHeaders, caller: 'cron-authorized',
         }));
-        apiProbes.push(await expectUnavailable('/api/cron/pvp-settle', {
-            method: 'GET', headers: cronHeaders, caller: 'cron-authorized',
-        }));
+        apiProbes.push(await expectAuthorizedPvpRecovery(cronHeaders));
 
         const pageProbes = await Promise.all([
             expectRedirect('/hub/trivia/pvp'),
