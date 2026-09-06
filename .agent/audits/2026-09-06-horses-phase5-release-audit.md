@@ -119,9 +119,48 @@ landed, so Phase 5 was not considered released.
 - A more aggressive evidence-pagination rewrite measured 6,727 ms in rollback
   and was discarded. It was never applied or committed.
 
-## Remaining Release Gate
+## Release Gate Evidence
 
-The repository change must land on current `origin/main`, CI must pass, Git
-integration must publish that exact main commit, production health must report
-the exact SHA, and authenticated desktop plus 375px checks must pass. Until all
-of those are true, this audit does not call Phase 5 published.
+- Phase 5 and its release repairs landed through PRs 1464, 1470, 1474, 1476,
+  1481, 1494, 1497, 1502, and 1504. Each repair was cut from the then-current
+  `origin/main`; no follow-up commit was pushed to an already merged branch.
+- The safe-push build gate, checks 1 through 12, UI text gate, and Title Case
+  gate passed for the final three UI repairs. The complete relevant Horses and
+  integrity corpus passed 948 of 948 tests. The repository guard passed 1,261
+  of 1,261 tests, TypeScript passed, and the production Next.js build passed.
+- Direct service-role PostgREST calls returned HTTP 200 for all seven read
+  contracts. Health, queue, pairs, flags, timing, and hands returned their
+  expected success states; a nonexistent case returned the expected structured
+  `CASE_NOT_FOUND` state. The slowest call in that final sweep was 3,384 ms.
+- Authenticated production checks covered Queue, Case, Pairs, Flags, Timing,
+  Hands, and Health. Chip Dump filtering returned 421 reachable pairs. Timing
+  rendered 200 sampled hands, 1,481 actions, 1,127 adjacent pairs, and the
+  explicit truncation disclosure. A current player search returned populated
+  hand cards; a player with no sampled hands returned the honest empty state.
+- The 375px production pass had a 375px document width with no horizontal
+  overflow. The navigation, coverage warning, queue controls, and case card
+  remained reachable without converting the evidence cards into a desktop
+  table.
+- Production registered each of the five Phase 5 migrations exactly once. All
+  twenty `fn_ca_integrity_*` functions are executable by `service_role` and by
+  neither `authenticated` nor `anon`. Production contains zero cases, zero
+  case items, and zero sanctions after the deliberate rollback probes.
+- The historical 1,241,438-hand gap remains disclosed. The gap columns were
+  never cleared to make the banner green. The worker still reports a 30-minute
+  detection span, `identity_filtered: false`, and
+  `aggregates_across_runs: false`.
+- A 16:00 UTC detector run was interrupted when an unrelated worker release
+  replaced the container 22 seconds after the run began. The durable mark did
+  not advance. The 16:30 scheduled run then retained and completed that
+  60-minute span: 15,830 hands in 40,984 ms, cursor advanced, 119 seconds
+  behind, and `catching_up: false`. An invocation of the existing stale-run
+  sweeper marked exactly the three deployment-killed cron rows as `killed`.
+  A subsequent production read at 16:35 UTC confirmed all three statuses and
+  still reported `status: live`, `catching_up: false`, and the preserved
+  historical-gap disclosure.
+- Production served the exact current `main` SHA after the final functional
+  repair. On that build the initial Queue state showed only its loading notice,
+  then rendered ranked rows without an unknown-state warning. This closes the
+  Phase 5 functional release gate; the closeout commit carrying this evidence
+  is published through the same Git integration and recorded in the task
+  receipt.
