@@ -33,18 +33,24 @@ async function clickTopmostDataMarker(page: Page, map: Locator) {
       const count = await candidates.count();
       for (let index = 0; index < count; index += 1) {
         const candidate = candidates.nth(index);
-        const isTopmost = await candidate.evaluate((element) => {
+        const activated = await candidate.evaluate((element: HTMLElement) => {
           const rect = element.getBoundingClientRect();
           if (!rect.width || !rect.height) return false;
           const x = rect.left + rect.width / 2;
           const y = rect.top + rect.height / 2;
           if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return false;
           const hit = document.elementFromPoint(x, y);
-          return Boolean(hit && (hit === element || element.contains(hit)));
-        });
-        if (!isTopmost) continue;
+          if (!hit || (hit !== element && !element.contains(hit))) return false;
 
-        await candidate.click();
+          // Keep hit testing and activation in one browser task. The live venue
+          // refresh can rebuild Leaflet markers between a locator probe and a
+          // Playwright pointer action, leaving the original marker detached or
+          // shifted behind the section header even though the map is healthy.
+          element.click();
+          return true;
+        });
+        if (!activated) continue;
+        await page.waitForTimeout(50);
         if (await actionablePopup.isVisible()) return;
       }
     }
