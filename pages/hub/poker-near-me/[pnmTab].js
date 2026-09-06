@@ -61,6 +61,7 @@ import {
 } from '../../../src/components/poker-near-me/pnmSections';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
+import { isPokerDiscoveryRouteIndexable } from '../../../src/lib/poker-near-me/sitemapRoutes';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 import {
@@ -3556,8 +3557,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // prop and nothing was passing it. Emit BreadcrumbList + WebSite SearchAction
   // (both static, so they are correct even on the very first paint) plus an
   // ItemList of the resolved location's top venues once they have loaded.
-  // NOTE: this is the minimum viable fix. Server-rendering the first page of
-  // venue cards still requires a getServerSideProps that this page does not have.
+  // The first directory page is server-rendered below; client-only panels then
+  // progressively hydrate around that crawlable venue rail.
   const jsonLdLocationLabel = gpsLocationLabel || (selectedCity ? selectedCity.name : null);
   // SEOHead injects the graph with dangerouslySetInnerHTML + JSON.stringify, which
   // does NOT escape '<'. Venue names/cities are scraped third-party strings, so a
@@ -3684,6 +3685,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         title={routeMeta.title}
         description={routeMeta.description}
         canonical={`/hub/poker-near-me/${canonicalSlug}`}
+        noindex={!isPokerDiscoveryRouteIndexable(canonicalSlug)}
         jsonLd={pageJsonLd}
       />
 
@@ -4089,7 +4091,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             </div>
 
             {/* ═══ MAIN CONTENT — every section, stacked ═══ */}
-            <main className="pnm-layout" aria-label="Poker Near Me discovery results">
+            <section className="pnm-layout" aria-label="Poker Near Me discovery results">
               <p className="pnm-route-announcer" role="status" aria-live="polite" aria-atomic="true">
                 Showing {routeMeta.breadcrumb}
               </p>
@@ -4133,7 +4135,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 {/* end pnm-content */}
               </div>
               {/* end pnm-main */}
-            </main>
+            </section>
             {/* end pnm-layout */}
           </div>
         </PullToRefresh>
@@ -4300,7 +4302,26 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   );
 }
 
-export async function getServerSideProps({ res }) {
+export async function getServerSideProps({ res, params, query }) {
+  const requestedSlug = String(params?.pnmTab || '');
+  const canonicalSlug = normalizeRouteSlug(requestedSlug) || 'venues';
+  if (requestedSlug !== canonicalSlug) {
+    const search = new URLSearchParams();
+    Object.entries(query || {}).forEach(([key, value]) => {
+      if (key === 'pnmTab') return;
+      const values = Array.isArray(value) ? value : [value];
+      values.forEach((entry) => {
+        if (entry !== undefined && entry !== null) search.append(key, String(entry));
+      });
+    });
+    const suffix = search.toString();
+    return {
+      redirect: {
+        destination: `/hub/poker-near-me/${canonicalSlug}${suffix ? `?${suffix}` : ''}`,
+        permanent: true,
+      },
+    };
+  }
   try {
     const directory = await fetchVenueDirectoryResilient({
       supabase: createClient(),

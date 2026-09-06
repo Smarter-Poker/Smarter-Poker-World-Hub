@@ -1619,7 +1619,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    // P2-2: Transfer analytics — whole ledger, same server pass.
+    // P2-2: Transfer analytics - whole ledger, same server pass.
     const giftsSent = lifetime.giftsSent || 0;
     const giftsReceived = lifetime.giftsReceived || 0;
     const giftCount = lifetime.giftCount || 0;
@@ -1627,7 +1627,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
 
-    // R8-I5: Monthly summary — whole ledger, same server pass. Computed on
+    // R8-I5: Monthly summary - whole ledger, same server pass. Computed on
     // the browser it compared "this month" against "last month" using only
     // the rows loaded, so a month that had scrolled off read as zero and
     // the percentage change was measured against nothing.

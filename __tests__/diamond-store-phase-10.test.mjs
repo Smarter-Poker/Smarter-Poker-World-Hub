@@ -58,10 +58,12 @@ test('real marketplace detail routes exist with product and breadcrumb schema', 
   assert.match(product, /['"]@type['"]:\s*['"]BreadcrumbList['"]/);
 });
 
-test('VIP daily access exposes both card and diamond settlement', () => {
-  assert.match(STORE, /handleDailyVipCardCheckout/);
-  assert.match(STORE, /Pay For Daily VIP With Card/);
-  assert.match(STORE, /Activate Daily VIP With Diamonds/);
+test('VIP monthly, yearly, and lifetime access expose the supported settlement paths', () => {
+  assert.match(STORE, /handleVIPSubscribe/);
+  assert.match(STORE, /selectedVIP === ['"]vip-yearly['"]/);
+  assert.match(STORE, /selectedVIP === ['"]vip-lifetime['"]/);
+  assert.match(STORE, /Pay For \$\{selectedVIPPlan\.name\} With Diamonds/);
+  assert.doesNotMatch(STORE, /const handleDailyVipCardCheckout/);
 });
 
 test('production readiness is observable without exposing secrets', () => {

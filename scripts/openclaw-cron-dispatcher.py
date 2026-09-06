@@ -114,6 +114,7 @@ REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 # flat 120s stays the default for everything else.
 JOB_TIMEOUTS = {
     '/api/internal/login-bridge-probe': 90,   # relay: Commander's two-leg probe takes 10-30s, relay caps at 50s
+    '/api/internal/pnm-integrity-refresh': 300, # exact venue queue rebuild, including polygon assessment
     '/api/cron/trivia-theme-backfill': 300,
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
@@ -795,6 +796,7 @@ ALL_CRONS = [
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
     ('_internal/auth-drift-watchdog',             dict(minute='*/5')),      # every 5 min — catches a rotation that missed this host
     ('_internal/pnm-directory-health',            dict(minute=35)),         # hourly — live/snapshot parity, age, and latency
+    ('/api/internal/pnm-integrity-refresh',        dict(hour=5, minute=20)), # daily — elapsed-time freshness + exact anomaly queue
     ('_internal/heartbeat',                       dict(minute='*/15')),     # every 15 min
 ]
 
@@ -1054,6 +1056,7 @@ def _workers_dispatch(path: str) -> bool:
 # hub and the commander Vercel project, which is exactly a failure.
 CRITICAL_JOBS = {
     '/api/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
+    '/api/internal/pnm-integrity-refresh': 2, # daily; two missed exact queue rebuilds page once
     # 2026-09-04: the video-library scraper exited 1 at 06:00 UTC on five
     # consecutive days and every run was logged "executed successfully". A
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
@@ -1062,6 +1065,7 @@ CRITICAL_JOBS = {
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
+    '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
 }
