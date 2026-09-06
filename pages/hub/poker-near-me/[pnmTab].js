@@ -65,6 +65,12 @@ import { isPokerDiscoveryRouteIndexable } from '../../../src/lib/poker-near-me/s
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 import {
+  buildLiveCashGameIndex,
+  cashGameCountLabel,
+  findLiveCashGameEntry,
+  isModeledCashGameData,
+} from '../../../src/lib/poker-near-me/liveCashGameData';
+import {
   buildDiscoveryUrl,
   DEFAULT_RADIUS_MILES,
   DIRECTORY_PAGE_SIZE,
@@ -645,30 +651,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           liveStaleMsRef.current = json.metadata.stale_threshold_hours * 3600000;
         }
         if (!json.venues) return;
-        const map = {};
-        json.venues.forEach((v) => {
-          const normName = (v.venue_name || '')
-            .toLowerCase()
-            .replace(/&/g, 'and')
-            .replace(/'/g, '')
-            .replace(/-/g, ' ')
-            .replace(/[^a-z0-9 ]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          const totalTables = (v.games || []).reduce((s, g) => s + (g.tables_running || 0), 0);
-          const totalWaiting = (v.games || []).reduce((s, g) => s + (g.players_waiting || 0), 0);
-          const liveEntry = {
-            tables_running: totalTables,
-            players_waiting: totalWaiting,
-            games: v.games || [],
-            last_updated: v.last_updated,
-            is_stale: v.is_stale === true,
-            _seen_at: Date.now(),
-            bravo_slug: v.bravo_slug,
-          };
-          if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
-          if (normName) map[normName] = liveEntry;
-        });
+        const map = buildLiveCashGameIndex(json);
         setLiveDataMap((prev) => {
           // POLICY (retained): a single empty/partial response never wipes good data.
           // GAP FIX: but it can no longer grow forever either. Entries missing from
@@ -722,16 +705,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       if (prev.length === 0) return prev;
       let changed = false;
       const next = prev.map((venue) => {
-        const normName = (venue.name || '')
-          .toLowerCase()
-          .replace(/&/g, 'and')
-          .replace(/'/g, '')
-          .replace(/-/g, ' ')
-          .replace(/[^a-z0-9 ]/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const liveEntry =
-          (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
+        const liveEntry = findLiveCashGameEntry(venue, liveDataMap);
         // POLICY (retained): while the scraper is up but reporting 0 tables we
         // still show the games list (stakes offered, game types). Only an entry
         // with zero games counts as "nothing to show".
@@ -3786,7 +3760,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         )}
 
         <PullToRefresh onRefresh={refreshDiscovery} disabled={anySheetOpen}>
-          <div className="pnm-page" data-pnm-hydrated={isHydrated ? 'true' : 'false'}>
+          <div className="pnm-page" data-pnm-realism="machined-v2" data-pnm-hydrated={isHydrated ? 'true' : 'false'}>
             <div className="space-bg"></div>
             <div className="space-overlay"></div>
 
@@ -3912,12 +3886,14 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                     aria-current={selected ? 'true' : undefined}
                     className={
                       'pnm-top-tab' +
-                      (tab.live ? ' live' : '') +
+                      (tab.live && (liveDataMode === 'live' || liveDataMode === 'mixed') ? ' live' : '') +
                       (selected ? ' active' : '')
                     }
                     onClick={() => activateTab(tab.key)}
                   >
-                    {tab.live && <span className="pnm-live-dot" aria-hidden="true" />}
+                    {tab.live && (liveDataMode === 'live' || liveDataMode === 'mixed') && (
+                      <span className="pnm-live-dot" aria-hidden="true" />
+                    )}
                     {tab.label}
                     {tab.key === 'live' && liveTableCount > 0 && (
                       <span className="pnm-tab-badge">{liveTableCount}</span>
@@ -3939,10 +3915,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 (v) => favIds.has(String(v.id)) && v.live_data && v.live_data.tables_running > 0
               );
               if (liveFavs.length === 0) return null;
+              const estimatedFavorites = liveFavs.filter((venue) => venue.live_data?.data_mode !== 'live');
               const toastMsg =
                 liveFavs.length === 1
-                  ? `${liveFavs[0].name} Has ${liveFavs[0].live_data.tables_running} Table${liveFavs[0].live_data.tables_running !== 1 ? 's' : ''} Running!`
-                  : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
+                  ? `${liveFavs[0].name}: ${cashGameCountLabel(liveFavs[0].live_data)}`
+                  : estimatedFavorites.length > 0
+                    ? `${liveFavs.length} Favorites Have Cash-Game Activity Estimates`
+                    : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
               return (
                 <FavLiveToast
                   message={toastMsg}

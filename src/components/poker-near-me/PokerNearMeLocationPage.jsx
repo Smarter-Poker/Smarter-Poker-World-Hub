@@ -9,6 +9,12 @@ import DeepRouteSignalDeck from './DeepRouteSignalDeck';
 import PokerNearMeRecentRail from './PokerNearMeRecentRail';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { buildLocationDirectorySchema, serializePokerJsonLd } from '../../lib/poker-near-me/structuredData';
+import {
+  buildLiveCashGameIndex,
+  cashGameCountLabel,
+  findLiveCashGameEntry,
+  isModeledCashGameData,
+} from '../../lib/poker-near-me/liveCashGameData';
 
 const FALLBACK = '/images/pnm-phase-4/venue-signal-fallback-v1.webp';
 
@@ -49,11 +55,12 @@ function formatUtcDate(value) {
 function VenueCard({ venue }) {
   const [image, setImage] = useState(venue.cover_photo_url || venue.profile_photo_url || FALLBACK);
   const updatedLabel = formatUtcDate(venue.updated_at);
+  const cashGameLabel = cashGameCountLabel(venue.live_data);
+  const modeled = isModeledCashGameData(venue.live_data);
   return (
     <article className="pnm-location-card">
       <Link href={`/hub/venues/${venue.id}`} aria-label={`View ${venue.name}`}>
         <div className="pnm-location-card__media">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={image} alt="" loading="lazy" onError={() => setImage(FALLBACK)} />
         </div>
         <div className="pnm-location-card__body">
@@ -61,6 +68,11 @@ function VenueCard({ venue }) {
           <h2>{venue.name}</h2>
           <p>{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
           <div className="pnm-location-card__facts">
+            {cashGameLabel && (
+              <span className="pnm-location-card__cash" data-modeled={modeled ? 'true' : 'false'}>
+                {cashGameLabel}
+              </span>
+            )}
             {venue.is_featured && <span>Featured Room</span>}
             {venue.trust_score > 0 && <span>Trust {Math.round(venue.trust_score)}</span>}
             {venue.location_quality?.status === 'verified' && <span>Location Verified</span>}
@@ -91,6 +103,7 @@ export default function PokerNearMeLocationPage({
   fetchedAt,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [liveCashIndex, setLiveCashIndex] = useState({});
   const trackedRef = useRef(false);
   const currentPath = canonical.replace('https://smarter.poker', '');
   const placeLabel = city ? `${city}, ${stateName || stateCode}` : stateName || stateCode || 'United States';
@@ -102,6 +115,29 @@ export default function PokerNearMeLocationPage({
   const sourceLabel = degraded
     ? `Published directory snapshot${sourceDateLabel ? ` from ${sourceDateLabel}` : ''}`
     : 'Checked during this request';
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const load = () => fetch('/api/poker/live-tables', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Cash game feed returned ${response.status}`)))
+      .then((payload) => { if (active) setLiveCashIndex(buildLiveCashGameIndex(payload)); })
+      .catch((error) => {
+        if (error?.name !== 'AbortError') console.warn('[PokerNearMeLocationPage] Cash game feed unavailable:', error?.message || error);
+      });
+    load();
+    const timer = setInterval(load, 15 * 60 * 1000);
+    return () => {
+      active = false;
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, []);
+
+  const venuesWithCashGames = useMemo(() => venues.map((venue) => ({
+    ...venue,
+    live_data: findLiveCashGameEntry(venue, liveCashIndex) || venue.live_data || null,
+  })), [liveCashIndex, venues]);
 
   useEffect(() => {
     if (trackedRef.current) return;
@@ -134,7 +170,7 @@ export default function PokerNearMeLocationPage({
   }), [canonical, cities, city, description, directoryCount, sourceTimestamp, stateCode, stateName, states, title, venues]);
 
   return (
-    <div className="pnm-location-listing">
+    <div className="pnm-location-listing" data-pnm-realism="machined-v2">
       <SEOHead
         title={title}
         description={description}
@@ -223,7 +259,7 @@ export default function PokerNearMeLocationPage({
               <p>Open A Room Profile For Schedules, Games, Venue Details, And Current Discovery Signals.</p>
             </header>
             <div className="pnm-location-listing__grid">
-              {venues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+              {venuesWithCashGames.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
             </div>
           </section>
         )}

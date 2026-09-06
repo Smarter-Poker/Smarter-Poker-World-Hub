@@ -19,6 +19,7 @@ import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { homeGameUrl } from '../../lib/home-games/urls';
+import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-me/liveCashGameData';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -808,6 +809,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
     // Memoize wait estimate BEFORE the guard (React hooks must be unconditional)
     const hasLiveData = venue && venue.live_data && venue.live_data.tables_running > 0;
+    const hasCashGameSignal = Boolean(venue?.live_data && Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0);
+    const modeledCashGames = isModeledCashGameData(venue?.live_data);
+    const publishedCashGameLabel = cashGameCountLabel(venue?.live_data);
     // BUG FIX: the meter renders when `hasLiveData || checkinCount > 0`, but the level was
     // only computed when hasLiveData was true — so a venue with no live table data and N
     // users checked in showed a hardcoded "Empty" / 0% bar, discarding the only signal
@@ -1191,10 +1195,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {venue.is_featured && <span className="vc3-badge vc3-badge-featured">Featured</span>}
                 {hasPromo && <span className="vc3-badge vc3-badge-promo">Active Promo</span>}
                 {isNewcomer && <span className="vc3-badge vc3-badge-new" style={{color:'#fff', background:'#6366f1', borderColor:'#4f46e5'}}>New Addition</span>}
-                {hasLiveData && (
-                    <span className="vc3-badge vc3-badge-live">
+                {hasCashGameSignal && publishedCashGameLabel && (
+                    <span className={'vc3-badge vc3-badge-live' + (modeledCashGames ? ' vc3-badge-modeled' : '')}>
                         <span className="vc3-live-dot" />
-                        LIVE NOW: {venue.live_data.tables_running} Table{Number(venue.live_data.tables_running) !== 1 ? 's' : ''}
+                        {publishedCashGameLabel}
                     </span>
                 )}
                 {venue.has_tournaments && <></>}
@@ -1246,15 +1250,13 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 <div className="vc3-columns-grid">
                     {/* LEFT COLUMN: Cash Games */}
                     <div className="vc3-col vc3-col-left">
-                        {hasLiveData ? (
+                        {hasCashGameSignal ? (
                             <>
                                 <div className="vc3-col-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>Cash Games</span>
-                                    {venue.live_data.tables_running > 0 && (
-                                        <span style={{ color: '#4ade80', fontSize: '12px', backgroundColor: 'rgba(74,222,128,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                                            {venue.live_data.tables_running} TABLES
-                                        </span>
-                                    )}
+                                    <span>{modeledCashGames ? 'Estimated Cash Games' : 'Cash Games'}</span>
+                                    <span className="vc3-cash-count" data-modeled={modeledCashGames ? 'true' : 'false'}>
+                                        {publishedCashGameLabel}
+                                    </span>
                                 </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-games" style={{ maxHeight: '160px' }}>
@@ -1266,7 +1268,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 <div key={`live-game-${gameName.replace(/\\s+/g,'-')}-${buyin.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-game-item">
                                                     <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
                                                     <span className="vc3-game-tables">
-                                                        {g?.tables_running > 0 ? `${g.tables_running} ${Number(g.tables_running) === 1 ? 'Table' : 'Tables'}` : 'WAIT'}
+                                                        {g?.is_simulated ? 'Approx. ' : ''}{Number(g?.tables_running) || 0} {Number(g?.tables_running) === 1 ? 'Table' : 'Tables'}
                                                     </span>
                                                 </div>
                                             );
@@ -1294,7 +1296,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                                         </svg>
-                                        {staleInfo.stale ? `Stale Data` : `Updated ${staleInfo.age}`}
+                                        {modeledCashGames ? `Modeled From Saved Cash-Game Data${staleInfo.age ? ` · ${staleInfo.age}` : ''}` : (staleInfo.stale ? 'Stale Data' : `Updated ${staleInfo.age}`)}
                                     </div>
                                 )}
                             </>
