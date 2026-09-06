@@ -32,11 +32,14 @@ async function main() {
   const { data: auth, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError || !auth?.session?.access_token) throw new Error('Recovery Proof Authentication Failed.');
 
-  const response = await fetch(`${baseUrl}/api/assistant/data-controls?mode=export`, {
+  const response = await fetch(`${baseUrl}/api/assistant/data-controls`, {
+    method: 'POST',
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${auth.session.access_token}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ action: 'export' }),
   });
   const archive = await response.json().catch(() => null);
   if (!response.ok || !archive || archive.schemaVersion !== 'pa-data-export-v1') {
