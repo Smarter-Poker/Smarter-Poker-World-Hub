@@ -440,11 +440,60 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
   });
 
-  test('VIP lifetime access offers one-time card and Diamond settlement', async ({ page }) => {
+  /* REWRITTEN 2026-09-06. This demanded, as literals, BOTH
+     `Buy VIP Lifetime With Card: $499.00 Once` and
+     `Pay With Diamonds Instead: 49,900`, and the page renders neither for
+     Lifetime. It has failed on chromium and mobile-chrome on every run since
+     it landed.
+
+     Both halves of one decision shipped the same day and this is the half that
+     was left behind. #1376 introduced Lifetime with
+     `cardCheckoutReady: false` - "the server-side card path is retained behind
+     this capability flag while its cross-method refund/provenance state
+     machine is completed. Diamond settlement is live and atomic." #1390 then
+     wrote this test against the card-ready shape. So the flag hides the card
+     button on purpose, and the diamond button is not the ALTERNATE one either:
+     the store says so where it renders it, "Lifetime's primary action is
+     already the Diamond purchase, so do not render the same action twice."
+     Selecting Lifetime gives exactly one button,
+     `Lifetime VIP Is Bought With Diamonds: 49,900`.
+
+     So this pins the release contract instead of one side of a flag, and it
+     stays true the day card checkout is switched on rather than going red for
+     a change that was correct. Neither branch can pass on an empty page: one
+     settlement presentation must be there, priced, whichever it is.
+
+     Not imported from VIP_MEMBERSHIP on purpose - that module pulls in
+     lucide-react, and a spec should not drag React into the runner to read two
+     numbers. */
+  test('VIP lifetime settles in Diamonds, and offers card checkout only once that path is ready', async ({
+    page,
+  }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: /Select VIP Lifetime/ }).click();
-    await expect(page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Pay With Diamonds Instead: 49,900/ })).toBeVisible();
+
+    const withCard = page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' });
+    const diamondsPrimary = page.getByRole('button', {
+      name: 'Lifetime VIP Is Bought With Diamonds: 49,900',
+    });
+    const diamondsAlternate = page.getByRole('button', {
+      name: /Pay With Diamonds Instead: 49,900/,
+    });
+
+    if ((await withCard.count()) > 0) {
+      // cardCheckoutReady is on: card is the primary action and Diamonds is
+      // the alternate, exactly as it is for Monthly and Yearly.
+      await expect(withCard).toBeVisible();
+      await expect(diamondsAlternate).toBeVisible();
+      await expect(diamondsPrimary).toHaveCount(0);
+    } else {
+      // cardCheckoutReady is off: Diamonds IS the primary action, and the
+      // alternate must not appear beside it - the same action twice is the
+      // thing the store's own comment forbids.
+      await expect(diamondsPrimary).toBeVisible();
+      await expect(diamondsAlternate).toHaveCount(0);
+    }
+
     await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
   });
 
