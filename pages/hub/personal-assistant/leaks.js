@@ -2493,7 +2493,7 @@ export default function LeakFinderPage() {
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search leaks or situations"
+                        placeholder="Search Leaks Or Situations"
                         aria-label="Search leaks"
                         style={styles.searchInput}
                       />
