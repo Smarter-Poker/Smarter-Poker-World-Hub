@@ -38,6 +38,17 @@
 
 BEGIN;
 
+-- Keep Supabase realtime's lock order ahead of public-table DDL. Without this
+-- ordering, the subscription manager can hold its catalog while waiting on a
+-- table this migration already locked, producing a cross-system deadlock.
+DO $realtime_lock$
+BEGIN
+  IF to_regclass('realtime.subscription') IS NOT NULL THEN
+    EXECUTE 'LOCK TABLE realtime.subscription IN ACCESS EXCLUSIVE MODE';
+  END IF;
+END
+$realtime_lock$;
+
 -- --------------------------------------------------------------------------
 -- PREFLIGHT: abort before mutation if the audited schema/function has drifted.
 -- --------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import {
   classifyScraperHealth,
@@ -216,4 +217,29 @@ test('a fresh failed metric is dead and a partial metric is warning', () => {
     deadMinutes: 45,
   });
   assert.equal(partial.status, 'warning');
+});
+
+test('migration retries reset aborted single-file transactions and fail closed for batches', () => {
+  const runner = fs.readFileSync('scripts/antigravity_sql_push.js', 'utf8');
+
+  assert.match(runner, /canResetTransaction = false/);
+  assert.match(runner, /await client\.query\('ROLLBACK'\)/);
+  assert.match(runner, /Transactional batch aborted; retry the full batch after rollback/);
+  assert.match(runner, /canResetTransaction: !useTransaction/);
+});
+
+test('Poker Near Me schema migrations acquire the optional realtime lock first', () => {
+  for (const filename of [
+    '20260906220000_pnm_scraper_data_truth.sql',
+    '20260906221000_home_games_membership_and_rsvp_gate.sql',
+    '20260906222000_pokeratlas_atomic_venue_ingest.sql',
+  ]) {
+    const migration = fs.readFileSync(`supabase/migrations/${filename}`, 'utf8').toLowerCase();
+    const realtimeLock = migration.indexOf('lock table realtime.subscription in access exclusive mode');
+    const firstPublicTable = migration.indexOf("to_regclass('public.");
+
+    assert.ok(realtimeLock > -1, `${filename} is missing the realtime lock-order guard`);
+    assert.ok(firstPublicTable === -1 || realtimeLock < firstPublicTable,
+      `${filename} touches a public table before acquiring the realtime lock`);
+  }
 });

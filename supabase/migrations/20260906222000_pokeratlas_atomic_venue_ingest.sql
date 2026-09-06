@@ -48,6 +48,17 @@ BEGIN;
 SET LOCAL lock_timeout = '10s';
 SET LOCAL statement_timeout = '120s';
 
+-- Keep Supabase realtime's lock order ahead of public-table DDL. This avoids a
+-- cycle with the subscription manager, which locks its catalog before reading
+-- publication tables. Disposable databases do not have the realtime schema.
+DO $realtime_lock$
+BEGIN
+  IF to_regclass('realtime.subscription') IS NOT NULL THEN
+    EXECUTE 'LOCK TABLE realtime.subscription IN ACCESS EXCLUSIVE MODE';
+  END IF;
+END
+$realtime_lock$;
+
 DO $$
 DECLARE
   v_column text;

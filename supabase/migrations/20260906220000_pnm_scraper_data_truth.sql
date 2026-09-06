@@ -35,6 +35,18 @@ begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '120s';
 
+-- Supabase's realtime subscription manager acquires its catalog lock before it
+-- reads publication tables. DDL takes the inverse order unless we establish the
+-- realtime lock first, which can create a deterministic deadlock. The realtime
+-- schema is absent in disposable migration tests, so keep this lock optional.
+do $realtime_lock$
+begin
+  if to_regclass('realtime.subscription') is not null then
+    execute 'lock table realtime.subscription in access exclusive mode';
+  end if;
+end
+$realtime_lock$;
+
 -- 1. PRE-FLIGHT ASSERTIONS
 do $$
 declare
