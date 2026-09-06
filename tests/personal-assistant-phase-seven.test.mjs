@@ -83,7 +83,7 @@ test('evidence inspector fails closed when a stage has no source evidence', () =
 
 test('receipt fingerprints are stable and version-sensitive', () => {
   const a = buildCoachingSnapshot({ leaks, decisions, reviews, now, versions: { matcher: 'v3' } });
-  const b = buildCoachingSnapshot({ leaks, decisions, reviews, now, versions: { matcher: 'v3' } });
+  const b = buildCoachingSnapshot({ leaks, decisions, reviews, now: now + 60_000, versions: { matcher: 'v3' } });
   const c = buildCoachingSnapshot({ leaks, decisions, reviews, now, versions: { matcher: 'v4' } });
   assert.equal(receiptFingerprint(a), receiptFingerprint(b));
   assert.notEqual(receiptFingerprint(a), receiptFingerprint(c));
