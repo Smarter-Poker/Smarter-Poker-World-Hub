@@ -447,32 +447,42 @@ function HamburgerMenuContent({
   // A modal dialog must remove the obscured page from sequential and virtual
   // navigation, not merely paint a backdrop over it. The drawer can live deep
   // inside a page-owned header, so isolate sibling branches at every ancestor
-  // and restore their exact prior attributes on close.
+  // and restore their exact prior attributes on close. Global prompts can mount
+  // asynchronously after the drawer opens (the page-tutorial offer is one real
+  // example), so keep the branch boundary current for the lifetime of the modal.
   useEffect(() => {
     if (!isOpen || !drawerRef.current || typeof document === 'undefined') return undefined;
-    const changes = [];
-    let branch = drawerRef.current;
-    while (branch?.parentElement) {
-      const parent = branch.parentElement;
-      for (const sibling of parent.children) {
-        if (
-          sibling === branch
-          || sibling.classList?.contains('sp-command-backdrop')
-          || sibling.matches?.('[data-world-command-child-dialog="true"]')
-        ) continue;
-        changes.push({
-          element: sibling,
-          inert: sibling.hasAttribute('inert'),
-          ariaHidden: sibling.getAttribute('aria-hidden'),
-        });
-        sibling.setAttribute('inert', '');
-        sibling.setAttribute('aria-hidden', 'true');
+    const changes = new Map();
+    const isolateBranches = () => {
+      let branch = drawerRef.current;
+      while (branch?.parentElement) {
+        const parent = branch.parentElement;
+        for (const sibling of parent.children) {
+          if (
+            sibling === branch
+            || sibling.classList?.contains('sp-command-backdrop')
+            || sibling.matches?.('[data-world-command-child-overlay="true"]')
+            || sibling.matches?.('[data-world-command-child-dialog="true"]')
+          ) continue;
+          if (!changes.has(sibling)) {
+            changes.set(sibling, {
+              inert: sibling.hasAttribute('inert'),
+              ariaHidden: sibling.getAttribute('aria-hidden'),
+            });
+          }
+          sibling.setAttribute('inert', '');
+          sibling.setAttribute('aria-hidden', 'true');
+        }
+        if (parent === document.body) break;
+        branch = parent;
       }
-      if (parent === document.body) break;
-      branch = parent;
-    }
+    };
+    isolateBranches();
+    const branchObserver = new MutationObserver(isolateBranches);
+    branchObserver.observe(document.body, { childList: true, subtree: true });
     return () => {
-      for (const { element, inert, ariaHidden } of changes) {
+      branchObserver.disconnect();
+      for (const [element, { inert, ariaHidden }] of changes) {
         if (!element.isConnected) continue;
         if (!inert) element.removeAttribute('inert');
         if (ariaHidden === null) element.removeAttribute('aria-hidden');
