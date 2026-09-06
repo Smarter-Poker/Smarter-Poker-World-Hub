@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BRAVO POKER LIVE — OBSERVED-HISTORY ESTIMATOR DAEMON v1.4
+BRAVO POKER LIVE - OBSERVED-HISTORY ESTIMATOR DAEMON v1.4
 ============================================================
 PURPOSE: Publishes Poker Near Me estimates while the real Bravo scraper is
          offline, but only where a RECENT window of saved Bravo observations
@@ -1461,7 +1461,7 @@ def run():
     _write_pid_files()
 
     log.info('=' * 60)
-    log.info('BRAVO POKER LIVE — OBSERVED-HISTORY ESTIMATOR v1.4')
+    log.info('BRAVO POKER LIVE - OBSERVED-HISTORY ESTIMATOR v1.4')
     log.info(f'PID: {os.getpid()} | Cycle: {CYCLE_INTERVAL_SECONDS}s')
     log.info('=' * 60)
 

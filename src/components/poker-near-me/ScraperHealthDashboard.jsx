@@ -1,5 +1,5 @@
 /**
- * ScraperHealthDashboard — Admin panel for monitoring PokerAtlas and the
+ * ScraperHealthDashboard: Admin panel for monitoring PokerAtlas and the
  * saved-data cash-game model engine.
  * 
  * Consumes /api/poker/scraper-health and /api/poker/scraper-metrics to display:

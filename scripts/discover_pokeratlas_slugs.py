@@ -340,7 +340,7 @@ def main():
     if failures or queue or frontier_truncated:
         print(
             f"[FAIL] Crawl incomplete ({failures} failed pages; "
-            f"{len(queue)} queued; frontier_truncated={frontier_truncated}) — "
+            f"{len(queue)} queued; frontier_truncated={frontier_truncated}) - "
             "refusing to publish a partial slug map."
         )
         print(f"{'='*60}")

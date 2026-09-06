@@ -1672,10 +1672,10 @@ def run_scrape_cycle(mgr):
     if sweep_phase == 'cleanup':
         log.info(f'🧹 Retrying cleanup for completed sweep {batch_id[:8]}')
     elif sweep_complete and first_failed_index is None:
-        log.info(f'✅ Sweep scan COMPLETE — all {len(venues_to_scrape)} venues visited')
+        log.info(f'✅ Sweep scan COMPLETE: all {len(venues_to_scrape)} venues visited')
     else:
         resume_at = first_failed_index if first_failed_index is not None else next_cursor
-        log.info(f'⏸️  Sweep INCOMPLETE — resuming at venue {resume_at}/{len(venues_to_scrape)} next cycle')
+        log.info(f'⏸️  Sweep INCOMPLETE: resuming at venue {resume_at}/{len(venues_to_scrape)} next cycle')
 
     # ── COMMIT THE NO-CASH CACHE ──────────────────────────────────────────
     parser_poisoned = parsed_empty > 0
@@ -1860,7 +1860,7 @@ def run_scrape_cycle(mgr):
             write_blocked = True
         else:
             log.error(
-                f'{ERROR_SUPABASE}: venue_live_tables PARTIAL WRITE — '
+                f'{ERROR_SUPABASE}: venue_live_tables PARTIAL WRITE - '
                 f'{saved}/{len(payload)} records confirmed; leaving previous batch in place'
             )
             write_blocked = True

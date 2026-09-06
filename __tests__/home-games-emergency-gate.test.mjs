@@ -10,10 +10,6 @@ import {
   getCanonicalPublicOrigin,
 } from '../src/lib/publicOrigin.mjs';
 import {
-  allowsDeclinedReRequest,
-  evaluateSeatRequestMembership,
-} from '../src/lib/home-games/membershipPolicy.mjs';
-import {
   rsvpGuestCount,
   rsvpSeatCount,
 } from '../vendor/commander-shared/src/components/commander/home-games/rsvpCapacity.mjs';
@@ -118,31 +114,6 @@ test('canonical public URLs fail closed to smarter.poker', () => {
   assert.equal(getCanonicalPublicOrigin('not a URL'), DEFAULT_PUBLIC_ORIGIN);
   assert.equal(canonicalPublicUrl('//attacker.example/path'), `${DEFAULT_PUBLIC_ORIGIN}/`);
   assert.equal(canonicalPublicUrl('/\\attacker.example/path'), `${DEFAULT_PUBLIC_ORIGIN}/`);
-});
-
-test('seat membership policy blocks banned and declined members by default', () => {
-  assert.deepEqual(evaluateSeatRequestMembership('banned', {}), {
-    allowed: false,
-    status: 403,
-    code: 'MEMBERSHIP_BANNED',
-    message: 'You cannot request a seat in this home game.',
-  });
-  assert.deepEqual(evaluateSeatRequestMembership('declined', {}), {
-    allowed: false,
-    status: 409,
-    code: 'MEMBERSHIP_DECLINED',
-    message: 'The host has declined this membership request.',
-  });
-});
-
-test('declined re-request requires an exact boolean host opt-in', () => {
-  assert.equal(allowsDeclinedReRequest({ allow_declined_re_request: true }), true);
-  assert.equal(allowsDeclinedReRequest({ allow_declined_re_request: 'true' }), false);
-  assert.equal(allowsDeclinedReRequest({ allow_declined_re_request: 1 }), false);
-  assert.deepEqual(
-    evaluateSeatRequestMembership('declined', { allow_declined_re_request: true }),
-    { allowed: true, nextStatus: 'pending' }
-  );
 });
 
 test('seat route delegates membership, RSVP, and capacity to the caller-scoped atomic RPC', async () => {

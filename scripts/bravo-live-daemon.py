@@ -1605,7 +1605,7 @@ def publish_chunk(chunk_results, batch_id, chunk_num):
         log.error(
             f'{ERROR_SUPABASE}: CHUNK {chunk_num} publish FAILED '
             f'({len(confirmed_ids)}/{len(payload)} records from {len(chunk_results)} venues confirmed) '
-            '— re-queued idempotently for retry'
+            '- re-queued idempotently for retry'
         )
         return confirmed_ids, expected_ids, False
 
@@ -1781,7 +1781,7 @@ def run_scrape_cycle(mgr):
             log.error(
                 f'  MARKUP/AUTH FAILURE: {slug}: authenticated_marker='
                 f'{data.get("authenticated_markup")}, live_section_found='
-                f'{data.get("live_section_found")} — preserving last-known rows'
+                f'{data.get("live_section_found")} - preserving last-known rows'
             )
             continue
         if (data['live_games'] or data['waitlist']) and not (data.get('venue_name') or '').strip():
@@ -1789,7 +1789,7 @@ def run_scrape_cycle(mgr):
             consecutive_venue_failures += 1
             log.error(
                 f'  IDENTITY FAILURE: {slug}: live rows were parsed without a venue name '
-                '— quarantining rows and preserving the last-known batch'
+                '- quarantining rows and preserving the last-known batch'
             )
             continue
 
@@ -1862,7 +1862,7 @@ def run_scrape_cycle(mgr):
         confirmed_ids.update(confirmed)
         total_saved = len(confirmed_ids)
         if ok:
-            log.info(f'  Retry succeeded — {total_saved - before_retry} missing records recovered')
+            log.info(f'  Retry succeeded: {total_saved - before_retry} missing records recovered')
             pending_publish = []
         else:
             unpublished_venues = len(pending_publish)
@@ -1960,7 +1960,7 @@ def run_scrape_cycle(mgr):
         else:
             log.warning('Skipping stale cleanup: no venue had a confirmed new or empty state')
     if delete_scope != 'none' and not delete_ok:
-        log.error(f'{ERROR_SUPABASE}: stale cleanup ({delete_scope}) failed — '
+        log.error(f'{ERROR_SUPABASE}: stale cleanup ({delete_scope}) failed - '
                   'venue_live_tables may contain duplicate/stale rows')
 
     # ── Historical snapshots (only for data that actually reached the DB) ──

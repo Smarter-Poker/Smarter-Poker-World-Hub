@@ -673,7 +673,7 @@ end $$;
 commit;
 
 -- ═══════════════════════════════════════════════════════════════════════
--- ROLLBACK (Tier 3 — apply only after rolling daemon/API code back)
+-- ROLLBACK (Tier 3: apply only after rolling daemon/API code back)
 -- Catalog truth labels are degraded to stale, never to scraped_verified, before
 -- restoring the inventoried production constraints. Dropping the new columns loses
 -- only the metadata introduced here; current/source/batch fields remain.

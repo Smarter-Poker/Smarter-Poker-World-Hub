@@ -463,7 +463,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
             if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
           }
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Follow-state resync failed:', resyncError);
+        toast.error('Follow status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setFollowBusy(false);
       followLockRef.current = false;
@@ -512,7 +515,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           if (typeof listJson.vouch_count === 'number') setVouchCount(listJson.vouch_count);
           if (Array.isArray(listJson.vouchers)) setVouchers(listJson.vouchers);
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Vouch-state resync failed:', resyncError);
+        toast.error('Vouch status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setVouchBusy(false);
       vouchLockRef.current = false;
@@ -944,7 +950,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           else if (st === 'pending_outgoing' || st === 'pending_incoming') setFriendState('pending');
           else setFriendState('none');
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Friend-state resync failed:', resyncError);
+        toast.error('Friend status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setFriendBusy(false);
       friendLockRef.current = false;
