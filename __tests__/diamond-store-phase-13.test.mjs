@@ -96,8 +96,17 @@ test('VIP management closes synchronous duplicate plan and cancellation requests
   assert.match(vipManage, /if \(actionBusyRef\.current\) return/);
   assert.match(vipManage, /actionBusyRef\.current = true/);
   assert.match(vipManage, /actionBusyRef\.current = false/);
+  // THE PLAN IS 'yearly', NOT 'annual' (corrected 2026-09-05). Dan's terms are
+  // monthly, yearly and lifetime, and the rename went all the way through:
+  // /api/store/switch-vip-plan accepts { plan: 'monthly' | 'yearly' } and
+  // nothing in the store sends 'annual' any more. This assertion was the half
+  // that did not move, and because Global Footer E2E is not a required check
+  // it sat red on main instead of stopping the rename.
   assert.match(vipManage, /setPendingPlan\(['"]monthly['"]\)/);
   assert.match(vipManage, /setPendingPlan\(['"]yearly['"]\)/);
+  // An old client may still POST 'annual'; purchase-vip-with-diamonds maps it
+  // rather than refusing it, and that mapping is a money path, so pin it here.
+  assert.match(read('pages/api/store/purchase-vip-with-diamonds.js'), /planKey === ['"]annual['"]/);
   assert.match(vipManage, /Confirm Plan Switch/);
   assert.match(vipManage, /switchPlan\(pendingPlan\)/);
 });

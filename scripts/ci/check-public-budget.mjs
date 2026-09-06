@@ -35,9 +35,11 @@
  *
  * ── BEFORE YOU RAISE IT ──────────────────────────────────────────────────────
  * Two cheaper answers almost always apply first:
- *   1. A modern format. 655 PNGs over 200 KB (478 MB) have no .webp or .avif
- *      sibling; avatars/vip alone is 86.6 MB at an average of 1.14 MB per
- *      avatar. avatars/table already proves the pattern works here.
+ *   1. A modern format. This is the big one and it is mostly still unclaimed:
+ *      after the avatar conversion of 2026-09-06 there are still ~555 PNGs
+ *      over 200 KB with no .webp or .avif sibling. The avatars are the proof
+ *      it works - 1024x1024 art at quality 82 lost 90.2% of its bytes and
+ *      nothing about it looks different on a table.
  *   2. Somewhere that is not the build. Supabase Storage serves the GTO panels;
  *      commander.smarter.poker serves the Commander images; ca-static serves
  *      Club Arena. A file only belongs in public/ if the Next app itself must
@@ -48,16 +50,21 @@ import { join } from 'node:path';
 import process from 'node:process';
 
 /**
- * Bytes. Set 2026-09-05 immediately after removing 244 MB of unreferenced
- * media, with ~5% of headroom so an ordinary asset addition is not a build
- * failure - only an unnoticed accumulation is.
+ * Bytes. Set 2026-09-05 after removing 244 MB of unreferenced media, with ~5%
+ * of headroom so an ordinary asset addition is not a build failure - only an
+ * unnoticed accumulation is.
+ *
+ * LOWERED 2026-09-06 from 406 MB to 300 MB: 200 avatar PNGs became webp,
+ * 117.9 MB -> 11.6 MB, a 90.2% saving on files that are 1024x1024 and were
+ * being served at over a megabyte each. The room that freed is taken away
+ * here in the same commit, which is the whole point of a ratchet.
  *
  * THE NUMBER GOES DOWN. If you lower it, say in the commit what you removed.
  */
-const BUDGET_BYTES = 406_000_000;
+const BUDGET_BYTES = 300_000_000;
 
 /** Also a ratchet: a thousand new files is a problem a size cap can miss. */
-const BUDGET_FILES = 2_050;
+const BUDGET_FILES = 1_900;
 
 function walk(dir) {
   let bytes = 0;

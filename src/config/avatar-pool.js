@@ -7,35 +7,38 @@
 
 // Free avatars (available to all users) - clean bust images (badge rendered separately)
 export const FREE_AVATARS = [
-    '/avatars/free/lion.png',
-    '/avatars/free/shark.png',
-    '/avatars/free/owl.png',
-    '/avatars/free/fox.png',
-    '/avatars/free/ninja.png',
-    '/avatars/free/pirate.png',
-    '/avatars/free/samurai.png',
-    '/avatars/free/viking.png',
-    '/avatars/free/knight.png',
-    '/avatars/free/cowboy.png',
-    '/avatars/free/cyborg.png',
-    '/avatars/free/detective.png',
+    '/avatars/free/lion.webp',
+    '/avatars/free/shark.webp',
+    '/avatars/free/owl.webp',
+    '/avatars/free/fox.webp',
+    '/avatars/free/ninja.webp',
+    '/avatars/free/pirate.webp',
+    '/avatars/free/samurai.webp',
+    '/avatars/free/viking.webp',
+    '/avatars/free/knight.webp',
+    '/avatars/free/cowboy.webp',
+    '/avatars/free/cyborg.webp',
+    '/avatars/free/detective.webp',
 ];
 
 // VIP avatars (premium users only) - clean bust images (badge rendered separately)
 export const VIP_AVATARS = [
-    '/avatars/free/rockstar.png',
-    '/avatars/free/wizard.png',
-    '/avatars/free/chef.png',
-    '/avatars/free/geisha.png',
-    '/avatars/free/aztec.png',
-    '/avatars/free/business.png',
-    '/avatars/free/musician.png',
-    '/avatars/free/android.png',
-    '/avatars/free/penguin.png',
-    '/avatars/free/rabbit.png',
-    '/avatars/free/shiba.png',
-    '/avatars/free/space_commander.png',
-    '/avatars/free/teacher.png',
+    '/avatars/free/rockstar.webp',
+    '/avatars/free/wizard.webp',
+    '/avatars/free/chef.webp',
+    '/avatars/free/geisha.webp',
+    '/avatars/free/aztec.webp',
+    '/avatars/free/business.webp',
+    '/avatars/free/musician.webp',
+    '/avatars/free/android.webp',
+    '/avatars/free/penguin.webp',
+    // 'rabbit' has never existed in public/avatars/free. AVATAR_LIBRARY was
+    // repointed off it on 2026-08-20 ('the one broken tile in the gallery');
+    // this pool was not, so the 404 survived in the half nobody checked.
+    '/avatars/free/viking.webp',
+    '/avatars/free/shiba.webp',
+    '/avatars/free/space_commander.webp',
+    '/avatars/free/teacher.webp',
 ];
 
 // All avatars combined
@@ -121,7 +124,7 @@ export function getHeroAvatar(userProfile = null) {
     }
 
     // Default hero avatar (clean bust image)
-    return '/avatars/free/rockstar.png';
+    return '/avatars/free/rockstar.webp';
 }
 
 /**

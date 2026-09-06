@@ -45,7 +45,7 @@ export const VILLAIN_AVATAR_POOL = (() => {
 
 // Hero's face when the account has not chosen one: the fox the design template
 // puts in the bottom seat.
-export const HERO_DEFAULT_AVATAR = '/avatars/table/free_fox.png';
+export const HERO_DEFAULT_AVATAR = '/avatars/table/free_fox.webp';
 
 // FNV-1a. Any stable string in, the same 32-bit seed out. There is deliberately
 // no Math.random anywhere near a felt: a re-render that reshuffles the
