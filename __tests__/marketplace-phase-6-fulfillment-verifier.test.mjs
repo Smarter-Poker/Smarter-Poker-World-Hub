@@ -105,6 +105,14 @@ test('deployment verifier probes the complete private operations surface and acc
       });
       return res.end(JSON.stringify({ success: false, error: 'Method Not Allowed' }));
     }
+    if (req.url === '/api/store/purchase-daily-vip' && req.method === 'POST') {
+      res.writeHead(410, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, no-store, max-age=0',
+        Vary: 'Authorization',
+      });
+      return res.end(JSON.stringify({ success: false, error: 'DAILY_VIP_RETIRED' }));
+    }
     if (req.url?.startsWith('/api/')) {
       res.writeHead(401, {
         'Content-Type': 'application/json',

@@ -203,7 +203,7 @@ function marketplaceServer(state) {
       return json(res, 410, { success: false, error: 'retired' });
     }
     if (url.pathname === '/api/store/purchase-daily-vip') {
-      return json(res, 404, { success: false, error: 'not_found' });
+      return privateResponse(res, 410);
     }
     if (url.pathname === '/api/store/fulfillment-operations' && req.method === 'POST') {
       return privateResponse(res, 405);
@@ -313,6 +313,10 @@ test('Phase 7 publishes exact route, payment, and cross-method safety contracts'
   assert.match(switchPlan, /vipStripePriceMismatch\(configuredPrice, target\)/);
   assert.match(detail, /data-marketplace-route=\{canonical\}/);
   assert.match(shell, /data-marketplace-route=\{canonicalRoute\}/);
+  assert.match(await read('pages/hub/diamond-store/cart.js'), /data-marketplace-route="\/hub\/diamond-store\/cart"/);
+  assert.match(await read('pages/hub/diamond-store/orders/[orderId].js'), /getServerSideProps[\s\S]*routeOrderId/);
+  assert.match(await read('pages/hub/club-shop/[itemId].js'), /getServerSideProps[\s\S]*routeItemId/);
+  assert.match(await read('pages/api/store/purchase-daily-vip.js'), /status\(410\)/);
   assert.match(vipMutex, /FROM public\.profiles[\s\S]*FOR UPDATE/);
   assert.match(vipMutex, /-- TIER:\s+3/);
   assert.match(vipMutex, /-- ROLLBACK \(Tier 3:/);

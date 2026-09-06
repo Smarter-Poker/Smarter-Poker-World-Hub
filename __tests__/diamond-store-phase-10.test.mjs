@@ -79,8 +79,9 @@ test('the retired Daily Pass stays retired', () => {
    * Dan retired the product the same day - "the terms are monthly, yearly and
    * lifetime" - and the removal was done properly: 0 vip_daily diamond
    * transactions and 0 purchases carried the intent, so no receipt, refund or
-   * in-flight settlement depended on it, and /api/store/purchase-daily-vip
-   * went with it. What did NOT happen is this test being updated in the same
+   * in-flight settlement depended on it. Its purchase implementation was
+   * replaced by an explicit 410 tombstone so cached clients stop retrying.
+   * What did NOT happen is this test being updated in the same
    * commit, which CLAUDE.md requires, so main went red and STAYED red: Global
    * Footer E2E is not a required check, so nothing was blocked and nobody
    * looked.
@@ -103,7 +104,10 @@ test('the retired Daily Pass stays retired', () => {
   assert.doesNotMatch(code, /Pay For Daily VIP With Card/);
   assert.doesNotMatch(code, /runDailyPassPurchase\s*=/);
   assert.doesNotMatch(code, /purchase-daily-vip/);
-  assert.ok(!existsSync(join(ROOT, 'pages/api/store/purchase-daily-vip.js')));
+  const retiredRoute = read('pages/api/store/purchase-daily-vip.js');
+  assert.match(retiredRoute, /status\(410\)/);
+  assert.match(retiredRoute, /Cache-Control/);
+  assert.doesNotMatch(retiredRoute, /stripe|supabase|purchase_vip_with_diamonds/i);
 
   // The reader side is deliberately unchanged: these two read history.
   assert.match(read('pages/api/admin/diamond-liability.js'), /vip_daily/);
