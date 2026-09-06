@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * UNIVERSAL HEADER COMPONENT — Hub-Style Dark Theme
+ * UNIVERSAL HEADER COMPONENT - Hub-Style Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * CRITICAL: This is the GLOBAL STANDARD header for ALL smarter.poker pages.
@@ -29,7 +29,7 @@ import { usePageOverlayStore } from '../../stores/pageOverlayStore';
 // ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
 const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
   ssr: false,
-  loading: () => null, // No visible flash — modal has its own skeleton
+  loading: () => null, // No visible flash - modal has its own skeleton
 });
 const HamburgerMenu = dynamic(() => import('./HamburgerMenu'), {
   ssr: false,
@@ -65,7 +65,7 @@ const C = {
 // ── Header data cache freshness window ────────────────────────────────────
 // The header is rendered per-page (it is NOT mounted in _app), so it remounts on
 // EVERY route change. Without this guard each navigation fired a
-// /api/user/get-header-stats POST — up to ~8 DB round-trips — purely to re-derive
+// /api/user/get-header-stats POST - up to ~8 DB round-trips - purely to re-derive
 // data already sitting in localStorage. Inside this window we trust the cache.
 const HEADER_CACHE_FRESH_MS = 60 * 1000;
 
@@ -74,7 +74,7 @@ const HEADER_CACHE_FRESH_MS = 60 * 1000;
 // 'FULL SCREEN POP UP' SO YOU STAY ON THE PAGE YOU WERE ON... INSIDE THE WORLD
 // HUB, CLUB ARENA AND CLUB COMMANDER PAGES." This header is rendered per-page
 // and Commander never mounts it, so an overlay owned here could only ever be
-// opened by this header's own buttons — which is why the bottom nav, the
+// opened by this header's own buttons - which is why the bottom nav, the
 // hamburger and Commander all still navigated. One store, one overlay mounted
 // in _app (GlobalPageOverlay), every door the same.
 
@@ -112,7 +112,7 @@ export default function UniversalHeader({
   // Parses localStorage once and returns the cached header object (or null if expired/missing).
   // This prevents double JSON.parse and ensures stale data (>24h) is discarded.
   // PERF (header-audit follow-up): this was a bare IIFE, so it re-read localStorage
-  // TWICE and re-parsed TWO JSON payloads on every single render — and this component
+  // TWICE and re-parsed TWO JSON payloads on every single render - and this component
   // re-renders on every notification tick, balance tick and realtime event. Nothing
   // downstream wants a fresh read: the value feeds a useState initializer and two
   // effects with [] deps, all of which only ever see the first-render value. Memoising
@@ -233,7 +233,7 @@ export default function UniversalHeader({
   // BUG-FIX-LIVE-6: useUnreadCount is now the single source of truth for
   // BOTH unread DM count AND unread notification count, with a Realtime
   // subscription. Header badges now mirror the bottom-nav badges in
-  // real time — no more "header shows old count until you open the
+  // real time - no more "header shows old count until you open the
   // overlay and close it" lag.
   const { unreadCount, notificationCount: liveNotificationCount } = useUnreadCount();
 
@@ -249,13 +249,13 @@ export default function UniversalHeader({
       try {
         localStorage.setItem('sp-notif-count', String(liveNotificationCount));
       } catch (_) {
-        /* private browsing — ignore */
+        /* private browsing - ignore */
       }
     }
   }, [liveNotificationCount]);
 
   // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
-  // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
+  // Cache read is now synchronous in _cachedHeader above - no extra effect needed.
   useIsomorphicLayoutEffect(() => {
     setIsMounted(true);
     // Seed diamond balance from cache (hook needs explicit init)
@@ -264,10 +264,10 @@ export default function UniversalHeader({
     }
   }, []);
 
-  // Derived values — gated behind isMounted for SSR hydration safety.
+  // Derived values - gated behind isMounted for SSR hydration safety.
   // Because user/isVip are initialized synchronously from localStorage,
   // the FIRST post-mount render (when isMounted flips true) already has
-  // cached data — so there is zero visual flash despite the gate.
+  // cached data - so there is zero visual flash despite the gate.
 
   const profilePhotoUrl = user?.profilePhotoUrl || user?.avatar || null;
   const arenaAvatarUrl = user?.arenaAvatarUrl || contextAvatar?.imageUrl || null;
@@ -279,6 +279,7 @@ export default function UniversalHeader({
   const displayAvatar = isMounted ? resolvedPortrait || '/default-avatar.png' : null;
   const safeUnreadCount = isMounted ? unreadCount : 0;
   const safeNotificationCount = isMounted ? notificationCount : 0;
+  const safeIsVip = isMounted ? isVip : false;
 
   // Live Help state
   const liveHelp = useLiveHelp();
@@ -314,7 +315,7 @@ export default function UniversalHeader({
 
   // `markAllNotificationsRead` used to live here and was called by the bell's
   // onClick alone. It moved into src/stores/pageOverlayStore.js so that opening
-  // notifications from ANY door acknowledges the badge — see the note there.
+  // notifications from ANY door acknowledges the badge - see the note there.
   // Deleted rather than left in place: a mark-all-read helper sitting unused in
   // a header is one `onClick` away from a second, competing writer.
 
@@ -354,7 +355,7 @@ export default function UniversalHeader({
 
         if (authUser) {
           // BUGFIX (header-audit, primary cause of the avatar reloading on every
-          // navigation): this was `setUser(authUser)` — a full REPLACE. `authUser`
+          // navigation): this was `setUser(authUser)` - a full REPLACE. `authUser`
           // is the raw Supabase auth object read out of localStorage and carries
           // no `avatar` / `name` keys, so the replace destroyed the cached avatar
           // that was seeded synchronously at mount and dropped the orb to
@@ -419,7 +420,7 @@ export default function UniversalHeader({
                   setNotificationCount(result.notificationCount);
                 }
                 // 🛡️ INSTANT UI: Cache user data for next page load (with TTL timestamp)
-                // Lowercase username before caching — prevents stale mixed-case
+                // Lowercase username before caching - prevents stale mixed-case
                 // values propagating into profileHref via the cache init path.
                 const normalizedUsername = username ? username.toLowerCase() : null;
                 try {
@@ -445,7 +446,7 @@ export default function UniversalHeader({
                 }
 
                 // Update direct profile link if we got the username
-                // ALWAYS lowercase — DB trigger enforces this, but
+                // ALWAYS lowercase - DB trigger enforces this, but
                 // the API response may return a mixed-case value
                 // if the profile was created before the trigger.
                 if (username) {
@@ -464,7 +465,7 @@ export default function UniversalHeader({
 
           // PERF (header-audit): skip the network entirely when the cached header
           // payload is younger than HEADER_CACHE_FRESH_MS and belongs to THIS user.
-          // Everything the fetch would set — avatar, name, VIP, admin, diamonds —
+          // Everything the fetch would set - avatar, name, VIP, admin, diamonds -
           // is already seeded synchronously from localStorage at mount, so a route
           // change no longer costs an API round-trip.
           const cacheIsFresh = !!(
@@ -535,7 +536,7 @@ export default function UniversalHeader({
                   useAvatarAsProfilePic: profile.use_avatar_as_profile_pic === true,
                   name: profile.username || profile.full_name,
                 }));
-                // Cache the REST fallback data too — lowercase username
+                // Cache the REST fallback data too - lowercase username
                 const normalizedFallbackUsername = profile.username
                   ? profile.username.toLowerCase()
                   : null;
@@ -560,7 +561,7 @@ export default function UniversalHeader({
                 } catch (_) {
                   console.warn('[App] Handled exception:', _?.message || _);
                 }
-                // Update direct profile link — lowercase username
+                // Update direct profile link - lowercase username
                 if (normalizedFallbackUsername) {
                   const directHref = `/hub/user/${normalizedFallbackUsername}`;
                   setProfileHref(directHref);
@@ -596,14 +597,14 @@ export default function UniversalHeader({
               console.warn('[UniversalHeader] fetchUnreadCount failed:', e);
             }
           };
-          // NOTE: Do NOT call fetchUnreadCount() here — count already set by fetchProfileWithRetry above.
+          // NOTE: Do NOT call fetchUnreadCount() here - count already set by fetchProfileWithRetry above.
 
           // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
           // BUGFIX (header-audit #5): the awaits above (up to 3 retries with
           // 500/1000/2000ms backoff plus a REST fallback) can easily outlive the
           // component. Without this guard the channel was opened AFTER unmount, so
-          // the effect cleanup — which had already run while cleanupNotifSync was
-          // still null — could never close it. That leaked one live channel per
+          // the effect cleanup - which had already run while cleanupNotifSync was
+          // still null - could never close it. That leaked one live channel per
           // navigation, each still hitting the API forever.
           if (!mounted) return;
           cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
@@ -671,7 +672,7 @@ export default function UniversalHeader({
   // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
   // Now handled by useDiamondBalance hook
 
-  // ── VIP status bus listener — updates VIP badge in real time ──
+  // ── VIP status bus listener - updates VIP badge in real time ──
   // Triggered by PhoneVerifyVIPModal after successful phone verification
   useEffect(() => {
     const handleVipChange = (e) => {
@@ -719,7 +720,7 @@ export default function UniversalHeader({
             useAvatarAsProfilePic: result.profile.use_avatar_as_profile_pic === true,
             name: result.profile.username || result.profile.full_name || prev?.name,
           }));
-          // Update localStorage cache with fresh profile data — lowercase username
+          // Update localStorage cache with fresh profile data - lowercase username
           const refreshedUsername = result.profile.username
             ? result.profile.username.toLowerCase()
             : null;
@@ -744,7 +745,7 @@ export default function UniversalHeader({
           } catch (_) {
             console.warn('[App] Handled exception:', _?.message || _);
           }
-          // Update direct profile link if username changed — always lowercase
+          // Update direct profile link if username changed - always lowercase
           if (refreshedUsername) {
             const directHref = `/hub/user/${refreshedUsername}`;
             setProfileHref(directHref);
@@ -812,11 +813,11 @@ export default function UniversalHeader({
     if (backInProgressRef.current) return;
     backInProgressRef.current = true;
 
-    // CRITICAL: Use router.back() — NOT window.history.back().
+    // CRITICAL: Use router.back() - NOT window.history.back().
     // window.history.back() updates the URL bar but does NOT trigger
     // Next.js re-renders, so the user sees the old page content.
     // router.back() is always correct for SPA navigation. Do NOT gate
-    // on window.history.length — it is unreliable in Mobile Chrome
+    // on window.history.length - it is unreliable in Mobile Chrome
     // and across SPA sessions (can be 1 even after several pushes).
     router.back();
 
@@ -1398,7 +1399,7 @@ export default function UniversalHeader({
                        SQUARE. That is what broke on mobile and was reported on 2026-09-05:
                        a global 44px touch floor (src/index.css) overrode the button's
                        aspect-ratio 1, making the box 26.8 x 44 at 375px, so 46.9% of its
-                       height put the portrait 8px BELOW the ornament — the approved ring
+                       height put the portrait 8px BELOW the ornament - the approved ring
                        showing empty above the photo and the photo hanging past it below,
                        which is the "thick broken frame". The floor is now excluded there
                        and reset here; do not reintroduce a min-height, a fixed height, or
@@ -1536,13 +1537,13 @@ export default function UniversalHeader({
             type="button"
             className="approved-global-header__button approved-global-header__back"
             onClick={onBackClick || handleBack}
-            aria-label="Go back"
+            aria-label="Go Back"
           />
           <button
             type="button"
             className="approved-global-header__button approved-global-header__hub"
             onClick={() => router.push('/hub')}
-            aria-label="Go to the Hub"
+            aria-label="Go To The Hub"
           />
           <button
             type="button"
@@ -1570,11 +1571,11 @@ export default function UniversalHeader({
           <button
             type="button"
             className={`approved-global-header__button approved-global-header__vip${
-              isVip ? ' approved-global-header__vip--active' : ''
+              safeIsVip ? ' approved-global-header__vip--active' : ''
             }`}
             onClick={() => router.push('/hub/vip-membership')}
-            aria-label={isVip ? 'VIP Membership active' : 'VIP Membership inactive'}
-            data-vip-active={isVip ? 'true' : 'false'}
+            aria-label={safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'}
+            data-vip-active={safeIsVip ? 'true' : 'false'}
           />
           <button
             type="button"
@@ -1593,7 +1594,7 @@ export default function UniversalHeader({
             className="approved-global-header__button approved-global-header__notifications"
             /* Zeroing the badge, writing sp-notif-count and POSTing mark-read
                used to be written out here, which meant the badge cleared from
-               THIS control and from nowhere else — the bottom nav, the
+               THIS control and from nowhere else - the bottom nav, the
                hamburger, /hub/pages and Commander opened the identical popup
                and left the count sitting there. All of it moved into the
                store's openOverlay, so acknowledging is now part of opening
@@ -1624,7 +1625,7 @@ export default function UniversalHeader({
       {/* The full-screen popup used to be rendered HERE, driven by a useState
                 in this component. It moved to <GlobalPageOverlay /> in _app.js on
                 2026-09-02 so that every door opens it, not only this header's buttons
-                — Commander never mounts this header at all, and the bottom nav sits
+                - Commander never mounts this header at all, and the bottom nav sits
                 in _app, so both were stuck navigating. The two earlier fixes recorded
                 on this block still hold in its new home: it is rendered
                 unconditionally and driven by isOpen (it once had a hardcoded
