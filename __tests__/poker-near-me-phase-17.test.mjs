@@ -59,7 +59,9 @@ test('responsive visual baselines and live map probes remain project-stable', as
   assert.match(phase7, /phase7-map-signal-\$\{testInfo\.project\.name\}\.png/);
   assert.match(phase14, /const activated = await candidate\.evaluate/);
   assert.match(phase14, /element\.click\(\);/);
+  assert.match(phase14, /const popupContract = await map\.evaluate/);
   assert.doesNotMatch(phase14, /await candidate\.click\(\)/);
+  assert.doesNotMatch(phase14, /popup\.locator\('\.directions-trigger'\)/);
 });
 
 test('restored routes remain explicit to assistive technology', async () => {

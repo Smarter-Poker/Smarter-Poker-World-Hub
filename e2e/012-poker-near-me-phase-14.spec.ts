@@ -18,7 +18,6 @@ function collectMapRuntimeErrors(page: Page) {
 }
 
 async function clickTopmostDataMarker(page: Page, map: Locator) {
-  const actionablePopup = map.locator('.leaflet-popup:has(.fsp-trigger):has(.directions-trigger)').last();
   const candidateGroups = [map.locator('.tour-logo-marker'), map.locator('.venue-map-marker')];
 
   // Production venue data expands the featured-room rail above the map shortly
@@ -51,7 +50,31 @@ async function clickTopmostDataMarker(page: Page, map: Locator) {
         });
         if (!activated) continue;
         await page.waitForTimeout(50);
-        if (await actionablePopup.isVisible()) return;
+        const popupContract = await map.evaluate((element) => {
+          const popups = Array.from(element.querySelectorAll('.leaflet-popup')).reverse();
+          const popup = popups.find((entry) => (
+            entry.querySelector('.fsp-trigger') && entry.querySelector('.directions-trigger')
+          ));
+          if (!popup) return null;
+
+          const detail = popup.querySelector('.fsp-trigger');
+          const directions = popup.querySelector('.directions-trigger');
+          const popupBox = popup.getBoundingClientRect();
+          const directionsBox = directions?.getBoundingClientRect();
+          const directionsStyle = directions ? getComputedStyle(directions) : null;
+          return {
+            detailUrl: detail?.getAttribute('data-url') || '',
+            popupVisible: popupBox.width > 0 && popupBox.height > 0,
+            directionsVisible: Boolean(
+              directionsBox &&
+              directionsBox.width > 0 &&
+              directionsBox.height > 0 &&
+              directionsStyle?.visibility !== 'hidden' &&
+              directionsStyle?.display !== 'none'
+            ),
+          };
+        });
+        if (popupContract?.popupVisible && popupContract.directionsVisible) return popupContract;
       }
     }
   }
@@ -77,11 +100,10 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     }).toBeGreaterThan(0);
 
     if (await map.locator('.venue-map-marker, .tour-logo-marker').count()) {
-      await clickTopmostDataMarker(page, map);
-      const popup = map.locator('.leaflet-popup:has(.fsp-trigger):has(.directions-trigger)').last();
-      await expect(popup).toBeVisible({ timeout: 10_000 });
-      await expect(popup.locator('.fsp-trigger')).toHaveAttribute('data-url', /^\/hub\/(?:venues|tours)\//);
-      await expect(popup.locator('.directions-trigger')).toBeVisible();
+      const popupContract = await clickTopmostDataMarker(page, map);
+      expect(popupContract.detailUrl).toMatch(/^\/hub\/(?:venues|tours)\//);
+      expect(popupContract.popupVisible).toBe(true);
+      expect(popupContract.directionsVisible).toBe(true);
     }
 
     await expect(page.locator('link[data-pnm-map-style="poker-map-controls"]')).toHaveCount(1);
