@@ -142,6 +142,7 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(1, {
         timeout: 7_000,
       });
+      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeFocused();
       await expect(drawer).toBeHidden();
     }
   });

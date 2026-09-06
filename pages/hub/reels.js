@@ -2727,6 +2727,7 @@ export default function ReelsPage() {
             onCommandMenuOpenChange={handleCommandMenuOpenChange}
             commandMenuItems={menuConfig.menuItems}
             commandMenuBottomLinks={menuConfig.bottomLinks}
+            commandMenuShowProfile={false}
           />
         </div>
       )}
@@ -4034,6 +4035,7 @@ export default function ReelsPage() {
         {/* Keyboard Shortcuts Overlay */}
         {showShortcutsOverlay && (
           <div
+            data-reels-shortcuts-overlay="true"
             onClick={() => setShowShortcutsOverlay(false)}
             style={{
               position: 'absolute',

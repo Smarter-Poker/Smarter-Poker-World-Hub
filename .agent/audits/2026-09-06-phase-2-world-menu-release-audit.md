@@ -2,43 +2,65 @@
 
 Date: 2026-09-06
 
-Scope: The 14 World Hub hamburger menu families, their route ownership, responsive command drawers, Social Media visual identity, icon guardrails, release wiring, and production publication state.
+Scope: The 14 World Hub hamburger menu families, route ownership, responsive command drawers, Social Media visual identity, keyboard and focus behavior, embedded-page behavior, icon guardrails, and release wiring.
 
-## Release Lineage
+## Audited Worlds
 
-- Phase 2 hardening merge `42cd05f1` is an ancestor of audited `origin/main` at `4ffb9e65`.
-- The Phase 2 registry, drawer, fallback dock, visual tests, and browser fixtures have no intervening product diffs between those revisions.
-- Production `/api/health` reported `status: ok`, database `ok`, and build SHA `4ffb9e65` before the corrective patch.
+1. Personal Assistant
+2. Training Games
+3. Poker News
+4. Poker Trivia
+5. Social Media
+6. Diamond Arena
+7. My Clubs
+8. Video Library
+9. Odds Calculator
+10. Bankroll Manager
+11. Toke Tracker
+12. Preflop Charts
+13. Poker Near Me
+14. Marketplace
 
-## Evidence Collected
+## Defects Found And Corrected
 
-- Registry audit: 14 distinct worlds, 14 unique presentation schemes, 16 required visual tokens per world, and exactly 6 primary commands per world.
-- Route law audit: all 264 Hub page sources are covered by an approved shared header or the application-level command fallback.
-- Static regression audit: 1,163 tests passed with zero failures, skips, or todos.
-- Production Chromium audit: 40 of 40 menu cases passed across desktop and mobile.
-- Production visual audit: 14 of 14 world screenshot contracts passed.
-- Production WebKit audit: 14 of 14 mobile containment and reachability cases passed.
-- Extended route audit: 202 physical page patterns were exercised at 375 by 812. Protected routes that completed an intentional Sign In redirect and an invalid sampled dynamic route that completed a 404 were classified as non-menu destinations.
+- Restored a usable Social Media fallback trigger when Friends or Messenger is signed out and while the Reels header is intentionally hidden.
+- Replaced page-local duplicate drawers on Friends, Messenger, Reels, and user profiles with the controlled shared header drawer.
+- Added deterministic ownership handoff between approved header triggers and route fallbacks, including focus transfer when a Reels header appears or disappears.
+- Suppressed global command chrome inside embedded and `hideHeader=true` child pages.
+- Isolated drawer and recovery-dialog keyboard events from shortcuts on obscured pages.
+- Added Escape handling, Tab and Shift+Tab containment, safe focus restoration, stable dialog IDs, `aria-haspopup`, `aria-expanded`, and `aria-controls`.
+- Preserved Reels profile-command suppression and all route-specific contextual actions.
+- Corrected the stable ID wiring so the trigger identifies the dialog itself rather than its backdrop.
+- Preserved the Social Media Facebook presentation contract.
 
-## Defect Found
+## Protected Constraints
 
-The application fallback dock excluded the complete Social Media family because its primary page owns an approved header. Three retained Social Media states do not satisfy that assumption:
+- No hamburger icon, approved header artwork, or image asset was modified.
+- No gear, settings, or command-grid symbol can replace a hamburger trigger.
+- Approved header artwork hashes remain pinned by the regression suite.
+- No runtime em dash or en dash was introduced by the Phase 2 changes.
+- Every world keeps exactly six primary commands and its own premium presentation contract.
 
-- Friends omits its page header while signed out.
-- Messenger omits its page header while signed out.
-- Reels hides its approved header during immersive playback with `opacity: 0` and `pointer-events: none`.
+## Frozen Candidate Evidence
 
-The result was no usable hamburger on the first two states and an untappable hamburger beneath the Reels stage on the third.
-
-## Corrective Design
-
-- Retain the exact hamburger icon and approved artwork. No icon or image file changes are permitted or included.
-- Remove the Social Media exclusion from the route fallback.
-- Treat an approved trigger as usable only when it is connected, laid out, visible, opaque, and pointer enabled through its ancestor chain.
-- Observe only the approved trigger ancestor chain for visibility changes, avoiding a page-wide attribute observer.
-- Continue using the Social Media Facebook presentation contract for the fallback and drawer.
-- Add signed-out Friends, signed-out Messenger, and immersive Reels browser coverage that verifies tap hit-testing, hamburger identity, Facebook styling, six primary commands, and the preserved Social composition.
+- Production build: passed, including 403 generated routes and all Personal Assistant performance budgets.
+- TypeScript: `npx tsc --noEmit` passed.
+- Full lint: 3,962 source and test files passed in 106 bounded batches.
+- Registered regression guards: 1,175 passed, 0 failed, 0 skipped, 0 todo.
+- Desktop Chromium functional suite: 25 of 25 passed.
+- Mobile Chromium functional suite: 25 of 25 passed.
+- Premium visual reference suite: 14 of 14 passed.
+- Mobile WebKit containment and reachability suite: 17 of 17 passed.
+- Diff whitespace validation: required after the final upstream synchronization and recorded in the pull request checks.
 
 ## Release Gates
 
-Final gate results and deployed SHA are recorded in the pull request and production verification after merge.
+The candidate may publish only after all of these conditions hold:
+
+1. The branch is synchronized with the latest `origin/main` without bypassing hooks.
+2. The synchronized tree passes the affected static and browser gates.
+3. Pull request checks pass and the change is merged to `main`.
+4. Production `/api/health` reports `status: ok`, database `ok`, and the exact merged Git SHA.
+5. The functional, visual, and WebKit suites pass against the live production origin.
+
+The pull request and production health response are the authoritative records for the final merged and deployed SHA because those identifiers do not exist until after this audit file is committed.

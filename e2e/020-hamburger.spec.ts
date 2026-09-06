@@ -333,6 +333,9 @@ async function openWorldMenu(
     'aria-label',
     new RegExp(`Open ${world.label} Command Menu`, 'i')
   );
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toHaveAttribute('aria-controls', `sp-world-command-menu-${world.id}`);
   await expect
     .poll(async () => trigger.evaluate((element) => element.getBoundingClientRect().width))
     .toBeGreaterThanOrEqual(24);
@@ -343,6 +346,8 @@ async function openWorldMenu(
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('role', 'dialog');
   await expect(dialog).toHaveAttribute('aria-modal', 'true');
+  await expect(dialog).toHaveAttribute('id', `sp-world-command-menu-${world.id}`);
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
   // The drawer wears the hamburger too, not the six-node grid (Dan 2026-09-05).
   await expect(dialog).toHaveAttribute('data-menu-symbol', 'hamburger');
   return { trigger, dialog };
@@ -428,6 +433,29 @@ for (const world of WORLDS) {
     expect(Math.abs(metrics.y)).toBeLessThanOrEqual(1);
     expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
     expect(metrics.bodyOverflow).toBe('hidden');
+
+    const closeButton = dialog.getByRole('button', { name: 'Close menu' });
+    await expect(closeButton).toBeFocused();
+    await dialog.evaluate((element) => {
+      const focusable = Array.from(element.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter((node) => node.offsetParent !== null);
+      focusable.at(0)?.focus();
+    });
+    await page.keyboard.press('Shift+Tab');
+    expect(await dialog.evaluate((element) => {
+      const focusable = Array.from(element.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter((node) => node.offsetParent !== null);
+      return document.activeElement === focusable.at(-1);
+    })).toBe(true);
+    await page.keyboard.press('Tab');
+    expect(await dialog.evaluate((element) => {
+      const focusable = Array.from(element.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter((node) => node.offsetParent !== null);
+      return document.activeElement === focusable.at(0);
+    })).toBe(true);
 
     if (world.id === 'social-media') {
       const socialChrome = await dialog.locator('.sp-command-utility-rail').evaluate((element) => ({
@@ -561,6 +589,8 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
 
       await page.locator('[data-world-menu-trigger="approved-header"]').click();
       await expect(dialog).toBeVisible();
+      await page.keyboard.press('?');
+      await expect(page.locator('[data-reels-shortcuts-overlay="true"]')).toHaveCount(0);
       await page.waitForTimeout(5_500);
       await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(1);
       await expect(dialog).toBeVisible();
@@ -571,11 +601,19 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
         timeout: 7_000,
       });
       await expect(page.locator('[data-world-menu-trigger="approved-header"]')).toHaveCount(0);
+      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeFocused();
       await expect(dialog).toHaveCount(1);
       await expect(dialog).toBeHidden();
     }
   });
 }
+
+test('embedded Social pages suppress global command chrome', async ({ page }) => {
+  await page.goto('/hub/messenger?hideHeader=true', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-world-menu-trigger]')).toHaveCount(0);
+  await expect(page.locator('[data-world-command-menu]')).toHaveCount(0);
+});
 
 test('Social client navigation never paints duplicate hamburger triggers', async ({ page }) => {
   await page.goto('/hub/friends', { waitUntil: 'domcontentloaded' });

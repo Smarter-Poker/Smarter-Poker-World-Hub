@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Menu } from 'lucide-react';
 import HamburgerMenu from './HamburgerMenu';
@@ -59,9 +59,28 @@ export default function WorldCommandDock() {
   );
   const [isOpen, setIsOpen] = useState(false);
   const [hasHeaderTrigger, setHasHeaderTrigger] = useState(true);
+  const [isEmbedded, setIsEmbedded] = useState(true);
+  const fallbackTriggerRef = useRef(null);
+  const lastFocusedTriggerRef = useRef(null);
+  const restoreFallbackFocusRef = useRef(false);
+  const suppressForRoute = /(?:\?|&)hideHeader=true(?:&|$)/.test(path);
 
   useLayoutEffect(() => {
-    if (!world || typeof document === 'undefined') {
+    setIsEmbedded(window.self !== window.top);
+  }, [path]);
+
+  useLayoutEffect(() => {
+    const claimApprovedOwner = (event) => {
+      if (event.detail?.id !== world?.id) return;
+      setIsOpen(false);
+      setHasHeaderTrigger(true);
+    };
+    window.addEventListener('sp:approved-world-menu-owner', claimApprovedOwner);
+    return () => window.removeEventListener('sp:approved-world-menu-owner', claimApprovedOwner);
+  }, [world?.id]);
+
+  useLayoutEffect(() => {
+    if (!world || isEmbedded || suppressForRoute || typeof document === 'undefined') {
       setHasHeaderTrigger(true);
       return undefined;
     }
@@ -106,8 +125,15 @@ export default function WorldCommandDock() {
       absenceTimer = window.setTimeout(() => {
         const usable = hasUsableApprovedTrigger();
         if (usable) setIsOpen(false);
+        if (!usable) {
+          restoreFallbackFocusRef.current = Boolean(
+            lastFocusedTriggerRef.current?.matches?.(
+              '[data-world-menu-trigger="approved-header"]'
+            ) && !lastFocusedTriggerRef.current.isConnected
+          );
+        }
         setHasHeaderTrigger(usable);
-      }, 120);
+      }, 750);
     };
 
     const inspect = (force = false) => {
@@ -118,9 +144,17 @@ export default function WorldCommandDock() {
     };
     visibilityObserver = new MutationObserver(() => inspect(true));
     reconcile(true);
-    const observer = new MutationObserver(() => inspect(false));
+    // Structural ownership changes must reconcile in the mutation microtask.
+    // Deferring them to the next animation frame briefly mounts both the
+    // fallback drawer and a newly arrived approved-header drawer.
+    const observer = new MutationObserver(() => reconcile(false));
     observer.observe(document.body, { childList: true, subtree: true });
     const inspectViewport = () => inspect(true);
+    const rememberTriggerFocus = (event) => {
+      const trigger = event.target?.closest?.('[data-world-menu-trigger]');
+      if (trigger) lastFocusedTriggerRef.current = trigger;
+    };
+    document.addEventListener('focusin', rememberTriggerFocus);
     window.addEventListener('resize', inspectViewport);
     window.visualViewport?.addEventListener('resize', inspectViewport);
     return () => {
@@ -128,10 +162,17 @@ export default function WorldCommandDock() {
       window.clearTimeout(absenceTimer);
       observer.disconnect();
       visibilityObserver.disconnect();
+      document.removeEventListener('focusin', rememberTriggerFocus);
       window.removeEventListener('resize', inspectViewport);
       window.visualViewport?.removeEventListener('resize', inspectViewport);
     };
-  }, [world, router.pathname]);
+  }, [world, router.pathname, isEmbedded, suppressForRoute]);
+
+  useLayoutEffect(() => {
+    if (hasHeaderTrigger || !restoreFallbackFocusRef.current) return;
+    restoreFallbackFocusRef.current = false;
+    fallbackTriggerRef.current?.focus();
+  }, [hasHeaderTrigger]);
 
   useEffect(() => {
     const close = () => setIsOpen(false);
@@ -139,18 +180,22 @@ export default function WorldCommandDock() {
     return () => router.events.off('routeChangeStart', close);
   }, [router.events]);
 
-  if (!world) return null;
+  if (!world || isEmbedded || suppressForRoute) return null;
 
   return (
     <>
       {!hasHeaderTrigger && (
         <button
+          ref={fallbackTriggerRef}
           type="button"
           className="sp-world-command-trigger"
           data-world-menu-trigger="route-fallback"
           data-menu-symbol="hamburger"
           data-world-menu-scheme={world.menuPalette.scheme}
           aria-label={`Open ${world.label} Command Menu`}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          aria-controls={`sp-world-command-menu-${world.id}`}
           onClick={() => setIsOpen(true)}
           style={worldMenuStyle}
         >

@@ -147,6 +147,7 @@ function HamburgerMenuContent({
     () => resolveWorldMenu(router?.asPath || router?.pathname || ''),
     [router?.asPath, router?.pathname],
   );
+  const commandMenuId = `sp-world-command-menu-${activeWorld?.id || 'global'}`;
   const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
   const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
   const worldMenuStyle = useMemo(
@@ -186,6 +187,12 @@ function HamburgerMenuContent({
 
   useEffect(() => { setLocalUser(getAuthUser()); }, []);
   useEffect(() => { if (isOpen) setEverOpened(true); }, [isOpen]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sp:world-command-menu-state', {
+      detail: { id: commandMenuId, open: isOpen },
+    }));
+  }, [commandMenuId, isOpen]);
 
   useEffect(() => {
     navigationLockRef.current = null;
@@ -306,19 +313,19 @@ function HamburgerMenuContent({
     }
   }, []);
 
-  // ── Close on ESC ──────────────────────────────────────────────────────────
+  // ── Modal keyboard boundary ───────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return undefined;
-    const handleEsc = (e) => {
-      if (e.key !== 'Escape') return;
-      // An open command drawer owns Escape. Mark the event before closing so
-      // page-level shortcuts cannot also navigate during the same keypress,
-      // regardless of listener registration order.
+    const containOutsideKey = (e) => {
+      if (drawerRef.current?.contains(e.target)) return;
+      // Until focus lands in the dialog, no page shortcut may act underneath
+      // the modal. Escape still closes from that brief transition state.
       e.preventDefault();
-      onClose?.();
+      e.stopImmediatePropagation();
+      if (e.key === 'Escape') onClose?.();
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener('keydown', containOutsideKey, true);
+    return () => window.removeEventListener('keydown', containOutsideKey, true);
   }, [isOpen, onClose]);
 
   // ── Focus management ──────────────────────────────────────────────────────
@@ -356,6 +363,15 @@ function HamburgerMenuContent({
   }, [isOpen]);
 
   const trapTab = useCallback((e) => {
+    // The dialog is a keyboard event boundary. Let controls receive their key
+    // first, then prevent window-level shortcuts on Reels, Messenger, and the
+    // Social feed from mutating the obscured page.
+    e.stopPropagation();
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose?.();
+      return;
+    }
     if (e.key !== 'Tab' || !drawerRef.current) return;
     const nodes = Array.from(drawerRef.current.querySelectorAll(FOCUSABLE))
       .filter((n) => n.offsetParent !== null || n === document.activeElement);
@@ -364,7 +380,7 @@ function HamburgerMenuContent({
     const last = nodes[nodes.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  }, []);
+  }, [onClose]);
 
   // ── Swipe-to-close (axis aware, ignores horizontal scrollers) ─────────────
   const touchStartRef = useRef(null);
@@ -1014,6 +1030,7 @@ function HamburgerMenuContent({
 
       {/* Drawer */}
       <div
+        id={commandMenuId}
         ref={drawerRef}
         className="sp-drawer"
         role="dialog"
