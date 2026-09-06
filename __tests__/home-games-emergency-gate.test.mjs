@@ -13,6 +13,7 @@ import {
   rsvpGuestCount,
   rsvpSeatCount,
 } from '../vendor/commander-shared/src/components/commander/home-games/rsvpCapacity.mjs';
+import { homeGameSeatNotificationId } from '../src/lib/home-games/seatNotificationId.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicApiRoot = path.join(repoRoot, 'pages', 'api', 'public');
@@ -138,6 +139,40 @@ test('seat route delegates membership, RSVP, and capacity to the caller-scoped a
   assert.doesNotMatch(source, /\.from\('commander_home_rsvps'\)/);
   assert.doesNotMatch(source, /\.upsert\(rsvpPayload/);
   assert.doesNotMatch(source, /capacity re-check/);
+});
+
+test('seat-request notification dispatch is atomically idempotent across serverless retries', async () => {
+  const first = homeGameSeatNotificationId({
+    hostUserId: '00000000-0000-4000-8000-000000000001',
+    eventId: '00000000-0000-4000-8000-000000000002',
+    requesterUserId: '00000000-0000-4000-8000-000000000003',
+  });
+  const replay = homeGameSeatNotificationId({
+    hostUserId: '00000000-0000-4000-8000-000000000001',
+    eventId: '00000000-0000-4000-8000-000000000002',
+    requesterUserId: '00000000-0000-4000-8000-000000000003',
+  });
+  const otherHost = homeGameSeatNotificationId({
+    hostUserId: '00000000-0000-4000-8000-000000000004',
+    eventId: '00000000-0000-4000-8000-000000000002',
+    requesterUserId: '00000000-0000-4000-8000-000000000003',
+  });
+  const source = await readFile(seatRoutePath, 'utf8');
+  const notificationInsert = source.indexOf("from('notifications').insert");
+  const conflictExit = source.indexOf("if (notifErr.code === '23505') return;");
+  const pushDispatch = source.indexOf('await sendPushNotification');
+  const messageDispatch = source.indexOf('await sendDirectMessageBetweenUsers');
+
+  assert.equal(first, replay);
+  assert.notEqual(first, otherHost);
+  assert.match(first, /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.ok(notificationInsert > 0, 'notification claim insert must exist');
+  assert.ok(conflictExit > notificationInsert, 'duplicate claim must return after the insert');
+  assert.ok(pushDispatch > conflictExit, 'push must happen only after winning the claim');
+  assert.ok(messageDispatch > conflictExit, 'DM must happen only after winning the claim');
+  assert.match(source, /id: notificationId/);
+  assert.match(source, /notifications insert failed:[\s\S]*?return;/);
+  assert.match(source, /notifications insert threw:[\s\S]*?return;/);
 });
 
 test('public Home Games seat UI recognizes RPC owner and event-host exemptions', async () => {

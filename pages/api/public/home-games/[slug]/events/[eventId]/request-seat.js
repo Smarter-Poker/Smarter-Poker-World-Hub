@@ -41,6 +41,7 @@ import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimi
 import { sendPushNotification } from '../../../../../../../src/lib/commander/pushNotifications';
 import { sendDirectMessageBetweenUsers } from '../../../../../../../src/lib/home-games/messenger';
 import { getUserScopedClient, mapRpcError } from '../../../../../../../src/lib/home-games/rpcBridge';
+import { homeGameSeatNotificationId } from '../../../../../../../src/lib/home-games/seatNotificationId.mjs';
 import { reportApiError } from '../../../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -248,12 +249,10 @@ export default async function handler(req, res) {
  *  decision. Email was the dispatch in v1 of this file; Phase 12 replaced
  *  it with push + DM so the home-games funnel stays in-app end-to-end.
  *
- *  Dedup: skips ALL THREE surfaces if a notification of the same type was
- *  already written for this (host, event, requester) triple within the last
- *  4 hours. This matters because the Phase 9 endpoint is intentionally
- *  idempotent — a user who edits their message and re-submits shouldn't
- *  spam the host. The in-app row is the dedup anchor; if it exists, the
- *  push + DM were already fired.
+ *  Dedup: one deterministic notification UUID claims this exact recipient,
+ *  event, and requester tuple. The notifications primary key makes the claim
+ *  atomic across concurrent serverless instances. A four-hour lookup remains
+ *  only for compatibility with notification rows created before stable IDs.
  *
  *  The helper never throws — the caller wraps it in try/catch for good
  *  measure, but everything inside is swallowed-and-logged.
@@ -336,13 +335,19 @@ async function dispatchHostNotification(supabase, ctx) {
     ? `"${String(rsvp.message).slice(0, 140)}${rsvp.message.length > 140 ? '…' : ''}"`
     : `At ${group_name} - tap to approve.`;
 
-  // ── 1. In-app notification row ────────────────────────────────────────────
+  // ── 1. In-app notification row and dispatch claim ─────────────────────────
   // Only real columns on public.notifications: user_id, type, title, message,
   // data, read, actor_id, link. Adding anything else (metadata / action_url /
   // is_read) fails the whole insert with 42703 — which also destroys the dedup
   // anchor above, since this row IS the anchor.
+  const notificationId = homeGameSeatNotificationId({
+    hostUserId: host_user_id,
+    eventId: event.id,
+    requesterUserId: requester_user_id,
+  });
   try {
     const { error: notifErr } = await supabase.from('notifications').insert({
+      id: notificationId,
       user_id: host_user_id,
       // _push:'inline' stops the DB mirror trigger double-pushing this row;
       // the explicit sendPushNotification() below owns delivery.
@@ -355,10 +360,15 @@ async function dispatchHostNotification(supabase, ctx) {
       read: false,
     });
     if (notifErr) {
+      // A competing request won the primary-key claim and owns every outward
+      // side effect. Returning here is what makes push and DM at-most-once.
+      if (notifErr.code === '23505') return;
       console.warn('[request-seat] notifications insert failed:', notifErr.message);
+      return;
     }
   } catch (e) {
     console.warn('[request-seat] notifications insert threw:', e?.message || e);
+    return;
   }
 
   // ── 2. OneSignal push to the host's registered devices ───────────────────
