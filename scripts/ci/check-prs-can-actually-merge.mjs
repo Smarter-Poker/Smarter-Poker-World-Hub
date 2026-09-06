@@ -174,6 +174,14 @@ const whoAmI = async () => {
  * treating "I do not know yet" as "not conflicting" - guessing wrong here
  * sends the repair at a pull request it cannot help.
  */
+/**
+ * Every `mergeable_state` GitHub documents EXCEPT `dirty` (conflicting) and
+ * `unknown` (not computed yet). A pull request in one of these has a merge ref,
+ * so it could have had checks and did not - which is the defect reopening
+ * fixes. Anything outside this set is left alone.
+ */
+const KNOWN_MERGEABLE_STATES = new Set(['clean', 'blocked', 'behind', 'unstable', 'has_hooks', 'draft']);
+
 const mergeStateOf = async (repo, number) => {
   for (let attempt = 0; attempt < 3; attempt++) {
     const pr = await api(`/repos/${repo}/pulls/${number}`);
@@ -215,6 +223,12 @@ const scan = async (repo) => {
       title: pr.title,
       state,
       conflicting: state === 'dirty',
+      // REPAIR ONLY ON A POSITIVE ANSWER. `unknown` means GitHub has not
+      // computed mergeability yet, not that the branch is clean - and it is
+      // returned often, for minutes at a time. Reading it as "not conflicting"
+      // is what sent the first repair at nine conflicting pull requests it
+      // could not help. Absence of an answer is never permission to act.
+      repairable: KNOWN_MERGEABLE_STATES.has(state),
     });
   }
   return { repo, open: prs.json.length, stuck };
@@ -244,13 +258,26 @@ if (stuck.length === 0) {
 }
 
 const conflicting = stuck.filter((s) => s.conflicting);
-const eventless = stuck.filter((s) => !s.conflicting);
+const eventless = stuck.filter((s) => s.repairable);
+const undecidable = stuck.filter((s) => !s.conflicting && !s.repairable);
 
 for (const s of stuck) {
-  const why = s.conflicting ? 'CONFLICTS with main' : `no events (${s.state})`;
+  const why = s.conflicting
+    ? 'CONFLICTS with main'
+    : s.repairable
+      ? `no events (${s.state})`
+      : `cannot tell (${s.state})`;
   console.log(`  STUCK ${s.repo}#${s.number}  ${mins(s.idle).padStart(6)} idle  ${why.padEnd(22)} ${s.branch}`);
 }
 console.log('');
+
+if (undecidable.length) {
+  console.log(
+    `${undecidable.length} could not be judged: GitHub had not computed mergeable_state. That is not ` +
+      `permission to reopen them - it is the absence of an answer. They are reported and left alone, ` +
+      `and the next pass asks again.`
+  );
+}
 
 if (conflicting.length) {
   console.log(
@@ -266,7 +293,8 @@ if (!REPAIR) {
       `pull_request workflow run on their head sha, so their required checks do not exist and ` +
       `auto-merge can never be satisfied. ${conflicting.length} conflict with main and need ` +
       `origin/main merged into the branch; ${eventless.length} lost their events (a GITHUB_TOKEN ` +
-      `write fires none) and are repaired by closing and reopening them.`
+      `write fires none) and are repaired by closing and reopening them; ${undecidable.length} could ` +
+      `not be judged and were left alone.`
   );
   for (const s of stuck) {
     console.error(`  ${s.repo}#${s.number} (${mins(s.idle)} idle, ${s.state}): ${s.title}`);
