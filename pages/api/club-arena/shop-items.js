@@ -16,6 +16,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 // 2026-08-19 (audit pass 4): this route and manage-shop.js are the two admin
@@ -62,6 +63,7 @@ async function verifyAdmin(token, clubId) {
 
 export default async function handler(req, res) {
     try {
+        setPrivateCommerceResponse(res);
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }

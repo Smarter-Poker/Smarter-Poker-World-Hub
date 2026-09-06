@@ -9,6 +9,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
@@ -118,6 +119,7 @@ async function loadPurchaseLedger(clubId) {
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     } else if (!applyRateLimit(req, res, LIMITS.read)) {

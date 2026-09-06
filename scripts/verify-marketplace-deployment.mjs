@@ -83,19 +83,32 @@ async function probePrivate({ path: privatePath, method = 'GET' }) {
       headers: requestHeaders({
         Accept: 'application/json',
         Origin: baseUrl,
-        ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+        ...(method !== 'GET' ? { 'Content-Type': 'application/json' } : {}),
       }),
-      ...(method === 'POST' ? { body: '{}' } : {}),
+      ...(method !== 'GET' ? { body: '{}' } : {}),
       signal: AbortSignal.timeout(timeoutMs),
     });
+    const cacheControl = response.headers.get('cache-control') || '';
+    const vary = response.headers.get('vary') || '';
+    const privateNoStore = /(?:^|,)\s*private\b/i.test(cacheControl)
+      && /(?:^|,)\s*no-store\b/i.test(cacheControl);
+    const variesOnAuthorization = vary.split(',')
+      .some((value) => value.trim().toLowerCase() === 'authorization');
+    const okay = response.status === 401 && privateNoStore && variesOnAuthorization;
     return {
       path: method === 'GET'
         ? `${privatePath} (private)`
         : `${privatePath} (${method.toLowerCase()}, private)`,
-      okay: response.status === 401,
+      okay,
       status: response.status,
       contentType: response.headers.get('content-type') || '',
-      reason: response.status === 401 ? null : `expected_401_received_${response.status}`,
+      reason: response.status !== 401
+        ? `expected_401_received_${response.status}`
+        : !privateNoStore
+          ? 'missing_private_no_store'
+          : !variesOnAuthorization
+            ? 'missing_vary_authorization'
+            : null,
       latencyMs: Date.now() - startedAt,
     };
   } catch (error) {
@@ -118,12 +131,19 @@ const results = await Promise.all([
 ]);
 
 results.push(...await Promise.all([
+  probePrivate({ path: '/api/store/create-checkout-session', method: 'POST' }),
+  probePrivate({ path: '/api/store/diamond-transactions' }),
+  probePrivate({ path: '/api/store/diamond-transfer', method: 'POST' }),
+  probePrivate({ path: '/api/store/merch-order' }),
   probePrivate({ path: '/api/store/vip-membership-status' }),
   probePrivate({ path: '/api/store/order-ledger' }),
   probePrivate({ path: '/api/store/checkout-status?session_id=invalid' }),
   probePrivate({ path: '/api/store/purchase-with-diamonds', method: 'POST' }),
   probePrivate({ path: '/api/store/purchase-vip-with-diamonds', method: 'POST' }),
+  probePrivate({ path: '/api/store/fulfillment-operations' }),
+  probePrivate({ path: '/api/club-arena/marketplace-items' }),
   probePrivate({ path: '/api/club-arena/marketplace-purchase', method: 'POST' }),
+  probePrivate({ path: '/api/rewards/progress' }),
 ]));
 
 try {
