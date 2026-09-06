@@ -226,6 +226,10 @@ test('case decisions and sanctions remain separate human actions', () => {
     'the decision control must enforce the same minimum as the route');
   assert.match(panel, /sanctionDraft\.note\.trim\(\)\.length < 10/,
     'the sanction control must enforce the same minimum as the route');
+  assert.match(panel, /caseStatus === 'decided' && sanctionDraft\.kind === expectedSanction/,
+    'a sanction must follow a recorded, matching human decision');
+  assert.match(panel, /Record A Human Decision First\./,
+    'an undecided case must explain why sanction controls are unavailable');
   assert.match(panel, /opId: first\(root, 'opId', 'op_id'\) \|\| draft\.opId/,
     'the approval retry keeps the same operation ID');
   assert.ok(!/delete.*caseItems|caseItems.*delete/i.test(panel),

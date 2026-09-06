@@ -506,6 +506,14 @@ export default function IntegrityPanel({
   const caseRecord = caseOf(casePayload);
   const caseItems = caseItemsOf(casePayload);
   const caseSubjects = arrayOf(first(caseRecord, 'subject_ids', 'subjectIds')).filter(Boolean);
+  const caseStatus = first(caseRecord, 'status');
+  const caseDecision = first(caseRecord, 'decision');
+  const expectedSanction = {
+    warned: 'warning',
+    restricted: 'restriction',
+    confiscated: 'confiscation',
+  }[caseDecision] || null;
+  const sanctionReady = caseStatus === 'decided' && sanctionDraft.kind === expectedSanction;
 
   useEffect(() => {
     if (!caseSubjects.length || sanctionDraft.subjectId) return;
@@ -841,7 +849,21 @@ export default function IntegrityPanel({
                 ))}
               </div>
 
-              {canModerate && (
+              {canModerate && caseStatus !== 'decided' && (
+                <div className={styles.infoNote} role="status">
+                  <strong>Record A Human Decision First. </strong>
+                  A Sanction Cannot Be Applied Until This Case Has A Recorded Verdict.
+                </div>
+              )}
+
+              {canModerate && caseStatus === 'decided' && !expectedSanction && (
+                <div className={styles.infoNote} role="status">
+                  <strong>No Sanction Is Authorized. </strong>
+                  The Recorded Decision Is No Action.
+                </div>
+              )}
+
+              {canModerate && caseStatus === 'decided' && expectedSanction && (
                 <div className={styles.card}>
                   <h3 className={styles.cardTitle}>Attach Evidence</h3>
                   <div className={styles.filterRow}>
@@ -986,7 +1008,7 @@ export default function IntegrityPanel({
                   <button
                     type="button"
                     className={`${styles.btn} ${sanctionDraft.kind === 'confiscation' ? styles.btnDanger : styles.btnGo}`}
-                    disabled={busy || !sanctionDraft.subjectId || sanctionDraft.note.trim().length < 10
+                    disabled={busy || !sanctionReady || !sanctionDraft.subjectId || sanctionDraft.note.trim().length < 10
                       || (sanctionDraft.kind === 'confiscation' && (!canMoveMoney || Number(sanctionDraft.amount) <= 0))
                       || (sanctionDraft.kind === 'restriction' && !sanctionDraft.restrictionId.trim())}
                     onClick={() => submitSanction()}
