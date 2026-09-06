@@ -45,6 +45,7 @@ export const protectedReadRoutes = [
   '/api/assistant/stats',
   '/api/assistant/leaks',
   '/api/assistant/leaks/audit-jobs',
+  '/api/assistant/coaching',
   '/api/assistant/sandbox/sandbox-quiz',
   '/api/sandbox/coach-accuracy',
   '/api/sandbox/create-share',
@@ -161,6 +162,9 @@ export async function runProductionHardeningProbe() {
       'hand_audit_decisions',
       'leak_review_state',
       'user_leaks',
+      'pa_coaching_goals',
+      'pa_coach_feedback',
+      'pa_coaching_preferences',
     ].map(table => probeRls(table, session.token, session.userId)));
   }
 

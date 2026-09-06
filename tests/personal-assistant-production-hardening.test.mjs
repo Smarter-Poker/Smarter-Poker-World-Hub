@@ -143,6 +143,7 @@ test('Phase 6 is a permanent build, browser, and post-deployment gate', () => {
   assert.equal(protectedReadRoutes.includes('/api/assistant/sandbox/sandbox-quiz'), true);
   assert.equal(protectedReadRoutes.includes('/api/sandbox/sessions'), true);
   assert.equal(protectedReadRoutes.includes('/api/sandbox/create-share'), true);
+  assert.equal(protectedReadRoutes.includes('/api/assistant/coaching'), true);
 });
 
 test('all Personal Assistant data routes share resilient auth and the durable worker owns a JSON failure boundary', () => {
