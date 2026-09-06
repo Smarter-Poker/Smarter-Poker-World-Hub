@@ -87,7 +87,11 @@ jobs:
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify premium World menu presentation
-        run: npx playwright test e2e/022-world-menu-visual.spec.ts e2e/023-world-menu-webkit.spec.ts --project=world-menu-visual --project=world-menu-webkit
+        # Training is the heaviest World route. Running its Chromium screenshot
+        # while WebKit hydrates the same route can starve screenshot stability on
+        # the shared production server, even though both browser contracts pass
+        # independently. Keep this cross-browser visual gate deterministic.
+        run: npx playwright test e2e/022-world-menu-visual.spec.ts e2e/023-world-menu-webkit.spec.ts --project=world-menu-visual --project=world-menu-webkit --workers=1
         env:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
