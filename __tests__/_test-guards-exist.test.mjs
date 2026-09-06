@@ -84,6 +84,7 @@ import './club-stats-maintenance-runtime-budget.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
+import './footer-follows-the-reader-not-a-rail.test.mjs';
 import './global-header-approved.test.mjs';
 // 2026-09-04, the "Log Out does nothing" fix. Its sibling guard
 // hamburger-never-regresses runs from `prebuild`, which fires on `npm run
@@ -207,6 +208,12 @@ import './a-probe-that-cannot-run-says-so.law.test.mjs';
 // Imported here because CHECK 8's explicit list needs the `workflow` PAT
 // permission the automation token does not have.
 import './alertmanager-page.test.mjs';
+// 2026-09-06, phase 7 of the same programme: the twenty-two hours BEGAN with
+// one environment variable, edited in a dashboard, leaving no commit and no
+// log line. This pins the detector that would now notice - and pins that it
+// never asks Vercel to decrypt, never carries a value, and exits 2 rather
+// than 0 when it cannot see.
+import './an-env-var-cannot-change-unseen.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -217,6 +224,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     '__tests__/the-hub-notices-a-revoked-session.law.test.mjs',
     '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
+    // An env var cannot change unseen (2026-09-03 began with exactly one).
+    '__tests__/an-env-var-cannot-change-unseen.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',

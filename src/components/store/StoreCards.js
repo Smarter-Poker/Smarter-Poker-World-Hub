@@ -117,9 +117,8 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                     <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>${(Number(plan.price) || 0).toFixed(2)}</span>
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{term}</span>
                 </div>
-                {/* 100 diamonds per dollar, the platform rate. Stated on the
-                    card because for lifetime it is currently the only way to
-                    pay, and for the other two it is a real alternative. */}
+                {/* 100 Diamonds per dollar, the platform rate. Lifetime uses
+                    this path while its one-time card lifecycle is gated. */}
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 12, color: '#00D4FF', fontWeight: 700 }}>
                     <Gem size={14} color="#00D4FF" aria-hidden="true" />
                     {Math.round((Number(plan.price) || 0) * 100).toLocaleString()} Diamonds

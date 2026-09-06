@@ -442,7 +442,7 @@ export function AvatarProvider({ children }) {
                     setAvatar({
                         type: 'preset',
                         id: 'free_shark',
-                        imageUrl: '/avatars/free/shark.png',
+                        imageUrl: '/avatars/free/shark.webp',
                         name: 'Poker Shark'
                     });
                 }
@@ -456,7 +456,7 @@ export function AvatarProvider({ children }) {
                 setAvatar({
                     type: 'preset',
                     id: 'free_shark',
-                    imageUrl: '/avatars/free/shark.png',
+                    imageUrl: '/avatars/free/shark.webp',
                     name: 'Poker Shark'
                 });
             }

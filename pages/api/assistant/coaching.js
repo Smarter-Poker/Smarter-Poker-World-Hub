@@ -18,8 +18,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 const LEAK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_:.-]{0,159}$/;
 const GOAL_STATUSES = new Set(['active', 'completed', 'paused']);
 const FEEDBACK_TYPES = new Set(['confusing', 'incorrect', 'mismatched', 'helpful']);
-const SAVED_VIEWS = new Set(['coach', 'evidence', 'timeline', 'goals', 'report']);
+const SAVED_VIEWS = new Set(['coach', 'evidence', 'timeline', 'goals', 'report', 'data']);
 const DEPTHS = new Set(['guided', 'detailed', 'expert']);
+const DECISION_WINDOW_LIMIT = 5000;
 
 function boundedText(value, max, { required = false } = {}) {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -40,9 +41,23 @@ function boundedNumber(value, { required = false } = {}) {
 
 function validDate(value) {
   if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    const endOfDay = new Date(`${value}T23:59:59.999Z`);
+    if (!Number.isFinite(endOfDay.getTime()) || endOfDay.toISOString().slice(0, 10) !== value) {
+      throw new TypeError('Date is invalid');
+    }
+    return endOfDay.toISOString();
+  }
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) throw new TypeError('Date is invalid');
   return date.toISOString();
+}
+
+function optionalLeakId(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const id = String(value);
+  if (!LEAK_ID_RE.test(id)) throw new TypeError('Leak id is invalid');
+  return id;
 }
 
 function isMissingSchema(error) {
@@ -61,22 +76,23 @@ async function ownerRead(supabase, table, select, userId, configure = query => q
 async function readWorkspace(supabase, userId) {
   const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
-    ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.order('audited_at', { ascending: false }).limit(5000)),
+    ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT)),
     ownerRead(supabase, 'leak_review_state', 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, updated_at', userId, query => query.order('due_at', { ascending: true }).limit(500)),
     ownerRead(supabase, 'pa_coaching_goals', 'id, leak_id, title, metric, target_value, current_value, status, due_at, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(100)),
     ownerRead(supabase, 'pa_coach_feedback', 'id, leak_id, decision_key, feedback_type, note, status, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(50)),
-    supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, updated_at').eq('user_id', userId).maybeSingle(),
+    supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, updated_at').eq('user_id', userId).maybeSingle(),
     supabase.from('pa_leak_audit_jobs').select('id, status, progress, result, reconciliation, completed_at, created_at').eq('user_id', userId).eq('status', 'completed').order('completed_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   if (preferenceResult.error && !isMissingSchema(preferenceResult.error)) throw preferenceResult.error;
   if (auditResult.error && !isMissingSchema(auditResult.error)) throw auditResult.error;
   const audit = auditResult.data || null;
+  const ownedDecisions = decisions.map(row => ({ ...row, evidence_scope: 'club_arena' }));
   const rejected = audit?.progress?.coverage || audit?.progress || {};
-  const matcher = decisions.find(row => String(row.solver_source || '').includes('hand-audit-v'))?.solver_source?.match(/hand-audit-v\d+/)?.[0] || 'unavailable';
+  const matcher = ownedDecisions.find(row => String(row.solver_source || '').includes('hand-audit-v'))?.solver_source?.match(/hand-audit-v\d+/)?.[0] || 'unavailable';
   const snapshot = buildCoachingSnapshot({
     leaks: leakRows.map(normalizeUserLeakRow),
-    decisions,
+    decisions: ownedDecisions,
     reviews,
     rejected: {
       missingPrivateCards: rejected.handsMissingPrivateCards,
@@ -87,16 +103,19 @@ async function readWorkspace(supabase, userId) {
       matcher,
       reviewSchema: reviews[0]?.schema_version || 'unavailable',
       detector: audit?.result?.detectorVersion || audit?.result?.detector_version || 'current',
+      decisionWindow: `latest-${DECISION_WINDOW_LIMIT}`,
     },
   });
+  snapshot.coverage.windowLimited = ownedDecisions.length >= DECISION_WINDOW_LIMIT;
+  snapshot.coverage.windowLimit = DECISION_WINDOW_LIMIT;
 
   return {
     snapshot: { ...snapshot, receipt: receiptFingerprint(snapshot) },
-    decisions,
+    decisions: ownedDecisions,
     reviews,
     goals,
     feedback,
-    preferences: preferenceResult.data || { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {} },
+    preferences: preferenceResult.data || { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {}, retention_days: null, last_retention_run_at: null },
     latestAudit: audit,
   };
 }
@@ -107,7 +126,7 @@ async function writeGoal(supabase, userId, body) {
   if (!GOAL_STATUSES.has(status)) throw new TypeError('Goal status is invalid');
   const row = {
     user_id: userId,
-    leak_id: body.leakId && LEAK_ID_RE.test(String(body.leakId)) ? String(body.leakId) : null,
+    leak_id: optionalLeakId(body.leakId),
     title: boundedText(body.title, 160, { required: true }),
     metric: boundedText(body.metric, 80, { required: true }),
     target_value: boundedNumber(body.targetValue, { required: true }),
@@ -124,6 +143,19 @@ async function writeGoal(supabase, userId, body) {
   if (error) throw error;
   if (!data) throw new Error('Goal was not saved');
   return data;
+}
+
+async function deleteGoal(supabase, userId, body) {
+  const id = String(body.id || '');
+  if (!UUID_RE.test(id)) throw new TypeError('Goal id is invalid');
+  const { data, error } = await supabase.from('pa_coaching_goals')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('id')
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
 }
 
 async function writeFeedback(supabase, userId, body) {
@@ -184,6 +216,10 @@ export default async function handler(req, res) {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     let result;
     if (body.action === 'save_goal') result = await writeGoal(supabase, user.id, body.goal || {});
+    else if (body.action === 'delete_goal') {
+      result = await deleteGoal(supabase, user.id, body.goal || {});
+      if (!result) return res.status(404).json({ success: false, error: 'Coaching goal was not found' });
+    }
     else if (body.action === 'submit_feedback') result = await writeFeedback(supabase, user.id, body.feedback || {});
     else if (body.action === 'save_preferences') result = await writePreferences(supabase, user.id, body.preferences || {});
     else return res.status(400).json({ success: false, error: 'Unsupported coaching action' });

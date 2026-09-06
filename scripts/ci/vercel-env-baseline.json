@@ -1,0 +1,420 @@
+{
+  "project": "prj_op66GkZyZcygXQKm76iyycfVFAQx",
+  "captured": "2026-09-06T11:50:04.400Z",
+  "env": [
+    {
+      "key": "ADMIN_ROUTE_SECRET",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-27T22:34:28.306Z"
+    },
+    {
+      "key": "ALERT_WEBHOOK_SECRET",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-23T05:32:12.523Z"
+    },
+    {
+      "key": "ANTHROPIC_API_KEY",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-20T20:06:22.581Z"
+    },
+    {
+      "key": "AUTOFIX_CLAUDE_MODEL",
+      "target": "development,preview,production",
+      "type": "plain",
+      "updatedAt": "2026-04-17T05:47:01.708Z"
+    },
+    {
+      "key": "AUTOFIX_GITHUB_TOKEN",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-09-06T09:45:14.493Z"
+    },
+    {
+      "key": "CRON_SECRET",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-09-05T03:20:56.288Z"
+    },
+    {
+      "key": "DEPLOY_INTERNAL_SECRET",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-16T21:06:38.219Z"
+    },
+    {
+      "key": "DEPLOY_WEBHOOK_SECRET",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-17T05:47:02.924Z"
+    },
+    {
+      "key": "GH_PAT",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-09-06T09:45:13.979Z"
+    },
+    {
+      "key": "HENDON_AUTO_SYNC_SECRET",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-03-25T03:00:12.944Z"
+    },
+    {
+      "key": "INTERNAL_API_KEY",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-05-18T15:40:19.474Z"
+    },
+    {
+      "key": "LIVEKIT_API_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-25T19:44:00.926Z"
+    },
+    {
+      "key": "LIVEKIT_API_SECRET",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-25T19:44:12.935Z"
+    },
+    {
+      "key": "MANUS_API_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-03-25T01:41:30.378Z"
+    },
+    {
+      "key": "MY_PHONE_NUMBER",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-04-21T03:56:40.761Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_ANTIGRAVITY_ENABLED",
+      "target": "development,preview",
+      "type": "encrypted",
+      "updatedAt": "2026-01-13T02:52:34.274Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_ANTIGRAVITY_ENABLED",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-13T03:15:48.431Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_BASE_URL",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-11T23:08:21.285Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_GOOGLE_MAPS_KEY",
+      "target": "preview",
+      "type": "encrypted",
+      "updatedAt": "2026-04-03T22:11:40.497Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_GOOGLE_MAPS_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-03T22:11:24.754Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_LIVEKIT_URL",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-25T19:44:14.083Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_ONESIGNAL_APP_ID",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-25T23:13:05.282Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_SENTRY_DSN",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-02T14:31:53.700Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-12T15:24:14.200Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "target": "development",
+      "type": "encrypted",
+      "updatedAt": "2026-08-16T15:51:27.864Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "target": "preview",
+      "type": "sensitive",
+      "updatedAt": "2026-08-16T15:51:41.625Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-27T22:45:00.219Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_URL",
+      "target": "development,preview",
+      "type": "plain",
+      "updatedAt": "2026-05-15T02:27:44.384Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_URL",
+      "target": "production",
+      "type": "plain",
+      "updatedAt": "2026-05-15T02:27:31.088Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_TWILIO_PHONE_NUMBER",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-01-12T01:50:56.448Z"
+    },
+    {
+      "key": "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-19T21:12:17.435Z"
+    },
+    {
+      "key": "NPM_TOKEN",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-28T20:16:16.043Z"
+    },
+    {
+      "key": "ONESIGNAL_REST_API_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-25T23:13:14.260Z"
+    },
+    {
+      "key": "OPENAI_API_KEY",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-13T20:47:31.562Z"
+    },
+    {
+      "key": "OPS_ALERT_EMAIL",
+      "target": "development,preview,production",
+      "type": "plain",
+      "updatedAt": "2026-05-03T08:31:16.223Z"
+    },
+    {
+      "key": "PROBE_LOGIN_EMAIL",
+      "target": "development,preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-09-04T19:19:03.473Z"
+    },
+    {
+      "key": "PROBE_LOGIN_PASSWORD",
+      "target": "development,preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-09-04T19:19:09.155Z"
+    },
+    {
+      "key": "PROBE_RECOVERY_EMAIL",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-05-18T14:37:53.214Z"
+    },
+    {
+      "key": "PROBE_SIGNUP_USER_ID",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-05-18T15:40:19.474Z"
+    },
+    {
+      "key": "RESEND_API_KEY",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-28T22:32:49.825Z"
+    },
+    {
+      "key": "RESEND_FROM_EMAIL",
+      "target": "development,preview,production",
+      "type": "plain",
+      "updatedAt": "2026-05-03T08:31:16.587Z"
+    },
+    {
+      "key": "SCRAPERAPI_KEY",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-13T18:50:34.673Z"
+    },
+    {
+      "key": "SENTRY_AUTH_TOKEN",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-20T10:08:32.335Z"
+    },
+    {
+      "key": "SENTRY_DSN",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-02T14:31:54.747Z"
+    },
+    {
+      "key": "SENTRY_ORG",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-20T10:08:34.610Z"
+    },
+    {
+      "key": "SENTRY_PROJECT",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-20T10:08:38.028Z"
+    },
+    {
+      "key": "STRIPE_SECRET_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-12T15:24:12.005Z"
+    },
+    {
+      "key": "STRIPE_VIP_LIFETIME_PRICE_ID",
+      "target": "preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-09-05T18:16:27.693Z"
+    },
+    {
+      "key": "STRIPE_VIP_MONTHLY_PRICE_ID",
+      "target": "preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-09-05T18:16:26.977Z"
+    },
+    {
+      "key": "STRIPE_VIP_YEARLY_PRICE_ID",
+      "target": "preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-09-05T18:16:27.333Z"
+    },
+    {
+      "key": "STRIPE_WEBHOOK_SECRET",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-02-12T15:24:52.646Z"
+    },
+    {
+      "key": "SUPABASE_JWT_SECRET",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-04-20T21:56:55.565Z"
+    },
+    {
+      "key": "SUPABASE_SERVICE_ROLE_KEY",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-17T05:56:20.925Z"
+    },
+    {
+      "key": "TWILIO_ACCOUNT_SID",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-24T20:46:28.102Z"
+    },
+    {
+      "key": "TWILIO_AUTH_TOKEN",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-24T20:46:32.940Z"
+    },
+    {
+      "key": "TWILIO_PHONE_NUMBER",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-24T20:46:36.896Z"
+    },
+    {
+      "key": "VAPID_PRIVATE_KEY",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-19T21:12:17.883Z"
+    },
+    {
+      "key": "VAPID_PUBLIC_KEY",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-19T21:12:16.972Z"
+    },
+    {
+      "key": "VAPID_SUBJECT",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-19T21:12:16.592Z"
+    },
+    {
+      "key": "VENUE_SCRAPER_SECRET",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-03-25T03:59:31.156Z"
+    },
+    {
+      "key": "VERCEL_TOKEN",
+      "target": "development",
+      "type": "encrypted",
+      "updatedAt": "2026-05-10T13:47:27.005Z"
+    },
+    {
+      "key": "VERCEL_TOKEN",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-05-10T13:47:23.725Z"
+    },
+    {
+      "key": "VITE_ANTIGRAVITY_ENABLED",
+      "target": "development,preview,production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-13T02:40:25.526Z"
+    },
+    {
+      "key": "VITE_SENTRY_DSN",
+      "target": "development,preview,production",
+      "type": "plain",
+      "updatedAt": "2026-08-26T13:35:54.962Z"
+    },
+    {
+      "key": "VITE_SUPABASE_ANON_KEY",
+      "target": "development",
+      "type": "encrypted",
+      "updatedAt": "2026-08-16T15:33:41.361Z"
+    },
+    {
+      "key": "VITE_SUPABASE_ANON_KEY",
+      "target": "preview",
+      "type": "sensitive",
+      "updatedAt": "2026-08-16T15:33:40.228Z"
+    },
+    {
+      "key": "VITE_SUPABASE_ANON_KEY",
+      "target": "production",
+      "type": "sensitive",
+      "updatedAt": "2026-08-27T22:45:01.541Z"
+    },
+    {
+      "key": "VITE_SUPABASE_URL",
+      "target": "development,preview,production",
+      "type": "plain",
+      "updatedAt": "2026-05-15T02:27:44.700Z"
+    },
+    {
+      "key": "XAI_API_KEY",
+      "target": "production",
+      "type": "encrypted",
+      "updatedAt": "2026-01-29T08:03:47.186Z"
+    }
+  ]
+}

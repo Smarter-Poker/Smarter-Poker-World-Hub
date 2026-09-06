@@ -46,6 +46,67 @@ function leakStatus(leak) {
   return String(leak?.status || (leak?.is_active === false ? 'resolved' : 'emerging')).toLowerCase();
 }
 
+function slug(value, fallback) {
+  const normalized = String(value || fallback).trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return normalized || fallback;
+}
+
+function decisionLeakType(row) {
+  const scope = slug(row?.evidence_scope, 'club_arena');
+  return [
+    'solver', scope, slug(row?.game_id, 'training'), slug(row?.street, 'all_streets'),
+    slug(row?.hero_position, 'all_positions'), slug(row?.spot_type, 'general'),
+  ].join('_').slice(0, 180);
+}
+
+function hashText(input) {
+  let forward = 2166136261;
+  let reverse = 3339675911;
+  for (let index = 0; index < input.length; index += 1) {
+    forward ^= input.charCodeAt(index);
+    forward = Math.imul(forward, 16777619);
+    reverse ^= input.charCodeAt(input.length - index - 1);
+    reverse = Math.imul(reverse, 2246822519);
+  }
+  return `${(forward >>> 0).toString(16).padStart(8, '0')}${(reverse >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function canonicalRows(rows) {
+  return rows.map(row => JSON.stringify(row)).sort();
+}
+
+export function evidenceFingerprint({ leaks = [], decisions = [], reviews = [], rejected = {} } = {}) {
+  const leakRows = canonicalRows((Array.isArray(leaks) ? leaks : []).map(leak => [
+    leakId(leak), leakStatus(leak), leakSamples(leak), leakMistakes(leak), measuredLoss(leak),
+    iso(leak?.firstDetected || leak?.first_detected_at || leak?.created_at),
+    iso(leak?.resolvedAt || leak?.resolved_at),
+    finite(leak?.currentFrequency ?? leak?.current_frequency),
+    finite(leak?.optimalFrequency ?? leak?.optimal_frequency),
+  ]));
+  const decisionRows = canonicalRows((Array.isArray(decisions) ? decisions : []).map(row => [
+    String(row?.hand_external_id || ''), String(row?.decision_key || ''), String(row?.question_id || ''), String(row?.evidence_scope || ''),
+    String(row?.game_id || ''), String(row?.street || ''), String(row?.hero_position || ''),
+    String(row?.villain_position || ''), String(row?.spot_type || ''), String(row?.hero_hand || ''),
+    row?.board_cards || [], String(row?.player_action || ''), String(row?.solver_action || ''),
+    finite(row?.selected_frequency), finite(row?.optimal_frequency), String(row?.classification || ''),
+    finite(row?.ev_loss), row?.ev_loss_measured === true, row?.solver_verified === true,
+    String(row?.solver_source || ''), count(row?.match_tier), iso(row?.audited_at),
+  ]));
+  const reviewRows = canonicalRows((Array.isArray(reviews) ? reviews : []).map(row => [
+    String(row?.leak_id ?? row?.leakId ?? ''), iso(row?.due_at ?? row?.dueAt),
+    count(row?.reps), count(row?.lapses), count(row?.strong_streak), row?.retired === true,
+    finite(row?.last_score), String(row?.last_outcome || ''), iso(row?.updated_at),
+    canonicalRows((Array.isArray(row?.history) ? row.history : []).map(item => [iso(item?.at), finite(item?.score)])),
+  ]));
+  const rejectedRows = Object.entries(rejected || {})
+    .map(([key, value]) => [String(key), count(value)])
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  return `pa7e-${hashText(JSON.stringify({ leakRows, decisionRows, reviewRows, rejectedRows }))}`;
+}
+
 export function decisionCoverage(decisions = [], rejected = {}) {
   const rows = Array.isArray(decisions) ? decisions.filter(Boolean) : [];
   const verified = rows.filter(row => row.solver_verified === true).length;
@@ -144,7 +205,7 @@ export function buildEvidenceChain(leak, decisions = [], reviewRecords = [], ver
     snapshot.hand_id, snapshot.handId,
   ].filter(Boolean).map(String);
   const decisionRows = (Array.isArray(decisions) ? decisions : []).filter(row => {
-    const keys = [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id].filter(Boolean).map(String);
+    const keys = [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id, decisionLeakType(row)].filter(Boolean).map(String);
     return keys.includes(id)
       || keys.includes(String(leak?.leakType || leak?.leak_type || ''))
       || exampleExternalIds.includes(String(row?.hand_external_id || ''));
@@ -198,6 +259,7 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
   return {
     generatedAt: new Date(now).toISOString(),
     versions: { schema: 'pa-coaching-v1', ...versions },
+    evidenceFingerprint: evidenceFingerprint({ leaks, decisions, reviews, rejected }),
     coverage,
     priorities,
     timeline: buildProgressTimeline(leaks, reviews),
@@ -226,15 +288,11 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
 export function receiptFingerprint(snapshot = {}) {
   const input = JSON.stringify({
     versions: snapshot.versions || {},
+    evidenceFingerprint: snapshot.evidenceFingerprint || 'unavailable',
     priorities: (snapshot.priorities || []).map(item => [item.id, item.score, item.confidence?.score]),
     coverage: snapshot.coverage || {},
   });
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `pa7-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  return `pa7-${hashText(input)}`;
 }
 
 export { DAY_MS };

@@ -29,15 +29,15 @@ const SEAT_POSITIONS = [
 
 // Avatar URLs - EXACT match to reference characters
 const AVATAR_URLS = [
-    '/avatars/free/fox.png',              // Hero - Orange Fox
-    '/avatars/vip/viking_warrior.png',    // Villain 1 - Viking (bottom-left)
-    '/avatars/free/wizard.png',           // Villain 2 - Wizard blue (left-mid)
-    '/avatars/free/ninja.png',            // Villain 3 - Ninja black (left-upper)
-    '/avatars/vip/spartan.png',           // Villain 4 - Spartan red (top-left)
-    '/avatars/vip/wolf.png',              // Villain 5 - Wolf gray (top-right)
-    '/avatars/vip/pharaoh.png',           // Villain 6 - Pharaoh gold (right-upper)
-    '/avatars/free/cowboy.png',           // Villain 7 - Cowboy (right-mid) FIXED!
-    '/avatars/free/pirate.png',           // Villain 8 - Pirate (bottom-right)
+    '/avatars/free/fox.webp',              // Hero - Orange Fox
+    '/avatars/vip/viking_warrior.webp',    // Villain 1 - Viking (bottom-left)
+    '/avatars/free/wizard.webp',           // Villain 2 - Wizard blue (left-mid)
+    '/avatars/free/ninja.webp',            // Villain 3 - Ninja black (left-upper)
+    '/avatars/vip/spartan.webp',           // Villain 4 - Spartan red (top-left)
+    '/avatars/vip/wolf.webp',              // Villain 5 - Wolf gray (top-right)
+    '/avatars/vip/pharaoh.webp',           // Villain 6 - Pharaoh gold (right-upper)
+    '/avatars/free/cowboy.webp',           // Villain 7 - Cowboy (right-mid) FIXED!
+    '/avatars/free/pirate.webp',           // Villain 8 - Pirate (bottom-right)
 ];
 
 // ==========================================

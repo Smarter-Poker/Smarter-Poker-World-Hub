@@ -268,18 +268,18 @@ export const FULL_VIDEOS = [
 export const SOURCES = [
     { id: 'ALL', name: 'All Sources', logo: null },
     // Major Live Streams
-    { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.png' },
-    { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.png' },
+    { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.webp' },
+    { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.webp' },
     { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.jpg' },
-    { id: 'LATB', name: 'Bally Poker Live', logo: '/images/video-sources/latb.png' },
-    { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
+    { id: 'LATB', name: 'Bally Poker Live', logo: '/images/video-sources/latb.webp' },
+    { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.webp' },
     { id: 'POKERGO', name: 'PokerGO', logo: '/images/video-sources/pokergo.jpg' },
     // Major Tours
-    { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.png' },
+    { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.webp' },
     { id: 'WPT', name: 'WPT', logo: '/images/video-sources/wpt.jpg' },
     { id: 'EPT', name: 'EPT', logo: '/images/video-sources/ept.jpg' },
     // Top Vloggers
-    { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.png' },
+    { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.webp' },
     { id: 'NEEME', name: 'Andrew Neeme', logo: '/images/video-sources/neeme.jpg' },
     { id: 'RAMPAGE', name: 'Rampage Poker', logo: '/images/video-sources/rampage.jpg' },
     { id: 'MARIANO', name: 'Mariano', logo: '/images/video-sources/mariano.jpg' },

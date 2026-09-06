@@ -30,8 +30,7 @@ export default function handler(req, res) {
         message:
             'This endpoint was retired by Operation Grok-Sweep Phase 46 - it produced ' +
             'hallucinated, schema-incorrect rows that bypassed solver verification. For bulk ' +
-            'cache generation, write a SQL migration that clones verified-correct donors from ' +
-            'training_question_cache or extracts directly from solved_spots_gold via the ' +
-            'fn_pio_options_from_solver / fn_chart_options_from_memory helpers.',
+            'cache generation, use the canonical server-side deterministic solver pipeline. ' +
+            'Legacy client-callable solver extraction RPCs are intentionally unavailable.',
     });
 }

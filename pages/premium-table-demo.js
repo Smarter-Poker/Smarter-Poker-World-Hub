@@ -20,15 +20,15 @@ const GoldenTemplateTable = dynamic(
 
 // Sample player data
 const DEMO_PLAYERS = [
-    { id: 'hero', name: 'HERO', stack: 45, avatarUrl: '/avatars/table/vip_viking_warrior.png' },
-    { id: 'v1', name: 'Villain 1', stack: 32, avatarUrl: '/avatars/table/free_wizard.png' },
-    { id: 'v2', name: 'Villain 2', stack: 28, avatarUrl: '/avatars/table/free_ninja.png' },
-    { id: 'v3', name: 'Villain 3', stack: 55, avatarUrl: '/avatars/table/free_cowboy.png' },
-    { id: 'v4', name: 'Villain 4', stack: 41, avatarUrl: '/avatars/table/vip_pharaoh.png' },
-    { id: 'v5', name: 'Villain 5', stack: 38, avatarUrl: '/avatars/table/vip_spartan.png' },
-    { id: 'v6', name: 'Villain 6', stack: 62, avatarUrl: '/avatars/table/free_pirate.png' },
-    { id: 'v7', name: 'Villain 7', stack: 29, avatarUrl: '/avatars/table/vip_wolf.png' },
-    { id: 'v8', name: 'Villain 8', stack: 51, avatarUrl: '/avatars/table/free_samurai.png' },
+    { id: 'hero', name: 'HERO', stack: 45, avatarUrl: '/avatars/table/vip_viking_warrior.webp' },
+    { id: 'v1', name: 'Villain 1', stack: 32, avatarUrl: '/avatars/table/free_wizard.webp' },
+    { id: 'v2', name: 'Villain 2', stack: 28, avatarUrl: '/avatars/table/free_ninja.webp' },
+    { id: 'v3', name: 'Villain 3', stack: 55, avatarUrl: '/avatars/table/free_cowboy.webp' },
+    { id: 'v4', name: 'Villain 4', stack: 41, avatarUrl: '/avatars/table/vip_pharaoh.webp' },
+    { id: 'v5', name: 'Villain 5', stack: 38, avatarUrl: '/avatars/table/vip_spartan.webp' },
+    { id: 'v6', name: 'Villain 6', stack: 62, avatarUrl: '/avatars/table/free_pirate.webp' },
+    { id: 'v7', name: 'Villain 7', stack: 29, avatarUrl: '/avatars/table/vip_wolf.webp' },
+    { id: 'v8', name: 'Villain 8', stack: 51, avatarUrl: '/avatars/table/free_samurai.webp' },
 ];
 
 export default function PremiumTableDemo() {

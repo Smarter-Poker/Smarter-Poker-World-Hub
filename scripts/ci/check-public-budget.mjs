@@ -35,9 +35,17 @@
  *
  * ── BEFORE YOU RAISE IT ──────────────────────────────────────────────────────
  * Two cheaper answers almost always apply first:
- *   1. A modern format. 655 PNGs over 200 KB (478 MB) have no .webp or .avif
- *      sibling; avatars/vip alone is 86.6 MB at an average of 1.14 MB per
- *      avatar. avatars/table already proves the pattern works here.
+ *   1. A modern format. 268 files have been converted; 141 PNGs over 200 KB
+ *      still have no .webp or .avif sibling, worth ~111 MB. Two things in that
+ *      remainder must NOT be converted, and both are laws rather than taste:
+ *        - public/images/footers/footer-*-v2.png are pinned by SHA-256 in
+ *          __tests__/bottom-nav-clearance.test.mjs, which also asserts the
+ *          bytes ARE PNG and reads width/height out of the PNG header for the
+ *          hit-zone geometry.
+ *        - public/images/global-header/** is pinned by three separate laws.
+ *          Read Club Arena CLAUDE.md 10.7 before going near it.
+ *      public/images/og-default.png stays PNG too: Open Graph scrapers are
+ *      unreliable with webp, and a broken social preview is invisible to us.
  *   2. Somewhere that is not the build. Supabase Storage serves the GTO panels;
  *      commander.smarter.poker serves the Commander images; ca-static serves
  *      Club Arena. A file only belongs in public/ if the Next app itself must
@@ -48,16 +56,23 @@ import { join } from 'node:path';
 import process from 'node:process';
 
 /**
- * Bytes. Set 2026-09-05 immediately after removing 244 MB of unreferenced
- * media, with ~5% of headroom so an ordinary asset addition is not a build
- * failure - only an unnoticed accumulation is.
+ * Bytes. Set 2026-09-05 after removing 244 MB of unreferenced media, with ~5%
+ * of headroom so an ordinary asset addition is not a build failure - only an
+ * unnoticed accumulation is.
+ *
+ * LOWERED TWICE ON 2026-09-06. First 406 -> 300 MB: 200 avatar PNGs became
+ * webp, 117.9 -> 11.6 MB. Then 300 -> 260 MB: another 68 across images/pitch,
+ * lobby-pods, video-sources and assets/club-arena, 41.1 -> 4.3 MB. Both times
+ * the room freed is taken away in the same commit, which is the whole point of
+ * a ratchet - and both times this script's own LOWER THE PUBLIC BUDGET notice
+ * is what said to do it.
  *
  * THE NUMBER GOES DOWN. If you lower it, say in the commit what you removed.
  */
-const BUDGET_BYTES = 406_000_000;
+const BUDGET_BYTES = 260_000_000;
 
 /** Also a ratchet: a thousand new files is a problem a size cap can miss. */
-const BUDGET_FILES = 2_050;
+const BUDGET_FILES = 1_850;
 
 function walk(dir) {
   let bytes = 0;

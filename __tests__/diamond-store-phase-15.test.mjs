@@ -161,8 +161,8 @@ test('card checkout idempotency is user-scoped and bound to normalized intent', 
   assert.match(checkout, /storedHash !== intentHash/);
   assert.match(checkout, /if \(!storedHash \|\| storedHash !== intentHash\) return \{ conflict: true \}/);
   assert.match(checkout, /terminalOrRefunded/);
-  assert.match(checkout, /\['refunded', 'canceled', 'cancelled'\]\.includes\(data\.status\)/);
-  assert.match(checkout, /if \(!\['pending', 'failed'\]\.includes\(data\.status\)\) return \{ conflict: true \}/);
+  assert.match(checkout, /\['refunded', 'canceled', 'cancelled'\]\.includes\(row\.status\)/);
+  assert.match(checkout, /if \(!\['pending', 'failed'\]\.includes\(row\.status\)\) return \{ conflict: true \}/);
   assert.match(checkout, /\.in\('status', \['pending', 'failed'\]\)/);
   assert.match(checkout, /\.is\('stripe_checkout_session_id', null\)/);
   assert.match(checkout, /\.\.\.existingCheckout\.metadata/);
