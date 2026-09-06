@@ -120,9 +120,9 @@ function BBJSlot({ top, left, width, height, value, animating, fontSize, onClick
 }
 
 const BG = {
-  player: { img: '/assets/club-arena/wallet_bg.png', ar: '572 / 600' },
-  owner: { img: '/assets/club-arena/wallet_owner_bg_web.png', ar: '572 / 600' },
-  union: { img: '/assets/club-arena/wallet_union_bg.png', ar: '600 / 630' },
+  player: { img: '/assets/club-arena/wallet_bg.webp', ar: '572 / 600' },
+  owner: { img: '/assets/club-arena/wallet_owner_bg_web.webp', ar: '572 / 600' },
+  union: { img: '/assets/club-arena/wallet_union_bg.webp', ar: '600 / 630' },
 };
 
 export default function DynamicWallet({

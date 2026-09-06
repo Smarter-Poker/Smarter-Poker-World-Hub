@@ -1832,9 +1832,9 @@ function resolveTableAvatar(avatarUrl, fallbackSrc) {
   }
   // Library avatar path — map to table-optimized version
   if (avatarUrl && avatarUrl.startsWith('/avatars/')) {
-    const filename = avatarUrl.split('/').pop().replace('.png', '');
+    const filename = avatarUrl.split('/').pop().replace(/\.(png|webp)$/, '');
     const tier = avatarUrl.includes('/vip/') ? 'vip' : 'free';
-    return `/avatars/table/${tier}_${filename}.png`;
+    return `/avatars/table/${tier}_${filename}.webp`;
   }
   // Fallback: this seat's assigned portrait from buildSeatFallbackAvatars
   return fallbackSrc || HERO_DEFAULT_AVATAR;
