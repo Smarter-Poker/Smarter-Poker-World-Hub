@@ -137,8 +137,8 @@ export default function GameTrendsDashboard() {
           color: '#d8bb7d',
         }}>
           {isEstimated
-            ? 'Modeled from saved cash-game activity. These are not live observations.'
-            : 'Observed tables and modeled coverage are identified separately below.'}
+            ? 'Modeled From Saved Cash-Game Activity. These Are Not Live Observations.'
+            : 'Observed Tables And Modeled Coverage Are Identified Separately Below.'}
         </div>
       )}
 
@@ -148,13 +148,13 @@ export default function GameTrendsDashboard() {
           borderRadius: 2, padding: '8px 12px', marginBottom: 12, fontSize: 12,
           color: '#fbbf24',
         }}>
-          Historical comparison is not yet available under the verified data contract.
+          Historical Comparison Is Not Yet Available Under The Verified Data Contract.
         </div>
       )}
 
       {trends.length === 0 && (
         <div role="status" style={{ color: '#94a3b8', fontSize: 13, padding: '18px 4px 8px' }}>
-          {data?.message || 'No qualified table activity is available right now.'}
+          {data?.message || 'No Qualified Table Activity Is Available Right Now.'}
         </div>
       )}
 

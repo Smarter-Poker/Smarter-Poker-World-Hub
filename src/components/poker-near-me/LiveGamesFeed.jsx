@@ -1323,7 +1323,7 @@ function LiveGamesFeed({
                     background: 'rgba(170,184,196,0.06)', border: '1px solid rgba(170,184,196,0.22)',
                     color: '#d8e4ec', fontSize: 12,
                 }}>
-                    PokerAtlas game listings are available. Current table and waitlist counts are unknown.
+                    PokerAtlas Game Listings Are Available. Current Table And Waitlist Counts Are Unknown.
                 </div>
             )}
 

@@ -393,7 +393,7 @@ export default function ScraperHealthDashboard() {
                     </div>
                     {s.current_effective_reason && (
                       <div style={{ marginBottom: 10, padding: '8px 10px', border: '1px solid rgba(170,184,196,0.18)', borderRadius: 4, color: 'rgba(216,228,236,0.75)', fontSize: 12 }}>
-                        Latest status: {String(s.current_effective_reason).replace(/_/g, ' ')}
+                        Latest Status: {String(s.current_effective_reason).replace(/_/g, ' ')}
                       </div>
                     )}
                     {hist.length > 1 && (

@@ -130,7 +130,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
         <div>
           <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Activity Patterns</h3>
           <div style={{ color: '#7f91a3', fontSize: 12, marginTop: 3 }}>
-            Positive observed tables across {data.observed_days || 0} days
+            Positive Observed Tables Across {data.observed_days || 0} Days
           </div>
         </div>
         {data.best_time && data.data_mode === 'observed_history' && (

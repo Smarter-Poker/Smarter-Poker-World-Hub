@@ -1520,7 +1520,7 @@ export default function ManageHomeGamePage() {
                       <option value="public">Public - Anyone Can Find</option>
                     </select>
                     <p className="text-xs text-[#4A5E78] mt-1">
-                      Private groups require an invitation. Public groups can appear in Poker Near Me.
+                      Private Groups Require An Invitation. Public Groups Can Appear In Poker Near Me.
                     </p>
                   </div>
                 </div>

@@ -125,8 +125,8 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
           </svg>
           <h3>Observed Activity Intelligence</h3>
         </div>
-        <p>{predictions?.message || 'Verified activity patterns are not available for this venue yet.'}</p>
-        <small>Best-time recommendations use positive observed tables only. Modeled estimates are excluded.</small>
+        <p>{predictions?.message || 'Verified Activity Patterns Are Not Available For This Venue Yet.'}</p>
+        <small>Best-Time Recommendations Use Positive Observed Tables Only. Modeled Estimates Are Excluded.</small>
         <style>{STYLES}</style>
       </div>
     );
