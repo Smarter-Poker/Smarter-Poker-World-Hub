@@ -97,7 +97,7 @@ test('checkout configuration is private and evaluated only after authentication 
   const auth = source.indexOf('getServerUserWithFallback(req, getSupabase())');
   const requestValidation = source.indexOf("if (type === 'subscription' && !checkoutRequestId)");
   const stripeReadiness = source.indexOf('const stripeSecretKey = process.env.STRIPE_SECRET_KEY');
-  const catalogPreparation = source.indexOf('preparedCheckout = await prepareCheckout(type, items)');
+  const catalogPreparation = source.indexOf('preparedCheckout = await prepareCheckout(type, items, {');
 
   assert.ok(auth > -1 && auth < stripeReadiness, 'authentication must precede Stripe readiness');
   assert.ok(requestValidation > auth && requestValidation < stripeReadiness,

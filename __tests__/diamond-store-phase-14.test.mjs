@@ -37,14 +37,14 @@ async function loadHandler({ user = { id: '11111111-1111-4111-8111-111111111111'
   const calls = [];
   const client = {
     from(table) {
-      const state = { table, equals: [], included: [], cursor: null };
+      const state = { table, equals: [], included: [], orFilters: [] };
       calls.push(state);
       const query = {
         select() { return query; },
         eq(column, value) { state.equals.push([column, value]); return query; },
         order() { return query; },
         in(column, values) { state.included.push([column, values]); return query; },
-        or(value) { state.cursor = value; return query; },
+        or(value) { state.orFilters.push(value); return query; },
         async maybeSingle() {
           if (errors[table]) return { data: null, error: new Error(errors[table]) };
           const data = filterRows(rows[table] || [], state);
@@ -67,14 +67,23 @@ async function loadHandler({ user = { id: '11111111-1111-4111-8111-111111111111'
     for (const [column, values] of state.included) {
       output = output.filter((row) => values.includes(row[column]));
     }
-    const cursorMatch = state.cursor?.match(
-      /^created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lt\.([^)]+)\)$/
-    );
-    if (cursorMatch) {
-      const [, before, sameTime, beforeId] = cursorMatch;
-      output = output.filter(
-        (row) => row.created_at < before || (row.created_at === sameTime && row.id < beforeId)
+    for (const orFilter of state.orFilters) {
+      if (orFilter === 'charge_reference.is.null,charge_reference.not.like.card-redemption:%') {
+        output = output.filter(
+          (row) => row.charge_reference == null
+            || !String(row.charge_reference).startsWith('card-redemption:')
+        );
+        continue;
+      }
+      const cursorMatch = orFilter.match(
+        /^created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lt\.([^)]+)\)$/
       );
+      if (cursorMatch) {
+        const [, before, sameTime, beforeId] = cursorMatch;
+        output = output.filter(
+          (row) => row.created_at < before || (row.created_at === sameTime && row.id < beforeId)
+        );
+      }
     }
     return output.sort(
       (a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id)
@@ -237,6 +246,58 @@ test('receipt lookup remains owner-scoped and indistinguishable from a missing i
   }, res);
   assert.equal(res.statusCode, 404);
   assert.equal(res.body.error, 'Order not found');
+});
+
+test('Card-funded Club redemptions are deduplicated in history but legacy receipts remain readable', async () => {
+  const userId = '11111111-1111-4111-8111-111111111111';
+  const automaticId = '33333333-3333-4333-8333-333333333333';
+  const rows = [
+    {
+      id: automaticId,
+      buyer_id: userId,
+      item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      price_paid: 15000,
+      currency: 'diamonds',
+      charge_reference: 'card-redemption:22222222-2222-4222-8222-222222222222',
+      created_at: '2026-08-29T12:00:03.000Z',
+    },
+    {
+      id: '44444444-4444-4444-8444-444444444444',
+      buyer_id: userId,
+      item_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      price_paid: 2000,
+      currency: 'diamonds',
+      charge_reference: 'ca-shop-direct',
+      created_at: '2026-08-29T12:00:02.000Z',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555555',
+      buyer_id: userId,
+      item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      price_paid: 500,
+      currency: 'diamonds',
+      charge_reference: null,
+      created_at: '2026-08-29T12:00:01.000Z',
+    },
+  ];
+  const { handler } = await loadHandler({ rows: { club_shop_purchases: rows } });
+
+  const listing = createResponse();
+  await handler({ method: 'GET', query: { limit: '10' }, headers: {} }, listing);
+  assert.equal(listing.statusCode, 200);
+  assert.deepEqual(
+    listing.body.data.orders.filter((order) => order.source === 'club').map((order) => order.id),
+    [rows[1].id, rows[2].id]
+  );
+
+  const directReceipt = createResponse();
+  await handler({
+    method: 'GET',
+    query: { source: 'club', id: automaticId },
+    headers: {},
+  }, directReceipt);
+  assert.equal(directReceipt.statusCode, 200);
+  assert.equal(directReceipt.body.data.order.id, automaticId);
 });
 
 test('cursor pages advance without duplicates and preserve bounded reads', async () => {

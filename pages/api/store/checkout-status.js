@@ -53,21 +53,45 @@ function normalizedCartSnapshot(value) {
 async function lookupRecord(session, userId) {
   const type = session.metadata?.type;
   if (type === 'diamonds' && session.metadata?.purchase_id) {
-    const { data, error } = await getSupabase()
-      .from('diamond_purchases')
-      .select('id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, stripe_checkout_session_id, metadata')
-      .eq('id', session.metadata.purchase_id)
-      .eq('user_id', userId)
-      .eq('stripe_checkout_session_id', session.id)
-      .maybeSingle();
+    const [purchaseResult, profileResult] = await Promise.all([
+      getSupabase()
+        .from('diamond_purchases')
+        .select('id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, stripe_checkout_session_id, metadata')
+        .eq('id', session.metadata.purchase_id)
+        .eq('user_id', userId)
+        .eq('stripe_checkout_session_id', session.id)
+        .maybeSingle(),
+      getSupabase()
+        .from('profiles')
+        .select('diamonds')
+        .eq('id', userId)
+        .maybeSingle(),
+    ]);
+    const { data, error } = purchaseResult;
     if (error) throw error;
+    if (profileResult.error) throw profileResult.error;
+    const redemptionIntent = data?.metadata?.redemption_intent || null;
+    const redemptionResult = data?.metadata?.redemption_result || null;
+    const isClubShop = redemptionIntent?.kind === 'club_shop';
+    const rawWalletBalance = profileResult.data?.diamonds;
+    const walletBalance = profileResult.data
+      && rawWalletBalance !== null
+      && rawWalletBalance !== ''
+      && Number.isSafeInteger(Number(rawWalletBalance))
+      ? Number(rawWalletBalance)
+      : null;
     return data
       ? {
           status: data.status,
           orderId: data.id,
           orderSource: 'diamonds',
-          label: data.package_name,
+          label: isClubShop
+            ? redemptionIntent?.item_name || redemptionResult?.item_name || 'Club Shop Item'
+            : data.package_name,
           diamonds: Number(data.diamonds_amount || 0) + Number(data.bonus_diamonds || 0),
+          walletBalance,
+          purchaseKind: isClubShop ? 'club_shop' : 'diamonds',
+          itemId: isClubShop ? redemptionIntent?.item_id || null : null,
           redemptionStatus: data.metadata?.redemption_status || null,
           redemptionError: data.metadata?.redemption_error || null,
           cartItems: normalizedCartSnapshot(data.metadata?.cart_snapshot),
@@ -182,7 +206,10 @@ export default async function handler(req, res) {
         amountTotal: session.amount_total,
         currency: session.currency || 'usd',
         label: record?.label || null,
+        purchaseKind: record?.purchaseKind || null,
+        itemId: record?.itemId || null,
         diamonds: record?.diamonds || null,
+        walletBalance: Number.isFinite(record?.walletBalance) ? record.walletBalance : null,
         redemptionStatus: record?.redemptionStatus || null,
         redemptionError: record?.redemptionError || null,
         requestId: session.metadata?.checkout_request_id || null,

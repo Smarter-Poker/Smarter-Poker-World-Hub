@@ -44,6 +44,8 @@ const PURCHASE_ERRORS = {
   already_owned: ['You already own an unused copy of this item. Redeem it before buying another.', 400],
   limit_reached: ['You have reached the purchase limit for this item', 400],
   insufficient_diamonds: ['Insufficient diamonds', 400],
+  price_changed: ['The Item Price Changed. Review The Current Price Before Purchasing.', 409],
+  price_confirmation_required: ['Confirm The Current Item Price Before Purchasing.', 409],
   profile_not_found: ['Wallet not found', 404],
   reference_conflict: ['Purchase reference conflict', 409],
 };
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
     }
     if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
-    const allowed = new Set(['clubId', 'itemId']);
+    const allowed = new Set(['clubId', 'itemId', 'expectedPrice']);
     const bodyString = JSON.stringify(req.body || {});
     if (bodyString.length > 512) {
       return res.status(413).json({ success: false, error: 'Request body too large' });
@@ -89,12 +91,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: `Unknown fields: ${unknown.join(', ')}` });
     }
 
-    const { clubId, itemId } = req.body || {};
-    if (!clubId || !itemId) {
-      return res.status(400).json({ success: false, error: 'clubId and itemId required' });
+    const { clubId, itemId, expectedPrice } = req.body || {};
+    if (!clubId || !itemId || expectedPrice == null) {
+      return res.status(400).json({ success: false, error: 'clubId, itemId, and expectedPrice required' });
     }
     if (!isUUID(clubId) || !isUUID(itemId)) {
       return res.status(400).json({ success: false, error: 'Invalid clubId or itemId format' });
+    }
+    if (!Number.isInteger(expectedPrice) || expectedPrice < 0 || expectedPrice > 1000000000) {
+      return res.status(400).json({ success: false, error: 'Invalid expectedPrice' });
     }
 
     // Bind the short response cache to the normalized intent. The permanent
@@ -103,13 +108,21 @@ export default async function handler(req, res) {
     // than replaying the prior item's successful response.
     const intentHash = crypto
       .createHash('sha256')
-      .update(`${clubId}\u0000${itemId}`)
+      .update(`${clubId}\u0000${itemId}\u0000${expectedPrice}`)
       .digest('hex');
     const { proceed } = await beginIdempotent(
       supabase,
       req,
       res,
-      `marketplace-purchase:${user.id}:${intentHash}`
+      `marketplace-purchase:${user.id}:${intentHash}`,
+      {
+        // Availability and price failures are mutable. Release the short-lived
+        // response-cache claim so the same confirmed intent can be retried,
+        // while the purchase RPC's charge reference remains permanent.
+        shouldCacheResponse: (status, responseBody) => (
+          status >= 200 && status < 300 && responseBody?.success === true
+        ),
+      }
     );
     if (!proceed) return;
 
@@ -124,12 +137,13 @@ export default async function handler(req, res) {
       .update(`marketplace-purchase\u0000${user.id}\u0000${clientKey.trim()}`)
       .digest('hex')}`;
     const { data: result, error: purchaseError } = await supabase.rpc(
-      'fn_purchase_club_shop_item_diamonds',
+      'fn_purchase_club_shop_item_diamonds_v2',
       {
         p_club_id: clubId,
         p_user_id: user.id,
         p_item_id: itemId,
         p_charge_reference: chargeReference,
+        p_expected_price: expectedPrice,
       }
     );
     if (purchaseError) throw purchaseError;
@@ -149,8 +163,8 @@ export default async function handler(req, res) {
         alreadyOwned: code === 'already_owned',
         limitReached: code === 'limit_reached',
         limit: result?.limit,
-        available: result?.new_balance,
-        price: result?.price,
+        currentPrice: result?.price,
+        expectedPrice: result?.expected_price,
       });
     }
 

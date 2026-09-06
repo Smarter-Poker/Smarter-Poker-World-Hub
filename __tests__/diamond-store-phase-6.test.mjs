@@ -141,24 +141,23 @@ test('physical merch and Club Shop items expose both card and diamond purchase p
   assert.match(MERCH_PURCHASE, /normalizePrintfulRecipient/);
   assert.match(MERCH_PURCHASE, /createPrintfulOrder/);
   assert.match(STORE, /handleClubCardCheckout/);
-  assert.match(STORE, /redemptionIntent: \{ kind: 'club_shop'/);
+  assert.match(STORE, /redemptionIntent:\s*\{[\s\S]{0,80}?kind: 'club_shop'/);
   assert.doesNotMatch(STORE, /smarter_poker_pending_club_card_purchase/);
   assert.match(STORE, /<CreditCard size=\{12\}/);
 });
 
-test('Club Shop currency, ownership, refresh, and atomic purchase match the API contract', () => {
+test('Club Shop currency, authoritative availability, refresh, and atomic purchase match the API contract', () => {
   assert.match(STORE, /Spend Diamonds On Time Banks/);
   assert.match(STORE, /Price In Diamonds/);
   assert.match(STORE, /clubDiamondBalance/);
   assert.match(STORE, /listenBroadcast\('smarter_poker_diamond_sync'/);
-  assert.match(STORE, /\.filter\(\(purchase\) => !purchase\.refunded_at\)/);
-  assert.match(
-    STORE,
-    /item\.stackable[\s\S]*?purchaseLimit > 0 && purchasedCount >= purchaseLimit/
-  );
+  assert.match(STORE, /item\.availability_reason === 'already_owned'/);
+  assert.match(STORE, /const blocked = item\.available !== true/);
+  assert.doesNotMatch(STORE, /\.filter\(\(purchase\) => !purchase\.refunded_at\)/);
   assert.match(STORE, /Retry Club Shop/);
-  assert.match(CLUB_PURCHASE, /fn_purchase_club_shop_item_diamonds/);
+  assert.match(CLUB_PURCHASE, /fn_purchase_club_shop_item_diamonds_v2/);
   assert.match(CLUB_PURCHASE, /p_charge_reference: chargeReference/);
+  assert.match(CLUB_PURCHASE, /p_expected_price: expectedPrice/);
   assert.doesNotMatch(CLUB_PURCHASE, /releaseStock|stockClaimed =/);
 });
 
