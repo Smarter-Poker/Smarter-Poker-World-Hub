@@ -3,6 +3,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import {
+  CLUB_ARENA_GEOMETRY_SOURCE,
+  CLUB_ARENA_SEAT_LAYOUTS,
+  clubArenaChipPosition,
+  clubArenaDealerPosition,
+  seatPodPx,
+} from '../src/lib/training/clubArenaTableGeometry.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE_URL = String(process.env.TRAINING_PHASE6_BASE_URL || 'https://smarter.poker').replace(/\/$/, '');
@@ -19,14 +26,15 @@ const ALL_VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 1000 },
 ];
 const ALL_CASES = [
-  { gameId: 'cash-001', family: '6max', expectedStreet: 'preflop', expectedBoard: 0, expectsCompletion: true },
-  { gameId: 'cash-002', family: '6max-postflop' },
-  { gameId: 'cash-012', family: 'river', expectedStreet: 'river', expectedBoard: 5 },
-  { gameId: 'cash-018', family: 'heads-up', expectedPlayers: 2 },
-  { gameId: 'spins-001', family: 'spins', expectedPlayers: 3 },
-  { gameId: 'mtt-002', family: 'mtt', expectedPlayers: 9 },
-  { gameId: 'mtt-021', family: 'postflop-mtt', targetStreet: 'turn', expectedStreet: 'turn', expectedBoard: 4 },
-  { gameId: 'mtt-001', family: 'push-fold', expectsAllIn: true },
+  { gameId: 'cash-001', level: 1, family: '6max', expectedStreet: 'preflop', expectedBoard: 0, expectsCompletion: true },
+  { gameId: 'cash-002', caseId: 'cash-002-prerequisite', level: 1, family: 'cbet-prerequisite', targetStreet: 'preflop', expectedStreet: 'preflop', expectedBoard: 0 },
+  { gameId: 'cash-002', caseId: 'cash-002-flop', level: 8, family: '6max-postflop', targetStreet: 'flop', expectedStreet: 'flop', expectedBoard: 3 },
+  { gameId: 'cash-012', level: 1, family: 'river', expectedStreet: 'river', expectedBoard: 5 },
+  { gameId: 'cash-018', level: 1, family: 'heads-up', expectedPlayers: 2 },
+  { gameId: 'spins-001', level: 1, family: 'spins', expectedPlayers: 3 },
+  { gameId: 'mtt-002', level: 1, family: 'mtt', expectedPlayers: 9 },
+  { gameId: 'mtt-021', level: 1, family: 'postflop-mtt', targetStreet: 'turn', expectedStreet: 'turn', expectedBoard: 4 },
+  { gameId: 'mtt-001', level: 1, family: 'push-fold', expectsAllIn: true },
 ];
 const requestedViewports = new Set(String(process.env.TRAINING_PHASE6_VIEWPORTS || '')
   .split(',').map((value) => value.trim()).filter(Boolean));
@@ -57,12 +65,17 @@ async function snapshot(page, label) {
     };
     const root = document.querySelector('[data-training-ui="club-arena-table"]');
     const table = root?.querySelector('[data-training-table="true"]');
+    const tableArea = table?.parentElement;
+    const tableAreaStyle = tableArea ? getComputedStyle(tableArea) : null;
+    const tableAreaRect = tableArea ? tableArea.getBoundingClientRect() : null;
     const actions = root?.querySelector('.sp-club-gto-actions');
     const question = root?.querySelector('.sp-club-gto-question');
     const hero = root?.querySelector('[data-training-seat="hero"]');
     const heroCards = [...(root?.querySelectorAll('.sp-club-gto-hero-card') || [])];
     const seats = [...(root?.querySelectorAll('[data-training-seat]') || [])];
     const actionButtons = [...(root?.querySelectorAll('.sp-club-gto-actions [data-action]') || [])];
+    const dealerButton = root?.querySelector('[data-training-dealer-button="true"]');
+    const chipStacks = [...(root?.querySelectorAll('.sp-club-gto-chip-stack') || [])];
     const images = [...document.images].filter(visible);
     return {
       label: snapshotLabel,
@@ -72,12 +85,23 @@ async function snapshot(page, label) {
       street: root?.getAttribute('data-training-street') || null,
       playerCount: Number(root?.getAttribute('data-training-player-count') || 0),
       boardCount: Number(root?.getAttribute('data-training-board-count') || 0),
+      clubArenaSource: root?.getAttribute('data-training-club-arena-source') || null,
+      tableShape: table?.getAttribute('data-training-table-shape') || null,
       approvedHeaders: document.querySelectorAll('.approved-global-header').length,
       trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
       overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
       viewport: { width: innerWidth, height: innerHeight },
       root: root ? rect(root) : null,
       table: table ? rect(table) : null,
+      tableArea: tableArea ? rect(tableArea) : null,
+      tableAreaContent: tableAreaRect && tableAreaStyle ? {
+        width: tableAreaRect.width
+          - Number.parseFloat(tableAreaStyle.paddingLeft || '0')
+          - Number.parseFloat(tableAreaStyle.paddingRight || '0'),
+        height: tableAreaRect.height
+          - Number.parseFloat(tableAreaStyle.paddingTop || '0')
+          - Number.parseFloat(tableAreaStyle.paddingBottom || '0'),
+      } : null,
       actions: actions ? rect(actions) : null,
       question: question ? rect(question) : null,
       hero: hero ? rect(hero) : null,
@@ -85,10 +109,32 @@ async function snapshot(page, label) {
       seats: seats.map((seat) => ({
         kind: seat.getAttribute('data-training-seat'),
         position: seat.getAttribute('data-training-seat-position'),
+        x: Number(seat.getAttribute('data-training-seat-x')),
+        y: Number(seat.getAttribute('data-training-seat-y')),
+        avatarWidth: Number(seat.getAttribute('data-training-avatar-width')),
+        avatarHeight: Number(seat.getAttribute('data-training-avatar-height')),
+        bustScale: Number(seat.getAttribute('data-training-bust-scale')),
         rect: rect(seat),
+        avatar: rect(seat.querySelector('.sp-club-gto-avatar-frame')),
+        avatarImage: rect(seat.querySelector('.sp-club-gto-avatar-frame img')),
+        actionBubble: rect(seat.querySelector('[data-training-seat-action="true"]')),
+        transform: getComputedStyle(seat).transform,
       })),
       dealerButtons: root?.querySelectorAll('[data-training-dealer-button="true"]').length || 0,
-      chipStacks: root?.querySelectorAll('.sp-club-gto-chip-stack').length || 0,
+      dealerButton: dealerButton ? {
+        seatRelative: Number(dealerButton.getAttribute('data-training-dealer-seat-relative')),
+        x: Number(dealerButton.getAttribute('data-training-marker-x')),
+        y: Number(dealerButton.getAttribute('data-training-marker-y')),
+        rect: rect(dealerButton),
+      } : null,
+      chipStacks: chipStacks.map((chip) => ({
+        seatIndex: Number(chip.getAttribute('data-training-chip-seat-index')),
+        seatRelative: Number(chip.getAttribute('data-training-chip-seat-relative')),
+        amount: Number(chip.getAttribute('data-training-chip-amount')),
+        x: Number(chip.getAttribute('data-training-marker-x')),
+        y: Number(chip.getAttribute('data-training-marker-y')),
+        rect: rect(chip),
+      })),
       pots: root?.querySelectorAll('.sp-club-gto-pot').length || 0,
       actionIds: [...(root?.querySelectorAll('.sp-club-gto-actions [data-action]') || [])]
         .map((button) => button.getAttribute('data-action')),
@@ -110,6 +156,10 @@ async function snapshot(page, label) {
   assert.equal(state.trainingFooters, 0, `${label}: immersive gameplay must not mount the library footer`);
   assert.ok(state.root && state.table && state.actions && state.question, `${label}: parity surfaces missing`);
   assert.ok(state.root.y >= -1, `${label}: gameplay inherited a negative setup scroll (${state.root.y}px)`);
+  assert.ok(state.root.bottom <= state.viewport.height + 1, `${label}: gameplay root escaped below the viewport`);
+  if (state.visualState === 'action') {
+    assert.ok(state.actions.bottom <= state.viewport.height + 1, `${label}: action controls escaped below the viewport`);
+  }
   assert.ok(state.overflow <= 1, `${label}: horizontal overflow ${state.overflow}px`);
   assert.deepEqual(state.brokenVisibleImages, [], `${label}: broken visible images`);
   assert.deepEqual(state.actionTextOverflows, [], `${label}: action text overflow`);
@@ -122,11 +172,88 @@ async function snapshot(page, label) {
   }
   assert.equal(state.seats.length, state.playerCount, `${label}: seat/player count mismatch`);
   assert.ok(state.table.x >= state.root.x - 1 && state.table.right <= state.root.right + 1, `${label}: table escaped root horizontally`);
-  if (Math.abs((state.table.height / state.table.width) - (1000 / 605)) >= 0.025) {
-    process.stderr.write(`[phase6-parity] table aspect mismatch ${JSON.stringify(state)}\n`);
-    await page.screenshot({ path: resolve(SHOTS, `${label}-aspect-mismatch.png`), fullPage: false });
+  assert.equal(state.clubArenaSource, CLUB_ARENA_GEOMETRY_SOURCE.commit, `${label}: Club Arena geometry source`);
+  const expectedRing = CLUB_ARENA_SEAT_LAYOUTS[state.playerCount];
+  assert.ok(expectedRing, `${label}: unsupported Club Arena ring ${state.playerCount}`);
+  const actualCoordinates = state.seats.map(({ x, y }) => `${x},${y}`).sort();
+  const expectedCoordinates = expectedRing.map(({ x, y }) => `${x},${y}`).sort();
+  assert.deepEqual(actualCoordinates, expectedCoordinates, `${label}: seat ring drifted`);
+  const heroSeat = state.seats.find(({ kind }) => kind === 'hero');
+  assert.deepEqual(heroSeat ? { x: heroSeat.x, y: heroSeat.y } : null, { x: 50, y: 100 }, `${label}: hero rail anchor`);
+  for (const seat of state.seats) {
+    assert.ok(seat.avatarWidth > 0 && seat.avatarHeight > 0, `${label}: ${seat.position} portrait contract missing`);
+    assert.ok(seat.avatar, `${label}: ${seat.position} portrait frame missing`);
+    assert.ok(Math.abs(seat.avatar.width - seat.avatarWidth) <= 1, `${label}: ${seat.position} portrait width drifted`);
+    assert.ok(Math.abs(seat.avatar.height - seat.avatarHeight) <= 1, `${label}: ${seat.position} portrait height drifted`);
+    if (seat.y <= 6) {
+      const portraitCollision = seat.avatarImage && seat.avatarImage.y < state.question.bottom - 1;
+      const actionCollision = seat.actionBubble && seat.actionBubble.y < state.question.bottom - 1;
+      if (portraitCollision || actionCollision) {
+        process.stderr.write(`[phase6-parity] top-seat/question collision ${JSON.stringify({
+          label,
+          position: seat.position,
+          question: state.question,
+          avatarImage: seat.avatarImage,
+          actionBubble: seat.actionBubble,
+        })}\n`);
+        await page.screenshot({ path: resolve(SHOTS, `${label}-top-seat-question-collision.png`), fullPage: false });
+      }
+      assert.equal(Boolean(portraitCollision), false, `${label}: ${seat.position} portrait crossed into the question panel`);
+      assert.equal(Boolean(actionCollision), false, `${label}: ${seat.position} action crossed into the question panel`);
+    }
   }
-  assert.ok(Math.abs((state.table.height / state.table.width) - (1000 / 605)) < 0.025, `${label}: Club Arena table aspect drifted`);
+  if (heroSeat && heroSeat.rect.bottom > state.actions.y + 2) {
+    process.stderr.write(`[phase6-parity] hero/action collision ${JSON.stringify({
+      label,
+      hero: heroSeat.rect,
+      actions: state.actions,
+      table: state.table,
+      avatarWidth: heroSeat.avatarWidth,
+      avatarHeight: heroSeat.avatarHeight,
+    })}\n`);
+    await page.screenshot({ path: resolve(SHOTS, `${label}-hero-action-collision.png`), fullPage: false });
+  }
+  assert.ok(!heroSeat || heroSeat.rect.bottom <= state.actions.y + 2, `${label}: hero seat crossed into the action controls`);
+  assert.ok(state.heroCards.every((card) => card.bottom <= state.actions.y + 1), `${label}: hero cards crossed into the action controls`);
+
+  if (state.viewport.width < 768) {
+    assert.equal(state.tableShape, state.playerCount <= 6 ? 'small-ring' : 'full-ring', `${label}: table shape`);
+    assert.ok(state.table.width / state.table.height <= 0.705, `${label}: mobile Club Arena width cap drifted`);
+    assert.ok(
+      state.tableAreaContent && Math.abs(state.table.height - state.tableAreaContent.height) <= 1,
+      `${label}: mobile table did not fill its content-height budget`,
+    );
+  } else {
+    const expectedAspect = (state.playerCount <= 6 ? 960 : 1000) / 605;
+    if (Math.abs((state.table.height / state.table.width) - expectedAspect) >= 0.025) {
+      process.stderr.write(`[phase6-parity] table aspect mismatch ${JSON.stringify(state)}\n`);
+      await page.screenshot({ path: resolve(SHOTS, `${label}-aspect-mismatch.png`), fullPage: false });
+    }
+    assert.ok(Math.abs((state.table.height / state.table.width) - expectedAspect) < 0.025, `${label}: Club Arena table aspect drifted`);
+  }
+
+  const tableSize = { w: state.table.width, h: state.table.height };
+  if (state.dealerButton && Number.isInteger(state.dealerButton.seatRelative)) {
+    const owner = expectedRing[state.dealerButton.seatRelative];
+    const expected = clubArenaDealerPosition(
+      owner,
+      tableSize,
+      seatPodPx(state.viewport.width, state.dealerButton.seatRelative === 0),
+    );
+    assert.ok(Math.abs(state.dealerButton.x - expected.x) < 0.001, `${label}: dealer x drifted`);
+    assert.ok(Math.abs(state.dealerButton.y - expected.y) < 0.001, `${label}: dealer y drifted`);
+  }
+  for (const chip of state.chipStacks) {
+    assert.ok(Number.isInteger(chip.seatRelative), `${label}: chip relative seat missing`);
+    const owner = expectedRing[chip.seatRelative];
+    const expected = clubArenaChipPosition(
+      owner,
+      tableSize,
+      seatPodPx(state.viewport.width, chip.seatRelative === 0),
+    );
+    assert.ok(Math.abs(chip.x - expected.x) < 0.001, `${label}: chip x drifted`);
+    assert.ok(Math.abs(chip.y - expected.y) < 0.001, `${label}: chip y drifted`);
+  }
   return state;
 }
 
@@ -168,11 +295,12 @@ async function activateManualNext(page) {
 }
 
 async function openArena(page, viewport, testCase, diagnostics) {
+  const auditCaseId = testCase.caseId || testCase.gameId;
   const startedAt = Date.now();
   const stage = (name) => {
     const entry = { name, elapsedMs: Date.now() - startedAt, at: new Date().toISOString() };
     diagnostics.stages.push(entry);
-    process.stderr.write(`[phase6-parity] ${viewport.name}/${testCase.gameId} ${name} ${entry.elapsedMs}ms\n`);
+    process.stderr.write(`[phase6-parity] ${viewport.name}/${auditCaseId} ${name} ${entry.elapsedMs}ms\n`);
   };
   diagnostics.pageErrors.length = 0;
   diagnostics.consoleErrors.length = 0;
@@ -184,8 +312,8 @@ async function openArena(page, viewport, testCase, diagnostics) {
       await route.continue({ url: url.toString() });
     });
   }
-  const session = `phase6-${viewport.name}-${testCase.gameId}-${Date.now()}`;
-  const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=1&session=${session}`, {
+  const session = `phase6-${viewport.name}-${auditCaseId}-${Date.now()}`;
+  const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=${testCase.level}&session=${session}`, {
     waitUntil: 'domcontentloaded', timeout: 60_000,
   });
   stage('document-loaded');
@@ -200,7 +328,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
       title: document.title,
       body: document.body?.innerText?.slice(0, 1_000) || '',
     }));
-    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-lobby-failure.png`), fullPage: false });
+    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-lobby-failure.png`), fullPage: false });
     throw new Error(`${testCase.gameId}: Arena lobby did not become available: ${JSON.stringify({
       lobbyFailure,
       diagnostics,
@@ -222,7 +350,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
   assert.ok(idle.overflow <= 1, `${testCase.gameId}: setup horizontal overflow ${idle.overflow}px`);
   assert.ok(idle.start && idle.start.x >= 0 && idle.start.right <= idle.viewport.width + 1,
     `${testCase.gameId}: setup Start escaped the viewport`);
-  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-idle.png`), fullPage: false });
+  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-idle.png`), fullPage: false });
   await page.waitForFunction(() => {
     const button = document.querySelector('.sp-arena-lobby__start');
     return button instanceof HTMLButtonElement && !button.disabled;
@@ -235,20 +363,18 @@ async function openArena(page, viewport, testCase, diagnostics) {
     .filter((image) => image.getBoundingClientRect().width > 0)
     .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
   stage('action-ready');
-  const action = await snapshot(page, `${viewport.name}-${testCase.gameId}-action`);
+  const action = await snapshot(page, `${viewport.name}-${auditCaseId}-action`);
   if (testCase.expectedStreet) assert.equal(action.street, testCase.expectedStreet, `${testCase.gameId}: street`);
   if (Number.isInteger(testCase.expectedBoard)) assert.equal(action.boardCount, testCase.expectedBoard, `${testCase.gameId}: board count`);
   if (Number.isInteger(testCase.expectedPlayers)) assert.equal(action.playerCount, testCase.expectedPlayers, `${testCase.gameId}: player count`);
   if (testCase.expectsAllIn) {
     assert.equal(action.actionIds.some((id) => /all.?in|push/i.test(id || '')), true, `${testCase.gameId}: all-in action missing`);
   }
-  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-action.png`), fullPage: false });
+  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-action.png`), fullPage: false });
 
   const answerButton = testCase.expectsAllIn
     ? page.locator('.sp-club-gto-actions [data-action="allin"]').first()
-    : testCase.expectsFlopTurn
-      ? page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first()
-      : page.locator('.sp-club-gto-actions [data-action]').first();
+    : page.locator('.sp-club-gto-actions [data-action]').first();
   const recordResponsePromise = page.waitForResponse(
     (candidate) => candidate.url().includes('/api/training/record-question'),
     { timeout: 30_000 },
@@ -292,13 +418,13 @@ async function openArena(page, viewport, testCase, diagnostics) {
       diagnostics,
     })}\n`);
     await page.screenshot({
-      path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-manual-next-missing.png`),
+      path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-manual-next-missing.png`),
       fullPage: false,
     });
     assert.fail(`${testCase.gameId}: visible persistent manual Next control missing`);
   }
   stage('manual-next-visible');
-  const verdict = await snapshot(page, `${viewport.name}-${testCase.gameId}-verdict`);
+  const verdict = await snapshot(page, `${viewport.name}-${auditCaseId}-verdict`);
   assert.equal(verdict.visualState, 'verdict');
   assert.equal(verdict.feedbackPanels, 1);
   if (testCase.expectsAllIn) {
@@ -306,54 +432,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
   }
   await page.waitForTimeout(1_000);
   assert.equal(await page.locator('[data-training-feedback="verdict"]').isVisible(), true, `${testCase.gameId}: verdict did not persist`);
-  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-verdict.png`), fullPage: false });
-
-  let progression = null;
-  if (testCase.expectsFlopTurn) {
-    let currentStreet = action.street;
-    for (let guard = 0; guard < 20 && !progression; guard += 1) {
-      await activateManualNext(page);
-      try {
-        await page.waitForFunction((previousStreet) => {
-          const root = document.querySelector('[data-training-ui="club-arena-table"]');
-          if (root?.getAttribute('data-training-visual-state') !== 'action') return false;
-          if (previousStreet !== 'flop') return true;
-          return root.getAttribute('data-training-street') === 'turn'
-            && Number(root.getAttribute('data-training-board-count') || 0) === 4;
-        }, currentStreet, { timeout: 30_000 });
-      } catch (error) {
-        const state = await page.evaluate(() => {
-          const root = document.querySelector('[data-training-ui="club-arena-table"]');
-          return {
-            visualState: root?.getAttribute('data-training-visual-state') || null,
-            street: root?.getAttribute('data-training-street') || null,
-            boardCount: Number(root?.getAttribute('data-training-board-count') || 0),
-          };
-        });
-        throw new Error(`Manual Next did not return to action: ${JSON.stringify({
-          state,
-        })}`, { cause: error });
-      }
-      await waitForVisualBoard(page);
-      const nextAction = await snapshot(page, `${viewport.name}-${testCase.gameId}-progression-${guard + 1}`);
-      if (currentStreet === 'flop') {
-        assert.equal(nextAction.street, 'turn', `${testCase.gameId}: flop did not advance to turn`);
-        assert.equal(nextAction.boardCount, 4, `${testCase.gameId}: turn board count`);
-        progression = nextAction;
-        await page.screenshot({
-          path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-flop-to-turn-action.png`),
-          fullPage: false,
-        });
-        break;
-      }
-
-      currentStreet = nextAction.street;
-      const nonFold = page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first();
-      await nonFold.click();
-      await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
-    }
-    assert.ok(progression, `${testCase.gameId}: no real flop-to-turn transition was observed`);
-  }
+  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-verdict.png`), fullPage: false });
 
   let completion = null;
   if (testCase.expectsCompletion) {
@@ -384,6 +463,10 @@ async function openArena(page, viewport, testCase, diagnostics) {
     await page.waitForFunction(() => [...document.images]
       .filter((image) => image.getBoundingClientRect().width > 0)
       .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
+    // The review uses entrance motion for its score and analytics panels.
+    // Capture the settled UI so the visual evidence cannot mistake an
+    // in-progress opacity frame for a low-contrast production defect.
+    await page.waitForTimeout(1_000);
     completion = await page.evaluate(() => {
       const visible = (node) => {
         if (!(node instanceof HTMLElement)) return false;
@@ -417,7 +500,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
     assert.equal(completion.title, 'Session Review', `${testCase.gameId}: completion title`);
     assert.equal(completion.backButtons >= 1, true, `${testCase.gameId}: completion exit missing`);
     assert.deepEqual(completion.brokenVisibleImages, [], `${testCase.gameId}: completion broken visible images`);
-    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-completion.png`), fullPage: false });
+    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-completion.png`), fullPage: false });
   }
 
   await page.waitForTimeout(500);
@@ -430,20 +513,20 @@ async function openArena(page, viewport, testCase, diagnostics) {
 
   return {
     gameId: testCase.gameId,
+    caseId: auditCaseId,
+    level: testCase.level,
     family: testCase.family,
     idle,
     action,
     verdict,
-    progression,
+    progression: null,
     completion,
     browserErrors,
   };
 }
 
-const browser = await chromium.launch({ headless: true });
 const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), baseUrl: BASE_URL, success: false, viewports: [] };
 try {
-  const context = await browser.newContext({ storageState: AUTH_STATE, viewport: VIEWPORTS[0] });
   // Playwright applies saved localStorage only to its original production
   // origin. Protected previews use another hostname, while the authenticated
   // Training APIs still require the same bearer session. Copy only the saved
@@ -456,51 +539,60 @@ try {
     || (savedState.origins || []).find((origin) => new URL(origin.origin).hostname === 'smarter.poker')?.localStorage
     || [];
   const auditHost = new URL(BASE_URL).hostname;
-  await context.addInitScript(({ host, entries }) => {
-    if (location.hostname !== host) return;
-    for (const entry of entries) localStorage.setItem(entry.name, entry.value);
-  }, { host: auditHost, entries: savedLocalStorage });
   for (const viewport of VIEWPORTS) {
+    // Isolate each viewport in its own browser process. A complete parity pass
+    // intentionally exercises long authenticated sessions; recycling Chromium
+    // here prevents one viewport's renderer/cache pressure from closing a later
+    // target and turning a valid application result into a partial receipt.
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({ storageState: AUTH_STATE, viewport });
     const entry = { viewport, cases: [] };
-    for (const testCase of CASES) {
-      // A fresh page per canonical family prevents an in-flight persistence
-      // response from the previous game being charged to the next game's
-      // browser-error ledger.
-      const page = await context.newPage();
-      await page.setViewportSize(viewport);
-      const diagnostics = { pageErrors: [], consoleErrors: [], lifecycle: [], stages: [] };
-      page.on('pageerror', (error) => {
-        diagnostics.pageErrors.push({
-          message: error.message,
-          stack: error.stack || null,
+    try {
+      await context.addInitScript(({ host, entries }) => {
+        if (location.hostname !== host) return;
+        for (const entry of entries) localStorage.setItem(entry.name, entry.value);
+      }, { host: auditHost, entries: savedLocalStorage });
+      for (const testCase of CASES) {
+        // A fresh page per canonical family prevents an in-flight persistence
+        // response from the previous game being charged to the next game's
+        // browser-error ledger.
+        const page = await context.newPage();
+        await page.setViewportSize(viewport);
+        const diagnostics = { pageErrors: [], consoleErrors: [], lifecycle: [], stages: [] };
+        page.on('pageerror', (error) => {
+          diagnostics.pageErrors.push({
+            message: error.message,
+            stack: error.stack || null,
+          });
         });
-      });
-      page.on('console', (message) => {
-        if (message.type() !== 'error') return;
-        diagnostics.consoleErrors.push({
-          text: message.text(),
-          location: message.location(),
+        page.on('console', (message) => {
+          if (message.type() !== 'error') return;
+          diagnostics.consoleErrors.push({
+            text: message.text(),
+            location: message.location(),
+          });
         });
-      });
-      page.on('crash', () => diagnostics.lifecycle.push({ type: 'crash', at: new Date().toISOString() }));
-      page.on('close', () => diagnostics.lifecycle.push({ type: 'close', at: new Date().toISOString() }));
-      page.on('framenavigated', (frame) => {
-        if (frame === page.mainFrame()) {
-          diagnostics.lifecycle.push({ type: 'navigate', at: new Date().toISOString(), url: frame.url() });
+        page.on('crash', () => diagnostics.lifecycle.push({ type: 'crash', at: new Date().toISOString() }));
+        page.on('close', () => diagnostics.lifecycle.push({ type: 'close', at: new Date().toISOString() }));
+        page.on('framenavigated', (frame) => {
+          if (frame === page.mainFrame()) {
+            diagnostics.lifecycle.push({ type: 'navigate', at: new Date().toISOString(), url: frame.url() });
+          }
+        });
+        try {
+          entry.cases.push(await openArena(page, viewport, testCase, diagnostics));
+        } finally {
+          await page.close();
         }
-      });
-      try {
-        entry.cases.push(await openArena(page, viewport, testCase, diagnostics));
-      } finally {
-        await page.close();
       }
+      result.viewports.push(entry);
+    } finally {
+      await context.close();
+      await browser.close();
     }
-    result.viewports.push(entry);
   }
   result.success = true;
-  await context.close();
 } finally {
-  await browser.close();
   writeFileSync(OUT, `${JSON.stringify(result, null, 2)}\n`);
 }
 
