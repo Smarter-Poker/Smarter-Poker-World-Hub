@@ -2,7 +2,79 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+
+const RETIRED_SOLVER_RPCS = [
+  'fn_pio_options_from_solver',
+  'fn_chart_options_from_memory',
+];
+
+function sourceFiles(directory, files = []) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      sourceFiles(fullPath, files);
+    } else if (/\.(?:c?js|mjs|jsx|ts|tsx)$/.test(entry.name)) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+test('legacy client-callable solver extraction RPCs stay retired', () => {
+  const migrationsDirectory = path.resolve('supabase/migrations');
+  const migrations = fs.readdirSync(migrationsDirectory)
+    .filter((filename) => filename.endsWith('.sql'))
+    .sort();
+
+  for (const rpc of RETIRED_SOLVER_RPCS) {
+    let lastOperation = null;
+    const operationPattern = new RegExp(
+      `\\b(CREATE\\s+OR\\s+REPLACE\\s+FUNCTION|DROP\\s+FUNCTION(?:\\s+IF\\s+EXISTS)?)\\s+(?:public\\.)?${rpc}\\b`,
+      'gi',
+    );
+
+    for (const filename of migrations) {
+      const activeSql = fs.readFileSync(path.join(migrationsDirectory, filename), 'utf8')
+        .split('\n')
+        .filter((line) => !line.trimStart().startsWith('--'))
+        .join('\n');
+      for (const match of activeSql.matchAll(operationPattern)) {
+        lastOperation = { filename, operation: match[1].toUpperCase() };
+      }
+    }
+
+    assert.ok(lastOperation, `${rpc} has no auditable migration history`);
+    assert.match(
+      lastOperation.operation,
+      /^DROP FUNCTION/,
+      `${rpc} was recreated after its retirement by ${lastOperation.filename}`,
+    );
+    assert.equal(
+      lastOperation.filename,
+      '20260906101500_retire_legacy_solver_option_rpcs.sql',
+      `${rpc} retirement is not pinned to the Phase 1 trust-lockdown migration`,
+    );
+  }
+
+  const runtimeFiles = ['pages', 'src', 'scripts', 'lib']
+    .filter((directory) => fs.existsSync(directory))
+    .flatMap((directory) => sourceFiles(path.resolve(directory)));
+  const offenders = [];
+  for (const filename of runtimeFiles) {
+    const source = fs.readFileSync(filename, 'utf8');
+    for (const rpc of RETIRED_SOLVER_RPCS) {
+      if (source.includes(rpc)) offenders.push(`${path.relative(process.cwd(), filename)}: ${rpc}`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `runtime source still advertises or calls retired solver RPCs:\n${offenders.join('\n')}`,
+  );
+});
 
 test('Training runtime and strict cache reseeder share one 107-game solver contract', () => {
   const stdout = execFileSync(process.execPath, ['scripts/training-solver-contract-audit.js'], {
