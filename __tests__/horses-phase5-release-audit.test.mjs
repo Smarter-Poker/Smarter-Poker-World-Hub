@@ -38,6 +38,15 @@ test('the UI withholds sanction controls until a matching verdict exists', () =>
   assert.match(panel, /The Recorded Decision Is No Action\./);
 });
 
+test('the queue consumes the exact ranked RPC response contract', () => {
+  assert.match(panel, /'tier_reason'/,
+    'the queue must render the singular tier_reason returned by the RPC');
+  assert.match(panel, /first\(row\?\.case, 'id', 'case_id', 'caseId'\)/,
+    'an active queue row must open the nested case summary returned by the RPC');
+  assert.match(panel, /queue\.loaded && !queue\.error \? 0 : 'Unknown'/,
+    'an omitted zero-count tier must not be presented as an unknown count');
+});
+
 test('the database repeats the verdict guard under the case row lock', () => {
   const lock = sql.indexOf('WHERE c.id = p_case_id FOR UPDATE');
   const required = sql.indexOf("v_case.status <> 'decided'");
