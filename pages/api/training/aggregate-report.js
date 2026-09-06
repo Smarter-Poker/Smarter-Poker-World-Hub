@@ -17,7 +17,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, extractPositionFromHash, RANK_VALUES, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { selectTrustedLegacySolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -111,98 +111,61 @@ export default async function handler(req, res) {
               heroPosition,
           } = req.query;
 
-          // Cap query to prevent excessively large result sets
           const MAX_SPOTS = 2000;
-
-          // Fetch all spots matching criteria (select only what we need)
-          let query = getSupabase()
-              .from('solved_spots_gold')
-              .select('scenario_hash, strategy_matrix')
-              .eq('game_type', gameType)
-              .eq('stack_depth', parseInt(stackDepth, 10))
-              .limit(MAX_SPOTS);
-
-          if (heroPosition) {
-              const safeHeroPos = sanitizeParam(heroPosition, 10);
-              if (safeHeroPos) query = query.ilike('scenario_hash', `%_${safeHeroPos}_%`);
-          }
-
-          const { data: spots, error } = await query;
-
-          if (error) {
-              console.warn('[AggregateReport] Query error:', error);
-              return res.status(500).json({ success: false, error: 'Database query failed' });
-          }
-
-          // Aggregate by texture
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+          const safeHeroPos = heroPosition ? sanitizeParam(heroPosition, 10) : null;
+          const result = await policyService.listSolvedRecords({
+              gameType: sanitizeParam(gameType, 80),
+              stackDepth: parseInt(stackDepth, 10),
+              street: 'flop',
+              position: safeHeroPos || undefined,
+              limit: MAX_SPOTS,
+          });
+          const records = result.records;
           const textureAgg = {};
           let totalSpots = 0;
           let totalCbet = 0;
           let totalCheck = 0;
-          let excludedUntrustedSpots = 0;
+          const excludedUntrustedSpots = result.rejected.length;
           const positionAgg = {};
 
-          (spots || []).forEach(spot => {
+          for (const record of records) {
+              const spot = record.metadata;
               const board = parseBoardFromHash(spot.scenario_hash);
-              if (board.length < 3) return;
-
+              if (board.length < 3) continue;
+              const policy = policyService.answerFromRecord(
+                  record, policyService.keyForRecord(record), { mode: 'aggregate' },
+              );
+              if (policy.kind === 'unavailable') continue;
+              const cbetFreq = policy.actions
+                  .filter((entry) => ['bet', 'raise', 'all_in'].includes(entry.family))
+                  .reduce((sum, entry) => sum + entry.frequency, 0) * 100;
+              const checkFreq = policy.actions
+                  .filter((entry) => ['check', 'call'].includes(entry.family))
+                  .reduce((sum, entry) => sum + entry.frequency, 0) * 100;
               const texture = classifyFlopTexture(board);
               const position = extractPositionFromHash(spot.scenario_hash);
-              const matrix = selectTrustedLegacySolverMatrix(spot.strategy_matrix);
-              if (!matrix) {
-                  excludedUntrustedSpots += 1;
-                  return;
-              }
-              const actions = matrix.actions || [];
-              const frequencies = matrix.frequencies || {};
-
-              // Calculate aggregate action frequencies
-              let cbetFreq = 0;
-              let checkFreq = 0;
-              let raiseFreq = 0;
-              let handCount = 0;
-
-              actions.forEach(action => {
-                  const freqMap = frequencies[action] || {};
-                  const actionLower = action.toLowerCase();
-                  const totalFreq = Object.values(freqMap || {}).reduce((sum, f) => sum + (f || 0), 0);
-                  const count = Object.keys(freqMap || {}).length || 1;
-                  const avgFreq = totalFreq / count;
-
-                  if (actionLower.includes('bet') || actionLower.includes('raise') || actionLower.includes('cbet')) {
-                      cbetFreq += avgFreq;
-                  } else if (actionLower.includes('check') || actionLower.includes('call')) {
-                      checkFreq += avgFreq;
-                  }
-                  handCount = Math.max(handCount, count);
-              });
-
-              // Normalize
-              const total = cbetFreq + checkFreq;
-              if (total > 0) {
-                  cbetFreq = (cbetFreq / total) * 100;
-                  checkFreq = (checkFreq / total) * 100;
-              }
-
-              // Accumulate per texture
               if (!textureAgg[texture]) {
-                  textureAgg[texture] = { spotCount: 0, cbetSum: 0, checkSum: 0, raiseSum: 0 };
+                  textureAgg[texture] = { spotCount: 0, cbetSum: 0, checkSum: 0 };
               }
               textureAgg[texture].spotCount += 1;
               textureAgg[texture].cbetSum += cbetFreq;
               textureAgg[texture].checkSum += checkFreq;
-
-              // Accumulate per position
               if (!positionAgg[position]) {
                   positionAgg[position] = { spotCount: 0, cbetSum: 0, checkSum: 0 };
               }
               positionAgg[position].spotCount += 1;
               positionAgg[position].cbetSum += cbetFreq;
               positionAgg[position].checkSum += checkFreq;
-
               totalSpots += 1;
               totalCbet += cbetFreq;
               totalCheck += checkFreq;
+          }
+
+          const aggregatePolicy = policyService.aggregateRecords(records, {}, {
+              exactMatchDimensions: ['gameType', 'stackDepth', 'street'],
+              approximatedDimensions: ['board', 'holding'],
+              fallbackReason: 'flop_nodes_aggregated_for_report',
           });
 
           // Build texture breakdown
@@ -241,6 +204,7 @@ export default async function handler(req, res) {
                   textures,
                   positions,
                   textureMeta: TEXTURE_META,
+                  solverPolicy: policyService.consumerEnvelope(aggregatePolicy, 'aggregate-report'),
               },
           });
 

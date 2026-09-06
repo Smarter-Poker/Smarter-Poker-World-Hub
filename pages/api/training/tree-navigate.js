@@ -20,7 +20,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -60,136 +60,74 @@ export default async function handler(req, res) {
           // Sanitize query params used in Supabase queries
           const safeHash = sanitizeParam(scenarioHash, 200);
 
-          // ●●● STRATEGY 1: Exact hash extension ●●●●●●●●●●●●●●●●●●●●●●●●●●
-          // If nextCard is provided, append it to the current board in the hash
-          // to find the child node for the next street.
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+
+          // Strategy 1: exact hash extension. Different runouts are never
+          // substituted for the requested child node.
           if (nextCard) {
               const cardStr = sanitizeParam(nextCard, 4).toLowerCase();
-              // Build the child hash by appending the card to the parent hash
-              const childHash = `${safeHash}${cardStr}`;
-
-              // Try exact match first
-              let { data: childSpot, error } = await getSupabase()
-                  .from('solved_spots_gold')
-                  // 2026-08-15 CHECK 13 fix: hand_evs is not a top-level column — it
-                  // lives INSIDE strategy_matrix. Selecting it 42703'd the query, so
-                  // tree navigation never found child spots.
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2')
-                  .eq('scenario_hash', childHash)
-                  .maybeSingle();
-
-              // If exact match fails, try with appended card directly to the board part
-              if (!childSpot) {
-                  // Some hashes might have different separators or formats
-                  // Try the child hash with underscore separation in case board is a separate segment
-                  const hashParts = safeHash.split('_');
-                  const boardSegment = hashParts[hashParts.length - 1];
-                  const prefix = hashParts.slice(0, -1).join('_');
-                  const altChildHash = `${prefix}_${boardSegment}${cardStr}`;
-
-                  const { data: altSpots } = await getSupabase()
-                      .from('solved_spots_gold')
-                      .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2')
-                      .eq('scenario_hash', altChildHash)
-                      .limit(1);
-                  childSpot = altSpots?.[0] || null;
+              const hashParts = safeHash.split('_');
+              const boardSegment = hashParts[hashParts.length - 1];
+              const prefix = hashParts.slice(0, -1).join('_');
+              const candidates = [...new Set([
+                  `${safeHash}${cardStr}`,
+                  `${prefix}_${boardSegment}${cardStr}`,
+              ])];
+              let record = null;
+              for (const childHash of candidates) {
+                  const found = await policyService.listSolvedRecords({
+                      scenarioHash: childHash,
+                      gameType: gameType ? sanitizeParam(gameType, 80) : undefined,
+                      stackDepth: stackDepth ? Number(stackDepth) : undefined,
+                      limit: 1,
+                  });
+                  if (found.records[0]) { record = found.records[0]; break; }
               }
 
-              if (childSpot) {
-                  const matrix = selectTrustedSolverMatrix(childSpot);
-                  if (!matrix) {
-                      return res.status(422).json({
-                          success: false,
-                          error: 'This runout has no trusted solver strategy available',
-                      });
-                  }
-                  const actions = matrix.actions || [];
-                  const frequencies = matrix.frequencies || {};
-                  const allHands = getAllHands();
-                  const gridData = {};
-
-                  // 2026-07-19 AUDIT FIX: normalize per hand — `cash`/`spin`
-                  // families store raw combo weights, not 0-1 frequencies
-                  // (old code rendered "5018%"-style values for those spots).
-                  allHands.forEach(hand => {
-                      const raw = {};
-                      let handTotal = 0;
-                      let hasData = false;
-                      actions.forEach(action => {
-                          const freq = frequencies[action]?.[hand];
-                          if (freq !== undefined && freq >= 0) {
-                              raw[action] = freq;
-                              handTotal += freq;
-                              hasData = true;
-                          }
-                      });
-                      if (!hasData) { gridData[hand] = null; return; }
-                      const divisor = handTotal > 1.001 ? handTotal : 1;
-                      gridData[hand] = {};
-                      Object.entries(raw).forEach(([action, freq]) => {
-                          gridData[hand][action] = Math.round((freq / divisor) * 1000) / 10;
-                      });
-                  });
-
+              if (!record) {
                   return res.status(200).json({
-                      success: true,
-                      childSpot: {
-                          id: childSpot.id,
-                          scenarioHash: childSpot.scenario_hash,
-                          gameType: childSpot.game_type,
-                          stackDepth: childSpot.stack_depth,
-                          board: parseBoardFromHash(childSpot.scenario_hash),
-                          heroPosition: extractPositionFromHash(childSpot.scenario_hash),
-                          actions,
-                          gridData,
-                          handEVs: matrix.hand_evs || {},
-                          handCount: Object.keys(gridData || {}).filter(h => gridData[h] !== null).length,
-                      },
+                      success: false, error: 'No trusted policy found for this runout card',
+                      queriedHash: candidates[0],
                   });
               }
-
-              // No child found
+              const range = policyService.rangeGrid(record, getAllHands());
+              const answer = policyService.consumerEnvelope(range.answer, 'tree-navigation');
+              const metadata = record.metadata;
               return res.status(200).json({
-                  success: false,
-                  error: 'No solver data found for this runout card',
-                  queriedHash: childHash,
+                  success: true,
+                  childSpot: {
+                      id: metadata.id, scenarioHash: metadata.scenario_hash,
+                      gameType: metadata.game_type, stackDepth: metadata.stack_depth,
+                      board: parseBoardFromHash(metadata.scenario_hash),
+                      heroPosition: extractPositionFromHash(metadata.scenario_hash),
+                      actions: answer.actions.map((entry) => entry.sourceCode || entry.id),
+                      actionDefinitions: answer.actions,
+                      gridData: range.gridData, handEVs: range.handEvs,
+                      handCount: range.handCount, solverPolicy: answer,
+                  },
               });
           }
 
-          // ●●● STRATEGY 2: List available children ●●●●●●●●●●●●●●●●●●●●●●●●
-          // Without nextCard, find all possible child nodes (next street extensions).
-          // This powers the Card Selector Modal by showing which cards have data.
+          // Strategy 2: metadata-only list of available exact child hashes.
           const currentBoard = parseBoardFromHash(safeHash);
-
-          // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
-          const { data: childSpots, error } = await getSupabase()
-              .from('solved_spots_gold')
-              .select('scenario_hash')
-              .ilike('scenario_hash', `${safeHash}__`)
-              .limit(100);
-
-          if (error) {
-              console.warn('[TreeNavigate] Children query error:', error);
-              return res.status(500).json({ success: false, error: 'Query failed' });
-          }
-
-          // Extract the unique next cards from child hashes
-          const availableCards = new Set();
-          (childSpots || []).forEach(s => {
-              const childBoard = parseBoardFromHash(s.scenario_hash);
-              if (childBoard.length > currentBoard.length) {
-                  const nextCard = childBoard[currentBoard.length];
-                  if (nextCard) availableCards.add(nextCard);
-              }
+          const { rows: childSpots } = await policyService.listSolvedMetadata({
+              scenarioHashLike: `${safeHash}__`,
+              gameType: gameType ? sanitizeParam(gameType, 80) : undefined,
+              stackDepth: stackDepth ? Number(stackDepth) : undefined,
+              limit: 100,
           });
-
+          const availableCards = new Set();
+          for (const child of childSpots) {
+              const childBoard = parseBoardFromHash(child.scenario_hash);
+              if (childBoard.length > currentBoard.length) {
+                  const card = childBoard[currentBoard.length];
+                  if (card) availableCards.add(card);
+              }
+          }
           return res.status(200).json({
-              success: true,
-              currentBoard,
-              availableCards: [...availableCards],
+              success: true, currentBoard, availableCards: [...availableCards],
               childCount: availableCards.size,
           });
-
       } catch (err) {
           console.warn('[TreeNavigate] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });

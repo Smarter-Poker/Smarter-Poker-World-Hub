@@ -30,6 +30,7 @@ import {
     runTrainingPersistenceQuery,
     trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
 function hashSeed(str) {
@@ -281,6 +282,7 @@ export default async function handler(req, res) {
           }
 
           // ●●● ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ●●●
+          const policyService = new SolverPolicyService({ db: getSupabase() });
           const enrichedBatch = batch.map(q => {
               const qData = q.question_data;
               if (!qData) return null; // Skip null entries
@@ -482,7 +484,10 @@ export default async function handler(req, res) {
               // IMP-5: Tag data quality for frontend confidence indicators
               qData.dataQuality = dataQuality;
 
-              return enforceTrainingQuestionContract(enforceSolverClaimHonesty(qData));
+              return policyService.attachToQuestion(
+                  enforceTrainingQuestionContract(enforceSolverClaimHonesty(qData)),
+                  'batch-preload',
+              );
           }).filter((question) => question && isTrainingQuestionValid(question));
 
           if (enrichedBatch.length === 0) {

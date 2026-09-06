@@ -196,22 +196,30 @@ test('the runtime preserves validated V2 Fold while quarantining legacy V1 f', (
 });
 
 test('every legacy solved-spots policy surface crosses the source-aware trust boundary', () => {
+  const serviceConsumers = [
+    'pages/api/assistant/sandbox/analyze.js',
+    'pages/api/god-mode/fetch-hand.js',
+    'pages/api/god-mode/submit-action.js',
+    'pages/api/gto/gto-analysis.js',
+    'pages/api/training/aggregate-report.js',
+    'pages/api/training/browse-solutions.js',
+    'pages/api/training/runout-report.js',
+    'pages/api/training/solver-api.js',
+    'pages/api/training/spot-drill.js',
+    'pages/api/training/tree-navigate.js',
+    'src/engines/DeterministicGTOEngine.js',
+    'src/services/PIOQueryService.js',
+  ];
+  for (const filename of serviceConsumers) {
+    const source = fs.readFileSync(filename, 'utf8');
+    assert.match(source, /SolverPolicyService/, `${filename} bypasses the canonical service`);
+    assert.doesNotMatch(source, /\.from\(['"]solved_spots_gold['"]\)/);
+  }
+
   const requiredWiring = new Map([
-    ['pages/api/assistant/sandbox/analyze.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/god-mode/fetch-hand.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/god-mode/submit-action.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/gto/gto-analysis.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/training/aggregate-report.js', /selectTrustedLegacySolverMatrix\(/],
-    ['pages/api/training/browse-solutions.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/training/runout-report.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/training/solver-api.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/training/spot-drill.js', /selectTrustedSolverMatrix\(/],
-    ['pages/api/training/tree-navigate.js', /selectTrustedSolverMatrix\(/],
     ['scripts/reseed-deterministic-cache.js', /selectTrustedSolverMatrix\(/],
     ['scripts/trivia-deterministic-seed.js', /selectTrustedSolverMatrix\(/],
-    ['src/engines/DeterministicGTOEngine.js', /selectTrustedSolverMatrix\(/],
     ['src/engines/deterministicEnginePatches.js', /if\s*\(hasUntrustedLegacyFoldChannel\(matrix\)\s*&&\s*!selectTrustedLegacySolverMatrix\(matrix\)\)/],
-    ['src/services/PIOQueryService.js', /selectTrustedSolverMatrix\(/],
   ]);
 
   for (const [filename, invariant] of requiredWiring) {
@@ -225,7 +233,8 @@ test('every legacy solved-spots policy surface crosses the source-aware trust bo
   }
 
   const customTrainer = fs.readFileSync('pages/api/training/custom-train.js', 'utf8');
-  assert.match(customTrainer, /strategy_matrix_v2/);
+  assert.match(customTrainer, /SolverPolicyService/);
+  assert.doesNotMatch(customTrainer, /\.from\(['"]solved_spots_gold['"]\)/);
   assert.match(customTrainer, /applyDeterministicEnginePatches\(engine\)/);
 
   const deterministicEngine = fs.readFileSync('src/engines/DeterministicGTOEngine.js', 'utf8');
@@ -606,8 +615,8 @@ test('targeted solver practice fails closed instead of teaching another spot', (
   assert.match(engine, /matched 0 scenarios; failing closed/);
   assert.match(engine, /Context filter rejected every action/);
   assert.doesNotMatch(engine, /Context filter removed all actions[\s\S]*restoring originals/);
-  assert.match(patches, /if \(filtered\.length === 0\) return null;/);
-  assert.doesNotMatch(patches, /if \(filtered\.length > 0\) allData = filtered;/);
+  assert.match(patches, /return originalFetchSolverPool\(gameConfig, level, limit, targetStreet, routingParams\)/);
+  assert.doesNotMatch(patches, /\.from\(['"]solved_spots_gold['"]\)/);
 });
 
 test('multi-street play requires the exact runout and solver sizing copy uses chip geometry', () => {
@@ -617,9 +626,10 @@ test('multi-street play requires the exact runout and solver sizing copy uses ch
     patches.indexOf('engine.queryNextStreet ='),
     patches.indexOf('return engine;', patches.indexOf('engine.queryNextStreet =')),
   );
-  assert.match(nextStreetPatch, /const exactMatches = await queryMatches\(`%\$\{boardStr\}`/);
+  assert.match(nextStreetPatch, /scenarioHashLike: `%\$\{boardStr\}`/);
+  assert.match(nextStreetPatch, /\.endsWith\(boardStr\)/);
   assert.doesNotMatch(nextStreetPatch, /partialMatches|isApproximateBoard|semantic match/);
-  assert.match(nextStreetPatch, /similar texture is not the same decision/i);
+  assert.match(nextStreetPatch, /Similar textures are never treated as the same node/i);
   assert.match(nextStreetPatch, /solvedHero !== requestedHero \|\| solvedVillain !== requestedVillain/);
   assert.match(nextStreetPatch, /Math\.abs\(Number\(matrix\.pot_bb\) - requestedPot\) > 0\.05/);
   assert.match(engine, /solverPotChips,[\s\S]*gameCategory/);

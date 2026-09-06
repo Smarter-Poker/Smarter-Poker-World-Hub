@@ -166,6 +166,10 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.
 import './trivia-lifeline-spend-integrity.test.mjs';
+// Horse Brain Phase 2, 2026-09-06: the canonical policy boundary and God Mode
+// grading must run in required CI, not only in a developer's targeted command.
+import './god-mode-policy-grading.test.mjs';
+import './solver-policy-service.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-hub-media-audit.test.mjs';
