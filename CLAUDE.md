@@ -703,6 +703,48 @@ code fix that stops it recurring.
 
 ---
 
+## 10.7 MERGED IS NOT LANDED (2026-09-06, BINDING)
+
+**`agent-autopilot.yml` squash-merges the moment the required checks pass** -
+under two minutes on an asset-only change. A push made after that lands on a
+CLOSED pull request: the branch moves, the PR stays merged, `git push` exits 0,
+and the commits reach nobody.
+
+**#1387 shipped 1 of its 3 commits this way.** The push reported success, the
+pull request reported merged, and the branch really did contain all three. The
+Global Footer E2E fix and two file deletions were not on `main`, and it was
+found hours later by accident.
+
+1. **A follow-up commit needs a NEW BRANCH off current `main`.**
+   `scripts/guard-merged-branch.sh` refuses the push from `.husky/pre-push` and
+   prints the recovery. It fails OPEN on a missing token, no network, or an
+   unreadable answer. Override: `AGENT_MERGED_BRANCH_OK=1 git push ...`
+2. **Verify the FILES, not the tick**: `git cat-file -e origin/main:<path>`.
+   RULE 1 already says only production serving the sha counts as deployed; this
+   is that rule one step earlier.
+
+---
+
+## 10.8 A CHECK THAT NOBODY CAN SEE IS NOT A CHECK (2026-09-06, BINDING)
+
+`Global Footer E2E` failed on EVERY run on `main` from 2026-09-04, found two
+days later by accident. Not in the `main: no rewinds` ruleset, so it blocked no
+merge and opened no issue. Twenty-odd merges landed on top of it. None of its
+three failures was in the footer - they were marketplace tests run by
+`npm run build`, each one a correct change that left its test behind.
+
+`scripts/ci/check-main-is-green.mjs`, in `publish-watchdog.yml`, now raises a
+single issue for any workflow red on `main` past a threshold **with no open
+issue naming it**. Workflows that fail deliberately to raise an alarm are
+reported as `loud` and never paged on - the first run caught `Publish Watchdog`
+doing exactly that, and treating it as a defect would have trained everyone to
+ignore the detector.
+
+It cannot live in Open Claw, for the reason section 11.4 already gives about
+this workflow: it asks GitHub about GitHub.
+
+---
+
 ## 10.9 NEVER SCHEDULE ANYTHING ON THE CLAUDE SCHEDULER (Dan, 2026-09-04, BINDING)
 
 **Dan, verbatim: "IF YOU ARE SCHEDULING ANYTHING TO 'RUN ON CLAUDE SCHEDULER'

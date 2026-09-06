@@ -12,6 +12,17 @@
 ROOT=$(git rev-parse --show-toplevel)
 FAIL=0
 
+# ── The pull request for this branch may already be MERGED (2026-09-06) ─────
+# Autopilot squash-merges the instant the required checks pass, so a push made
+# afterwards lands on a CLOSED pull request, changes nothing and exits 0. That
+# is how #1387 shipped one of its three commits: the push succeeded, the PR
+# read "merged", and a CI fix plus two file deletions reached nobody.
+#
+# FIRST, and it exits rather than setting FAIL, because if the push cannot
+# deliver the work there is no point spending a minute proving the work is
+# good. Fails open on a missing token, no network, or any unclear answer.
+bash "$ROOT/scripts/guard-merged-branch.sh" || exit 1
+
 sh "$ROOT/scripts/hooks/pre-push-js-safety.sh"   "$@" || FAIL=1
 
 # Dan, 2026-08-31: "REMOVE ANY AND ALL M BARS AS THEY ARE BANNED FROM USE."
