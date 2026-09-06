@@ -32,6 +32,7 @@ Scope: The 14 World Hub hamburger menu families, route ownership, responsive com
 - Preserved Reels profile-command suppression and all route-specific contextual actions.
 - Corrected the stable ID wiring so the trigger identifies the dialog itself rather than its backdrop.
 - Preserved the Social Media Facebook presentation contract.
+- Hardened the Linux screenshot budget for the heaviest Training route and made the WebKit footer-return assertion wait for settled transition geometry.
 
 ## Protected Constraints
 
@@ -43,14 +44,16 @@ Scope: The 14 World Hub hamburger menu families, route ownership, responsive com
 
 ## Frozen Candidate Evidence
 
-- Production build: passed, including 400 generated routes and all Personal Assistant performance budgets.
+- Production build: passed, including 399 generated routes and all Personal Assistant performance budgets.
 - TypeScript: `npx tsc --noEmit` passed.
-- Full lint: 3,997 source and test files passed in 106 bounded batches.
+- Full lint: 4,005 source and test files passed in 106 bounded batches.
 - Registered regression guards: 1,278 passed, 0 failed, 0 skipped, 0 todo.
 - Desktop Chromium functional suite: 25 of 25 passed.
 - Mobile Chromium functional suite: 25 of 25 passed.
 - Premium visual reference suite: 14 of 14 passed.
 - Mobile WebKit containment and reachability suite: 17 of 17 passed.
+- Serialized CI-equivalent premium menu suite: 31 of 31 passed.
+- WebKit footer hide and settled-return regression: passed across every world route.
 - Diff whitespace validation: passed after upstream synchronization.
 
 ## Release Gates

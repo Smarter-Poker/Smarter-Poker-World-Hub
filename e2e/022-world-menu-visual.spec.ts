@@ -59,7 +59,10 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     await expect(drawer).toHaveScreenshot(`${world.id}-desktop.png`, {
       animations: 'disabled',
       caret: 'hide',
-      timeout: 20_000,
+      // Linux CI shares one production server with the exhaustive footer
+      // route suite. Keep screenshot stabilization inside the test's
+      // 90-second budget rather than aborting a healthy drawer paint.
+      timeout: 60_000,
       threshold: 0.3,
       // Geometry and all semantic colors are asserted independently above.
       // Leave bounded room for Chromium rasterization differences between the
@@ -107,7 +110,7 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     await expect(drawer).toHaveScreenshot(`${world.id}-mobile.png`, {
       animations: 'disabled',
       caret: 'hide',
-      timeout: 20_000,
+      timeout: 60_000,
       threshold: 0.3,
       maxDiffPixelRatio: 0.15,
     });
