@@ -187,6 +187,7 @@ MAX_HISTORY_AGE_DAYS = _env_int('SIM_MAX_HISTORY_AGE_DAYS', 14)
 # Sanity floors — a model built from almost nothing must not silently publish.
 MIN_HISTORY_ROWS = _env_int('SIM_MIN_HISTORY_ROWS', 1000)
 MIN_PATTERNS     = _env_int('SIM_MIN_PATTERNS', 50)
+MIN_GENERATABLE_VENUES = _env_int('SIM_MIN_GENERATABLE_VENUES', 50)
 # Rebuild the pattern model on this cadence so a long-running daemon does not
 # publish a frozen snapshot of the world forever.
 MODEL_REBUILD_SECONDS = _env_int('SIM_MODEL_REBUILD_SECONDS', 24 * 3600)
@@ -517,7 +518,10 @@ class PatternModel:
 
         log.info(f'  Bravo rows: {len(rows_bravo):,}  PokerAtlas rows: {len(rows_pa):,}')
 
-        # FIX: Load venue names ONCE from venue_live_tables (not once per source call)
+        # Load venue names from both the transient live table and the durable
+        # venue directory. When the live table is empty (the exact outage this
+        # simulator exists to cover), relying on it alone turns every PA slug
+        # into a machine-generated name.
         self._load_venue_names()
 
         # Merge: Bravo first (priority for table counts), PA fills in buyin/stakes
@@ -532,6 +536,7 @@ class PatternModel:
 
         # Group by venue+game — process in source order (bravo first)
         raw: dict[tuple, list] = defaultdict(list)
+        rejected_venue_slugs: set[str] = set()
         for r in all_rows:
             slug   = r.get('bravo_slug', '')
             game   = r.get('game_type') or r.get('game_name', '')
@@ -543,7 +548,15 @@ class PatternModel:
             snap   = r.get('snapshot_time') or r.get('scrape_timestamp', '')
             source = r.get('source', 'bravo')
 
+            canonical_name = name or self._venue_names.get(slug, '')
             if not slug or not game:
+                continue
+            # PokerAtlas pages occasionally persist navigation labels as if
+            # they were room names (for example "View Live Info"). Reject
+            # those records at model ingestion so they cannot become API
+            # venues, map markers, or self-perpetuating simulator names.
+            if _is_noise_venue(canonical_name, slug):
+                rejected_venue_slugs.add(slug)
                 continue
             if name and slug not in self._venue_names:
                 self._venue_names[slug] = name
@@ -566,6 +579,11 @@ class PatternModel:
 
         log.info(f'  Unique venue+game combos in history: {len(raw):,}')
         log.info(f'  Unique venues: {len(self._venue_names):,}')
+        if rejected_venue_slugs:
+            log.warning(
+                f'  Rejected {len(rejected_venue_slugs):,} navigation-label '
+                f'venue artifact(s) from history'
+            )
 
         for (slug, game), records in raw.items():
             # Table counts come from Bravo when we have any Bravo observation for
@@ -588,6 +606,20 @@ class PatternModel:
             # history ROWS per bucket, which — with a fixed 15-minute polling
             # cadence — measured scraper uptime, not poker activity.
             overall_mean = sum(tables_list) / len(tables_list)
+
+            # PokerAtlas saves a durable cash-game catalog but intentionally
+            # stores tables=NULL because it does not observe a live count. The
+            # previous simulator converted NULL to zero, accepted 2,599 such
+            # patterns as a healthy model, then generated no rows for hundreds
+            # of cycles. Use a conservative one-table catalog baseline for
+            # those games. The time/day curves may resolve it to 0, 1 or 2 and
+            # every emitted row remains explicitly `sim-*` / modeled_estimate.
+            # Real Bravo history, whenever present, still wins above.
+            catalog_only = stat_source == 'pokeratlas' and max_t <= 0
+            if catalog_only:
+                baseline = 1.0
+                overall_mean = 1.0
+                max_t = 2
             hour_mults = _activity_multipliers(stat_records, 'hour', 24, overall_mean)
             dow_mults  = _activity_multipliers(stat_records, 'dow',   7, overall_mean)
 
@@ -618,12 +650,20 @@ class PatternModel:
                 'observed_count':   len(stat_records),
                 'last_seen_hour':   last_hour,
                 'source':           stat_source,
+                'catalog_only':     catalog_only,
             }
 
         if len(self._patterns) < MIN_PATTERNS:
             raise RuntimeError(
                 f'pattern model too small to publish: {len(self._patterns)} patterns '
                 f'< MIN_PATTERNS={MIN_PATTERNS}'
+            )
+
+        generatable = _generatable_venues(self)
+        if len(generatable) < MIN_GENERATABLE_VENUES:
+            raise RuntimeError(
+                f'pattern model cannot cover enough venues: {len(generatable)} '
+                f'< MIN_GENERATABLE_VENUES={MIN_GENERATABLE_VENUES}'
             )
 
         age_days = self.history_age_days()
@@ -736,24 +776,35 @@ class PatternModel:
         a 5/10 PLO game. Buy-in ranges are now only taken from history rows for
         the exact (slug, game) they were observed on.
         """
-        try:
-            vlt = sb_fetch(
-                'venue_live_tables',
-                {
-                    'select': 'bravo_slug,venue_name',
-                    'limit':  10000,
-                }
-            )
-            for row in (vlt or []):
-                slug  = row.get('bravo_slug', '')
-                name  = row.get('venue_name', '')
-                # Skip slug-echo names written by the old title-cased fallback;
-                # ingesting them is what made the corruption self-perpetuating.
-                if slug and name and not self._looks_like_slug_echo(name, slug):
-                    self._venue_names[slug] = name
-        except Exception as e:
-            log.warning(f'  Could not fetch venue names from venue_live_tables: '
-                        f'{type(e).__name__}: {e}')
+        sources = (
+            ('venue_live_tables', {
+                'select': 'bravo_slug,venue_name',
+                'limit': 10000,
+            }),
+            ('poker_venues', {
+                'select': 'name,slug,pokeratlas_slug,venue_type,is_active',
+                'is_active': 'eq.true',
+                'limit': 10000,
+            }),
+        )
+        for table, params in sources:
+            try:
+                rows = sb_fetch(table, params)
+                for row in (rows or []):
+                    name = row.get('venue_name') or row.get('name') or ''
+                    slugs = [row.get('bravo_slug')]
+                    if row.get('pokeratlas_slug'):
+                        slugs.append(f"pa-{row['pokeratlas_slug']}")
+                    if row.get('slug'):
+                        slugs.extend([row['slug'], f"pa-{row['slug']}"])
+                    for slug in slugs:
+                        if (slug and name
+                                and not self._looks_like_slug_echo(name, slug)
+                                and not _is_noise_venue(name, slug)):
+                            self._venue_names[slug] = name
+            except Exception as e:
+                log.warning(f'  Could not fetch venue names from {table}: '
+                            f'{type(e).__name__}: {e}')
 
     def get_venues(self) -> list:
         return sorted(set(slug for (slug, _) in self._patterns.keys()))
@@ -1116,15 +1167,31 @@ def _is_noise_game(game_name: str) -> bool:
     return any(p in g for p in noise_patterns)
 
 
+def _is_noise_venue(venue_name: str, venue_slug: str = '') -> bool:
+    """Reject scraper navigation copy accidentally stored as a venue.
+
+    Keep the rule intentionally narrow: legitimate rooms may contain words
+    such as "Live" or "Registration", but PokerAtlas' combined navigation
+    labels use these distinctive phrases. Checking both the saved name and the
+    slug also cleans rows whose bad label was already slugified upstream.
+    """
+    haystack = f'{venue_name} {venue_slug.replace("-", " ")}'.lower()
+    navigation_phrases = (
+        'view live info',
+        'live info wait list',
+        'wait list registration',
+    )
+    return any(phrase in haystack for phrase in navigation_phrases)
+
+
 def _generatable_venues(model: PatternModel) -> set:
     """
     Venues generate_snapshot() could actually emit rows for: at least one
     non-noise game with a table count ever observed above zero.
 
-    PokerAtlas-sourced venues never qualify — that source publishes no live
-    table count, so their patterns are all-zero and are skipped by the same
-    gates inside generate_snapshot(). They must therefore not be counted when
-    asking "has the real scraper covered everything we model?".
+    Catalog-only PokerAtlas patterns qualify after PatternModel assigns the
+    explicit conservative modeled baseline. They are still estimates, never
+    observations, and use the same gates inside generate_snapshot().
     """
     productive: set = set()
     for slug in model.get_venues():

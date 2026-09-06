@@ -209,6 +209,12 @@ export default function ClubShopItemDetail() {
       setState({ kind: 'error', message: 'Card Checkout Is Unavailable For This Item Price.' });
       return;
     }
+    const commerceIntent = {
+      scope: `club-detail-card-${item.id}`,
+      userId: authUser.id,
+      paymentMethod: 'card',
+      intent: { clubId, itemId: item.id },
+    };
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Opening secure card checkout…' });
     try {
@@ -218,12 +224,7 @@ export default function ClubShopItemDetail() {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'X-Checkout-Request-ID': getOrCreateCommerceRequestId({
-            scope: `club-detail-card-${item.id}`,
-            userId: authUser?.id,
-            paymentMethod: 'card',
-            intent: { clubId, itemId: item.id },
-          }),
+          'X-Checkout-Request-ID': getOrCreateCommerceRequestId(commerceIntent),
         },
         body: JSON.stringify({
           type: 'diamonds',
@@ -235,10 +236,17 @@ export default function ClubShopItemDetail() {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.success || !body?.data?.url) {
-        throw new Error(body?.error?.message || 'Card checkout could not start.');
+        const checkoutError = new Error(
+          body?.error?.message || 'Card Checkout Could Not Start.'
+        );
+        checkoutError.code = body?.error?.code || null;
+        throw checkoutError;
       }
       window.location.href = body.data.url;
     } catch (error) {
+      if (error?.code === 'CHECKOUT_EXPIRED') {
+        clearCommerceRequestId(commerceIntent);
+      }
       setState({ kind: 'error', message: error?.message || 'Card checkout could not start.' });
     } finally {
       processingRef.current = false;

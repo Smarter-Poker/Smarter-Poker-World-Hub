@@ -885,13 +885,15 @@ def log_audit(inserted_count, total_scraped):
         'table_name': 'poker_venues',
         'action': 'charity_poker_deep_scrape',
         'batch_id': BATCH_ID,
-        'records_affected': inserted_count,
-        'details': json.dumps({
+        'record_id': f'batch:{BATCH_ID}',
+        # `records_affected` and `details` are NOT columns of this table;
+        # everything that is not a real column goes in new_data (jsonb).
+        'new_data': {'records_affected': inserted_count, 'details': {
             'total_orgs_scraped': total_scraped,
             'venues_inserted': inserted_count,
             'scrape_script': 'scripts/scrape_charity_poker.py',
             'timestamp': datetime.now(timezone.utc).isoformat(),
-        }),
+        }},
     }
     
     try:

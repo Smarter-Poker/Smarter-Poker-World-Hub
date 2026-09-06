@@ -58,8 +58,22 @@ const REPO = process.env.GITHUB_REPOSITORY || 'Smarter-Poker/Smarter-Poker-World
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
 const HOURS = Number(process.env.MAIN_RED_HOURS || 6);
 const BRANCH = process.env.MAIN_RED_BRANCH || 'main';
-/** Runs to scan. Enough to see several ticks of every workflow. */
-const PAGES = 3;
+/**
+ * ── IT USED TO SAMPLE, AND SAMPLING HAS A BLIND SPOT (fixed 2026-09-06) ──────
+ * The first version read the last 300 completed runs on `main` and took the
+ * newest run per workflow. Measured hours later: that window contained only
+ * SEVENTEEN of the repo's THIRTY-EIGHT active workflows. The busy ones crowd
+ * out the quiet ones - and a workflow that runs rarely is exactly the one whose
+ * red goes unnoticed, which is the entire subject of this file.
+ *
+ * `Global Footer E2E` proved it. It had been failing on main since 2026-09-04,
+ * it is the case this detector was written for, and this detector could not
+ * see it, because its last run had fallen off the end of the window.
+ *
+ * So the workflows are ENUMERATED and each is asked for its own latest run on
+ * main. It costs one request per workflow instead of three in total, and there
+ * is no window for anything to fall out of.
+ */
 
 if (!TOKEN) {
   console.log('No GITHUB_TOKEN; skipping (a watchdog that cannot ask is not a failure).');
@@ -78,35 +92,43 @@ const api = async (path) => {
   return res.json();
 };
 
-let runs = [];
+let workflows = [];
 try {
-  for (let page = 1; page <= PAGES; page++) {
-    const d = await api(
-      `/repos/${REPO}/actions/runs?branch=${encodeURIComponent(BRANCH)}&status=completed&per_page=100&page=${page}`
-    );
-    const batch = d.workflow_runs || [];
-    runs.push(...batch);
-    if (batch.length < 100) break;
-  }
+  const d = await api(`/repos/${REPO}/actions/workflows?per_page=100`);
+  workflows = (d.workflows || []).filter((w) => w.state === 'active');
 } catch (err) {
   // Fail OPEN. A watchdog that reports an outage because it could not reach the
   // API teaches people to ignore it.
-  console.log(`Could not read workflow runs (${err.message}); skipping.`);
+  console.log(`Could not list workflows (${err.message}); skipping.`);
   process.exit(0);
 }
 
-if (runs.length === 0) {
-  console.log(`No completed runs found on ${BRANCH}.`);
+if (workflows.length === 0) {
+  console.log('No active workflows found.');
   process.exit(0);
 }
 
-// Newest first, then group by workflow.
-runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+// Ask each workflow for ITS OWN recent runs on the branch. A few per workflow
+// is enough to count a failure streak, and nothing can fall out of a window.
 const byWorkflow = new Map();
-for (const r of runs) {
-  if (!byWorkflow.has(r.name)) byWorkflow.set(r.name, []);
-  byWorkflow.get(r.name).push(r);
+let unreadable = 0;
+for (const w of workflows) {
+  try {
+    const d = await api(
+      `/repos/${REPO}/actions/workflows/${w.id}/runs?branch=${encodeURIComponent(BRANCH)}&status=completed&per_page=10`
+    );
+    const list = d.workflow_runs || [];
+    if (list.length) byWorkflow.set(w.name, list);
+  } catch {
+    unreadable++;
+  }
 }
+
+if (byWorkflow.size === 0) {
+  console.log(`Could not read runs for any of ${workflows.length} workflows; skipping.`);
+  process.exit(0);
+}
+const runs = [...byWorkflow.values()].flat();
 
 const now = Date.now();
 const red = [];
@@ -169,7 +191,12 @@ const hasOpenAlarm = (name, since) => {
 
 const hrs = (h) => (h >= 48 ? `${(h / 24).toFixed(1)} days` : `${h.toFixed(1)}h`);
 
-console.log(`Scanned ${runs.length} completed runs on ${BRANCH}, ${byWorkflow.size} workflows.`);
+console.log(
+  `Asked ${workflows.length} active workflow(s) for their latest run on ${BRANCH}; ` +
+    `${byWorkflow.size} have run there` +
+    (unreadable ? `, ${unreadable} unreadable` : '') +
+    `.`
+);
 
 if (red.length === 0) {
   console.log(`OK - every workflow's latest run on ${BRANCH} is green or neutral.`);
