@@ -94,7 +94,7 @@ destinations are included in the sitemap and two account-specific destinations
 ## Verification completed before publication
 
 - Full prebuild suite: 603 passed.
-- Poker Near Me focused suite: 110 passed.
+- Poker Near Me focused suite: 111 passed.
 - Marketplace release suite: 218 passed after synchronizing two stale tests
   with the current membership paths and removing two prohibited comment bars.
 - TypeScript no-emit check: passed.
@@ -135,6 +135,13 @@ The broader non-blocking repository E2E run then exposed stale Phase 6 through
   navigation and rendered layouts; and
 - pins the closed-modal and PNM-history contracts in permanent unit and
   cross-engine regression coverage.
+
+The supplemental mobile performance gate then identified the lobby cinematic
+background as the LCP candidate and measured a 1.2-second cosmetic opacity
+reveal after the image had already decoded. The closeout removes that paint
+delay without changing the rendered asset, fallback, radar, sonar, data, or
+layout. The exact production-build mobile budget passed eight consecutive
+runs, and the no-delayed-reveal behavior is now a permanent PNM contract test.
 
 Final publication evidence is attached to the merge request and production
 deployment records so the repository document does not depend on a mutable
