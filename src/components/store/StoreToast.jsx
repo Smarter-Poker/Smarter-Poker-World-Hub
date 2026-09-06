@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 
 // ── Helper function (usable from any module) ──
 export function showStoreToast(type, message) {
@@ -64,7 +65,11 @@ export default function StoreToast() {
 
     const addToast = useCallback((type, message) => {
         const id = Date.now() + Math.random();
-        setToasts(prev => [...prev.slice(-4), { id, type, message }]); // Max 5 visible
+        // Events can carry provider or API prose that was never present in JSX,
+        // so enforce the Marketplace copy contract at the final render boundary.
+        // Identifiers and URLs never enter this component as standalone values.
+        const copyMessage = marketplaceCopy(message);
+        setToasts(prev => [...prev.slice(-4), { id, type, message: copyMessage }]); // Max 5 visible
 
         // Errors and warnings need enough time to be read and acted on. Every
         // toast also has a keyboard-operable dismiss control below.

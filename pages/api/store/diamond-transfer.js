@@ -76,8 +76,22 @@ function transferDisplayName(value) {
     return String(value || 'friend')
         .toLowerCase()
         .split(' ')
-        .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+        .map(word => {
+            if (!word) return '';
+            const upper = word.toUpperCase();
+            if (['VIP', 'GPS', 'WSOP', 'WPT', 'ID', 'UID', 'UTC'].includes(upper)) return upper;
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        })
         .join(' ');
+}
+
+function transferSideEffectId(transferId, kind) {
+    const hex = createHash('sha256')
+        .update(`${kind}|${transferId}`)
+        .digest('hex')
+        .slice(0, 32);
+    return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)]
+        .join('-');
 }
 
 function classifyTransferDebit(result, error) {
@@ -101,48 +115,40 @@ async function reconcileCompletedTransferSideEffects({
     clientIp,
     senderName,
     transferId,
-    creditCreatedAt,
-}) {
-    const supabase = getSupabase();
-    const creditTime = Number.isFinite(Date.parse(creditCreatedAt || ''))
-        ? creditCreatedAt
-        : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-    const { data: ipRows, error: ipReadError } = await supabase
-        .from('anti_farming_ips')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('ip_address', clientIp)
-        .eq('action_type', 'diamond_gift_sent')
-        .eq('amount', amount)
-        .gte('created_at', creditTime)
-        .limit(1);
-    if (ipReadError) {
-        console.warn('[DiamondTransfer] Could not reconcile replay IP audit:', ipReadError.message);
-    } else if (!ipRows?.length) {
-        const { error: ipInsertError } = await supabase.from('anti_farming_ips').insert({
+}, supabase = getSupabase()) {
+    // Both side effects use deterministic primary keys derived from the durable
+    // transfer identity. Normal completion, orphan recovery, and receipt replay
+    // can now race safely: PostgreSQL accepts exactly one row for each effect.
+    // `ignoreDuplicates` also prevents an idempotent replay from emitting a
+    // second realtime notification.
+    let ipAuditReady = true;
+    try {
+        const { error: ipInsertError } = await supabase.from('anti_farming_ips').upsert({
+            id: transferSideEffectId(transferId, 'ip-audit'),
             user_id: userId,
             ip_address: clientIp,
             action_type: 'diamond_gift_sent',
             amount,
+        }, {
+            onConflict: 'id',
+            ignoreDuplicates: true,
         });
         if (ipInsertError) {
-            console.warn('[DiamondTransfer] Could not restore replay IP audit:', ipInsertError.message);
+            ipAuditReady = false;
+            console.warn('[DiamondTransfer] Could Not Reconcile Transfer IP Audit:', ipInsertError.message);
         }
+    } catch (ipInsertError) {
+        ipAuditReady = false;
+        console.warn(
+            '[DiamondTransfer] Could Not Reconcile Transfer IP Audit:',
+            ipInsertError?.message || ipInsertError
+        );
     }
 
-    const { data: notificationRows, error: notificationReadError } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', recipientId)
-        .eq('actor_id', userId)
-        .eq('type', 'diamond_received')
-        .contains('data', { transfer_id: transferId })
-        .limit(1);
-    if (notificationReadError) {
-        console.warn('[DiamondTransfer] Could not reconcile replay notification:', notificationReadError.message);
-    } else if (!notificationRows?.length) {
-        const { error: notificationInsertError } = await supabase.from('notifications').insert({
+    let notificationReady = true;
+    try {
+        const { error: notificationInsertError } = await supabase.from('notifications').upsert({
+            id: transferSideEffectId(transferId, 'notification'),
             user_id: recipientId,
             actor_id: userId,
             type: 'diamond_received',
@@ -157,11 +163,25 @@ async function reconcileCompletedTransferSideEffects({
                 sender_name: senderName,
                 amount,
             },
+        }, {
+            onConflict: 'id',
+            ignoreDuplicates: true,
         });
         if (notificationInsertError) {
-            console.warn('[DiamondTransfer] Could not restore replay notification:', notificationInsertError.message);
+            notificationReady = false;
+            console.warn(
+                '[DiamondTransfer] Could Not Reconcile Transfer Notification:',
+                notificationInsertError.message
+            );
         }
+    } catch (notificationInsertError) {
+        notificationReady = false;
+        console.warn(
+            '[DiamondTransfer] Could Not Reconcile Transfer Notification:',
+            notificationInsertError?.message || notificationInsertError
+        );
     }
+    return { ipAuditReady, notificationReady };
 }
 
 // Phase 1: Account age tiers (days)
@@ -430,7 +450,6 @@ export default async function handler(req, res) {
                 clientIp,
                 senderName: replaySender.display_name || replaySender.username || 'friend',
                 transferId,
-                creditCreatedAt: completedReplay.created_at,
             });
             return res.status(200).json({
                 success: true,
@@ -546,46 +565,14 @@ export default async function handler(req, res) {
                non-financial side effects never ran. Rebuild them only after
                the durable credit is confirmed. Failures remain observable but
                never roll back an already completed wallet transfer. */
-            const { error: recoveryIpError } = await getSupabase()
-                .from('anti_farming_ips')
-                .insert({
-                    user_id: userId,
-                    ip_address: clientIp,
-                    action_type: 'diamond_gift_sent',
-                    amount,
-                });
-            if (recoveryIpError) {
-                console.warn('[DiamondTransfer] Failed to log recovered IP action:', recoveryIpError.message);
-            }
-            const titleRecoverySenderName = String(recoverySenderName)
-                .toLowerCase()
-                .split(' ')
-                .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
-                .join(' ');
-            const { error: recoveryNotificationError } = await getSupabase()
-                .from('notifications')
-                .insert({
-                    user_id: recipientId,
-                    actor_id: userId,
-                    type: 'diamond_received',
-                    title: 'Diamond Gift Received',
-                    message: `${titleRecoverySenderName} Sent You ${amount} Diamonds`,
-                    link: '/hub/store',
-                    read: false,
-                    is_read: false,
-                    data: {
-                        transfer_id: transferId,
-                        sender_id: userId,
-                        sender_name: recoverySenderName,
-                        amount,
-                    },
-                });
-            if (recoveryNotificationError) {
-                console.warn(
-                    '[DiamondTransfer] Failed to notify recovered transfer:',
-                    recoveryNotificationError.message
-                );
-            }
+            await reconcileCompletedTransferSideEffects({
+                userId,
+                recipientId,
+                amount,
+                clientIp,
+                senderName: recoverySenderName,
+                transferId,
+            });
             console.info(`[DiamondTransfer] Recovered orphan transfer ${transferId}`);
 
             return res.status(200).json({
@@ -1072,55 +1059,14 @@ export default async function handler(req, res) {
             console.info(`[DiamondTransfer] Verified committed credit after an ambiguous RPC error for transfer ${transferId}`);
         }
 
-        // Record the IP cluster action
-        const { error: ipErr } = await getSupabase().from('anti_farming_ips').insert({
-            user_id: userId,
-            ip_address: clientIp,
-            action_type: 'diamond_gift_sent',
-            amount: amount
+        await reconcileCompletedTransferSideEffects({
+            userId,
+            recipientId,
+            amount,
+            clientIp,
+            senderName,
+            transferId,
         });
-        if (ipErr) console.warn('[DiamondTransfer] Failed to log IP action:', ipErr.message);
-
-        // ── Requirement 1: Recipient Notification ──
-        try {
-            const toTitleCase = (str) => {
-                if (!str) return '';
-                return str
-                    .toLowerCase()
-                    .split(' ')
-                    .map(word => {
-                        if (!word) return '';
-                        const upper = word.toUpperCase();
-                        if (['VIP', 'GPS', 'WSOP', 'WPT', 'ID', 'UID', 'UTC'].includes(upper)) return upper;
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                    })
-                    .join(' ');
-            };
-            const titleSenderName = toTitleCase(senderName);
-            const { error: notifErr } = await getSupabase().from('notifications').insert({
-                user_id: recipientId,
-                actor_id: userId,
-                type: 'diamond_received',
-                title: 'Diamond Gift Received',
-                message: `${titleSenderName} Sent You ${amount} Diamonds`,
-                link: '/hub/store',
-                read: false,
-                is_read: false,
-                data: {
-                    transfer_id: transferId,
-                    sender_id: userId,
-                    sender_name: senderName,
-                    amount,
-                }
-            });
-            if (notifErr) {
-                console.warn('[DiamondTransfer] Failed to insert recipient notification:', notifErr.message);
-            } else {
-                console.info('[DiamondTransfer] Recipient notification inserted successfully');
-            }
-        } catch (notifErr) {
-            console.warn('[DiamondTransfer] Failed to create notification:', notifErr.message);
-        }
 
         // ── #13: Admin audit trail ──
         console.info(`[DiamondTransfer] ✓ ${amount}💎 | sender_age=${Math.floor(senderAgeDays)}d | graduated=${isGraduated} | tier=${isVipTier ? 'vip' : 'standard'}`);
