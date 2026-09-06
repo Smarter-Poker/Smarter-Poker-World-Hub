@@ -271,7 +271,7 @@ const artworkDisplayBounds = (artwork) =>
  * Club Arena's 132px on the same 1140px screen, and worse the wider the
  * window. One clamped height, full bleed, is what makes them match.
  */
-export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 13.72vw, 132px)';
+export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 12.326vw, 132px)';
 
 const artworkStageStyle = () => ({
   width: '100%',

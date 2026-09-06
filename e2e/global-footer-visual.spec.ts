@@ -97,9 +97,9 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
     return [{ sourceRoute, reachableRoute, world }];
   });
 
-// Mirrors Club Arena's shipped `clamp(44px, 13.72vw, 132px)` navigation token.
+// Mirrors Club Arena's shipped `clamp(44px, 12.326vw, 132px)` navigation token.
 const expectedClubFooterHeight = (viewportWidth: number) =>
-  Math.min(132, Math.max(44, viewportWidth * 0.1372));
+  Math.min(132, Math.max(44, viewportWidth * 0.12326));
 
 const visit = async (page: Page, route: string) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -201,7 +201,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       expect(stageBox).not.toBeNull();
       // GOLD STANDARD (Dan, 2026-09-04): every world footer is Club Arena's
       // footer by size and fit — full bleed edge to edge, and exactly
-      // `clamp(44px, 13.72vw, 132px)` tall. Fourteen aspect-derived heights is
+      // `clamp(44px, 12.326vw, 132px)` tall. Fourteen aspect-derived heights is
       // what this replaced.
       expect(Math.abs(stageBox!.width - 320)).toBeLessThanOrEqual(1);
       expect(Math.abs(stageBox!.height - expectedClubFooterHeight(320))).toBeLessThanOrEqual(3);
