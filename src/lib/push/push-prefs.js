@@ -323,7 +323,7 @@ export const LEGACY_PREF_COLUMN = {
 
     diamond_received: 'diamond_rewards',
     bonus: 'diamond_rewards',
-    daily_challenge: 'daily_challenges',
+    daily_challenge: 'daily_mission_reminders',
 };
 
 /** Every legacy column the gate may need to read. */

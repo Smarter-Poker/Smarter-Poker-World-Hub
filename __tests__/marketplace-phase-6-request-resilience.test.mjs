@@ -11,9 +11,11 @@ test('every Marketplace settlement request has a terminal browser deadline', () 
   const surfaces = {
     'pages/hub/diamond-store.js': [
       '/api/store/create-checkout-session',
+      '/api/store/checkout-status',
       '/api/store/purchase-vip-with-diamonds',
       '/api/club-arena/marketplace-purchase',
     ],
+    'pages/hub/memory-games.js': ['/api/store/create-checkout-session'],
     'src/components/store/MerchStore.jsx': [
       '/api/store/create-checkout-session',
       '/api/store/purchase-with-diamonds',
@@ -52,37 +54,120 @@ test('every Marketplace settlement request has a terminal browser deadline', () 
   assert.match(helper, /COMMERCE_REQUEST_TIMEOUT_MS = 20000/);
   assert.match(helper, /No Result Was Assumed\. Retry The Same Purchase\./);
   assert.match(helper, /controller\.abort\(\)/);
+  assert.match(helper, /response\.clone\(\)\.arrayBuffer\(\)/);
+  assert.match(helper, /Promise\.race\(\[request, deadline\]\)/);
+  assert.match(helper, /requestImpl = fetch/);
   assert.match(helper, /clearTimeout\(timer\)/);
   assert.match(helper, /removeEventListener\?\.\('abort'/);
+
+  const memoryGames = read('pages/hub/memory-games.js');
+  assert.match(memoryGames, /getOrCreateCommerceRequestId\(commerceIntent\)/);
+  assert.match(memoryGames, /X-Checkout-Request-ID': checkoutRequestId/);
+  assert.match(memoryGames, /COMMERCE_REQUEST_TIMEOUT_MS,\s*authedFetch/);
+  assert.match(memoryGames, /vipCheckoutAbortRef\.current/);
+  assert.doesNotMatch(memoryGames, /preflop-vip-\$\{crypto\.randomUUID\(\)\}/);
 });
 
-test('bounded commerce requests distinguish timeout from caller cancellation', async () => {
+function abortError() {
+  const error = new Error('aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
+function responseWithDrain(drain, payload = { success: true }) {
+  return {
+    ok: true,
+    status: 200,
+    clone: () => ({ arrayBuffer: drain }),
+    json: async () => payload,
+  };
+}
+
+async function loadBoundedFetch(fetchImpl) {
   const context = vm.createContext({
     AbortController,
     Error,
     clearTimeout,
     setTimeout,
-    fetch: (_input, init) => new Promise((_resolve, reject) => {
-      init.signal.addEventListener('abort', () => {
-        const error = new Error('aborted');
-        error.name = 'AbortError';
-        reject(error);
-      }, { once: true });
-    }),
+    fetch: fetchImpl,
   });
   const module = new vm.SourceTextModule(read('src/lib/store/boundedCommerceFetch.js'), { context });
   await module.link(() => {});
   await module.evaluate();
+  return module.namespace.boundedCommerceFetch;
+}
+
+test('bounded commerce requests time out while response headers are stalled', async () => {
+  const boundedCommerceFetch = await loadBoundedFetch((_input, init) => (
+    new Promise((_resolve, reject) => {
+      init.signal.addEventListener('abort', () => {
+        reject(abortError());
+      }, { once: true });
+    })
+  ));
 
   await assert.rejects(
-    module.namespace.boundedCommerceFetch('/timeout', {}, 5),
+    boundedCommerceFetch('/headers-timeout', {}, 10),
     (error) => error?.code === 'COMMERCE_REQUEST_TIMEOUT'
   );
+});
+
+test('bounded commerce requests keep the deadline active through a stalled body', async () => {
+  const boundedCommerceFetch = await loadBoundedFetch(async (_input, init) => (
+    responseWithDrain(() => new Promise((_resolve, reject) => {
+      init.signal.addEventListener('abort', () => reject(abortError()), { once: true });
+    }))
+  ));
+
+  await assert.rejects(
+    boundedCommerceFetch('/body-timeout', {}, 10),
+    (error) => error?.name === 'CommerceTimeoutError'
+      && error?.code === 'COMMERCE_REQUEST_TIMEOUT'
+  );
+});
+
+test('bounded commerce requests preserve the original readable response after a full-body drain', async () => {
+  let bodyDrained = false;
+  let defaultFetchCalled = false;
+  const response = responseWithDrain(async () => {
+    bodyDrained = true;
+    return new ArrayBuffer(0);
+  }, { success: true, data: { url: '/checkout' } });
+  const boundedCommerceFetch = await loadBoundedFetch(() => {
+    defaultFetchCalled = true;
+    throw new Error('default fetch should not run');
+  });
+
+  const returned = await boundedCommerceFetch(
+    '/success',
+    {},
+    100,
+    async () => response
+  );
+  assert.equal(defaultFetchCalled, false);
+  assert.equal(bodyDrained, true);
+  assert.equal(returned, response);
+  assert.deepEqual(await returned.json(), { success: true, data: { url: '/checkout' } });
+});
+
+test('bounded commerce requests distinguish caller cancellation during body transfer from timeout', async () => {
+  let markBodyStarted;
+  const bodyStarted = new Promise((resolve) => { markBodyStarted = resolve; });
+  const boundedCommerceFetch = await loadBoundedFetch(async (_input, init) => (
+    responseWithDrain(() => new Promise((_resolve, reject) => {
+      markBodyStarted();
+      init.signal.addEventListener('abort', () => reject(abortError()), { once: true });
+    }))
+  ));
 
   const caller = new AbortController();
-  const request = module.namespace.boundedCommerceFetch('/cancelled', { signal: caller.signal }, 1000);
+  const request = boundedCommerceFetch('/cancelled', { signal: caller.signal }, 1000);
+  await bodyStarted;
   caller.abort();
-  await assert.rejects(request, (error) => error?.name === 'AbortError');
+  await assert.rejects(
+    request,
+    (error) => error?.name === 'AbortError' && error?.code !== 'COMMERCE_REQUEST_TIMEOUT'
+  );
 });
 
 test('private Marketplace APIs reject caching on every response path', () => {

@@ -536,6 +536,7 @@ class PatternModel:
 
         # Group by venue+game — process in source order (bravo first)
         raw: dict[tuple, list] = defaultdict(list)
+        rejected_venue_slugs: set[str] = set()
         for r in all_rows:
             slug   = r.get('bravo_slug', '')
             game   = r.get('game_type') or r.get('game_name', '')
@@ -547,7 +548,15 @@ class PatternModel:
             snap   = r.get('snapshot_time') or r.get('scrape_timestamp', '')
             source = r.get('source', 'bravo')
 
+            canonical_name = name or self._venue_names.get(slug, '')
             if not slug or not game:
+                continue
+            # PokerAtlas pages occasionally persist navigation labels as if
+            # they were room names (for example "View Live Info"). Reject
+            # those records at model ingestion so they cannot become API
+            # venues, map markers, or self-perpetuating simulator names.
+            if _is_noise_venue(canonical_name, slug):
+                rejected_venue_slugs.add(slug)
                 continue
             if name and slug not in self._venue_names:
                 self._venue_names[slug] = name
@@ -570,6 +579,11 @@ class PatternModel:
 
         log.info(f'  Unique venue+game combos in history: {len(raw):,}')
         log.info(f'  Unique venues: {len(self._venue_names):,}')
+        if rejected_venue_slugs:
+            log.warning(
+                f'  Rejected {len(rejected_venue_slugs):,} navigation-label '
+                f'venue artifact(s) from history'
+            )
 
         for (slug, game), records in raw.items():
             # Table counts come from Bravo when we have any Bravo observation for
@@ -784,7 +798,9 @@ class PatternModel:
                     if row.get('slug'):
                         slugs.extend([row['slug'], f"pa-{row['slug']}"])
                     for slug in slugs:
-                        if slug and name and not self._looks_like_slug_echo(name, slug):
+                        if (slug and name
+                                and not self._looks_like_slug_echo(name, slug)
+                                and not _is_noise_venue(name, slug)):
                             self._venue_names[slug] = name
             except Exception as e:
                 log.warning(f'  Could not fetch venue names from {table}: '
@@ -1149,6 +1165,23 @@ def _is_noise_game(game_name: str) -> bool:
     ]
     g = game_name.lower()
     return any(p in g for p in noise_patterns)
+
+
+def _is_noise_venue(venue_name: str, venue_slug: str = '') -> bool:
+    """Reject scraper navigation copy accidentally stored as a venue.
+
+    Keep the rule intentionally narrow: legitimate rooms may contain words
+    such as "Live" or "Registration", but PokerAtlas' combined navigation
+    labels use these distinctive phrases. Checking both the saved name and the
+    slug also cleans rows whose bad label was already slugified upstream.
+    """
+    haystack = f'{venue_name} {venue_slug.replace("-", " ")}'.lower()
+    navigation_phrases = (
+        'view live info',
+        'live info wait list',
+        'wait list registration',
+    )
+    return any(phrase in haystack for phrase in navigation_phrases)
 
 
 def _generatable_venues(model: PatternModel) -> set:

@@ -30,8 +30,30 @@ function formatDate(value) {
     : 'Not Available';
 }
 
+function formatGoalDate(value) {
+  if (!value) return 'Not Scheduled';
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date)
+    : 'Not Available';
+}
+
 function findLeak(leaks, id) {
   return (Array.isArray(leaks) ? leaks : []).find(leak => String(leak?.id ?? '') === String(id ?? '')) || null;
+}
+
+function goalPayload(item, changes = {}) {
+  return {
+    id: item.id,
+    leakId: item.leak_id,
+    title: item.title,
+    metric: item.metric,
+    targetValue: item.target_value,
+    currentValue: item.current_value,
+    status: item.status,
+    dueAt: item.due_at,
+    ...changes,
+  };
 }
 
 function Progress({ value, label }) {
@@ -56,6 +78,7 @@ export default function CoachingWorkspace({
 }) {
   const [workspace, setWorkspace] = useState(null);
   const [view, setView] = useState('coach');
+  const [analysisDepth, setAnalysisDepth] = useState('guided');
   const [query, setQuery] = useState('');
   const [selectedLeakId, setSelectedLeakId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +88,7 @@ export default function CoachingWorkspace({
   const [goal, setGoal] = useState({ title: '', metric: 'Accuracy Percent', targetValue: '90', dueAt: '' });
   const [feedbackType, setFeedbackType] = useState('confusing');
   const [feedbackNote, setFeedbackNote] = useState('');
+  const [confirmGoalId, setConfirmGoalId] = useState(null);
 
   const apiRequest = useCallback(async (method = 'GET', body = null) => {
     const token = getAccessToken();
@@ -95,6 +119,9 @@ export default function CoachingWorkspace({
       setWorkspace(payload);
       const saved = payload.preferences?.saved_view;
       if (VIEWS.some(item => item.id === saved)) setView(saved);
+      if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
+        setAnalysisDepth(payload.preferences.analysis_depth);
+      }
       const first = payload.snapshot?.priorities?.[0]?.id;
       setSelectedLeakId(current => current || first || null);
     } catch (requestError) {
@@ -129,11 +156,25 @@ export default function CoachingWorkspace({
       action: 'save_preferences',
       preferences: {
         savedView: nextView,
-        analysisDepth: workspace?.preferences?.analysis_depth || 'guided',
+        analysisDepth,
         panelLayout: workspace?.preferences?.panel_layout || {},
       },
     }, 'Saved View Updated', { reload: false });
-  }, [userId, workspace, write]);
+  }, [analysisDepth, userId, workspace, write]);
+
+  const selectAnalysisDepth = useCallback(async (nextDepth) => {
+    const previousDepth = analysisDepth;
+    setAnalysisDepth(nextDepth);
+    const saved = await write({
+      action: 'save_preferences',
+      preferences: {
+        savedView: view,
+        analysisDepth: nextDepth,
+        panelLayout: workspace?.preferences?.panel_layout || {},
+      },
+    }, 'Analysis Depth Updated', { reload: false });
+    if (!saved) setAnalysisDepth(previousDepth);
+  }, [analysisDepth, view, workspace, write]);
 
   const priorities = workspace?.snapshot?.priorities || [];
   const needle = query.trim().toLowerCase();
@@ -194,9 +235,19 @@ export default function CoachingWorkspace({
           <h2>Your Evidence-Backed Improvement Plan</h2>
           <p>Every Priority Links Back To Club Arena Evidence, Deterministic Grading, And Corrective Training.</p>
         </div>
-        <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
-          <span>Analysis Receipt</span>
-          <strong data-pa-verbatim="true">{snapshot?.receipt || 'Unavailable'}</strong>
+        <div className={styles.commandControls}>
+          <label className={styles.depthControl}>
+            <span>Analysis Depth</span>
+            <select value={analysisDepth} disabled={saving} onChange={event => selectAnalysisDepth(event.target.value)} aria-label="Analysis Depth">
+              <option value="guided">Guided</option>
+              <option value="detailed">Detailed</option>
+              <option value="expert">Expert</option>
+            </select>
+          </label>
+          <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
+            <span>Analysis Receipt</span>
+            <strong data-pa-verbatim="true">{snapshot?.receipt || 'Unavailable'}</strong>
+          </div>
         </div>
       </header>
 
@@ -295,7 +346,7 @@ export default function CoachingWorkspace({
                 <span className={styles.eyebrow}>Confidence Breakdown</span>
                 <h3>{selectedPriority.title}</h3>
                 <Progress value={selectedPriority.confidence.score} label="Measured Confidence" />
-                <ul className={styles.reasonList}>{selectedPriority.confidence.reasons.map(reason => <li key={reason}><Check size={15} aria-hidden="true" />{reason}</li>)}</ul>
+                <ul className={styles.reasonList}>{selectedPriority.confidence.reasons.slice(0, analysisDepth === 'guided' ? 1 : analysisDepth === 'detailed' ? 2 : undefined).map(reason => <li key={reason}><Check size={15} aria-hidden="true" />{reason}</li>)}</ul>
                 <div className={styles.actionRow}>
                   <button type="button" className={styles.primaryButton} disabled={examplesLoading} onClick={() => exactExample ? onPracticeExample?.(selectedLeak, exactExample) : onPractice?.(selectedLeak)}>
                     {examplesLoading ? 'Loading Exact Hand' : exactExample ? 'Open Exact Sandbox Spot' : 'Open Corrective Sandbox'}
@@ -317,11 +368,20 @@ export default function CoachingWorkspace({
                 </div>
               ))}
             </div>
+            {analysisDepth === 'expert' && (
+              <dl className={styles.provenanceGrid} aria-label="Expert Analysis Provenance">
+                <div><dt>Evidence Fingerprint</dt><dd data-pa-verbatim="true">{snapshot?.evidenceFingerprint || 'Unavailable'}</dd></div>
+                <div><dt>Matcher</dt><dd data-pa-verbatim="true">{snapshot?.versions?.matcher || 'Unavailable'}</dd></div>
+                <div><dt>Detector</dt><dd data-pa-verbatim="true">{snapshot?.versions?.detector || 'Unavailable'}</dd></div>
+                <div><dt>Review Schema</dt><dd data-pa-verbatim="true">{snapshot?.versions?.reviewSchema || 'Unavailable'}</dd></div>
+              </dl>
+            )}
           </article>
           <article className={styles.panel}>
             <span className={styles.eyebrow}>Coverage Dashboard</span>
             <h3>{coverage.verified || 0} Solver-Verified Decisions</h3>
             <Progress value={coverage.verifiedPercent} label="Verified Decision Coverage" />
+            {coverage.windowLimited && <div className={styles.inlineNotice}>Coverage Uses The Latest {coverage.windowLimit} Audited Decisions. Older Evidence Remains Stored But Is Outside This Coaching Snapshot.</div>}
             <dl className={styles.coverageList}>
               <div><dt>Decisions</dt><dd>{coverage.decisions || 0}</dd></div>
               <div><dt>Partially Matched</dt><dd>{coverage.partiallyMatched || 0}</dd></div>
@@ -367,8 +427,15 @@ export default function CoachingWorkspace({
             <button type="submit" className={styles.primaryButton} disabled={saving}>Save Goal</button>
           </form>
           <article className={styles.panel}>
-            <span className={styles.eyebrow}>Active Goals</span><h3>Your Measured Targets</h3>
-            {(workspace?.goals || []).length ? <ul className={styles.goalList}>{workspace.goals.map(item => <li key={item.id}><div><strong>{item.title}</strong><small>{item.metric}: {item.current_value ?? 'Not Measured'} Of {item.target_value} By {formatDate(item.due_at)}</small></div><button type="button" disabled={saving || item.status === 'completed'} onClick={() => write({ action: 'save_goal', goal: { id: item.id, leakId: item.leak_id, title: item.title, metric: item.metric, targetValue: item.target_value, currentValue: item.target_value, status: 'completed', dueAt: item.due_at } }, 'Goal Marked Complete')}>{item.status === 'completed' ? 'Completed' : 'Mark Complete'}</button></li>)}</ul> : <p>No Coaching Goal Has Been Saved Yet.</p>}
+            <span className={styles.eyebrow}>Saved Goals</span><h3>Your Measured Targets</h3>
+            {(workspace?.goals || []).length ? <ul className={styles.goalList}>{workspace.goals.map(item => <li key={item.id}><div><strong>{item.title}</strong><small>{item.metric}: {item.current_value ?? 'Not Measured'} Of {item.target_value} By {formatGoalDate(item.due_at)}</small></div><div className={styles.goalActions}><button type="button" disabled={saving || item.status === 'completed'} aria-label={`Mark ${item.title} Complete`} onClick={() => write({ action: 'save_goal', goal: goalPayload(item, { currentValue: item.target_value, status: 'completed' }) }, 'Goal Marked Complete')}>{item.status === 'completed' ? 'Completed' : 'Mark Complete'}</button><button type="button" disabled={saving || item.status === 'completed'} aria-label={`${item.status === 'paused' ? 'Resume' : 'Pause'} ${item.title}`} onClick={() => write({ action: 'save_goal', goal: goalPayload(item, { status: item.status === 'paused' ? 'active' : 'paused' }) }, item.status === 'paused' ? 'Goal Resumed' : 'Goal Paused')}>{item.status === 'paused' ? 'Resume' : 'Pause'}</button><button type="button" className={styles.removeGoal} disabled={saving} aria-label={`${confirmGoalId === item.id ? 'Confirm Removal Of' : 'Remove'} ${item.title}`} onClick={async () => {
+              if (confirmGoalId !== item.id) {
+                setConfirmGoalId(item.id);
+                return;
+              }
+              const removed = await write({ action: 'delete_goal', goal: { id: item.id } }, 'Coaching Goal Removed');
+              if (removed) setConfirmGoalId(null);
+            }}>{confirmGoalId === item.id ? 'Confirm Remove' : 'Remove'}</button>{confirmGoalId === item.id && <button type="button" disabled={saving} aria-label={`Cancel Removal Of ${item.title}`} onClick={() => setConfirmGoalId(null)}>Cancel</button>}</div></li>)}</ul> : <p>No Coaching Goal Has Been Saved Yet.</p>}
           </article>
         </div>
       )}

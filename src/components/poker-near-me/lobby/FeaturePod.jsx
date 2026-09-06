@@ -21,15 +21,15 @@ function degToRad(deg) {
 
 // Pod image paths map
 const POD_IMAGES = {
-  search:    '/images/lobby-pods/search.png',
-  nearme:    '/images/lobby-pods/nearme.png',
-  livegames: '/images/lobby-pods/livegames.png',
-  mapview:   '/images/lobby-pods/mapview.png',
-  tours:     '/images/lobby-pods/tours.png',
-  calendar:  '/images/lobby-pods/calendar.png',
-  daily:     '/images/lobby-pods/daily.png',
-  series:    '/images/lobby-pods/series.png',
-  wallet:    '/images/lobby-pods/wallet.png',
+  search:    '/images/lobby-pods/search.webp',
+  nearme:    '/images/lobby-pods/nearme.webp',
+  livegames: '/images/lobby-pods/livegames.webp',
+  mapview:   '/images/lobby-pods/mapview.webp',
+  tours:     '/images/lobby-pods/tours.webp',
+  calendar:  '/images/lobby-pods/calendar.webp',
+  daily:     '/images/lobby-pods/daily.webp',
+  series:    '/images/lobby-pods/series.webp',
+  wallet:    '/images/lobby-pods/wallet.webp',
 };
 
 /**

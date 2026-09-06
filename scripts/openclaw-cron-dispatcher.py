@@ -416,6 +416,26 @@ ALL_CRONS = [
     # relay returns Commander's status verbatim; two non-200s in a row page
     # (CRITICAL_JOBS).
     ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours
+    # Club Arena table-socket probe (2026-09-06, Realtime Programme phase 6).
+    # A synthetic client that does what a PLAYER does: signs in, opens a real
+    # WebSocket to a table that is dealing, and waits for the first SNAPSHOT.
+    #
+    # It exists because on 2026-09-03 every Club Arena table said "Reconnecting
+    # To The Table" for twenty-two hours while every monitor stayed green -
+    # /api/health (the engine was healthy), the lobby (PostgREST checks a JWT's
+    # signature, not its session) and login-probe (GoTrue was issuing tokens
+    # perfectly; this platform's own cron was revoking them a moment later).
+    # None of them opened a socket, which is the only thing a player does.
+    #
+    # Every 5 minutes, offset off the quarter-hours (login-probe) and off :22
+    # (the login-bridge probe above). It is deliberately NOT paused for the
+    # :55 maintenance break: the engine is genuinely away for two to three
+    # minutes of every hour, and a probe that looks away for exactly that
+    # window is blind to the restart handoff phase 4 exists to protect. The
+    # ONE run that lands inside the break is expected to fail, which is why
+    # CRITICAL_JOBS pages at THREE consecutive failures rather than two - the
+    # break can eat one run, never three.
+    ('/api/cron/table-socket-probe',                dict(minute='3,8,13,18,23,28,33,38,43,48,53,58')),
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
     # RakebackSettlerService.runUnionWeeklyRakeback() calls
@@ -1094,11 +1114,19 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    # 2026-09-06: a synthetic client that cannot hold a Club Arena table is the
+    # 2026-09-03 outage happening again, and that one ran twenty-two hours
+    # because nothing anywhere was watching this. THREE, not two: the probe
+    # runs every 5 minutes and one run per hour lands inside the :55
+    # maintenance break, where a failure is expected. Three in a row is 15
+    # minutes of tables nobody can hold, and the break can never eat three.
+    '/api/cron/table-socket-probe':     3,
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
 }
 _critical_state = {}
 

@@ -181,7 +181,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
             />
           </div>
 
-          <div className={styles.signalGrid} aria-label="Reward account signals">
+          <div className={styles.signalGrid} aria-label="Reward Account Signals">
             <div><span>Login Streak</span><strong>{Number(data.loginStreak || 0)} Days</strong></div>
             <div><span>Share Multiplier</span><strong>{Number(data.multiplier || 1).toFixed(2)}×</strong></div>
             <div><span>Cap Profile</span><strong>{data.isVip ? 'VIP 150' : 'Standard 110'}</strong></div>

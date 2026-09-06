@@ -48,7 +48,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'wild',
-        image: '/avatars/free/rockstar.png',
+        image: '/avatars/free/rockstar.webp',
         tags: ['music', 'retro', 'energetic']
     },
     {
@@ -58,7 +58,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'friendly',
-        image: '/avatars/free/chef.png',
+        image: '/avatars/free/chef.webp',
         tags: ['cooking', 'friendly', 'jovial']
     },
     {
@@ -68,7 +68,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/wizard.png',
+        image: '/avatars/free/wizard.webp',
         tags: ['science', 'smart', 'methodical']
     },
 
@@ -80,7 +80,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'friendly',
-        image: '/avatars/free/musician.png',
+        image: '/avatars/free/musician.webp',
         tags: ['music', 'glamorous', 'confident']
     },
     {
@@ -90,7 +90,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/free/space_commander.png',
+        image: '/avatars/free/space_commander.webp',
         tags: ['space', 'adventurous', 'brave']
     },
 
@@ -102,7 +102,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/free/shark.png',
+        image: '/avatars/free/shark.webp',
         tags: ['predator', 'aggressive', 'intimidating']
     },
     // Dan 2026-08-20: this entry was 'Lucky Rabbit', pointing at a rabbit.png
@@ -118,7 +118,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'intimidating',
-        image: '/avatars/free/viking.png',
+        image: '/avatars/free/viking.webp',
         tags: ['warrior', 'bold', 'aggressive']
     },
     {
@@ -128,7 +128,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'FREE',
         personality: 'intimidating',
-        image: '/avatars/free/lion.png',
+        image: '/avatars/free/lion.webp',
         tags: ['royal', 'strong', 'majestic']
     },
     {
@@ -138,7 +138,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/owl.png',
+        image: '/avatars/free/owl.webp',
         tags: ['wise', 'observant', 'patient']
     },
     {
@@ -148,7 +148,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'FREE',
         personality: 'lag',
-        image: '/avatars/free/fox.png',
+        image: '/avatars/free/fox.webp',
         tags: ['clever', 'sneaky', 'tactical']
     },
     {
@@ -158,7 +158,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'FREE',
         personality: 'mystery',
-        image: '/avatars/free/penguin.png',
+        image: '/avatars/free/penguin.webp',
         tags: ['cool', 'mysterious', 'calm']
     },
 
@@ -170,7 +170,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'lag',
-        image: '/avatars/free/cowboy.png',
+        image: '/avatars/free/cowboy.webp',
         tags: ['western', 'aggressive', 'bold']
     },
     {
@@ -180,7 +180,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'mystery',
-        image: '/avatars/free/ninja.png',
+        image: '/avatars/free/ninja.webp',
         tags: ['stealth', 'mysterious', 'tactical']
     },
     {
@@ -190,7 +190,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/detective.png',
+        image: '/avatars/free/detective.webp',
         tags: ['observant', 'smart', 'analytical']
     },
     {
@@ -200,7 +200,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/free/business.png',
+        image: '/avatars/free/business.webp',
         tags: ['professional', 'calculating', 'ambitious']
     },
     // Dan 2026-08-20: 'Street Musician' pointed at musician.png, the very same
@@ -214,7 +214,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'mystery',
-        image: '/avatars/free/cyborg.png',
+        image: '/avatars/free/cyborg.webp',
         tags: ['tech', 'calculating', 'futuristic']
     },
     {
@@ -224,7 +224,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'friendly',
-        image: '/avatars/free/teacher.png',
+        image: '/avatars/free/teacher.webp',
         tags: ['educational', 'patient', 'helpful']
     },
     // Dan 2026-08-20: aztec.png and geisha.png shipped in public/avatars/free/
@@ -237,7 +237,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'FREE',
         personality: 'intimidating',
-        image: '/avatars/free/aztec.png',
+        image: '/avatars/free/aztec.webp',
         tags: ['ancient', 'fierce', 'proud']
     },
     {
@@ -247,7 +247,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/geisha.png',
+        image: '/avatars/free/geisha.webp',
         tags: ['elegant', 'composed', 'traditional']
     },
 
@@ -259,7 +259,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'FREE',
         personality: 'lag',
-        image: '/avatars/free/pirate.png',
+        image: '/avatars/free/pirate.webp',
         tags: ['adventure', 'risky', 'bold']
     },
     {
@@ -269,7 +269,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/knight.png',
+        image: '/avatars/free/knight.webp',
         tags: ['honor', 'disciplined', 'strong']
     },
     {
@@ -279,7 +279,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'FREE',
         personality: 'intimidating',
-        image: '/avatars/free/samurai.png',
+        image: '/avatars/free/samurai.webp',
         tags: ['discipline', 'honor', 'focused']
     },
     {
@@ -289,7 +289,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'FREE',
         personality: 'friendly',
-        image: '/avatars/free/shiba.png',
+        image: '/avatars/free/shiba.webp',
         tags: ['meme', 'fun', 'playful']
     },
 
@@ -306,7 +306,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/politician.png',
+        image: '/avatars/vip/politician.webp',
         tags: ['leadership', 'influential', 'strategic']
     },
     {
@@ -316,7 +316,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: ' wild',
-        image: '/avatars/vip/rock_legend.png',
+        image: '/avatars/vip/rock_legend.webp',
         tags: ['music', 'legendary', 'passionate']
     },
     {
@@ -326,7 +326,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/tech_mogul.png',
+        image: '/avatars/vip/tech_mogul.webp',
         tags: ['tech', 'innovative', 'ambitious']
     },
     {
@@ -336,7 +336,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/space_pioneer.png',
+        image: '/avatars/vip/space_pioneer.webp',
         tags: ['visionary', 'bold', 'ambitious']
     },
     {
@@ -346,7 +346,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/silent_actor.png',
+        image: '/avatars/vip/silent_actor.webp',
         tags: ['classic', 'expressive', 'artistic']
     },
     {
@@ -356,7 +356,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/liberty.png',
+        image: '/avatars/vip/liberty.webp',
         tags: ['icon', 'symbolic', 'majestic']
     },
     {
@@ -366,7 +366,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/monarch.png',
+        image: '/avatars/vip/monarch.webp',
         tags: ['royalty', 'elegant', 'refined']
     },
     {
@@ -376,7 +376,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/hollywood.png',
+        image: '/avatars/vip/hollywood.webp',
         tags: ['glamorous', 'charismatic', 'dazzling']
     },
     {
@@ -386,7 +386,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'FREE',
         personality: 'intimidating',
-        image: '/avatars/vip/wrestler.png',
+        image: '/avatars/vip/wrestler.webp',
         tags: ['strong', 'entertaining', 'fierce']
     },
     {
@@ -396,7 +396,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/vip/football.png',
+        image: '/avatars/vip/football.webp',
         tags: ['athletic', 'competitive', 'focused']
     },
     {
@@ -406,7 +406,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/basketball.png',
+        image: '/avatars/vip/basketball.webp',
         tags: ['athletic', 'skilled', 'dominant']
     },
     {
@@ -416,7 +416,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/soccer.png',
+        image: '/avatars/vip/soccer.webp',
         tags: ['athletic', 'global', 'talented']
     },
     {
@@ -426,7 +426,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'VIP',
         personality: 'lag',
-        image: '/avatars/vip/boxer.png',
+        image: '/avatars/vip/boxer.webp',
         tags: ['fighter', 'strategic', 'quick']
     },
     {
@@ -436,7 +436,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/physicist.png',
+        image: '/avatars/vip/physicist.webp',
         tags: ['genius', 'intellectual', 'analytical']
     },
     {
@@ -446,7 +446,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/artist.png',
+        image: '/avatars/vip/artist.webp',
         tags: ['creative', 'timeless', 'visionary']
     },
     {
@@ -456,7 +456,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/rapper.png',
+        image: '/avatars/vip/rapper.webp',
         tags: ['music', 'rhythmic', 'bold']
     },
     {
@@ -466,7 +466,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/dancer.png',
+        image: '/avatars/vip/dancer.webp',
         tags: ['music rhythmic', 'graceful']
     },
     {
@@ -476,7 +476,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/country.png',
+        image: '/avatars/vip/country.webp',
         tags: ['music', 'soulful', 'authentic']
     },
     {
@@ -486,7 +486,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/jazz.png',
+        image: '/avatars/vip/jazz.webp',
         tags: ['music', 'smooth', 'artistic']
     },
     {
@@ -496,7 +496,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/director.png',
+        image: '/avatars/vip/director.webp',
         tags: ['creative', 'intense', 'dramatic']
     },
 
@@ -508,7 +508,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/secret_agent.png',
+        image: '/avatars/vip/secret_agent.webp',
         tags: ['spy', 'suave', 'tactical']
     },
 
@@ -519,7 +519,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/dragon.png',
+        image: '/avatars/vip/dragon.webp',
         tags: ['mythical', 'powerful', 'majestic']
     },
     {
@@ -529,7 +529,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/phoenix.png',
+        image: '/avatars/vip/phoenix.webp',
         tags: ['mythical', 'resilient', 'rare']
     },
     {
@@ -539,7 +539,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/unicorn.png',
+        image: '/avatars/vip/unicorn.webp',
         tags: ['mythical', 'magical', 'rare']
     },
     {
@@ -549,7 +549,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/vampire.png',
+        image: '/avatars/vip/vampire.webp',
         tags: ['gothic', 'mysterious', 'elegant']
     },
     {
@@ -559,7 +559,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/elite_cyborg.png',
+        image: '/avatars/vip/elite_cyborg.webp',
         tags: ['tech', 'advanced', 'powerful']
     },
     {
@@ -569,7 +569,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/plague_doctor.png',
+        image: '/avatars/vip/plague_doctor.webp',
         tags: ['historical', 'eerie', 'unique']
     },
     {
@@ -579,7 +579,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/space_ranger.png',
+        image: '/avatars/vip/space_ranger.webp',
         tags: ['hero', 'adventurous', 'brave']
     },
     {
@@ -589,7 +589,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/mummy.png',
+        image: '/avatars/vip/mummy.webp',
         tags: ['ancient', 'mysterious', 'cursed']
     },
     {
@@ -599,7 +599,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/alien.png',
+        image: '/avatars/vip/alien.webp',
         tags: ['space', 'unique', 'mysterious']
     },
     {
@@ -609,7 +609,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/ice_queen.png',
+        image: '/avatars/vip/ice_queen.webp',
         tags: ['magical', 'elegant', 'powerful']
     },
     {
@@ -619,7 +619,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/fire_demon.png',
+        image: '/avatars/vip/fire_demon.webp',
         tags: ['fierce', 'powerful', 'aggressive']
     },
     {
@@ -629,7 +629,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/angel.png',
+        image: '/avatars/vip/angel.webp',
         tags: ['benevolent', 'protective', 'pure']
     },
 
@@ -641,7 +641,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/grumpy_cat.png',
+        image: '/avatars/vip/grumpy_cat.webp',
         tags: ['meme', 'sassy', 'funny']
     },
     {
@@ -651,7 +651,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/business_cat.png',
+        image: '/avatars/vip/business_cat.webp',
         tags: ['meme', 'professional', 'ambitious']
     },
     {
@@ -661,7 +661,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/pug.png',
+        image: '/avatars/vip/pug.webp',
         tags: ['cute', 'cheerful', 'lovable']
     },
     {
@@ -671,7 +671,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/eagle.png',
+        image: '/avatars/vip/eagle.webp',
         tags: ['powerful', 'majestic', 'sharp']
     },
     {
@@ -681,7 +681,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/badger.png',
+        image: '/avatars/vip/badger.webp',
         tags: ['fearless', 'aggressive', 'tough']
     },
     {
@@ -691,7 +691,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/bull.png',
+        image: '/avatars/vip/bull.webp',
         tags: ['strong', 'aggressive', 'powerful']
     },
     {
@@ -701,7 +701,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'lag',
-        image: '/avatars/vip/wolf.png',
+        image: '/avatars/vip/wolf.webp',
         tags: ['strategic', 'loyal', 'fierce']
     },
     {
@@ -711,7 +711,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/gorilla.png',
+        image: '/avatars/vip/gorilla.webp',
         tags: ['wise', 'strong', 'patient']
     },
     {
@@ -721,7 +721,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/panther.png',
+        image: '/avatars/vip/panther.webp',
         tags: ['stealthy', 'elegant', 'dangerous']
     },
     {
@@ -731,7 +731,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/bear.png',
+        image: '/avatars/vip/bear.webp',
         tags: ['powerful', 'fierce', 'dominant']
     },
 
@@ -743,7 +743,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/pharaoh.png',
+        image: '/avatars/vip/pharaoh.webp',
         tags: ['historical', 'royal', 'powerful']
     },
     {
@@ -753,7 +753,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/viking_warrior.png',
+        image: '/avatars/vip/viking_warrior.webp',
         tags: ['warrior', 'fierce', 'bold']
     },
     {
@@ -763,7 +763,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/geisha_master.png',
+        image: '/avatars/vip/geisha_master.webp',
         tags: ['elegant', 'cultural', 'refined']
     },
     {
@@ -773,7 +773,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/aztec_warrior.png',
+        image: '/avatars/vip/aztec_warrior.webp',
         tags: ['historical', 'warrior', 'fierce']
     },
     {
@@ -783,7 +783,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/spartan.png',
+        image: '/avatars/vip/spartan.webp',
         tags: ['warrior', 'disciplined', 'legendary']
     },
 
@@ -795,7 +795,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/arctic_explorer.png',
+        image: '/avatars/vip/arctic_explorer.webp',
         tags: ['vip', 'premium', 'arctic']
     },
     {
@@ -805,7 +805,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/astronaut.png',
+        image: '/avatars/vip/astronaut.webp',
         tags: ['vip', 'premium', 'astronaut']
     },
     {
@@ -815,7 +815,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/bounty_hunter.png',
+        image: '/avatars/vip/bounty_hunter.webp',
         tags: ['vip', 'premium', 'bounty']
     },
     {
@@ -825,7 +825,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/casino_dealer.png',
+        image: '/avatars/vip/casino_dealer.webp',
         tags: ['vip', 'premium', 'casino']
     },
     {
@@ -835,7 +835,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/cyber_assassin.png',
+        image: '/avatars/vip/cyber_assassin.webp',
         tags: ['vip', 'premium', 'cyber']
     },
     {
@@ -845,7 +845,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/cyber_punk.png',
+        image: '/avatars/vip/cyber_punk.webp',
         tags: ['vip', 'premium', 'cyber']
     },
     {
@@ -855,7 +855,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/dj.png',
+        image: '/avatars/vip/dj.webp',
         tags: ['vip', 'premium', 'dj']
     },
     {
@@ -865,7 +865,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/galactic_emperor.png',
+        image: '/avatars/vip/galactic_emperor.webp',
         tags: ['vip', 'premium', 'galactic']
     },
     {
@@ -875,7 +875,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/gladiator.png',
+        image: '/avatars/vip/gladiator.webp',
         tags: ['vip', 'premium', 'gladiator']
     },
     {
@@ -885,7 +885,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/hacker.png',
+        image: '/avatars/vip/hacker.webp',
         tags: ['vip', 'premium', 'hacker']
     },
     {
@@ -895,7 +895,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/luchador.png',
+        image: '/avatars/vip/luchador.webp',
         tags: ['vip', 'premium', 'luchador']
     },
     {
@@ -905,7 +905,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/mad_scientist.png',
+        image: '/avatars/vip/mad_scientist.webp',
         tags: ['vip', 'premium', 'mad']
     },
     {
@@ -915,7 +915,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/mecha_pilot.png',
+        image: '/avatars/vip/mecha_pilot.webp',
         tags: ['vip', 'premium', 'mecha']
     },
     {
@@ -925,7 +925,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/mobster.png',
+        image: '/avatars/vip/mobster.webp',
         tags: ['vip', 'premium', 'mobster']
     },
     {
@@ -935,7 +935,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/neon_ninja.png',
+        image: '/avatars/vip/neon_ninja.webp',
         tags: ['vip', 'premium', 'neon']
     },
     {
@@ -945,7 +945,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/phantom.png',
+        image: '/avatars/vip/phantom.webp',
         tags: ['vip', 'premium', 'phantom']
     },
     {
@@ -955,7 +955,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/royal_guard.png',
+        image: '/avatars/vip/royal_guard.webp',
         tags: ['vip', 'premium', 'royal']
     },
     {
@@ -965,7 +965,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/samurai_cyborg.png',
+        image: '/avatars/vip/samurai_cyborg.webp',
         tags: ['vip', 'premium', 'samurai']
     },
     {
@@ -975,7 +975,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/sorceress.png',
+        image: '/avatars/vip/sorceress.webp',
         tags: ['vip', 'premium', 'sorceress']
     },
     {
@@ -985,7 +985,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/space_pirate.png',
+        image: '/avatars/vip/space_pirate.webp',
         tags: ['vip', 'premium', 'space']
     },
     {
@@ -995,7 +995,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/steampunk_inventor.png',
+        image: '/avatars/vip/steampunk_inventor.webp',
         tags: ['vip', 'premium', 'steampunk']
     },
     {
@@ -1005,7 +1005,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/street_racer.png',
+        image: '/avatars/vip/street_racer.webp',
         tags: ['vip', 'premium', 'street']
     },
     {
@@ -1015,7 +1015,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/tiger_boss.png',
+        image: '/avatars/vip/tiger_boss.webp',
         tags: ['vip', 'premium', 'tiger']
     },
     {
@@ -1025,7 +1025,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/vampire_hunter.png',
+        image: '/avatars/vip/vampire_hunter.webp',
         tags: ['vip', 'premium', 'vampire']
     },
     {
@@ -1035,7 +1035,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/voodoo_priest.png',
+        image: '/avatars/vip/voodoo_priest.webp',
         tags: ['vip', 'premium', 'voodoo']
     },
     {
@@ -1045,7 +1045,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/yakuza.png',
+        image: '/avatars/vip/yakuza.webp',
         tags: ['vip', 'premium', 'yakuza']
     },
 ];

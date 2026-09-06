@@ -91,9 +91,9 @@ export const POKER_ASSET_MANIFEST = Object.freeze({
     ]),
 
     uiAssets: Object.freeze([
-        '/assets/club-arena/wallet_bg.png',
-        '/assets/club-arena/wallet_owner_bg_web.png',
-        '/assets/club-arena/wallet_union_bg.png',
+        '/assets/club-arena/wallet_bg.webp',
+        '/assets/club-arena/wallet_owner_bg_web.webp',
+        '/assets/club-arena/wallet_union_bg.webp',
     ]),
 });
 

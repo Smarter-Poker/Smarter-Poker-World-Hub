@@ -24,6 +24,13 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
+import {
+    LEGACY_PREF_COLUMN,
+    LEGACY_PREF_COLUMNS,
+    legacyPrefAllowed,
+} from '../src/lib/push/push-prefs.js';
+import { gateDecision } from '../src/lib/push/push-gate.js';
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WF = join(ROOT, '.github/workflows/push-delivery-watchdog.yml');
 const HEALTH = readFileSync(join(ROOT, 'pages/api/cron/push-health.js'), 'utf8');
@@ -88,4 +95,26 @@ test('the delivery alarm cannot fire on low adoption alone', () => {
         /activeSubs \|\| 0\) > 0 && \(sent24h \|\| 0\) === 0/,
         'the alarm must require subscribers AND zero deliveries'
     );
+});
+
+test('daily challenge pushes honour Club Arena daily mission reminders', () => {
+    assert.equal(LEGACY_PREF_COLUMN.daily_challenge, 'daily_mission_reminders');
+    assert.ok(
+        LEGACY_PREF_COLUMNS.includes('daily_mission_reminders'),
+        'the batched preference query must select the column Club Arena writes'
+    );
+    assert.equal(
+        legacyPrefAllowed({ daily_mission_reminders: false }, 'daily_challenge'),
+        false,
+        'turning daily mission reminders off must suppress a daily challenge push'
+    );
+
+    const decision = gateDecision(
+        { prefs: null, legacy: { daily_mission_reminders: false } },
+        'daily_challenge'
+    );
+    assert.deepEqual(decision, {
+        allowed: false,
+        reason: 'legacy_disabled:daily_challenge',
+    });
 });

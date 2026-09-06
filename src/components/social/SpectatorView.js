@@ -141,7 +141,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                         width: 40, height: 40, borderRadius: 20, overflow: 'hidden',
                         border: `2px solid ${T.green}`,
                     }}>
-                        <img src={session.profiles?.avatar_url || '/avatars/default.png'} alt=""
+                        <img src={session.profiles?.avatar_url || '/default-avatar.png'} alt=""
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                     </div>
                     <div>
@@ -224,7 +224,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                             <div style={{
                                 width: 22, height: 22, borderRadius: 11, overflow: 'hidden', flexShrink: 0, marginTop: 1,
                             }}>
-                                <img src={m.profiles?.avatar_url || '/avatars/default.png'} alt=""
+                                <img src={m.profiles?.avatar_url || '/default-avatar.png'} alt=""
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                             </div>
                             <div>
