@@ -19,6 +19,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -112,13 +113,18 @@ export default async function handler(req, res) {
           // Get current spot's aggression index as baseline
           const { data: currentSpot } = await getSupabase()
               .from('solved_spots_gold')
-              .select('strategy_matrix')
+              .select('strategy_matrix, strategy_matrix_v2')
               .eq('scenario_hash', safeHash)
               .maybeSingle();
 
-          const baselineAggression = currentSpot
-              ? calculateAggressionIndex(currentSpot.strategy_matrix)
-              : 0;
+          const currentMatrix = currentSpot ? selectTrustedSolverMatrix(currentSpot) : null;
+          if (currentSpot && !currentMatrix) {
+              return res.status(422).json({
+                  success: false,
+                  error: 'This spot has no trusted solver strategy available',
+              });
+          }
+          const baselineAggression = currentMatrix ? calculateAggressionIndex(currentMatrix) : 0;
 
           // Query all child spots for possible runout cards
           // A child has the same scenario_hash but with 2 more characters (one more card)
@@ -129,7 +135,7 @@ export default async function handler(req, res) {
               // 2026-08-15 CHECK 13 fix: hand_evs is not a top-level column — it
               // lives INSIDE the strategy_matrix jsonb. Selecting it 42703'd the
               // whole query, so the runout report always 500'd.
-              .select('scenario_hash, strategy_matrix')
+              .select('scenario_hash, strategy_matrix, strategy_matrix_v2')
               .ilike('scenario_hash', `${safeHash}__`)
               .limit(200);
 
@@ -146,11 +152,13 @@ export default async function handler(req, res) {
               if (childBoard.length === currentBoard.length + 1) {
                   const nextCard = childBoard[currentBoard.length];
                   if (nextCard) {
-                      const childAggression = calculateAggressionIndex(spot.strategy_matrix);
+                      const childMatrix = selectTrustedSolverMatrix(spot);
+                      if (!childMatrix) return;
+                      const childAggression = calculateAggressionIndex(childMatrix);
                       childMap[nextCard.toLowerCase()] = {
                           aggression: childAggression,
                           ev_delta: childAggression - baselineAggression,
-                          handEvs: spot.strategy_matrix?.hand_evs,
+                          handEvs: childMatrix.hand_evs,
                       };
                   }
               }

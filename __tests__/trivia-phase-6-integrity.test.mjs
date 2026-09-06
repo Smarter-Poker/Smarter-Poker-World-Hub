@@ -26,6 +26,7 @@ const endless = read('pages/hub/trivia/endless.js');
 const survival = read('pages/hub/trivia/survival-game.js');
 const pvpPage = read('pages/hub/trivia/pvp.js');
 const pvpSettlement = read('pages/api/trivia/pvp-settle-match.js');
+const pvpContainment = read('supabase/migrations/20260906120000_trivia_pvp_containment.sql');
 const modePage = read('pages/hub/trivia/[mode].js');
 
 test('validator rejects duplicate dealt cards and impossible action order', () => {
@@ -71,7 +72,8 @@ test('settlement is replay-safe, deadline-bound and fails closed on credit error
     assert.match(settlement, /daily_bonus_awarded/);
     assert.match(settlement, /trivia_wheel_item_/);
     assert.match(submit, /answers` deliberately remains unread beyond shape validation/);
-    assert.match(submit, /dailyBonusAwarded: Number\(award\?\.daily_bonus_awarded\)/);
+    assert.match(submit, /validateTriviaAwardResponse\(award/);
+    assert.match(submit, /dailyBonusAwarded: receipt\.dailyBonusAwarded/);
     assert.match(answer, /session_expired' \? 410/);
 });
 
@@ -102,7 +104,9 @@ test('streak and PvP statistics are owned by verified server settlement', () => 
     assert.match(serverOwnedStats, /REVOKE EXECUTE ON FUNCTION public\.increment_trivia_skipped/);
     assert.match(serverOwnedStats, /REVOKE EXECUTE ON FUNCTION public\.get_diamond_balance/);
     assert.match(pvpSettlement, /record_trivia_pvp_stats_v2/);
-    assert.match(pvpSettlement, /settlement_kind: decision\.kind/);
+    assert.match(pvpContainment, /CREATE OR REPLACE FUNCTION public\.decide_trivia_pvp_settlement_v1/);
+    assert.match(pvpContainment, /public\.add_diamonds_to_balance\([\s\S]*SET status = 'complete'/);
+    assert.doesNotMatch(pvpSettlement, /rpc\('add_diamonds_to_balance'|settlement_kind:\s*decision\.kind/);
     assert.doesNotMatch(pvpPage, /fn_trivia_pvp_record_result/);
     assert.doesNotMatch(modePage, /supabase\.rpc\('update_trivia_streak'/);
 });

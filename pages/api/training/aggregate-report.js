@@ -17,6 +17,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, extractPositionFromHash, RANK_VALUES, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { selectTrustedLegacySolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -138,6 +139,7 @@ export default async function handler(req, res) {
           let totalSpots = 0;
           let totalCbet = 0;
           let totalCheck = 0;
+          let excludedUntrustedSpots = 0;
           const positionAgg = {};
 
           (spots || []).forEach(spot => {
@@ -146,7 +148,11 @@ export default async function handler(req, res) {
 
               const texture = classifyFlopTexture(board);
               const position = extractPositionFromHash(spot.scenario_hash);
-              const matrix = spot.strategy_matrix || {};
+              const matrix = selectTrustedLegacySolverMatrix(spot.strategy_matrix);
+              if (!matrix) {
+                  excludedUntrustedSpots += 1;
+                  return;
+              }
               const actions = matrix.actions || [];
               const frequencies = matrix.frequencies || {};
 
@@ -227,6 +233,7 @@ export default async function handler(req, res) {
                   stackDepth: parseInt(stackDepth, 10),
                   heroPosition: heroPosition || 'ALL',
                   totalSpots,
+                  excludedUntrustedSpots,
                   overall: {
                       cbetFreq: totalSpots > 0 ? Math.round(totalCbet / totalSpots) : 0,
                       checkFreq: totalSpots > 0 ? Math.round(totalCheck / totalSpots) : 0,

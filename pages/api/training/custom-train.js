@@ -17,6 +17,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -41,6 +42,8 @@ const GAME_TYPE_TO_PIO = {
     mtt: ['mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev', 'river_mtt_icm', 'turn_mtt_icm'],
     spins: ['turn_spin', 'spin_3max_chipev', 'spin_3max_icm', 'spin_hu_chipev', 'spin_hu_icm', 'spin_postflop'],
 };
+
+const SOLVER_PROJECTION = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOARD TEXTURE TARGETING (GTOW parity #8)
@@ -161,7 +164,7 @@ export default async function handler(req, res) {
           // Build query filters
           let query = getSupabase()
               .from('solved_spots_gold')
-              .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+              .select(SOLVER_PROJECTION)
               .in('game_type', pioGameTypes)
               .eq('stack_depth', parsedStack);
 
@@ -223,7 +226,7 @@ export default async function handler(req, res) {
               // Fallback: try without position filter
               let fallbackQuery = getSupabase()
                   .from('solved_spots_gold')
-                  .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                  .select(SOLVER_PROJECTION)
                   .in('game_type', pioGameTypes)
                   .eq('stack_depth', parsedStack)
                   .limit(poolSize);
@@ -243,7 +246,7 @@ export default async function handler(req, res) {
                   // Final fallback: any stack depth for this game type
                   const { data: anyData } = await getSupabase()
                       .from('solved_spots_gold')
-                      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                      .select(SOLVER_PROJECTION)
                       .in('game_type', pioGameTypes)
                       .limit(poolSize);
 
@@ -297,6 +300,7 @@ export default async function handler(req, res) {
  */
 function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, street, handClass, boardTexture = null) {
     const engine = new DeterministicGTOEngine();
+    applyDeterministicEnginePatches(engine);
     const questions = [];
     const usedIds = new Set();
 

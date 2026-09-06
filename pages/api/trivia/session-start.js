@@ -61,10 +61,27 @@ import {
 import { getCategoriesForMode, ALL_CATEGORIES } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
-    SESSION_LINK_COLUMNS,
     PVP_MATCH_JOIN_WINDOW_MS,
-    extractRosterIds
-} from './pvp-settle-match';
+    PVP_QUESTION_COUNT,
+    extractPvpRosterIds,
+    samePvpRoster,
+    validatePvpDurableSessionLink,
+    validatePvpMatch,
+    validatePvpSessionCreationReceipt,
+} from '../../../src/lib/trivia/pvpSettlementPolicy.mjs';
+import {
+    isTriviaPvpReleased,
+    rejectUnavailableTriviaPvp,
+} from '../../../src/lib/trivia/pvpReleaseControl.mjs';
+import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import {
+    validateTriviaSessionCreationReceipt,
+    validateTriviaSessionDeadline,
+    validateTriviaSessionRoster,
+} from '../../../src/lib/trivia/awardResponsePolicy.mjs';
 
 /**
  * Allow-list of playable modes AND the per-mode ceiling on questions in one
@@ -88,12 +105,17 @@ const SESSION_QUESTION_COUNTS = {
     mtt: 20, cash: 20, icm: 20, gto: 20, mixed: 21,
     survival: 20, endless: 100, 'time-attack': 60,
     // PvP is handled by startPvpSession and shares a fixed 20-question roster.
-    pvp: 20, tournaments: 10,
+    pvp: PVP_QUESTION_COUNT, tournaments: 10,
 };
 
 const DEFAULT_COUNT = 20;
 const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'hard']);
 const PVP_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function expectedSoloQuestionCount(mode) {
+    const modeCap = MAX_QUESTIONS[mode];
+    return Math.max(1, Math.min(SESSION_QUESTION_COUNTS[mode] || DEFAULT_COUNT, modeCap));
+}
 
 /**
  * Canonical answer-free question rows for a fixed roster, in roster order.
@@ -122,15 +144,29 @@ async function serveExistingSoloSession(res, sb, userId, session) {
     if (!session || session.user_id !== userId || session.status !== 'open') {
         return res.status(409).json({ success: false, error: 'session_not_resumable' });
     }
-    const rows = await fetchPvpRosterRows(sb, session.question_ids);
-    if (rows.length === 0) {
+    const expectedCount = expectedSoloQuestionCount(session.mode);
+    const roster = validateTriviaSessionRoster(session.question_ids, expectedCount);
+    if (!roster.ok) {
+        return res.status(409).json({ success: false, error: roster.error });
+    }
+    const deadline = validateTriviaSessionDeadline(session.expires_at, {
+        mode: session.mode,
+        createdAt: session.created_at,
+    });
+    if (!deadline.ok) {
+        return res.status(deadline.error === 'session_expired' ? 410 : 502)
+            .json({ success: false, error: deadline.error });
+    }
+
+    const rows = await fetchPvpRosterRows(sb, roster.questionIds);
+    if (rows.length !== expectedCount) {
         return res.status(503).json({ success: false, error: 'no_questions_available' });
     }
     const byId = new Map(rows.map(row => [row.id, row]));
     const stored = session.permutations && typeof session.permutations === 'object'
         ? session.permutations
         : {};
-    const questions = (session.question_ids || []).map(id => {
+    const questions = roster.questionIds.map(id => {
         const q = byId.get(id);
         if (!q) return null;
         const order = Array.isArray(stored[id])
@@ -144,6 +180,9 @@ async function serveExistingSoloSession(res, sb, userId, session) {
             difficulty: q.difficulty ?? null,
         };
     }).filter(Boolean);
+    if (questions.length !== expectedCount) {
+        return res.status(503).json({ success: false, error: 'no_questions_available' });
+    }
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     return res.status(200).json({
         success: true,
@@ -168,7 +207,7 @@ async function serveExistingSoloSession(res, sb, userId, session) {
 async function servePvpSession(res, sb, userId, match, sessionId, resumed) {
     const { data: session, error } = await sb
         .from('trivia_sessions')
-        .select('id, user_id, mode, status, question_ids, permutations')
+        .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, submitted_at, expires_at')
         .eq('id', sessionId)
         .maybeSingle();
     if (error) {
@@ -183,9 +222,32 @@ async function servePvpSession(res, sb, userId, match, sessionId, resumed) {
         // been played. No re-rolls.
         return res.status(409).json({ success: false, error: 'already_played' });
     }
+    const deadline = validateTriviaSessionDeadline(session.expires_at, {
+        mode: 'pvp',
+        createdAt: session.created_at,
+    });
+    const matchDeadline = Date.parse(match.created_at) + PVP_MATCH_JOIN_WINDOW_MS;
+    if (!deadline.ok
+        || !Number.isFinite(matchDeadline)
+        || Math.abs(deadline.expiresMs - matchDeadline) > 1_000) {
+        const error = deadline.error === 'session_expired'
+            ? 'session_expired'
+            : 'session_deadline_invalid';
+        return res.status(error === 'session_expired' ? 410 : 502)
+            .json({ success: false, error });
+    }
+    if (!Array.isArray(match.questions)
+        || match.questions.length !== PVP_QUESTION_COUNT
+        || !Array.isArray(session.question_ids)
+        || session.question_ids.length !== PVP_QUESTION_COUNT
+        || !samePvpRoster(match.questions, session.question_ids)
+        || session.entry_cost !== match.stake_amount
+        || session.entry_state !== 'charged') {
+        return res.status(409).json({ success: false, error: 'session_link_invalid' });
+    }
 
     const rows = await fetchPvpRosterRows(sb, session.question_ids);
-    if (rows.length === 0) {
+    if (rows.length !== PVP_QUESTION_COUNT) {
         return res.status(503).json({ success: false, error: 'no_questions_available' });
     }
     const stored = (session.permutations && typeof session.permutations === 'object')
@@ -220,6 +282,29 @@ async function servePvpSession(res, sb, userId, match, sessionId, resumed) {
     });
 }
 
+async function reloadPvpDurableBinding(sb, matchId, side) {
+    const [matchResult, linkResult] = await Promise.all([
+        sb.from('trivia_pvp_matches')
+            .select('id, player1_id, player2_id, stake_amount, questions, status, created_at')
+            .eq('id', matchId)
+            .maybeSingle(),
+        sb.from('trivia_pvp_session_links')
+            .select('match_id, side, user_id, session_id')
+            .eq('match_id', matchId)
+            .eq('side', side)
+            .maybeSingle(),
+    ]);
+    if (matchResult.error || linkResult.error) {
+        console.warn('[trivia session-start] durable pvp binding reload failed:',
+            matchResult.error?.message || linkResult.error?.message || 'unknown');
+        return { ok: false, error: 'pvp_storage_unavailable' };
+    }
+    if (!matchResult.data || !linkResult.data) {
+        return { ok: false, error: 'durable_session_link_missing' };
+    }
+    return { ok: true, match: matchResult.data, link: linkResult.data };
+}
+
 /**
  * PvP session start: verify participation, share (or seed) the roster,
  * escrow the stake, create + link the session. See the header for the flow;
@@ -248,7 +333,7 @@ async function startPvpSession(req, res, sb, userId) {
 
     const { data: match, error: matchErr } = await sb
         .from('trivia_pvp_matches')
-        .select('id, player1_id, player2_id, stake_amount, questions, status, challenger_id, opponent_id, created_at')
+        .select('id, player1_id, player2_id, stake_amount, questions, status, created_at')
         .eq('id', matchId)
         .maybeSingle();
     if (matchErr) {
@@ -261,8 +346,9 @@ async function startPvpSession(req, res, sb, userId) {
     if (match.player1_id !== userId && match.player2_id !== userId) {
         return res.status(403).json({ success: false, error: 'not_your_match' });
     }
-    if (match.status !== 'active') {
-        return res.status(409).json({ success: false, error: 'match_not_active' });
+    const matchValidation = validatePvpMatch(match, { requireActive: true });
+    if (!matchValidation.ok) {
+        return res.status(409).json({ success: false, error: matchValidation.error });
     }
     const createdMs = match.created_at ? new Date(match.created_at).getTime() : NaN;
     if (!Number.isFinite(createdMs) || Date.now() - createdMs > PVP_MATCH_JOIN_WINDOW_MS) {
@@ -271,15 +357,38 @@ async function startPvpSession(req, res, sb, userId) {
     }
 
     const isP1 = match.player1_id === userId;
-    const linkCol = isP1 ? SESSION_LINK_COLUMNS.p1 : SESSION_LINK_COLUMNS.p2;
+    const side = isP1 ? 1 : 2;
 
     // --- RESUME ------------------------------------------------------------
-    if (match[linkCol]) {
-        return servePvpSession(res, sb, userId, match, match[linkCol], true);
+    const { data: existingLink, error: linkErr } = await sb
+        .from('trivia_pvp_session_links')
+        .select('match_id, side, user_id, session_id')
+        .eq('match_id', match.id)
+        .eq('side', side)
+        .maybeSingle();
+    if (linkErr) {
+        console.warn('[trivia session-start] pvp session-link load failed:', linkErr.message || linkErr);
+        return res.status(503).json({ success: false, error: 'pvp_storage_unavailable' });
+    }
+    if (existingLink) {
+        const binding = validatePvpDurableSessionLink({
+            match,
+            link: existingLink,
+            expectedMatchId: match.id,
+            expectedUserId: userId,
+            expectedSide: side,
+            expectedSessionId: existingLink.session_id,
+            expectedRoster: match.questions,
+            expectedStake: match.stake_amount,
+        });
+        if (!binding.ok) {
+            return res.status(409).json({ success: false, error: 'session_link_invalid' });
+        }
+        return servePvpSession(res, sb, userId, binding.match, binding.sessionId, true);
     }
 
     // --- ROSTER (shared; first starter seeds it atomically) ----------------
-    let rosterIds = extractRosterIds(match.questions);
+    let rosterIds = extractPvpRosterIds(match.questions) || [];
     if (rosterIds.length === 0) {
         const wanted = MAX_QUESTIONS.pvp;
         const { ids: excludeIds } = await getSeenHistory(sb, userId, {});
@@ -308,7 +417,7 @@ async function startPvpSession(req, res, sb, userId) {
             // src/lib/triviaQuestionLoader.js ends `ordered.slice(0, count)`.
             // The PvP seed was the only one missing it.
             .slice(0, wanted);
-        if (drawn.length === 0) {
+        if (drawn.length !== wanted) {
             return res.status(503).json({ success: false, error: 'no_questions_available' });
         }
 
@@ -332,11 +441,14 @@ async function startPvpSession(req, res, sb, userId) {
                 .select('questions')
                 .eq('id', match.id)
                 .maybeSingle();
-            rosterIds = extractRosterIds(fresh?.questions);
-            if (rosterIds.length === 0) {
+            rosterIds = extractPvpRosterIds(fresh?.questions) || [];
+            if (rosterIds.length !== wanted) {
                 return res.status(503).json({ success: false, error: 'no_questions_available' });
             }
         }
+    }
+    if (rosterIds.length !== PVP_QUESTION_COUNT) {
+        return res.status(409).json({ success: false, error: 'invalid_match_roster' });
     }
 
     // Stake is moved only after a complete roster has been loaded. The atomic
@@ -345,7 +457,7 @@ async function startPvpSession(req, res, sb, userId) {
 
     // --- SERVE + PERSIST ----------------------------------------------------
     const picked = await fetchPvpRosterRows(sb, rosterIds);
-    if (picked.length === 0) {
+    if (picked.length !== rosterIds.length) {
         // Charged but unservable roster: deliberately NO refund here (see the
         // function comment) - a retry finishes the start, and an abandoned
         // charge is refunded by the pvp-settle sweep.
@@ -354,19 +466,12 @@ async function startPvpSession(req, res, sb, userId) {
 
     const sessionId = randomUUID();
     const permutations = {};
-    const questions = picked.map(q => {
+    picked.forEach(q => {
         const order = deterministicOptionOrder(
             q.options.length,
             optionOrderSeed(userId, sessionId, q.id)
         );
         permutations[q.id] = order;
-        return {
-            id: q.id,
-            question: q.question,
-            options: order.map(i => q.options[i]),
-            category: q.category ?? null,
-            difficulty: q.difficulty ?? null,
-        };
     });
 
     const { data: created, error: createErr } = await sb.rpc('create_trivia_pvp_session_v2', {
@@ -376,7 +481,7 @@ async function startPvpSession(req, res, sb, userId) {
         p_question_ids: picked.map(q => q.id),
         p_permutations: permutations,
     });
-    if (createErr || !created || created.success === false) {
+    if (createErr || created?.success === false) {
         const code = created?.error || 'session_create_failed';
         console.warn('[trivia session-start] atomic pvp create failed:', createErr?.message || code);
         const status = code === 'insufficient_diamonds' ? 402
@@ -385,25 +490,51 @@ async function startPvpSession(req, res, sb, userId) {
             : 500;
         return res.status(status).json({ success: false, error: code });
     }
-    if (created.duplicate === true && created.session_id) {
-        return servePvpSession(res, sb, userId, match, created.session_id, true);
+    const creationReceipt = validatePvpSessionCreationReceipt(created, sessionId);
+    if (!creationReceipt.ok) {
+        console.warn('[trivia session-start] malformed pvp creation receipt:', creationReceipt.error);
+        return res.status(502).json({ success: false, error: 'invalid_session_create_receipt' });
+    }
+    // The RPC receipt is not itself a durable binding. Reload both sides of
+    // that binding after the transaction and require the current match,
+    // participant, roster, side and linked session id to agree exactly. This
+    // is essential on duplicate/replay, where the linked id legitimately
+    // differs from the freshly generated request id.
+    const durable = await reloadPvpDurableBinding(sb, match.id, side);
+    if (!durable.ok) {
+        return res.status(502).json({ success: false, error: durable.error });
+    }
+    const durableValidation = validatePvpDurableSessionLink({
+        match: durable.match,
+        link: durable.link,
+        expectedMatchId: match.id,
+        expectedUserId: userId,
+        expectedSide: side,
+        expectedSessionId: creationReceipt.sessionId,
+        expectedRoster: rosterIds,
+        expectedStake: stake,
+    });
+    if (!durableValidation.ok) {
+        console.warn('[trivia session-start] invalid durable pvp binding:', durableValidation.error);
+        return res.status(502).json({ success: false, error: 'invalid_durable_session_binding' });
     }
 
-    // Feed the 60-day no-repeat window. Fire-and-forget.
-    recordQuestionsSeen(sb, userId, picked.map(q => q.id), 'pvp')
-        .catch(e => console.warn('[trivia session-start] pvp history record failed:', e?.message || e));
+    if (!creationReceipt.duplicate) {
+        // Feed the 60-day no-repeat window. Fire-and-forget.
+        recordQuestionsSeen(sb, userId, picked.map(q => q.id), 'pvp')
+            .catch(e => console.warn('[trivia session-start] pvp history record failed:', e?.message || e));
+    }
 
-    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-    return res.status(200).json({
-        success: true,
-        sessionId,
-        matchId: match.id,
-        mode: 'pvp',
-        resumed: false,
-        stake,
-        questionCount: questions.length,
-        questions,
-    });
+    // Loading the committed session also validates its exact deadline before
+    // any question is served, covering both fresh creation and replay.
+    return servePvpSession(
+        res,
+        sb,
+        userId,
+        durableValidation.match,
+        durableValidation.sessionId,
+        creationReceipt.duplicate,
+    );
 }
 
 /**
@@ -449,7 +580,13 @@ export default async function handler(req, res) {
 
         // --- PVP: match-bound flow (shared roster + server stake escrow) --
         if (mode === 'pvp') {
+            if (!isTriviaPvpReleased(process.env)) {
+                return rejectUnavailableTriviaPvp(res);
+            }
             return await startPvpSession(req, res, sb, userId);
+        }
+        if (mode === 'tournaments' && !areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
         }
 
         if (typeof startNonce !== 'string' || !PVP_UUID_RE.test(startNonce)) {
@@ -463,7 +600,7 @@ export default async function handler(req, res) {
         // retries with the same nonce, which is also the session UUID.
         const { data: existing, error: existingErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, expires_at')
+            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, expires_at')
             .eq('id', startNonce)
             .maybeSingle();
         if (existingErr) {
@@ -474,8 +611,7 @@ export default async function handler(req, res) {
             return serveExistingSoloSession(res, sb, userId, existing);
         }
 
-        const modeCap = MAX_QUESTIONS[mode];
-        const wanted = Math.max(1, Math.min(SESSION_QUESTION_COUNTS[mode] || DEFAULT_COUNT, modeCap));
+        const wanted = expectedSoloQuestionCount(mode);
 
         const categories = resolveCategories(mode, category);
         // Survival legitimately ramps difficulty by level. Other modes never
@@ -544,7 +680,8 @@ export default async function handler(req, res) {
             picked = [...picked, ...fill].slice(0, wanted);
         }
 
-        if (picked.length === 0) {
+        const pickedRoster = validateTriviaSessionRoster(picked.map(q => q.id), wanted);
+        if (!pickedRoster.ok) {
             return res.status(503).json({ success: false, error: 'no_questions_available' });
         }
 
@@ -579,13 +716,30 @@ export default async function handler(req, res) {
             p_permutations: permutations,
             p_parent_session_id: mode === 'survival' ? (parentSessionId || null) : null,
         });
-        if (insertErr || !created || created.success === false) {
+        if (insertErr || created?.success === false) {
             console.warn('[trivia session-start] atomic session create failed:', insertErr?.message || created?.error || insertErr);
             const error = created?.error || 'session_create_failed';
             const status = error === 'insufficient_diamonds' ? 402
                 : error.startsWith('invalid_survival') || error === 'survival_continuation_used' ? 409
                 : 500;
             return res.status(status).json({ success: false, error });
+        }
+        const sessionReceipt = validateTriviaSessionCreationReceipt(created, { mode });
+        if (!sessionReceipt.ok) {
+            console.warn('[trivia session-start] malformed session creation receipt:', sessionReceipt.error);
+            const status = sessionReceipt.error === 'session_expired' ? 410 : 502;
+            return res.status(status).json({ success: false, error: sessionReceipt.error });
+        }
+        if (created.duplicate) {
+            const { data: racedSession, error: racedSessionError } = await sb
+                .from('trivia_sessions')
+                .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, expires_at')
+                .eq('id', sessionId)
+                .maybeSingle();
+            if (racedSessionError || !racedSession) {
+                return res.status(502).json({ success: false, error: 'session_resume_failed' });
+            }
+            return serveExistingSoloSession(res, sb, userId, racedSession);
         }
 
         // Feed the 60-day no-repeat window. Fire-and-forget: a history write

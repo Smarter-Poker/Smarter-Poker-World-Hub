@@ -123,6 +123,15 @@ import './horses-phase4-migration.test.mjs';
 import './horses-phase4-players-are-players.law.test.mjs';
 import './horses-phase4-server.test.mjs';
 import './horses-an-rpc-write-has-a-where.test.mjs';
+// Phase 5, 2026-09-06. Game-integrity findings remain review evidence, never
+// automatic punishment; horses stay in every read; and detector gaps stay
+// loud until the underlying hands have really been scanned.
+import './horses-phase5-client.test.mjs';
+import './horses-phase5-migration.test.mjs';
+import './horses-phase5-server.test.mjs';
+import './horses-phase5-integrity-is-honest.law.test.mjs';
+import './horses-phase5-reverify.test.mjs';
+import './horses-phase5-release-audit.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';
@@ -162,6 +171,9 @@ import './training-phase6-release-harness.test.mjs';
 import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
+import './trivia-pvp-containment.test.mjs';
+import './trivia-tournament-containment.test.mjs';
+import './trivia-ui-foundation.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';
@@ -200,6 +212,12 @@ import './a-probe-that-cannot-run-says-so.law.test.mjs';
 // Imported here because CHECK 8's explicit list needs the `workflow` PAT
 // permission the automation token does not have.
 import './alertmanager-page.test.mjs';
+// 2026-09-06, phase 7 of the same programme: the twenty-two hours BEGAN with
+// one environment variable, edited in a dashboard, leaving no commit and no
+// log line. This pins the detector that would now notice - and pins that it
+// never asks Vercel to decrypt, never carries a value, and exits 2 rather
+// than 0 when it cannot see.
+import './an-env-var-cannot-change-unseen.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -210,6 +228,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     '__tests__/the-hub-notices-a-revoked-session.law.test.mjs',
     '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
+    // An env var cannot change unseen (2026-09-03 began with exactly one).
+    '__tests__/an-env-var-cannot-change-unseen.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.
     '__tests__/openclaw-workers-secret.test.mjs',
@@ -238,6 +258,12 @@ const REQUIRED_TEST_FILES = [
     // recover leaked locks and you stomp live ones, refuse to stomp live ones
     // and a leaked lock strands the app forever. The guard pins BOTH halves.
     '__tests__/scroll-lock.test.mjs',
+    // The Trivia lobby catalogue is the shared contract for all fifteen
+    // destinations, the retained Daily/Quick Stakes artwork, and the two
+    // competitive modes that must fail closed until their audits land.
+    '__tests__/trivia-ui-foundation.test.mjs',
+    '__tests__/trivia-pvp-containment.test.mjs',
+    '__tests__/trivia-tournament-containment.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image

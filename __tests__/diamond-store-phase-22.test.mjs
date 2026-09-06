@@ -6,6 +6,10 @@ import { join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import {
+  formatWalletDescriptionParts,
+  titleCaseWalletText,
+} from '../src/lib/store/walletDescription.mjs';
 
 const ROOT = new URL('../', import.meta.url);
 const ROOT_PATH = fileURLToPath(ROOT);
@@ -182,12 +186,63 @@ test('remote Marketplace inventory and account telemetry cannot reintroduce bann
     'src/components/store/RewardTelemetryConsole.jsx',
     'src/components/store/ShoppingCart.jsx',
     'src/components/store/StoreCards.js',
+    'src/components/store/StoreToast.jsx',
+    'src/components/store/DiamondWalletModal.jsx',
     'src/components/diamond-store/CheckoutStatusPanel.jsx',
   ].map(read));
 
   boundaries.forEach(source => {
     assert.match(source, /marketplaceCopy/);
   });
+});
+
+test('wallet and toast dynamic prose enforce the copy contract at their render boundaries', async () => {
+  const [wallet, walletCss, toast] = await Promise.all([
+    read('src/components/store/DiamondWalletModal.jsx'),
+    read('src/components/store/DiamondWalletModal.module.css'),
+    read('src/components/store/StoreToast.jsx'),
+  ]);
+
+  assert.match(wallet, /textTransform:\s*'capitalize'/);
+  assert.match(wallet, /className=\{styles\.preserveIdentityScope\}/);
+  assert.match(
+    walletCss,
+    /\.preserveIdentityScope \[data-preserve-case='true'\][\s\S]*?text-transform:\s*none !important;/
+  );
+  assert.match(wallet, /marketplaceCopy\(transferError\)/);
+  assert.match(wallet, /marketplaceCopy\(error\)/);
+  assert.ok(
+    (wallet.match(/data-user-content="true"/g) || []).length >= 7,
+    'every wallet identity surface must keep its authored capitalization'
+  );
+  assert.match(
+    wallet,
+    /data-user-content="true"[\s\S]*?data-preserve-case="true"[\s\S]*?>\s*@\{f\.username\}/,
+    'the secondary friend handle must bypass title-case presentation'
+  );
+  assert.doesNotMatch(wallet, /marketplaceCopy\([^)]*(?:display_name|username)/);
+  assert.match(toast, /const copyMessage = marketplaceCopy\(message\)/);
+  assert.match(toast, /message:\s*copyMessage/);
+});
+
+test('wallet transfer descriptions Title Case system prose without recasing identities', () => {
+  assert.deepEqual(
+    formatWalletDescriptionParts(
+      'Sent 10000 diamonds to mcPokerFan [3b2e74d0-cf27-4bc6-8e55-b04970090c40]'
+    ),
+    { copy: 'Sent 10,000 Diamonds To', identity: 'mcPokerFan' }
+  );
+  assert.deepEqual(
+    formatWalletDescriptionParts(
+      'Received 250 diamonds from iPhoneKing [96bd86ba-4518-42f5-8a32-bde6d98ff21b]'
+    ),
+    { copy: 'Received 250 Diamonds From', identity: 'iPhoneKing' }
+  );
+  assert.deepEqual(formatWalletDescriptionParts('vip reward for WSOP 2026'), {
+    copy: 'VIP Reward For WSOP 2026',
+    identity: null,
+  });
+  assert.equal(titleCaseWalletText('daily vip pass'), 'Daily VIP Pass');
 });
 
 test('private VIP reads reject anonymous requests before database initialization', async () => {

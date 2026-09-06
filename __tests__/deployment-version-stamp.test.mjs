@@ -15,6 +15,8 @@ test('production health surfaces use the immutable build stamp as their fallback
   const versionFallback = /process\.env\.VERCEL_GIT_COMMIT_SHA \|\| process\.env\.BUILD_COMMIT_SHA \|\| 'local'/;
   assert.match(healthRoute, versionFallback);
   assert.match(signupHealthRoute, versionFallback);
+  assert.doesNotMatch(healthRoute, /\.substring\(0,\s*8\)/,
+    'the release health contract must expose the exact merge SHA, not a prefix');
 });
 
 test('production health cannot hang indefinitely on its database probe', () => {

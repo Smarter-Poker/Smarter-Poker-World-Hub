@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity, AlertCircle, Bell, BookOpen, CalendarDays, Check, ChevronRight, ClipboardCheck,
-  Crosshair, Flag, Gauge, ListChecks, MessageSquareWarning, RefreshCw, Search,
-  Target, Trophy,
+  Crosshair, Database, Download, Flag, Gauge, ListChecks, MessageSquareWarning, RefreshCw,
+  Search, ShieldCheck, Target, Trash2, Trophy,
 } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
 import { useLeakHandExamples } from '../../hooks/useAssistant';
@@ -15,6 +15,7 @@ const VIEWS = [
   { id: 'timeline', label: 'Timeline', Icon: CalendarDays },
   { id: 'goals', label: 'Goals', Icon: Flag },
   { id: 'report', label: 'Report', Icon: ClipboardCheck },
+  { id: 'data', label: 'Data', Icon: Database },
 ];
 
 function number(value, fallback = 0) {
@@ -89,6 +90,11 @@ export default function CoachingWorkspace({
   const [feedbackType, setFeedbackType] = useState('confusing');
   const [feedbackNote, setFeedbackNote] = useState('');
   const [confirmGoalId, setConfirmGoalId] = useState(null);
+  const [lifecycle, setLifecycle] = useState(null);
+  const [lifecycleLoading, setLifecycleLoading] = useState(false);
+  const [deleteScope, setDeleteScope] = useState('analysis');
+  const [deleteChallenge, setDeleteChallenge] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const apiRequest = useCallback(async (method = 'GET', body = null) => {
     const token = getAccessToken();
@@ -148,6 +154,63 @@ export default function CoachingWorkspace({
       setSaving(false);
     }
   }, [apiRequest, load]);
+
+  const lifecycleRequest = useCallback(async (method = 'GET', body = null) => {
+    const token = getAccessToken();
+    if (!token) throw new Error('Sign In To Manage Your Personal Assistant Data');
+    const response = await fetch('/api/assistant/data-controls', {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || payload?.success === false) {
+      throw new Error(payload?.error || `Data Control Request Failed With HTTP ${response.status}`);
+    }
+    return payload;
+  }, []);
+
+  const loadLifecycle = useCallback(async () => {
+    if (!userId) return;
+    setLifecycleLoading(true);
+    try {
+      setLifecycle(await lifecycleRequest());
+    } catch (requestError) {
+      setStatus({ tone: 'danger', text: requestError?.message || 'Data Controls Could Not Be Loaded' });
+    } finally {
+      setLifecycleLoading(false);
+    }
+  }, [lifecycleRequest, userId]);
+
+  const downloadExport = useCallback(async () => {
+    setLifecycleLoading(true);
+    setStatus(null);
+    try {
+      const archive = await lifecycleRequest('POST', { action: 'export' });
+      const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `smarter-poker-personal-assistant-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setStatus({ tone: 'success', text: 'Verified Personal Assistant Export Downloaded' });
+      await loadLifecycle();
+    } catch (requestError) {
+      setStatus({ tone: 'danger', text: requestError?.message || 'Verified Export Could Not Be Downloaded' });
+    } finally {
+      setLifecycleLoading(false);
+    }
+  }, [lifecycleRequest, loadLifecycle]);
+
+  useEffect(() => {
+    if (view === 'data' && userId && !lifecycle) loadLifecycle();
+  }, [lifecycle, loadLifecycle, userId, view]);
 
   const selectView = useCallback((nextView) => {
     setView(nextView);
@@ -452,6 +515,136 @@ export default function CoachingWorkspace({
           {!snapshot?.weeklyReport?.focus?.length && <p>Run A Fresh Deterministic Audit To Build This Week's Plan.</p>}
           <footer className={styles.reportFooter}><BookOpen size={17} aria-hidden="true" /><span>Corrective Mastery Never Resolves A Real-Play Leak By Itself. Fresh Club Arena Evidence Must Confirm Improvement.</span></footer>
         </article>
+      )}
+
+      {view === 'data' && (
+        <div className={styles.dataGrid}>
+          <article className={`${styles.panel} ${styles.fullWidth}`}>
+            <div className={styles.panelHeading}>
+              <div><span className={styles.eyebrow}>Data And Privacy</span><h3>Your Personal Assistant Data Controls</h3></div>
+              <ShieldCheck size={26} aria-hidden="true" />
+            </div>
+            <p>Download A Verified Archive, Choose How Long Completed Coaching Data Is Retained, Or Permanently Remove Personal Assistant Records. Club Arena Source Hands Are Never Removed By These Controls.</p>
+            <div className={styles.actionRow}>
+              <button type="button" className={styles.primaryButton} disabled={lifecycleLoading} onClick={downloadExport}>
+                <Download size={17} aria-hidden="true" />{lifecycleLoading ? 'Preparing Verified Export' : 'Download Verified Export'}
+              </button>
+              <button type="button" className={styles.secondaryButton} disabled={lifecycleLoading} onClick={loadLifecycle}>
+                <RefreshCw size={17} aria-hidden="true" />Refresh Data Inventory
+              </button>
+            </div>
+          </article>
+
+          <article className={styles.panel}>
+            <span className={styles.eyebrow}>Data Inventory</span><h3>Records In Your Workspace</h3>
+            {lifecycleLoading && !lifecycle ? <p aria-busy="true">Loading Your Data Inventory</p> : (
+              <dl className={styles.coverageList}>
+                <div><dt>Detected Leaks</dt><dd>{lifecycle?.counts?.leaks || 0}</dd></div>
+                <div><dt>Audited Decisions</dt><dd>{lifecycle?.counts?.decisions || 0}</dd></div>
+                <div><dt>Corrective Reviews</dt><dd>{lifecycle?.counts?.reviews || 0}</dd></div>
+                <div><dt>Coaching Goals</dt><dd>{lifecycle?.counts?.goals || 0}</dd></div>
+                <div><dt>Sandbox Sessions</dt><dd>{lifecycle?.counts?.sandboxSessions || 0}</dd></div>
+                <div><dt>Saved Sandbox Hands</dt><dd>{lifecycle?.counts?.savedHands || 0}</dd></div>
+                <div><dt>Coach Decisions</dt><dd>{lifecycle?.counts?.coachResults || 0}</dd></div>
+                <div><dt>Sandbox Bookmarks</dt><dd>{lifecycle?.counts?.bookmarks || 0}</dd></div>
+                <div><dt>Equity Snapshots</dt><dd>{lifecycle?.counts?.equityHistory || 0}</dd></div>
+                <div><dt>Scenario Templates</dt><dd>{lifecycle?.counts?.templates || 0}</dd></div>
+                <div><dt>Shared Scenarios</dt><dd>{lifecycle?.counts?.sharedScenarios || 0}</dd></div>
+                <div><dt>Solution Bookmarks</dt><dd>{lifecycle?.counts?.solutionBookmarks || 0}</dd></div>
+              </dl>
+            )}
+          </article>
+
+          <article className={styles.panel}>
+            <span className={styles.eyebrow}>Retention Policy</span><h3>Control Completed Data Retention</h3>
+            <p>Active Leaks, Active Goals, And Club Arena Source Hands Remain Available. The Selected Policy Removes Only Expired Completed Or Derived Personal Assistant Records.</p>
+            <label>Retention Period
+              <select value={lifecycle?.retentionDays ?? 'forever'} disabled={lifecycleLoading} onChange={async event => {
+                setLifecycleLoading(true);
+                setStatus(null);
+                try {
+                  await lifecycleRequest('POST', { action: 'save_retention', retentionDays: event.target.value });
+                  setStatus({ tone: 'success', text: 'Personal Assistant Retention Policy Saved' });
+                  await loadLifecycle();
+                } catch (requestError) {
+                  setStatus({ tone: 'danger', text: requestError?.message || 'Retention Policy Could Not Be Saved' });
+                } finally {
+                  setLifecycleLoading(false);
+                }
+              }}>
+                <option value="forever">Keep Until I Delete It</option>
+                <option value="365">Keep Completed Data For 365 Days</option>
+                <option value="180">Keep Completed Data For 180 Days</option>
+                <option value="90">Keep Completed Data For 90 Days</option>
+                <option value="30">Keep Completed Data For 30 Days</option>
+              </select>
+            </label>
+            <small className={styles.mutedCopy}>Last Retention Review: {formatDate(lifecycle?.lastRetentionRunAt)}</small>
+          </article>
+
+          <article className={`${styles.panel} ${styles.dangerPanel}`}>
+            <span className={styles.eyebrow}><Trash2 size={14} aria-hidden="true" />Permanent Deletion</span><h3>Remove Personal Assistant Records</h3>
+            <p>This Cannot Be Undone. Download A Verified Export First. Club Arena Source Hands Are Excluded.</p>
+            <label>Records To Remove
+              <select value={deleteScope} disabled={lifecycleLoading || Boolean(deleteChallenge)} onChange={event => setDeleteScope(event.target.value)}>
+                <option value="analysis">Leak Analysis And Corrective Reviews</option>
+                <option value="coaching">Coaching Goals, Feedback, And Preferences</option>
+                <option value="sandbox">Sandbox Sessions, Results, And Saved Hands</option>
+                <option value="all">All Personal Assistant Records</option>
+              </select>
+            </label>
+            {!deleteChallenge ? (
+              <button type="button" className={styles.removeDataButton} disabled={lifecycleLoading} onClick={async () => {
+                setLifecycleLoading(true);
+                setStatus(null);
+                try {
+                  const payload = await lifecycleRequest('POST', { action: 'request_deletion', scope: deleteScope });
+                  setDeleteChallenge(payload);
+                  setDeleteConfirmation('');
+                } catch (requestError) {
+                  setStatus({ tone: 'danger', text: requestError?.message || 'Deletion Confirmation Could Not Be Started' });
+                } finally {
+                  setLifecycleLoading(false);
+                }
+              }}>Review Permanent Deletion</button>
+            ) : (
+              <div className={styles.confirmDeletion}>
+                <p>Type <strong data-pa-verbatim="true">{deleteChallenge.confirmation}</strong> To Confirm Permanent Deletion.</p>
+                <label>Exact Confirmation
+                  <input data-pa-verbatim="true" autoComplete="off" value={deleteConfirmation} onChange={event => setDeleteConfirmation(event.target.value)} />
+                </label>
+                <div className={styles.actionRow}>
+                  <button type="button" className={styles.removeDataButton} disabled={lifecycleLoading || deleteConfirmation !== deleteChallenge.confirmation} onClick={async () => {
+                    setLifecycleLoading(true);
+                    setStatus(null);
+                    try {
+                      await lifecycleRequest('DELETE', { scope: deleteChallenge.scope, challenge: deleteChallenge.challenge, confirmation: deleteConfirmation });
+                      setDeleteChallenge(null);
+                      setDeleteConfirmation('');
+                      setStatus({ tone: 'success', text: 'Personal Assistant Data Removed And Lifecycle Receipt Recorded' });
+                      await load();
+                      await loadLifecycle();
+                    } catch (requestError) {
+                      setStatus({ tone: 'danger', text: requestError?.message || 'Personal Assistant Data Could Not Be Removed' });
+                    } finally {
+                      setLifecycleLoading(false);
+                    }
+                  }}>Permanently Remove Selected Records</button>
+                  <button type="button" className={styles.secondaryButton} disabled={lifecycleLoading} onClick={() => { setDeleteChallenge(null); setDeleteConfirmation(''); }}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </article>
+
+          <article className={styles.panel}>
+            <span className={styles.eyebrow}>Lifecycle Receipts</span><h3>Recent Verified Data Actions</h3>
+            {lifecycle?.receipts?.length ? (
+              <ol className={styles.timelineList}>{lifecycle.receipts.map(receipt => (
+                <li key={receipt.id}><time>{formatDate(receipt.created_at)}</time><div><strong className={styles.titleValue}>{String(receipt.action || 'Data Action').replace(/_/g, ' ')}</strong><small>Scope: <span className={styles.titleValue}>{String(receipt.scope || 'all').replace(/_/g, ' ')}</span> · Receipt <span data-pa-verbatim="true">{receipt.receipt_fingerprint}</span></small></div></li>
+              ))}</ol>
+            ) : <p>No Lifecycle Receipt Has Been Recorded Yet.</p>}
+          </article>
+        </div>
       )}
     </section>
   );

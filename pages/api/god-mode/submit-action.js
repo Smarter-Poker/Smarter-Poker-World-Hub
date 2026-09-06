@@ -11,6 +11,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 let _supabase = null;
 function getSupabase() {
@@ -79,13 +80,14 @@ export default async function handler(req, res) {
           if (!solverNode && effectiveFileId && !effectiveFileId.startsWith('chart_') && !effectiveFileId.startsWith('bb_') && !effectiveFileId.startsWith('tt_')) {
               const { data: spotData } = await getSupabase()
                   .from('solved_spots_gold')
-                  .select('strategy_matrix')
+                  .select('strategy_matrix, strategy_matrix_v2')
                   .eq('id', effectiveFileId)
                   .maybeSingle();
 
-              if (spotData?.strategy_matrix) {
+              const trustedMatrix = selectTrustedSolverMatrix(spotData);
+              if (trustedMatrix) {
                   // Build solver node from strategy_matrix
-                  const sm = spotData.strategy_matrix;
+                  const sm = trustedMatrix;
                   solverNode = { actions: {} };
 
                   if (sm.actions && sm.frequencies && sm.hand_evs) {

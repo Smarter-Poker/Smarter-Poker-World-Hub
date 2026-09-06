@@ -8,6 +8,10 @@
 
 
 import { supabase } from '../lib/supabase';
+import {
+    selectTrustedLegacySolverMatrix,
+    selectTrustedSolverMatrix,
+} from '../lib/training/solverMatrixTrust';
 
 export class PIOQueryService {
     /**
@@ -116,7 +120,8 @@ export class PIOQueryService {
     transformPIOData(rawData) {
         return rawData.map(scenario => {
             const board = this.parseBoardCards(scenario.scenario_hash);
-            const strategies = scenario.strategy_matrix || {};
+            const strategies = selectTrustedSolverMatrix(scenario);
+            if (!strategies) return null;
 
             return {
                 id: scenario.id,
@@ -130,7 +135,7 @@ export class PIOQueryService {
                 macroMetrics: scenario.macro_metrics,
                 createdAt: scenario.created_at
             };
-        });
+        }).filter(Boolean);
     }
 
     /**
@@ -140,8 +145,10 @@ export class PIOQueryService {
      * @returns {Object} { actionId: frequencyPercent } (0-100 scale)
      */
     getFrequenciesForHand(strategyMatrix, hand) {
-        const actions = strategyMatrix?.actions || [];
-        const frequencies = strategyMatrix?.frequencies || {};
+        const trustedMatrix = selectTrustedLegacySolverMatrix(strategyMatrix);
+        if (!trustedMatrix) return {};
+        const actions = trustedMatrix.actions || [];
+        const frequencies = trustedMatrix.frequencies || {};
         const result = {};
 
         actions.forEach(action => {
@@ -161,7 +168,9 @@ export class PIOQueryService {
      * @returns {number} EV in normalized units (0.0-1.0 scale from solver)
      */
     getEVForHand(strategyMatrix, hand) {
-        const handEVs = strategyMatrix?.hand_evs || {};
+        const trustedMatrix = selectTrustedLegacySolverMatrix(strategyMatrix);
+        if (!trustedMatrix) return 0;
+        const handEVs = trustedMatrix.hand_evs || {};
         return handEVs[hand] || 0;
     }
 

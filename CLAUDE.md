@@ -745,6 +745,46 @@ this workflow: it asks GitHub about GitHub.
 
 ---
 
+## 10.85 AGENTS NEVER SET A CREDENTIAL (2026-09-06, BINDING)
+
+Identical in the Club Arena CLAUDE.md as section 10.84, because the variable
+that caused the outage lives in THIS repo's Vercel project and the tables it
+broke are in that one.
+
+**The twenty-two hours began with one environment variable.** On 2026-09-03 at
+20:15 UTC `PROBE_LOGIN_EMAIL` on `hub-vanguard` was pointed at Dan's own
+account. `/api/cron/login-probe` signed in as him every fifteen minutes and
+called a global `signOut()`; every Club Arena table he opened said
+"Reconnecting To The Table" until somebody worked it out by hand the next day.
+Every code path was correct. The change left no commit, no log line and no
+notification.
+
+An agent may READ a credential from the place AGENT-PLAYBOOK.md names, and may
+say which place a value belongs in. An agent may NOT write, rotate, paste or
+"correct" a credential in Vercel, Supabase, GitHub Actions, a `.env` on a
+server, or anywhere else - **not even to fix an outage it can see.** Those edits
+are Dan's, and they are the one class of change where being wrong is invisible
+to every test in these repos.
+
+If a credential is wrong: say which one, say where it lives, and say what SHAPE
+the value should have (an address under `@probe.smarter.poker`, the service
+identity, a 64-character secret). Never the value.
+
+**And an agent never PRINTS one either.** `echo "${VAR:-missing}"` prints the
+value when the variable is set; `[ -n "$VAR" ] && echo set` does not. A secret
+echoed into a transcript is a secret that must now be rotated, and the rotation
+is Dan's.
+
+**Nothing watched for this until now.** `scripts/ci/check-vercel-env-drift.mjs`
+records the SHAPE of the environment - key, target, type, `updatedAt`, never a
+value, never `?decrypt=true` - against `scripts/ci/vercel-env-baseline.json`,
+and `publish-watchdog.yml` raises an issue naming any variable whose timestamp
+moved. A change is not assumed to be wrong; it is assumed to be UNSEEN, which
+is what 2026-09-03 was. Pinned by
+`__tests__/an-env-var-cannot-change-unseen.law.test.mjs`.
+
+---
+
 ## 10.9 NEVER SCHEDULE ANYTHING ON THE CLAUDE SCHEDULER (Dan, 2026-09-04, BINDING)
 
 **Dan, verbatim: "IF YOU ARE SCHEDULING ANYTHING TO 'RUN ON CLAUDE SCHEDULER'

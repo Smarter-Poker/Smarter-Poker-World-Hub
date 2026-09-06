@@ -121,6 +121,8 @@ JOB_TIMEOUTS = {
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
     '/api/cron/scrape-sports-clips':   300,
+    '/api/cron/scrape-poker-clips':    300,
+    '/api/cron/revalidate-poker-clips': 120,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
     # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
     # ingestion stops wherever it was. The scraper walks 23 YouTube channels
@@ -451,6 +453,9 @@ ALL_CRONS = [
     ('/api/cron/scraper-watchdog',          dict(hour='*/2', minute=0)),
     ('/api/cron/venue-game-alerts',         dict(minute=0)),          # every hour
     ('/api/cron/scraper-data-cleanup',      dict(hour=3, minute=0)),
+    # Personal Assistant lifecycle retention. The normal assistant route is
+    # outside pages/api/cron because that directory has a strict CI file cap.
+    ('/api/assistant/retention-maintenance', dict(hour=3, minute=17)),
     ('/api/clawbot/orchestrator',           dict(hour=7, minute=0)),
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
@@ -589,6 +594,24 @@ ALL_CRONS = [
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
     ('/api/cron/scrape-sports-clips',             dict(hour=4, minute=0)),
+    # ── Phase 4 (2026-09-06) — poker gets the renewing supply sports had ────
+    # Measured over seven live days: sports drew 285 posts from a pool of
+    # 8,271 scraped clips while poker drew 245 from a frozen array of 150,
+    # using 114 of them in one week. The ledger then refused each for thirty
+    # days, so horses fell through to sports and a POKER platform posted 53.8%
+    # sports. Twice a day rather than the sports scraper's once, because the
+    # poker pool starts at 113 live clips and has the further to climb; it
+    # walks 25 channels per run, least-recently-scraped first.
+    ('/api/cron/scrape-poker-clips',              dict(hour='5,17', minute=20)),
+    # Hourly, 40 clips a run: the whole pool is re-asked well inside a week.
+    # Probing the 149 hard-coded clips found 36 dead (22 gone, 14 embedding-
+    # disabled) that had been postable for months, because the only validity
+    # cache was a Map in process memory that died with the container.
+    ('/api/cron/revalidate-poker-clips',          dict(minute=40)),
+    # Both Phase 4 defects were silent for weeks and both were found by a
+    # person reading rows. A queue that stops draining and a pool that stops
+    # growing look exactly like a quiet week.
+    ('/api/cron/content-supply-watchdog',         dict(minute=50)),
     # /api/cron/scrape-venue-info?batch=1..5 RETIRED 2026-04-25 (Phase 2B.3
     # partial cleanup). Superseded by .github/workflows/venue-scraper.yml +
     # daily_venue_scraper.py which has been the actual scraper since
@@ -619,7 +642,9 @@ ALL_CRONS = [
     ('/api/cron/content-health-check',            dict(hour=6, minute=0)),   # self-healing monitor
     # Log / state cleanup
     ('/api/cron/purge-idempotency-keys',          dict(hour=8, minute=30)),
-    ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
+    # RETIRED 2026-09-06: the legacy PvP cleanup made settlement decisions in
+    # a separate worker path. Competitive Trivia remains fail-closed while the
+    # single atomic settlement authority is built and verified.
 
     # ══ WAVE 2 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Horses infrastructure. Fleet Content Programme phase 1 (2026-09-05,
@@ -634,9 +659,9 @@ ALL_CRONS = [
     ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
-    # Trivia tournament lifecycle
-    ('/api/cron/trivia-tournaments',              dict(hour=1, minute=0)),
-    ('/api/cron/trivia-tournament-rounds',        dict(minute=0)),           # hourly round advance
+    # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
+    # predate the server-owned nightly engine. Phase 1 keeps competitive play
+    # fail-closed; Phase 6 will add one versioned 8 PM America/Chicago job.
     # User-facing reports / analytics aggregates
     ('/api/cron/training-daily-report',           dict(hour=8, minute=0)),
     ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
@@ -905,12 +930,23 @@ DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
 WORKERS_PREFERRED = {
     # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
     # REMOVED: These must run locally via Python; workers HTTP routes just report status.
+    #
+    # EXCEPT video-library-reels, restored here 2026-09-06. It was a SCRIPT_JOB
+    # not in this map, so `_should_skip_on_secondary` skipped it on the ONLY
+    # host that fires - the library gained 1,573 videos between 2026-04-22 and
+    # today while the reels feed gained none, and the daily job reported itself
+    # as running the whole time. A 2026-09-04 pass corrected the script's flag
+    # from --sync-captions to --limit 100, which was right and changed nothing,
+    # because the script never executes on that host.
+    #
+    # The workers route now does BOTH halves - caption sync and the bridge -
+    # so routing it here is what makes the fix reachable.
+    '/api/cron/video-library-reels':    '/cron/video-library-reels',
     # ─── 2B.2(c) Batch A+B — lowest-risk: scrapers, content gen, log cleanup ───
     # Each verified to return 200 from openclaw via private net before flip.
     # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
     '/api/cron/scraper-data-cleanup':   '/cron/scraper-data-cleanup',
     '/api/cron/purge-idempotency-keys': '/cron/purge-idempotency-keys',
-    '/api/cron/trivia-pvp-cleanup':     '/cron/trivia-pvp-cleanup',
     '/api/cron/refresh-venue-json':     '/cron/refresh-venue-json',
     '/api/cron/content-health-check':   '/cron/content-health-check',
     '/api/cron/trivia-daily-generator': '/cron/trivia-daily-generator',
@@ -969,8 +1005,8 @@ WORKERS_PREFERRED = {
     '/api/cron/scrape-charity-schedules':      '/cron/scrape-charity-schedules',
     '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
-    '/api/cron/trivia-tournament-rounds':      '/cron/trivia-tournament-rounds',
-    '/api/cron/trivia-tournaments':            '/cron/trivia-tournaments',
+    # Legacy Trivia tournament workers retired with their schedules on
+    # 2026-09-06. Direct worker calls return an authenticated 410 tombstone.
     # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04
     # '/api/cron/vip-diamond-stipend' - REMOVED 2026-09-01. Nothing schedules it
     # any more (see the VIP STIPEND note in the schedule block above), and
@@ -986,6 +1022,12 @@ WORKERS_PREFERRED = {
     # (channels_scraped:38, found:100). Dispatcher REQUEST_TIMEOUT=120s
     # easily covers it.
     '/api/cron/scrape-sports-clips':           '/cron/scrape-sports-clips',
+    # ─── Phase 4 (2026-09-06) — poker clip supply, all three workers-side ──
+    # These live in the workers repo beside the sports scraper they are
+    # modelled on; there is no monolith handler for any of them.
+    '/api/cron/scrape-poker-clips':            '/cron/scrape-poker-clips',
+    '/api/cron/revalidate-poker-clips':        '/cron/revalidate-poker-clips',
+    '/api/cron/content-supply-watchdog':       '/cron/content-supply-watchdog',
     # ─── 2B.2(i) — horses-social-friends (parallel session, handler 39) ────
     # Workers repo HEAD b44078b extracted slim HorseSocialEngine.sendFriendRequests +
     # acceptFriendRequests (the handler's only actual deps) so we don't need

@@ -62,6 +62,10 @@
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import {
     serviceClient,
     resolveRoundRoster,
     deterministicOptionOrder,
@@ -159,6 +163,9 @@ export default async function handler(req, res) {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
         if (!applyRateLimit(req, res, LIMITS.write)) return;
+        if (!areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
+        }
 
         // ─── 1. AUTH ────────────────────────────────────────────────────
         const authHeader = req.headers.authorization;

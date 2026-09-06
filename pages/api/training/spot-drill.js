@@ -20,6 +20,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -128,7 +129,7 @@ export default async function handler(req, res) {
           const buildSpotQuery = (withPivot) => {
               let q = getSupabase()
                   .from('solved_spots_gold')
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2');
               if (format === 'cash') q = q.ilike('game_type', '%cash%');
               if (format === 'mtt') q = q.ilike('game_type', '%mtt%');
               if (position) { const safePos = sanitizeParam(position, 10); if (safePos) q = q.ilike('scenario_hash', `%_${safePos}_%`); }
@@ -151,7 +152,14 @@ export default async function handler(req, res) {
           }
 
           const spot = spots[0];
-          const matrix = spot.strategy_matrix || {};
+          const matrix = selectTrustedSolverMatrix(spot);
+          if (!matrix) {
+              return res.status(200).json({
+                  success: false,
+                  error: 'Spot has no trusted strategy data - retry',
+                  retry: true,
+              });
+          }
           const actions = matrix.actions || [];
           const frequencies = matrix.frequencies || {};
 

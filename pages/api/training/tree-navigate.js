@@ -20,6 +20,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
                   // 2026-08-15 CHECK 13 fix: hand_evs is not a top-level column — it
                   // lives INSIDE strategy_matrix. Selecting it 42703'd the query, so
                   // tree navigation never found child spots.
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2')
                   .eq('scenario_hash', childHash)
                   .maybeSingle();
 
@@ -88,14 +89,20 @@ export default async function handler(req, res) {
 
                   const { data: altSpots } = await getSupabase()
                       .from('solved_spots_gold')
-                      .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
+                      .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2')
                       .eq('scenario_hash', altChildHash)
                       .limit(1);
                   childSpot = altSpots?.[0] || null;
               }
 
               if (childSpot) {
-                  const matrix = childSpot.strategy_matrix || {};
+                  const matrix = selectTrustedSolverMatrix(childSpot);
+                  if (!matrix) {
+                      return res.status(422).json({
+                          success: false,
+                          error: 'This runout has no trusted solver strategy available',
+                      });
+                  }
                   const actions = matrix.actions || [];
                   const frequencies = matrix.frequencies || {};
                   const allHands = getAllHands();
@@ -135,7 +142,7 @@ export default async function handler(req, res) {
                           heroPosition: extractPositionFromHash(childSpot.scenario_hash),
                           actions,
                           gridData,
-                          handEVs: childSpot.strategy_matrix?.hand_evs || {},
+                          handEVs: matrix.hand_evs || {},
                           handCount: Object.keys(gridData || {}).filter(h => gridData[h] !== null).length,
                       },
                   });

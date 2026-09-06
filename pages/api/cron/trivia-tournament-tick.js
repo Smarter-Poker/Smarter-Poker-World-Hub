@@ -1,7 +1,7 @@
 /**
  * GET|POST /api/cron/trivia-tournament-tick
  * ═══════════════════════════════════════════════════════════════════════════
- * Vercel cron entry point for the trivia tournament lifecycle.
+ * Dormant, manual-only recovery entry point for the tournament lifecycle.
  *
  * Runs one pass of runTournamentLifecycle(), which:
  *   - closes registration and generates the seeded bracket once start_time hits
@@ -11,17 +11,10 @@
  *   - finalises standings and pays the accumulated prize pool out, atomically
  *     and idempotently
  *
- * Auth: `Authorization: Bearer ${CRON_SECRET}` — the same convention used by
- * every other cron route in this repo. Vercel sends this header automatically
- * for declared crons.
- *
- * Cadence: every 15 minutes is plenty. Rounds are 24h, so the only latency this
- * adds is up to 15 minutes on round rollover and payout. Every step is guarded,
- * so a double-fire (retry, manual poke, overlapping invocation) is harmless.
- *
- * vercel.json entry (vercel.json is owned by the generation fixer — see the
- * cross-file request in the fixer report):
- *     { "path": "/api/cron/trivia-tournament-tick", "schedule": "0,15,30,45 * * * *" }
+ * Auth: `Authorization: Bearer ${CRON_SECRET}`. Phase 1 deliberately removes
+ * this route from Vercel, OpenClaw and worker schedules while tournaments are
+ * contained. It exists only for an operator-controlled future recovery after
+ * the release controls, engine and economy gates have all been approved.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -29,6 +22,10 @@ import { runTournamentLifecycle, serviceClient } from '../trivia/tournament-life
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 
 async function handler(req, res) {
     const startedAt = Date.now();
@@ -42,6 +39,9 @@ async function handler(req, res) {
         // This route moves diamonds, so it must not carry a weaker private copy
         // of the check than the admin routes do.
         if (!requireAdminSecret(req, res, { label: 'trivia-tournament-tick' })) return;
+        if (!areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
+        }
 
         const out = await runTournamentLifecycle(serviceClient(), {});
 
