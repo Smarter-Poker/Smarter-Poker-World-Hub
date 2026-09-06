@@ -52,6 +52,7 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     await page.goto(world.path, { waitUntil: 'domcontentloaded' });
     const trigger = page.locator('[data-world-menu-trigger]');
     await expect(trigger).toHaveCount(1);
+    await expect(trigger).toBeVisible();
     await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
     await trigger.click();
 

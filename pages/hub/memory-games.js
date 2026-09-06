@@ -1621,7 +1621,7 @@ export default function MemoryGamesPage() {
     const leaderboardRows = leaderboardData.map((entry, idx) => ({ ...entry, id: entry.user_id || idx, rank: idx + 1 }));
 
     return (
-        <PageTransition>
+        <PageTransition disableInitialAnimation>
             <SEOHead
                 title="Preflop Charts - Master GTO Ranges"
                 description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
