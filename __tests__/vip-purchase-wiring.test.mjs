@@ -25,6 +25,8 @@ import { join } from 'node:path';
 const ROOT = process.cwd();
 const STORE = readFileSync(join(ROOT, 'pages/hub/diamond-store.js'), 'utf8');
 const DATA = readFileSync(join(ROOT, 'src/data/diamondStoreData.js'), 'utf8');
+const CHECKOUT = readFileSync(join(ROOT, 'pages/api/store/create-checkout-session.js'), 'utf8');
+const WEBHOOK = readFileSync(join(ROOT, 'pages/api/store/webhooks/stripe.js'), 'utf8');
 
 test('the three plans are actually RENDERED, not merely imported', () => {
   // Dan 2026-09-05: "just vip, monthly, yearly or lifetime". Was
@@ -48,13 +50,15 @@ test('the subscribe control exists and is wired to the handler', () => {
 test('handleVIPSubscribe reaches BOTH a diamond path and a Stripe path', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
   assert.match(STORE, /await startStripeCheckout\(plan\)/, 'card plans must reach Stripe');
-  // Was runDailyPassPurchase, deleted with the Daily Pass. The diamond path is
-  // now the plan purchase - and for lifetime it is the ONLY path, because its
-  // one-time card checkout is not built, so this assertion is the one that
-  // keeps lifetime buyable at all.
   assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
-  assert.match(STORE, /cardCheckoutReady === false/,
-    'lifetime must route to diamonds rather than a checkout that would refuse it');
+  assert.match(DATA, /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*true/,
+    'lifetime must advertise its shipped one-time card checkout');
+  assert.match(STORE, /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,
+    'the browser must send lifetime through its one-time checkout type');
+  assert.match(CHECKOUT, /type === 'vip_lifetime'/,
+    'the server must accept and prepare the one-time lifetime checkout');
+  assert.match(WEBHOOK, /metadata\?\.type === 'vip_lifetime'/,
+    'the webhook must settle a paid lifetime checkout');
 });
 
 test('paying for a membership in diamonds is offered and correctly wired', () => {

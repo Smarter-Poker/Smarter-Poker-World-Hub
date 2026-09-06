@@ -97,7 +97,7 @@ test('VIP management closes synchronous duplicate plan and cancellation requests
   assert.match(vipManage, /actionBusyRef\.current = true/);
   assert.match(vipManage, /actionBusyRef\.current = false/);
   assert.match(vipManage, /setPendingPlan\(['"]monthly['"]\)/);
-  assert.match(vipManage, /setPendingPlan\(['"]annual['"]\)/);
+  assert.match(vipManage, /setPendingPlan\(['"]yearly['"]\)/);
   assert.match(vipManage, /Confirm Plan Switch/);
   assert.match(vipManage, /switchPlan\(pendingPlan\)/);
 });
