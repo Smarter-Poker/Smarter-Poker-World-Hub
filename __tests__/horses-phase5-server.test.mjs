@@ -58,6 +58,8 @@ function makeDb(overrides = {}) {
         ? overrides[name]
         : name === 'fn_ca_integrity_detector_health'
           ? { data: HEALTH, error: null }
+          : name === 'fn_ca_integrity_case'
+            ? { data: { ok: true, case: { id: CASE_ID, status: 'decided', decision: 'warned' }, items: [] }, error: null }
           : { data: { ok: true }, error: null };
       return typeof answer === 'function' ? answer(args, calls) : answer;
     },
@@ -350,6 +352,29 @@ test('structured RPC refusals keep an actionable code and honest status', async 
     },
   })), 'stale_version', 409);
 
+  const undecided = makeDb({
+    fn_ca_integrity_sanction: {
+      data: { ok: false, code: 'DECISION_REQUIRED', message: 'private database wording' },
+      error: null,
+    },
+  });
+  await assert.rejects(
+    handle(context({
+      method: 'POST',
+      db: undecided,
+      body: {
+        action: 'sanction', caseId: CASE_ID, subjectId: SUBJECT_A, kind: 'warning',
+        note: 'Formal warning follows the case decision', opId: 'warning-00000003',
+      },
+    })),
+    (error) => {
+      assert.equal(error.status, 409);
+      assert.equal(error.code, 'decision_required');
+      assert.equal(error.message, 'Record A Human Decision Before Applying A Sanction');
+      return true;
+    }
+  );
+
   const sourceFailure = makeDb({
     fn_ca_integrity_queue: {
       data: { ok: false, code: 'QUEUE_SOURCE_ERROR', message: 'relation private_name failed' },
@@ -455,7 +480,12 @@ test('warning and restriction sanctions only record case-owned canonical state',
   assert.equal(warning.args.p_amount, null);
   assert.equal(warningDb.calls.some((entry) => entry.name.includes('player_restrict')), false);
 
-  const restrictionDb = makeDb();
+  const restrictionDb = makeDb({
+    fn_ca_integrity_case: {
+      data: { ok: true, case: { id: CASE_ID, status: 'decided', decision: 'restricted' }, items: [] },
+      error: null,
+    },
+  });
   await handle(context({
     method: 'POST',
     db: restrictionDb,
@@ -470,7 +500,12 @@ test('warning and restriction sanctions only record case-owned canonical state',
 });
 
 test('confiscation needs money.write before an approval can be raised', async () => {
-  const db = makeDb();
+  const db = makeDb({
+    fn_ca_integrity_case: {
+      data: { ok: true, case: { id: CASE_ID, status: 'decided', decision: 'confiscated' }, items: [] },
+      error: null,
+    },
+  });
   await rejectsCode(handle(context({
     method: 'POST',
     db,
@@ -480,11 +515,38 @@ test('confiscation needs money.write before an approval can be raised', async ()
       amount: '100.00', note: 'Confiscation requested after case review', opId: 'confiscate-0001',
     },
   })), 'money_write_required', 403);
-  assert.equal(db.calls.length, 0);
+  assert.deepEqual(db.calls.map((entry) => entry.name), ['fn_ca_integrity_case']);
+});
+
+test('an undecided or mismatched case cannot create a confiscation approval', async () => {
+  for (const [status, decision, code] of [
+    ['investigating', null, 'decision_required'],
+    ['decided', 'warned', 'sanction_decision_mismatch'],
+  ]) {
+    const db = makeDb({
+      fn_ca_integrity_case: {
+        data: { ok: true, case: { id: CASE_ID, status, decision }, items: [] },
+        error: null,
+      },
+    });
+    await rejectsCode(handle(context({
+      method: 'POST',
+      db,
+      body: {
+        action: 'sanction', caseId: CASE_ID, subjectId: SUBJECT_A, kind: 'confiscation',
+        amount: '100.00', note: 'Confiscation requested after case review', opId: `block-${code}`,
+      },
+    })), code, 409);
+    assert.deepEqual(db.calls.map((entry) => entry.name), ['fn_ca_integrity_case']);
+  }
 });
 
 test('a pending confiscation returns 202 without writing a sanction or moving chips', async () => {
   const db = makeDb({
+    fn_ca_integrity_case: {
+      data: { ok: true, case: { id: CASE_ID, status: 'decided', decision: 'confiscated' }, items: [] },
+      error: null,
+    },
     fn_ca_operator_request_approval: {
       data: { ok: true, required: true, approval_id: APPROVAL_ID, status: 'pending' },
       error: null,
@@ -506,11 +568,18 @@ test('a pending confiscation returns 202 without writing a sanction or moving ch
   assert.equal(res.body.noChipsMoved, true);
   assert.equal(res.body.executionRequired, true);
   assert.equal(db.calls.some((entry) => entry.name === 'fn_ca_integrity_sanction'), false);
-  assert.deepEqual(db.calls.map((entry) => entry.name), ['fn_ca_operator_request_approval']);
+  assert.deepEqual(db.calls.map((entry) => entry.name), [
+    'fn_ca_integrity_case',
+    'fn_ca_operator_request_approval',
+  ]);
 });
 
 test('an approved confiscation replay records the ledger only and does not close the approval', async () => {
   const db = makeDb({
+    fn_ca_integrity_case: {
+      data: { ok: true, case: { id: CASE_ID, status: 'decided', decision: 'confiscated' }, items: [] },
+      error: null,
+    },
     fn_ca_operator_request_approval: {
       data: { ok: true, required: false, approval_id: APPROVAL_ID, status: 'approved' },
       error: null,
@@ -530,10 +599,11 @@ test('an approved confiscation replay records the ledger only and does not close
     },
   }));
   assert.deepEqual(db.calls.map((entry) => entry.name), [
+    'fn_ca_integrity_case',
     'fn_ca_operator_request_approval',
     'fn_ca_integrity_sanction',
   ]);
-  const sanction = db.calls[1].args;
+  const sanction = db.calls[2].args;
   assert.equal(sanction.p_approval_id, APPROVAL_ID);
   assert.equal(sanction.p_amount, 250.25);
   assert.equal(answer.noChipsMoved, true);

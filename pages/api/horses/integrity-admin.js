@@ -120,6 +120,8 @@ const REFUSAL_TEXT = Object.freeze({
   IDEMPOTENCY_CONFLICT: 'That Idempotency Key Belongs To A Different Request. Reload And Try Again',
   APPROVAL_REQUIRED: 'That Confiscation Needs An Approved Request',
   APPROVAL_NOT_APPROVED: 'That Confiscation Has Not Been Approved',
+  DECISION_REQUIRED: 'Record A Human Decision Before Applying A Sanction',
+  SANCTION_DECISION_MISMATCH: 'That Sanction Does Not Match The Recorded Human Decision',
   QUEUE_SOURCE_ERROR: 'The Integrity Queue Sources Could Not Be Read',
   SOURCE_ERROR: 'An Integrity Source Could Not Be Read',
   INTERNAL_ERROR: 'The Integrity Request Could Not Be Completed',
@@ -277,6 +279,7 @@ function refusalStatus(code) {
     || code.includes('CLOSED')
     || code.includes('ALREADY')
     || code.includes('APPROVAL')
+    || code.includes('DECISION')
     || code.includes('OP_ID')
   ) return 409;
   return 400;
@@ -617,6 +620,37 @@ async function actionSanction(db, op, req, res, body, requestId) {
     tooLong: 'That Sanction Note Is Too Long',
   });
   const base = writeBase(req, op, requestId, body);
+
+  // Validate the recorded verdict before creating a maker-checker request.
+  // The sanction RPC repeats this check under a row lock so a concurrent case
+  // change cannot cross the authoritative write boundary.
+  const caseData = await callIntegrityRpc(db, READ_RPCS.case, { p_case_id: caseId }, {
+    requestId,
+    label: 'The Integrity Case',
+  });
+  const caseRecord = caseData.case;
+  if (!caseRecord || typeof caseRecord !== 'object' || Array.isArray(caseRecord)) {
+    throw new ApiError(503, 'The Integrity Case Is Unavailable', 'fn_ca_integrity_case_unavailable');
+  }
+  const expectedDecision = {
+    warning: 'warned',
+    restriction: 'restricted',
+    confiscation: 'confiscated',
+  }[kind];
+  if (caseRecord.status !== 'decided' || !caseRecord.decision) {
+    throw new ApiError(
+      409,
+      REFUSAL_TEXT.DECISION_REQUIRED,
+      'decision_required'
+    );
+  }
+  if (caseRecord.decision !== expectedDecision) {
+    throw new ApiError(
+      409,
+      REFUSAL_TEXT.SANCTION_DECISION_MISMATCH,
+      'sanction_decision_mismatch'
+    );
+  }
 
   let restrictionId = null;
   let amount = null;
