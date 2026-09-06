@@ -1,5 +1,6 @@
 import { escapeHtml, getOpenStatus } from './pnm-utils.js';
 import { openNativeMaps } from '../../utils/openNativeMaps.js';
+import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-me/liveCashGameData.js';
 
 export const POKER_VENUE_TYPE_LABELS = Object.freeze({
   casino: 'Casino',
@@ -12,13 +13,13 @@ export const POKER_VENUE_TYPE_LABELS = Object.freeze({
 });
 
 export const POKER_VENUE_TYPE_COLORS = Object.freeze({
-  casino: { fill: '#ffffff', glow: 'rgba(255,255,255,0.6)', badgeBg: 'rgba(255,255,255,0.15)' },
-  card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)' },
-  poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)' },
-  charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)', badgeBg: 'rgba(59,130,246,0.15)' },
-  home_game: { fill: '#94a3b8', glow: 'rgba(148,163,184,0.6)', badgeBg: 'rgba(148,163,184,0.15)' },
-  tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)', badgeBg: 'rgba(239,68,68,0.15)' },
-  poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)', badgeBg: 'rgba(239,68,68,0.15)' },
+  casino: { fill: '#aab8c4', glow: 'rgba(170,184,196,0.56)', badgeBg: 'rgba(170,184,196,0.14)' },
+  card_room: { fill: '#48c7ff', glow: 'rgba(72,199,255,0.5)', badgeBg: 'rgba(72,199,255,0.14)' },
+  poker_club: { fill: '#48c7ff', glow: 'rgba(72,199,255,0.5)', badgeBg: 'rgba(72,199,255,0.14)' },
+  charity: { fill: '#7da8c4', glow: 'rgba(125,168,196,0.48)', badgeBg: 'rgba(125,168,196,0.14)' },
+  home_game: { fill: '#82909d', glow: 'rgba(130,144,157,0.5)', badgeBg: 'rgba(130,144,157,0.14)' },
+  tour_stop: { fill: '#c9a85a', glow: 'rgba(201,168,90,0.5)', badgeBg: 'rgba(201,168,90,0.14)' },
+  poker_tour: { fill: '#c9a85a', glow: 'rgba(201,168,90,0.5)', badgeBg: 'rgba(201,168,90,0.14)' },
 });
 
 export const POKER_TOUR_COLORS = Object.freeze({
@@ -107,12 +108,12 @@ export function createPokerVenueIcon(L, venue, options = {}) {
   const label = escapeHtml(truncatePokerMapLabel(venue?.name, labelMax));
   const logo = escapeHtml(venueLogo(venue));
   const labelHtml = label
-    ? `<div class="${labelClass}" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:${compact ? '2px 7px' : '3px 8px'};border-radius:12px;font-size:12px;font-weight:800;white-space:nowrap;border:1px solid ${theme.fill}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:${maxWidth}px;overflow:hidden;text-overflow:ellipsis;">${label}</div>`
+    ? `<div class="${labelClass}" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:#05090d;color:#eef5fb;padding:${compact ? '3px 7px' : '4px 8px'};border-radius:2px;font-size:12px;font-weight:800;white-space:nowrap;border:1px solid ${theme.fill}70;box-shadow:0 5px 14px rgba(0,0,0,0.82),inset 0 1px rgba(255,255,255,0.06);letter-spacing:0.3px;z-index:999;max-width:${maxWidth}px;overflow:hidden;text-overflow:ellipsis;">${label}</div>`
     : '';
 
   return L.divIcon({
     className,
-    html: `<div style="position:relative;width:${size}px;height:${size}px;"><div style="position:absolute;inset:0;border-radius:50%;background:#fff;border:2.5px solid ${theme.fill};box-shadow:0 0 12px ${theme.fill}80,0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;"><img src="${logo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;background:#fff;" onerror="this.src='${DEFAULT_LOGO}';" /></div>${labelHtml}</div>`,
+    html: `<div style="position:relative;width:${size}px;height:${size}px;"><div style="position:absolute;inset:0;border-radius:3px;background:#071019;border:1px solid #aab8c4;box-shadow:0 0 0 2px #030507,0 0 14px ${theme.glow},0 6px 16px rgba(0,0,0,0.78);overflow:hidden;display:flex;align-items:center;justify-content:center;"><img src="${logo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:2px;background:#fff;filter:saturate(.82) contrast(1.08);" onerror="this.src='${DEFAULT_LOGO}';" /><span style="position:absolute;inset:auto 4px 3px;height:2px;background:${theme.fill};box-shadow:0 0 8px ${theme.glow};"></span></div>${labelHtml}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -(size / 2 + 2)],
@@ -132,23 +133,23 @@ export function createPokerTourIcon(L, venue, options = {}) {
   const left = (width - circleSize) / 2;
   const showPulse = !compact || venue?.is_running;
   const pulse = showPulse
-    ? `<div style="position:absolute;top:${top - 4}px;left:${left - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${color};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`
+    ? `<div style="position:absolute;top:${top - 4}px;left:${left - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:3px;border:1px solid ${color};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`
     : '';
   const tourInner = logo
-    ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;font-size:12px;font-weight:900;color:${color};letter-spacing:0.5px;">${code}</div>`
+    ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;font-size:12px;font-weight:900;color:${color};letter-spacing:0.5px;">${code}</div>`
     : `<div style="font-size:12px;font-weight:900;color:${color};letter-spacing:0.5px;">${code}</div>`;
   const hostName = venue?.host_venue_name || venue?.stop_venue || '';
   const hostCircle = compact && hostName
-    ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${left}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#fff;border:2.5px solid #94a3b8;box-shadow:0 0 8px rgba(148,163,184,0.5),0 3px 10px rgba(0,0,0,0.7);overflow:hidden;z-index:1;"><img src="${escapeHtml(venue?.host_venue_logo_url || DEFAULT_LOGO)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.src='${DEFAULT_LOGO}';" /></div>`
+    ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${left}px;width:${circleSize}px;height:${circleSize}px;border-radius:3px;background:#fff;border:1px solid #aab8c4;box-shadow:0 0 8px rgba(170,184,196,0.38),0 3px 10px rgba(0,0,0,0.7);overflow:hidden;z-index:1;"><img src="${escapeHtml(venue?.host_venue_logo_url || DEFAULT_LOGO)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" onerror="this.src='${DEFAULT_LOGO}';" /></div>`
     : '';
   const labelClass = compact ? 'vmp-pin-label' : 'venue-pin-label';
   const tourLabel = escapeHtml(venue?.tour_name || venue?.tour_code || 'Poker Tour');
   const stopLabel = escapeHtml(truncatePokerMapLabel(venue?.stop_venue || venue?.stop_name || '', 22));
-  const label = `<div class="${labelClass}" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px ${compact ? 8 : 10}px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${color}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${color}30;z-index:999;max-width:${compact ? 160 : 180}px;text-align:center;"><div style="font-size:12px;color:${color};font-weight:900;overflow:hidden;text-overflow:ellipsis;">${tourLabel}</div>${stopLabel ? `<div style="font-size:12px;color:rgba(200,214,229,0.65);font-weight:600;overflow:hidden;text-overflow:ellipsis;">${stopLabel}</div>` : ''}</div>`;
+  const label = `<div class="${labelClass}" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;background:#05090d;color:#fff;padding:3px ${compact ? 8 : 10}px 4px;border-radius:2px;font-weight:800;white-space:nowrap;border:1px solid ${color}70;box-shadow:0 5px 14px rgba(0,0,0,0.82),0 0 6px ${color}26;z-index:999;max-width:${compact ? 160 : 180}px;text-align:center;"><div style="font-size:12px;color:${color};font-weight:900;overflow:hidden;text-overflow:ellipsis;">${tourLabel}</div>${stopLabel ? `<div style="font-size:12px;color:rgba(200,214,229,0.65);font-weight:600;overflow:hidden;text-overflow:ellipsis;">${stopLabel}</div>` : ''}</div>`;
 
   return L.divIcon({
     className: compact ? 'vmp-venue-marker' : 'tour-logo-marker',
-    html: `<div style="position:relative;width:${width}px;height:${height}px;">${pulse}<div style="position:absolute;top:${top}px;left:${left}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#fff;border:2.5px solid ${compact ? color : '#ef4444'};box-shadow:0 0 14px ${color}80,0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">${tourInner}</div>${hostCircle}${label}</div>`,
+    html: `<div style="position:relative;width:${width}px;height:${height}px;">${pulse}<div style="position:absolute;top:${top}px;left:${left}px;width:${circleSize}px;height:${circleSize}px;border-radius:3px;background:#071019;border:1px solid ${color};box-shadow:0 0 0 2px #030507,0 0 14px ${color}70,0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">${tourInner}</div>${hostCircle}${label}</div>`,
     iconSize: [width, height],
     iconAnchor: [width / 2, height / 2],
     popupAnchor: [0, -(height / 2)],
@@ -166,14 +167,12 @@ export function createPokerClusterIcon(L, cluster, options = {}) {
   const [, size, fontSize, borderWidth] = tiers.find(([minimum]) => count >= minimum);
   const intense = count >= 50;
   const gradient = count >= 100
-    ? 'linear-gradient(135deg,#fff 0%,#e2e8f0 50%,#8b6914 100%)'
+    ? 'linear-gradient(180deg,#dbe6ee 0%,#7e8f9f 48%,#1b2732 49%,#080d12 100%)'
     : count >= 50
-      ? 'linear-gradient(135deg,#f0d48a 0%,#fff 50%,#e2e8f0 100%)'
-      : count >= 20
-        ? 'linear-gradient(135deg,rgba(255,255,255,.9),rgba(184,134,11,.85))'
-        : 'linear-gradient(135deg,rgba(255,255,255,.75),rgba(184,134,11,.7))';
+      ? 'linear-gradient(180deg,#c9d6df 0%,#596b7a 46%,#101820 47%,#070b0f 100%)'
+      : 'linear-gradient(180deg,#263540 0%,#081018 100%)';
   return L.divIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${gradient};border:${borderWidth}px solid ${compact ? 'rgba(255,255,255,.9)' : '#94a3b8'};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:800;color:${intense ? '#000' : '#1a1a2e'};box-shadow:0 0 ${size / 2}px rgba(255,255,255,.35),0 4px 16px rgba(0,0,0,.5),inset 0 -2px 4px rgba(0,0,0,.2);font-family:Inter,-apple-system,sans-serif;">${count}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;border-radius:3px;background:${gradient};border:${borderWidth}px solid ${compact ? '#aab8c4' : '#c8d4dd'};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:800;color:${intense ? '#071019' : '#eef5fb'};box-shadow:0 0 0 2px #030507,0 0 ${size / 2}px rgba(72,199,255,.24),0 6px 16px rgba(0,0,0,.68),inset 0 1px rgba(255,255,255,.24);font-family:Inter,-apple-system,sans-serif;">${count}</div>`,
     className: compact ? 'vmp-cluster-icon' : 'venue-cluster-icon',
     iconSize: [size, size],
   });
@@ -182,7 +181,7 @@ export function createPokerClusterIcon(L, cluster, options = {}) {
 export function createPokerUserLocationIcon(L) {
   return L.divIcon({
     className: 'user-location-pin',
-    html: '<div style="filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));"><svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444" stroke="#fff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="4" fill="#fff" stroke="none"></circle></svg></div>',
+    html: '<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,.72));"><svg width="40" height="40" viewBox="0 0 24 24" fill="#071019" stroke="#aab8c4" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="4" fill="#48c7ff" stroke="#e8f6ff" stroke-width="1"></circle></svg></div>',
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
@@ -211,8 +210,14 @@ export function buildPokerVenuePopupHtml(venue, options = {}) {
   const city = escapeHtml(venue?.city || '');
   const state = escapeHtml(venue?.state || '');
   const logo = escapeHtml(venueLogo(venue));
-  const liveTables = Number(venue?.live_data?.tables_running) || 0;
   const liveGames = Array.isArray(venue?.live_data?.games) ? venue.live_data.games : [];
+  const cashLabel = cashGameCountLabel(venue?.live_data);
+  const modeledCash = isModeledCashGameData(venue?.live_data);
+  const gameLabels = liveGames.slice(0, 3).map((game) => {
+    if (typeof game === 'string') return game;
+    const count = Number(game?.tables_running) || 0;
+    return `${game?.game || 'Cash game'}: ${game?.is_simulated ? 'approx. ' : ''}${count}`;
+  });
   const open = getOpenStatus(venue);
   const status = open?.open === true ? 'OPEN' : open?.open === false ? 'CLOSED' : '';
   const trust = trustLevel(Number(venue?.trust_score));
@@ -222,7 +227,7 @@ export function buildPokerVenuePopupHtml(venue, options = {}) {
   const distance = Number.isFinite(venue?._distanceMi)
     ? `<span style="margin-left:auto;font-size: 12px;color:#94a3b8;">${venue._distanceMi < 1 ? '<1 mi' : `${venue._distanceMi.toFixed(1)} mi`}</span>`
     : '';
-  return `<div style="min-width:${compact ? 210 : 240}px;max-width:320px;padding:${compact ? '14px 16px 12px' : '16px 18px 14px'};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><img src="${logo}" alt="" style="width:${compact ? 32 : 36}px;height:${compact ? 32 : 36}px;border-radius:8px;object-fit:cover;background:#fff;border:1px solid rgba(255,255,255,.25);" onerror="this.src='${DEFAULT_LOGO}';" /><div style="flex:1;min-width:0;"><div style="font-size:${compact ? 14 : 15}px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div><div style="display:flex;gap:6px;font-size: 12px;color:#94a3b8;">${city}${city && state ? ', ' : ''}${state}${distance}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span style="padding:3px 9px;border-radius:6px;background:${theme.badgeBg};color:${theme.fill};font-size: 12px;font-weight:700;">${type}</span>${status ? `<span style="padding:3px 8px;border-radius:5px;background:${status === 'OPEN' ? 'rgba(34,197,94,.14)' : 'rgba(239,68,68,.12)'};color:${status === 'OPEN' ? '#22c55e' : '#ef4444'};font-size: 12px;font-weight:800;">${status}</span>` : ''}${liveTables > 0 ? `<span style="font-size: 12px;color:#4ade80;font-weight:700;">${liveTables} live table${liveTables === 1 ? '' : 's'}</span>` : ''}</div>${liveGames.length ? `<div style="font-size: 12px;color:#94a3b8;margin-bottom:8px;">${escapeHtml(liveGames.slice(0, 3).join(', '))}</div>` : ''}${compact ? '' : `<div style="font-size: 12px;color:${trust.color};margin-bottom:10px;">Trust: ${trust.label}${venue?.trust_score ? ` (${escapeHtml(String(venue.trust_score))}/5)` : ''}</div>`}<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="fsp-trigger" data-url="${detailPath}" data-title="${name}" style="flex:1;padding:8px 12px;border-radius:7px;background:#fff;color:#05070b;font-size: 12px;font-weight:800;border:none;cursor:pointer;">View Details</button><button class="directions-trigger" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}" style="padding:8px 12px;border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font-size: 12px;font-weight:700;border:1px solid rgba(255,255,255,.14);cursor:pointer;">Directions</button>${!compact && phone ? `<a href="tel:${escapeHtml(phone)}" style="padding:8px 10px;border-radius:7px;color:#4ade80;border:1px solid rgba(34,197,94,.2);font-size: 12px;text-decoration:none;">Call</a>` : ''}</div></div>`;
+  return `<div class="pnm-map-dossier" style="min-width:${compact ? 210 : 240}px;max-width:320px;padding:${compact ? '14px 16px 12px' : '16px 18px 14px'};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><img src="${logo}" alt="" style="width:${compact ? 32 : 36}px;height:${compact ? 32 : 36}px;border-radius:3px;object-fit:cover;background:#fff;border:1px solid rgba(170,184,196,.42);" onerror="this.src='${DEFAULT_LOGO}';" /><div style="flex:1;min-width:0;"><div style="font-size:${compact ? 14 : 15}px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div><div style="display:flex;gap:6px;font-size: 12px;color:#94a3b8;">${city}${city && state ? ', ' : ''}${state}${distance}</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span style="padding:3px 9px;border-radius:2px;background:${theme.badgeBg};color:${theme.fill};font-size: 12px;font-weight:700;">${type}</span>${status ? `<span style="padding:3px 8px;border-radius:2px;background:${status === 'OPEN' ? 'rgba(34,197,94,.14)' : 'rgba(239,68,68,.12)'};color:${status === 'OPEN' ? '#52d18b' : '#ff6870'};font-size: 12px;font-weight:800;">${status}</span>` : ''}${cashLabel ? `<span style="font-size: 12px;color:${modeledCash ? '#d8bb7d' : '#52d18b'};font-weight:700;">${escapeHtml(cashLabel)}</span>` : ''}</div>${gameLabels.length ? `<div style="font-size: 12px;color:#94a3b8;margin-bottom:8px;">${escapeHtml(gameLabels.join(', '))}</div>` : ''}${compact ? '' : `<div style="font-size: 12px;color:${trust.color};margin-bottom:10px;">Trust: ${trust.label}${venue?.trust_score ? ` (${escapeHtml(String(venue.trust_score))}/5)` : ''}</div>`}<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="fsp-trigger" data-url="${detailPath}" data-title="${name}" style="flex:1;padding:8px 12px;border-radius:2px;background:#aab8c4;color:#05070b;font-size: 12px;font-weight:800;border:1px solid #dbe5ec;cursor:pointer;">View Details</button><button class="directions-trigger" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}" style="padding:8px 12px;border-radius:2px;background:#0a121a;color:#fff;font-size: 12px;font-weight:700;border:1px solid rgba(170,184,196,.3);cursor:pointer;">Directions</button>${!compact && phone ? `<a href="tel:${escapeHtml(phone)}" style="padding:8px 10px;border-radius:2px;color:#52d18b;border:1px solid rgba(82,209,139,.3);font-size: 12px;text-decoration:none;">Call</a>` : ''}</div></div>`;
 }
 
 export function buildPokerTourPopupHtml(venue, options = {}) {
