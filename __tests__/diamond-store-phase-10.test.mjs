@@ -58,13 +58,14 @@ test('real marketplace detail routes exist with product and breadcrumb schema', 
   assert.match(product, /['"]@type['"]:\s*['"]BreadcrumbList['"]/);
 });
 
-test('every current VIP term exposes card and Diamond settlement', () => {
+test('every current VIP term exposes its enabled settlement paths without duplicating Lifetime', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
   for (const plan of ['monthly', 'yearly', 'lifetime']) {
     assert.match(STORE, new RegExp(`plan=\\{VIP_MEMBERSHIP\\.${plan}\\}`));
   }
   assert.match(STORE, /onClick=\{handleVIPSubscribe\}/);
-  assert.match(STORE, /Buy VIP Lifetime With Card/);
+  assert.match(STORE, /Lifetime VIP Is Bought With Diamonds/);
+  assert.match(STORE, /selectedVIPPlan && vipCardReady && \(/);
   assert.match(STORE, /Pay With Diamonds Instead/);
 });
 

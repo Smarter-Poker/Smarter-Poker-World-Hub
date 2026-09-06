@@ -1307,7 +1307,9 @@ export default function MerchStore({
         }
 
         if (!res.ok || !data?.success) {
-          throw new Error(errorMessageOf(data, res.status));
+          const checkoutError = new Error(errorMessageOf(data, res.status));
+          checkoutError.code = errorCodeOf(data);
+          throw checkoutError;
         }
         if (!data.data?.url) {
           throw new Error('Checkout Session Missing Redirect URL');
@@ -1320,6 +1322,9 @@ export default function MerchStore({
         // Leave the busy state on through the navigation.
         window.location.href = data.data.url;
       } catch (err) {
+        if (err?.code === 'CHECKOUT_EXPIRED') {
+          clearCommerceRequestId(commerceIntent);
+        }
         console.warn('[MerchStore] Card checkout failed:', err?.message || err);
         captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
         showStoreToast(
