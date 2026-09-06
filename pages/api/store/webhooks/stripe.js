@@ -3,9 +3,16 @@
  * POST /api/store/webhooks/stripe
  * Handles Stripe webhook events for purchases and subscriptions
  */
-import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { createHash } from 'node:crypto';
 import Stripe from 'stripe';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import {
+    STRIPE_VIP_AUTHORITY,
+    classifyStripeCheckoutSessionForVip,
+    classifyStripeSubscriptionForVip,
+    resolveStripeSubscriptionVipTier,
+} from '../../../../src/lib/store/vipPurchaseGuards.mjs';
 const {
     buildPrintfulItems,
     cancelPrintfulOrder,
@@ -17,6 +24,46 @@ const {
 } = require('../../../../src/lib/store/printfulFulfillment');
 
 const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1024 * 1024;
+const VIP_SUBSCRIPTION_STATUSES = new Set([
+    'active',
+    'trialing',
+    'past_due',
+    'unpaid',
+    'incomplete',
+    'paused',
+    'canceled',
+    'incomplete_expired',
+]);
+const VIP_FIRST_SEEN_TERMINAL_STATUSES = new Set(['canceled', 'incomplete_expired']);
+const VIP_BLOCKING_SUBSCRIPTION_STATUSES = new Set([
+    'active',
+    'trialing',
+    'past_due',
+    'unpaid',
+    'incomplete',
+    'paused',
+]);
+const VIP_COMPENSATED_ADMISSION_DENIALS = new Set([
+    'vip_entitlement_active',
+    'claim_conflict',
+    'session_conflict',
+    'profile_not_found',
+]);
+const VIP_PLAN_CONTRACT = Object.freeze({
+    monthly: Object.freeze({ amount: 1999, interval: 'month' }),
+    yearly: Object.freeze({ amount: 19999, interval: 'year' }),
+});
+const VIP_SUBSCRIPTION_RECONCILIATION_LIMIT = 2;
+const VIP_SUBSCRIPTION_METADATA_KEYS = Object.freeze([
+    'venue_id',
+    'type',
+    'vip_tier',
+    'user_id',
+    'checkout_request_id',
+    'checkout_intent_hash',
+    'checkout_session_id',
+]);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Read only the bounded raw bytes Stripe signs. Signature verification is the
 // authentication boundary, but it must not require buffering an unbounded
@@ -207,11 +254,11 @@ export default async function handler(req, res) {
 
               case 'customer.subscription.created':
               case 'customer.subscription.updated':
-                  await handleSubscriptionUpdate(event.data.object);
+                  await handleStripeSubscriptionEvent(event.data.object);
                   break;
 
               case 'customer.subscription.deleted':
-                  await handleSubscriptionCanceled(event.data.object);
+                  await handleStripeSubscriptionEvent(event.data.object, { deletedEvent: true });
                   break;
 
               case 'invoice.payment_succeeded':
@@ -249,6 +296,14 @@ export default async function handler(req, res) {
           return res.status(200).json({ received: true });
       } catch (error) {
           console.warn('Webhook handler error:', error);
+          try {
+              reportApiError(error, req);
+          } catch (telemetryError) {
+              console.warn(
+                  '[stripe-webhook] failed to report handler quarantine:',
+                  telemetryError?.message || telemetryError
+              );
+          }
           // Hand the claim back. This event did NOT complete, and Stripe will
           // retry it — if the claim stayed, that retry would be dismissed as a
           // duplicate and the work would never happen. A claim must only
@@ -487,70 +542,21 @@ async function handleCheckoutCompleted(session) {
 
         }
     } else if (mode === 'subscription') {
-        // VIP subscription checkout completed
-
+        // A Checkout completion can race customer.subscription.created and
+        // customer.subscription.updated. All three enter the same admission
+        // pipeline so event order cannot bypass the Card/Diamond mutex.
         try {
-            const subscription = await stripe.subscriptions.retrieve(session.subscription);
-
-            // Set VIP on profile and link Stripe customer
-            if (metadata?.user_id) {
-                // ═══════════════════════════════════════════════════════════
-                // vip_expires_at MUST be written here.
-                //
-                // /api/vip/check-status — the platform's single truth function
-                // for "is this user VIP" — requires is_vip = true AND
-                // (vip_tier = 'lifetime' OR vip_expires_at > now). A NULL
-                // expiry on a non-lifetime tier is DELIBERATELY read as
-                // expired, because "no end date" is not "never ends".
-                //
-                // This block previously set is_vip and vip_tier and never the
-                // expiry, and nothing downstream backfilled it, so a paying
-                // $19.99/mo or $199.99/yr subscriber got isVip:false from every
-                // gate and was skipped by the 500 ◆ monthly stipend cron for
-                // exactly that reason. Money taken, nothing granted. Nobody has
-                // hit it yet only because no Stripe subscription has completed:
-                // 0 profiles currently have a paid tier with a null expiry.
-                //
-                // current_period_end is seconds since epoch. The fallback keeps
-                // a paying customer VIP for a period rather than instantly
-                // lapsed if Stripe ever omits it.
-                // ═══════════════════════════════════════════════════════════
-                // .select() so a ZERO-ROW match is distinguishable from a
-                // successful grant. This filters on metadata.user_id; if that id
-                // is wrong, stale, or belongs to a deleted profile, PostgREST
-                // returns { data: null, error: null } -- the error branch below
-                // never fires, the handler returns 200, and Stripe NEVER RETRIES.
-                // The customer paid and is granted nothing, permanently.
-                //
-                // This is also the ONLY place profiles.stripe_customer_id gets
-                // written from a webhook, so a miss here strands every later
-                // renewal and cancellation too: those filter on
-                // stripe_customer_id, which stays null forever. As this was
-                // written, 0 of 1022 profiles had one.
-                const { data: grantedRows, error: err_profiles_yhokl } = await getSupabase()
-                  .from('profiles')
-                  .update({
-                        stripe_customer_id: customer,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', metadata.user_id)
-                    .select('id');
-                if (err_profiles_yhokl) {
-                    // Paid VIP grant must not be silently lost — throw so Stripe retries.
-                    console.warn('[stripe-webhook] VIP profile grant failed for user', metadata.user_id, '- Stripe will retry:', err_profiles_yhokl.message);
-                    throw err_profiles_yhokl;
-                }
-                if (!grantedRows || grantedRows.length === 0) {
-                    const msg = `[stripe-webhook] VIP GRANT MATCHED ZERO ROWS for user ${metadata.user_id} (customer ${customer}). `
-                        + 'Payment succeeded and NOTHING was granted. Throwing so Stripe retries.';
-                    console.error(msg);
-                    throw new Error(msg);
-                }
-
+            const subscriptionId = stripeObjectId(session.subscription);
+            if (!subscriptionId) {
+                throw new Error('Stripe VIP Checkout Session has no subscription id');
             }
-
-            // Create/update vip_subscriptions record
-            await handleSubscriptionUpdate(subscription);
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+                expand: ['items.data.price'],
+            });
+            await handleStripeSubscriptionEvent(subscription, {
+                checkoutSession: session,
+                authoritative: true,
+            });
         } catch (subErr) {
             // Note: this handler has no `req` — pass null so the report actually sends.
             try { reportApiError(subErr, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
@@ -625,292 +631,818 @@ async function handleCheckoutExpired(session) {
     }
 }
 
-async function handleSubscriptionUpdate(subscription) {
-    const { id, customer, status, metadata, current_period_start, current_period_end, cancel_at_period_end } = subscription;
+function stripeObjectId(value) {
+    if (typeof value === 'string') return value.trim() || null;
+    if (value && typeof value.id === 'string') return value.id.trim() || null;
+    return null;
+}
 
-    if (metadata?.venue_id) {
-        return handleCommanderSubscriptionUpdate(subscription);
+function metadataText(metadata, key) {
+    const value = metadata?.[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function consistentText(label, values) {
+    const candidates = [...new Set(values.filter(Boolean))];
+    if (candidates.length > 1) {
+        throw new Error(`Stripe VIP subscription has conflicting ${label}`);
+    }
+    return candidates[0] || null;
+}
+
+function stripeTimestamp(value, label) {
+    if (value === null || value === undefined) return null;
+    const seconds = Number(value);
+    if (!Number.isSafeInteger(seconds) || seconds <= 0) {
+        throw new Error(`Stripe VIP subscription has invalid ${label}`);
+    }
+    const iso = new Date(seconds * 1000).toISOString();
+    if (!iso) throw new Error(`Stripe VIP subscription has invalid ${label}`);
+    return iso;
+}
+
+function configuredVipPrices() {
+    return Object.fromEntries([
+        [process.env.STRIPE_VIP_MONTHLY_PRICE_ID, 'monthly'],
+        [process.env.STRIPE_VIP_YEARLY_PRICE_ID, 'yearly'],
+    ]
+        .filter(([priceId]) => typeof priceId === 'string' && priceId.trim())
+        .map(([priceId, tier]) => [priceId.trim(), tier]));
+}
+
+function fingerprintMetadata(metadata) {
+    return Object.fromEntries(VIP_SUBSCRIPTION_METADATA_KEYS.map((key) => [
+        key,
+        metadataText(metadata, key),
+    ]));
+}
+
+function fingerprintTransformQuantity(transformQuantity) {
+    if (!transformQuantity) return null;
+    return {
+        divide_by: transformQuantity.divide_by ?? null,
+        round: transformQuantity.round ?? null,
+    };
+}
+
+function vipSubscriptionFingerprint(subscription) {
+    const items = (Array.isArray(subscription?.items?.data) ? subscription.items.data : [])
+        .map((item) => ({
+            id: stripeObjectId(item),
+            quantity: item?.quantity ?? null,
+            price: {
+                id: stripeObjectId(item?.price),
+                type: item?.price?.type ?? null,
+                active: item?.price?.active ?? null,
+                currency: item?.price?.currency ?? null,
+                billing_scheme: item?.price?.billing_scheme ?? null,
+                unit_amount: item?.price?.unit_amount ?? null,
+                transform_quantity: fingerprintTransformQuantity(item?.price?.transform_quantity),
+                recurring: item?.price?.recurring ? {
+                    interval: item.price.recurring.interval ?? null,
+                    interval_count: item.price.recurring.interval_count ?? null,
+                    usage_type: item.price.recurring.usage_type ?? null,
+                } : null,
+                sp_vip_tier: metadataText(item?.price?.metadata, 'sp_vip_tier'),
+            },
+        }))
+        .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    const snapshot = {
+        id: stripeObjectId(subscription),
+        customer: stripeObjectId(subscription?.customer),
+        latest_invoice: stripeObjectId(subscription?.latest_invoice),
+        status: String(subscription?.status || '').trim().toLowerCase() || null,
+        metadata: fingerprintMetadata(subscription?.metadata),
+        items,
+        current_period_start: subscription?.current_period_start ?? null,
+        current_period_end: subscription?.current_period_end ?? null,
+        cancel_at_period_end: subscription?.cancel_at_period_end ?? null,
+        canceled_at: subscription?.canceled_at ?? null,
+    };
+    return createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+}
+
+function hasExplicitSubscriptionTierEvidence(subscription, knownVipPrices) {
+    if (metadataText(subscription?.metadata, 'vip_tier')) return true;
+    return (subscription?.items?.data || []).some((item) => (
+        metadataText(item?.price?.metadata, 'sp_vip_tier')
+        || knownVipPrices[stripeObjectId(item?.price)]
+    ));
+}
+
+function resolveExactVipTier(
+    subscription,
+    checkoutSession,
+    existingSubscription,
+    knownVipPrices,
+    { hasPendingAdmission = false } = {}
+) {
+    const subscriptionTier = resolveStripeSubscriptionVipTier(subscription, { knownVipPrices });
+    const checkoutTierText = metadataText(checkoutSession?.metadata, 'vip_tier')?.toLowerCase() || null;
+    if (checkoutTierText && !VIP_PLAN_CONTRACT[checkoutTierText]) {
+        throw new Error('Stripe VIP Checkout Session has an invalid recurring tier');
+    }
+    if (!subscriptionTier && hasExplicitSubscriptionTierEvidence(subscription, knownVipPrices)) {
+        throw new Error('Stripe VIP subscription tier evidence is conflicting or invalid');
+    }
+    if (existingSubscription && subscriptionTier) {
+        // Checkout Session metadata is an acquisition-time snapshot. Once the
+        // exact ledger row exists, a delayed checkout.session.completed can
+        // arrive after a legitimate plan switch; the freshly retrieved current
+        // Subscription/Price is the authoritative tier in that case.
+        return { tier: subscriptionTier, source: 'stripe' };
+    }
+    if (existingSubscription && hasPendingAdmission && checkoutTierText) {
+        // Admission can recycle a terminal one-row-per-user record and crash
+        // before projection. The exact admitting fence plus exact Checkout
+        // Session makes its tier authoritative over the recycled stale row.
+        return { tier: checkoutTierText, source: 'stripe' };
+    }
+    if (existingSubscription) {
+        const ledgerTier = String(existingSubscription.tier || '').trim().toLowerCase();
+        if (!VIP_PLAN_CONTRACT[ledgerTier]) {
+            throw new Error('Existing VIP subscription has an invalid recurring tier');
+        }
+        return { tier: ledgerTier, source: 'ledger' };
+    }
+    const authoritativeTier = consistentText(
+        'recurring tier metadata',
+        [subscriptionTier, checkoutTierText]
+    );
+    if (authoritativeTier) return { tier: authoritativeTier, source: 'stripe' };
+    throw new Error('Stripe VIP subscription has no exact monthly/yearly tier authority');
+}
+
+function validateVipOffer(subscription, tier) {
+    const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
+    if (items.length !== 1) {
+        throw new Error('Stripe VIP subscription must contain exactly one recurring item');
+    }
+    const item = items[0];
+    const price = item?.price;
+    const contract = VIP_PLAN_CONTRACT[tier];
+    if (!price || !contract
+        || price.type !== 'recurring'
+        || price.currency !== 'usd'
+        || price.billing_scheme !== 'per_unit'
+        || price.transform_quantity
+        || price.recurring?.interval !== contract.interval
+        || Number(price.recurring?.interval_count) !== 1
+        || price.recurring?.usage_type !== 'licensed'
+        || Number(price.unit_amount) !== contract.amount
+        || Number(item.quantity) !== 1) {
+        throw new Error('Stripe VIP subscription does not match the exact recurring offer');
+    }
+    return contract.amount / 100;
+}
+
+function syntheticLegacySubscriptionIdentity(subscriptionId, userId) {
+    const requestId = `legacy-vip-subscription:${subscriptionId}`;
+    return {
+        requestId,
+        intentHash: createHash('sha256')
+            .update(`marketplace-vip-subscription:${subscriptionId}:${userId}`)
+            .digest('hex'),
+    };
+}
+
+function checkoutMatchesSubscription(checkoutSession, subscriptionId) {
+    return checkoutSession?.mode === 'subscription'
+        && stripeObjectId(checkoutSession.subscription) === subscriptionId;
+}
+
+async function discoverInitialSubscriptionPayment(subscription, preferredSession = null) {
+    const subscriptionId = subscription.id;
+    let checkoutSession = preferredSession;
+    let invoice = null;
+    let error = null;
+
+    if (checkoutSession && !checkoutMatchesSubscription(checkoutSession, subscriptionId)) {
+        throw new Error('Stripe Checkout Session does not match the VIP subscription');
     }
 
-    // Get user ID from customer
-    // `let`, not `const`: the !profile branch below can recover the profile
-    // through Stripe customer metadata and reassign it.
-    let { data: profile, error: profileLookupError } = await getSupabase()
-        .from('profiles')
-        // vip_tier is read so a renewal cannot silently downgrade an annual
-        // subscriber to 'monthly' when Stripe metadata does not carry the tier.
-        .select('id, vip_expires_at, vip_tier')
-        .eq('stripe_customer_id', customer)
-        .maybeSingle();
-    if (profileLookupError) throw profileLookupError;
-
-    if (!profile) {
-        // This returned 200 having done nothing, so Stripe never retried and the
-        // renewal was lost in silence.
-        //
-        // The lookup filters profiles.stripe_customer_id, which is written in
-        // exactly two places: create-checkout-session and the checkout-completed
-        // handler above. If either missed, this is null forever and EVERY
-        // renewal for that customer lands here. As this was written, 0 of 1022
-        // profiles had a stripe_customer_id, so this branch was the norm rather
-        // than the exception.
-        //
-        // Recover through Stripe itself: customers are created with
-        // metadata.smarter_poker_id, so the customer object can identify the
-        // user even when our column is empty. Backfill the column while we are
-        // here, so the next renewal takes the fast path.
-        let recovered = null;
-        try {
-            const stripeCustomer = await stripe.customers.retrieve(customer);
-            const recoveredUserId = stripeCustomer?.metadata?.smarter_poker_id;
-            if (recoveredUserId) {
-                const { data: backfilled, error: backfillError } = await getSupabase()
-                    .from('profiles')
-                    .update({ stripe_customer_id: customer, updated_at: new Date().toISOString() })
-                    .eq('id', recoveredUserId)
-                    .select('id, vip_expires_at, vip_tier');
-                if (backfillError) throw backfillError;
-                if (backfilled && backfilled.length) {
-                    recovered = backfilled[0];
-                    console.warn(`[stripe-webhook] recovered customer ${customer} -> profile ${recovered.id} via Stripe metadata and backfilled stripe_customer_id`);
-                }
+    try {
+        if (!checkoutSession) {
+            const sessions = await stripe.checkout.sessions.list({
+                subscription: subscriptionId,
+                limit: 100,
+            });
+            if (sessions?.has_more) {
+                throw new Error('Stripe returned an incomplete initial Checkout Session set');
             }
-        } catch (recoverErr) {
-            console.warn(`[stripe-webhook] customer recovery failed for ${customer}:`, recoverErr?.message || recoverErr);
-        }
-
-        if (!recovered) {
-            // Genuinely unresolvable. Throw rather than return so the webhook
-            // 500s and Stripe retries -- a subscription event that changes a
-            // paying customer's entitlement must not be dropped on the floor.
-            const msg = `[stripe-webhook] no profile for customer ${customer} and Stripe metadata could not resolve one - subscription update DROPPED.`;
-            console.error(msg);
-            throw new Error(msg);
-        }
-        profile = recovered;
-    }
-
-    // Upsert subscription record
-    const { error: err_vip_subscriptions_1w1zg } = await getSupabase()
-      .from('vip_subscriptions')
-      .upsert({
-            stripe_subscription_id: id,
-            user_id: profile.id,
-            stripe_customer_id: customer,
-            tier: metadata?.vip_tier || 'monthly',
-            status: status,
-            price_usd: subscription.items.data[0]?.price?.unit_amount / 100 || 0,
-            current_period_start: new Date(current_period_start * 1000).toISOString(),
-            current_period_end: new Date(current_period_end * 1000).toISOString(),
-            cancel_at_period_end: cancel_at_period_end,
-            updated_at: new Date().toISOString()
-        }, {
-            onConflict: 'stripe_subscription_id'
-        });
-    if (err_vip_subscriptions_1w1zg) {
-        // Money-tied state transition — throw so Stripe retries instead of dropping it.
-        console.warn('[stripe-webhook] vip_subscriptions upsert failed for', id, '- Stripe will retry:', err_vip_subscriptions_1w1zg.message);
-        throw err_vip_subscriptions_1w1zg;
-    }
-
-    // Keep profiles.is_vip in sync with the subscription status so failed
-    // payments (past_due/unpaid) revoke VIP and recovered payments restore it.
-    // A separately purchased daily pass (vip_expires_at in the future) is respected.
-    const isActiveStatus = status === 'active' || status === 'trialing';
-    if (isActiveStatus) {
-        // Push vip_expires_at forward on every renewal. is_vip alone is not
-        // enough for /api/vip/check-status: it also requires an expiry in the
-        // future, so syncing only the flag would leave a paying subscriber
-        // reading as lapsed the moment their first period ended. The tier is
-        // written too, so a plan change (monthly -> annual) is reflected rather
-        // than leaving the profile on a stale tier.
-        const renewalExpiry = new Date(current_period_end * 1000).toISOString();
-        const existingExpiryMs = profile.vip_expires_at ? Date.parse(profile.vip_expires_at) : 0;
-        const renewalExpiryMs = Date.parse(renewalExpiry);
-        const preservesLifetime = profile.vip_tier === 'lifetime';
-        const preservesPrepaidExtension = Number.isFinite(existingExpiryMs)
-            && existingExpiryMs > renewalExpiryMs;
-        /* 2026-09-05: was { daily: 1, monthly: 2, annual: 3, lifetime: 4 }. The
-       terms are monthly, yearly and lifetime now (Dan), and a 'yearly' renewal
-       scored `undefined || 0` against the old table - it lost every comparison,
-       so a yearly renewal could have been downgraded by a prepaid monthly
-       extension. 'daily' is retired and 'annual' is renamed. */
-    const tierRank = { monthly: 1, yearly: 2, lifetime: 3 };
-        const renewalTier = metadata?.vip_tier || 'monthly';
-        const effectiveTier = preservesLifetime
-            ? 'lifetime'
-            : preservesPrepaidExtension
-            && (tierRank[profile.vip_tier] || 0) > (tierRank[renewalTier] || 0)
-            ? profile.vip_tier
-            : renewalTier;
-        const { data: vipSyncRows, error: vipSyncErr } = await getSupabase()
-            .from('profiles')
-            .update({
-                is_vip: true,
-                vip_tier: effectiveTier,
-                vip_expires_at: preservesLifetime || preservesPrepaidExtension
-                    ? profile.vip_expires_at
-                    : renewalExpiry,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', profile.id)
-            .select('id');
-        if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=true for', profile.id, vipSyncErr.message);
-        else if (!vipSyncRows || vipSyncRows.length === 0) {
-            // A renewal that writes nothing leaves vip_expires_at in the past,
-            // and /api/vip/check-status reads that as lapsed. The subscriber is
-            // paying and gated out. Throw so Stripe retries rather than 200.
-            const msg = `[stripe-webhook] VIP RENEWAL MATCHED ZERO ROWS for profile ${profile.id} - paying subscriber will read as lapsed.`;
-            console.error(msg);
-            throw new Error(msg);
-        }
-    } else {
-        const hasActiveDailyPass = profile.vip_tier === 'lifetime'
-            || (profile.vip_expires_at && new Date(profile.vip_expires_at) > new Date());
-        if (!hasActiveDailyPass) {
-            const { data: revokedSync, error: vipSyncErr } = await getSupabase()
-                .from('profiles')
-                .update({ is_vip: false, updated_at: new Date().toISOString() })
-                .eq('id', profile.id)
-                .select('id');
-            if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=false for', profile.id, vipSyncErr.message);
-            else if (!revokedSync || revokedSync.length === 0) {
-                // Not fatal -- the entitlement gate also checks vip_expires_at,
-                // so a stale is_vip alone does not grant access. Still logged,
-                // because it means the profile vanished mid-handler.
-                console.warn('[stripe-webhook] is_vip=false sync matched zero rows for', profile.id);
+            const exactSessions = (sessions?.data || []).filter(
+                (entry) => checkoutMatchesSubscription(entry, subscriptionId)
+            );
+            if (exactSessions.length !== 1) {
+                throw new Error('Stripe VIP subscription has no unique initial Checkout Session');
             }
+            [checkoutSession] = exactSessions;
         }
+
+        const invoiceId = stripeObjectId(checkoutSession.invoice);
+        if (!invoiceId) throw new Error('Stripe VIP Checkout Session has no initial invoice');
+        invoice = await stripe.invoices.retrieve(invoiceId);
+        if (invoice?.id !== invoiceId
+            || stripeObjectId(invoice.subscription) !== subscriptionId
+            || invoice.billing_reason !== 'subscription_create') {
+            throw new Error('Stripe VIP initial invoice does not match its subscription');
+        }
+    } catch (paymentError) {
+        error = paymentError;
+    }
+
+    return { checkoutSession, invoice, error, kind: 'initial' };
+}
+
+function triggerInvoicePaymentContext(invoice, subscription) {
+    const subscriptionId = stripeObjectId(subscription);
+    const invoiceId = stripeObjectId(invoice);
+    const latestInvoiceId = stripeObjectId(subscription?.latest_invoice);
+    const subscriptionCustomerId = stripeObjectId(subscription?.customer);
+    const invoiceCustomerId = stripeObjectId(invoice?.customer);
+    const amountPaid = Number(invoice?.amount_paid);
+    const invoicePeriodStart = Number(invoice?.period_start);
+    const invoicePeriodEnd = Number(invoice?.period_end);
+    const subscriptionPeriodStart = Number(subscription?.current_period_start);
+    const subscriptionPeriodEnd = Number(subscription?.current_period_end);
+    const billingReason = String(invoice?.billing_reason || '').trim().toLowerCase();
+    const subscriptionStatus = String(subscription?.status || '').trim().toLowerCase();
+    if (!invoiceId
+        || !latestInvoiceId
+        || invoiceId !== latestInvoiceId
+        || stripeObjectId(invoice?.subscription) !== subscriptionId
+        || !subscriptionCustomerId
+        || invoiceCustomerId !== subscriptionCustomerId
+        || invoice?.status !== 'paid'
+        || invoice?.paid !== true
+        || !VIP_BLOCKING_SUBSCRIPTION_STATUSES.has(subscriptionStatus)
+        || !Number.isSafeInteger(amountPaid)
+        || amountPaid < 0
+        || !['subscription_create', 'subscription_cycle', 'subscription_update',
+            'subscription_threshold'].includes(billingReason)
+        || !Number.isSafeInteger(invoicePeriodStart)
+        || !Number.isSafeInteger(invoicePeriodEnd)
+        || !Number.isSafeInteger(subscriptionPeriodStart)
+        || !Number.isSafeInteger(subscriptionPeriodEnd)
+        || invoicePeriodStart > invoicePeriodEnd
+        || invoicePeriodEnd < subscriptionPeriodStart
+        || invoicePeriodStart > subscriptionPeriodEnd) {
+        throw new Error('VIP reactivation has no exact paid trigger invoice');
+    }
+    if (amountPaid > 0
+        && !stripeObjectId(invoice?.payment_intent)
+        && !stripeObjectId(invoice?.charge)) {
+        throw new Error('VIP reactivation trigger invoice has no refundable payment');
+    }
+    return {
+        checkoutSession: null,
+        invoice,
+        error: null,
+        kind: 'trigger',
+        triggerSubscription: subscription,
+    };
+}
+
+function vipOverlapRefundAttemptKey(subscriptionId, invoiceId, terminalRefunds) {
+    const evidence = terminalRefunds.map((refund) => {
+        const refundId = stripeObjectId(refund);
+        const status = String(refund?.status || '').trim().toLowerCase();
+        if (!refundId || !['failed', 'canceled'].includes(status)) {
+            throw new Error('Denied VIP subscription has invalid terminal refund evidence');
+        }
+        return `${refundId}:${status}`;
+    }).sort();
+    const attempt = createHash('sha256')
+        .update(JSON.stringify(evidence))
+        .digest('hex')
+        .slice(0, 32);
+    return `commerce:vip-overlap-refund:${subscriptionId}:${invoiceId}:${attempt}`;
+}
+
+async function refundDeniedVipSubscription(subscriptionId, paymentContext, {
+    refreshTriggerPaymentContext = null,
+} = {}) {
+    if (paymentContext?.error) throw paymentContext.error;
+    const checkoutSession = paymentContext?.checkoutSession;
+    const invoice = paymentContext?.invoice;
+    const invoiceId = stripeObjectId(invoice);
+    if (paymentContext?.kind === 'trigger') {
+        triggerInvoicePaymentContext(invoice, paymentContext.triggerSubscription);
+    } else if (!checkoutMatchesSubscription(checkoutSession, subscriptionId)
+        || stripeObjectId(checkoutSession.invoice) !== invoiceId
+        || stripeObjectId(invoice?.subscription) !== subscriptionId
+        || invoice?.billing_reason !== 'subscription_create') {
+        throw new Error('Denied VIP subscription has no exact refundable initial invoice');
+    }
+
+    const amountPaid = Number(invoice.amount_paid);
+    if (!Number.isSafeInteger(amountPaid) || amountPaid < 0) {
+        throw new Error('Denied VIP subscription invoice has an invalid paid amount');
+    }
+    if (amountPaid === 0) return;
+
+    const paymentIntentId = stripeObjectId(invoice.payment_intent);
+    const chargeId = stripeObjectId(invoice.charge);
+    if (!paymentIntentId && !chargeId) {
+        throw new Error('Denied VIP subscription invoice has no refundable payment');
+    }
+
+    const listParams = paymentIntentId
+        ? { payment_intent: paymentIntentId, limit: 100 }
+        : { charge: chargeId, limit: 100 };
+    const refunds = await stripe.refunds.list(listParams);
+    if (refunds?.has_more) {
+        throw new Error('Stripe returned an incomplete VIP overlap refund set');
+    }
+    const matchingRefunds = (refunds?.data || []).filter((refund) => (
+        refund?.metadata?.stripe_subscription_id === subscriptionId
+        && refund?.metadata?.stripe_invoice_id === invoiceId
+    ));
+    for (const existingRefund of matchingRefunds) {
+        if (Number(existingRefund?.amount) !== amountPaid) {
+            throw new Error('VIP overlap refund does not cover the exact initial payment');
+        }
+    }
+    const succeededRefunds = matchingRefunds.filter(
+        (refund) => refund?.status === 'succeeded'
+    );
+    if (succeededRefunds.length > 1) {
+        throw new Error('Denied VIP subscription has duplicate successful overlap refunds');
+    }
+    if (succeededRefunds.length === 1) return;
+
+    const inFlightRefunds = matchingRefunds.filter(
+        (refund) => ['pending', 'requires_action'].includes(refund?.status)
+    );
+    if (inFlightRefunds.length) {
+        throw new Error('VIP overlap refund is still pending; Stripe will retry');
+    }
+    const terminalRefunds = matchingRefunds.filter(
+        (refund) => ['failed', 'canceled'].includes(refund?.status)
+    );
+    if (terminalRefunds.length !== matchingRefunds.length) {
+        throw new Error('Denied VIP subscription has an unsupported overlap refund state');
+    }
+
+    if (paymentContext?.kind === 'trigger') {
+        if (typeof refreshTriggerPaymentContext !== 'function') {
+            throw new Error('VIP reactivation refund is missing fresh subscription authority');
+        }
+        // Refund listing is a network boundary. Re-read after it so an invoice
+        // that became historical during this invocation cannot authorize new
+        // money movement.
+        await refreshTriggerPaymentContext();
+    }
+
+    const refund = await stripe.refunds.create({
+        ...(paymentIntentId ? { payment_intent: paymentIntentId } : { charge: chargeId }),
+        amount: amountPaid,
+        metadata: {
+            smarter_poker_reason: paymentContext?.kind === 'trigger'
+                ? 'vip_reactivation_overlap'
+                : 'vip_acquisition_overlap',
+            stripe_subscription_id: subscriptionId,
+            stripe_invoice_id: invoiceId,
+        },
+    }, {
+        idempotencyKey: vipOverlapRefundAttemptKey(
+            subscriptionId,
+            invoiceId,
+            terminalRefunds
+        ),
+    });
+    if (Number(refund?.amount) !== amountPaid) {
+        throw new Error('VIP overlap refund does not cover the exact initial payment');
+    }
+    if (refund?.status !== 'succeeded') {
+        throw new Error(
+            `VIP overlap refund is ${refund?.status || 'unknown'}; Stripe will retry`
+        );
     }
 }
 
-async function handleSubscriptionCanceled(subscription) {
-    const { id, customer, canceled_at, metadata } = subscription;
+async function cancelDeniedVipSubscription(subscriptionId) {
+    const canceled = await stripe.subscriptions.cancel(subscriptionId, {
+        invoice_now: false,
+        prorate: false,
+    }, {
+        idempotencyKey: `commerce:vip-overlap-cancel:${subscriptionId}`,
+    });
+    if (canceled?.id !== subscriptionId || canceled?.status !== 'canceled') {
+        throw new Error('Stripe did not confirm exact VIP subscription cancellation');
+    }
+}
 
-    if (metadata?.venue_id) {
-        return handleCommanderSubscriptionCanceled(subscription);
+async function compensateDeniedVipSubscription(subscription, paymentContext) {
+    // Refund first. If the process dies after a successful refund, the next
+    // authoritative retrieval still sees a blocking subscription and retries
+    // cancellation. Canceling first would make that retry look like a benign
+    // first-seen terminal event and could strand the captured payment.
+    const exactPaymentContext = paymentContext?.checkoutSession
+        ? paymentContext
+        : await discoverInitialSubscriptionPayment(subscription);
+    await refundDeniedVipSubscription(subscription.id, exactPaymentContext);
+    await cancelDeniedVipSubscription(subscription.id);
+}
+
+async function compensateVipReactivationConflict(subscription, triggerInvoice) {
+    if (!triggerInvoice) {
+        throw new Error(
+            'VIP subscription reactivation conflicts with another entitlement; awaiting exact paid invoice'
+        );
+    }
+    const retrieveCurrentPaymentContext = async () => {
+        const currentSubscription = await stripe.subscriptions.retrieve(subscription.id, {
+            expand: ['items.data.price'],
+        });
+        if (!currentSubscription || currentSubscription.id !== subscription.id) {
+            throw new Error('Stripe did not return the exact reactivation subscription');
+        }
+        return triggerInvoicePaymentContext(triggerInvoice, currentSubscription);
+    };
+
+    const paymentContext = await retrieveCurrentPaymentContext();
+    await refundDeniedVipSubscription(subscription.id, paymentContext, {
+        refreshTriggerPaymentContext: retrieveCurrentPaymentContext,
+    });
+
+    // A new invoice can become current after the refund. In that case leave
+    // the subscription uncanceled and retry from the new invoice event instead
+    // of hiding an additional unrefunded charge behind a terminal status.
+    await retrieveCurrentPaymentContext();
+    await cancelDeniedVipSubscription(subscription.id);
+}
+
+async function handleStripeSubscriptionEvent(subscriptionReference, {
+    checkoutSession: suppliedCheckoutSession = null,
+    triggerInvoice = null,
+    authoritative = false,
+    reconciliationDepth = 0,
+} = {}) {
+    const subscriptionId = stripeObjectId(subscriptionReference);
+    if (!subscriptionId) throw new Error('Stripe subscription event has no subscription id');
+
+    const subscription = authoritative
+        ? subscriptionReference
+        : await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['items.data.price'],
+        });
+    if (!subscription || subscription.id !== subscriptionId) {
+        throw new Error('Stripe did not return the exact current subscription');
+    }
+    if (triggerInvoice
+        && stripeObjectId(triggerInvoice.subscription) !== subscriptionId) {
+        throw new Error('Stripe invoice event does not match its current subscription');
+    }
+    const projectedFingerprint = vipSubscriptionFingerprint(subscription);
+
+    const status = String(subscription.status || '').trim().toLowerCase();
+    if (!VIP_SUBSCRIPTION_STATUSES.has(status)) {
+        throw new Error(`Stripe VIP subscription has unsupported status ${status || 'missing'}`);
     }
 
-    // Guard: canceled_at can be missing on some payloads — don't write 1970-01-01
-    const canceledAtIso = canceled_at ? new Date(canceled_at * 1000).toISOString() : new Date().toISOString();
+    const knownVipPrices = configuredVipPrices();
+    const knownVipPriceIds = Object.keys(knownVipPrices);
+    const subscriptionAuthority = classifyStripeSubscriptionForVip(subscription, {
+        knownVipPriceIds,
+    });
 
-    const { error: err_vip_subscriptions_s2gv2 } = await getSupabase()
+    const { data: existingSubscription, error: existingSubscriptionError } = await getSupabase()
+        .from('vip_subscriptions')
+        .select('id, user_id, stripe_subscription_id, stripe_customer_id, tier, status')
+        .eq('stripe_subscription_id', subscriptionId)
+        .maybeSingle();
+    if (existingSubscriptionError) throw existingSubscriptionError;
+    const { data: existingCommander, error: existingCommanderError } = await getSupabase()
+        .from('commander_subscriptions')
+        .select('id, stripe_subscription_id')
+        .eq('stripe_subscription_id', subscriptionId)
+        .maybeSingle();
+    if (existingCommanderError) throw existingCommanderError;
 
-      .from('vip_subscriptions')
-
-      .update({
-            status: 'canceled',
-            canceled_at: canceledAtIso,
-            updated_at: new Date().toISOString()
-        })
-        .eq('stripe_subscription_id', id);
-
-    if (err_vip_subscriptions_s2gv2) {
-        console.warn('[stripe-webhook] vip_subscriptions cancel update failed for', id, '- Stripe will retry:', err_vip_subscriptions_s2gv2.message);
-        throw err_vip_subscriptions_s2gv2;
-    }
-
-    // Clear VIP on the profile — but NOT if a separately purchased pass is
-    // still running.
-    //
-    // This used to blanket-set is_vip=false and vip_tier=null for the whole
-    // stripe_customer_id with no expiry check, so a user who had ALSO bought a
-    // VIP pass with diamonds lost the pass they paid for the moment they
-    // cancelled an unrelated card subscription. handleSubscriptionUpdate
-    // already respects an active vip_expires_at for exactly this reason; the
-    // cancel path never got the same treatment.
-    if (customer) {
-        const { data: profile, error: profileReadError } = await getSupabase()
-            .from('profiles')
-            .select('id, vip_expires_at, vip_tier')
-            .eq('stripe_customer_id', customer)
+    let existingClaim = null;
+    let existingClaimUserId = null;
+    if (existingSubscription?.user_id) {
+        const { data, error } = await getSupabase()
+            .from('vip_subscription_checkout_claims')
+            .select('request_id, intent_hash, state, session_id')
+            .eq('user_id', existingSubscription.user_id)
             .maybeSingle();
-        if (profileReadError) throw profileReadError;
+        if (error) throw error;
+        existingClaim = data;
+        existingClaimUserId = existingSubscription.user_id;
+    }
 
-        const hasActivePaidPass = profile?.vip_tier === 'lifetime'
-            || (profile?.vip_expires_at && new Date(profile.vip_expires_at) > new Date());
+    let paymentContext = {
+        checkoutSession: suppliedCheckoutSession,
+        invoice: null,
+        error: null,
+    };
+    if (suppliedCheckoutSession) {
+        paymentContext = await discoverInitialSubscriptionPayment(
+            subscription,
+            suppliedCheckoutSession
+        );
+    } else if (subscriptionAuthority !== STRIPE_VIP_AUTHORITY.COMMANDER
+        && (
+            !existingSubscription
+            || !hasExplicitSubscriptionTierEvidence(subscription, knownVipPrices)
+            || !metadataText(subscription.metadata, 'checkout_request_id')
+            || !metadataText(subscription.metadata, 'checkout_intent_hash')
+            || Boolean(existingClaim?.session_id)
+        )) {
+        paymentContext = await discoverInitialSubscriptionPayment(subscription);
+    }
+    const checkoutSession = paymentContext.checkoutSession;
+    const checkoutAuthority = checkoutSession
+        ? classifyStripeCheckoutSessionForVip(checkoutSession)
+        : null;
+    const hasCommanderIdentity = Boolean(
+        metadataText(subscription.metadata, 'venue_id')
+        || metadataText(checkoutSession?.metadata, 'venue_id')
+    );
+    const hasVipAuthority = subscriptionAuthority === STRIPE_VIP_AUTHORITY.VIP
+        || checkoutAuthority === STRIPE_VIP_AUTHORITY.VIP
+        || Boolean(existingSubscription);
+    const hasCommanderAuthority = subscriptionAuthority === STRIPE_VIP_AUTHORITY.COMMANDER
+        || checkoutAuthority === STRIPE_VIP_AUTHORITY.COMMANDER
+        || hasCommanderIdentity
+        || Boolean(existingCommander);
 
-        const profileUpdate = hasActivePaidPass
-            // Record the cancellation, keep the entitlement they still own.
-            ? { vip_canceled_at: canceledAtIso, updated_at: new Date().toISOString() }
-            : { is_vip: false, vip_tier: null, vip_expires_at: null, vip_canceled_at: canceledAtIso, updated_at: new Date().toISOString() };
+    if (hasVipAuthority && hasCommanderAuthority) {
+        throw new Error('Stripe subscription conflicts between VIP and Commander authority');
+    }
+    if (hasCommanderAuthority) {
+        return status === 'canceled' || status === 'incomplete_expired'
+            ? handleCommanderSubscriptionCanceled(subscription)
+            : handleCommanderSubscriptionUpdate(subscription);
+    }
+    if (!hasVipAuthority) {
+        console.info(`[stripe-webhook] subscription ${subscriptionId} has no exact VIP authority; ignored`);
+        return;
+    }
+    const { tier, source: tierSource } = resolveExactVipTier(
+        subscription,
+        checkoutSession,
+        existingSubscription,
+        knownVipPrices,
+        { hasPendingAdmission: existingClaim?.state === 'admitting' }
+    );
+    const priceUsd = validateVipOffer(subscription, tier);
+    const currentPeriodStart = stripeTimestamp(
+        subscription.current_period_start,
+        'current_period_start'
+    );
+    const currentPeriodEnd = stripeTimestamp(
+        subscription.current_period_end,
+        'current_period_end'
+    );
+    if (!currentPeriodStart || !currentPeriodEnd) {
+        throw new Error('Stripe VIP subscription has an incomplete current period');
+    }
+    if (typeof subscription.cancel_at_period_end !== 'boolean') {
+        throw new Error('Stripe VIP subscription has invalid cancel_at_period_end');
+    }
+    const canceledAt = status === 'canceled'
+        ? stripeTimestamp(subscription.canceled_at, 'canceled_at')
+        : null;
 
-        if (hasActivePaidPass) {
-            console.info(`[stripe-webhook] subscription ${id} cancelled but customer ${customer} keeps VIP until ${profile.vip_expires_at || 'lifetime'}`);
+    const customerId = consistentText('customer identity', [
+        stripeObjectId(subscription.customer),
+        stripeObjectId(checkoutSession?.customer),
+    ]);
+    if (!customerId) throw new Error('Stripe VIP subscription has no customer identity');
+    const stripeCustomer = await stripe.customers.retrieve(customerId);
+
+    const { data: customerProfile, error: customerProfileError } = await getSupabase()
+        .from('profiles')
+        .select('id, stripe_customer_id')
+        .eq('stripe_customer_id', customerId)
+        .maybeSingle();
+    if (customerProfileError) throw customerProfileError;
+    const userId = consistentText('user identity', [
+        metadataText(subscription.metadata, 'user_id'),
+        metadataText(checkoutSession?.metadata, 'user_id'),
+        metadataText(stripeCustomer?.metadata, 'smarter_poker_id'),
+        metadataText(stripeCustomer?.metadata, 'user_id'),
+        existingSubscription?.user_id || null,
+        customerProfile?.id || null,
+    ]);
+    if (!userId || !UUID_PATTERN.test(userId)) {
+        throw new Error('Stripe VIP subscription has no valid profile identity');
+    }
+
+    const { data: profile, error: profileError } = customerProfile?.id === userId
+        ? { data: customerProfile, error: null }
+        : await getSupabase()
+            .from('profiles')
+            .select('id, stripe_customer_id')
+            .eq('id', userId)
+            .maybeSingle();
+    if (profileError) throw profileError;
+
+    if (existingClaimUserId !== userId) {
+        const { data, error } = await getSupabase()
+            .from('vip_subscription_checkout_claims')
+            .select('request_id, intent_hash, state, session_id')
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (error) throw error;
+        existingClaim = data;
+        existingClaimUserId = userId;
+    }
+
+    let requestId = consistentText('checkout request identity', [
+        metadataText(subscription.metadata, 'checkout_request_id'),
+        metadataText(checkoutSession?.metadata, 'checkout_request_id'),
+    ]);
+    let intentHash = consistentText('checkout intent hash', [
+        metadataText(subscription.metadata, 'checkout_intent_hash'),
+        metadataText(checkoutSession?.metadata, 'checkout_intent_hash'),
+    ]);
+    if (!requestId && !intentHash) {
+        ({ requestId, intentHash } = syntheticLegacySubscriptionIdentity(subscriptionId, userId));
+    } else if (!requestId || !intentHash) {
+        throw new Error('Stripe VIP subscription has an incomplete checkout identity');
+    }
+    if (requestId.length > 200 || !/^[a-f0-9]{64}$/.test(intentHash)) {
+        throw new Error('Stripe VIP subscription has an invalid checkout identity');
+    }
+    const sessionId = consistentText('Checkout Session identity', [
+        checkoutSession?.id || null,
+        metadataText(subscription.metadata, 'checkout_session_id'),
+    ]);
+    const hasAdmittingClaim = existingClaim?.state === 'admitting';
+    const storedClaimSessionMatches = !existingClaim?.session_id
+        || existingClaim.session_id === checkoutSession?.id;
+    const claimMatchesExactAdmission = hasAdmittingClaim
+        && existingClaim.request_id === requestId
+        && existingClaim.intent_hash === intentHash
+        && storedClaimSessionMatches;
+
+    if (!storedClaimSessionMatches) {
+        throw new Error(
+            `Stripe VIP subscription ${subscriptionId} conflicts with its claimed Checkout Session`
+        );
+    }
+
+    if (hasAdmittingClaim && !claimMatchesExactAdmission) {
+        throw new Error(
+            `Stripe VIP subscription ${subscriptionId} conflicts with an admitting claim`
+        );
+    }
+
+    if (!existingSubscription && VIP_FIRST_SEEN_TERMINAL_STATUSES.has(status)) {
+        if (!hasAdmittingClaim) {
+            console.info(`[stripe-webhook] first-seen terminal VIP subscription ${subscriptionId} ignored`);
+            return;
         }
+        // A matching admitting claim means a prior attempt installed the fence
+        // and may have crashed before creating a ledger row. Project terminal
+        // state atomically and finalize that exact fence instead of stranding it.
+    }
 
-        // Filters stripe_customer_id, which is empty on every profile as this
-        // was written -- so this revoke matched zero rows every time and a
-        // cancelled subscriber kept VIP indefinitely. That is a revenue leak
-        // that no log would ever have shown.
-        const { data: revokedRows, error: err_profiles_odw9b } = await getSupabase()
-          .from('profiles')
-          .update(profileUpdate)
-            .eq('stripe_customer_id', customer)
-            .select('id');
-        if (!err_profiles_odw9b && (!revokedRows || revokedRows.length === 0)) {
-            const msg = `[stripe-webhook] VIP REVOKE MATCHED ZERO ROWS for customer ${customer} - a cancelled subscriber may still hold VIP. Throwing so Stripe retries.`;
-            console.error(msg);
-            throw new Error(msg);
-        }
-        if (err_profiles_odw9b) {
-            console.warn('[stripe-webhook] profile VIP revoke failed for customer', customer, '- Stripe will retry:', err_profiles_odw9b.message);
-            throw err_profiles_odw9b;
-        }
+    // A signed invoice event is compensation authority only for the freshly
+    // retrieved subscription's current invoice and period. Validate this before
+    // admission so a delayed historical event cannot alter a claim or provider.
+    if (triggerInvoice) {
+        triggerInvoicePaymentContext(triggerInvoice, subscription);
+    }
 
+    if (!profile || profile.id !== userId) {
+        await compensateDeniedVipSubscription(subscription, paymentContext);
+        return;
+    }
+    if (profile.stripe_customer_id
+        && profile.stripe_customer_id !== customerId
+        && !claimMatchesExactAdmission) {
+        throw new Error('Stripe VIP subscription conflicts with the profile customer');
+    }
+
+    // All provider and database reads above finish before this first VIP write.
+    // The admission RPC locks the profile and installs/retains the Diamond fence.
+    const { data: admission, error: admissionError } = await getSupabase().rpc(
+        'admit_vip_subscription_checkout',
+        {
+            p_user_id: userId,
+            p_stripe_subscription_id: subscriptionId,
+            p_request_id: requestId,
+            p_intent_hash: intentHash,
+            p_session_id: sessionId,
+        }
+    );
+    if (admissionError) throw admissionError;
+
+    if (!admission?.success) {
+        const denialState = String(admission?.state || 'unknown');
+        // Compensation belongs only to a newly paid acquisition that never
+        // entered our ledger. A delivery for an already-recorded subscription
+        // can encounter an unrelated claim; refunding its historical initial
+        // invoice would be destructive, so that case is quarantined instead.
+        if (!existingSubscription && VIP_COMPENSATED_ADMISSION_DENIALS.has(denialState)) {
+            await compensateDeniedVipSubscription(subscription, paymentContext);
+            return;
+        }
+        throw new Error(`Stripe VIP subscription admission failed: ${denialState}`);
+    }
+    if (!['admitted', 'replay'].includes(admission.state)) {
+        throw new Error(`Stripe VIP subscription admission returned ${admission.state || 'unknown'}`);
+    }
+    if (tierSource === 'ledger'
+        && (admission.state === 'admitted' || admission.finalize_required === true)) {
+        throw new Error('A recycled VIP subscription requires authoritative Stripe tier metadata');
+    }
+
+    // One database transaction now owns both the exact ledger mutation and the
+    // profile projection. Passing every current Stripe field clears stale values
+    // left if admission recycled a terminal one-row-per-user record then crashed.
+    const { data: projection, error: projectionError } = await getSupabase().rpc(
+        'apply_vip_subscription_projection',
+        {
+            p_user_id: userId,
+            p_stripe_subscription_id: subscriptionId,
+            p_stripe_customer_id: customerId,
+            p_request_id: requestId,
+            p_intent_hash: intentHash,
+            p_tier: tier,
+            p_status: status,
+            p_price_usd: priceUsd,
+            p_current_period_start: currentPeriodStart,
+            p_current_period_end: currentPeriodEnd,
+            p_cancel_at_period_end: subscription.cancel_at_period_end,
+            p_canceled_at: canceledAt,
+        }
+    );
+    if (projectionError) throw projectionError;
+    if (projection?.success !== true) {
+        if (projection?.state === 'reactivation_entitlement_conflict') {
+            await compensateVipReactivationConflict(subscription, triggerInvoice);
+            return;
+        }
+        throw new Error(
+            `Stripe VIP subscription projection failed: ${projection?.state || 'unknown'}`
+        );
+    }
+    if (projection?.projected !== true
+        || projection?.state !== 'projected'
+        || projection?.stripe_subscription_id !== subscriptionId
+        || projection?.status !== status) {
+        throw new Error('Stripe VIP subscription projection was not confirmed');
+    }
+
+    // Stripe may update the same subscription while this invocation is between
+    // its first provider read and the atomic database projection. Re-read after
+    // projecting every authoritative field and only finalize a stable snapshot.
+    // A changed snapshot re-enters admission with the exact Checkout context;
+    // the existing `admitting` fence remains held throughout reconciliation.
+    const reconciledSubscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price'],
+    });
+    if (!reconciledSubscription || reconciledSubscription.id !== subscriptionId) {
+        throw new Error('Stripe did not return the exact reconciled subscription');
+    }
+    const reconciledFingerprint = vipSubscriptionFingerprint(reconciledSubscription);
+    if (reconciledFingerprint !== projectedFingerprint) {
+        if (reconciliationDepth >= VIP_SUBSCRIPTION_RECONCILIATION_LIMIT) {
+            throw new Error('Stripe VIP subscription changed repeatedly during reconciliation');
+        }
+        return handleStripeSubscriptionEvent(reconciledSubscription, {
+            checkoutSession,
+            triggerInvoice,
+            authoritative: true,
+            reconciliationDepth: reconciliationDepth + 1,
+        });
+    }
+
+    const finalizeRequired = admission.state === 'admitted'
+        || (admission.state === 'replay' && admission.finalize_required === true);
+    if (finalizeRequired) {
+        const { data: finalized, error: finalizeError } = await getSupabase().rpc(
+            'finalize_vip_subscription_admission',
+            {
+                p_user_id: userId,
+                p_stripe_subscription_id: subscriptionId,
+                p_request_id: requestId,
+                p_intent_hash: intentHash,
+            }
+        );
+        if (finalizeError
+            || finalized?.success !== true
+            || !['finalized', 'replay'].includes(finalized?.state)) {
+            throw finalizeError || new Error('Stripe VIP subscription admission was not finalized');
+        }
     }
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
-    const { subscription } = invoice;
-
-    if (subscription) {
-        // Subscription renewal - already handled by subscription.updated event
+    if (stripeObjectId(invoice?.subscription)) {
+        await handleStripeSubscriptionEvent(invoice.subscription, { triggerInvoice: invoice });
     }
 }
 
 async function handleInvoicePaymentFailed(invoice) {
-    const { subscription } = invoice;
-
-
-    if (subscription) {
-        const { data: cmdrSub } = await getSupabase()
-            .from('commander_subscriptions')
-            .select('id')
-            .eq('stripe_subscription_id', subscription)
-            .maybeSingle();
-
-        if (cmdrSub) {
-            const { error: err_commander_subscriptions_20wa8 } = await getSupabase()
-              .from('commander_subscriptions')
-              .update({
-                    status: 'past_due',
-                    updated_at: new Date().toISOString()
-                })
-                .eq('stripe_subscription_id', subscription);
-            // silent-write-ok: bookkeeping record, not the entitlement. The gate
-    // that actually grants or revokes access is handled separately above;
-    // a miss here leaves the subscription ledger stale, which is worth
-    // seeing but must not 500 a webhook and trigger three days of retries.
-    if (err_commander_subscriptions_20wa8) console.error('[stripe-webhook] commander_subscriptions past_due write failed:', err_commander_subscriptions_20wa8.message);
-            return;
-        }
-
-        const { error: err_vip_subscriptions_gg0nj } = await getSupabase()
-
-          .from('vip_subscriptions')
-
-          .update({
-                status: 'past_due',
-                updated_at: new Date().toISOString()
-            })
-            .eq('stripe_subscription_id', subscription);
-
-        // silent-write-ok: bookkeeping record, not the entitlement. The gate
-    // that actually grants or revokes access is handled separately above;
-    // a miss here leaves the subscription ledger stale, which is worth
-    // seeing but must not 500 a webhook and trigger three days of retries.
-    if (err_vip_subscriptions_gg0nj) console.error('[stripe-webhook] vip_subscriptions past_due write failed:', err_vip_subscriptions_gg0nj.message);
+    if (stripeObjectId(invoice?.subscription)) {
+        await handleStripeSubscriptionEvent(invoice.subscription);
     }
 }
 

@@ -43,7 +43,8 @@ test('VIP command center reads a private server-owned membership record', () => 
   assert.doesNotMatch(api, /req\.(body|query)\.userId|req\.(body|query)\?\.userId/);
   const verifier = read('scripts/verify-marketplace-deployment.mjs');
   assert.match(verifier, /smarter-rewards\/daily_login/);
-  assert.match(verifier, /Verified Reward Telemetry/);
+  assert.match(verifier, /data-marketplace-route/);
+  assert.match(verifier, /marketplaceRouteMarker\(route\.canonical\)/);
   assert.match(verifier, /'\/api\/store\/vip-membership-status'/);
   assert.match(verifier, /`\$\{privatePath\} \(private\)`/);
 });

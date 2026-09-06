@@ -146,7 +146,7 @@ export default function MarketplaceDetailExperience({
 
       <UniversalHeader pageDepth={2} />
       <PageTransition disableInitialAnimation>
-        <main className={styles.page}>
+        <main className={styles.page} data-marketplace-route={canonical}>
           <MarketplaceCommerceNav active={commerceActive} />
 
           <nav className={styles.breadcrumbs} aria-label="Breadcrumb">

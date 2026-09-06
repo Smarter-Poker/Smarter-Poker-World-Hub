@@ -10,6 +10,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const { runMarketplaceReadiness } = require('../../../src/lib/store/marketplaceReadiness');
 const {
+  isAutoConfirmEnabled,
+  isPrintfulConfigured,
   isPrintfulReady,
   resolvePrintfulMapping,
 } = require('../../../src/lib/store/printfulFulfillment');
@@ -40,6 +42,8 @@ export async function getMarketplaceReadiness({ force = false } = {}) {
     createClient,
     fetchImpl: globalThis.fetch,
     resolvePrintfulMapping,
+    isAutoConfirmEnabled,
+    isPrintfulConfigured,
     isPrintfulReady,
     onError: reportHealthError,
   }).then((value) => {
