@@ -410,7 +410,10 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
 
   test('Leak Finder coaching workspace exposes evidence, goals, timeline, and weekly reporting', async ({ page }, testInfo) => {
     const leakId = '11111111-1111-4111-8111-111111111111';
-    const coachingWrites = [];
+    const coachingWrites: Array<{
+      action?: string;
+      preferences?: { analysisDepth?: string };
+    }> = [];
     await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
       status: 200,
       contentType: 'application/json',

@@ -309,7 +309,14 @@ function HamburgerMenuContent({
   // ── Close on ESC ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return undefined;
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose?.(); };
+    const handleEsc = (e) => {
+      if (e.key !== 'Escape') return;
+      // An open command drawer owns Escape. Mark the event before closing so
+      // page-level shortcuts cannot also navigate during the same keypress,
+      // regardless of listener registration order.
+      e.preventDefault();
+      onClose?.();
+    };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
@@ -322,7 +329,9 @@ function HamburgerMenuContent({
         const activeElement = document.activeElement;
         restoreFocusRef.current = activeElement?.matches?.('[data-world-menu-trigger]')
           ? activeElement
-          : document.querySelector('[data-world-menu-trigger="approved-header"]') || activeElement;
+          : document.querySelector('[data-world-menu-trigger="approved-header"]')
+            || document.querySelector('[data-world-menu-trigger="route-fallback"]')
+            || activeElement;
       }
       const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
       return () => clearTimeout(t);
@@ -336,7 +345,8 @@ function HamburgerMenuContent({
     restoreFocusRef.current = null;
     const focusTarget = prev?.isConnected
       ? prev
-      : document.querySelector('[data-world-menu-trigger="approved-header"]');
+      : document.querySelector('[data-world-menu-trigger="approved-header"]')
+        || document.querySelector('[data-world-menu-trigger="route-fallback"]');
     if (focusTarget && typeof focusTarget.focus === 'function') {
       try { focusTarget.focus(); } catch (_) {}
     }

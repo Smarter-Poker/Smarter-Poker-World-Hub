@@ -100,7 +100,8 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(recoverySource, /dialogRef\.current\?\.querySelectorAll/);
   assert.match(drawerSource, /prev\?\.isConnected/);
   assert.match(drawerSource, /data-world-menu-trigger="approved-header"/);
-  assert.match(drawerSource, /e\.key === 'Escape'/);
+  assert.match(drawerSource, /e\.key !== 'Escape'/);
+  assert.match(drawerSource, /e\.preventDefault\(\)/);
   assert.match(drawerSource, /minHeight: 44/);
 });
 
@@ -161,6 +162,8 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(reelsSource, /showOverlay && \([\s\S]*?<UniversalHeader/);
   assert.match(reelsSource, /if \(menuOpenRef\.current\) return;/);
+  assert.match(reelsSource, /getComputedStyle\(commandMenu\)\.visibility === 'visible'/);
+  assert.match(drawerSource, /data-world-menu-trigger="route-fallback"/);
   // Mobile phase 3 (2026-09-04): the lobby used to float UniversalHeader in
   // an absolute wrapper (zIndex 10050, pointerEvents none) above a
   // 100vh stage. The lobby is document flow on HubPageShell now, which

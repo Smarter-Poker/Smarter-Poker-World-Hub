@@ -2021,7 +2021,12 @@ export default function ReelsPage() {
       // both window listeners run for the same keypress: the drawer closes and
       // Reels also navigates back to Social Media.
       if (e.key === 'Escape') {
-        if (menuOpenRef.current) return;
+        const commandMenu = document.querySelector('[data-world-command-menu="social-media"]');
+        if (
+          e.defaultPrevented
+          || menuOpenRef.current
+          || (commandMenu && window.getComputedStyle(commandMenu).visibility === 'visible')
+        ) return;
         router.push('/hub/social-media');
       }
       // BUG FIX: Space bar is the universal play/pause shortcut — was missing
