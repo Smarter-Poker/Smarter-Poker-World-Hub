@@ -13,6 +13,7 @@ const reportBug = read('src/components/ui/ReportBugWidget.jsx');
 const hubPageShell = read('src/components/ui/HubPageShell.jsx');
 const universalHeader = read('src/components/ui/UniversalHeader.js');
 const commandDock = read('src/components/ui/WorldCommandDock.jsx');
+const documentSource = read('pages/_document.js');
 const hamburgerRegistry = read('src/config/hamburgerMenus.js');
 const footerRegistry = JSON.parse(read('src/config/world-footer-navigation.json'));
 const mobileBudget = JSON.parse(read('scripts/ci/mobile-budget.json'));
@@ -150,5 +151,22 @@ test('fallback-to-approved ownership handoff preserves an in-flight menu tap', (
   assert.match(universalHeader, /if \(onMenuClick && !ownsCanonicalMenu\) onMenuClick\(\)/);
   assert.match(commandDock, /const isOpenRef = useRef\(false\)/);
   assert.match(commandDock, /if \(isOpenRef\.current\)[\s\S]*?sp:open-approved-world-menu/);
+  assert.match(
+    commandDock,
+    /if \(isOpenRef\.current && approvedTriggers\.length > 0\)[\s\S]*?setHasHeaderTrigger\(true\)/,
+  );
+  assert.match(commandDock, /window\.setInterval\(transferIfApprovedOwnerExists, 50\)/);
+  assert.match(commandDock, /trigger\.getAttribute\('aria-expanded'\) === 'true' \|\| isTriggerUsable\(trigger\)/);
   assert.match(commandDock, /data-menu-symbol="hamburger"/);
+});
+
+test('font hydration visibility failsafe covers the nested World page wrapper', () => {
+  assert.match(
+    documentSource,
+    /#__next > div > div:not\(\[class\]\)\[style\*="visibility:hidden"\]/,
+  );
+  assert.match(
+    documentSource,
+    /#__next > div > div:not\(\[class\]\)\[style\*="visibility: hidden"\]/,
+  );
 });

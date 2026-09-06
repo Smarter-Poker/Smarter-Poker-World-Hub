@@ -140,8 +140,10 @@ export default class MyDocument extends Document {
                                keyframes and WebKit discards them entirely. */
                             to { visibility: visible; opacity: 1; }
                         }
-                        #__next > div[style*="visibility:hidden"],
-                        #__next > div[style*="visibility: hidden"] {
+                        #__next > div:not([class])[style*="visibility:hidden"],
+                        #__next > div:not([class])[style*="visibility: hidden"],
+                        #__next > div > div:not([class])[style*="visibility:hidden"],
+                        #__next > div > div:not([class])[style*="visibility: hidden"] {
                             animation: forceVisible 0s forwards;
                             animation-delay: 2s;
                         }
