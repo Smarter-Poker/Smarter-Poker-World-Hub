@@ -20,6 +20,7 @@ import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCac
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { buildGtoAnalysisStrings } from '../../../src/lib/explanationTemplates';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 let _supabase = null;
 function getSupabase() {
@@ -305,7 +306,7 @@ async function queryPioSolverData(params) {
     if (boardStr.length >= 6) {
         const tier1 = await getSupabase()
             .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
             .eq('game_type', pioGameType)
             .eq('street', street)
             .ilike('scenario_hash', `%${boardStr}%`)
@@ -331,7 +332,7 @@ async function queryPioSolverData(params) {
         const flopStr = boardStr.slice(0, 6);
         const tier2 = await getSupabase()
             .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
             .eq('game_type', pioGameType)
             .eq('street', street)
             .ilike('scenario_hash', `%${flopStr}%`)
@@ -355,7 +356,7 @@ async function queryPioSolverData(params) {
     // surface that this isn't an exact-board match.
     let tier3Query = getSupabase()
         .from('solved_spots_gold')
-        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
         .eq('game_type', pioGameType)
         .eq('street', street)
         .limit(10);
@@ -383,7 +384,8 @@ async function queryPioSolverData(params) {
 function pickFirstWithMatrix(rows) {
     if (!rows || rows.length === 0) return null;
     for (const r of rows) {
-        if (r.strategy_matrix) return r;
+        const strategyMatrix = selectTrustedSolverMatrix(r);
+        if (strategyMatrix) return { ...r, strategy_matrix: strategyMatrix };
     }
     return null;
 }

@@ -39,8 +39,13 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { v2ToAppMatrix } from '../utils/v2Matrix';
 import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
+import {
+    hasUntrustedLegacyFoldChannel,
+    inheritSolverMatrixTrust,
+    selectTrustedLegacySolverMatrix,
+    selectTrustedSolverMatrix,
+} from '../lib/training/solverMatrixTrust';
 
 // ●● Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ●●●●
 export function toHandClass(h) {
@@ -65,8 +70,10 @@ const SANITIZED_MATRICES = new WeakSet();
 
 /** Prefer strategy_matrix_v2 (rebuilt PioSOLVER data) when present. Mutates row. */
 function preferV2(row) {
-    if (row && row.strategy_matrix_v2) {
-        const m = v2ToAppMatrix(row.strategy_matrix_v2);
+    if (row
+        && row.strategy_matrix_v2 !== null
+        && row.strategy_matrix_v2 !== undefined) {
+        const m = selectTrustedSolverMatrix(row);
         // A present v2 payload is the rebuilt pipeline's authoritative
         // export. If it fails the strict bridge, reject the row outright;
         // falling back to v1 would conceal a damaged v2 solve.
@@ -132,7 +139,21 @@ function stampSolverProvenance(question, row) {
  * probability distribution; renormalize; delete non-credible hands entirely.
  */
 export function sanitizeStrategyMatrix(matrix) {
-    if (!matrix || SANITIZED_MATRICES.has(matrix)) return matrix;
+    if (!matrix) return matrix;
+    // V1 `f` is an EV/regret channel, not a Fold probability. Quarantine the
+    // entire legacy matrix rather than renormalizing the remaining channels
+    // into a strategy the solver never exported. Check this before the
+    // idempotence shortcut so a previously sanitized legacy object cannot be
+    // mutated later to smuggle an `f` channel past the boundary. Valid V2
+    // matrices carry a process-local trust mark and pass this check.
+    if (hasUntrustedLegacyFoldChannel(matrix)
+        && !selectTrustedLegacySolverMatrix(matrix)) {
+        matrix.actions = [];
+        matrix.frequencies = {};
+        SANITIZED_MATRICES.add(matrix);
+        return matrix;
+    }
+    if (SANITIZED_MATRICES.has(matrix)) return matrix;
     const actions = matrix.actions || [];
     const frequencies = matrix.frequencies || {};
     if (actions.length === 0) { SANITIZED_MATRICES.add(matrix); return matrix; }
@@ -207,12 +228,17 @@ function pruneScenarioToHand(scenario, hand) {
         const v = frequencies[a]?.[hand];
         pruned[a] = typeof v === 'number' ? { [hand]: v } : {};
     });
+    const prunedMatrix = inheritSolverMatrixTrust(matrix, {
+        ...matrix,
+        frequencies: pruned,
+    });
     return {
         ...scenario,
-        strategy_matrix: {
-            ...matrix,
-            frequencies: pruned,
-        },
+        // The pruned application matrix already came through the V2 bridge.
+        // Remove the source payload so the core builder consumes this exact
+        // one-hand copy instead of rebuilding the unpruned matrix.
+        strategy_matrix_v2: null,
+        strategy_matrix: prunedMatrix,
     };
 }
 
@@ -326,6 +352,7 @@ export function applyDeterministicEnginePatches(engine) {
         scenario, gameConfig, level, questionIndex, forcedHand = null
     ) {
         try {
+            preferV2(scenario);
             if (scenario?.strategy_matrix) sanitizeStrategyMatrix(scenario.strategy_matrix);
 
             if (forcedHand) {

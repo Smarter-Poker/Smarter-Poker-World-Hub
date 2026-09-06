@@ -11,6 +11,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 let _supabase = null;
 function getSupabase() {
@@ -274,7 +275,8 @@ export default async function handler(req, res) {
 
                       if (!seenSet.has(key)) {
                           // Pick a random hand from strategy matrix
-                          const strategyMatrix = scenario.strategy_matrix || {};
+                          const strategyMatrix = selectTrustedSolverMatrix(scenario);
+                          if (!strategyMatrix) continue;
                           const heroHandKey = pickRandomHand(strategyMatrix);
 
                           if (!heroHandKey) {
