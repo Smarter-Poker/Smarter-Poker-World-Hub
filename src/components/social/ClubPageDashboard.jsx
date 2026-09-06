@@ -76,6 +76,7 @@ import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
+import PokerCardText from '../../../src/components/social/PokerCardText';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
 import dynamic from 'next/dynamic';
 const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), {
@@ -1235,7 +1236,7 @@ const PostCard = React.memo(
                       {part}
                     </span>
                   ) : (
-                    part
+                    <PokerCardText key={i} text={part} />
                   )
                 );
                 return (
@@ -5091,7 +5092,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                         whiteSpace: 'pre-wrap',
                       }}
                     >
-                      {post.content}
+                      <PokerCardText text={post.content} />
                     </p>
                     {/* 2026-08-15 audit: media uploaded fine but was never
                         rendered — club posts showed text only. */}

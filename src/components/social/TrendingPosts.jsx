@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { readablePokerText } from '../../lib/pokerCardMarkup';
 
 const C = {
     card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -118,7 +119,7 @@ export default function TrendingPosts({ limit = 5 }) {
                             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                             overflow: 'hidden'
                         }}>
-                            {post.content?.slice(0, 80) || (post.content_type === 'video' ? 'Video Post' : 'Post')}
+                            {post.content ? readablePokerText(post.content).slice(0, 80) : (post.content_type === 'video' ? 'Video Post' : 'Post')}
                         </div>
                         <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>
                             {post.author?.full_name || post.author?.username || 'User'} · {post.engagement} Engagements

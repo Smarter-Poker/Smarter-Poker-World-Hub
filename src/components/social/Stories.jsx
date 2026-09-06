@@ -17,6 +17,7 @@ import { sniffMimeType, getYouTubeVideoId } from '../../lib/socialHelpers';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
 import { checkProfanity } from '../../lib/profanityFilter';
 import toast from '../../stores/toastStore';
+import PokerCardText from './PokerCardText';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -689,7 +690,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                             color: 'white', fontSize: 28, fontWeight: 700,
                             textAlign: 'center', textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                         }}>
-                            {currentStory.content}
+                            <PokerCardText text={currentStory.content} />
                         </p>
                     </div>
                 )}
@@ -702,7 +703,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                         textShadow: '0 2px 4px rgba(0,0,0,0.5)',
                         textAlign: 'center',
                     }}>
-                        {currentStory.content}
+                        <PokerCardText text={currentStory.content} />
                     </div>
                 )}
 
