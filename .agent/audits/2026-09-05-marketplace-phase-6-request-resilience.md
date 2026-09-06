@@ -67,3 +67,23 @@ connection remains deliberately deferred.
   asset, middleware-protected private response, and environment-independent
   check. Stripe and Supabase settlement probes were reserved for the configured
   production environment.
+
+## Publication Evidence
+
+- The Marketplace implementation merged through
+  [pull request 1400](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1400)
+  at protected-main commit `20c4be3ea0a7cfe1a69a5c23be0abbea40a774a4`.
+- Vercel production deployment `dpl_6jVBijSW6zpcdRYAGRD4YLDSrYsn` published
+  that exact commit to `smarter.poker` and reached Ready state.
+- The strict public deployment verifier passed every storefront, account
+  subpage, hero asset, private API boundary, catalog, readiness, capability,
+  checkout, and performance check. Card and Diamond checkout were both ready.
+  Automatic merchandise fulfillment remained deliberately deferred.
+- Every one of the thirteen anonymous private-API probes returned HTTP 401 with
+  both `private, no-store` caching and `Vary: Authorization`.
+- The complete live Marketplace browser suite passed 62 of 62 desktop and
+  mobile checks, including Title Case, banned-bar prevention, accessibility,
+  same-surface navigation, responsive controls, and both payment choices.
+- Five consecutive public health probes returned HTTP 200 with status `ok`,
+  database status `ok`, and exact version `20c4be3e`. Response times ranged
+  from 26 to 115 milliseconds.
