@@ -134,14 +134,22 @@ test('LAW 1 (self-check): the scan sees a bare signOut and a global one', () => 
 });
 
 const LOGIN_PROBE = readFileSync(join(ROOT, 'pages/api/cron/login-probe.js'), 'utf8');
+/**
+ * The gate moved out of login-probe.js on 2026-09-06, when the Club Arena
+ * table-socket probe needed the same rule. Copying it would have made two
+ * gates that drift; these pins follow it to the shared module and additionally
+ * require that EVERY probe imports that one.
+ */
+const PROBE_IDENTITY = readFileSync(join(ROOT, 'src/lib/probeIdentity.js'), 'utf8');
+const PROBE_ROUTES = ['pages/api/cron/login-probe.js', 'pages/api/cron/table-socket-probe.js'];
 
 test('LAW 2: login-probe only ever signs in as a dedicated probe account', () => {
   assert.match(
-    LOGIN_PROBE,
+    PROBE_IDENTITY,
     /export const PROBE_ACCOUNT_DOMAIN = 'probe\.smarter\.poker'/,
     'the probe-account domain is pinned to probe.smarter.poker'
   );
-  assert.match(LOGIN_PROBE, /export function isDedicatedProbeAccount\(/, 'the guard function exists');
+  assert.match(PROBE_IDENTITY, /export function isDedicatedProbeAccount\(/, 'the guard function exists');
   const guardAt = LOGIN_PROBE.indexOf('if (!isDedicatedProbeAccount(email))');
   const loginAt = LOGIN_PROBE.indexOf('anon.auth.signInWithPassword({ email, password })');
   assert.ok(guardAt > 0, 'the handler checks the account before using it');
@@ -158,7 +166,7 @@ test('LAW 2 (behaviour): the guard accepts only @probe.smarter.poker', () => {
   // The route file cannot be imported under plain node (Next.js ESM route),
   // so the helper is evaluated from its own source text - the same text CI
   // deploys.
-  const m = LOGIN_PROBE.match(/export function isDedicatedProbeAccount\(email\) \{[\s\S]*?\n\}/);
+  const m = PROBE_IDENTITY.match(/export function isDedicatedProbeAccount\(email\) \{[\s\S]*?\n\}/);
   assert.ok(m, 'guard source found');
   const fn = new Function(
     'PROBE_ACCOUNT_DOMAIN',
@@ -173,11 +181,17 @@ test('LAW 2 (behaviour): the guard accepts only @probe.smarter.poker', () => {
   assert.equal(fn('Daniel@Smarter.Poker'), true);
   assert.equal(fn('daniel@bekavactrading.com'), false, "Dan's personal account is refused");
   assert.match(
-    LOGIN_PROBE,
+    PROBE_IDENTITY,
     /export const PROBE_ALLOWED_ACCOUNTS = Object\.freeze\(\['daniel@smarter\.poker'\]\)/,
     'the allowlist is exactly the one service account - adding a person to it is the bug this law exists for'
   );
-  assert.doesNotMatch(LOGIN_PROBE, /bekavactrading/i, "Dan's personal address never appears in the probe");
+  for (const rel of PROBE_ROUTES) {
+    assert.doesNotMatch(
+      readFileSync(join(ROOT, rel), 'utf8'),
+      /bekavactrading/i,
+      `Dan's personal address never appears in ${rel}`
+    );
+  }
   assert.equal(fn('probe-login@smarter.poker'), false, 'the apex domain is not the probe domain');
   assert.equal(fn('x@probe.smarter.poker.evil.com'), false);
   assert.equal(fn(''), false);
@@ -240,4 +254,93 @@ test('LAW 1 (probe): both sign-outs in login-probe are local-scope', () => {
   const sites = signOutCallSites(LOGIN_PROBE);
   assert.equal(sites.length, 2, 'the success path and the failure path each sign out once');
   for (const args of sites) assert.match(args, /scope\s*:\s*'local'/);
+});
+
+test('LAW 2 (one gate): every probe imports the SHARED guard, never its own copy', () => {
+  for (const rel of PROBE_ROUTES) {
+    const src = readFileSync(join(ROOT, rel), 'utf8');
+    assert.match(
+      src,
+      /import \{[^}]*isDedicatedProbeAccount[^}]*\} from '[^']*lib\/probeIdentity'/,
+      `${rel} must import the shared guard`
+    );
+    // A second declaration would be a second gate, and the second gate is the
+    // one that is still wrong a year later.
+    assert.doesNotMatch(
+      src,
+      /^export function isDedicatedProbeAccount\(/m,
+      `${rel} declares its own copy of the guard - there is exactly one, in src/lib/probeIdentity.js`
+    );
+  }
+});
+
+test('LAW 4: the table-socket probe opens a REAL socket and waits for the felt', () => {
+  // 2026-09-06, Realtime Programme phase 6. Every monitor that was green
+  // through the 22-hour outage was green because it asked an HTTP question.
+  // The player's question is a WebSocket one, and nothing was asking it.
+  const RAW = readFileSync(join(ROOT, 'pages/api/cron/table-socket-probe.js'), 'utf8');
+  const PROBE = RAW;
+  /* Its header explains at length WHY it does not report through the engine,
+     so the prohibitions below must read CODE, not the prose about the code -
+     the same reason signOutCallSites strips comments before scanning. */
+  const CODE = RAW.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:\\])\/\/[^\n]*/g, '$1');
+
+  assert.match(PROBE, /new WebSocket\(url, \['bearer', token\]\)/, 'it takes the client path: subprotocol-carried bearer auth');
+  assert.match(PROBE, /\/ws\/table\//, 'against a real table socket');
+  assert.match(PROBE, /type === 'SNAPSHOT'/, 'and it is not satisfied until the felt arrives');
+
+  // A socket that opens and then says nothing is a DIFFERENT fault from a
+  // socket that is refused, and the runbook sends you to different places.
+  for (const outcome of ['no_snapshot', 'handshake_timeout', 'auth_refused', 'refused', 'probe_outdated']) {
+    assert.ok(PROBE.includes(`'${outcome}'`), `the probe distinguishes ${outcome}`);
+  }
+
+  // EVERY outcome is registered in PROBE_OUTCOMES, both ways. The 2026-09-06
+  // audit found `construct_failed` and `closed_before_snapshot` shipped and
+  // documented nowhere - an outcome that exists only in code is a page with no
+  // page to turn to.
+  const listed = [...(CODE.match(/export const PROBE_OUTCOMES = Object\.freeze\(\[([\s\S]*?)\]\)/) || [])[1]
+    .matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  const produced = [...CODE.matchAll(/finish\(\s*'([a-z_]+)'/g)].map((m) => m[1]);
+  // `construct_failed` is set directly rather than through finish(), so read
+  // the assignments too - a scan that misses a producer passes everything.
+  produced.push(...[...CODE.matchAll(/result\.outcome = '([a-z_]+)'/g)].map((m) => m[1]));
+  assert.ok(produced.length >= 8, `the outcome scan found only ${produced.length} producers - it is broken, not the code`);
+  for (const o of new Set(produced)) {
+    assert.ok(listed.includes(o), `outcome '${o}' is produced but not in PROBE_OUTCOMES`);
+  }
+  for (const o of listed) {
+    assert.ok(produced.includes(o), `PROBE_OUTCOMES lists '${o}' but nothing produces it`);
+  }
+
+  // It closes what it opens. A probe that leaks a socket every five minutes
+  // walks into the per-user cap and then reports an outage it caused.
+  assert.match(PROBE, /ws\.close\(1000, 'probe complete'\)/);
+
+  // It must never act on the table it is watching.
+  for (const forbidden of ['/action', '/addchips', '/leave', '/preaction', '/timebank']) {
+    assert.ok(!CODE.includes(forbidden), `a probe must never call ${forbidden}`);
+  }
+
+  // The engine's own metrics must NOT be where this reports. A monitor that
+  // reports through the thing it monitors cannot report the outage it exists
+  // for - which is the entire lesson of 2026-09-03.
+  assert.ok(
+    !/\/client-event/.test(CODE) && !/\/metrics/.test(CODE),
+    'the probe must not report its result through the engine it is testing'
+  );
+});
+
+test('LAW 4 (wiring): the probe is scheduled on Open Claw and pages when it fails', () => {
+  // CLAUDE.md 10.85: a real cron, never the Claude scheduler. And 11.2 rule 5:
+  // a job whose FAILURE is an incident belongs in CRITICAL_JOBS, or the only
+  // record is a journal line nobody reads.
+  const DISPATCHER = readFileSync(join(ROOT, 'scripts/openclaw-cron-dispatcher.py'), 'utf8');
+  assert.match(DISPATCHER, /\('\/api\/cron\/table-socket-probe',\s*dict\(minute=/, 'it is in ALL_CRONS');
+  assert.match(DISPATCHER, /'\/api\/cron\/table-socket-probe':\s*3,/, 'three consecutive failures page');
+  assert.match(
+    DISPATCHER,
+    /'\/api\/cron\/table-socket-probe':\s*'club-arena\/docs\/runbooks\/tables-say-reconnecting\.md'/,
+    'and the page carries the runbook that tells you what to do'
+  );
 });
