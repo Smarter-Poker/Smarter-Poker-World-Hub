@@ -39,7 +39,12 @@ function getApprovedTriggers() {
 }
 
 function hasUsableApprovedTrigger(triggers = getApprovedTriggers()) {
-  return triggers.some(isTriggerUsable);
+  // The canonical drawer intentionally makes the header branch inert while it
+  // is open. Its expanded trigger still proves ownership; treating it as
+  // absent would remount the fallback and duplicate the open drawer.
+  return triggers.some((trigger) => (
+    trigger.getAttribute('aria-expanded') === 'true' || isTriggerUsable(trigger)
+  ));
 }
 
 /**
@@ -86,6 +91,27 @@ export default function WorldCommandDock() {
     return () => window.removeEventListener('sp:approved-world-menu-owner', claimApprovedOwner);
   }, [world?.id]);
 
+  // Mutation delivery and nested React layout effects do not have a stable
+  // cross-root ordering in WebKit. While a fallback is actually open, keep a
+  // tiny bounded ownership watch alive so an approved header that appears in
+  // another React branch cannot leave both drawers mounted. The interval is
+  // torn down as soon as the fallback closes; it does no idle-page polling.
+  useLayoutEffect(() => {
+    if (!isOpen || !world) return undefined;
+    const transferIfApprovedOwnerExists = () => {
+      if (!isOpenRef.current || getApprovedTriggers().length === 0) return;
+      window.dispatchEvent(new CustomEvent('sp:open-approved-world-menu', {
+        detail: { id: world.id },
+      }));
+      isOpenRef.current = false;
+      setIsOpen(false);
+      setHasHeaderTrigger(true);
+    };
+    transferIfApprovedOwnerExists();
+    const ownershipWatch = window.setInterval(transferIfApprovedOwnerExists, 50);
+    return () => window.clearInterval(ownershipWatch);
+  }, [isOpen, world]);
+
   useLayoutEffect(() => {
     if (!world || isEmbedded || suppressForRoute || typeof document === 'undefined') {
       setHasHeaderTrigger(true);
@@ -115,6 +141,23 @@ export default function WorldCommandDock() {
             attributeFilter: ['aria-hidden', 'class', 'hidden', 'inert', 'style'],
           });
         }
+      }
+
+      // An open fallback drawer makes every obscured page branch inert. When
+      // an approved header mounts behind that drawer (notably Reels after its
+      // HUD is revealed), the new trigger is intentionally not "usable" yet.
+      // Structural ownership is nevertheless enough to complete the handoff:
+      // close the fallback first, then let the approved owner reopen its one
+      // canonical drawer. Waiting for usability here creates two overlapping
+      // drawers because the fallback itself is what keeps the trigger inert.
+      if (isOpenRef.current && approvedTriggers.length > 0) {
+        queueMicrotask(() => window.dispatchEvent(new CustomEvent('sp:open-approved-world-menu', {
+          detail: { id: world.id },
+        })));
+        isOpenRef.current = false;
+        setIsOpen(false);
+        setHasHeaderTrigger(true);
+        return;
       }
 
       if (hasUsableApprovedTrigger(approvedTriggers)) {
