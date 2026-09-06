@@ -359,6 +359,8 @@ export const VIP_MEMBERSHIP = {
         name: 'VIP Monthly',
         price: 19.99,
         interval: 'month',
+        cardCheckoutReady: true,
+        diamondCheckoutReady: true,
         popular: true,
     },
     yearly: {
@@ -366,6 +368,8 @@ export const VIP_MEMBERSHIP = {
         name: 'VIP Yearly',
         price: 199.99,
         interval: 'year',
+        cardCheckoutReady: true,
+        diamondCheckoutReady: true,
         savings: 39.89, // 2 months free
         popular: false,
     },
@@ -379,6 +383,7 @@ export const VIP_MEMBERSHIP = {
            machine is completed. Diamond settlement is live and atomic. */
         oneTime: true,
         cardCheckoutReady: false,
+        diamondCheckoutReady: true,
         popular: false,
     },
 };

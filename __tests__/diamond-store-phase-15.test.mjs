@@ -128,16 +128,19 @@ test('cart ownership, current variant price, and balance broadcasts survive relo
 });
 
 test('lifetime VIP and operator fulfillment remain fail-closed', async () => {
-  const [checkout, webhook, statusApi, migration, operations, merchStore] = await Promise.all([
+  const [checkout, webhook, statusApi, migration, vipMutex, operations, merchStore] = await Promise.all([
     read('pages/api/store/create-checkout-session.js'),
     read('pages/api/store/webhooks/stripe.js'),
     read('pages/api/store/vip-membership-status.js'),
     read('supabase/migrations/20260830100000_card_commerce_settlement_hardening.sql'),
+    read('supabase/migrations/20260906213000_marketplace_phase7_vip_acquisition_mutex.sql'),
     read('pages/api/store/fulfillment-operations.js'),
     read('src/components/store/MerchStore.jsx'),
   ]);
   assert.match(checkout, /LIFETIME_VIP_ALREADY_OWNED/);
-  assert.match(webhook, /const preservesLifetime = profile\.vip_tier === 'lifetime'/);
+  assert.match(vipMutex, /v_profile\.vip_tier = 'lifetime'[\s\S]*v_profile\.vip_expires_at > p_current_period_end/);
+  assert.match(vipMutex, /v_preserve_non_card_entitlement/);
+  assert.doesNotMatch(webhook, /\.from\('profiles'\)[\s\S]{0,100}\.update\(/);
   assert.match(statusApi, /const tier = isLifetime \? 'lifetime'/);
   assert.match(migration, /<> 'manual'/);
   assert.match(migration, /shipping_address_required/);
@@ -174,7 +177,9 @@ test('card checkout idempotency is user-scoped and bound to normalized intent', 
   assert.match(checkout, /commerce:customer:\$\{user\.id\}/);
   assert.match(checkout, /CHECKOUT_RECOVERY_PENDING/);
   assert.match(checkout, /entry\.metadata\?\.checkout_intent_hash === checkoutIntentHash/);
-  assert.doesNotMatch(checkout, /entry\.metadata\?\.checkout_request_id === checkoutRequestId/);
+  // Recovery now requires both the opaque request identity and the normalized
+  // intent hash before an existing Stripe URL can be reattached to the mutex.
+  assert.match(checkout, /entry\.metadata\?\.checkout_request_id === checkoutRequestId/);
 });
 
 test('refund replay guards keep uncredited Diamonds and shipped stock untouched', async () => {

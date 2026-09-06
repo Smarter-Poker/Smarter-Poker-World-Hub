@@ -38,6 +38,7 @@ test('catalog readiness detects its bound with one sentinel row', async () => {
       const query = {
         select() { return query; },
         eq() { return query; },
+        order() { return query; },
         async range(start, end) {
           return { data: rows[table].slice(start, end + 1), error: null };
         },

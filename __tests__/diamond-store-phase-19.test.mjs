@@ -86,9 +86,14 @@ test('production verification exercises canonical cache behavior and ships Phase
     read('package.json'),
     read('.vercelignore'),
   ]);
-  assert.match(verifier, /fetch\(`\$\{baseUrl\}\/api\/store\/merch-catalog`/);
+  assert.match(verifier, /const merchCatalogPath = requireProductionTruth/);
+  assert.match(verifier, /fetch\(`\$\{baseUrl\}\$\{merchCatalogPath\}`/);
+  assert.match(verifier, /\/api\/store\/merch-catalog\?strict=1/);
   assert.doesNotMatch(verifier, /merch-catalog\?limit=100/);
-  const readinessProbe = verifier.slice(verifier.indexOf('`${baseUrl}/api/store/readiness`'));
+  const readinessProbe = verifier.slice(
+    verifier.indexOf('`${baseUrl}/api/store/readiness`'),
+    verifier.indexOf('let health = null')
+  );
   assert.doesNotMatch(readinessProbe, /'Cache-Control': 'no-cache'/);
   assert.match(pkg, /__tests__\/diamond-store-phase-19\.test\.mjs/);
   assert.match(ignore, /!\/__tests__\/diamond-store-phase-19\.test\.mjs/);

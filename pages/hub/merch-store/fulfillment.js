@@ -202,7 +202,7 @@ export default function MerchandiseFulfillmentConsole() {
         noindex
       />
       <UniversalHeader pageDepth={2} />
-      <main className={styles.page}>
+      <main className={styles.page} data-marketplace-route="/hub/merch-store/fulfillment">
         <header className={styles.hero}>
           <div className={styles.eyebrow}><ShieldCheck size={16} /> Protected Store Operations</div>
           <h1>Fulfillment Command Vault</h1>
