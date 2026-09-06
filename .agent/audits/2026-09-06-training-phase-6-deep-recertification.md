@@ -1,8 +1,8 @@
 # Training Phase 6 Of 16: Deep Re-Certification
 
 Date: 2026-09-06
-Status: Protected implementation merged; post-merge E2E remediation in progress
-Protected Main Baseline: `088e1163dd62cb3e1ba4a34fd3ad93d856a0e72f`
+Status: Protected implementation and E2E remediation merged; production re-certification in progress
+Protected Main Baseline: `cfa00625ea196aaddf3cfc2113e409ee5e9e3808`
 
 ## Release Decision
 
@@ -90,6 +90,13 @@ and the production re-certification passes.
   focus immediately after the check, and a Personal Assistant focus timer could
   race its own wraparound assertion. The checks now observe one atomic fallback
   state and wait for the declared stable map and initial-focus contracts.
+- The exhaustive production runtime auditor checked every CSS-visible image only
+  100 milliseconds after navigation, including off-screen lazy images, and
+  classified pending decodes as broken. It now waits for non-header images that
+  intersect the viewport, performs one bounded read-only page replay when an
+  image is still pending, records every recovery attempt, and continues to fail
+  persistent load or decode errors. All 12 initially reported routes then passed
+  48/48 targeted mobile and desktop surface checks with zero recovery attempts.
 
 ## Current Club Arena Contract
 
@@ -169,9 +176,14 @@ seat, table, header, footer, collision, overflow, and image guards. Both
 - The optional cross-browser global footer, World menu, and mobile performance
   workflow passed without touching the approved global header.
 - The general post-merge E2E exposed the discovery-time saved-state defect
-  above. Phase 6 remains open until its protected remediation merges, all
-  post-merge jobs pass, production serves the final descendant, and the full
-  production Training browser receipts pass against that exact release.
+  above. Remediation PR #1418 merged normally as `82ebfa806eac5aaddb13c10cd69537332a4ab745`.
+- Global E2E timing remediation PR #1419 merged normally as
+  `cfa00625ea196aaddf3cfc2113e409ee5e9e3808`. Its complete post-merge Playwright
+  workflow passed, production serves exact revision `cfa00625`, and the live
+  database health check is green.
+- Phase 6 remains open until the corrected runtime auditor merges through
+  protected checks and the final full production Training browser receipts pass
+  against the exact release.
 
 ## Next Phase
 

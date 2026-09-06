@@ -375,6 +375,56 @@ async function auditLifecycle(page, game, viewport) {
   return result;
 }
 
+async function waitForVisibleImages(page, timeout = 10_000) {
+  await page.waitForFunction(() => {
+    const visibleInViewport = (element) => {
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return box.width > 0
+        && box.height > 0
+        && box.bottom > 0
+        && box.top < innerHeight
+        && style.display !== 'none'
+        && style.visibility !== 'hidden';
+    };
+
+    return [...document.images]
+      .filter((image) => (
+        visibleInViewport(image)
+        && !image.closest('.approved-global-header')
+      ))
+      .every((image) => image.complete && image.naturalWidth > 0);
+  }, undefined, { timeout }).catch(() => undefined);
+}
+
+async function readNavigationState(page) {
+  return page.evaluate(() => {
+    const visibleInViewport = (element) => {
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return box.width > 0
+        && box.height > 0
+        && box.bottom > 0
+        && box.top < innerHeight
+        && style.display !== 'none'
+        && style.visibility !== 'hidden';
+    };
+    return {
+      title: document.title.trim(),
+      overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      approvedHeaders: document.querySelectorAll('.approved-global-header').length,
+      brokenVisibleImages: [...document.images]
+        .filter((image) => (
+          visibleInViewport(image)
+          && !image.closest('.approved-global-header')
+          && (!image.complete || image.naturalWidth === 0)
+        ))
+        .map((image) => image.currentSrc || image.src),
+      bodyText: (document.body?.innerText || '').slice(0, 2_000),
+    };
+  });
+}
+
 async function auditNavigation(page, route, expectedSelector) {
   const consoleErrors = [];
   const pageErrors = [];
@@ -389,37 +439,27 @@ async function auditNavigation(page, route, expectedSelector) {
   page.on('pageerror', onPageError);
 
   try {
-    const response = await page.goto(`${BASE_URL}${route}`, {
+    let response = await page.goto(`${BASE_URL}${route}`, {
       waitUntil: 'domcontentloaded',
       timeout: 45_000,
     });
     await page.locator(expectedSelector).first().waitFor({ state: 'visible', timeout: 45_000 });
-    await page.waitForTimeout(100);
-    const state = await page.evaluate(() => {
-      const visible = (element) => {
-        const rect = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-      };
-      return {
-        title: document.title.trim(),
-        overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
-        approvedHeaders: document.querySelectorAll('.approved-global-header').length,
-        brokenVisibleImages: [...document.images]
-          .filter((image) => (
-            visible(image)
-            && !image.closest('.approved-global-header')
-            && (!image.complete || image.naturalWidth === 0)
-          ))
-          .map((image) => image.currentSrc || image.src),
-        bodyText: (document.body?.innerText || '').slice(0, 2_000),
-      };
-    });
+    await waitForVisibleImages(page);
+    let state = await readNavigationState(page);
+    let imageRecoveryChecks = 0;
+    if (state.brokenVisibleImages.length) {
+      imageRecoveryChecks = state.brokenVisibleImages.length;
+      response = await page.reload({ waitUntil: 'domcontentloaded', timeout: 45_000 });
+      await page.locator(expectedSelector).first().waitFor({ state: 'visible', timeout: 45_000 });
+      await waitForVisibleImages(page);
+      state = await readNavigationState(page);
+    }
     return {
       responseStatus: response?.status() || 0,
       finalPath: new URL(page.url()).pathname,
       consoleErrors,
       pageErrors,
+      imageRecoveryChecks,
       ...state,
     };
   } finally {
@@ -461,7 +501,13 @@ async function auditGame(page, game, viewport) {
     if (openLevels < 1) failures.push(`resume open-level count ${openLevels}`);
     const campaignText = (await page.locator('.sp-level-game-info').innerText()).toLocaleLowerCase();
     if (!campaignText.includes(game.name.toLocaleLowerCase())) failures.push('game name missing from campaign header');
-    results.push({ gameId: game.id, viewport: viewport.name, surface: 'play', failures });
+    results.push({
+      gameId: game.id,
+      viewport: viewport.name,
+      surface: 'play',
+      imageRecoveryChecks: state.imageRecoveryChecks,
+      failures,
+    });
   } catch (error) {
     results.push({ gameId: game.id, viewport: viewport.name, surface: 'play', failures: [error?.message || String(error)] });
   }
@@ -502,6 +548,7 @@ async function auditGame(page, game, viewport) {
       lobbyReady: true,
       runtimeUi: actualUi,
       optionCount,
+      imageRecoveryChecks: state.imageRecoveryChecks,
       failures,
     });
     if (LIFECYCLE_AUDIT && failures.length === 0) {
@@ -687,6 +734,9 @@ const summary = {
   clubArenaChecks: results.filter((result) => result.runtimeUi === 'club-arena-table').length,
   psychologyChecks: results.filter((result) => result.runtimeUi === 'psychology-scenario').length,
   lifecycleChecks: results.filter((result) => result.surface === 'lifecycle').length,
+  imageRecoveryChecks: results.reduce((total, result) => (
+    total + Number(result.imageRecoveryChecks || 0)
+  ), 0),
   lifecycleStateChecks: {
     loadRecovery: results.filter((result) => result.loadRecovery).length,
     correctFeedback: results.filter((result) => result.correctFeedback).length,

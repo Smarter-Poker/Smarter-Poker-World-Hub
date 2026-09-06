@@ -585,6 +585,23 @@ test('runtime matrix workers claim a game before yielding to page creation', () 
   assert.doesNotMatch(audit, /auditGame\(page, queue\.shift\(\)/);
 });
 
+test('runtime matrix waits for rendered viewport images before classifying failures', () => {
+  const audit = fs.readFileSync(
+    path.join(ROOT, 'scripts/training-runtime-surface-audit.mjs'),
+    'utf8'
+  );
+
+  assert.match(audit, /async function waitForVisibleImages\(page/);
+  assert.match(audit, /box\.bottom > 0[\s\S]*box\.top < innerHeight/);
+  assert.match(audit, /await waitForVisibleImages\(page\)/);
+  assert.match(
+    audit,
+    /visibleInViewport\(image\)[\s\S]*!image\.closest\('\.approved-global-header'\)[\s\S]*\(!image\.complete \|\| image\.naturalWidth === 0\)/
+  );
+  assert.match(audit, /if \(state\.brokenVisibleImages\.length\)[\s\S]*page\.reload\(/);
+  assert.match(audit, /imageRecoveryChecks:/);
+});
+
 test('mobile arena launch remains tappable on the footerless safe-area edge', () => {
   const trainingCss = fs.readFileSync(path.join(ROOT, 'src/styles/worlds/training.css'), 'utf8');
   const notificationPrompt = fs.readFileSync(
