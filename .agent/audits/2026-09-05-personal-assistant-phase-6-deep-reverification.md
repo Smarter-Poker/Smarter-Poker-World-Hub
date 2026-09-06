@@ -52,6 +52,7 @@ Phase 7 did not begin during this work.
 - The deployed Chromium, mobile Chrome, desktop Safari, and iPhone Safari matrix passed 60 applicable journeys with four intentional desktop-only viewport skips.
 - A first protected Daniel-account reconciliation retained 37 history rows without duplication, scanned all 1,468 Club Arena records across eight batches, recovered 579 private-card records, preserved 19 findings, covered all 32 corrective destinations, and returned a five-question verified drill with hidden answers.
 - That receipt also exposed the matcher-freshness defect described above before phase closure. Its correction and final post-deployment reconciliation are the last release gate for this audit.
+- The first follow-up CI build exposed a secret-precedence leak in the legacy-cursor fixture itself. The test now isolates and restores both supported signing-secret variables, and passes with a conflicting service-role secret preloaded, matching the CI environment.
 
 ## Scope Note
 

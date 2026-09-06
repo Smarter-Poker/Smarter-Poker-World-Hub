@@ -19,7 +19,10 @@ test('Club Arena participant filter is one deduplicated modern-plus-legacy resul
 
 test('a signed version-one cursor safely restarts its frozen snapshot', () => {
   const previous = process.env.NEXTAUTH_SECRET;
-  process.env.NEXTAUTH_SECRET = 'cursor-upgrade-test-secret';
+  const previousServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const testSecret = 'cursor-upgrade-test-secret';
+  process.env.NEXTAUTH_SECRET = testSecret;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = testSecret;
   try {
     const legacy = {
       snapshotAt: '2026-08-30T12:00:00.000Z',
@@ -42,6 +45,8 @@ test('a signed version-one cursor safely restarts its frozen snapshot', () => {
   } finally {
     if (previous === undefined) delete process.env.NEXTAUTH_SECRET;
     else process.env.NEXTAUTH_SECRET = previous;
+    if (previousServiceRole === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousServiceRole;
   }
 });
 
