@@ -95,22 +95,6 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     expect(mobileContract.minControlWidth).toBeGreaterThanOrEqual(44);
     expect(mobileContract.minControlHeight).toBeGreaterThanOrEqual(44);
 
-    const lastAction = drawer.locator('a[href], button:not([disabled])').last();
-    await lastAction.scrollIntoViewIfNeeded();
-    await expect(lastAction).toBeVisible();
-    const lastActionBox = await lastAction.boundingBox();
-    expect(lastActionBox).not.toBeNull();
-    expect((lastActionBox?.y || 0) + (lastActionBox?.height || 0)).toBeLessThanOrEqual(568);
-
-    // Reachability deliberately scrolls the drawer. Reset the captured state so
-    // the visual baseline always represents the menu entrance, independent of
-    // each world's number of secondary actions or the browser's scroll anchor.
-    await drawer.evaluate((element) => {
-      element.scrollTop = 0;
-      element.scrollLeft = 0;
-    });
-    await expect.poll(() => drawer.evaluate((element) => element.scrollTop)).toBe(0);
-
     if (world.id === 'social-media') {
       const socialTiles = await drawer.locator('.sp-grid-tile').evaluateAll((tiles) =>
         tiles.map((tile) => getComputedStyle(tile).backgroundColor)
@@ -125,5 +109,17 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
       threshold: 0.3,
       maxDiffPixelRatio: 0.15,
     });
+
+    // Exercise the bottom only after capturing the deterministic entrance.
+    // The atomic query tolerates legitimate secondary-action rerenders without
+    // holding a stale child element in Chromium or WebKit.
+    await expect.poll(() => drawer.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      const actions = element.querySelectorAll('a[href], button:not([disabled])');
+      const lastAction = actions.item(actions.length - 1);
+      if (!lastAction) return false;
+      const box = lastAction.getBoundingClientRect();
+      return box.top >= 0 && box.bottom <= window.innerHeight;
+    })).toBe(true);
   });
 }
