@@ -27,6 +27,7 @@ const STORE = readFileSync(join(ROOT, 'pages/hub/diamond-store.js'), 'utf8');
 const DATA = readFileSync(join(ROOT, 'src/data/diamondStoreData.js'), 'utf8');
 const CHECKOUT = readFileSync(join(ROOT, 'pages/api/store/create-checkout-session.js'), 'utf8');
 const WEBHOOK = readFileSync(join(ROOT, 'pages/api/store/webhooks/stripe.js'), 'utf8');
+const PUBLIC_CATALOG = readFileSync(join(ROOT, 'pages/api/club-arena/store-catalog.js'), 'utf8');
 
 test('the three plans are actually RENDERED, not merely imported', () => {
   // Dan 2026-09-05: "just vip, monthly, yearly or lifetime". Was
@@ -53,6 +54,12 @@ test('handleVIPSubscribe exposes card subscriptions and gates Lifetime to its at
   assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
   assert.match(DATA, /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*false/,
     'lifetime must stay Diamond-only until its complete card refund/provenance lifecycle is published');
+  assert.match(PUBLIC_CATALOG, /id:\s*'vip-monthly',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must explicitly advertise the live monthly Card path');
+  assert.match(PUBLIC_CATALOG, /id:\s*'vip-yearly',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must explicitly advertise the live yearly Card path');
+  assert.match(PUBLIC_CATALOG, /id:\s*'vip-lifetime',[\s\S]*?cardCheckoutReady:\s*false/,
+    'the public catalog must not advertise the paused Lifetime Card path');
   assert.match(CHECKOUT, /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/,
     'the server must mirror the storefront capability gate');
   assert.match(STORE, /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,

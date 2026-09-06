@@ -332,6 +332,36 @@ export const PROBE_OUTCOMES = Object.freeze([
   'construct_failed',
 ]);
 
+/**
+ * Is the platform on its announced maintenance break right now?
+ *
+ * CLAUDE.md 13 rule 6 (Club Arena): "fleet-level alert rules carry the break
+ * guard, or they page hourly about a stop we scheduled." This probe is a
+ * fleet-level monitor and did not carry it. Measured over its first two hours
+ * live: 22 runs, 20 ok, and BOTH failures at `:58` - one `pick_table` (no
+ * table has dealt for ten minutes, because every table is parked) and one
+ * `no_snapshot` (the socket opens and the room publishes nothing, for the same
+ * reason). Neither is a fault. Reporting them as failures puts a red row on
+ * the dashboard every hour and teaches whoever reads it to skip `:58`.
+ *
+ * The freeze lives in Postgres precisely because the engine is away for two of
+ * the five minutes (rule 1), so this asks the database, not the engine - the
+ * one source that is still answering while the tables are parked.
+ *
+ * Fails OPEN: if the question cannot be asked, the failure stays a failure. A
+ * probe that swallowed a real outage because it could not reach Postgres would
+ * be worse than one that cries at `:58`.
+ */
+async function platformIsFrozen(admin) {
+  try {
+    const { data, error } = await admin.rpc('fn_platform_frozen');
+    if (error) return false;
+    return data === true;
+  } catch {
+    return false;
+  }
+}
+
 /** Outcomes that mean the platform is fine and the PROBE needs attention. */
 export const PROBE_FAULT_OUTCOMES = Object.freeze(['probe_outdated']);
 
@@ -435,6 +465,26 @@ async function handler(req, res) {
 
     await anon.auth.signOut({ scope: 'local' }).catch(() => null);
 
+    if (!steps.socket.ok && (await platformIsFrozen(admin))) {
+      // The announced break, not a fault. 200 so the dispatcher's
+      // consecutive-failure counter never sees it.
+      const skipped = {
+        status: 'skipped',
+        reason: 'maintenance_break',
+        duration_ms: Date.now() - startedAt,
+        outcome: steps.socket.outcome,
+        steps,
+      };
+      const { error: hbErr } = await admin.from('probe_heartbeats').insert({
+        probe_name: 'table-socket-probe',
+        status: 'skipped',
+        duration_ms: skipped.duration_ms,
+        details: skipped,
+      });
+      if (hbErr) console.warn('[table-socket-probe] heartbeat insert failed:', hbErr.message);
+      return res.status(200).json(skipped);
+    }
+
     if (!steps.socket.ok) {
       const probeFault = PROBE_FAULT_OUTCOMES.includes(steps.socket.outcome);
       const failure = {
@@ -482,6 +532,26 @@ async function handler(req, res) {
     return res.status(200).json(ok);
   } catch (err) {
     if (signedIn) await anon.auth.signOut({ scope: 'local' }).catch(() => null);
+
+    // Same guard on the thrown path - `pick_table` fails during the break for
+    // the same reason, because a parked fleet deals no hands.
+    if (await platformIsFrozen(admin)) {
+      const skipped = {
+        status: 'skipped',
+        reason: 'maintenance_break',
+        duration_ms: Date.now() - startedAt,
+        error: err?.message || String(err),
+        steps,
+      };
+      const { error: hbErr } = await admin.from('probe_heartbeats').insert({
+        probe_name: 'table-socket-probe',
+        status: 'skipped',
+        duration_ms: skipped.duration_ms,
+        details: skipped,
+      });
+      if (hbErr) console.warn('[table-socket-probe] heartbeat insert failed:', hbErr.message);
+      return res.status(200).json(skipped);
+    }
 
     const failure = {
       status: 'failed',

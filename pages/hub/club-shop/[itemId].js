@@ -14,27 +14,20 @@ import {
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
+import {
+  getClubDiamondPurchaseProjection,
+  getClubItemEffectivePrice,
+  normalizeClubCardQuote,
+} from '../../../src/lib/store/clubCardCheckout.mjs';
 
 const CLUB_DETAIL_LOAD_TIMEOUT_MS = 20000;
-
-const PACKAGE_OPTIONS = [
-  { packageId: 'micro', diamonds: 100, price: 1 },
-  { packageId: 'small', diamonds: 500, price: 5 },
-  { packageId: 'medium', diamonds: 1000, price: 10 },
-  { packageId: 'standard', diamonds: 2500, price: 25 },
-  { packageId: 'large', diamonds: 5000, price: 50 },
-  { packageId: 'value', diamonds: 10500, price: 100 },
-  { packageId: 'premium', diamonds: 26250, price: 250 },
-  { packageId: 'whale', diamonds: 52500, price: 500 },
-];
-
-function cardTopUpFor(priceInDiamonds) {
-  const required = Math.max(1, Number(priceInDiamonds) || 0);
-  return PACKAGE_OPTIONS
-    .map((option) => ({ ...option, quantity: Math.ceil(required / option.diamonds) }))
-    .filter((option) => option.quantity <= 10)
-    .sort((a, b) => a.price * a.quantity - b.price * b.quantity)[0] || null;
-}
+const CLUB_CARD_REFRESH_CODES = new Set([
+  'CHECKOUT_EXPIRED',
+  'CARD_QUOTE_CHANGED',
+  'CLUB_ITEM_PRICE_CHANGED',
+  'CLUB_ITEM_PRICE_CONFIRMATION_REQUIRED',
+  'CLUB_CARD_QUOTE_CONFIRMATION_REQUIRED',
+]);
 
 export default function ClubShopItemDetail() {
   const router = useRouter();
@@ -106,12 +99,22 @@ export default function ClubShopItemDetail() {
       }
       setClubId(targetClub);
       setBalance(Number(body.balance) || 0);
+      const listPrice = Number(match.price) || 0;
+      const effectivePrice = Number.isFinite(Number(match.effective_price))
+        ? Number(match.effective_price)
+        : getClubItemEffectivePrice(listPrice, match.sale_price);
       setItem({
         ...match,
         name: marketplaceCopy(match.name),
         description: marketplaceCopy(match.description),
         category: marketplaceCopy(match.category),
-        price: Number(match.price) || 0,
+        list_price: listPrice,
+        price: effectivePrice,
+        on_sale: match.on_sale === true || effectivePrice < listPrice,
+        available: match.available === true,
+        availability_reason: match.availability_reason || null,
+        card_checkout_reason: match.card_checkout_reason || null,
+        card_quote: normalizeClubCardQuote(match.card_quote),
       });
       setState(completionMessage
         ? { kind: 'complete', message: completionMessage }
@@ -156,6 +159,16 @@ export default function ClubShopItemDetail() {
       setState({ kind: 'error', message: 'Verified club item context is unavailable. Reload inventory and try again.' });
       return false;
     }
+    if (target.available !== true) {
+      setState({ kind: 'error', message: 'This Item Is Not Available For Purchase.' });
+      return false;
+    }
+    const diamondProjection = getClubDiamondPurchaseProjection(target.price, balance);
+    if (Number(target.price) !== 0
+      && (!diamondProjection || diamondProjection.hasDebt || diamondProjection.shortfall > 0)) {
+      setState({ kind: 'error', message: 'Your Verified Diamond Balance Cannot Fund This Purchase.' });
+      return false;
+    }
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Authorizing diamond wallet settlement…' });
     try {
@@ -166,10 +179,21 @@ export default function ClubShopItemDetail() {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': target.purchaseRequestId || diamondPurchaseRequestId,
         },
-        body: JSON.stringify({ clubId: targetClub, itemId: target.id }),
+        body: JSON.stringify({
+          clubId: targetClub,
+          itemId: target.id,
+          expectedPrice: Number(target.price),
+        }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.success) {
+        if (body?.reason === 'price_changed') {
+          clearCommerceRequestId(diamondCommerceIntent);
+          setDiamondPurchaseRequestId(null);
+          setDiamondCommerceIntent(null);
+          setDiamondReviewOpen(false);
+          await loadItem();
+        }
         setState({ kind: 'error', message: body?.error || 'Purchase could not be completed.' });
         return false;
       }
@@ -190,13 +214,13 @@ export default function ClubShopItemDetail() {
     } finally {
       processingRef.current = false;
     }
-  }, [clubId, diamondCommerceIntent, diamondPurchaseRequestId, item]);
+  }, [clubId, diamondCommerceIntent, diamondPurchaseRequestId, item, loadItem]);
 
   const purchaseWithCard = async () => {
     if (processingRef.current) return;
     const token = getAccessToken();
     const authUser = getAuthUser();
-    const topUp = cardTopUpFor(item?.price);
+    const cardQuote = normalizeClubCardQuote(item?.card_quote);
     if (!token || !authUser?.id) {
       setState({ kind: 'auth', message: 'Sign in again before opening secure card checkout.' });
       return;
@@ -205,7 +229,18 @@ export default function ClubShopItemDetail() {
       setState({ kind: 'error', message: 'Verified club item context is unavailable. Reload inventory and try again.' });
       return;
     }
-    if (!topUp) {
+    if (item.available !== true) {
+      setState({ kind: 'error', message: 'This Item Is Not Available For Purchase.' });
+      return;
+    }
+    if (Number(balance) < 0) {
+      setState({
+        kind: 'error',
+        message: 'Card Checkout Is Paused Until Your Diamond Wallet Returns To Zero Or Above.',
+      });
+      return;
+    }
+    if (!cardQuote) {
       setState({ kind: 'error', message: 'Card Checkout Is Unavailable For This Item Price.' });
       return;
     }
@@ -213,7 +248,12 @@ export default function ClubShopItemDetail() {
       scope: `club-detail-card-${item.id}`,
       userId: authUser.id,
       paymentMethod: 'card',
-      intent: { clubId, itemId: item.id },
+      intent: {
+        clubId,
+        itemId: item.id,
+        expectedPrice: Number(item.price),
+        expectedCardChargeCents: cardQuote.cardChargeCents,
+      },
     };
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Opening secure card checkout…' });
@@ -228,8 +268,14 @@ export default function ClubShopItemDetail() {
         },
         body: JSON.stringify({
           type: 'diamonds',
-          items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
-          redemptionIntent: { kind: 'club_shop', clubId, itemId: item.id },
+          items: [{ packageId: cardQuote.packageId, quantity: cardQuote.quantity }],
+          redemptionIntent: {
+            kind: 'club_shop',
+            clubId,
+            itemId: item.id,
+            expectedPrice: Number(item.price),
+            expectedCardChargeCents: cardQuote.cardChargeCents,
+          },
           successUrl: `${origin}${canonical}?clubId=${clubId}&success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${origin}${canonical}?clubId=${clubId}&canceled=true`,
         }),
@@ -244,8 +290,9 @@ export default function ClubShopItemDetail() {
       }
       window.location.href = body.data.url;
     } catch (error) {
-      if (error?.code === 'CHECKOUT_EXPIRED') {
+      if (CLUB_CARD_REFRESH_CODES.has(error?.code)) {
         clearCommerceRequestId(commerceIntent);
+        await loadItem();
       }
       setState({ kind: 'error', message: error?.message || 'Card checkout could not start.' });
     } finally {
@@ -254,11 +301,11 @@ export default function ClubShopItemDetail() {
   };
 
   useEffect(() => {
-    // Wait for loadItem() to authenticate the user and resolve the verified
-    // club before polling Stripe. This prevents an early return from replacing
-    // the URL with clubId=null or starting a second verification loop when the
-    // club context arrives a moment later.
-    if (!router.isReady || router.query.success !== 'true' || !checkoutSessionId || !clubId) return;
+    // Stripe return verification is owner-scoped by the server and must not
+    // depend on the catalog row or membership still being present. An item can
+    // be hidden while Checkout is open; the paid return still needs a truthful
+    // receipt and current wallet balance.
+    if (!router.isReady || router.query.success !== 'true' || !checkoutSessionId) return;
     const token = getAccessToken();
     if (!token) {
       setState({ kind: 'auth', message: 'Sign in again to verify this card settlement.' });
@@ -267,6 +314,12 @@ export default function ClubShopItemDetail() {
     let cancelled = false;
     let retryTimer = null;
     let wakeRetry = null;
+    const cleanDetailPath = () => {
+      const returnClubId = clubId || requestedClubId;
+      return returnClubId
+        ? `${canonical}?clubId=${encodeURIComponent(returnClubId)}`
+        : canonical;
+    };
     const verify = async () => {
       setState({ kind: 'processing', message: 'Verifying card settlement before granting the item…' });
       for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
@@ -290,7 +343,7 @@ export default function ClubShopItemDetail() {
                 kind: 'error',
                 message: 'Card checkout expired or did not complete. No item was granted and your club inventory was not changed.',
               });
-              await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
+              await router.replace(cleanDetailPath(), undefined, { shallow: true });
             }
             return;
           }
@@ -304,20 +357,34 @@ export default function ClubShopItemDetail() {
                   requestId: body.data.requestId,
                 });
               }
+              const verifiedWalletBalance = Number(body.data?.walletBalance);
+              if (Number.isFinite(verifiedWalletBalance)) {
+                setBalance(verifiedWalletBalance);
+                window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
+                  detail: {
+                    balance: verifiedWalletBalance,
+                    userId: authUser?.id,
+                    source: 'checkout-status',
+                  },
+                }));
+                broadcastSync('smarter_poker_diamond_sync', 'refresh');
+              }
               if (body.data?.redemptionStatus === 'needs_review') {
                 setState({
                   kind: 'error',
-                  message: 'Your Card Payment And Diamonds Are Recorded, But This Item Was Not Purchased. Your Diamonds Remain Available: Use Buy With Diamonds To Finish Without Another Card Payment.',
+                  message: 'Your Card Payment And Diamond Funding Are Recorded, But This Item Was Not Purchased. Review The Updated Wallet And Current Item Price Before Finishing With Diamonds. Do Not Pay By Card Again.',
                 });
-                await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
+                await router.replace(cleanDetailPath(), undefined, { shallow: true });
                 return;
               }
-              await loadItem({
-                preserveContext: true,
-                completionMessage: `${item?.name || 'Club Shop item'} purchased successfully. Card settlement and inventory delivery are complete.`,
-              });
+              const completionMessage = `${body.data?.label || item?.name || 'Club Shop Item'} Purchased Successfully. Card Settlement And Inventory Delivery Are Complete.`;
+              if (clubId && item) {
+                await loadItem({ preserveContext: true, completionMessage });
+              } else {
+                setState({ kind: 'complete', message: completionMessage });
+              }
               if (cancelled) return;
-              await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
+              await router.replace(cleanDetailPath(), undefined, { shallow: true });
             }
             return;
           }
@@ -351,15 +418,27 @@ export default function ClubShopItemDetail() {
       if (retryTimer) window.clearTimeout(retryTimer);
       if (wakeRetry) wakeRetry();
     };
-  }, [canonical, checkoutSessionId, clubId, item?.name, loadItem, router, router.isReady, router.query.success]);
+  }, [canonical, checkoutSessionId, clubId, item, loadItem, requestedClubId, router, router.isReady, router.query.success]);
 
   const name = item?.name || 'Club Shop Equipment Record';
   const description = item?.description || state.message;
   const image = item?.image_url || '/images/store-v3/club-shop-hero.webp';
-  const cardTopUp = item ? cardTopUpFor(item.price) : null;
-  const cardCharge = cardTopUp ? cardTopUp.price * cardTopUp.quantity : null;
-  const cardDiamonds = cardTopUp ? cardTopUp.diamonds * cardTopUp.quantity : null;
-  const cardRemainder = cardDiamonds == null || !item ? null : Math.max(0, cardDiamonds - item.price);
+  const cardQuote = normalizeClubCardQuote(item?.card_quote);
+  const diamondProjection = item
+    ? getClubDiamondPurchaseProjection(item.price, balance)
+    : null;
+  const hasDiamondDebt = diamondProjection?.hasDebt === true;
+  const cardCharge = cardQuote?.cardCharge ?? null;
+  const cardDiamonds = cardQuote?.diamondsPurchased ?? null;
+  const diamondPurchaseBalance = diamondProjection?.remainingBalance ?? null;
+  const diamondShortfall = diamondProjection?.shortfall ?? null;
+  const cardPurchaseBalance = cardQuote?.cardPurchaseBalance ?? null;
+  const itemAvailable = item?.available === true;
+  const isFreeItem = itemAvailable && Number(item?.price) === 0;
+  const canPurchaseWithDiamonds = itemAvailable && (
+    isFreeItem
+    || (diamondProjection && !diamondProjection.hasDebt && diamondProjection.shortfall === 0)
+  );
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -383,7 +462,7 @@ export default function ClubShopItemDetail() {
       ]}
       price={cardCharge}
       diamondPrice={item?.price}
-      status={state.kind === 'ready' ? 'Club Verified' : state.message}
+      status={state.kind === 'ready' && itemAvailable ? 'Club Verified' : state.message}
       actions={item && state.kind !== 'auth' ? (
         <>
           <button
@@ -399,19 +478,34 @@ export default function ClubShopItemDetail() {
                 scope: `club-detail-${item.id}`,
                 userId: authUser.id,
                 paymentMethod: 'diamonds',
-                intent: { clubId, itemId: item.id },
+                intent: { clubId, itemId: item.id, expectedPrice: Number(item.price) },
               };
               setDiamondCommerceIntent(commerceIntent);
               setDiamondPurchaseRequestId(getOrCreateCommerceRequestId(commerceIntent));
               setDiamondReviewOpen(true);
             }}
-            disabled={state.kind === 'processing'}
+            disabled={state.kind === 'processing' || !canPurchaseWithDiamonds}
           >
-            <Gem size={16} aria-hidden="true" /> Review Diamond Purchase
+            <Gem size={16} aria-hidden="true" />
+            {isFreeItem
+              ? 'Review Free Claim'
+              : canPurchaseWithDiamonds
+                ? 'Review Diamond Purchase'
+                : 'Diamond Purchase Unavailable'}
           </button>
-          <button type="button" onClick={purchaseWithCard} disabled={state.kind === 'processing'}>
+          <button
+            type="button"
+            onClick={purchaseWithCard}
+            disabled={state.kind === 'processing' || !itemAvailable || cardCharge == null}
+          >
             <CreditCard size={16} aria-hidden="true" />
-            {cardCharge == null ? 'Buy With Card' : `Buy With Card: $${cardCharge.toFixed(2)}`}
+            {cardCharge == null
+              ? isFreeItem
+                ? 'No Card Charge Required'
+                : hasDiamondDebt
+                  ? 'Card Checkout Paused'
+                  : 'Card Checkout Unavailable'
+              : `Buy With Card: $${cardCharge.toFixed(2)}`}
           </button>
         </>
       ) : (
@@ -436,12 +530,48 @@ export default function ClubShopItemDetail() {
         <h2>Live Purchase Console</h2>
         <p>{marketplaceCopy(state.message)}</p>
         {balance != null && <p>Verified Wallet Balance: <strong>{balance.toLocaleString()} Diamonds</strong>.</p>}
-        {cardTopUp && (
+        {item && !itemAvailable && (
+          <p role="alert">
+            This Item Is Not Available For Purchase. Reload Live Inventory Before Trying Again.
+          </p>
+        )}
+        {item?.on_sale && (
           <p>
-            Card Checkout Charges <strong>${cardCharge.toFixed(2)}</strong> for{' '}
-            <strong>{cardDiamonds.toLocaleString()} Diamonds</strong>, redeems{' '}
+            Sale Price: <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong>. Regular
+            Price: <strong>{Number(item.list_price || 0).toLocaleString()} Diamonds</strong>.
+          </p>
+        )}
+        {hasDiamondDebt && (
+          <p role="alert">
+            Card Checkout Is Paused Until Your Diamond Wallet Returns To Zero Or Above. This Prevents
+            A Paid Order From Failing Its Automatic Item Redemption.
+          </p>
+        )}
+        {diamondProjection && diamondShortfall > 0 && (
+          <p>
+            A Diamond Purchase Needs <strong>{diamondShortfall.toLocaleString()} More Diamonds</strong>{' '}
+            At The Verified Balance Above.
+          </p>
+        )}
+        {diamondProjection && diamondShortfall === 0 && !isFreeItem && (
+          <p>
+            A Diamond Purchase Redeems <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong>{' '}
+            And Leaves A Projected <strong>{diamondPurchaseBalance.toLocaleString()} Diamonds</strong>{' '}
+            In Your Wallet Based On The Verified Balance Above.
+          </p>
+        )}
+        {isFreeItem && (
+          <p>
+            This Item Is Free. Claiming It Does Not Change Your Diamond Wallet And Does Not Require A Card.
+          </p>
+        )}
+        {cardQuote && (
+          <p>
+            Card Checkout Charges <strong>${cardCharge.toFixed(2)}</strong> For{' '}
+            <strong>{cardDiamonds.toLocaleString()} New Diamonds</strong>, Redeems{' '}
             <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> For This Item, And
-            Leaves <strong>{cardRemainder.toLocaleString()} Diamonds</strong> In Your Wallet.
+            Leaves A Projected <strong>{cardPurchaseBalance.toLocaleString()} Diamonds</strong> In Your
+            Wallet Based On The Verified Balance Above.
           </p>
         )}
       </div>
@@ -451,7 +581,8 @@ export default function ClubShopItemDetail() {
             Confirm Diamond Purchase
           </h2>
           <p>
-            Spend <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> On {marketplaceCopy(item.name)}?
+            {isFreeItem ? 'Claim' : 'Spend'}{' '}
+            <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> On {marketplaceCopy(item.name)}?
             The Server Will Recheck Availability, Limits, Price, And Your Wallet Before Deducting Anything.
           </p>
           <div className={detailStyles.actions}>
@@ -466,8 +597,16 @@ export default function ClubShopItemDetail() {
             >
               Keep Shopping
             </button>
-            <button type="button" onClick={() => purchaseWithDiamonds()} disabled={state.kind === 'processing'}>
-              {state.kind === 'processing' ? 'Authorizing…' : `Confirm ${Number(item.price || 0).toLocaleString()} Diamonds`}
+            <button
+              type="button"
+              onClick={() => purchaseWithDiamonds()}
+              disabled={state.kind === 'processing' || !canPurchaseWithDiamonds}
+            >
+              {state.kind === 'processing'
+                ? 'Authorizing…'
+                : isFreeItem
+                  ? 'Confirm Free Claim'
+                  : `Confirm ${Number(item.price || 0).toLocaleString()} Diamonds`}
             </button>
           </div>
         </section>

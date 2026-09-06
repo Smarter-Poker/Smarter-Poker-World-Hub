@@ -1621,7 +1621,7 @@ export default function MemoryGamesPage() {
     const leaderboardRows = leaderboardData.map((entry, idx) => ({ ...entry, id: entry.user_id || idx, rank: idx + 1 }));
 
     return (
-        <PageTransition>
+        <PageTransition disableInitialAnimation>
             <SEOHead
                 title="Preflop Charts - Master GTO Ranges"
                 description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
@@ -1967,23 +1967,25 @@ export default function MemoryGamesPage() {
 
                             {/* Daily Challenge Section */}
                             {gameType === 'daily' && (
-                                <div className="preflop-board-panel is-green">
+                                <div className="preflop-board-panel is-daily-casino">
+                                    <div className="preflop-board-daily-art" aria-hidden="true" />
                                     <div className="preflop-board-streaks">
                                         <div>
-                                            <Flame size={28} aria-hidden style={{ color: '#FF6B00' }} />
-                                            <strong style={{ color: '#FF6B00' }}>{userStreak.current_streak || 0}</strong>
+                                            <Flame size={28} aria-hidden />
+                                            <strong>{userStreak.current_streak || 0}</strong>
                                             <span>Current Streak</span>
                                         </div>
                                         <div>
-                                            <Trophy size={28} aria-hidden style={{ color: '#FFD700' }} />
-                                            <strong style={{ color: '#FFD700' }}>{userStreak.longest_streak || 0}</strong>
+                                            <Trophy size={28} aria-hidden />
+                                            <strong>{userStreak.longest_streak || 0}</strong>
                                             <span>Best Streak</span>
                                         </div>
                                     </div>
 
                                     <div className="preflop-board-heading">
                                         <Calendar size={40} aria-hidden />
-                                        <h2 style={{ color: '#00ff88' }}>DAILY CHALLENGE</h2>
+                                        <span className="preflop-board-kicker">Range Assignment Table</span>
+                                        <h2>Daily Challenge</h2>
                                         <p>Complete Today's Challenge To Keep Your Streak Alive!</p>
                                     </div>
 
@@ -1992,7 +1994,7 @@ export default function MemoryGamesPage() {
                                     ) : challengeCompleted ? (
                                         <div className="preflop-board-complete">
                                             <ShieldCheck size={48} aria-hidden />
-                                            <h3>CHALLENGE COMPLETE!</h3>
+                                            <h3>Challenge Complete!</h3>
                                             <p>Come Back Tomorrow For A New Challenge!</p>
                                             <strong>+{dailyChallenge?.diamond_reward || 50} Diamonds Earned!</strong>
                                         </div>
@@ -2012,17 +2014,17 @@ export default function MemoryGamesPage() {
 
                                             <div className="preflop-board-challenge-meta">
                                                 <div>
-                                                    <span>TARGET SCORE</span>
-                                                    <strong style={{ color: '#00ff88' }}>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</strong>
+                                                    <span>Target Score</span>
+                                                    <strong>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</strong>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <span>REWARD</span>
-                                                    <strong style={{ color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50} Diamonds</strong>
+                                                    <span>Reward</span>
+                                                    <strong>{dailyChallenge.diamond_reward || 50} Diamonds</strong>
                                                 </div>
                                             </div>
 
                                             <button type="button" className="preflop-board-start" onClick={startDailyChallenge}>
-                                                START DAILY CHALLENGE
+                                                Start Daily Challenge
                                             </button>
                                         </div>
                                     ) : (
@@ -2033,7 +2035,7 @@ export default function MemoryGamesPage() {
                                     )}
 
                                     <div className="preflop-board-note">
-                                        <strong>STREAK REWARDS</strong>
+                                        <strong>Streak Rewards</strong>
                                         <span>7 Days: +100 Diamonds Bonus. 30 Days: +500 Diamonds Bonus. 100 Days: +2000 Diamonds Bonus.</span>
                                     </div>
                                 </div>

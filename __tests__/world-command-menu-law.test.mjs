@@ -21,6 +21,10 @@ const recoverySource = readFileSync(join(ROOT, 'src/components/ui/WorldCommandMe
 const headerSource = readFileSync(join(ROOT, 'src/components/ui/UniversalHeader.js'), 'utf8');
 const appSource = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
 const socialSource = readFileSync(join(ROOT, 'pages/hub/social-media/index.js'), 'utf8');
+const friendsSource = readFileSync(join(ROOT, 'pages/hub/friends.js'), 'utf8');
+const messengerSource = readFileSync(join(ROOT, 'pages/hub/messenger.js'), 'utf8');
+const reelsSource = readFileSync(join(ROOT, 'pages/hub/reels.js'), 'utf8');
+const userProfileSource = readFileSync(join(ROOT, 'pages/hub/user/[username].js'), 'utf8');
 const pokerNearMeLobbySource = readFileSync(join(ROOT, 'pages/hub/poker-near-me/lobby.js'), 'utf8');
 const auditInventory = JSON.parse(
   readFileSync(join(ROOT, '.agent/audits/2026-08-31-world-hub-menu-route-inventory.json'), 'utf8')
@@ -95,9 +99,20 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(recoverySource, /sp:world-command-menu-error/);
   assert.match(recoverySource, /event\.key !== 'Tab'/);
   assert.match(recoverySource, /dialogRef\.current\?\.querySelectorAll/);
+  assert.match(recoverySource, /event\.stopPropagation\(\)/);
+  assert.match(recoverySource, /event\.stopImmediatePropagation\(\)/);
+  assert.match(recoverySource, /previousFocus\?\.isConnected/);
   assert.match(drawerSource, /prev\?\.isConnected/);
   assert.match(drawerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(drawerSource, /e\.key === 'Escape'/);
+  assert.match(drawerSource, /e\.preventDefault\(\)/);
+  assert.match(drawerSource, /e\.stopPropagation\(\)/);
+  assert.match(drawerSource, /e\.stopImmediatePropagation\(\)/);
+  assert.match(
+    drawerSource,
+    /<div\s+id=\{commandMenuId\}\s+ref=\{drawerRef\}\s+className="sp-drawer"\s+role="dialog"/,
+    'aria-controls must identify the dialog itself, not its backdrop'
+  );
   assert.match(drawerSource, /minHeight: 44/);
 });
 
@@ -106,6 +121,10 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(appSource, /!isClubArenaRoute && <WorldCommandDock/);
   assert.match(headerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(headerSource, /data-menu-symbol="hamburger"/);
+  assert.match(headerSource, /aria-haspopup="dialog"/);
+  assert.match(headerSource, /aria-expanded=\{resolvedCommandMenuOpen \|\| observedCommandMenuOpen\}/);
+  assert.match(headerSource, /aria-controls=\{commandMenuId\}/);
+  assert.match(headerSource, /sp:approved-world-menu-owner/);
   assert.match(headerSource, /flex: 0 0 auto;/);
   assert.match(headerSource, /z-index: 10050;/);
   assert.match(headerSource, /resolvedHeaderWorld\?\.id === 'social-media'/);
@@ -115,6 +134,12 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(socialSource, /setSidebarOpen\(false\)/);
   assert.match(socialSource, /commandMenuOpen=\{commandMenuOpen\}/);
   assert.match(dockSource, /data-world-menu-trigger="route-fallback"/);
+  assert.match(dockSource, /aria-haspopup="dialog"/);
+  assert.match(dockSource, /aria-expanded=\{isOpen\}/);
+  assert.match(dockSource, /window\.self !== window\.top/);
+  assert.match(dockSource, /hideHeader=true/);
+  assert.match(dockSource, /restoreFallbackFocusRef/);
+  assert.match(dockSource, /sp:approved-world-menu-owner/);
   /* HAMBURGER EVERYWHERE (Dan 2026-09-05: "about the dots, yes fix and change
      it back to hamburger menu only"). This used to pin the dock to
      "command-grid" - a six-node mark on a control whose only job is to open a
@@ -128,10 +153,43 @@ test('the approved hamburger trigger covers routes without duplicating the heade
     /Array\.from\(\{ length: 6 \}/,
     'the six-node grid mark is gone from the dock trigger'
   );
-  assert.match(dockSource, /world\.id === 'social-media'/);
-  assert.match(dockSource, /querySelector\('\[data-world-menu-trigger="approved-header"\]'\)/);
+  assert.doesNotMatch(
+    dockSource,
+    /world\.id === 'social-media'/,
+    'Social signed-out and empty-state shells must retain the route fallback'
+  );
+  assert.match(dockSource, /APPROVED_TRIGGER_SELECTOR/);
+  assert.match(dockSource, /useLayoutEffect/);
+  assert.match(dockSource, /isTriggerUsable/);
+  assert.match(dockSource, /style\.pointerEvents === 'none'/);
+  assert.match(dockSource, /\[hidden\], \[inert\], \[aria-hidden="true"\]/);
+  assert.match(dockSource, /visibilityObserver\.observe/);
+  assert.match(dockSource, /if \(usable\) setIsOpen\(false\)/);
+  assert.match(dockSource, /attributeFilter: \['aria-hidden', 'class', 'hidden', 'inert', 'style'\]/);
   assert.match(dockSource, /min-height: 48px/);
   assert.match(dockSource, /@media \(max-width: 430px\)/);
+  for (const [label, source] of [
+    ['Friends', friendsSource],
+    ['Messenger', messengerSource],
+    ['Reels', reelsSource],
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /import HamburgerMenu|const HamburgerMenu = dynamic/,
+      `${label} must delegate its Social command drawer to UniversalHeader`
+    );
+  }
+  assert.match(friendsSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
+  assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
+  assert.match(reelsSource, /showOverlay && \([\s\S]*?<UniversalHeader/);
+  assert.match(reelsSource, /if \(menuOpenRef\.current\) return;/);
+  assert.match(reelsSource, /getComputedStyle\(commandMenu\)\.visibility === 'visible'/);
+  assert.match(drawerSource, /data-world-menu-trigger="route-fallback"/);
+  assert.match(reelsSource, /commandMenuShowProfile=\{false\}/);
+  assert.doesNotMatch(userProfileSource, /import HamburgerMenu/);
+  assert.match(userProfileSource, /commandMenuOpen=\{menuOpen\}/);
+  assert.match(userProfileSource, /commandMenuShortcuts=\{menuShortcuts\}/);
+  assert.match(userProfileSource, /commandMenuProfileExtras=/);
   // Mobile phase 3 (2026-09-04): the lobby used to float UniversalHeader in
   // an absolute wrapper (zIndex 10050, pointerEvents none) above a
   // 100vh stage. The lobby is document flow on HubPageShell now, which

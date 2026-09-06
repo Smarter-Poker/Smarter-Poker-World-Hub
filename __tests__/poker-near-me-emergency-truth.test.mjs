@@ -223,7 +223,7 @@ test('PokerAtlas rejects CTA identities and non-US discovery spillover', async (
   const [daemon, discovery, migration] = await Promise.all([
     readFile(new URL('../scripts/pokeratlas-live-daemon.py', import.meta.url), 'utf8'),
     readFile(new URL('../scripts/discover_pokeratlas_slugs.py', import.meta.url), 'utf8'),
-    readFile(new URL('../supabase/migrations/20260906210000_pnm_scraper_data_truth.sql', import.meta.url), 'utf8'),
+    readFile(new URL('../supabase/migrations/20260906220000_pnm_scraper_data_truth.sql', import.meta.url), 'utf8'),
   ]);
   assert.match(daemon, /is_noise_venue_label\(name\)/);
   assert.match(daemon, /_map_region_slug\(raw\) in NON_US_POKERATLAS_REGION_SLUGS/);
@@ -265,7 +265,7 @@ test('Bravo cleanup is verified and cannot delete modeled simulator rows', async
 
 test('scraper metric truth constraint rejects dishonest success and inconsistent counts', async () => {
   const migration = await readFile(
-    new URL('../supabase/migrations/20260906210000_pnm_scraper_data_truth.sql', import.meta.url),
+    new URL('../supabase/migrations/20260906220000_pnm_scraper_data_truth.sql', import.meta.url),
     'utf8'
   );
   const constraint = migration.match(

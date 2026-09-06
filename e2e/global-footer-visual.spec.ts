@@ -366,9 +366,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         'data-footer-hidden',
         'false'
       );
-      const shownBox = await nav.boundingBox();
-      expect(shownBox).not.toBeNull();
-      expect(Math.abs(shownBox!.y + shownBox!.height - 844)).toBeLessThan(4);
+      // data-footer-hidden flips when the return transition begins. WebKit
+      // occasionally reports the element one frame before its transform has
+      // reached zero, so assert the settled geometry rather than sampling the
+      // transition's first frame.
+      await expect.poll(async () => {
+        const shownBox = await nav.boundingBox();
+        return shownBox ? Math.abs(shownBox.y + shownBox.height - 844) : Infinity;
+      }).toBeLessThan(4);
     }
   });
 

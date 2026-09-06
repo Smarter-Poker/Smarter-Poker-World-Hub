@@ -23,7 +23,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, extractPositionFromHash, getAllHands, sanitizeParam, VALID_STREETS, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -92,8 +92,13 @@ export default async function handler(req, res) {
                   return res.status(404).json({ success: false, error: 'Spot not found' });
               }
 
-              // Prefer rebuilt PioSOLVER data (strategy_matrix_v2) when present
-              const matrix = (spot.strategy_matrix_v2 ? v2ToAppMatrix(spot.strategy_matrix_v2) : null) || spot.strategy_matrix || {};
+              const matrix = selectTrustedSolverMatrix(spot);
+              if (!matrix) {
+                  return res.status(422).json({
+                      success: false,
+                      error: 'This spot has no trusted solver strategy available',
+                  });
+              }
               const actions = matrix.actions || [];
               const frequencies = matrix.frequencies || {};
 

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- HOME GAMES EMERGENCY GATE: MEMBERSHIP + RSVP BOUNDARY
--- Migration: 20260906211000_home_games_membership_and_rsvp_gate.sql
+-- Migration: 20260906221000_home_games_membership_and_rsvp_gate.sql
 -- Tier 3 / security-sensitive / guarded migration
 -- ============================================================================
 --

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { WORLD_MENU_VISUAL_CASES, type WorldMenuVisualCase } from './fixtures/world-menu-cases';
 
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -24,6 +24,37 @@ async function openMenu(page: Page, world: WorldMenuVisualCase) {
     content: '*,*::before,*::after{animation:none!important;caret-color:transparent!important;font-family:Arial,sans-serif!important;}',
   });
   return drawer;
+}
+
+async function expectDrawerSnapshot(
+  page: Page,
+  drawer: Locator,
+  name: string,
+  size: { width: number; height: number },
+) {
+  const rect = await drawer.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+  expect(Math.abs(rect.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(rect.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(rect.width - size.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(rect.height - size.height)).toBeLessThanOrEqual(1);
+
+  // Capture the already-verified drawer pixels directly. Locator screenshots
+  // wait for the host page to become stable before they rasterize, so a heavy
+  // route hydrating behind the fixed drawer can time out despite an unchanged
+  // command surface.
+  const pixels = await page.screenshot({
+    animations: 'disabled',
+    caret: 'hide',
+    clip: { x: 0, y: 0, width: size.width, height: size.height },
+    timeout: 20_000,
+  });
+  expect(pixels).toMatchSnapshot(name, {
+    threshold: 0.3,
+    maxDiffPixelRatio: 0.15,
+  });
 }
 
 for (const world of WORLD_MENU_VISUAL_CASES) {
@@ -52,16 +83,9 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     for (const [name, value] of Object.entries(desktopContract)) {
       if (name !== 'columns') expect(value, `${world.label} has an empty ${name} token`).not.toBe('');
     }
-    await expect(page).toHaveScreenshot(`${world.id}-desktop.png`, {
-      animations: 'disabled',
-      caret: 'hide',
-      clip: { x: 0, y: 0, width: 400, height: 900 },
-      timeout: 20_000,
-      threshold: 0.3,
-      // Geometry and all semantic colors are asserted independently above.
-      // Leave bounded room for Chromium rasterization differences between the
-      // macOS authoring host and the Linux CI runner.
-      maxDiffPixelRatio: 0.15,
+    await expectDrawerSnapshot(page, drawer, `${world.id}-desktop.png`, {
+      width: 400,
+      height: 900,
     });
 
     await page.setViewportSize({ width: 320, height: 568 });
@@ -101,13 +125,9 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
       );
       expect(socialTiles.every((color) => ['rgb(255, 255, 255)', 'rgb(231, 243, 255)'].includes(color))).toBe(true);
     }
-    await expect(page).toHaveScreenshot(`${world.id}-mobile.png`, {
-      animations: 'disabled',
-      caret: 'hide',
-      clip: { x: 0, y: 0, width: 320, height: 568 },
-      timeout: 20_000,
-      threshold: 0.3,
-      maxDiffPixelRatio: 0.15,
+    await expectDrawerSnapshot(page, drawer, `${world.id}-mobile.png`, {
+      width: 320,
+      height: 568,
     });
 
     // Exercise the bottom only after capturing the deterministic entrance.

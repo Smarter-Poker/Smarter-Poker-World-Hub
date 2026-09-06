@@ -248,6 +248,58 @@ jobs:
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "check-main-is-green exited ${code}"
 
+      # ── THE VERCEL ENVIRONMENT CHANGED AND NOBODY SAW IT ──────────────
+      # Realtime Programme phase 7. The 2026-09-03 outage began with ONE
+      # environment variable: PROBE_LOGIN_EMAIL was pointed at Dan's own
+      # account in a dashboard, leaving no commit, no log line and no
+      # notification, and twenty-two hours of "Reconnecting To The Table"
+      # followed. Every code path involved was correct.
+      #
+      # This rides publish-watchdog for the same reason check-cron-fleet-alive
+      # does: it asks Vercel about Vercel, so it belongs GitHub-side and not in
+      # Open Claw, and adding a schedule: trigger of its own would need CHECK 6c
+      # (CLAUDE.md 11.4). It reads names, targets and timestamps - never
+      # `?decrypt=true`, never a value.
+      - name: The Vercel environment is the shape the repo agreed
+        id: env-drift
+        if: always()
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: |
+          set +e
+          node scripts/ci/check-vercel-env-drift.mjs 2>&1 | tee /tmp/env-drift.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "check-vercel-env-drift exited ${code}"
+
+      - name: Raise the alarm for an unreviewed environment change
+        if: always() && steps.env-drift.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="The Vercel environment changed and nobody has reviewed it"
+          BODY=$(printf '%s\n' \
+            "One or more environment variables on \`hub-vanguard\` differ from the shape this repo last agreed." \
+            "" \
+            "This is not automatically wrong. It is UNSEEN, which is what 2026-09-03 was: one variable edited in a dashboard, no commit, no log line, and twenty-two hours of every Club Arena table saying \"Reconnecting To The Table\"." \
+            "" \
+            "No values are read, stored or shown here - only names, targets and timestamps." \
+            '```' \
+            "$(cat /tmp/env-drift.log)" \
+            '```' \
+            "" \
+            "If the change was intended, record it: \`VERCEL_TOKEN=... node scripts/ci/check-vercel-env-drift.mjs --update\` and commit \`scripts/ci/vercel-env-baseline.json\` saying who changed what and why. Closes itself on the next clean run.")
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" || true
+          fi
+
       - name: Raise the alarm for a silently red main
         if: always() && steps.main-green.outputs.code == '1'
         env:
@@ -284,6 +336,79 @@ jobs:
           TITLE="A workflow has been failing on main with nobody watching"
           for n in $(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[].number' || true); do
             gh issue comment "$n" --body "Every workflow's latest run on main is green, or is now tracked by its own issue. Closing automatically."
+            gh issue close "$n" || true
+          done
+
+      # ── A PULL REQUEST NOBODY CAN MERGE (2026-09-06) ───────────────────────
+      #
+      # agent-open-pr opens the pull request with GITHUB_TOKEN when neither the
+      # App nor GH_PAT is available, and GitHub fires NO pull_request events for
+      # a pull request created that way. So none of the on: pull_request gates
+      # ever run - not late, never - while agent-open-pr correctly arms squash
+      # auto-merge on it. The pull request then sits open, armed, and reporting
+      # itself as waiting for checks that will never be created.
+      #
+      # agent-open-pr's own comment says "sweep must rescue events". No sweep
+      # does: autopilot's every-30-minutes pass ARMS auto-merge, and arming was
+      # never the missing part. Measured on 2026-09-06, NINE pull requests were
+      # in this state across the estate, two of them touching money routes, the
+      # oldest pair idle for nine days.
+      #
+      # --repair closes and reopens each one; a reopened event is in the default
+      # activity set for on: pull_request, so every gate runs. It merges nothing
+      # and moves no branch. The estate token is passed deliberately: reopening
+      # with GITHUB_TOKEN would fire no events either, and the script refuses to
+      # run as github-actions[bot] rather than report a repair that did nothing.
+      - name: Every open pull request can actually be merged
+        id: stuck-prs
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ steps.estate-token.outputs.token || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set +e
+          node scripts/ci/check-prs-can-actually-merge.mjs --repair 2>&1 | tee /tmp/stuck-prs.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "check-prs-can-actually-merge exited ${code}"
+
+      - name: Raise the alarm when a pull request cannot be repaired
+        if: always() && steps.stuck-prs.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="Open pull requests have no checks and can never merge"
+          BODY=$(printf '%s\n' \
+            "One or more open pull requests in the estate have no \`pull_request\` workflow run at all, and the automatic repair could not fix them." \
+            "" \
+            "These do not look broken. They are open, squash auto-merge is armed, and they report themselves as waiting for required checks - checks that were never created and never will be, because the pull request was opened with \`GITHUB_TOKEN\`, for which GitHub fires no \`pull_request\` events." \
+            "" \
+            "Fix by hand: close the pull request and reopen it as any identity other than github-actions[bot]. That fires \`reopened\` and every gate runs." \
+            '```' \
+            "$(cat /tmp/stuck-prs.log)" \
+            '```' \
+            "" \
+            "Detector: \`scripts/ci/check-prs-can-actually-merge.mjs\` in this repo, sweeping all seven. Closes itself once every open pull request has had its gates run.")
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" || true
+          fi
+
+      - name: Close it when every pull request has its gates
+        if: always() && steps.stuck-prs.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="Open pull requests have no checks and can never merge"
+          for n in $(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[].number' || true); do
+            gh issue comment "$n" --body "Every open pull request has had its gates run. Closing automatically."
             gh issue close "$n" || true
           done
 

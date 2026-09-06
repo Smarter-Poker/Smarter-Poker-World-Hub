@@ -744,7 +744,7 @@ test('every shared component file obeys the house rules', async () => {
  * Phase 2 review found: thirteen tabs asking for invented names, invisible to
  * a `god`, suite green throughout.
  */
-test('tabRegistry exports nineteen tabs in order, and Fleet Command replaced Grinder', async () => {
+test('tabRegistry exports twenty tabs in order, and Fleet Command replaced Grinder', async () => {
   const src = await read(`${COMPONENT_DIR}tabRegistry.js`);
   const ids = [...src.matchAll(/\{ id: '([a-z]+)', label:/g)].map((m) => m[1]);
   assert.deepEqual(ids, [
@@ -758,8 +758,10 @@ test('tabRegistry exports nineteen tabs in order, and Fleet Command replaced Gri
     'staff', 'approvals',
     // Phase 4.
     'players',
+    // Phase 5.
+    'integrity',
   ]);
-  assert.equal(ids.length, 19);
+  assert.equal(ids.length, 20);
   assert.match(src, /export const TABS = \[/);
   assert.match(src, /export const DEFAULT_TAB = 'stable'/);
 
@@ -772,7 +774,7 @@ test('tabRegistry exports nineteen tabs in order, and Fleet Command replaced Gri
   // the server module that defines it rather than copied into this file.
   const { ALL_PERMISSIONS } = await import('../src/lib/horses/permissions.js');
   const { TABS } = await import(`../${COMPONENT_DIR}tabRegistry.js`);
-  assert.equal(TABS.length, 19);
+  assert.equal(TABS.length, 20);
   assert.deepEqual(TABS.map((t) => t.id), ids, 'the parsed order is the exported order');
   for (const tab of TABS) {
     assert.ok(
@@ -786,6 +788,12 @@ test('tabRegistry exports nineteen tabs in order, and Fleet Command replaced Gri
   assert.equal(players.permission, 'players.read');
   assert.equal(typeof players.load, 'function', 'Players is its own code-split module');
   assert.notEqual(players.legacy, true, 'it is not rendered inline by index.js');
+
+  const integrity = TABS.find((t) => t.id === 'integrity');
+  assert.equal(integrity.label, 'Integrity');
+  assert.equal(integrity.permission, 'players.read');
+  assert.equal(typeof integrity.load, 'function', 'Integrity is its own code-split module');
+  assert.notEqual(integrity.legacy, true, 'it is not rendered inline by index.js');
 
   const fleet = TABS.find((t) => t.id === 'fleet');
   assert.equal(fleet.label, 'Fleet Command');

@@ -34,7 +34,7 @@ const migrationPath = path.join(
   repoRoot,
   'supabase',
   'migrations',
-  '20260906211000_home_games_membership_and_rsvp_gate.sql'
+  '20260906221000_home_games_membership_and_rsvp_gate.sql'
 );
 const rosterPagePath = path.join(
   repoRoot,

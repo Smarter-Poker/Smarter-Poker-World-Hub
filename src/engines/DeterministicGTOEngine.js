@@ -36,6 +36,7 @@ import {
 import { calculateActionEVs } from './EVCalculator';
 import { heroActsFirstPostflop as actsFirstPostflop, heroIsInPosition } from './positionOrder';
 import { generateCuratedPokerConceptBatch } from '../lib/training/curatedPokerConcepts';
+import { selectTrustedSolverMatrix } from '../lib/training/solverMatrixTrust';
 
 // ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
 import { getPsychologyQuestions } from '../data/psychologyQuestionBank';
@@ -1247,8 +1248,8 @@ export class DeterministicGTOEngine {
 
         if (effectiveDifficulty === 'beginner' || effectiveDifficulty === 'expert') {
             sortedScenarios.sort((a, b) => {
-                const maxFreqA = getMaxFrequency(a.strategy_matrix);
-                const maxFreqB = getMaxFrequency(b.strategy_matrix);
+                const maxFreqA = getMaxFrequency(selectTrustedSolverMatrix(a));
+                const maxFreqB = getMaxFrequency(selectTrustedSolverMatrix(b));
                 if (effectiveDifficulty === 'beginner') {
                     // Higher max frequency = easier (clear best action)
                     return maxFreqB - maxFreqA;
@@ -1268,7 +1269,7 @@ export class DeterministicGTOEngine {
             const scenario = sortedScenarios[i % sortedScenarios.length];
 
             // ═══ PHASE 19 + 75: Difficulty gate ═══
-            const maxFreq = getMaxFrequency(scenario.strategy_matrix);
+            const maxFreq = getMaxFrequency(selectTrustedSolverMatrix(scenario));
             if (effectiveDifficulty !== 'standard') {
                 // Phase 75: Stretch questions override the filter
                 const stretching = shouldStretch(questions.length);
@@ -1327,7 +1328,7 @@ export class DeterministicGTOEngine {
             // Try exact match first — scenario_hash contains the board
             const { data: exactMatches, error: exactErr } = await this.db
                 .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
                 .eq('game_type', gameConfig.pioGameType)
                 .eq('stack_depth', gameConfig.pioStackDepth)
                 .eq('street', street)
@@ -1355,7 +1356,7 @@ export class DeterministicGTOEngine {
             const flopStr = boardCards.slice(0, 3).map(c => c.toLowerCase()).join('');
             const { data: partialMatches } = await this.db
                 .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
                 .eq('game_type', gameConfig.pioGameType)
                 .eq('stack_depth', gameConfig.pioStackDepth)
                 .eq('street', street)
@@ -1509,7 +1510,7 @@ export class DeterministicGTOEngine {
             for (const depth of effectiveStackDepths) {
                 let query = this.db
                     .from('solved_spots_gold')
-                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
                     .eq('game_type', gameConfig.pioGameType)
                     .eq('stack_depth', depth);
                 // Only filter by street when one is specified (null = all streets)
@@ -1582,7 +1583,10 @@ export class DeterministicGTOEngine {
     }
 
     buildQuestionFromScenario(scenario, gameConfig, level, questionIndex) {
-        const strategyMatrix = scenario.strategy_matrix || {};
+        // Source-aware trust boundary: validated V2 may legitimately contain
+        // a Fold action; legacy V1 `f` is measured EV/regret data and must
+        // never be translated into Fold. Invalid V2 never falls back to V1.
+        const strategyMatrix = selectTrustedSolverMatrix(scenario) || {};
         const actions = strategyMatrix.actions || [];
         const frequencies = strategyMatrix.frequencies || {};
         const handEVs = strategyMatrix.hand_evs || {};
@@ -2421,7 +2425,7 @@ export class DeterministicGTOEngine {
         // absolute chips in the solver's own units, which is the same unit the
         // matrix's own `pot` is written in -- so they are rebased onto the pot
         // the felt is actually showing rather than used raw.
-        const sm = scenario.strategy_matrix || {};
+        const sm = selectTrustedSolverMatrix(scenario) || {};
         const exactFacingBet = Number(sm.facing_bet_bb);
         if (Number.isFinite(exactFacingBet) && exactFacingBet > 0) return exactFacingBet;
 

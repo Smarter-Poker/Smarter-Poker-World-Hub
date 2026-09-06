@@ -14,6 +14,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { heroIsInPosition } from '../../../src/engines/positionOrder';
+import { selectTrustedSolverMatrix } from '../../../src/lib/training/solverMatrixTrust';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -140,7 +141,7 @@ async function findExactSolverStrategy({ board, heroPosition, stackDepth, gameTy
     const pioGameType = GAME_TYPE_MAP[String(gameType || 'cash').toLowerCase()] || 'hu_cash';
     let query = getSupabase()
         .from('solved_spots_gold')
-        .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix')
+        .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix, strategy_matrix_v2')
         .eq('game_type', pioGameType)
         .eq('street', street)
         .ilike('scenario_hash', `%${boardString}%`)
@@ -155,7 +156,9 @@ async function findExactSolverStrategy({ board, heroPosition, stackDepth, gameTy
         ...data.filter((row) => !String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
     ];
     for (const row of ordered) {
-        const actions = aggregateSolverActions(row.strategy_matrix);
+        const matrix = selectTrustedSolverMatrix(row);
+        if (!matrix) continue;
+        const actions = aggregateSolverActions(matrix);
         if (actions && Object.keys(actions).length > 0) return { row, actions };
     }
     return null;

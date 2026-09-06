@@ -278,7 +278,7 @@ def _is_retryable_http(e: urllib.error.HTTPError) -> bool:
 # generated number was a verified scrape. The honest value is 'simulated'.
 #
 # venue_live_tables.data_quality historically rejected 'simulated'. Migration
-# 20260906210000_pnm_scraper_data_truth.sql adds the honest quality and the
+# 20260906220000_pnm_scraper_data_truth.sql adds the honest quality and the
 # observation_kind discriminator. This daemon deliberately FAILS CLOSED when
 # that contract is absent: a modeled row may never be relabelled as a verified
 # scrape merely to keep a dashboard populated.

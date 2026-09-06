@@ -1,143 +1,66 @@
 /**
- * SCENARIO IMPORT · JSON / CSV (W7-1)
+ * NATIVE SOLVER IMPORT
  * ═══════════════════════════════════════════════════════════════════════════
- * Honest retitle: this parser accepts the sandbox's own scenario JSON or a
- * four-field CSV line. It does NOT read native PioSolver or GTO+ exports, and
- * the old label promising that produced "Unrecognised card code" for anyone who
- * tried. The accepted schema is now shown inline above the input.
- *
- * The parse result is previewed (board, position, pot, stack, seats and any
- * defaults that had to be applied) before anything overwrites the table.
+ * Reads bounded PioSolver labelled node exports, GTO+ tabular CSV exports,
+ * and the Sandbox scenario JSON contract. Binary solver trees are rejected
+ * with an exact recovery instruction instead of being misread as text.
  */
 import React, { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { FileCode, Check, AlertTriangle } from 'lucide-react';
+import { FileCode, Check, AlertTriangle, Upload } from 'lucide-react';
 import { T, F, S, R, btn, pill } from './paTokens';
 import { BottomSheet, PAStyles } from './paKit';
+import { parseNativeSolverImport } from '../../lib/sandbox/nativeSolverImport.mjs';
 
-const CARD_RE = /^[2-9TJQKA][cdhs]$/;
-const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
-const DEFAULT_ARCHETYPE = { id: 'gto_neutral', name: 'GTO Neutral' };
-
-const EXAMPLE = '{"board": ["Kh", "Jd", "3c"], "heroPosition": "CO", "potSize": 75, "effStack": 120, "villains": [{"position": "BB", "range": "AA,KK,QQ,AKs"}]}';
-
-/** Pulls up to 5 valid card codes out of an array or a concatenated string. */
-function parseCards(input) {
-    let tokens = [];
-    if (Array.isArray(input)) {
-        tokens = input.map(c => String(c).trim());
-    } else if (typeof input === 'string') {
-        tokens = input.trim().replace(/[\s,]+/g, '').match(/.{1,2}/g) || [];
-    }
-    const cards = [];
-    for (const raw of tokens) {
-        if (!raw) continue;
-        const card = raw[0].toUpperCase() + raw.slice(1).toLowerCase();
-        if (!CARD_RE.test(card)) throw new Error(`Unrecognised card code: "${raw}". Use two characters like "Kh".`);
-        if (cards.includes(card)) throw new Error(`Duplicate card: "${card}"`);
-        cards.push(card);
-        if (cards.length === 5) break;
-    }
-    return cards;
-}
-
-/** Normalises anything board-shaped into the sandbox { flop, turn, river }. */
-function toBoardObject(board) {
-    if (board && !Array.isArray(board) && typeof board === 'object') {
-        const flop = parseCards(board.flop || []);
-        const rest = parseCards([board.turn, board.river].filter(Boolean));
-        return { flop: flop.slice(0, 3), turn: rest[0] || null, river: rest[1] || null };
-    }
-    const cards = parseCards(board || []);
-    if (cards.length && cards.length < 3) throw new Error('A board needs at least 3 cards.');
-    return { flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null };
-}
-
-function toVillains(list) {
-    const arr = Array.isArray(list) && list.length ? list : [{ position: 'BB' }];
-    return arr.slice(0, 5).map((v, i) => ({
-        id: v?.id ?? i + 1,
-        position: POSITIONS.includes(String(v?.position || '').toUpperCase())
-            ? String(v.position).toUpperCase()
-            : 'BB',
-        range: typeof v?.range === 'string' ? v.range : '',
-        archetype: (v?.archetype && v.archetype.id) ? v.archetype : DEFAULT_ARCHETYPE,
-        stack: Number(v?.stack) > 0 ? Number(v.stack) : 100,
-    }));
-}
+const EXAMPLE = `PioSOLVER
+Board: Kh Jd 3c
+Pot: 75
+Effective Stack: 120
+Hero Position: CO
+Villain Position: BB
+Villain Range: AA,KK,QQ,AKs`;
 
 export default function ExternalSolverImport({ onClose, onImport }) {
     const [rawInput, setRawInput] = useState('');
+    const [fileName, setFileName] = useState('');
     const [error, setError] = useState(null);
-    const [preview, setPreview] = useState(null); // { state, defaults: string[] }
+    const [preview, setPreview] = useState(null);
 
     const handleParse = useCallback(() => {
         setError(null);
         try {
-            if (!rawInput.trim()) throw new Error('Paste a scenario first.');
+            if (!rawInput.trim()) throw new Error('Paste A Scenario First.');
 
-            const defaults = [];
-            let raw = null;
-
-            if (rawInput.trim().startsWith('{')) {
-                try {
-                    raw = JSON.parse(rawInput);
-                } catch (e) {
-                    throw new Error('That JSON could not be parsed · check for a trailing comma or a missing quote.');
-                }
-            } else {
-                // CSV: Board, Position, Pot, Stack · stack is optional but the
-                // old code read parts[3] after only requiring three fields and
-                // silently substituted 100bb.
-                const parts = rawInput.split(',').map(s => s.trim()).filter(Boolean);
-                if (parts.length < 3) {
-                    throw new Error('CSV needs at least: Board, Position, Pot (Stack optional). Example: AsKd7h, BTN, 75, 120');
-                }
-                if (parts.length < 4) defaults.push('Effective stack defaulted to 100 BB');
-                raw = {
-                    board: parts[0] || '',
-                    heroPosition: parts[1] || 'BTN',
-                    potSize: parseInt(parts[2], 10),
-                    effStack: parts.length >= 4 ? parseInt(parts[3], 10) : NaN,
-                    villains: [{ id: 1, position: 'BB' }],
-                };
-            }
-
-            if (!raw || typeof raw !== 'object') throw new Error('That input did not contain a scenario object.');
-
-            const heroPositionRaw = String(raw.heroPosition || raw.hero || 'BTN').toUpperCase();
-            if (!POSITIONS.includes(heroPositionRaw)) defaults.push('Hero position defaulted to BTN');
-
-            const potSize = Number(raw.potSize ?? raw.pot);
-            if (!Number.isFinite(potSize) || potSize <= 0) defaults.push('Pot defaulted to 100');
-
-            const effStack = Number(raw.effStack ?? raw.stack);
-            if (!Number.isFinite(effStack) || effStack <= 0) {
-                if (!defaults.includes('Effective stack defaulted to 100 BB')) defaults.push('Effective stack defaulted to 100 BB');
-            }
-
-            if (!Array.isArray(raw.villains) || raw.villains.length === 0) defaults.push('One BB villain added');
-
-            const state = {
-                board: toBoardObject(raw.board),
-                heroPosition: POSITIONS.includes(heroPositionRaw) ? heroPositionRaw : 'BTN',
-                potSize: Number.isFinite(potSize) && potSize > 0 ? potSize : 100,
-                effStack: Number.isFinite(effStack) && effStack > 0 ? effStack : 100,
-                villains: toVillains(raw.villains),
-            };
-
-            setPreview({ state, defaults });
+            setPreview(parseNativeSolverImport(rawInput, { fileName }));
         } catch (err) {
             console.warn('[ScenarioImport] Parsing error:', err);
             setPreview(null);
-            setError(err.message || 'That scenario could not be read.');
+            setError(err.message || 'That Scenario Could Not Be Read.');
         }
-    }, [rawInput]);
+    }, [fileName, rawInput]);
+
+    const handleFile = useCallback(async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        setError(null);
+        setPreview(null);
+        if (file.size > 2 * 1024 * 1024) {
+            setError('Solver Export Must Be No Larger Than 2 MB.');
+            return;
+        }
+        try {
+            setRawInput(await file.text());
+            setFileName(file.name);
+        } catch {
+            setError('Solver Export Could Not Be Read.');
+        }
+    }, []);
 
     const handleConfirm = useCallback(() => {
         if (!preview?.state) return;
         onImport?.(preview.state);
-        toast.success('Scenario loaded · use undo at the table to revert');
+        toast.success('Solver Scenario Loaded · Use Undo At The Table To Revert');
         onClose?.();
     }, [preview, onImport, onClose]);
 
@@ -149,10 +72,10 @@ export default function ExternalSolverImport({ onClose, onImport }) {
         <BottomSheet
             open
             onClose={onClose}
-            title="Import scenario"
+            title="Import Solver Scenario"
             titleIcon={<FileCode size={18} strokeWidth={2} color={T.purple} />}
-            subtitle="Paste sandbox scenario JSON or a CSV line."
-            ariaLabel="Import scenario JSON or CSV"
+            subtitle="Load A PioSolver, GTO+, Or Smarter.Poker Node Export."
+            ariaLabel="Import Native Solver Scenario"
             footer={preview ? (
                 <>
                     <button type="button" className="pa-btn" onClick={() => setPreview(null)} style={{ ...btn('secondary'), padding: '0 14px' }}>
@@ -179,9 +102,9 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                     }}>
                         {[
                             ['Board', boardText],
-                            ['Hero position', preview.state.heroPosition],
+                            ['Hero Position', preview.state.heroPosition],
                             ['Pot', `${preview.state.potSize}`],
-                            ['Effective stack', `${preview.state.effStack}`],
+                            ['Effective Stack', `${preview.state.effStack}`],
                             ['Villains', preview.state.villains.map(v => v.position).join(', ')],
                         ].map(([label, value]) => (
                             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: S.md, fontSize: F.bodySm }}>
@@ -191,22 +114,22 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         ))}
                     </div>
 
-                    {preview.defaults.length > 0 && (
+                    {preview.warnings.length > 0 && (
                         <div style={{
                             background: T.warnSoft, border: '1px solid rgba(255,198,109,0.4)',
                             borderRadius: R.sm, padding: S.md,
                         }}>
                             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn, marginBottom: S.xs }}>
-                                Defaults Applied
+                                Import Notes
                             </div>
                             <ul style={{ margin: 0, paddingLeft: 18, color: T.textMuted, fontSize: F.caption, lineHeight: 1.5 }}>
-                                {preview.defaults.map(d => <li key={d}>{d}</li>)}
+                                {preview.warnings.map(d => <li key={d}>{d}</li>)}
                             </ul>
                         </div>
                     )}
 
                     <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                        Loading Replaces The Board, Hero Position, Pot, Stack And Every Villain Seat. The Sandbox
+                        {preview.provider} Import Verified. Loading Replaces The Board, Hero Position, Pot, Stack And Every Villain Seat. The Sandbox
                         Keeps An Undo Step.
                     </p>
                 </div>
@@ -230,29 +153,35 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
                     }}>
                         <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs }}>
-                            Accepted Formats
+                            Native Formats
                         </div>
                         <pre data-pa-verbatim="true" style={{
                             margin: 0, fontSize: F.caption, color: T.purple, lineHeight: 1.5,
                             whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                         }}>
-{`JSON  {"board":["Kh","Jd","3c"],"heroPosition":"CO",
-       "potSize":75,"effStack":120,
-       "villains":[{"position":"BB","range":"AA,KK"}]}
+{`PioSolver  Labelled Node Text Or .pio Text Export
+GTO+       Header-Based CSV Export
+JSON       Smarter.Poker Scenario Contract
 
-CSV   Board, Position, Pot, Stack
-      AsKd7h, BTN, 75, 120`}
+Required: Board, Hero Position, Villain Position,
+Pot, And Effective Stack. No Missing Value Is Invented.`}
                         </pre>
                     </div>
 
-                    <label htmlFor="esi-input" className="pa-vh">Scenario JSON Or CSV</label>
+                    <label htmlFor="esi-file" className="pa-btn" style={{ ...btn('secondary', { block: true }), cursor: 'pointer' }}>
+                        <Upload size={18} strokeWidth={2} aria-hidden="true" />Choose Solver Export
+                    </label>
+                    <input id="esi-file" className="pa-vh" type="file" accept=".json,.csv,.txt,.pio" onChange={handleFile} />
+                    {fileName && <span data-pa-verbatim="true" style={{ fontSize: F.caption, color: T.textMuted }}>{fileName}</span>}
+
+                    <label htmlFor="esi-input" className="pa-vh">Solver Export Text</label>
                     <textarea
                         id="esi-input"
                         data-pa-verbatim="true"
                         value={rawInput}
                         onChange={e => { setRawInput(e.target.value); setError(null); }}
-                        placeholder='{"board": ["As", "Kd", "7h"], "heroPosition": "BTN" … }  or  AsKd7h, BTN, 75, 120'
+                        placeholder="Paste PioSolver Text, GTO+ CSV, Or Scenario JSON"
                         spellCheck={false}
                         style={{
                             width: '100%', minHeight: 148, padding: S.md, boxSizing: 'border-box',
@@ -265,7 +194,7 @@ CSV   Board, Position, Pot, Stack
                     <button
                         type="button"
                         className="pa-btn"
-                        onClick={() => { setRawInput(EXAMPLE); setError(null); }}
+                        onClick={() => { setRawInput(EXAMPLE); setFileName('example.pio'); setError(null); }}
                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px', alignSelf: 'flex-start' }}
                     >
                         Load Example

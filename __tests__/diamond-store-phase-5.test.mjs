@@ -30,7 +30,7 @@ test('checkout returns are authenticated, verified, displayed, and removed from 
 });
 
 test('checkout validates real products before Stripe customer side effects', () => {
-  const prepare = CHECKOUT.indexOf('preparedCheckout = await prepareCheckout(type, items)');
+  const prepare = CHECKOUT.indexOf('preparedCheckout = await prepareCheckout(type, items, {');
   const customer = CHECKOUT.indexOf('stripe.customers.create');
   assert.ok(prepare > -1 && prepare < customer);
   assert.match(CHECKOUT, /async function prepareCheckout/);
@@ -39,14 +39,17 @@ test('checkout validates real products before Stripe customer side effects', () 
   assert.match(CHECKOUT, /reserve_merch_order/);
 });
 
-test('Stripe checkout creation is request-idempotent and pending rows are terminally cleaned', () => {
+test('Stripe checkout creation is request-idempotent, ambiguity-safe, and terminally cleaned', () => {
   assert.match(STORE, /X-Checkout-Request-ID/);
   assert.match(MERCH, /X-Checkout-Request-ID/);
   assert.match(CHECKOUT, /validateCheckoutRequestId/);
   assert.match(CHECKOUT, /findExistingCheckout/);
   assert.match(CHECKOUT, /`commerce:\$\{type\}:\$\{user\.id\}:\$\{checkoutRequestId\}`/);
-  assert.match(CHECKOUT, /Pending diamond cleanup failed/);
-  assert.match(CHECKOUT, /Pending merchandise cleanup failed/);
+  assert.match(CHECKOUT, /isAmbiguousStripeCreateFailure\(sessionError\)/);
+  assert.match(CHECKOUT, /sessionError\.checkoutRetryable = true/);
+  assert.match(CHECKOUT, /Pending Diamond cleanup failed/);
+  assert.match(CHECKOUT, /Pending Merchandise cleanup failed/);
+  assert.match(CHECKOUT, /\.is\('stripe_checkout_session_id', null\)/);
   assert.match(WEBHOOK, /case 'checkout\.session\.expired'/);
   assert.match(WEBHOOK, /async function handleCheckoutExpired/);
 });

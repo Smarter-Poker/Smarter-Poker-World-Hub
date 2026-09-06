@@ -1,5 +1,5 @@
 /**
- * Daily GTO Challenge — Hand of the Day
+ * Daily GTO Challenge - Hand of the Day
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 24: Daily solver-verified GTO spot with leaderboard and streak
  * tracking. One challenge per day, changes at midnight UTC.
@@ -8,23 +8,24 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
-// TRAIN-CSS-TOKENS-BATCH4-15 — hex sweep batch 4: literals routed to --sp-* tokens
-// TRAIN-CSS-GRADIENT-ADOPT-7 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CATCH-FIX-1 - replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH4-15 - hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-7 - gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import Card, { parseCards, getCardImagePath } from '../../../src/components/training/Card';
+import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import { toast } from '../../../src/stores/toastStore';
-// TRAIN-WIRE-FX-4d — adoption: feedback hook for daily-challenge.fresh.js
+import styles from '../../../src/styles/training/daily-challenge-casino.module.css';
+// TRAIN-WIRE-FX-4d - adoption: feedback hook for daily-challenge.fresh.js
 
 /**
  * Convert abstract hand notation (A5s, KK, K5o) OR specific (Ah5s) to card objects.
@@ -80,17 +81,8 @@ function CountdownTimer({ expiresAt }) {
   }, [expiresAt]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 11,
-        fontWeight: 700,
-        color: 'var(--sp-fg-dim)',
-      }}
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="#64748b">
+    <div className={styles.countdown}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
       </svg>
       <span>Next Challenge In {remaining}</span>
@@ -115,36 +107,12 @@ function StreakCalendar({ completedDays }) {
   }
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(10, 1fr)',
-        gap: 3,
-      }}
-    >
+    <div className={styles.streakGrid} aria-label="Thirty Day Challenge History">
       {days.map((d) => (
         <div
           key={d.key}
-          style={{
-            aspectRatio: '1',
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 8,
-            fontWeight: 700,
-            background: d.isCompleted
-              ? 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)'
-              : d.isToday
-                ? 'rgba(234,179,8,0.15)'
-                : 'rgba(255,255,255,0.03)',
-            border: d.isToday
-              ? '1px solid rgba(234,179,8,0.4)'
-              : d.isCompleted
-                ? '1px solid rgba(34,197,94,0.3)'
-                : '1px solid rgba(255,255,255,0.04)',
-            color: d.isCompleted ? '#fff' : d.isToday ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
-          }}
+          className={`${styles.streakDay} ${d.isCompleted ? styles.streakDayComplete : ''} ${d.isToday ? styles.streakDayToday : ''}`}
+          aria-label={`${d.key}: ${d.isCompleted ? 'Completed' : d.isToday ? 'Today' : 'Not Completed'}`}
         >
           {d.day}
         </div>
@@ -176,6 +144,8 @@ export default function DailyChallengePage() {
   const [completedDays, setCompletedDays] = useState([]);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [sharingResult, setSharingResult] = useState(false);
+  const [pendingSave, setPendingSave] = useState(null);
+  const [savingAnswer, setSavingAnswer] = useState(false);
   const answered = useRef(false);
 
   // Fetch daily challenge
@@ -209,6 +179,10 @@ export default function DailyChallengePage() {
           setPersistedCorrect(Boolean(parsed.isCorrect));
           setShowResult(true);
           answered.current = true;
+          if (parsed.serverSaved === false) {
+            setPendingSave({ action: parsed.selected, isCorrect: Boolean(parsed.isCorrect), today });
+            setError('Your Answer Is Safe On This Device, But It Still Needs To Be Saved. Tap Retry Save Below.');
+          }
         }
 
         // Load streak data from local storage
@@ -244,13 +218,47 @@ export default function DailyChallengePage() {
 
   useEffect(() => {
     fetchChallenge();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Bus listener
   useEffect(() => {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => fetchChallenge());
     return unsub;
   }, [fetchChallenge]);
+
+  const saveAnswer = useCallback(async ({ action, isCorrect, today }) => {
+    const user = getAuthUser();
+    if (!user?.id) {
+      const storageKey = `daily-challenge-${today}`;
+      try {
+        const localResult = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        localStorage.setItem(storageKey, JSON.stringify({ ...localResult, serverSaved: true }));
+      } catch (storageError) {
+        console.warn('[DailyChallenge] Could Not Finalize Local Result:', storageError?.message || storageError);
+      }
+      return true;
+    }
+    const saveResponse = await authedFetch('/api/training/hand-of-the-day', {
+      method: 'POST',
+      body: JSON.stringify({
+        dailyId: dailyId || `daily-${today}`,
+        selectedAction: action,
+      }),
+    });
+    const saved = await saveResponse.json().catch(() => null);
+    if (!saveResponse.ok || saved?.success === false) {
+      throw new Error(saved?.error || 'Daily Result Could Not Be Saved');
+    }
+    const storageKey = `daily-challenge-${today}`;
+    try {
+      const localResult = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      localStorage.setItem(storageKey, JSON.stringify({ ...localResult, serverSaved: true }));
+    } catch (storageError) {
+      console.warn('[DailyChallenge] Could Not Mark Local Result As Saved:', storageError?.message || storageError);
+    }
+    setPendingSave(null);
+    return true;
+  }, [dailyId]);
 
   // Handle answer
   const handleAnswer = useCallback(
@@ -272,6 +280,7 @@ export default function DailyChallengePage() {
         JSON.stringify({
           selected: action,
           isCorrect,
+          serverSaved: false,
           timestamp: Date.now(),
         })
       );
@@ -287,27 +296,11 @@ export default function DailyChallengePage() {
 
       // Record on server and surface persistence failures.
       try {
-        const user = getAuthUser();
-        const userId = user?.id;
-        if (userId) {
-          const saveResponse = await authedFetch('/api/training/hand-of-the-day', {
-            method: 'POST',
-            body: JSON.stringify({
-              userId,
-              dailyId: dailyId || `daily-${today}`,
-              score: isCorrect ? 100 : 0,
-              evLoss: isCorrect ? 0 : 1,
-              selectedAction: action,
-            }),
-          });
-          const saved = await saveResponse.json().catch(() => null);
-          if (!saveResponse.ok || saved?.success === false) {
-            throw new Error(saved?.error || 'Daily result could not be saved');
-          }
-        }
+        await saveAnswer({ action, isCorrect, today });
       } catch (saveError) {
         console.warn('[DailyChallenge] Save failed:', saveError?.message || saveError);
-        setError('Your answer is shown, but it could not be saved. Please retry from this page.');
+        setPendingSave({ action, isCorrect, today });
+        setError('Your Answer Is Safe On This Device, But It Could Not Be Saved. Tap Retry Save Below.');
       }
 
       // Emit bus events
@@ -335,7 +328,7 @@ export default function DailyChallengePage() {
         busEmit.sessionEnd('DailyChallenge');
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     },
-    [challenge, bus, dailyId, fb]
+    [challenge, bus, dailyId, fb, saveAnswer]
   );
 
   // Derive question data
@@ -360,338 +353,65 @@ export default function DailyChallengePage() {
         />
       </Head>
 
-      <div
-        className="sp-training-command sp-training-command--daily"
-        style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-command-header"
-          style={{
-            padding: '20px 24px 12px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            {/* BUG FIX (TRAIN-DAILY-CHALLENGE-A11Y-1): explicit aria-label so
-                screen readers don't read the HTML entity '&larr;' as 'left
-                pointing arrow'; the visible label 'Training' alone reads
-                ambiguously without context. */}
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              aria-label="Back to training"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              &larr; Training
+      <main className={`sp-training-command sp-training-command--daily ${styles.shell}`}>
+        <header className={`sp-command-header ${styles.marquee}`}>
+          <div className={styles.marqueeArtwork} aria-hidden="true" />
+          <div className={styles.marqueeContent}>
+            <button type="button" onClick={() => router.push('/hub/training')} aria-label="Back To Training" className={styles.backButton}>
+              <span aria-hidden="true">‹</span> Training
             </button>
-            <h1
-              style={{
-                fontSize: 20,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, #eab308, rgba(var(--sp-accent-orange-rgb), 1))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Daily Challenge
-            </h1>
-            <span
-              style={{
-                fontSize: 10,
-                color: 'var(--sp-accent-amber)',
-                background: 'rgba(234,179,8,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(234,179,8,0.2)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Daily Solver Spot
-            </span>
-          </div>
-          {expiresAt && (
-            <div style={{ marginTop: 6 }}>
-              <CountdownTimer expiresAt={expiresAt} />
+            <div className={styles.titleBlock}>
+              <span className={styles.eyebrow}>Solver Verified · One Seat · One Shot</span>
+              <h1>Daily Challenge</h1>
+              <p>Read The Table. Lock Your Decision. Protect Your Streak.</p>
             </div>
-          )}
-        </div>
-
-        <div className="sp-command-main" style={{ padding: '16px 24px', maxWidth: 600, margin: '0 auto' }}>
-          {/* Streak + Stats Bar */}
-          <div
-            className="sp-command-metric-grid"
-            style={{
-              display: 'flex',
-              gap: 8,
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                background: 'rgba(234,179,8,0.06)',
-                border: '1px solid rgba(234,179,8,0.15)',
-                borderRadius: 10,
-                padding: '10px 8px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: 'var(--sp-accent-amber)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {currentStreak}
-              </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: 'var(--sp-fg-dim)',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Day Streak
-              </div>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                background: 'rgba(34,197,94,0.06)',
-                border: '1px solid rgba(34,197,94,0.15)',
-                borderRadius: 10,
-                padding: '10px 8px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: 'var(--sp-accent-green)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {completedDays.length}
-              </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: 'var(--sp-fg-dim)',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Days Done
-              </div>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                background: 'rgba(168,85,247,0.06)',
-                border: '1px solid rgba(168,85,247,0.15)',
-                borderRadius: 10,
-                padding: '10px 8px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: 'var(--sp-accent-purple)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {DAILY_CHALLENGE_DIAMOND_REWARD}
-              </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: 'var(--sp-fg-dim)',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Diamonds
-              </div>
+            <div className={styles.clockBay}>
+              <span>Table Resets</span>
+              {expiresAt ? <CountdownTimer expiresAt={expiresAt} /> : <strong>Awaiting Dealer</strong>}
             </div>
           </div>
+        </header>
 
-          {/* Error */}
+        <div className={`sp-command-main ${styles.commandDeck}`}>
+          <section className={styles.metrics} aria-label="Daily Challenge Status">
+            <div><span>Current Run</span><strong>{currentStreak}</strong><small>Day Streak</small></div>
+            <div><span>History</span><strong>{completedDays.length}</strong><small>Days Completed</small></div>
+            <div className={styles.rewardMetric}><span>Perfect Read</span><strong>{DAILY_CHALLENGE_DIAMOND_REWARD}</strong><small>Diamonds</small></div>
+          </section>
+
           {error && (
-            <div
-              style={{
-                padding: '10px 14px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 8,
-                color: 'var(--sp-accent-red)',
-                fontSize: 12,
-                fontWeight: 600,
-                marginBottom: 14,
-              }}
-            >
-              {error}
-              {/* TRAIN-DAILY-CHALLENGE-A11Y-1: aria-label disambiguates Retry */}
-              <button
-                type="button"
-                onClick={fetchChallenge}
-                aria-label="Retry loading today's challenge"
-                style={{
-                  marginLeft: 12,
-                  background: 'rgba(234,179,8,0.2)',
-                  border: '1px solid rgba(234,179,8,0.4)',
-                  borderRadius: 6,
-                  padding: '4px 12px',
-                  color: 'var(--sp-accent-amber)',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
-                Retry
-              </button>
+            <div className={styles.errorBay} role="alert">
+              <span>{error}</span>
+              <button type="button" onClick={fetchChallenge} aria-label="Retry Loading Today's Challenge">Retry Challenge</button>
             </div>
           )}
 
-          {/* Loading */}
           {loading && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 40,
-                color: 'var(--sp-fg-dim)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              LOADING TODAY'S CHALLENGE...
+            <div className={styles.loadingBay} role="status">
+              <span className={styles.dealerLight} aria-hidden="true" />
+              <strong>Dealing Today’s Challenge</strong>
+              <small>Synchronizing Solver Evidence</small>
             </div>
           )}
 
-          {/* Challenge Display */}
           {!loading && challenge && (
-            <motion.div className="sp-command-card-stage" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {/* Already completed banner */}
-              {alreadyCompleted && (
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    marginBottom: 12,
-                    background: 'rgba(34,197,94,0.08)',
-                    border: '1px solid rgba(34,197,94,0.2)',
-                    borderRadius: 8,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: 'var(--sp-accent-green)',
-                    textAlign: 'center',
-                  }}
-                >
-                  You Already Completed Today's Challenge
-                </div>
-              )}
-
-              {/* Spot Info */}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 6,
-                  marginBottom: 12,
-                  flexWrap: 'wrap',
-                }}
-              >
-                {position && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      color: 'var(--sp-accent-amber)',
-                      background: 'rgba(234,179,8,0.1)',
-                      padding: '3px 8px',
-                      borderRadius: 6,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    {position}
-                  </span>
-                )}
-                {street && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-muted)',
-                      background: 'rgba(255,255,255,0.04)',
-                      padding: '3px 8px',
-                      borderRadius: 6,
-                    }}
-                  >
-                    {street}
-                  </span>
-                )}
-              </div>
-
-              {/* Board + Hand */}
-              <div
-                style={{
-                  background:
-                    'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                  border: '1px solid rgba(234,179,8,0.12)',
-                  borderRadius: 14,
-                  padding: '20px 24px',
-                  marginBottom: 14,
-                  textAlign: 'center',
-                }}
-              >
-                {Array.isArray(board) && board.length > 0 && (
-                  <>
-                    <div
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg-dim)',
-                        textTransform: 'uppercase',
-                        letterSpacing: 1.5,
-                        marginBottom: 10,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      BOARD
+            <motion.div className={styles.challengeStage} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className={styles.challengeLayout}>
+                <article className={styles.feltTable} aria-labelledby="daily-spot-question">
+                  <div className={styles.tableRail}>
+                    <div className={styles.spotMeta}>
+                      <span>Today’s Table</span>
+                      {position && <strong>{position}</strong>}
+                      {street && <strong>{street}</strong>}
                     </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 8,
-                        justifyContent: 'center',
-                        marginBottom: 16,
-                      }}
-                    >
+                    {alreadyCompleted && <div className={styles.completedStamp}>Challenge Completed</div>}
+                  </div>
+
+                  <div className={styles.cardLayout}>
+                {Array.isArray(board) && board.length > 0 && (
+                      <div className={styles.cardZone}>
+                        <span>Board</span>
+                        <div className={styles.cards}>
                       {board.map((card, i) => (
                         <Card
                           key={i}
@@ -700,56 +420,27 @@ export default function DailyChallengePage() {
                           size="small"
                         />
                       ))}
-                    </div>
-                  </>
+                        </div>
+                      </div>
                 )}
                 {heroHand && (
-                  <>
-                    <div
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg-dim)',
-                        textTransform: 'uppercase',
-                        letterSpacing: 1.5,
-                        marginBottom: 8,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      YOUR HAND
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                      <div className={`${styles.cardZone} ${styles.heroZone}`}>
+                        <span>Your Hand</span>
+                        <div className={styles.cards}>
                       {handToCards(heroHand).map((c, i) => (
                         <Card key={i} rank={c.rank} suit={c.suit} size="small" />
                       ))}
-                    </div>
-                  </>
+                        </div>
+                      </div>
                 )}
-              </div>
+                  </div>
 
-              {/* Scenario */}
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg)',
-                  textAlign: 'center',
-                  marginBottom: 14,
-                }}
-              >
-                {scenario}
-              </div>
+                  <div className={styles.decisionWell}>
+                    <span>Decision Required</span>
+                    <h2 id="daily-spot-question">{scenario}</h2>
+                  </div>
 
-              {/* Action Buttons */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 8,
-                  marginBottom: 16,
-                }}
-              >
-                {/* TRAIN-WIRE-QUIZ-ANSWER-4 — options via shared QuizAnswer */}
+                  <div className={styles.actionKeys} aria-label="Challenge Actions">
                 {options.map((action, idx) => (
                   <QuizAnswer
                     key={action}
@@ -763,127 +454,109 @@ export default function DailyChallengePage() {
                     size="md"
                   />
                 ))}
+                  </div>
+                </article>
+
+                <aside className={styles.pitRail} aria-label="Challenge Progress And Rules">
+                  <section className={styles.streakPanel}>
+                    <div className={styles.panelHeading}><span>Last Thirty Days</span><strong>{currentStreak} Day Run</strong></div>
+                    <StreakCalendar completedDays={completedDays} />
+                    <div className={styles.legend}><span><i className={styles.completeKey} /> Completed</span><span><i className={styles.todayKey} /> Today</span></div>
+                  </section>
+                  <section className={styles.rulesPanel}>
+                    <span>House Rules</span>
+                    <h2>One Solver Spot Every Day</h2>
+                    <p>Lock The Correct GTO Action To Extend Your Streak And Earn {DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds. The Table Resets At Midnight UTC.</p>
+                    <div><strong>Verified</strong><small>Solver Evidence</small></div>
+                    <div><strong>Worldwide</strong><small>Daily Leaderboard</small></div>
+                  </section>
+                </aside>
               </div>
 
-              {/* Result Feedback */}
               <AnimatePresence>
                 {showResult && (
                   <motion.div
+                    className={`${styles.resultDrawer} ${resultIsCorrect ? styles.resultCorrect : styles.resultIncorrect}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      background:
-                        resultIsCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                      border: `1px solid ${resultIsCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                      borderRadius: 10,
-                      padding: '12px 16px',
-                      marginBottom: 14,
-                    }}
                   >
-                    {/* TRAIN-WIRE-FEEDBACK-V2-6 — verdict via FeedbackCard compact */}
-                    <div style={{ marginBottom: 6 }}>
+                    <div className={styles.feedbackWrap}>
                       <FeedbackCard
                         verdict={resultIsCorrect ? 'correct' : 'incorrect'}
                         userAction={selected || ''}
                         solverAction={correctAnswer}
-                        evLoss={0}
+                        evLoss={resultIsCorrect ? 0 : undefined}
                         whyShort={resultIsCorrect ? "Solver-correct." : `Solver prefers ${correctAnswer}.`}
                         compact
                       />
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg)',
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div className={styles.answerReadout}>
                       GTO Answer: {correctAnswer}
                     </div>
 
-                    {/* GTO Frequency Breakdown */}
                     {frequencies && (
-                      <>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: 'var(--sp-fg-dim)',
-                            marginTop: 6,
-                            marginBottom: 4,
-                            textTransform: 'uppercase',
-                            letterSpacing: 1,
-                          }}
-                        >
-                          GTO Frequencies
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <div className={styles.frequencyBlock}>
+                        <span>GTO Frequencies</span>
+                        <div>
                           {Object.entries(frequencies || {})
                             .sort(([, a], [, b]) => b - a)
                             .map(([act, freq]) => (
                               <span
                                 key={act}
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  color: act === correctAnswer ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
-                                  background:
-                                    act === correctAnswer
-                                      ? 'rgba(34,197,94,0.1)'
-                                      : 'rgba(255,255,255,0.04)',
-                                  padding: '3px 8px',
-                                  borderRadius: 6,
-                                }}
+                                data-optimal={act === correctAnswer || undefined}
                               >
                                 {act}: {freq}%
                               </span>
                             ))}
                         </div>
-                      </>
+                      </div>
                     )}
 
-                    {/* Explanation */}
                     {explanation && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          fontSize: 11,
-                          color: 'var(--sp-fg-muted)',
-                          lineHeight: 1.5,
-                          borderTop: '1px solid rgba(255,255,255,0.06)',
-                          paddingTop: 8,
-                        }}
-                      >
+                      <div className={styles.explanation}>
                         {explanation}
                       </div>
                     )}
 
-                    {/* Share Result + Perfect Score Celebration */}
-                    {!alreadyCompleted && (
-                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {resultIsCorrect && (
+                    {(!alreadyCompleted || pendingSave) && (
+                      <div className={styles.resultActions}>
+                        {resultIsCorrect && !alreadyCompleted && (
                           <motion.div
+                            className={styles.rewardWin}
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.3 }}
-                            style={{
-                              padding: '10px 14px',
-                              borderRadius: 8,
-                              background: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(249,115,22,0.06))',
-                              border: '1px solid rgba(234,179,8,0.3)',
-                              textAlign: 'center',
-                            }}
                           >
-                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
-                              Perfect Score! +{DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds
-                            </div>
+                            Perfect Read · +{DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds
                           </motion.div>
                         )}
-                        {/* TRAIN-DAILY-CHALLENGE-A11Y-1: share button has type+aria */}
+                        {pendingSave && (
+                          <button
+                            className={styles.shareButton}
+                            type="button"
+                            disabled={savingAnswer}
+                            onClick={async () => {
+                              if (savingAnswer) return;
+                              setSavingAnswer(true);
+                              try {
+                                await saveAnswer(pendingSave);
+                                setError(null);
+                                toast.success('Daily Challenge Result Saved!');
+                              } catch (retryError) {
+                                console.warn('[DailyChallenge] Retry Save Failed:', retryError?.message || retryError);
+                                setError('Your Answer Is Still Safe On This Device. Saving Failed Again, So Please Retry.');
+                              } finally {
+                                setSavingAnswer(false);
+                              }
+                            }}
+                          >
+                            {savingAnswer ? 'Saving Result' : 'Retry Save'}
+                          </button>
+                        )}
                         <button
+                          className={styles.shareButton}
                           type="button"
-                          aria-label="Share result to your social feed"
+                          aria-label="Share Result To Your Social Feed"
                           disabled={sharingResult}
                           onClick={async () => {
                             if (sharingResult) return;
@@ -912,19 +585,8 @@ export default function DailyChallengePage() {
                               setSharingResult(false);
                             }
                           }}
-                          style={{
-                            padding: '10px',
-                            borderRadius: 8,
-                            border: '1px solid rgba(168,85,247,0.2)',
-                            background: 'rgba(168,85,247,0.06)',
-                            color: 'var(--sp-accent-purple)',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: sharingResult ? 'not-allowed' : 'pointer',
-                            opacity: sharingResult ? 0.5 : 1,
-                          }}
                         >
-                          {sharingResult ? 'Sharing...' : 'Share Result'}
+                          {sharingResult ? 'Sharing Result' : 'Share Result'}
                         </button>
                       </div>
                     )}
@@ -932,109 +594,17 @@ export default function DailyChallengePage() {
                 )}
               </AnimatePresence>
 
-              {/* Streak Calendar */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  marginBottom: 14,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 8,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  30-Day Streak
-                </div>
-                <StreakCalendar completedDays={completedDays} />
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    marginTop: 8,
-                    fontSize: 9,
-                    color: 'var(--sp-fg-dim)',
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--sp-accent-green)' }} />
-                    Completed
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 2,
-                        background: 'rgba(234,179,8,0.3)',
-                        border: '1px solid rgba(234,179,8,0.4)',
-                      }}
-                    />
-                    Today
-                  </span>
-                </div>
-              </div>
-
-              {/* About */}
-              <div
-                style={{
-                  padding: '14px 18px',
-                  background: 'rgba(255,255,255,0.02)',
-                  borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                {/* TRAIN-DAILY-CHALLENGE-A11Y-1: semantic h2 for section heading */}
-                <h2
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginTop: 0,
-                    marginBottom: 6,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  About Daily Challenge
-                </h2>
-                <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-                  A New Solver-Verified GTO Spot Every Day At Midnight UTC. Answer Correctly To
-                  Extend Your Streak And Earn {DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds. Compete With Players Worldwide For The
-                  Fastest Correct Answer On The Daily Leaderboard.
-                </p>
-              </div>
             </motion.div>
           )}
 
-          {/* No challenge available */}
           {!loading && !challenge && !error && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 40,
-                color: 'var(--sp-fg-faint)',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              No Daily Challenge Available Right Now. Check Back Soon.
+            <div className={styles.emptyBay}>
+              <strong>No Challenge At The Table</strong>
+              <span>Check Back Soon For The Next Solver Spot.</span>
             </div>
           )}
         </div>
-
-      </div>
+      </main>
       <ConnectionToast />
     </>
   );

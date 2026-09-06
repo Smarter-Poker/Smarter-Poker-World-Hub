@@ -19,7 +19,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 SIMULATOR_PATH = SCRIPTS_DIR / "bravo-simulator-daemon.py"
 MIGRATION_PATH = (
     SCRIPTS_DIR.parent
-    / "supabase/migrations/20260906210000_pnm_scraper_data_truth.sql"
+    / "supabase/migrations/20260906220000_pnm_scraper_data_truth.sql"
 )
 sys.path.insert(0, str(SCRIPTS_DIR))
 

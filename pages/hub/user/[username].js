@@ -44,7 +44,6 @@ import ReactionPicker from '../../../src/components/social/ReactionPicker';
 import PostImageLightbox from '../../../src/components/social/PostImageLightbox';
 import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule';
 import CrewDashboard from '../../../src/components/social/CrewDashboard';
-import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { homeGamePageUrl } from '../../../src/lib/home-games/urls';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
@@ -3722,18 +3721,13 @@ export default function UserProfilePage() {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
         }}
       >
-        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
-
-        <HamburgerMenu
-          isOpen={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          direction="left"
-          theme="dark"
-          user={currentUser}
-          showProfile={true}
-          menuItems={getMenuConfig('profile').menuItems}
-          shortcuts={menuShortcuts}
-          profileExtras={
+        <UniversalHeader
+          pageDepth={2}
+          commandMenuOpen={menuOpen}
+          onCommandMenuOpenChange={setMenuOpen}
+          commandMenuItems={getMenuConfig('profile').menuItems}
+          commandMenuShortcuts={menuShortcuts}
+          commandMenuProfileExtras={
             currentUser ? (
               <div style={{ padding: '0 12px 8px' }}>
                 {/* ── LIVE SESSION & BROADCASTING NAV BAR ── */}

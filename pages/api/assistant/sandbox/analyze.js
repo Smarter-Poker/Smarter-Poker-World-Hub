@@ -169,6 +169,22 @@ function pickDeterministic(rows) {
 }
 
 /**
+ * The trust bridge is needed only after the canonical Training cache misses and
+ * Supabase returns candidate rows. Keep that cold-path bridge out of the base
+ * assistant function bundle while still failing closed before any row is used.
+ */
+async function pickTrustedDeterministic(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const { selectTrustedSolverMatrix } = await import('../../../../src/lib/training/solverMatrixTrust');
+  const trusted = [];
+  for (const row of rows) {
+    const strategyMatrix = selectTrustedSolverMatrix(row);
+    if (strategyMatrix) trusted.push({ ...row, strategy_matrix: strategyMatrix });
+  }
+  return pickDeterministic(trusted);
+}
+
+/**
  * Determine current street from board state
  */
 function getStreet(board) {
@@ -342,7 +358,7 @@ async function querySolverData(params) {
   const fullBoardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
   const flopCards = (board?.flop || []).filter(Boolean);
 
-  const SELECT_COLS = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix';
+  const SELECT_COLS = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
 
   // ━━━ TIER 1: Full board match (canonical order, then dealt order) ━━━
   for (const boardStr of boardStrVariants(fullBoardCards)) {
@@ -357,7 +373,7 @@ async function querySolverData(params) {
         .limit(5);
 
       if (!error && exactMatches && exactMatches.length > 0) {
-        const scenario = pickDeterministic(exactMatches);
+        const scenario = await pickTrustedDeterministic(exactMatches);
         if (scenario?.strategy_matrix) {
           // Position / pot / action line are NOT verified by this match ·
           // only board + stack + street + game type. Label accordingly.
@@ -381,7 +397,7 @@ async function querySolverData(params) {
           .limit(5);
 
         if (partialMatches && partialMatches.length > 0) {
-          const scenario = pickDeterministic(partialMatches);
+          const scenario = await pickTrustedDeterministic(partialMatches);
           if (scenario?.strategy_matrix) {
             return { scenario, matchTier: 2, source: 'PIO Solver · Board Approximated' };
           }
@@ -401,7 +417,7 @@ async function querySolverData(params) {
       .limit(10);
 
     if (anyMatches && anyMatches.length > 0) {
-      const scenario = pickDeterministic(anyMatches);
+      const scenario = await pickTrustedDeterministic(anyMatches);
       if (scenario?.strategy_matrix) {
         return { scenario, matchTier: 3, source: 'PIO Solver · Similar Spot' };
       }
@@ -421,7 +437,7 @@ async function querySolverData(params) {
         .limit(5);
 
       if (nearbyMatches && nearbyMatches.length > 0) {
-        const scenario = pickDeterministic(nearbyMatches);
+        const scenario = await pickTrustedDeterministic(nearbyMatches);
         if (scenario?.strategy_matrix) {
           return { scenario, matchTier: 3, source: `PIO Solver · ${scenario.stack_depth}bb Approximated` };
         }

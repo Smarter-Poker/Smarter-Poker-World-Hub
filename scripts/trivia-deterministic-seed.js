@@ -25,6 +25,9 @@
  */
 
 // ─── ENVIRONMENT (read from env, never hardcoded) ─────────────────────────
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SUPABASE_URL || !SERVICE_KEY) {
@@ -40,6 +43,7 @@ const VERBOSE = args.includes('--verbose');
 const ARG_CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1];
 const ARG_TARGET = parseInt(args.find(a => a.startsWith('--target='))?.split('=')[1] || '0', 10);
 const ARG_OFFSET = parseInt(args.find(a => a.startsWith('--offset='))?.split('=')[1] || '0', 10);
+let selectTrustedSolverMatrix;
 
 if (!IS_DRY_RUN && !IS_LIVE) {
     console.error('Usage: node scripts/trivia-deterministic-seed.js [--dry-run|--live] [--category=X] [--target=N] [--all]');
@@ -204,13 +208,10 @@ function deterministicRandom(seed) {
  * Returns null if scenario has no usable strategy data.
  */
 function buildQuestionFromScenario(scenario, questionIndex) {
-    // Prefer the rebuilt v2 solver matrix whenever it is populated. The
-    // canonical training engine already does this; Trivia must not answer the
-    // same scenario from an older matrix.
-    const v2 = scenario.strategy_matrix_v2 || {};
-    const sm = Array.isArray(v2.actions) && v2.actions.length > 0
-        ? v2
-        : (scenario.strategy_matrix || {});
+    // Use the same source-aware trust boundary as Training. This bridges and
+    // validates V2, rejects corrupt V2 without a V1 fallback, and prevents the
+    // legacy V1 EV/regret channel `f` from ever becoming a Fold answer.
+    const sm = selectTrustedSolverMatrix(scenario) || {};
     const actions = sm.actions || [];
     const frequencies = sm.frequencies || {};
     const handEVs = sm.hand_evs || {};
@@ -828,6 +829,9 @@ async function seedCategory(category, target) {
 // ─── ENTRY POINT ──────────────────────────────────────────────────────────
 
 async function main() {
+    ({ selectTrustedSolverMatrix } = await import(pathToFileURL(
+        path.join(__dirname, '../src/lib/training/solverMatrixTrust.js'),
+    ).href));
     const t0 = Date.now();
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`🎯 TRIVIA DETERMINISTIC SEEDER`);

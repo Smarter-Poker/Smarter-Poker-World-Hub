@@ -27,6 +27,18 @@
  * NO :hover ANYWHERE (Dan 2026-08-29): a press is the feedback.
  */
 
+/*
+ * The wallet is opened from the global header, including Hub routes that do
+ * not mount WorldCopyPolicy. Keep identity casing correct without depending
+ * on that route-scoped stylesheet.
+ */
+.preserveIdentityScope [data-preserve-case='true'],
+.preserveIdentityScope [data-preserve-case='true'] *,
+.preserveIdentityScope [data-user-content],
+.preserveIdentityScope [data-user-content] * {
+  text-transform: none !important;
+}
+
 .wallet {
   --vault-obsidian: #05070a;
   --vault-carbon: #0d1218;
