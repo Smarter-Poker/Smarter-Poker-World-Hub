@@ -42,6 +42,25 @@ landed, so Phase 5 was not considered released.
    The panel now treats a successfully loaded missing tier as zero, renders
    `tier_reason`, reads `case.id`, and preserves `totals.filtered_groups` for
    filtered pagination. A release test pins all four mappings.
+7. The health wrapper looked for `collusion-scan`, while Open Claw records
+   `/cron/collusion-scan`. It therefore returned no latest run and discarded
+   the worker's required detection-span and threshold disclosure. The wrapper
+   now matches the recorded job name and carries both disclosure fields from
+   the latest run result.
+8. Flag cards used the JSON `reason` as their title and looked for subject and
+   source fields the RPC does not return. They now show the flag type, named
+   player with horse or human disclosure, flagged time, and thirty-day event
+   count from the exact RPC fields.
+9. The Timing panel looked for an array and fields including `p95_ms`, while
+   its RPC returns a composition-keyed distribution with no percentile. That
+   false-empty path is replaced with exact per-composition timing rows and an
+   explicit sample-coverage card, including the truncation flag.
+10. Pair cards requested a top-level `net_flow` field the ranked-pair RPC does
+    not return, making every live value appear unknown. The card now renders
+    the contract's `absolute_net_flow` under an exact "Absolute Net Flow" label.
+11. The queue's initial loading state also rendered an unknown-state alert
+    before the route had answered. Initial load now shows only its loading
+    message; unknown remains reserved for a completed unreadable response.
 
 ## Production Database Evidence
 

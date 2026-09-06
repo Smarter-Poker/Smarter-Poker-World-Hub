@@ -293,7 +293,7 @@ export default function TrainingPage() {
   }, [setShowArena, setupGame, router, authUser?.id]);
 
   return (
-    <PageTransition>
+    <PageTransition disableInitialAnimation>
       <SEOHead
         title="Training - Smarter.Poker"
         description="One-tap GTO training. Personalised daily plan, leak detection, and 100+ scenario-based games coached by Jarvis."

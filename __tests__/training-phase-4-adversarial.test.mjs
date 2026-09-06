@@ -35,8 +35,24 @@ test('the hub reads persisted active leaks instead of calling a nonexistent anal
 test('grade copy is unambiguous and page-owned tokens cannot bleed into the global header', () => {
   const hub = read('pages/hub/training.js');
   const css = read('src/styles/worlds/training.css');
+  const transition = read('src/components/transitions/PageTransition.js');
 
   assert.match(hub, /Away From Grade \{nextGrade\}/);
+  assert.match(
+    hub,
+    /<PageTransition disableInitialAnimation>/,
+    'the global command trigger must be interactive on the first client frame',
+  );
+  assert.match(
+    transition,
+    /if \(disableInitialAnimation\) \{[\s\S]*?return \([\s\S]*?<div className=\{className\}/,
+    'the static path must bypass motion state so WebKit cannot blank hydrated controls',
+  );
+  assert.doesNotMatch(
+    transition,
+    /<motion\.div[\s\S]*?initial=\{disableInitialAnimation/,
+    'the disabled path must not remain coupled to a motion variant',
+  );
   assert.doesNotMatch(hub, /<BottomNavBar\b|import[^\n]*BottomNavBar|BOTTOM_NAV_CLEARANCE/);
   assert.doesNotMatch(hub, /<style jsx global>\{`\s*:root\s*\{/);
   assert.match(css, /body\.world-training \.sp-main,[\s\S]*?--sp-primary: #00d4ff/);
