@@ -323,6 +323,8 @@ function SimpleRecordCard({ row, kind }) {
   const severity = first(row, 'severity', 'risk_level', 'riskLevel');
   const title = kind === 'pairs'
     ? `${participantName(row, 'a')} And ${participantName(row, 'b')}`
+    : kind === 'flags'
+      ? patternLabel(first(row, 'flag_type', 'flagType') || 'Integrity Flag')
     : kind === 'hands'
       ? `Hand ${id || 'Unknown'}`
       : kind === 'timing'
@@ -349,10 +351,16 @@ function SimpleRecordCard({ row, kind }) {
         )}
         {kind === 'flags' && (
           <>
-            <Fact label="Subject" mono>{first(row, 'user_id', 'userId', 'subject_id', 'subjectId') || 'Unknown'}</Fact>
+            <Fact label="Player">
+              <Participant
+                name={first(row, 'player_name', 'playerName', 'player_id', 'playerId') || 'Unknown'}
+                horse={first(row, 'player_is_horse', 'playerIsHorse') === true}
+              />
+            </Fact>
             <Fact label="Status">{first(row, 'status') || 'Unknown'}</Fact>
-            <Fact label="Created">{when(first(row, 'created_at', 'createdAt'), true)}</Fact>
-            <Fact label="Source">{first(row, 'source', 'event_type', 'eventType') || 'Unknown'}</Fact>
+            <Fact label="Flagged">{when(first(row, 'flagged_at', 'flaggedAt', 'created_at', 'createdAt'), true)}</Fact>
+            <Fact label="Flag Type">{patternLabel(first(row, 'flag_type', 'flagType') || 'Unknown')}</Fact>
+            <Fact label="Events In Thirty Days">{num(first(row, 'event_count_30d', 'eventCount30d'), 'Unknown')}</Fact>
           </>
         )}
         {kind === 'timing' && (

@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [route, panel, sql, queueBudgetSql, narrowQueueSql] = await Promise.all([
+const [route, panel, sql, queueBudgetSql, narrowQueueSql, healthDisclosureSql] = await Promise.all([
   readFile(path.join(ROOT, 'pages/api/horses/integrity-admin.js'), 'utf8'),
   readFile(path.join(ROOT, 'src/components/horses/IntegrityPanel.jsx'), 'utf8'),
   readFile(path.join(
@@ -20,6 +20,10 @@ const [route, panel, sql, queueBudgetSql, narrowQueueSql] = await Promise.all([
   readFile(path.join(
     ROOT,
     'supabase/migrations/20260906200000_integrity_queue_uses_narrow_indexable_rows.sql'
+  ), 'utf8'),
+  readFile(path.join(
+    ROOT,
+    'supabase/migrations/20260906141131_integrity_health_discloses_latest_detector_run.sql'
   ), 'utf8'),
 ]);
 
@@ -85,4 +89,18 @@ test('the queue optimization restores the partial index and narrows profiles', (
   assert.match(narrowQueueSql, /pb\.display_name, pb\.username/);
   assert.match(narrowQueueSql, /IF v_sql = v_before THEN/);
   assert.match(narrowQueueSql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_queue/);
+});
+
+test('health reads the Open Claw job name and preserves detector disclosure', () => {
+  assert.match(healthDisclosureSql, /regexp_replace\(replace\(lower\(e\.job_name\)/);
+  assert.match(healthDisclosureSql, /detection_span_minutes/);
+  assert.match(healthDisclosureSql, /detection_thresholds/);
+  assert.match(healthDisclosureSql, /REVOKE ALL ON FUNCTION public\.fn_ca_integrity_detector_health/);
+});
+
+test('flags render named players and never expose reason JSON as the heading', () => {
+  assert.match(panel, /patternLabel\(first\(row, 'flag_type', 'flagType'\)/);
+  assert.match(panel, /'player_name', 'playerName', 'player_id', 'playerId'/);
+  assert.match(panel, /'player_is_horse', 'playerIsHorse'/);
+  assert.match(panel, /label="Events In Thirty Days"/);
 });

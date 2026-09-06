@@ -42,6 +42,15 @@ landed, so Phase 5 was not considered released.
    The panel now treats a successfully loaded missing tier as zero, renders
    `tier_reason`, reads `case.id`, and preserves `totals.filtered_groups` for
    filtered pagination. A release test pins all four mappings.
+7. The health wrapper looked for `collusion-scan`, while Open Claw records
+   `/cron/collusion-scan`. It therefore returned no latest run and discarded
+   the worker's required detection-span and threshold disclosure. The wrapper
+   now matches the recorded job name and carries both disclosure fields from
+   the latest run result.
+8. Flag cards used the JSON `reason` as their title and looked for subject and
+   source fields the RPC does not return. They now show the flag type, named
+   player with horse or human disclosure, flagged time, and thirty-day event
+   count from the exact RPC fields.
 
 ## Production Database Evidence
 
