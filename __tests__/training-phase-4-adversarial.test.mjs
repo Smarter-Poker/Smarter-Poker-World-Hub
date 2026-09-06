@@ -37,6 +37,11 @@ test('grade copy is unambiguous and page-owned tokens cannot bleed into the glob
   const css = read('src/styles/worlds/training.css');
 
   assert.match(hub, /Away From Grade \{nextGrade\}/);
+  assert.match(
+    hub,
+    /<PageTransition disableInitialAnimation>/,
+    'the global command trigger must be interactive on the first client frame',
+  );
   assert.doesNotMatch(hub, /<BottomNavBar\b|import[^\n]*BottomNavBar|BOTTOM_NAV_CLEARANCE/);
   assert.doesNotMatch(hub, /<style jsx global>\{`\s*:root\s*\{/);
   assert.match(css, /body\.world-training \.sp-main,[\s\S]*?--sp-primary: #00d4ff/);
