@@ -18,8 +18,8 @@ test('Club Arena participant filter is one deduplicated modern-plus-legacy resul
 });
 
 test('a signed version-one cursor safely restarts its frozen snapshot', () => {
-  const previousNextAuthSecret = process.env.NEXTAUTH_SECRET;
-  const previousServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const previous = process.env.NEXTAUTH_SECRET;
+  const previousServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const testSecret = 'cursor-upgrade-test-secret';
   process.env.NEXTAUTH_SECRET = testSecret;
   process.env.SUPABASE_SERVICE_ROLE_KEY = testSecret;
@@ -43,10 +43,10 @@ test('a signed version-one cursor safely restarts its frozen snapshot', () => {
     assert.equal(opened.cumulativeHandsFound, 0);
     assert.equal(opened.restartedFromLegacyCursor, true);
   } finally {
-    if (previousNextAuthSecret === undefined) delete process.env.NEXTAUTH_SECRET;
-    else process.env.NEXTAUTH_SECRET = previousNextAuthSecret;
-    if (previousServiceRoleKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousServiceRoleKey;
+    if (previous === undefined) delete process.env.NEXTAUTH_SECRET;
+    else process.env.NEXTAUTH_SECRET = previous;
+    if (previousServiceRole === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousServiceRole;
   }
 });
 
