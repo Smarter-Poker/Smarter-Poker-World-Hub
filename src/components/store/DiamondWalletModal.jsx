@@ -97,6 +97,10 @@ import {
   getOrCreateCommerceRequestId,
 } from '../../lib/store/checkoutIntentStore';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import {
+  formatWalletDescriptionParts,
+  titleCaseWalletText as toTitleCase,
+} from '../../lib/store/walletDescription.mjs';
 // #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
 import styles from './DiamondWalletModal.module.css';
 
@@ -250,39 +254,21 @@ function parseRateLimitError(errorText) {
 }
 
 // ── H1: Copy receipt to clipboard ──
-// ── Title Case & Clean Description helpers ──
-const toTitleCase = (str) => {
-  if (!str) return '';
-  return marketplaceCopy(str
-    .toLowerCase()
-    .split(' ')
-    .map((word) => {
-      if (!word) return '';
-      const upper = word.toUpperCase();
-      if (['VIP', 'GPS', 'WSOP', 'WPT', 'ID', 'UID', 'UTC'].includes(upper)) {
-        return upper;
-      }
-      if (word.startsWith('vip:')) {
-        return 'VIP:' + word.slice(4).charAt(0).toUpperCase() + word.slice(4).slice(1);
-      }
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
-    .join(' '));
-};
-
-const formatDescription = (desc) => {
-  if (!desc) return '';
-  // 1. Remove trailing square-bracketed ID or UUID
-  let cleaned = desc.replace(/\s*\[[a-f0-9-]+\]\s*$/i, '');
-  // Format large numbers with commas (e.g. 10000 -> 10,000)
-  // Skip plausible years (e.g. "WSOP 2026") so they aren't mangled to "2,026"
-  cleaned = cleaned.replace(/\b(\d{4,})\b/g, (match) => {
-    const n = parseInt(match, 10);
-    if (match.length === 4 && n >= 1900 && n <= 2099) return match;
-    return n.toLocaleString();
-  });
-  // 2. Convert to Title Case
-  return toTitleCase(cleaned);
+const WalletDescription = ({ value }) => {
+  const { copy, identity } = formatWalletDescriptionParts(value);
+  return (
+    <>
+      {copy}
+      {identity != null && (
+        <>
+          {' '}
+          <span data-user-content="true" data-preserve-case="true">
+            {identity}
+          </span>
+        </>
+      )}
+    </>
+  );
 };
 
 async function copyReceiptToClipboard(tx) {
@@ -1730,6 +1716,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         role="dialog"
         aria-modal="true"
         aria-label="Diamond Wallet"
+        className={styles.preserveIdentityScope}
         style={{
           position: 'fixed',
           // 60 is the UniversalHeader height; the header itself grows by
@@ -3179,7 +3166,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         <div className={styles.txBody}>
                           <div className={styles.txLabel}>{toTitleCase(config.label)}</div>
                           <div className={styles.txDesc}>
-                            {formatDescription(tx.description || config.label)}
+                            <WalletDescription value={tx.description || config.label} />
                           </div>
                         </div>
 
@@ -3260,7 +3247,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               <div style={{ gridColumn: '1 / -1' }}>
                                 <span style={{ color: 'rgba(255,255,255,0.3)' }}>Details: </span>
                                 <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                  {formatDescription(tx.description)}
+                                  <WalletDescription value={tx.description} />
                                 </span>
                               </div>
                             )}

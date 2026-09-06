@@ -63,6 +63,7 @@ const EXEMPT_USER_IDS = new Set(
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const IDEMPOTENCY_KEY_RE = /^[a-z0-9][a-z0-9._:-]{11,127}$/i;
 const ORPHAN_RECOVERY_DELAY_MS = 15_000;
+const LEGACY_SIDE_EFFECT_WINDOW_MS = 60_000;
 const MAX_TRANSFER_BODY_BYTES = 1_024;
 
 function transferIdFor(userId, recipientId, amount, idempotencyKey) {
@@ -115,27 +116,61 @@ async function reconcileCompletedTransferSideEffects({
     clientIp,
     senderName,
     transferId,
+    creditCreatedAt,
 }, supabase = getSupabase()) {
-    // Both side effects use deterministic primary keys derived from the durable
-    // transfer identity. Normal completion, orphan recovery, and receipt replay
-    // can now race safely: PostgreSQL accepts exactly one row for each effect.
-    // `ignoreDuplicates` also prevents an idempotent replay from emitting a
-    // second realtime notification.
+    // The release immediately before deterministic side-effect IDs relied on
+    // database-generated UUIDs. A receipt replay must recognize those rows by
+    // their transfer semantics or its new deterministic ID would not conflict
+    // and the user would receive a duplicate notification. Only a replay with
+    // a durable credit timestamp takes this compatibility path. New completion
+    // and orphan-recovery races continue to converge on deterministic IDs.
+    const creditTime = Date.parse(creditCreatedAt || '');
+    const legacyWindow = Number.isFinite(creditTime)
+        ? {
+            from: new Date(creditTime).toISOString(),
+            through: new Date(creditTime + LEGACY_SIDE_EFFECT_WINDOW_MS).toISOString(),
+        }
+        : null;
+
     let ipAuditReady = true;
     try {
-        const { error: ipInsertError } = await supabase.from('anti_farming_ips').upsert({
-            id: transferSideEffectId(transferId, 'ip-audit'),
-            user_id: userId,
-            ip_address: clientIp,
-            action_type: 'diamond_gift_sent',
-            amount,
-        }, {
-            onConflict: 'id',
-            ignoreDuplicates: true,
-        });
-        if (ipInsertError) {
-            ipAuditReady = false;
-            console.warn('[DiamondTransfer] Could Not Reconcile Transfer IP Audit:', ipInsertError.message);
+        let legacyIpAuditExists = false;
+        if (legacyWindow) {
+            const { data: legacyIpRows, error: legacyIpReadError } = await supabase
+                .from('anti_farming_ips')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('action_type', 'diamond_gift_sent')
+                .eq('amount', amount)
+                .gte('created_at', legacyWindow.from)
+                .lte('created_at', legacyWindow.through)
+                .limit(1);
+            if (legacyIpReadError) {
+                ipAuditReady = false;
+                console.warn(
+                    '[DiamondTransfer] Could Not Check Legacy Transfer IP Audit:',
+                    legacyIpReadError.message
+                );
+            } else {
+                legacyIpAuditExists = Boolean(legacyIpRows?.length);
+            }
+        }
+
+        if (ipAuditReady && !legacyIpAuditExists) {
+            const { error: ipInsertError } = await supabase.from('anti_farming_ips').upsert({
+                id: transferSideEffectId(transferId, 'ip-audit'),
+                user_id: userId,
+                ip_address: clientIp,
+                action_type: 'diamond_gift_sent',
+                amount,
+            }, {
+                onConflict: 'id',
+                ignoreDuplicates: true,
+            });
+            if (ipInsertError) {
+                ipAuditReady = false;
+                console.warn('[DiamondTransfer] Could Not Reconcile Transfer IP Audit:', ipInsertError.message);
+            }
         }
     } catch (ipInsertError) {
         ipAuditReady = false;
@@ -147,32 +182,55 @@ async function reconcileCompletedTransferSideEffects({
 
     let notificationReady = true;
     try {
-        const { error: notificationInsertError } = await supabase.from('notifications').upsert({
-            id: transferSideEffectId(transferId, 'notification'),
-            user_id: recipientId,
-            actor_id: userId,
-            type: 'diamond_received',
-            title: 'Diamond Gift Received',
-            message: `${transferDisplayName(senderName)} Sent You ${amount} Diamonds`,
-            link: '/hub/store',
-            read: false,
-            is_read: false,
-            data: {
-                transfer_id: transferId,
-                sender_id: userId,
-                sender_name: senderName,
-                amount,
-            },
-        }, {
-            onConflict: 'id',
-            ignoreDuplicates: true,
-        });
-        if (notificationInsertError) {
-            notificationReady = false;
-            console.warn(
-                '[DiamondTransfer] Could Not Reconcile Transfer Notification:',
-                notificationInsertError.message
-            );
+        let legacyNotificationExists = false;
+        if (legacyWindow) {
+            const { data: legacyNotificationRows, error: legacyNotificationReadError } = await supabase
+                .from('notifications')
+                .select('id')
+                .eq('user_id', recipientId)
+                .eq('actor_id', userId)
+                .eq('type', 'diamond_received')
+                .contains('data', { transfer_id: transferId })
+                .limit(1);
+            if (legacyNotificationReadError) {
+                notificationReady = false;
+                console.warn(
+                    '[DiamondTransfer] Could Not Check Legacy Transfer Notification:',
+                    legacyNotificationReadError.message
+                );
+            } else {
+                legacyNotificationExists = Boolean(legacyNotificationRows?.length);
+            }
+        }
+
+        if (notificationReady && !legacyNotificationExists) {
+            const { error: notificationInsertError } = await supabase.from('notifications').upsert({
+                id: transferSideEffectId(transferId, 'notification'),
+                user_id: recipientId,
+                actor_id: userId,
+                type: 'diamond_received',
+                title: 'Diamond Gift Received',
+                message: `${transferDisplayName(senderName)} Sent You ${amount} Diamonds`,
+                link: '/hub/store',
+                read: false,
+                is_read: false,
+                data: {
+                    transfer_id: transferId,
+                    sender_id: userId,
+                    sender_name: senderName,
+                    amount,
+                },
+            }, {
+                onConflict: 'id',
+                ignoreDuplicates: true,
+            });
+            if (notificationInsertError) {
+                notificationReady = false;
+                console.warn(
+                    '[DiamondTransfer] Could Not Reconcile Transfer Notification:',
+                    notificationInsertError.message
+                );
+            }
         }
     } catch (notificationInsertError) {
         notificationReady = false;
@@ -182,6 +240,20 @@ async function reconcileCompletedTransferSideEffects({
         );
     }
     return { ipAuditReady, notificationReady };
+}
+
+function transferSideEffectsReady(result) {
+    return result?.ipAuditReady === true && result?.notificationReady === true;
+}
+
+function respondTransferSideEffectsPending(res) {
+    return res.status(503).json({
+        success: false,
+        completed: true,
+        error: 'Transfer Completed, But Its Receipt Is Still Being Finalized. Please Retry The Same Transfer.',
+        code: 'TRANSFER_SIDE_EFFECTS_PENDING',
+        idempotencyTerminal: false,
+    });
 }
 
 // Phase 1: Account age tiers (days)
@@ -443,14 +515,18 @@ export default async function handler(req, res) {
                     code: 'TRANSFER_RECEIPT_UNAVAILABLE',
                 });
             }
-            await reconcileCompletedTransferSideEffects({
+            const replaySideEffects = await reconcileCompletedTransferSideEffects({
                 userId,
                 recipientId,
                 amount,
                 clientIp,
                 senderName: replaySender.display_name || replaySender.username || 'friend',
                 transferId,
+                creditCreatedAt: completedReplay.created_at,
             });
+            if (!transferSideEffectsReady(replaySideEffects)) {
+                return respondTransferSideEffectsPending(res);
+            }
             return res.status(200).json({
                 success: true,
                 idempotent: true,
@@ -565,7 +641,7 @@ export default async function handler(req, res) {
                non-financial side effects never ran. Rebuild them only after
                the durable credit is confirmed. Failures remain observable but
                never roll back an already completed wallet transfer. */
-            await reconcileCompletedTransferSideEffects({
+            const recoverySideEffects = await reconcileCompletedTransferSideEffects({
                 userId,
                 recipientId,
                 amount,
@@ -573,6 +649,9 @@ export default async function handler(req, res) {
                 senderName: recoverySenderName,
                 transferId,
             });
+            if (!transferSideEffectsReady(recoverySideEffects)) {
+                return respondTransferSideEffectsPending(res);
+            }
             console.info(`[DiamondTransfer] Recovered orphan transfer ${transferId}`);
 
             return res.status(200).json({
@@ -1059,7 +1138,7 @@ export default async function handler(req, res) {
             console.info(`[DiamondTransfer] Verified committed credit after an ambiguous RPC error for transfer ${transferId}`);
         }
 
-        await reconcileCompletedTransferSideEffects({
+        const completionSideEffects = await reconcileCompletedTransferSideEffects({
             userId,
             recipientId,
             amount,
@@ -1067,6 +1146,9 @@ export default async function handler(req, res) {
             senderName,
             transferId,
         });
+        if (!transferSideEffectsReady(completionSideEffects)) {
+            return respondTransferSideEffectsPending(res);
+        }
 
         // ── #13: Admin audit trail ──
         console.info(`[DiamondTransfer] ✓ ${amount}💎 | sender_age=${Math.floor(senderAgeDays)}d | graduated=${isGraduated} | tier=${isVipTier ? 'vip' : 'standard'}`);
