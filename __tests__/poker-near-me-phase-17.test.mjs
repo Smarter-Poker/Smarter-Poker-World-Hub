@@ -48,6 +48,20 @@ test('dynamic mobile notices keep a physical touch-target cushion', async () => 
   assert.match(globalErrorCatcher, /minHeight: 45/);
 });
 
+test('responsive visual baselines and live map probes remain project-stable', async () => {
+  const [phase6, phase7, phase14] = await Promise.all([
+    source('e2e/06-poker-near-me-phase-6.spec.ts'),
+    source('e2e/07-poker-near-me-phase-7.spec.ts'),
+    source('e2e/012-poker-near-me-phase-14.spec.ts'),
+  ]);
+
+  assert.match(phase6, /phase6-location-section-\$\{testInfo\.project\.name\}\.png/);
+  assert.match(phase7, /phase7-map-signal-\$\{testInfo\.project\.name\}\.png/);
+  assert.match(phase14, /const activated = await candidate\.evaluate/);
+  assert.match(phase14, /element\.click\(\);/);
+  assert.doesNotMatch(phase14, /await candidate\.click\(\)/);
+});
+
 test('restored routes remain explicit to assistive technology', async () => {
   const [page, world] = await Promise.all([
     source('pages/hub/poker-near-me/[pnmTab].js'),

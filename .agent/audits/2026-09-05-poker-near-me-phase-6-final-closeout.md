@@ -94,7 +94,7 @@ destinations are included in the sitemap and two account-specific destinations
 ## Verification completed before publication
 
 - Full prebuild suite: 603 passed.
-- Poker Near Me focused suite: 112 passed.
+- Poker Near Me focused suite: 113 passed.
 - Marketplace release suite: 218 passed after synchronizing two stale tests
   with the current membership paths and removing two prohibited comment bars.
 - TypeScript no-emit check: passed.
@@ -151,6 +151,16 @@ world rule, and the error dismiss control is an explicit labelled 45-pixel
 button. Twelve consecutive raw iPhone geometry audits, eight consecutive
 production-build mobile-budget runs, and the four-engine Phase 17 matrix all
 passed after the repair.
+
+The final broad two-project Playwright sweep exposed a release-test wiring gap:
+the location-header and map-signal captures were selecting the same implicit
+snapshot name for desktop and mobile despite having separate reviewed
+baselines. Both assertions now bind explicitly to their project-specific
+baseline. The shared-map marker probe also performs hit testing and activation
+atomically so a legitimate live-data marker refresh cannot detach the locator
+between those two operations. This closes the last deterministic failures and
+the remaining retry-only PNM signal without weakening any visual, geometry, or
+interaction assertion.
 
 Final publication evidence is attached to the merge request and production
 deployment records so the repository document does not depend on a mutable
