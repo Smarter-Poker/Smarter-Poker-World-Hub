@@ -58,10 +58,45 @@ test('real marketplace detail routes exist with product and breadcrumb schema', 
   assert.match(product, /['"]@type['"]:\s*['"]BreadcrumbList['"]/);
 });
 
-test('VIP daily access exposes both card and diamond settlement', () => {
-  assert.match(STORE, /handleDailyVipCardCheckout/);
-  assert.match(STORE, /Pay For Daily VIP With Card/);
-  assert.match(STORE, /Activate Daily VIP With Diamonds/);
+test('the retired Daily Pass stays retired', () => {
+  /**
+   * REPLACED 2026-09-05. This used to assert the Daily Pass existed:
+   *
+   *     assert.match(STORE, /handleDailyVipCardCheckout/);
+   *     assert.match(STORE, /Pay For Daily VIP With Card/);
+   *
+   * Dan retired the product the same day - "the terms are monthly, yearly and
+   * lifetime" - and the removal was done properly: 0 vip_daily diamond
+   * transactions and 0 purchases carried the intent, so no receipt, refund or
+   * in-flight settlement depended on it, and /api/store/purchase-daily-vip
+   * went with it. What did NOT happen is this test being updated in the same
+   * commit, which CLAUDE.md requires, so main went red and STAYED red: Global
+   * Footer E2E is not a required check, so nothing was blocked and nobody
+   * looked.
+   *
+   * Note the first assertion would still have PASSED on its own - the only
+   * remaining `handleDailyVipCardCheckout` in the file is inside the comment
+   * recording the removal. A pin that a comment can satisfy is a pin that has
+   * stopped reading the code.
+   *
+   * So this now guards the decision instead of the deleted feature: the
+   * product is gone from the storefront, and the ledger still understands its
+   * history, because history does not change when a product is retired.
+   */
+  // Read CODE, not prose. The store page carries a comment recording exactly
+  // what was removed and why - which is good practice and must not be what
+  // decides this test. Asserting against the raw file would have let that
+  // comment satisfy every negative below, and asserting the OLD way let it
+  // satisfy the positive: either direction, the pin stops reading the code.
+  const code = STORE.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+  assert.doesNotMatch(code, /Pay For Daily VIP With Card/);
+  assert.doesNotMatch(code, /runDailyPassPurchase\s*=/);
+  assert.doesNotMatch(code, /purchase-daily-vip/);
+  assert.ok(!existsSync(join(ROOT, 'pages/api/store/purchase-daily-vip.js')));
+
+  // The reader side is deliberately unchanged: these two read history.
+  assert.match(read('pages/api/admin/diamond-liability.js'), /vip_daily/);
+  assert.match(read('pages/api/store/order-ledger.js'), /vip_daily/);
 });
 
 test('production readiness is observable without exposing secrets', () => {
