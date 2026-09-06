@@ -124,3 +124,8 @@ test('pair cards render the queue contract absolute net flow field', () => {
   assert.doesNotMatch(panel, /label="Net Flow"/,
     'the pair RPC does not return a top-level directional net_flow field');
 });
+
+test('the queue does not report unknown while its first read is still loading', () => {
+  assert.match(panel, /const queueEmpty = queue\.loading && !queue\.loaded\s*\? null/);
+  assert.match(panel, /queue\.loading && !queue\.loaded && <div[^>]*>Loading Ranked Pairs<\/div>/);
+});

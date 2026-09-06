@@ -596,11 +596,13 @@ export default function IntegrityPanel({
 
   const queueRows = rowsOf(queue.data, 'groups', 'queue');
   const queueInfo = queueMeta(queue.data);
-  const queueEmpty = integrityEmptyState({
-    state: queueInfo.state,
-    error: queue.error,
-    rowCount: queueRows.length,
-  });
+  const queueEmpty = queue.loading && !queue.loaded
+    ? null
+    : integrityEmptyState({
+      state: queueInfo.state,
+      error: queue.error,
+      rowCount: queueRows.length,
+    });
   const pendingSanctions = pendingSanctionsOf(casePayload);
   const visiblePending = localPending ? [localPending, ...pendingSanctions] : pendingSanctions;
 
