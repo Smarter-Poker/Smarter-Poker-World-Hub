@@ -27,7 +27,17 @@ async function expectTriggerPainted(page: Page) {
 
   if (!paintedWithinBaseline) {
     const paintState = await trigger.evaluate((element) => {
-      const ancestors = [];
+      const ancestors: Array<{
+        tag: string;
+        id: string | null;
+        className: string | null;
+        display: string;
+        visibility: string;
+        opacity: string;
+        contentVisibility: string;
+        width: number;
+        height: number;
+      }> = [];
       let node: HTMLElement | null = element as HTMLElement;
       while (node && ancestors.length < 10) {
         const style = getComputedStyle(node);
