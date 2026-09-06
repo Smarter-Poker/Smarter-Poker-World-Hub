@@ -208,11 +208,35 @@ jobs:
       # It reports a failing workflow as `loud` when an open issue already names
       # it, so `Publish Watchdog` raising its own alarm is not treated as a
       # defect. SILENT is the only thing that pages.
-      - name: Nothing is silently red on main
+      #
+      # ESTATE-WIDE SINCE 2026-09-06. It read one repo - this one - and so
+      # reported the estate healthy because the room it stood in was healthy.
+      # The first sweep of all seven found three workflows red with nobody told,
+      # one of which had frozen PepNationLab's production six commits behind its
+      # main for three days.
+      #
+      # OWNER-scoped token, minted separately from the repo-scoped one above.
+      # Reading another repository's workflow runs is not something a
+      # repo-scoped GITHUB_TOKEN can ever do, and merging the two would change
+      # the token under the production comparison as a side effect. If this
+      # cannot be minted the script still runs: it reads this repo, reports the
+      # other six as BLIND, and alarms - which is the honest answer, and the one
+      # thing it must never do is call an unreadable repo green.
+      - name: Mint an owner-scoped App token for the estate sweep
+        id: estate-token
+        if: always() && vars.AUTOPILOT_APP_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.AUTOPILOT_APP_ID }}
+          private-key: ${{ secrets.AUTOPILOT_APP_PRIVATE_KEY }}
+          owner: Smarter-Poker
+
+      - name: Nothing is silently red on main, in any estate repo
         id: main-green
         if: always()
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.estate-token.outputs.token || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           # PIPESTATUS[0], not the pipeline's code - the same trap the cron
@@ -233,14 +257,16 @@ jobs:
           set -euo pipefail
           TITLE="A workflow has been failing on main with nobody watching"
           BODY=$(printf '%s\n' \
-            "One or more workflows have been red on \`main\` past the threshold and have no open issue naming them." \
+            "One or more workflows have been red on \`main\` past the threshold and have no open issue naming them, somewhere in the seven-repo estate." \
             "" \
             "A check that is red and blocks nobody stops being a check: it cannot fail any louder than it already is, so the next person to break the same thing learns nothing." \
+            "" \
+            "Each line is \`<repo> :: <workflow>\`. Fix it in the repo that owns it, not here. A line marked BLIND is worse than a red one: the detector could read other repos and not that one, so its \`main\` is unwatched and reads as green." \
             '```' \
             "$(cat /tmp/main-green.log)" \
             '```' \
             "" \
-            "Detector: \`scripts/ci/check-main-is-green.mjs\`. Closes itself once every workflow's latest run on main is green, or once an issue exists that names it.")
+            "Detector: \`scripts/ci/check-main-is-green.mjs\` in this repo, sweeping all seven. Closes itself once every workflow's latest run on main is green, or once an issue exists in the owning repo that names it.")
           EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --body "$BODY"
