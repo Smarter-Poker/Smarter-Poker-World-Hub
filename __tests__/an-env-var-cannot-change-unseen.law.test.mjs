@@ -96,3 +96,41 @@ test('LAW 4: the baseline is shape only, and still names the variable that did i
     'PROBE_LOGIN_EMAIL is the variable the outage turned on - if it is not in the baseline, the detector is watching the wrong project'
   );
 });
+
+/**
+ * LAW 5 - THE PROBE CARRIES THE MAINTENANCE-BREAK GUARD (phase 7 audit)
+ *
+ * Club Arena CLAUDE.md 13 rule 6: a fleet-level monitor carries the break
+ * guard, "or they page hourly about a stop we scheduled". The table-socket
+ * probe did not. Measured over its first two hours live: 22 runs, 20 ok, and
+ * BOTH failures at `:58` - one `pick_table` (nothing has dealt for ten
+ * minutes, because every table is parked) and one `no_snapshot` (the socket
+ * opens and the room publishes nothing, same reason). Neither is a fault, and
+ * a red row every hour teaches whoever reads the dashboard to skip `:58`.
+ */
+test('LAW 5: a failure during the announced break is not reported as a failure', () => {
+  const PROBE = readFileSync(join(ROOT, 'pages/api/cron/table-socket-probe.js'), 'utf8');
+  const CODE = PROBE.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:\\])\/\/[^\n]*/g, '$1');
+
+  // It asks POSTGRES, not the engine - the engine is away for two of the five
+  // minutes, which is the whole reason the freeze lives in the database.
+  assert.match(CODE, /rpc\('fn_platform_frozen'\)/, 'the probe must ask the database whether the platform is frozen');
+
+  // BOTH failure paths are guarded: the socket outcome and the thrown one
+  // (pick_table lands in the catch).
+  const guards = [...CODE.matchAll(/await platformIsFrozen\(admin\)/g)];
+  assert.ok(guards.length >= 2, `both failure paths must check the break, found ${guards.length}`);
+
+  // A break run is recorded as skipped and answered 200, so the dispatcher's
+  // consecutive-failure counter never sees it.
+  assert.match(CODE, /status: 'skipped'/);
+  assert.match(CODE, /reason: 'maintenance_break'/);
+  assert.match(CODE, /res\.status\(200\)\.json\(skipped\)/);
+
+  // FAILS OPEN. A probe that swallowed a real outage because it could not
+  // reach Postgres would be worse than one that cries at :58.
+  const helper = CODE.slice(CODE.indexOf('async function platformIsFrozen'), CODE.indexOf('export const PROBE_FAULT_OUTCOMES'));
+  assert.ok(helper.length > 40, 'platformIsFrozen not found - the scan is broken, not the code');
+  assert.match(helper, /if \(error\) return false;/, 'an unanswerable question must not become "frozen"');
+  assert.match(helper, /catch \{\s*return false;\s*\}/, 'and neither must a throw');
+});
