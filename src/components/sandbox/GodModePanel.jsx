@@ -187,7 +187,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                             </button>
                         </div>
                         {showRawState && (
-                            <pre style={{
+                            <pre data-pa-verbatim="true" style={{
                                 margin: `${S.md}px 0 0`, padding: S.md, background: T.bg, borderRadius: R.sm,
                                 fontSize: F.caption, color: T.success, overflowX: 'auto', maxHeight: 240,
                                 lineHeight: 1.5, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',

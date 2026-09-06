@@ -78,12 +78,20 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
 }
 
 export function VIPCard({ plan, isSelected, onSelect }) {
+  /* 2026-09-05: every VIP term is priced in USD now, so the `isDiamondCost`
+     branch this carried for the retired Daily Pass is gone. Lifetime has no
+     billing period, and rendering "/lifetime" after a price reads as a rate;
+     it says "One Payment" instead. Without this a term with no `interval`
+     rendered "/undefined". */
+  const lifetime = plan.interval === 'lifetime';
+  const term = lifetime ? 'One Payment' : `/${plan.interval}`;
+  const spokenTerm = lifetime ? 'One Payment, Never Expires' : `Per ${marketplaceCopy(plan.interval)}`;
   return (
         <button
             type="button"
       onClick={() => onSelect(plan.id)}
             aria-pressed={isSelected}
-            aria-label={`Select ${marketplaceCopy(plan.name)}, ${plan.isDiamondCost ? `${plan.price} Diamonds` : `$${(Number(plan.price) || 0).toFixed(2)}`} Per ${marketplaceCopy(plan.interval)}`}
+            aria-label={`Select ${marketplaceCopy(plan.name)}, $${(Number(plan.price) || 0).toFixed(2)} ${spokenTerm}`}
       style={{
                 position: 'relative', borderRadius: 16, cursor: 'pointer',
         transition: 'all 0.3s ease',
@@ -105,13 +113,15 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                 <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 14, fontWeight: 700, color: '#FFFFFF', marginBottom: 4 }}>
                     {marketplaceCopy(plan.name)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    {plan.isDiamondCost ? (
-                        <span style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{plan.price} <Gem size={22} color="#00D4FF" /></span>
-                    ) : (
-                        <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>${(Number(plan.price) || 0).toFixed(2)}</span>
-                    )}
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/{plan.interval}</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>${(Number(plan.price) || 0).toFixed(2)}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{term}</span>
+                </div>
+                {/* 100 Diamonds per dollar, the platform rate. Lifetime uses
+                    this path while its one-time card lifecycle is gated. */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 12, color: '#00D4FF', fontWeight: 700 }}>
+                    <Gem size={14} color="#00D4FF" aria-hidden="true" />
+                    {Math.round((Number(plan.price) || 0) * 100).toLocaleString()} Diamonds
                 </div>
             </div>
         </button>

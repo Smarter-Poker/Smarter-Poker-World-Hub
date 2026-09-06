@@ -264,7 +264,7 @@ export default function VipManagePage() {
             <h2 id="secure-controls-title"><WalletCards size={22} aria-hidden="true" /> Secure Controls</h2>
             {!membership.isVip && (
               <>
-                <p>No Active VIP Entitlement Was Found. Choose A Daily, Monthly, Or Annual Plan To Activate The Suite.</p>
+                <p>No Active VIP Entitlement Was Found. Choose A Monthly, Yearly, Or Lifetime Plan To Activate The Suite.</p>
                 <p><Link href="/hub/vip-membership">Choose A VIP Plan</Link></p>
               </>
             )}
@@ -279,18 +279,18 @@ export default function VipManagePage() {
             {membership.recurring && (
               <>
                 <p>Switching Plans Keeps Your Renewal Date. Stripe Applies Unused Paid Time As A Prorated Credit To The Next Invoice.</p>
-                <div className={styles.planGrid} aria-label="VIP recurring plan controls">
+                <div className={styles.planGrid} aria-label="VIP Recurring Plan Controls">
                   <div className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}>
                     <span className={styles.planLabel}>Flexible Access</span>
                     <strong>$19.99 / Month</strong>
                     <p>Monthly Renewal With Full VIP Access.</p>
                     <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'monthly' || action.status === 'busy'} onClick={() => setPendingPlan('monthly')}>Switch To Monthly</button>
                   </div>
-                  <div className={`${styles.plan} ${membership.tier === 'annual' ? styles.planActive : ''}`}>
+                  <div className={`${styles.plan} ${membership.tier === 'yearly' ? styles.planActive : ''}`}>
                     <span className={styles.planLabel}>Best Card Rate</span>
                     <strong>$199.99 / Year</strong>
-                    <p>Annual Renewal With The Same Full VIP Suite.</p>
-                    <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'annual' || action.status === 'busy'} onClick={() => setPendingPlan('annual')}>Switch To Annual</button>
+                    <p>Yearly Renewal With The Same Full VIP Suite.</p>
+                    <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'yearly' || action.status === 'busy'} onClick={() => setPendingPlan('yearly')}>Switch To Yearly</button>
                   </div>
                 </div>
                 {membership.canCancel && <button ref={cancelTriggerRef} className={styles.dangerButton} type="button" onClick={() => setConfirmOpen(true)}>Schedule End Of Membership</button>}

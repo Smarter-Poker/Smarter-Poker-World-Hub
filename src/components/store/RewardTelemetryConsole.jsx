@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Activity, Gauge, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { authedFetch, ensureAuthReady, getAuthUser } from '../../lib/authUtils';
 import supabase from '../../lib/supabase';
@@ -20,6 +20,8 @@ const EMPTY_PROGRESS = {
   partial: false,
   timezone: 'America/Chicago',
 };
+
+const REWARD_TELEMETRY_TIMEOUT_MS = 20000;
 
 function clampPercent(value, maximum) {
   if (!Number.isFinite(value) || !Number.isFinite(maximum) || maximum <= 0) return 0;
@@ -54,41 +56,70 @@ function Circuit({ label, earned, cap, remaining }) {
 
 export default function RewardTelemetryConsole({ reward, canonical }) {
   const [state, setState] = useState({ status: 'loading', data: EMPTY_PROGRESS, message: '' });
+  const requestRef = useRef(0);
+  const abortRef = useRef(null);
 
   const loadProgress = useCallback(async () => {
+    const requestId = ++requestRef.current;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let timedOut = false;
+    let timer = null;
+    const deadline = new Promise((_resolve, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+        const error = new Error('Reward Telemetry Timed Out. Retry The Secure Ledger Read.');
+        error.name = 'CommerceTimeoutError';
+        reject(error);
+      }, REWARD_TELEMETRY_TIMEOUT_MS);
+    });
     setState((current) => ({ ...current, status: 'loading', message: '' }));
-    const user = getAuthUser() || (await ensureAuthReady(supabase));
-    if (!user?.id) {
-      setState({ status: 'signed-out', data: EMPTY_PROGRESS, message: '' });
-      return;
-    }
-
     try {
-      const response = await authedFetch('/api/rewards/progress', {
-        headers: { Accept: 'application/json' },
-      });
+      const user = getAuthUser() || (await Promise.race([ensureAuthReady(supabase), deadline]));
+      if (requestId !== requestRef.current) return;
+      if (!user?.id) {
+        setState({ status: 'signed-out', data: EMPTY_PROGRESS, message: '' });
+        return;
+      }
+      const response = await Promise.race([
+        authedFetch('/api/rewards/progress', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+        }),
+        deadline,
+      ]);
       const body = await response.json().catch(() => null);
+      if (requestId !== requestRef.current) return;
       if (!response.ok || !body?.success) {
         throw new Error(body?.error || 'Reward telemetry is temporarily unavailable.');
       }
       setState({ status: 'ready', data: { ...EMPTY_PROGRESS, ...body }, message: '' });
     } catch (error) {
+      if (requestId !== requestRef.current) return;
+      if (error?.name === 'AbortError' && !timedOut) return;
       setState({
         status: 'error',
         data: EMPTY_PROGRESS,
-        message: error?.message || 'Reward telemetry is temporarily unavailable.',
+        message: timedOut
+          ? 'Reward Telemetry Timed Out. Retry The Secure Ledger Read.'
+          : error?.message || 'Reward telemetry is temporarily unavailable.',
       });
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (abortRef.current === controller) abortRef.current = null;
     }
   }, []);
 
   useEffect(() => {
-    let active = true;
-    const guardedLoad = async () => {
-      if (!active) return;
-      await loadProgress();
+    void loadProgress();
+    return () => {
+      requestRef.current += 1;
+      abortRef.current?.abort();
+      abortRef.current = null;
     };
-    void guardedLoad();
-    return () => { active = false; };
   }, [loadProgress]);
 
   const data = state.data;
@@ -150,7 +181,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
             />
           </div>
 
-          <div className={styles.signalGrid} aria-label="Reward account signals">
+          <div className={styles.signalGrid} aria-label="Reward Account Signals">
             <div><span>Login Streak</span><strong>{Number(data.loginStreak || 0)} Days</strong></div>
             <div><span>Share Multiplier</span><strong>{Number(data.multiplier || 1).toFixed(2)}×</strong></div>
             <div><span>Cap Profile</span><strong>{data.isVip ? 'VIP 150' : 'Standard 110'}</strong></div>

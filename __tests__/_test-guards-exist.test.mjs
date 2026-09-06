@@ -147,6 +147,11 @@ import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
 import './safe-profile-columns-are-granted.test.mjs';
 import './store-commerce-hardening.test.mjs';
+// 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
+// before it could become another guard nobody runs: the law was written, passed
+// locally, and was reachable from no workflow, no npm script and no import -
+// which is exactly the shape of the 52 guards found unreachable on 2026-09-04.
+import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-hub-media-audit.test.mjs';
@@ -158,6 +163,7 @@ import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
+import './world-menu-presentation.test.mjs';
 import './world-command-navigation-state.test.mjs';
 import './world-copy-policy.test.mjs';
 
@@ -181,6 +187,9 @@ import './synthetic-probes-never-sign-out-a-person.law.test.mjs';
 // among them, so every CI run signed in as him. The account is
 // TEST_USER_EMAIL from the environment now, and this law keeps it there.
 import './a-script-never-wears-a-persons-face.law.test.mjs';
+// 2026-09-04: the hub notices a revoked session (it would have looked signed
+// in for seven days; PostgREST checks signatures, not session rows).
+import './the-hub-notices-a-revoked-session.law.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
@@ -198,6 +207,7 @@ const REQUIRED_TEST_FILES = [
     // A monitor must never revoke a person's sessions (2026-09-04 outage).
     '__tests__/synthetic-probes-never-sign-out-a-person.law.test.mjs',
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
+    '__tests__/the-hub-notices-a-revoked-session.law.test.mjs',
     '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
     // it would silently un-protect the 2026-08-31 workers outage fix.

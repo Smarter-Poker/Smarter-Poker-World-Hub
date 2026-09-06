@@ -25,9 +25,13 @@ import { join } from 'node:path';
 const ROOT = process.cwd();
 const STORE = readFileSync(join(ROOT, 'pages/hub/diamond-store.js'), 'utf8');
 const DATA = readFileSync(join(ROOT, 'src/data/diamondStoreData.js'), 'utf8');
+const CHECKOUT = readFileSync(join(ROOT, 'pages/api/store/create-checkout-session.js'), 'utf8');
+const WEBHOOK = readFileSync(join(ROOT, 'pages/api/store/webhooks/stripe.js'), 'utf8');
 
 test('the three plans are actually RENDERED, not merely imported', () => {
-  for (const plan of ['daily', 'monthly', 'annual']) {
+  // Dan 2026-09-05: "just vip, monthly, yearly or lifetime". Was
+  // daily/monthly/annual; the Daily Pass is retired and annual is yearly.
+  for (const plan of ['monthly', 'yearly', 'lifetime']) {
     assert.ok(
       new RegExp(`<VIPCard\\s+plan=\\{VIP_MEMBERSHIP\\.${plan}\\}`).test(STORE),
       `VIP_MEMBERSHIP.${plan} is not rendered as a <VIPCard>`
@@ -43,10 +47,20 @@ test('the subscribe control exists and is wired to the handler', () => {
     'the plan-aware caption must render — the button image is a static $19.99/month picture');
 });
 
-test('handleVIPSubscribe reaches BOTH a diamond path and a Stripe path', () => {
+test('handleVIPSubscribe exposes card subscriptions and gates Lifetime to its atomic Diamond path', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
-  assert.match(STORE, /await startStripeCheckout\(plan\)/, 'cash plans must reach Stripe');
-  assert.match(STORE, /runDailyPassPurchase/, 'the daily pass path must be reachable');
+  assert.match(STORE, /await startStripeCheckout\(plan\)/, 'card plans must reach Stripe');
+  assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
+  assert.match(DATA, /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*false/,
+    'lifetime must stay Diamond-only until its complete card refund/provenance lifecycle is published');
+  assert.match(CHECKOUT, /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/,
+    'the server must mirror the storefront capability gate');
+  assert.match(STORE, /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,
+    'the dormant browser card path must remain one-time rather than recurring');
+  assert.match(CHECKOUT, /type === 'vip_lifetime'/,
+    'the server must retain the one-time lifetime recovery implementation behind the gate');
+  assert.match(WEBHOOK, /metadata\?\.type === 'vip_lifetime'/,
+    'the webhook must remain able to settle any already-created lifetime checkout');
 });
 
 test('paying for a membership in diamonds is offered and correctly wired', () => {
@@ -56,7 +70,10 @@ test('paying for a membership in diamonds is offered and correctly wired', () =>
     'a money path must send the idempotency key the API accepts');
   assert.match(STORE, /Pay With Diamonds Instead/, 'the option must be visible to the member');
   // The FAQ promises this. If the button goes, the promise becomes false again.
-  assert.ok(/1,999 Diamond Monthly Option/.test(STORE), 'FAQ references the diamond option');
+  // The wording moved on 2026-09-05 when the Daily Pass left the same sentence
+  // and lifetime joined it; the promise is what is pinned, not the phrasing.
+  assert.ok(/1,999 Diamond Monthly/.test(STORE), 'FAQ references the monthly diamond option');
+  assert.ok(/49,900 Lifetime/.test(STORE), 'FAQ references the lifetime diamond option');
 });
 
 test('the diamond cost shown matches the server formula (100 per dollar)', () => {

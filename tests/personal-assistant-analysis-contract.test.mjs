@@ -24,9 +24,24 @@ const BASE = {
   exploitMode: 'gto',
 };
 
+const SOLVER_PROVENANCE = Object.freeze({
+  verified: true,
+  scenarioHash: 'sandbox-contract-fixture',
+  solverVersion: 'fixture-1',
+  solverBinaryChecksum: 'a'.repeat(64),
+  machineId: 'M1',
+  pipelineCommit: 'b'.repeat(40),
+  manifestVersion: 'fixture-1',
+  manifestChecksum: 'c'.repeat(64),
+  sourceArtifactChecksum: 'd'.repeat(64),
+  qualityStatus: 'validated',
+  auditedAt: '2026-08-31T12:00:00.000Z',
+});
+
 function canonicalQuestion(overrides = {}) {
   return {
     source: 'PIO',
+    solverProvenance: SOLVER_PROVENANCE,
     dataQuality: 'VERIFIED',
     heroHand: 'AKo',
     boardCards: ['Qs', '7h', '2c'],
@@ -233,6 +248,13 @@ test('canonical question is verified only when its complete decision context mat
     decisionContext: validateAndNormalizeScenario(BASE),
   });
   assert.equal(exact?.contextVerified, true);
+
+  const unsealed = chooseTrainingCacheMatch([{ ...row, question_data: { ...row.question_data, solverProvenance: undefined } }], {
+    heroNotation: 'AKo', heroPosition: 'BTN', heroStack: 100,
+    street: 'flop', boardCards: ['Qs', '7h', '2c'], facingBet: false,
+    decisionContext: validateAndNormalizeScenario(BASE),
+  });
+  assert.equal(unsealed, null, 'a PIO label without the shared provenance seal is not canonical');
 
   const differentLine = validateAndNormalizeScenario({
     ...BASE,

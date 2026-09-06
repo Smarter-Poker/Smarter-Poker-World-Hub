@@ -8,9 +8,33 @@ async function expectNoOverflow(page: Page, label: string) {
 }
 
 async function waitForDiscovery(page: Page) {
-  await expect(page.getByRole('tablist', { name: 'Poker Near Me sections' })).toBeVisible({
+  await expect(page.locator('.pnm-page')).toHaveAttribute('data-pnm-hydrated', 'true', {
     timeout: 30_000,
   });
+  await expect(page.getByRole('navigation', { name: 'Poker Near Me sections' })).toBeVisible({
+    timeout: 30_000,
+  });
+}
+
+async function traverseHistory(page: Page, direction: 'back' | 'forward') {
+  await page.evaluate((requestedDirection) => new Promise<void>((resolve) => {
+    let timer = 0;
+    const finish = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('popstate', finish);
+      resolve();
+    };
+    window.addEventListener('popstate', finish, { once: true });
+    timer = window.setTimeout(finish, 5_000);
+    if (requestedDirection === 'back') window.history.back();
+    else window.history.forward();
+  }), direction);
+}
+
+function discoveryButton(page: Page, name: RegExp) {
+  return page
+    .getByRole('navigation', { name: 'Poker Near Me sections' })
+    .getByRole('button', { name });
 }
 
 async function expectDiscoveryUrl(page: Page, pattern: RegExp) {
@@ -20,18 +44,16 @@ async function expectDiscoveryUrl(page: Page, pattern: RegExp) {
   await expect.poll(() => page.url(), { timeout: 15_000 }).toMatch(pattern);
 }
 
-async function activateDiscoveryTab(page: Page, name: RegExp, browserName: string) {
-  const tab = page.getByRole('tab', { name });
+async function activateDiscoverySection(page: Page, name: RegExp, browserName: string) {
+  const button = discoveryButton(page, name);
   if (browserName === 'webkit') {
     // The animated live-data rail can keep WebKit's actionability probe in its
     // stability phase. Queue the real DOM activation; the URL and selected-state
     // assertions below still prove that the application's click handler completed.
-    await tab.evaluate((element: HTMLElement) => {
-      window.setTimeout(() => element.click(), 0);
-    });
+    await button.evaluate((element: HTMLElement) => element.click());
     return;
   }
-  await tab.click();
+  await button.click();
 }
 
 test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening', () => {
@@ -40,6 +62,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
       localStorage.setItem('pnm_lobby_tutorial_seen', '1');
+      localStorage.setItem('pnm_tutorial_seen_v1', '1');
       localStorage.setItem('pnm_location_prompt_dismissed', '1');
       localStorage.removeItem('sp-filters-poker-near-me');
     });
@@ -51,33 +74,38 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     expect(response?.status()).toBe(200);
     await waitForDiscovery(page);
 
-    await activateDiscoveryTab(page, /Events/i, browserName);
+    await activateDiscoverySection(page, /Events/i, browserName);
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/daily-tournaments(?:\?.*)?$/);
-    await activateDiscoveryTab(page, /Map/i, browserName);
+    await activateDiscoverySection(page, /Map/i, browserName);
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/map(?:\?.*)?$/);
+    const discoveryState = await page.evaluate(() => window.history.state);
+    expect(discoveryState?.spPnmDiscovery).toBe(true);
+    expect(discoveryState?.spModal).not.toBe(true);
 
-    await page.evaluate(() => window.setTimeout(() => window.history.back(), 0));
+    // Call the history methods directly. WebKit may throttle a zero-delay
+    // timer while the long discovery document is settling, which leaves the
+    // test on the current entry even though native Back/Forward works.
+    await traverseHistory(page, 'back');
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/daily-tournaments(?:\?.*)?$/);
-    await expect(page.getByRole('tab', { name: /Events/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(discoveryButton(page, /Events/i)).toHaveAttribute('aria-current', 'true');
     await expect(page.locator('.pnm-route-announcer')).toContainText('Showing Daily Tournaments');
 
-    await page.evaluate(() => window.setTimeout(() => window.history.forward(), 0));
+    await traverseHistory(page, 'forward');
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/map(?:\?.*)?$/);
-    await expect(page.getByRole('tab', { name: /Map/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(discoveryButton(page, /Map/i)).toHaveAttribute('aria-current', 'true');
     await expectNoOverflow(page, 'history-restored map');
   });
 
-  test('keyboard tab semantics and reduced motion survive each browser engine', async ({ page }) => {
+  test('keyboard section navigation and reduced motion survive each browser engine', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
     await waitForDiscovery(page);
 
-    const venuesTab = page.getByRole('tab', { name: /Venues/i });
-    await venuesTab.focus();
-    await venuesTab.press('End');
-    const moreTab = page.getByRole('tab', { name: /More/i });
-    await expect(moreTab).toBeFocused();
-    await expect(moreTab).toHaveAttribute('aria-selected', 'true');
+    const moreButton = discoveryButton(page, /More/i);
+    await moreButton.focus();
+    await moreButton.press('Enter');
+    await expect(moreButton).toBeFocused();
+    await expect(moreButton).toHaveAttribute('aria-current', 'true');
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/more(?:\?.*)?$/);
 
     const motion = await page.locator('.pnm-page').evaluate((element) => {
@@ -131,7 +159,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await page.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
     await waitForDiscovery(page);
 
-    const selected = page.getByRole('tab', { name: /Venues/i });
+    const selected = discoveryButton(page, /Venues/i);
     await selected.focus();
     const colors = await selected.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -146,6 +174,30 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     expect(colors.color).not.toBe(colors.background);
     expect(colors.outline).not.toBe('none');
     expect(Number.parseFloat(colors.outlineWidth)).toBeGreaterThanOrEqual(3);
+  });
+
+  test('legacy discovery bookmarks redirect canonically and private surfaces stay out of search', async ({ context }) => {
+    const aliasPage = await context.newPage();
+    const response = await aliasPage.goto('/hub/poker-near-me/daily?radius=50', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(response?.status()).toBe(200);
+    await expectDiscoveryUrl(aliasPage, /\/hub\/poker-near-me\/daily-tournaments\?radius=50$/);
+    await expect(aliasPage.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      /\/hub\/poker-near-me\/daily-tournaments$/
+    );
+    await aliasPage.close();
+
+    const savedPage = await context.newPage();
+    await savedPage.goto('/hub/poker-near-me/saved', { waitUntil: 'domcontentloaded' });
+    await expect(savedPage.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/i);
+    await savedPage.close();
+
+    const venuesPage = await context.newPage();
+    await venuesPage.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
+    await expect(venuesPage.locator('meta[name="robots"]')).not.toHaveAttribute('content', /noindex/i);
+    await venuesPage.close();
   });
 
   test('mobile header focus and command selectors remain visible without detached borders', async ({ page }) => {

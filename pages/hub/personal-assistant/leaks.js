@@ -79,6 +79,11 @@ const QuickSpotDrill = dynamic(
   { ssr: false, loading: () => <DrillSheetSkeleton /> },
 );
 
+const CoachingWorkspace = dynamic(
+  () => import('../../../src/components/personal-assistant/CoachingWorkspace'),
+  { ssr: false, loading: () => <PanelSkeleton label="Loading Coaching Workspace" /> },
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1864,7 +1869,11 @@ export default function LeakFinderPage() {
     } catch (e) {
       /* user dismissed */
     }
-    toast('Copy this link: ' + url);
+    toast(
+      <span>
+        Copy This Link: <span data-pa-verbatim="true">{url}</span>
+      </span>,
+    );
   }, []);
 
   // ─── Spaced-repetition review queue ──────────────────────────────────────
@@ -2292,12 +2301,13 @@ export default function LeakFinderPage() {
             <Segmented
               idPrefix="leaks-tab"
               label="View"
-              columns={2}
+              columns={3}
               value={tab}
               onChange={setTab}
               options={[
                 { value: 'leaks', label: 'Leaks' },
                 { value: 'insights', label: 'Insights' },
+                { value: 'coaching', label: 'Coaching' },
               ]}
             />
           </div>
@@ -2483,7 +2493,7 @@ export default function LeakFinderPage() {
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search leaks or situations"
+                        placeholder="Search Leaks Or Situations"
                         aria-label="Search leaks"
                         style={styles.searchInput}
                       />
@@ -2623,7 +2633,7 @@ export default function LeakFinderPage() {
                 </>
               )}
             </section>
-          ) : (
+          ) : tab === 'insights' ? (
             <section id="leak-insights" aria-label="Insights">
               <h2 style={styles.sectionHeading}>
                 <BarChart3 size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />
@@ -2698,6 +2708,19 @@ export default function LeakFinderPage() {
                   <LeakHeatmap userId={userId} />
                 </LeakErrorBoundary>
               </div>
+            </section>
+          ) : (
+            <section id="leak-coaching" aria-label="Coaching">
+              <LeakErrorBoundary label="The Coaching Workspace">
+                <CoachingWorkspace
+                  userId={userId}
+                  leaks={selectablePool}
+                  onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
+                  onPractice={handlePracticeSandbox}
+                  onPracticeExample={handlePracticeExample}
+                  onTrain={handleTrainDrills}
+                />
+              </LeakErrorBoundary>
             </section>
           )}
         </main>

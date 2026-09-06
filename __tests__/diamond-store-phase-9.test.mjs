@@ -8,6 +8,7 @@ const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 
 const STORE_PAGE = read('pages/hub/diamond-store.js');
 const STORE_CSS = read('src/components/diamond-store/DiamondStoreShell.module.css');
+const LEGACY_STYLES = read('src/components/diamond-store/diamondStoreStyles.js');
 const SUBPAGE_SHELL = read('src/components/store/MarketplaceSubpageShell.jsx');
 const SUBPAGE_CSS = read('src/components/store/MarketplaceSubpageShell.module.css');
 const TOAST = read('src/components/store/StoreToast.jsx');
@@ -62,7 +63,7 @@ test('cart, orders, and wishlist keep same-surface navigation inside a cinematic
 });
 
 test('marketplace visual language contains no legacy green or purple accent tokens', () => {
-  const scopedSource = [STORE_PAGE, STORE_CSS, SUBPAGE_SHELL, SUBPAGE_CSS, TOAST, WALLET, MERCH, CART]
+  const scopedSource = [STORE_PAGE, STORE_CSS, LEGACY_STYLES, SUBPAGE_SHELL, SUBPAGE_CSS, TOAST, WALLET, MERCH, CART]
     .join('\n')
     .toLowerCase();
   for (const token of [
@@ -72,12 +73,20 @@ test('marketplace visual language contains no legacy green or purple accent toke
     '#22c55e',
     '#10b981',
     '#34d399',
+    '#35d48a',
+    '#4caf50',
     '#8a2be2',
     '#a855f7',
     '#8b5cf6',
+    '#9c27b0',
     '#ec4899',
     'rgba(16, 185, 129',
+    'rgba(53, 212, 138',
+    'rgba(74, 222, 128',
+    'rgba(76, 175, 80',
     'rgba(138, 43, 226',
+    'rgba(156, 39, 176',
+    'rgba(168, 85, 247',
   ]) {
     assert.doesNotMatch(scopedSource, new RegExp(token.replace(/[()]/g, '\\$&')));
   }

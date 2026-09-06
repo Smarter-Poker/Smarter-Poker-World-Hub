@@ -878,6 +878,79 @@ jobs:
             exit 1
           fi
 
+      # CHECK 21: public/ budget (2026-09-05)
+      # Everything under public/ is cloned, traced, deployed and cached by
+      # Vercel on EVERY build whether or not it changed. It had reached 632 MB
+      # across 2,357 files, and an audit could not find a serving reference to
+      # 244 MB of it - a one-off importer's dump, GTO panels the runtime reads
+      # from Supabase Storage instead, Commander images commander.smarter.poker
+      # already serves, 33 *-review.html dev artifacts reachable on the
+      # production domain, and thirteen orphaned intro videos. None of it
+      # arrived deliberately; it arrived one commit at a time because nothing
+      # ever said no.
+      # A RATCHET, like CHECK 16: the number only goes DOWN. Adding a needed
+      # asset is fine - adding one without noticing is not.
+      - name: "CHECK 21: public/ stays inside its budget"
+        run: |
+          echo "## public/ budget" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if node scripts/ci/check-public-budget.mjs 2>&1 | tee /tmp/pubbudget.log; then
+            head -3 /tmp/pubbudget.log >> $GITHUB_STEP_SUMMARY
+          else
+            head -3 /tmp/pubbudget.log >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Try a .webp/.avif, or serve the file from Supabase Storage /" >> $GITHUB_STEP_SUMMARY
+            echo "commander.smarter.poker / ca-static instead of from this build." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      # CHECK 22: pinned Python requirements resolve (2026-09-06)
+      # scripts/requirements.txt pinned `supabase-py==2.15.0`. No such package:
+      # supabase-py is the GitHub REPO name, the PyPI project is `supabase`, and
+      # 2.15.0 is a real release of it - so the version was right and the name
+      # never existed. pip answers that with "from versions: none", which reads
+      # like a yanked release, buried under 700 lines of browser-download
+      # progress bars.
+      # It broke Charity Scraper V5 and Daily Poker Series Auto-Pilot at their
+      # Install Dependencies step for 17 hours. Neither is a required check, so
+      # nothing was blocked and nobody looked.
+      # Fails OPEN when PyPI is unreachable: a gate that reddens on somebody
+      # else's outage gets ignored.
+      - name: "CHECK 22: every pinned Python requirement exists on PyPI"
+        run: |
+          echo "## Python requirement pins" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if node scripts/ci/check-python-requirements-resolve.mjs scripts/requirements.txt 2>&1 | tee /tmp/pyreq.log; then
+            tail -2 /tmp/pyreq.log >> $GITHUB_STEP_SUMMARY
+          else
+            tail -6 /tmp/pyreq.log >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      # CHECK 23: data_audit_log writes name real columns (2026-09-06)
+      # 27 scripts write that table. It has table_name, record_id, action,
+      # old_data, new_data, scrape_proof, batch_id, agent_id, created_at - and
+      # the scripts were sending `notes`, `records_affected`, `records_count`
+      # and `tour_code`, while omitting record_id, which is NOT NULL.
+      # PostgREST answers PGRST204 and TEN of the scripts catch it with a bare
+      # `except: pass`, so the audit trail reported itself working while never
+      # writing a row: of 1,092,446 rows, every one came from the trigger_auto
+      # DB trigger or three one-off March agents. Not one from a scraper.
+      # It only surfaced because one caller checks the row count and exits 1 -
+      # Daily Poker Series Auto-Pilot, red after a fully successful scrape.
+      # A RATCHET over the nine not yet migrated; the fix is always the same,
+      # move what is not a column into new_data (jsonb).
+      - name: "CHECK 23: data_audit_log writes use real columns"
+        run: |
+          echo "## data_audit_log column check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if node scripts/ci/check-audit-log-columns.mjs 2>&1 | tee /tmp/auditcols.log; then
+            tail -2 /tmp/auditcols.log >> $GITHUB_STEP_SUMMARY
+          else
+            tail -8 /tmp/auditcols.log >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
       - name: "CHECK 6: Cron governance (Open Claw migration)"
         run: |
           echo "Enforcing cron governance rules from CLAUDE.md section 11..."

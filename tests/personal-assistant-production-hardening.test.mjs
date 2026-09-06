@@ -118,6 +118,16 @@ test('Personal Assistant RLS evidence is owner-scoped or service-role-only', () 
   assert.match(drills, /REVOKE SELECT ON public\.training_question_cache FROM PUBLIC, anon, authenticated/);
 });
 
+test('private Club Arena hand facts cascade with their account and source hand', () => {
+  const migration = read('supabase/migrations/20260906021000_cascade_private_hand_facts.sql');
+  assert.match(migration, /FOREIGN KEY \(user_id\) REFERENCES auth\.users\(id\)\s+ON DELETE CASCADE NOT VALID/);
+  assert.match(migration, /FOREIGN KEY \(hand_id\) REFERENCES public\.hand_history\(id\)\s+ON DELETE CASCADE NOT VALID/);
+  assert.match(migration, /VALIDATE CONSTRAINT ca_hand_facts_user_id_fkey/);
+  assert.match(migration, /VALIDATE CONSTRAINT ca_hand_facts_hand_id_fkey/);
+  assert.match(migration, /orphaned users/);
+  assert.match(migration, /orphaned hands/);
+});
+
 test('Phase 6 is a permanent build, browser, and post-deployment gate', () => {
   const pkg = JSON.parse(read('package.json'));
   const playwright = read('playwright.config.ts');
@@ -133,6 +143,7 @@ test('Phase 6 is a permanent build, browser, and post-deployment gate', () => {
   assert.equal(protectedReadRoutes.includes('/api/assistant/sandbox/sandbox-quiz'), true);
   assert.equal(protectedReadRoutes.includes('/api/sandbox/sessions'), true);
   assert.equal(protectedReadRoutes.includes('/api/sandbox/create-share'), true);
+  assert.equal(protectedReadRoutes.includes('/api/assistant/coaching'), true);
 });
 
 test('all Personal Assistant data routes share resilient auth and the durable worker owns a JSON failure boundary', () => {

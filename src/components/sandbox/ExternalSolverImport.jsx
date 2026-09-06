@@ -232,7 +232,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs }}>
                             Accepted Formats
                         </div>
-                        <pre style={{
+                        <pre data-pa-verbatim="true" style={{
                             margin: 0, fontSize: F.caption, color: T.purple, lineHeight: 1.5,
                             whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -249,6 +249,7 @@ CSV   Board, Position, Pot, Stack
                     <label htmlFor="esi-input" className="pa-vh">Scenario JSON Or CSV</label>
                     <textarea
                         id="esi-input"
+                        data-pa-verbatim="true"
                         value={rawInput}
                         onChange={e => { setRawInput(e.target.value); setError(null); }}
                         placeholder='{"board": ["As", "Kd", "7h"], "heroPosition": "BTN" … }  or  AsKd7h, BTN, 75, 120'

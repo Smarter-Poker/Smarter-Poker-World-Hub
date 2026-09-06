@@ -367,7 +367,7 @@ export default function LobbyOverlay({
           <picture>
             <source srcSet="/images/lobby-pods/poker-near-me-grid.webp" type="image/webp" />
             <img
-              src="/images/lobby-pods/poker-near-me-grid.png"
+              src="/images/lobby-pods/poker-near-me-grid.webp"
               alt="Poker Near Me Feature Grid"
               loading="eager"
               fetchPriority="high"
@@ -465,7 +465,7 @@ export default function LobbyOverlay({
             // Label comes from /api/poker/live-tables metadata.data_mode via the
             // page: 'Est. Tables' when the published number is modelled rather
             // than observed. Never present an estimate as live data.
-            { value: liveData?.liveGameCount || 0, label: liveData?.liveGameLabel || 'Live Tables', color: '#3fb950' },
+            { value: liveData?.liveGameCount || 0, label: liveData?.liveGameLabel || 'Cash Tables', color: '#3fb950' },
             { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#ffffff' },
           ].map((stat, i) => (
             <div key={i} style={{

@@ -37,8 +37,9 @@ test.describe('Poker Near Me phase 6 map and discovery semantics', () => {
   });
 
   test('location hierarchy exposes canonical graph semantics and editorial sections', async ({ page }, testInfo) => {
-    // The same pinned Chromium renderer runs locally and in CI; keep one portable
-    // baseline instead of generating OS-suffixed copies that CI cannot reuse.
+    // The same pinned Chromium renderer runs locally and in CI. Keep each
+    // responsive project baseline portable instead of generating OS-suffixed
+    // copies that CI cannot reuse.
     testInfo.snapshotSuffix = '';
     const response = await page.goto('/hub/poker-near-me/in/texas', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(600);
@@ -58,14 +59,17 @@ test.describe('Poker Near Me phase 6 map and discovery semantics', () => {
       await expect(sectionHead).toBeVisible();
       await expect(sectionHead.locator('h2')).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
-      await expect(sectionHead).toHaveScreenshot('phase6-location-section.png', {
-        animations: 'disabled',
-        caret: 'hide',
-        // Linux font rasterization shifts this compact header by up to 2px
-        // versus the checked-in macOS baseline. Keep the visual guard strict
-        // enough to catch layout changes without failing on that OS variance.
-        maxDiffPixelRatio: 0.1,
-      });
+      await expect(sectionHead).toHaveScreenshot(
+        `phase6-location-section-${testInfo.project.name}.png`,
+        {
+          animations: 'disabled',
+          caret: 'hide',
+          // Linux font rasterization shifts this compact header by up to 2px
+          // versus the checked-in macOS baseline. Keep the visual guard strict
+          // enough to catch layout changes without failing on that OS variance.
+          maxDiffPixelRatio: 0.1,
+        }
+      );
     }
     await expectNoOverflow(page, '/hub/poker-near-me/in/texas');
   });

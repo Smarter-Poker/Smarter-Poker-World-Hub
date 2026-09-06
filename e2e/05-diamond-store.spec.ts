@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
+const COPY_AUDIT_CLUB_ID = '00000000-0000-4000-8000-000000000093';
+const COPY_AUDIT_CLUB_ITEM_ID = '00000000-0000-4000-8000-000000000094';
 
 const ROUTES = [
   { path: '/hub/diamond-store', title: 'Diamond Store: Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
@@ -25,6 +27,7 @@ const MARKETPLACE_COPY_ROUTES = [
   '/hub/smarter-rewards',
   '/hub/smarter-rewards/daily_login',
   '/hub/club-shop',
+  `/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}`,
 ] as const;
 
 test.describe('5. Storefront Routes And Design Contract', () => {
@@ -116,6 +119,33 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         token_type: 'bearer',
         user,
       }));
+    });
+    // The Club Shop detail route is owner-scoped and therefore cannot rely on
+    // anonymous production inventory. Supply one deterministic item so the
+    // copy audit exercises the fully rendered subpage instead of a not-found
+    // boundary. All other Marketplace requests continue to their real target.
+    await page.route('**/api/club-arena/marketplace-items?*', async (route) => {
+      const requestUrl = new URL(route.request().url());
+      if (requestUrl.searchParams.get('clubId') !== COPY_AUDIT_CLUB_ID) {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          clubId: COPY_AUDIT_CLUB_ID,
+          balance: 5000,
+          items: [{
+            id: COPY_AUDIT_CLUB_ITEM_ID,
+            name: 'Verified Club Detail',
+            description: 'Every Dynamic Word Follows The Marketplace Copy Contract',
+            price: 1500,
+            category: 'Time Banks',
+          }],
+        }),
+      });
     });
 
     for (const path of MARKETPLACE_COPY_ROUTES) {
@@ -410,11 +440,11 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
   });
 
-  test('VIP daily access exposes verified card and diamond settlement controls', async ({ page }) => {
+  test('VIP lifetime access offers one-time card and Diamond settlement', async ({ page }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /Select VIP Daily Pass/ }).click();
-    await expect(page.getByRole('button', { name: /Activate Daily VIP With Diamonds/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Pay For Daily VIP With Card' })).toBeVisible();
+    await page.getByRole('button', { name: /Select VIP Lifetime/ }).click();
+    await expect(page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Pay With Diamonds Instead: 49,900/ })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
   });
 
@@ -527,7 +557,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, message: 'Annual plan verified.' }),
+        body: JSON.stringify({ success: true, message: 'Yearly plan verified.' }),
       });
     });
     await page.route('**/api/store/cancel-vip', async (route) => {
@@ -541,12 +571,12 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     });
 
     await page.goto('/hub/vip-membership/manage', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Switch To Annual' }).click();
+    await page.getByRole('button', { name: 'Switch To Yearly' }).click();
     const planDialog = page.getByRole('dialog', { name: 'Confirm Plan Switch' });
     await expect(planDialog).toBeVisible();
-    await planDialog.getByRole('button', { name: /Confirm Annual Plan/i }).click();
-    await expect(page.getByText('Annual plan verified.')).toBeVisible();
-    expect(requestedPlan).toBe('annual');
+    await planDialog.getByRole('button', { name: /Confirm Yearly Plan/i }).click();
+    await expect(page.getByText('Yearly plan verified.')).toBeVisible();
+    expect(requestedPlan).toBe('yearly');
     expect(planIdempotencyKey).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
 
     await page.getByRole('button', { name: 'Schedule End Of Membership' }).click();

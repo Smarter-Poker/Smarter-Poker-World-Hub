@@ -100,6 +100,24 @@ async function lookupRecord(session, userId) {
     } : null;
   }
 
+  if (type === 'vip_lifetime' && session.metadata?.purchase_id) {
+    const { data, error } = await getSupabase()
+      .from('vip_lifetime_purchases')
+      .select('id, user_id, status, price_usd, stripe_checkout_session_id')
+      .eq('id', session.metadata.purchase_id)
+      .eq('user_id', userId)
+      .eq('stripe_checkout_session_id', session.id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? {
+      status: data.status,
+      orderId: data.id,
+      orderSource: 'vip',
+      label: 'Lifetime VIP Membership',
+      cartItems: [],
+    } : null;
+  }
+
   if (session.mode === 'subscription') {
     const subscriptionId = typeof session.subscription === 'string'
       ? session.subscription

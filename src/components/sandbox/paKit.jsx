@@ -166,6 +166,11 @@ export function PAStyles() {
                 min-width: 0; width: 100%; max-width: 100%;
                 box-shadow: 0 0 0 1px ${T.borderHi}, inset 0 0 24px rgba(0,142,214,.08);
             }
+            .pa-range-grid-scroll {
+                width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden;
+                padding: 1px; scroll-behavior: smooth; overscroll-behavior-inline: contain;
+                -webkit-overflow-scrolling: touch;
+            }
             .pa-range-grid > :is(button, [role="button"]) {
                 min-width: 0; font-family: 'IBM Plex Mono', monospace !important;
                 font-size: clamp(8px, 2.45vw, 11px) !important;
@@ -194,6 +199,12 @@ export function PAStyles() {
                 .pa-sheet-telemetry { overflow: hidden; }
                 .pa-sheet-telemetry span:last-child { overflow: hidden; text-overflow: ellipsis; }
                 .pa-chart-panel { padding: 12px !important; }
+                .pa-range-grid-scroll .pa-range-grid {
+                    width: 586px !important; min-width: 586px !important; max-width: none !important;
+                }
+                .pa-range-grid > :is(button, [role="button"]) {
+                    min-width: 44px !important; min-height: 44px !important;
+                }
             }
             @media (prefers-reduced-motion: reduce) {
                 .pa-skel { animation: none; opacity: .5 }
@@ -450,7 +461,7 @@ export function ErrorState({ title = 'Something went wrong', body, onRetry, retr
 export function SignInState({
     title = 'Sign in to continue',
     body = 'Your coach history is tied to your account.',
-    href = '/auth',
+    href = '/auth/login',
     compact = false,
 }) {
     return (

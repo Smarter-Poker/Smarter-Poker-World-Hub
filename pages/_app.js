@@ -7,6 +7,7 @@
 
 import '../src/lib/server-stability'; // Server-side crash prevention (dev mode only)
 import '../src/lib/hmr-reconnect-guard'; // Client-side HMR death loop prevention (dev mode only)
+import '../src/lib/iosHaptics'; // navigator.vibrate on iOS, where WebKit has never shipped it
 import '../src/index.css';
 import '../src/styles/premium.css';
 import '../src/styles/global-tokens.css';
@@ -32,6 +33,7 @@ import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
+import '../src/styles/worlds/poker-near-me-machined.css';
 import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
 
 const orbitron = Orbitron({
@@ -837,6 +839,15 @@ export default function App({ Component, pageProps }) {
 
   // Two legacy settings surfaces intentionally suppress platform chrome when
   // embedded. Evaluate after hydration so server and first client render agree.
+  // 2026-09-04: notice a revoked session. PostgREST checks signatures, not
+  // session rows, so a session deleted behind the user keeps answering 200
+  // here for seven days. See src/lib/sessionLiveness.js.
+  useEffect(() => {
+    import('../src/lib/sessionLiveness')
+      .then((m) => m.installSessionLivenessWatch())
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     try {
       setIsEmbedded(window.self !== window.top);

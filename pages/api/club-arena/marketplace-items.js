@@ -13,6 +13,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 let _supabase = null;
 function getSupabase() {
@@ -27,6 +28,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      setPrivateCommerceResponse(res);
       if (!applyRateLimit(req, res, 'club-arena/marketplace-items')) return;
       if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
 

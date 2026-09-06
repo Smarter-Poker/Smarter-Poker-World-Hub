@@ -39,9 +39,23 @@ test('the route-specific LCP artwork is preloaded and merchandise is code split'
 });
 
 test('checkout shape is rejected before Stripe customer side effects', () => {
-  const typeGuard = CHECKOUT.indexOf(
-    "const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise'])"
-  );
+  /*
+   * THE INVARIANT IS THE ORDER, NOT THE MEMBERSHIP LIST.
+   *
+   * This located the guard with indexOf on the exact literal
+   * `new Set(['diamonds', 'subscription', 'merchandise'])`. Adding a fourth
+   * checkout type - 'vip_lifetime' - made that string absent, indexOf returned
+   * -1, and the test failed while the code it guards was entirely correct: the
+   * type check still runs before stripe.customers.create, several hundred lines
+   * ahead of it.
+   *
+   * So it sat red on main for every branch, reporting a Stripe side-effect
+   * ordering bug that did not exist - and the next checkout type would have
+   * broken it again. What this test is FOR is that no Stripe customer is
+   * created before the request shape is validated. It finds the guard by shape
+   * now, and adding a type is no longer a reason for it to fail.
+   */
+  const typeGuard = CHECKOUT.search(/const checkoutTypes = new Set\(\[/);
   const sizeGuard = CHECKOUT.indexOf('if (items.length > 50)');
   const customerCreation = CHECKOUT.indexOf('stripe.customers.create');
   assert.ok(typeGuard > -1 && typeGuard < customerCreation);

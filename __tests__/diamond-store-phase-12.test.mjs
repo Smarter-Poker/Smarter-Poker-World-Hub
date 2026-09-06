@@ -34,7 +34,11 @@ test('VIP command center reads a private server-owned membership record', () => 
   assert.match(api, /from\('vip_subscriptions'\)/);
   assert.match(api, /cancelAtPeriodEnd/);
   assert.match(api, /canSwitch/);
-  assert.match(api, /Cache-Control['"],\s*['"]private, no-store/);
+  assert.match(api, /setPrivateCommerceResponse\(res\)/);
+  assert.match(
+    read('src/lib/store/privateCommerceResponse.js'),
+    /Cache-Control['"],\s*['"]private, no-store, max-age=0/
+  );
   assert.doesNotMatch(api, /select\(['"]\*['"]\)/);
   assert.doesNotMatch(api, /req\.(body|query)\.userId|req\.(body|query)\?\.userId/);
   const verifier = read('scripts/verify-marketplace-deployment.mjs');
@@ -50,7 +54,7 @@ test('VIP plan switching and cancellation stay inside the marketplace page', () 
   assert.match(page, /\/api\/store\/vip-membership-status/);
   assert.match(page, /\/api\/store\/switch-vip-plan/);
   assert.match(page, /\/api\/store\/cancel-vip/);
-  assert.match(page, /Switch To Annual/);
+  assert.match(page, /Switch To Yearly/);
   assert.match(page, /Switch To Monthly/);
   assert.match(page, /Schedule End Of Membership/);
   assert.match(page, /role=["']dialog["']/);

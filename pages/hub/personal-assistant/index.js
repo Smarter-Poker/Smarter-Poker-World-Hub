@@ -38,6 +38,7 @@ import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssi
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+import { resolveDailyHeroHand } from '../../../src/lib/personal-assistant/dailyHandContract.mjs';
 
 const SYSTEMS = [
   {
@@ -71,10 +72,7 @@ function normalizeDailyHandPayload(payload) {
   if (!raw || typeof raw !== 'object') return null;
   const scenario = raw.scenario && typeof raw.scenario === 'object' ? raw.scenario : {};
   const board = raw.board || raw.board_cards || raw.boardCards || scenario.board || null;
-  const exactHeroCards = Array.isArray(raw.heroCards) && raw.heroCards.length >= 2
-    ? raw.heroCards.slice(0, 2).join('')
-    : null;
-  const heroHand = exactHeroCards || raw.heroHand || raw.hero_hand || scenario.heroHand || null;
+  const heroHand = resolveDailyHeroHand(raw, scenario);
   if (!heroHand) return null;
   return {
     ...raw,

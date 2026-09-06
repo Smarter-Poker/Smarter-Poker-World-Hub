@@ -15,8 +15,9 @@
  * The values below mirror the routes that actually charge:
  *   chips    -> RETIRED 2026-08-19, chips are never sold for diamonds
  *   diamonds -> pages/api/store/create-checkout-session.js (VALID_DIAMOND_PACKAGES)
- *   vip      -> src/data/diamondStoreData.js (VIP_MEMBERSHIP) + the daily-pass
- *               cost enforced by pages/api/store/purchase-daily-vip.js
+ *   vip      -> src/data/diamondStoreData.js (VIP_MEMBERSHIP). The three
+ *               terms are monthly, yearly and lifetime (Dan 2026-09-05); the
+ *               Daily Pass and its endpoint were retired the same day.
  *
  * VIP prices are asserted against diamondStoreData at request time (verify()),
  * so drift surfaces as an explicit `warnings` array instead of a silent lie to
@@ -52,23 +53,8 @@ const DIAMOND_PACKAGES = [
 
 // 1 diamond = $0.01 (DIAMONDS_PER_DOLLAR = 100 in purchase-vip-with-diamonds.js)
 const DIAMONDS_PER_DOLLAR = 100;
-const DAILY_VIP_DIAMONDS = 150; // DEFAULT_DAILY_COST in purchase-daily-vip.js
 
 const VIP_PLANS = [
-    {
-        id: 'vip-daily',
-        planKey: null,
-        checkoutPlan: null,
-        name: 'Daily Pass',
-        period: '24 Hours',
-        priceUsd: null,
-        priceDiamonds: DAILY_VIP_DIAMONDS,
-        features: [
-            'All VIP Table Features For 24h',
-            'Rabbit Hunt + Stack In BB',
-            'Great For Trying VIP',
-        ],
-    },
     {
         id: 'vip-monthly',
         planKey: 'monthly',
@@ -86,14 +72,29 @@ const VIP_PLANS = [
         featured: true,
     },
     {
-        id: 'vip-annual',
-        planKey: 'annual',
-        checkoutPlan: 'vip-annual',
-        name: 'Annual VIP',
+        id: 'vip-yearly',
+        planKey: 'yearly',
+        checkoutPlan: 'vip-yearly',
+        name: 'Yearly VIP',
         period: 'Per Year',
         priceUsd: 199.99,
         priceDiamonds: Math.round(199.99 * DIAMONDS_PER_DOLLAR),
         features: ['Everything In Monthly', 'Two Months Free Vs Monthly', 'Best Long-Run Value'],
+    },
+    {
+        id: 'vip-lifetime',
+        planKey: 'lifetime',
+        /* Card checkout for this one-time term shipped 2026-09-05 (migration
+           20260905180000 + the mode === 'payment' VIP branch in
+           webhooks/stripe.js). `oneTime` tells the client to send checkout
+           type 'vip_lifetime', not 'subscription'. */
+        checkoutPlan: 'vip-lifetime',
+        oneTime: true,
+        name: 'Lifetime VIP',
+        period: 'One Payment',
+        priceUsd: 499,
+        priceDiamonds: Math.round(499 * DIAMONDS_PER_DOLLAR),
+        features: ['Every VIP Feature, Permanently', 'Never Renews, Never Expires', 'One Payment'],
     },
 ];
 
@@ -118,14 +119,29 @@ function verify() {
         const store = require('../../../src/data/diamondStoreData');
         const vip = store && store.VIP_MEMBERSHIP;
         if (vip) {
+            /* PRESENCE IS PART OF THE CHECK (2026-09-05). The old version
+               compared prices with `if (actual !== undefined && ...)`, so a
+               plan that DISAPPEARED from diamondStoreData - exactly what
+               happened to the Daily Pass, and what a rename does to 'annual' -
+               made the drift check go silent instead of firing. A missing plan
+               is the loudest drift there is. */
             const checks = [
-                ['vip-daily', vip.daily && vip.daily.price, DAILY_VIP_DIAMONDS],
-                ['vip-monthly', vip.monthly && vip.monthly.price, 19.99],
-                ['vip-annual', vip.annual && vip.annual.price, 199.99],
+                ['vip-monthly', vip.monthly, 19.99],
+                ['vip-yearly', vip.yearly, 199.99],
+                ['vip-lifetime', vip.lifetime, 499],
             ];
-            for (const [id, actual, expected] of checks) {
-                if (actual !== undefined && actual !== null && Number(actual) !== Number(expected)) {
-                    warnings.push(id + ': catalog says ' + expected + ', diamondStoreData says ' + actual);
+            for (const [id, entry, expected] of checks) {
+                if (!entry) {
+                    warnings.push(id + ': catalog sells it, diamondStoreData has no such plan');
+                    continue;
+                }
+                if (Number(entry.price) !== Number(expected)) {
+                    warnings.push(id + ': catalog says ' + expected + ', diamondStoreData says ' + entry.price);
+                }
+            }
+            for (const retired of ['daily', 'annual']) {
+                if (vip[retired]) {
+                    warnings.push('vip-' + retired + ': retired on 2026-09-05 but still in diamondStoreData');
                 }
             }
         }

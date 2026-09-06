@@ -18,6 +18,7 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 // server-side database queries into the client bundle just to print a count.
 import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 import { marketplaceCopy } from '../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../src/lib/store/boundedCommerceFetch';
 
 // God-Mode Stack
 import supabase from '../../src/lib/supabase';
@@ -345,7 +346,7 @@ const VIP_FAQ = [
   },
   {
     q: 'What Are My Options For Getting VIP?',
-    a: 'Four. A Daily Pass For 150 Diamonds Covers 24 Hours. Monthly Is $19.99. Annual Is $199.99, Which Works Out To Roughly Two Months Free. You Can Also Buy A Full 30 Days With 1,999 Diamonds Instead Of Cash.',
+    a: 'Three Terms. Monthly Is $19.99 Or 1,999 Diamonds. Yearly Is $199.99 Or 19,999 Diamonds, Which Works Out To Roughly Two Months Free. Lifetime Is $499 Or 49,900 Diamonds And Never Expires. The Rate Is Always 100 Diamonds Per Dollar.',
   },
   {
     q: 'What Happens When My VIP Expires?',
@@ -353,11 +354,11 @@ const VIP_FAQ = [
   },
   {
     q: 'Do I Keep My 500 Bonus Diamonds?',
-    a: 'Yes. Diamonds Credited To Your Balance Are Permanently Yours, Monthly VIP Stipends Included, Even After The Membership Ends. The Stipend Is Credited To Active Monthly And Annual Subscriptions.',
+    a: 'Yes. Diamonds Credited To Your Balance Are Permanently Yours, Monthly VIP Stipends Included, Even After The Membership Ends. The Stipend Is Credited To Active Monthly And Yearly Subscriptions.',
   },
   {
-    q: 'Does A Daily Pass Stack With A Subscription?',
-    a: 'Yes. Buying A Daily Pass While You Already Have VIP Extends Your Existing Expiry By 24 Hours Rather Than Overwriting It. If The Activation Ever Fails, Your Diamonds Are Refunded Automatically.',
+    q: 'Does A New Term Stack With The One I Have?',
+    a: 'Yes. Buying Monthly Or Yearly While You Already Have VIP Extends Your Existing Expiry Rather Than Overwriting It, And You Keep The Longer Of The Two Terms. Lifetime Replaces Any Expiry With None At All.',
   },
   {
     q: 'Is Everything Truly Unlimited, Or Are There Caps?',
@@ -376,12 +377,12 @@ const VIP_FAQ = [
     a: 'Yes. VIP Waives Diamond Costs On Training Games, Trivia Entries And Table Features. Tournament Buy-Ins And Entry Fees Are A Separate Thing, And Are Still Charged Normally.',
   },
   {
-    q: 'Can I Switch Between Monthly And Annual?',
+    q: 'Can I Switch Between Monthly And Yearly?',
     a: 'Yes. Switch Plans From The VIP Command Center Without Leaving The Marketplace. Your Renewal Date Stays In Place And Stripe Applies Unused Paid Time As A Prorated Credit To The Next Invoice.',
   },
   {
     q: 'What Payment Methods Are Accepted?',
-    a: 'All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. You Can Also Pay Entirely In Diamonds Using The Daily Pass Or The 1,999 Diamond Monthly Option.',
+    a: 'Monthly And Yearly VIP Accept All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. Every VIP Term Also Accepts Diamonds: 1,999 Diamond Monthly, 19,999 Yearly, Or 49,900 Lifetime. Lifetime Card Checkout Is Paused Until Its Refund And Dispute Protections Match The Diamond Path.',
   },
 ];
 
@@ -465,7 +466,7 @@ export default function DiamondStorePage({ initialTab }) {
   useEffect(() => {
     if (!router.isReady || activeTab !== 'vip') return;
     const requestedPlan = Array.isArray(router.query.plan) ? router.query.plan[0] : router.query.plan;
-    if (['vip-daily', 'vip-monthly', 'vip-annual'].includes(requestedPlan)) {
+    if (['vip-monthly', 'vip-yearly', 'vip-lifetime'].includes(requestedPlan)) {
       setSelectedVIP(requestedPlan);
     }
   }, [activeTab, router.isReady, router.query.plan]);
@@ -635,34 +636,24 @@ export default function DiamondStorePage({ initialTab }) {
           if (cancelled || controller.signal.aborted) return;
 
           let response;
-          const requestController = new AbortController();
-          const abortRequest = () => requestController.abort();
-          controller.signal.addEventListener('abort', abortRequest, { once: true });
-          let requestTimedOut = false;
-          const requestTimer = window.setTimeout(() => {
-            requestTimedOut = true;
-            requestController.abort();
-          }, CHECKOUT_STATUS_REQUEST_TIMEOUT_MS);
           try {
-            response = await fetch(
+            response = await boundedCommerceFetch(
               `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
-                signal: requestController.signal,
-              }
+                signal: controller.signal,
+              },
+              CHECKOUT_STATUS_REQUEST_TIMEOUT_MS
             );
           } catch (error) {
             if (cancelled || controller.signal.aborted) return;
-            if (error?.name === 'AbortError' && requestTimedOut) {
+            if (error?.code === 'COMMERCE_REQUEST_TIMEOUT') {
               if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
               throw new Error('Checkout Verification Timed Out. Try Verification Again.');
             }
             if (error?.name === 'AbortError') return;
             if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
             throw error;
-          } finally {
-            window.clearTimeout(requestTimer);
-            controller.signal.removeEventListener('abort', abortRequest);
           }
 
           const body = await response.json().catch(() => null);
@@ -882,6 +873,7 @@ export default function DiamondStorePage({ initialTab }) {
 
   const handleDirectCheckout = async (pkg) => {
     if (processingRef.current) return;
+    let commerceIntent = null;
     setBusyPackageId(pkg.id);
     setStoreProcessing(true);
     try {
@@ -891,12 +883,13 @@ export default function DiamondStorePage({ initialTab }) {
         setStoreProcessing(false);
         return;
       }
-      const checkoutRequestId = getOrCreateCommerceRequestId({
+      commerceIntent = {
         scope: `diamonds-${pkg.id}`,
         userId: user.id,
         paymentMethod: 'card',
         intent: { packageId: pkg.id, quantity: 1 },
-      });
+      };
+      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       captureStoreEvent('checkout_started', {
         route: 'diamonds',
         type: 'diamonds',
@@ -904,7 +897,7 @@ export default function DiamondStorePage({ initialTab }) {
         value_usd: Number(pkg.price || 0),
       });
       showStoreToast('success', 'Redirecting to secure checkout...');
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -918,7 +911,11 @@ export default function DiamondStorePage({ initialTab }) {
       });
       if (!response.ok) {
         const errBody = await response.json().catch(() => null);
-        throw new Error(errBody?.error?.message || `Request failed (${response.status})`);
+        const checkoutError = new Error(
+          errBody?.error?.message || `Request Failed (${response.status})`
+        );
+        checkoutError.code = errBody?.error?.code || null;
+        throw checkoutError;
       }
       const data = await response.json();
       if (!data.success)
@@ -931,197 +928,72 @@ export default function DiamondStorePage({ initialTab }) {
       });
       window.location.href = data.data.url;
     } catch (err) {
+      if (err?.code === 'CHECKOUT_EXPIRED' && commerceIntent) {
+        clearCommerceRequestId(commerceIntent);
+      }
       captureStoreEvent('checkout_failed', { route: 'diamonds', type: 'diamonds' });
       showStoreToast('error', err.message || 'Purchase failed');
       setStoreProcessing(false);
     }
   };
 
-  // VIP subscription: the daily pass is bought with diamonds, the monthly and
-  // annual tiers go straight to a Stripe Checkout subscription session.
+  // Monthly and yearly use Stripe subscriptions. Lifetime remains Diamond-only
+  // until its cross-method refund/provenance state machine is safe to publish.
   const handleVIPSubscribe = async () => {
     if (processingRef.current) return;
     if (vipTier === 'lifetime') {
       showStoreToast('success', 'Lifetime VIP Already Includes Every VIP Plan.');
       return;
     }
-    const plan =
-      selectedVIP === 'vip-daily'
-        ? VIP_MEMBERSHIP.daily
-        : selectedVIP === 'vip-monthly'
-          ? VIP_MEMBERSHIP.monthly
-          : VIP_MEMBERSHIP.annual;
+    const plan = selectedVIPPlan;
 
     // Haptic feedback
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(50);
     }
 
-    if (plan.isDiamondCost) {
-      const token = getAccessToken();
-      if (!token || !user?.id) {
-        showStoreToast('error', 'Please sign in to purchase VIP.');
+    /* Capability tripwire: never open a card checkout for a term whose complete
+       settlement, refund, dispute, and cross-method lifecycle is not enabled. */
+    if (plan?.cardCheckoutReady === false) {
+      if (!user?.id) {
+        showStoreToast('error', 'Please Sign In To Purchase VIP.');
         return;
       }
-      // Ask in the page, not in a native dialog. runDailyPassPurchase is what
-      // the modal's Confirm calls.
+      const cost = Math.round(Number(plan.price) * 100);
       const commerceIntent = {
-        scope: 'vip-daily',
+        scope: 'vip-lifetime',
         userId: user.id,
         paymentMethod: 'diamonds',
-        intent: { plan: 'daily' },
+        intent: { plan: 'lifetime' },
       };
       setPendingSpend({
-        kind: 'daily',
-        title: 'Activate The 1-Day VIP Pass',
-        cost: plan.price,
+        kind: 'plan',
+        planKey: 'lifetime',
+        title: 'Buy Lifetime VIP With Diamonds',
+        cost,
         detail:
-          'Twenty-Four Hours Of Full VIP Access. If You Already Have VIP, This Adds A Day To The End Of It Rather Than Replacing It.',
+          `${cost.toLocaleString()} Diamonds, Once. Your Membership Stops Having An Expiry Date Rather Than Getting A Longer One, And It Never Renews.`,
         commerceIntent,
         idempotencyKey: getOrCreateCommerceRequestId(commerceIntent),
       });
       return;
     }
+
     await startStripeCheckout(plan);
   };
 
-  /** The daily pass, once the in-page confirmation has been accepted. */
-  const runDailyPassPurchase = async (idempotencyKey, commerceIntent) => {
-    if (processingRef.current) return;
-    if (vipTier === 'lifetime') {
-      clearCommerceRequestId(commerceIntent);
-      showStoreToast('success', 'Lifetime VIP Already Includes The Daily Pass.');
-      return true;
-    }
-    const plan = VIP_MEMBERSHIP.daily;
-    const token = getAccessToken();
-    if (!token || !user?.id) {
-      showStoreToast('error', 'Please sign in to purchase VIP.');
-      return;
-    }
-    setStoreProcessing(true);
-    try {
-      captureStoreEvent('diamond_purchase_started', {
-        route: 'vip',
-        product: 'vip-daily',
-        diamonds_spent: Number(plan.price || 0),
-      });
-      const res = await fetch('/api/store/purchase-daily-vip', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-Idempotency-Key': idempotencyKey,
-        },
-      });
-      // Parse the body FIRST: the API returns meaningful errors
-      // ('Insufficient diamonds' + required/current) with a 400.
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        const detail =
-          data?.required != null && data?.current != null
-            ? ` You Need ${Number(data.required).toLocaleString()} And Have ${Number(data.current).toLocaleString()}.`
-            : '';
-        throw new Error(`${data?.error || `Request Failed (${res.status})`}.${detail}`);
-      }
-      if (data?.success) {
-        clearCommerceRequestId(commerceIntent);
-        captureStoreEvent('diamond_purchase_complete', {
-          route: 'vip',
-          product: 'vip-daily',
-          diamonds_spent: Number(plan.price || 0),
-        });
-        showStoreToast('success', 'VIP Daily Pass Activated. Enjoy Your Premium Features.');
-        setIsVip(true);
-        // Keep the membership card honest without a page reload.
-        if (data.expiresAt) setVipExpiresAt(data.expiresAt);
-        if (data.tier) setVipTier(data.tier);
-        if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
-        broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
-        broadcastSync('smarter_poker_diamond_sync', 'refresh');
-        return true;
-      } else {
-        showStoreToast('error', data?.error || 'VIP Purchase Failed.');
-        return false;
-      }
-    } catch (e) {
-      captureStoreEvent('diamond_purchase_failed', { route: 'vip', product: 'vip-daily' });
-      showStoreToast('error', e.message);
-      return false;
-    } finally {
-      setStoreProcessing(false);
-    }
-  };
+  /* REMOVED 2026-09-05 with the Daily Pass: runDailyPassPurchase (the
+     150-diamond 24-hour buy) and handleDailyVipCardCheckout (the card-funded
+     version, which bought the smallest sufficient diamond package and
+     auto-redeemed 150 of them through a `vip_daily` redemption intent).
+     Dan: the terms are monthly, yearly and lifetime. Nothing was ever sold on
+     the Daily Pass - 0 vip_daily diamond transactions and 0 purchases carrying
+     that intent - so no receipt, refund or in-flight settlement depends on
+     either function. /api/store/purchase-daily-vip is deleted too.
+     order-ledger.js and diamond-liability.js still recognise the `vip_daily`
+     transaction type on purpose: they read history, and history does not
+     change because a product was retired. */
 
-  /**
-   * Card-funded daily access uses the same auditable settlement model as Club
-   * Shop card purchases: Stripe funds the smallest sufficient diamond package,
-   * checkout-status verifies that receipt, and only then does the idempotent
-   * daily-pass endpoint redeem 150 diamonds. Any remainder stays in the wallet.
-   */
-  const handleDailyVipCardCheckout = async () => {
-    if (processingRef.current) return;
-    const token = getAccessToken();
-    if (!token || !user?.id) {
-      showStoreToast('error', 'Please Sign In To Purchase Daily VIP With Card.');
-      return;
-    }
-    const plan = VIP_MEMBERSHIP.daily;
-    const topUp = clubCardTopUpFor(plan.price);
-    if (!topUp) {
-      showStoreToast('error', 'Daily VIP Card Checkout Is Temporarily Unavailable.');
-      return;
-    }
-    setStoreProcessing(true);
-    try {
-      const origin = window.location.origin;
-      const response = await fetch('/api/store/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-Checkout-Request-ID': getOrCreateCommerceRequestId({
-            scope: 'vip-daily-card',
-            userId: user.id,
-            paymentMethod: 'card',
-            intent: { plan: 'daily', packageId: topUp.packageId, quantity: topUp.quantity },
-          }),
-        },
-        body: JSON.stringify({
-          type: 'diamonds',
-          items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
-          redemptionIntent: { kind: 'vip_daily' },
-          successUrl: `${origin}${TAB_ROUTES.vip}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${origin}${TAB_ROUTES.vip}?canceled=true`,
-        }),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.success || !data?.data?.url) {
-        throw new Error(data?.error?.message || 'Could Not Start Daily VIP Card Checkout.');
-      }
-      captureStoreEvent('checkout_started', {
-        route: 'vip',
-        type: 'card-funded-daily-vip',
-        product: plan.id,
-        value_usd: topUp.price * topUp.quantity,
-      });
-      window.location.href = data.data.url;
-    } catch (error) {
-      showStoreToast('error', error.message || 'Could Not Start Daily VIP Card Checkout.');
-      setStoreProcessing(false);
-    }
-  };
-
-  /**
-   * Buy a MONTHLY or ANNUAL membership entirely in diamonds.
-   *
-   * This path already existed end to end: pages/api/store/purchase-vip-with-
-   * diamonds.js derives the cost server-side from the USD price at 100
-   * diamonds per dollar ($19.99 -> 1,999), is idempotent, and refuses the
-   * daily plan because that has its own endpoint. Nothing on the VIP page ever
-   * called it, so a member holding 2,000 diamonds had no way to spend them on
-   * a membership. The FAQ said they could. Now they can.
-   */
   const runDiamondPlanPurchase = async (planKey, idempotencyKey, commerceIntent) => {
     if (processingRef.current) return;
     if (vipTier === 'lifetime') {
@@ -1140,7 +1012,7 @@ export default function DiamondStorePage({ initialTab }) {
         route: 'vip',
         product: planKey,
       });
-      const res = await fetch('/api/store/purchase-vip-with-diamonds', {
+      const res = await boundedCommerceFetch('/api/store/purchase-vip-with-diamonds', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1170,11 +1042,13 @@ export default function DiamondStorePage({ initialTab }) {
           'success',
           data.duplicate
             ? 'That Purchase Was Already Applied. Your Membership Is Active.'
-            : `VIP Active. ${Number(data.daysAdded || 0).toLocaleString()} Days Added.`
+            : planKey === 'lifetime'
+              ? 'Lifetime VIP Is Active. Your Membership Never Expires.'
+              : `VIP Active. ${Number(data.daysAdded || 0).toLocaleString()} Days Added.`
         );
         setIsVip(true);
         if (data.tier) setVipTier(data.tier);
-        if (data.expiresAt) setVipExpiresAt(data.expiresAt);
+        setVipExpiresAt(data.expiresAt ?? null);
         if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
         broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
@@ -1192,7 +1066,7 @@ export default function DiamondStorePage({ initialTab }) {
     }
   };
 
-  /** Stripe Checkout, subscription mode, for the cash plans. */
+  /** Stripe Checkout for recurring and one-time card plans. */
   const startStripeCheckout = async (plan) => {
     if (processingRef.current) return;
     // Only the plan key is sent; the server resolves the Stripe price ID from
@@ -1203,21 +1077,26 @@ export default function DiamondStorePage({ initialTab }) {
       return;
     }
 
+    const commerceIntent = {
+      scope: `vip-${plan.id}`,
+      userId: user.id,
+      paymentMethod: 'card',
+      intent: { plan: plan.id },
+    };
     setStoreProcessing(true);
     try {
-      const checkoutRequestId = getOrCreateCommerceRequestId({
-        scope: `vip-${plan.id}`,
-        userId: user.id,
-        paymentMethod: 'card',
-        intent: { plan: plan.id },
-      });
+      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
+      /* A lifetime term is one payment, so it is its own checkout type - the
+         server derives Stripe `mode` from this string and a subscription mode
+         would renew a membership that never renews. */
+      const checkoutType = plan.oneTime ? 'vip_lifetime' : 'subscription';
       captureStoreEvent('checkout_started', {
         route: 'vip',
-        type: 'subscription',
+        type: checkoutType,
         product: plan.id,
         value_usd: Number(plan.price || 0),
       });
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1225,14 +1104,18 @@ export default function DiamondStorePage({ initialTab }) {
           'X-Checkout-Request-ID': checkoutRequestId,
         },
         body: JSON.stringify({
-          type: 'subscription',
+          type: checkoutType,
           items: [{ plan: plan.id }],
         }),
       });
 
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error?.message || `Request failed (${response.status})`);
+        const checkoutError = new Error(
+          data?.error?.message || `Request Failed (${response.status})`
+        );
+        checkoutError.code = data?.error?.code || null;
+        throw checkoutError;
       }
       if (!data.data?.url) {
         throw new Error('Checkout session missing redirect URL');
@@ -1246,6 +1129,12 @@ export default function DiamondStorePage({ initialTab }) {
       // Redirect to Stripe Checkout (isProcessing stays true through nav)
       window.location.href = data.data.url;
     } catch (error) {
+      if (error?.code === 'CHECKOUT_EXPIRED') {
+        /* An expired Stripe session is definitive: no payment can settle under
+           this request anymore. Release only that durable identity so the next
+           click can create a fresh session. Ambiguous failures keep it. */
+        clearCommerceRequestId(commerceIntent);
+      }
       console.warn('VIP subscription error:', error);
       captureStoreEvent('checkout_failed', { route: 'vip', type: 'subscription' });
       showStoreToast('error', error.message || 'Failed to start VIP checkout. Please try again.');
@@ -1355,7 +1244,7 @@ export default function DiamondStorePage({ initialTab }) {
       if (!token) throw new Error('Not authenticated');
 
       const idempotencyKey = purchaseTarget.purchaseRequestId;
-      const response = await fetch('/api/club-arena/marketplace-purchase', {
+      const response = await boundedCommerceFetch('/api/club-arena/marketplace-purchase', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1409,12 +1298,13 @@ export default function DiamondStorePage({ initialTab }) {
       showStoreToast('error', 'This Item Is Above The Current Card Checkout Limit.');
       return;
     }
-    const checkoutRequestId = getOrCreateCommerceRequestId({
+    const commerceIntent = {
       scope: `club-card-${item.id}`,
       userId: user.id,
       paymentMethod: 'card',
       intent: { clubId: clubShopClubId, itemId: item.id },
-    });
+    };
+    const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
     setClubShopCardProcessingId(item.id);
     try {
       captureStoreEvent('checkout_started', {
@@ -1424,7 +1314,7 @@ export default function DiamondStorePage({ initialTab }) {
         value_usd: topUp.price * topUp.quantity,
       });
       const origin = window.location.origin;
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1441,10 +1331,17 @@ export default function DiamondStorePage({ initialTab }) {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success || !data?.data?.url) {
-        throw new Error(data?.error?.message || 'Could Not Start Card Checkout.');
+        const checkoutError = new Error(
+          data?.error?.message || 'Could Not Start Card Checkout.'
+        );
+        checkoutError.code = data?.error?.code || null;
+        throw checkoutError;
       }
       window.location.href = data.data.url;
     } catch (error) {
+      if (error?.code === 'CHECKOUT_EXPIRED') {
+        clearCommerceRequestId(commerceIntent);
+      }
       setClubShopCardProcessingId(null);
       showStoreToast('error', error.message || 'Could Not Start Card Checkout.');
     }
@@ -1663,14 +1560,18 @@ export default function DiamondStorePage({ initialTab }) {
   }, [clubShopClubId, loadClubShop, activeTab]);
 
   const selectedVIPPlan =
-    selectedVIP === 'vip-daily'
-      ? VIP_MEMBERSHIP.daily
-      : selectedVIP === 'vip-monthly'
-        ? VIP_MEMBERSHIP.monthly
-        : VIP_MEMBERSHIP.annual;
-  const vipSubscribeLabel = selectedVIPPlan?.isDiamondCost
-    ? `Activate Daily VIP With Diamonds: ${Number(selectedVIPPlan?.price || 0).toLocaleString()}`
-    : `Subscribe: $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
+    selectedVIP === 'vip-lifetime'
+      ? VIP_MEMBERSHIP.lifetime
+      : selectedVIP === 'vip-yearly'
+        ? VIP_MEMBERSHIP.yearly
+        : VIP_MEMBERSHIP.monthly;
+  const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
+  const vipCardReady = selectedVIPPlan?.cardCheckoutReady !== false;
+  const vipSubscribeLabel = vipCardReady
+    ? lifetimeSelected
+      ? `Buy VIP Lifetime With Card: $${Number(selectedVIPPlan?.price || 499).toFixed(2)} Once`
+      : `Subscribe With Card: $${Number(selectedVIPPlan?.price || 19.99).toFixed(2)}/${selectedVIPPlan?.interval === 'year' ? 'Year' : 'Month'}`
+    : `Lifetime VIP Is Bought With Diamonds: ${Math.round(Number(selectedVIPPlan?.price || 0) * 100).toLocaleString()}`;
 
   return (
     <>
@@ -1900,18 +1801,18 @@ export default function DiamondStorePage({ initialTab }) {
                     tabIndex={0}
                   >
                     <VIPCard
-                      plan={VIP_MEMBERSHIP.daily}
-                      isSelected={selectedVIP === 'vip-daily'}
-                      onSelect={setSelectedVIP}
-                    />
-                    <VIPCard
                       plan={VIP_MEMBERSHIP.monthly}
                       isSelected={selectedVIP === 'vip-monthly'}
                       onSelect={setSelectedVIP}
                     />
                     <VIPCard
-                      plan={VIP_MEMBERSHIP.annual}
-                      isSelected={selectedVIP === 'vip-annual'}
+                      plan={VIP_MEMBERSHIP.yearly}
+                      isSelected={selectedVIP === 'vip-yearly'}
+                      onSelect={setSelectedVIP}
+                    />
+                    <VIPCard
+                      plan={VIP_MEMBERSHIP.lifetime}
+                      isSelected={selectedVIP === 'vip-lifetime'}
                       onSelect={setSelectedVIP}
                     />
                   </div>
@@ -1934,8 +1835,8 @@ export default function DiamondStorePage({ initialTab }) {
                     </Link>
                   </nav>
 
-                  {/* Annual saving, stated in money rather than implied by a badge */}
-                  {selectedVIP === 'vip-annual' && VIP_MEMBERSHIP.annual.savings > 0 && (
+                  {/* Yearly saving, stated in money rather than implied by a badge */}
+                  {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
                     <div
                       style={{
                         textAlign: 'center',
@@ -1945,7 +1846,7 @@ export default function DiamondStorePage({ initialTab }) {
                         fontWeight: 600,
                       }}
                     >
-                      Saves ${Number(VIP_MEMBERSHIP.annual.savings).toFixed(2)} A Year Against
+                      Saves ${Number(VIP_MEMBERSHIP.yearly.savings).toFixed(2)} A Year Against
                       Paying Monthly: About Two Months Free
                     </div>
                   )}
@@ -1969,18 +1870,51 @@ export default function DiamondStorePage({ initialTab }) {
                         color: 'inherit',
                       }}
                     >
-                      <img
-                        src="/images/subscribe-button.webp"
-                        width={1249}
-                        height={258}
-                        alt=""
-                        style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
-                        draggable={false}
-                        loading="lazy"
-                      />
-                      {/* The button artwork is a static $19.99/month image, so the
-                        live plan is stated in text beneath it. Without this the
-                        picture contradicts the selected plan. */}
+                      {vipCardReady ? (
+                        <img
+                          src="/images/subscribe-button.webp"
+                          width={1249}
+                          height={258}
+                          alt=""
+                          style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
+                          draggable={false}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 'min(420px, 88vw)',
+                            minHeight: 92,
+                            padding: '16px 30px',
+                            border: '2px solid #8CDFFF',
+                            background:
+                              'linear-gradient(180deg, #173A52 0%, #071827 48%, #03101C 100%)',
+                            boxShadow:
+                              'inset 0 0 0 2px #02080D, inset 0 0 0 3px rgba(140, 223, 255, 0.5), 0 0 28px rgba(0, 180, 255, 0.32)',
+                            clipPath:
+                              'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px)',
+                            color: '#EAF8FF',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 14,
+                          }}
+                        >
+                          <Gem size={30} color="#00D4FF" strokeWidth={2.2} />
+                          <span style={{ display: 'grid', gap: 2, textAlign: 'left' }}>
+                            <strong style={{ fontSize: 18, letterSpacing: '0.04em' }}>
+                              Buy Lifetime VIP
+                            </strong>
+                            <span style={{ color: '#8CDFFF', fontSize: 14, fontWeight: 700 }}>
+                              49,900 Diamonds · One Time
+                            </span>
+                          </span>
+                        </span>
+                      )}
+                      {/* Card-ready terms use the monthly artwork and state the
+                        selected live term below it. Lifetime renders its own
+                        Diamond action so the picture and settlement agree. */}
                       <div
                         style={{
                           textAlign: 'center',
@@ -1995,44 +1929,18 @@ export default function DiamondStorePage({ initialTab }) {
                     </button>
                   </div>
 
-                  {selectedVIPPlan?.isDiamondCost && (
-                    <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
-                      <button
-                        type="button"
-                        disabled={isProcessing || vipTier === 'lifetime'}
-                        onClick={handleDailyVipCardCheckout}
-                        style={{
-                          display: 'inline-flex',
-                          minHeight: 44,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          padding: '11px 22px',
-                          border: '1px solid #8EC8D8',
-                          background: 'linear-gradient(180deg, #DFF9FF, #6DA7BC 48%, #1C4B61)',
-                          color: '#06131A',
-                          fontSize: 13,
-                          fontWeight: 800,
-                          cursor: isProcessing ? 'wait' : vipTier === 'lifetime' ? 'not-allowed' : 'pointer',
-                          opacity: isProcessing || vipTier === 'lifetime' ? 0.6 : 1,
-                        }}
-                      >
-                        <CreditCard size={16} aria-hidden="true" />
-                        Pay For Daily VIP With Card
-                      </button>
-                      <div style={{ fontSize: 12, color: '#A8BBC4', marginTop: 8 }}>
-                        Card Checkout Funds 200 Diamonds For $2.00, Activates The 150-Diamond Pass,
-                        And Leaves 50 Diamonds In Your Wallet.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pay in diamonds: monthly and annual only. The daily plan is
-                    already priced in diamonds and has its own endpoint. */}
-                  {selectedVIPPlan && !selectedVIPPlan.isDiamondCost && (
+                  {/* Card-ready terms also expose Diamonds as the alternate
+                    settlement path. Lifetime's primary action is already the
+                    Diamond purchase, so do not render the same action twice. */}
+                  {selectedVIPPlan && vipCardReady && (
                     <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
                       {(() => {
-                        const planKey = selectedVIP === 'vip-annual' ? 'annual' : 'monthly';
+                        const planKey =
+                          selectedVIP === 'vip-lifetime'
+                            ? 'lifetime'
+                            : selectedVIP === 'vip-yearly'
+                              ? 'yearly'
+                              : 'monthly';
                         // Mirrors the server: 100 diamonds per dollar, derived
                         // from the same catalog price rather than a second copy.
                         const cost = Math.round(Number(selectedVIPPlan.price) * 100);
@@ -2060,7 +1968,10 @@ export default function DiamondStorePage({ initialTab }) {
                                   planKey,
                                   title: `Pay For ${selectedVIPPlan.name} With Diamonds`,
                                   cost,
-                                  detail: `${Number(cost).toLocaleString()} Diamonds For ${planKey === 'annual' ? '365' : '30'} Days Of VIP. This Extends Any Membership You Already Have Rather Than Replacing It.`,
+                                  detail:
+                                    planKey === 'lifetime'
+                                      ? `${Number(cost).toLocaleString()} Diamonds, Once. Your Membership Stops Having An Expiry Date Rather Than Getting A Longer One, And It Never Renews.`
+                                      : `${Number(cost).toLocaleString()} Diamonds For ${planKey === 'yearly' ? '365' : '30'} Days Of VIP. This Extends Any Membership You Already Have Rather Than Replacing It.`,
                                   commerceIntent,
                                   idempotencyKey: getOrCreateCommerceRequestId(commerceIntent),
                                 });
@@ -2191,19 +2102,14 @@ export default function DiamondStorePage({ initialTab }) {
                             type="button"
                             disabled={isProcessing}
                             onClick={async () => {
+                              // One kind of spend since the Daily Pass was
+                              // retired: a plan bought with diamonds.
                               const spend = pendingSpend;
-                              let applied = false;
-                              if (spend.kind === 'daily') {
-                                applied = await runDailyPassPurchase(
-                                  spend.idempotencyKey,
-                                  spend.commerceIntent
-                                );
-                              } else
-                                applied = await runDiamondPlanPurchase(
-                                  spend.planKey,
-                                  spend.idempotencyKey,
-                                  spend.commerceIntent
-                                );
+                              const applied = await runDiamondPlanPurchase(
+                                spend.planKey,
+                                spend.idempotencyKey,
+                                spend.commerceIntent
+                              );
                               // Keep the same operation identity through an
                               // ambiguous response or retryable failure.
                               if (applied) setPendingSpend(null);
@@ -3520,7 +3426,7 @@ export default function DiamondStorePage({ initialTab }) {
                             <input
                               type="text"
                               aria-label="Search Club Shop Items"
-                              placeholder="Search items..."
+                              placeholder="Search Items..."
                               value={clubShopSearch}
                               onChange={(e) => setClubShopSearch(e.target.value)}
                               style={{
@@ -4240,7 +4146,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 aria-label="Item Name"
                                 value={clubShopNewName}
                                 onChange={(e) => setClubShopNewName(e.target.value)}
-                                placeholder="Item name"
+                                placeholder="Item Name"
                                 maxLength={100}
                                 style={{
                                   flex: 2,
@@ -4276,7 +4182,7 @@ export default function DiamondStorePage({ initialTab }) {
                               aria-label="Item Description"
                               value={clubShopNewDesc}
                               onChange={(e) => setClubShopNewDesc(e.target.value)}
-                              placeholder="Description (optional)"
+                              placeholder="Description (Optional)"
                               maxLength={500}
                               style={{
                                 width: '100%',
@@ -4328,7 +4234,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 aria-label="Item Image URL"
                                 value={clubShopNewImage}
                                 onChange={(e) => setClubShopNewImage(e.target.value)}
-                                placeholder="Image URL (optional)"
+                                placeholder="Image URL (Optional)"
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',

@@ -18,7 +18,6 @@ function collectMapRuntimeErrors(page: Page) {
 }
 
 async function clickTopmostDataMarker(page: Page, map: Locator) {
-  const popup = map.locator('.leaflet-popup').last();
   const candidateGroups = [map.locator('.tour-logo-marker'), map.locator('.venue-map-marker')];
 
   // Production venue data expands the featured-room rail above the map shortly
@@ -33,19 +32,49 @@ async function clickTopmostDataMarker(page: Page, map: Locator) {
       const count = await candidates.count();
       for (let index = 0; index < count; index += 1) {
         const candidate = candidates.nth(index);
-        const isTopmost = await candidate.evaluate((element) => {
+        const activated = await candidate.evaluate((element: HTMLElement) => {
           const rect = element.getBoundingClientRect();
           if (!rect.width || !rect.height) return false;
           const x = rect.left + rect.width / 2;
           const y = rect.top + rect.height / 2;
           if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return false;
           const hit = document.elementFromPoint(x, y);
-          return Boolean(hit && (hit === element || element.contains(hit)));
-        });
-        if (!isTopmost) continue;
+          if (!hit || (hit !== element && !element.contains(hit))) return false;
 
-        await candidate.click();
-        if (await popup.isVisible()) return;
+          // Keep hit testing and activation in one browser task. The live venue
+          // refresh can rebuild Leaflet markers between a locator probe and a
+          // Playwright pointer action, leaving the original marker detached or
+          // shifted behind the section header even though the map is healthy.
+          element.click();
+          return true;
+        });
+        if (!activated) continue;
+        await page.waitForTimeout(50);
+        const popupContract = await map.evaluate((element) => {
+          const popups = Array.from(element.querySelectorAll('.leaflet-popup')).reverse();
+          const popup = popups.find((entry) => (
+            entry.querySelector('.fsp-trigger') && entry.querySelector('.directions-trigger')
+          ));
+          if (!popup) return null;
+
+          const detail = popup.querySelector('.fsp-trigger');
+          const directions = popup.querySelector('.directions-trigger');
+          const popupBox = popup.getBoundingClientRect();
+          const directionsBox = directions?.getBoundingClientRect();
+          const directionsStyle = directions ? getComputedStyle(directions) : null;
+          return {
+            detailUrl: detail?.getAttribute('data-url') || '',
+            popupVisible: popupBox.width > 0 && popupBox.height > 0,
+            directionsVisible: Boolean(
+              directionsBox &&
+              directionsBox.width > 0 &&
+              directionsBox.height > 0 &&
+              directionsStyle?.visibility !== 'hidden' &&
+              directionsStyle?.display !== 'none'
+            ),
+          };
+        });
+        if (popupContract?.popupVisible && popupContract.directionsVisible) return popupContract;
       }
     }
   }
@@ -71,11 +100,10 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     }).toBeGreaterThan(0);
 
     if (await map.locator('.venue-map-marker, .tour-logo-marker').count()) {
-      await clickTopmostDataMarker(page, map);
-      const popup = map.locator('.leaflet-popup').last();
-      await expect(popup).toBeVisible({ timeout: 10_000 });
-      await expect(popup.locator('.fsp-trigger')).toHaveAttribute('data-url', /^\/hub\/(?:venues|tours)\//);
-      await expect(popup.locator('.directions-trigger')).toBeVisible();
+      const popupContract = await clickTopmostDataMarker(page, map);
+      expect(popupContract.detailUrl).toMatch(/^\/hub\/(?:venues|tours)\//);
+      expect(popupContract.popupVisible).toBe(true);
+      expect(popupContract.directionsVisible).toBe(true);
     }
 
     await expect(page.locator('link[data-pnm-map-style="poker-map-controls"]')).toHaveCount(1);

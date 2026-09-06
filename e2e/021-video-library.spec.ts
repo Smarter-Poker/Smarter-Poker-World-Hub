@@ -34,6 +34,16 @@ const BLOCKED_VIDEO = {
   title: 'Legacy Non-Embeddable Video',
 };
 
+const NON_POKER_VIDEO = {
+  ...VIDEO_A,
+  id: 'slot-video-01',
+  videoId: 'slot-video-01',
+  source: 'SLOTQUEEN',
+  sourceName: 'Slot Queen',
+  type: 'slots',
+  title: 'Stale Casino Catalog Record',
+};
+
 function watchForCrashes(page: Page): string[] {
   const crashes: string[] = [];
   page.on('pageerror', error => crashes.push(String(error?.message || error)));
@@ -125,6 +135,26 @@ test.describe('21. Video Library command system', () => {
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('.vl-card-title', { hasText: BLOCKED_VIDEO.title })).toHaveCount(0);
     await expect(page.locator('#youtube-player')).toHaveCount(0);
+    expect(crashes).toEqual([]);
+  });
+
+  test('rejects non-poker rows from a stale catalog response', async ({ page }) => {
+    await page.unroute('**/api/video-library/catalog**');
+    await page.route('**/api/video-library/catalog**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [NON_POKER_VIDEO, VIDEO_A],
+        pagination: { limit: 30, offset: 0, total: 2, hasMore: false },
+      }),
+    }));
+    const crashes = watchForCrashes(page);
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.vl-card-title', { hasText: NON_POKER_VIDEO.title })).toHaveCount(0);
+    expect(await page.locator('body').innerHTML()).not.toContain(NON_POKER_VIDEO.videoId);
     expect(crashes).toEqual([]);
   });
 

@@ -32,6 +32,7 @@ const PRESERVE_SELECTOR = [
   'samp',
   'textarea',
   '[contenteditable="true"]',
+  '[data-pa-verbatim]',
   '[data-preserve-case="true"]',
   '[data-user-content]',
   '[data-post-card]',
@@ -144,13 +145,15 @@ export default function WorldCopyPolicy({ worldId }) {
       }
 
       .${WORLD_COPY_SCOPE_CLASS} :is(
-        input, textarea, select, [contenteditable='true'],
+        input, textarea, select, code, pre, kbd, samp, [contenteditable='true'],
+        [data-pa-verbatim],
         [data-preserve-case='true'], [data-user-content], [data-post-card],
         [data-post-content], [data-comment-content], .no-capitalize,
         .social-feed, .post-content, .comment-content, .social-post
       ),
       .${WORLD_COPY_SCOPE_CLASS} :is(
-        input, textarea, select, [contenteditable='true'],
+        input, textarea, select, code, pre, kbd, samp, [contenteditable='true'],
+        [data-pa-verbatim],
         [data-preserve-case='true'], [data-user-content], [data-post-card],
         [data-post-content], [data-comment-content], .no-capitalize,
         .social-feed, .post-content, .comment-content, .social-post
@@ -160,6 +163,10 @@ export default function WorldCopyPolicy({ worldId }) {
 
       .${WORLD_COPY_SCOPE_CLASS} :is(input, textarea)::placeholder {
         text-transform: capitalize !important;
+      }
+
+      .${WORLD_COPY_SCOPE_CLASS} :is(input, textarea)[data-pa-verbatim]::placeholder {
+        text-transform: none !important;
       }
     `}</style>
   );

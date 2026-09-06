@@ -40,15 +40,15 @@ const SEATS = [
 
 // Avatar images (large illustrated characters)
 const AVATAR_IMAGES = {
-    hero: '/avatars/table/free_fox.png',
-    v1: '/avatars/table/vip_viking_warrior.png',
-    v2: '/avatars/table/free_wizard.png',
-    v3: '/avatars/table/free_ninja.png',
-    v4: '/avatars/table/vip_wolf.png',
-    v5: '/avatars/table/vip_spartan.png',
-    v6: '/avatars/table/vip_pharaoh.png',
-    v7: '/avatars/table/free_cowboy.png',
-    v8: '/avatars/table/free_pirate.png',
+    hero: '/avatars/table/free_fox.webp',
+    v1: '/avatars/table/vip_viking_warrior.webp',
+    v2: '/avatars/table/free_wizard.webp',
+    v3: '/avatars/table/free_ninja.webp',
+    v4: '/avatars/table/vip_wolf.webp',
+    v5: '/avatars/table/vip_spartan.webp',
+    v6: '/avatars/table/vip_pharaoh.webp',
+    v7: '/avatars/table/free_cowboy.webp',
+    v8: '/avatars/table/free_pirate.webp',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -139,7 +139,7 @@ function PlayerAvatar({ seat, player, isDealer = false }) {
                 }}
             >
                 <img
-                    src={AVATAR_IMAGES[seat.id] || '/avatars/default.png'}
+                    src={AVATAR_IMAGES[seat.id] || '/default-avatar.png'}
                     alt={player.name}
                     style={{
                         width: '100%',
@@ -148,7 +148,7 @@ function PlayerAvatar({ seat, player, isDealer = false }) {
                         filter: player.isFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
                     }}
                     onError={(e) => {
-                        e.target.src = '/avatars/default.png';
+                        e.target.src = '/default-avatar.png';
                     }}
                 />
             </motion.div>

@@ -658,7 +658,7 @@ export default function LivesPage() {
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                         <img
-                                            src={sl.profiles?.avatar_url || '/avatars/default.png'}
+                                            src={sl.profiles?.avatar_url || '/default-avatar.png'}
                                             alt={sl.profiles?.username}
                                             style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
                                             loading="lazy"
@@ -887,7 +887,7 @@ export default function LivesPage() {
                     {/* Broadcaster Info */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                         <img
-                            src={stream.broadcaster?.avatar_url || stream.profiles?.avatar_url || '/avatars/default.png'}
+                            src={stream.broadcaster?.avatar_url || stream.profiles?.avatar_url || '/default-avatar.png'}
                             alt={stream.broadcaster?.username || stream.profiles?.username}
                             style={{
                                 width: 44,

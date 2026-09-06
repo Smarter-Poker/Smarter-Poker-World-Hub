@@ -168,7 +168,7 @@ export default function LiveActivityFeed({ currentUser }) {
                             border: `2px solid ${s.status === 'break' ? T.gold : T.green}`,
                             flexShrink: 0, position: 'relative',
                         }}>
-                            <img src={s.profiles?.avatar_url || '/avatars/default.png'}
+                            <img src={s.profiles?.avatar_url || '/default-avatar.png'}
                                 alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                             {/* Status dot */}
                             <div style={{

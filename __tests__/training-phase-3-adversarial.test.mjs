@@ -152,7 +152,7 @@ test('Training callbacks cannot retain stale difficulty or adaptive-analysis sta
   assert.match(source, /updateWeakSpotMap,\s*getWeakSpots,\s*prefetchNextLevel,\s*gameId,/);
   assert.match(source, /resolveDifficultyMode,\s*getWeakSpots,\s*\]\);/);
   assert.match(source, /\}, \[gameId, trainerConfig\]\);/);
-  assert.match(source, /effectiveQuestionsPerLevel,\s*selectedLevel,\s*trainerConfig,\s*\]\);/);
+  assert.match(source, /effectiveQuestionsPerLevel,\s*selectedLevel,\s*currentQuestion,\s*level,\s*trainerConfig,\s*\]\);/);
 });
 
 test('browser route audit enforces serious WCAG failures and runtime performance bounds', () => {

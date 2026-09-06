@@ -22,6 +22,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 const {
     PRIMARY_SHOP_CURRENCY,
@@ -96,6 +97,7 @@ async function loadWindowRows({ clubId, since, snapshotAt, refundWindow = false 
 
 export default async function handler(req, res) {
     try {
+        setPrivateCommerceResponse(res);
         if (req.method !== 'GET') {
             return res.status(405).json({ success: false, error: 'GET only' });
         }

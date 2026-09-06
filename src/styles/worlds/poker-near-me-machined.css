@@ -1,0 +1,244 @@
+/*
+ * Poker Near Me: SmarterCasinoRealism machined finish.
+ *
+ * Imported after the legacy route stylesheet so every PNM family inherits one
+ * visual contract. This layer changes paint and geometry only; handlers, form
+ * controls, maps, realtime subscriptions and route ownership remain intact.
+ */
+
+body.world-poker-near-me {
+  --pnm-v2-void: #030507;
+  --pnm-v2-carbon: #090d12;
+  --pnm-v2-gunmetal: #26323c;
+  --pnm-v2-chrome: #aab8c4;
+  --pnm-v2-energy: #48c7ff;
+  --pnm-v2-gold: #c9a85a;
+  --pnm-v2-edge: rgba(170, 184, 196, 0.28);
+  --pnm-v2-inset: inset 0 1px 0 rgba(255, 255, 255, 0.055), inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+}
+
+/* Physical surfaces: flat black-first metal, no generic glass haze. */
+body.world-poker-near-me :is(
+  .pnm-content, .pnm-section, .pnm-card, .venue-card, .entity-card,
+  .tour-card, .tournament-card, .pnm-location-card, .pnm-location-listing__state,
+  .venue-header, .venue-section, .venue-info-card, .bravo-live-section,
+  .map-tab-container, .map-main-section, .daily-tournaments-panel,
+  .pnm-sheet__frame, .rgm-panel, .vr-panel, .ta-prefs-panel, .sl-modal,
+  .voice-panel, .sc-day-panel, .vc3-checkin-modal
+) {
+  border-color: var(--pnm-v2-edge) !important;
+  border-radius: 3px !important;
+  background-color: var(--pnm-v2-carbon) !important;
+  background-image: none !important;
+  box-shadow: var(--pnm-v2-inset), 0 18px 48px rgba(0, 0, 0, 0.34) !important;
+  backdrop-filter: none !important;
+}
+
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) :is(button, input, select, textarea, [role='button']) {
+  border-radius: 2px !important;
+}
+
+/* React inline radii were the largest remaining source of SaaS-card geometry.
+   The DOM serializes them as `border-radius`, not `borderRadius`. */
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) [style*='border-radius'] {
+  border-radius: 3px !important;
+}
+
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) :is(button, input, select, textarea):focus-visible {
+  border-color: var(--pnm-v2-energy) !important;
+  outline: 3px solid rgba(72, 199, 255, 0.82) !important;
+  outline-offset: 2px !important;
+  box-shadow: var(--pnm-v2-inset), 0 0 18px rgba(72, 199, 255, 0.14) !important;
+}
+
+/* The approved global header uses transparent hit regions over immutable
+   artwork. Keep its non-box keyboard cue contract intact. */
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) .approved-global-header__button:focus,
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) .approved-global-header__button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) :is(input, select, textarea) {
+  color: #eef5fb !important;
+  border: 1px solid rgba(170, 184, 196, 0.3) !important;
+  background: #050a0f !important;
+  box-shadow: var(--pnm-v2-inset) !important;
+}
+
+body.world-poker-near-me :is(
+  .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
+) :is(button, [role='button']):not(.approved-global-header__button):not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* Shared venue dossier cards. */
+body.world-poker-near-me .vc3-card {
+  overflow: hidden;
+  border: 1px solid rgba(170, 184, 196, 0.3) !important;
+  border-radius: 3px !important;
+  background: #070c11 !important;
+  box-shadow: var(--pnm-v2-inset), 0 20px 46px rgba(0, 0, 0, 0.38) !important;
+}
+
+body.world-poker-near-me .vc3-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--pnm-v2-energy) 34%, #dce8ef 50%, var(--pnm-v2-energy) 66%, transparent 100%);
+  box-shadow: 0 0 13px rgba(72, 199, 255, 0.45);
+}
+
+body.world-poker-near-me .vc3-badge {
+  border-radius: 2px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.075em;
+}
+
+body.world-poker-near-me .vc3-badge-live {
+  color: #b8f4d2 !important;
+  border-color: rgba(82, 209, 139, 0.42) !important;
+  background: rgba(20, 62, 44, 0.42) !important;
+}
+
+body.world-poker-near-me .vc3-badge-modeled,
+body.world-poker-near-me .vc3-cash-count[data-modeled='true'] {
+  color: #ead5a8 !important;
+  border-color: rgba(201, 168, 90, 0.44) !important;
+  background: rgba(64, 47, 16, 0.42) !important;
+}
+
+body.world-poker-near-me .vc3-badge-modeled .vc3-live-dot {
+  background: var(--pnm-v2-gold) !important;
+  box-shadow: 0 0 8px rgba(201, 168, 90, 0.52) !important;
+}
+
+body.world-poker-near-me .vc3-cash-count {
+  padding: 3px 7px;
+  color: #b8f4d2;
+  border: 1px solid rgba(82, 209, 139, 0.35);
+  border-radius: 2px;
+  background: rgba(20, 62, 44, 0.36);
+  font: 750 12px/1 var(--font-premium-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-card__cash[data-modeled='true'] {
+  color: #ead5a8;
+  border-color: rgba(201, 168, 90, 0.42);
+  background: rgba(64, 47, 16, 0.36);
+}
+
+/* Map is an instrument panel, not a glass widget. */
+body.world-poker-near-me :is(.venue-map-container, .vmp-map-container, .map-tab-container) {
+  overflow: hidden;
+  border: 1px solid rgba(170, 184, 196, 0.36) !important;
+  border-radius: 3px !important;
+  background: #020406 url('/images/pnm-redesign/map-command-render-v2.webp') center / cover no-repeat !important;
+  box-shadow: var(--pnm-v2-inset), 0 24px 64px rgba(0, 0, 0, 0.52) !important;
+}
+
+body.world-poker-near-me .leaflet-control-container :is(a, button),
+body.world-poker-near-me .leaflet-control-zoom,
+body.world-poker-near-me .leaflet-control-attribution,
+body.world-poker-near-me .pnm-popup .leaflet-popup-content-wrapper {
+  border-radius: 2px !important;
+  border-color: rgba(170, 184, 196, 0.32) !important;
+  background: #071019 !important;
+  box-shadow: var(--pnm-v2-inset), 0 14px 34px rgba(0, 0, 0, 0.58) !important;
+  backdrop-filter: none !important;
+}
+
+body.world-poker-near-me .pnm-popup .leaflet-popup-tip { background: #071019 !important; }
+body.world-poker-near-me .pnm-map-dossier { border-top: 2px solid var(--pnm-v2-energy); }
+
+body.world-poker-near-me .pnm-map-radius-control {
+  border: 1px solid rgba(170, 184, 196, 0.38) !important;
+  border-radius: 2px !important;
+  background: #071019 !important;
+  box-shadow: var(--pnm-v2-inset), 0 12px 28px rgba(0, 0, 0, 0.58) !important;
+  backdrop-filter: none !important;
+}
+
+/* PNM-specific finish for the shared command drawer. Ordinary full borders are
+   used throughout so Safari cannot leave clipped or broken corner fragments. */
+body.world-poker-near-me .sp-drawer {
+  color: #eef5fb !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(170, 184, 196, 0.38) !important;
+  background: #05090d !important;
+  box-shadow: 14px 0 52px rgba(0, 0, 0, 0.72), inset -1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+body.world-poker-near-me .sp-drawer :is(
+  .sp-command-utility-rail, .sp-command-context, .sp-menu-row, .sp-grid-tile,
+  .sp-command-search, .sp-command-utility-button, input, button, a
+) {
+  border-radius: 2px !important;
+  clip-path: none !important;
+}
+
+body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile) {
+  border-radius: 3px !important;
+}
+
+body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile, .sp-command-utility-button) {
+  border-color: rgba(170, 184, 196, 0.24) !important;
+  background-image: none !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), inset 0 0 0 1px rgba(0, 0, 0, 0.72) !important;
+}
+
+body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile)[aria-current='page'],
+body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile)[aria-pressed='true'] {
+  color: #eef8ff !important;
+  border-color: var(--pnm-v2-energy) !important;
+  background: #0a1721 !important;
+  box-shadow: inset 3px 0 var(--pnm-v2-energy), inset 0 1px rgba(255, 255, 255, 0.055) !important;
+}
+
+body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile, .sp-command-utility-button):focus-visible {
+  outline: 2px solid var(--pnm-v2-energy) !important;
+  outline-offset: 2px !important;
+}
+
+/* Scrims stay opaque and cinematic. */
+body.world-poker-near-me :is(
+  .vr-overlay, .rgm-overlay, .sl-modal-overlay, .pnm-sheet,
+  .voice-overlay, .modal-overlay
+) {
+  background: rgba(1, 3, 5, 0.92) !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 768px) {
+  body.world-poker-near-me .vc3-cash-count {
+    max-width: 48%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.world-poker-near-me :is(.map-tab-container, .venue-map-container, .vmp-map-container) {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.world-poker-near-me .vc3-card::before { box-shadow: none; }
+}

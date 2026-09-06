@@ -10,6 +10,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 let _supabase = null;
 function getSupabase() {
@@ -32,6 +33,7 @@ function entitlementIsActive(profile, now = new Date()) {
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -83,7 +85,6 @@ export default async function handler(req, res) {
     const tier = isLifetime ? 'lifetime' : subscription?.tier || profile?.vip_tier || null;
     const cancelAtPeriodEnd = Boolean(subscription?.cancel_at_period_end);
 
-    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({
       success: true,
       membership: {
@@ -95,7 +96,7 @@ export default async function handler(req, res) {
         currentPeriodEnd: subscription?.current_period_end || profile?.vip_expires_at || null,
         cancelAtPeriodEnd,
         recurring: !isLifetime && isCardSubscription,
-        canSwitch: !isLifetime && isCardSubscription && !cancelAtPeriodEnd && ['monthly', 'annual'].includes(tier),
+        canSwitch: !isLifetime && isCardSubscription && !cancelAtPeriodEnd && ['monthly', 'yearly'].includes(tier),
         canCancel: !isLifetime && isCardSubscription && !cancelAtPeriodEnd,
         partial: Boolean(subscriptionResult.error),
       },

@@ -15,6 +15,8 @@ const RETRYABLE_CODES = new Set([
     'ECONNRESET', // Connection reset
     'ECONNREFUSED', // Connection refused
     'FETCH_ERROR', // Generic fetch failure
+    'ERR_HTTP2_INVALID_SESSION', // Undici reused a closed HTTP/2 session
+    'ABORT_ERR',   // Per-attempt deadline elapsed
     '08000',     // Postgres connection exception
     '08006',     // Postgres connection failure
     '57P01',     // Admin shutdown
@@ -28,21 +30,24 @@ const RETRYABLE_HTTP = new Set([502, 503, 504, 408, 429]);
  * Determine if an error is retryable (transient network/connection issue).
  * Returns false for auth, validation, constraint, and logic errors.
  */
-function isRetryable(error) {
+export function isRetryable(error) {
     if (!error) return false;
 
     // Supabase error object with code
-    if (error.code && RETRYABLE_CODES.has(error.code)) return true;
+    const code = error.code || error.cause?.code;
+    if (code && RETRYABLE_CODES.has(code)) return true;
 
     // HTTP status-based retry
     if (error.status && RETRYABLE_HTTP.has(error.status)) return true;
 
     // Network error messages
-    const msg = (error.message || '').toLowerCase();
+    const msg = `${error.message || ''} ${error.cause?.message || ''}`.toLowerCase();
     if (msg.includes('fetch') && msg.includes('failed')) return true;
     if (msg.includes('network') || msg.includes('timeout')) return true;
     if (msg.includes('econnreset') || msg.includes('econnrefused')) return true;
     if (msg.includes('socket hang up')) return true;
+    if (msg.includes('invalid session') || msg.includes('session has been destroyed')) return true;
+    if (error.name === 'AbortError' || error.cause?.name === 'AbortError') return true;
 
     return false;
 }

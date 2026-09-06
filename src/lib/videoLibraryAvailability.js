@@ -1,7 +1,7 @@
 /**
  * YouTube IDs that must never be offered by the video library.
  *
- * These records were verified against YouTube's embed player on 2026-08-27.
+ * These records were verified against YouTube's embed player through 2026-09-06.
  * They are unavailable, age-restricted, or have third-party embedding disabled.
  * Keeping the gate centralized protects the live API, legacy fallback data, old
  * bookmarks, and stale catalog responses with the same rule.
@@ -37,9 +37,13 @@ export const BLOCKED_VIDEO_LIBRARY_IDS = Object.freeze([
     'n0fHHMfvWck',
     'GH5sEqf5p9Y',
     'aVGVP7Oj8Jg',
+    'dbCLX6WbyJg',
+    'kiAPXh4jRHo',
 ]);
 
 const BLOCKED_VIDEO_LIBRARY_ID_SET = new Set(BLOCKED_VIDEO_LIBRARY_IDS);
+export const VIDEO_LIBRARY_ALLOWED_TYPES = Object.freeze(['cash', 'tournament']);
+const VIDEO_LIBRARY_ALLOWED_TYPE_SET = new Set(VIDEO_LIBRARY_ALLOWED_TYPES);
 
 export function isVideoLibraryVideoAllowed(videoOrId) {
     const videoId = typeof videoOrId === 'object' && videoOrId !== null
@@ -47,5 +51,14 @@ export function isVideoLibraryVideoAllowed(videoOrId) {
         : videoOrId;
     if (!videoId) return false;
     const normalizedId = String(videoId);
-    return !normalizedId.startsWith('FAKE') && !BLOCKED_VIDEO_LIBRARY_ID_SET.has(normalizedId);
+    if (normalizedId.startsWith('FAKE') || BLOCKED_VIDEO_LIBRARY_ID_SET.has(normalizedId)) return false;
+
+    // ID-only checks protect old bookmarks before their catalog row resolves.
+    // Once row metadata exists, keep the poker library limited to its supported
+    // cash-game and tournament taxonomy. This rejects stale cached responses
+    // containing slot/casino records without deleting those records at source.
+    if (typeof videoOrId === 'object' && videoOrId !== null && videoOrId.type) {
+        return VIDEO_LIBRARY_ALLOWED_TYPE_SET.has(String(videoOrId.type).toLowerCase());
+    }
+    return true;
 }

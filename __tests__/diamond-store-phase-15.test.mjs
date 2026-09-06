@@ -161,8 +161,8 @@ test('card checkout idempotency is user-scoped and bound to normalized intent', 
   assert.match(checkout, /storedHash !== intentHash/);
   assert.match(checkout, /if \(!storedHash \|\| storedHash !== intentHash\) return \{ conflict: true \}/);
   assert.match(checkout, /terminalOrRefunded/);
-  assert.match(checkout, /\['refunded', 'canceled', 'cancelled'\]\.includes\(data\.status\)/);
-  assert.match(checkout, /if \(!\['pending', 'failed'\]\.includes\(data\.status\)\) return \{ conflict: true \}/);
+  assert.match(checkout, /\['refunded', 'canceled', 'cancelled'\]\.includes\(row\.status\)/);
+  assert.match(checkout, /if \(!\['pending', 'failed'\]\.includes\(row\.status\)\) return \{ conflict: true \}/);
   assert.match(checkout, /\.in\('status', \['pending', 'failed'\]\)/);
   assert.match(checkout, /\.is\('stripe_checkout_session_id', null\)/);
   assert.match(checkout, /\.\.\.existingCheckout\.metadata/);
@@ -192,11 +192,13 @@ test('refund replay guards keep uncredited Diamonds and shipped stock untouched'
 });
 
 test('Club Shop and VIP Diamond purchases have durable identities and lifetime protection', async () => {
-  const [clubApi, clubUi, vipMonthly, vipDaily, migration, hardening, vipUi] = await Promise.all([
+  // purchase-daily-vip.js was deleted on 2026-09-05 with the Daily Pass
+  // (Dan: the terms are monthly, yearly and lifetime). Nothing was ever sold
+  // on it, so there is no idempotency contract left to pin.
+  const [clubApi, clubUi, vipMonthly, migration, hardening, vipUi] = await Promise.all([
     read('pages/api/club-arena/marketplace-purchase.js'),
     read('pages/hub/club-shop/[itemId].js'),
     read('pages/api/store/purchase-vip-with-diamonds.js'),
-    read('pages/api/store/purchase-daily-vip.js'),
     read('supabase/migrations/20260830040000_atomic_diamond_merch_orders.sql'),
     read('supabase/migrations/20260830100000_card_commerce_settlement_hardening.sql'),
     read('pages/hub/diamond-store.js'),
@@ -205,7 +207,6 @@ test('Club Shop and VIP Diamond purchases have durable identities and lifetime p
   assert.match(clubApi, /userId/);
   assert.match(clubUi, /diamondPurchaseRequestId/);
   assert.match(vipMonthly, /purchase_vip_with_diamonds_atomic_v3/);
-  assert.match(vipDaily, /purchase_vip_with_diamonds_atomic_v2/);
   assert.match(migration, /v_profile\.vip_tier = 'lifetime'/);
   assert.match(migration, /error', 'already_lifetime'/);
   assert.match(vipUi, /vipTier === 'lifetime'/);
@@ -219,7 +220,6 @@ test('all privileged commerce writes fail closed without the service role', asyn
     'pages/api/store/create-checkout-session.js',
     'pages/api/store/purchase-with-diamonds.js',
     'pages/api/store/purchase-vip-with-diamonds.js',
-    'pages/api/store/purchase-daily-vip.js',
     'pages/api/store/webhooks/stripe.js',
     'pages/api/store/fulfillment-operations.js',
   ]) {

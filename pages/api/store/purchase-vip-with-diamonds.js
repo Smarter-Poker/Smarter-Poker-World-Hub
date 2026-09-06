@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
  * Purchase a VIP MEMBERSHIP with diamonds
  * POST /api/store/purchase-vip-with-diamonds
  *
- * Body: { plan: 'monthly' | 'annual', idempotencyKey?: string }
+ * Body: { plan: 'monthly' | 'yearly' | 'lifetime', idempotencyKey?: string }
  *       (or the X-Idempotency-Key header)
  *
  * The client sends a plan KEY ONLY — never a price and never an amount.
@@ -23,6 +23,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 let _supabase = null;
 function getSupabase() {
@@ -38,12 +39,25 @@ function getSupabase() {
 // 1 diamond = $0.01 — see src/config/diamondRewards.js
 const DIAMONDS_PER_DOLLAR = 100;
 
-// Plans that can be bought with diamonds here. 'daily' is deliberately
-// excluded — it has its own endpoint (purchase-daily-vip) and is already
-// priced in diamonds rather than USD.
-const SUPPORTED_PLANS = ['monthly', 'annual'];
+/**
+ * The three terms Dan named on 2026-09-05: "just vip, monthly, yearly or
+ * lifetime". All three are buyable here, because all three carry a USD price
+ * and the diamond cost is derived from it at 100 diamonds per dollar.
+ *
+ * 'daily' is gone, not excluded: the Daily Pass was retired the same day and
+ * /api/store/purchase-daily-vip with it. 'annual' is gone too - it is 'yearly'
+ * now, in this file, in the database (migration 20260905153833) and on the page.
+ */
+const SUPPORTED_PLANS = ['monthly', 'yearly', 'lifetime'];
 
 // Billing interval -> days of access granted.
+/**
+ * Billing interval -> days of access granted. 'lifetime' is deliberately ABSENT:
+ * it is not a period, and a lifetime purchase sends p_days = null. The RPC
+ * ignores p_days for that plan and writes a NULL vip_expires_at, which is what
+ * expire_lapsed_vip is guarded against. Giving lifetime a very large number of
+ * days here would make it an expiry that merely has not arrived yet.
+ */
 const INTERVAL_DAYS = { day: 1, week: 7, month: 30, year: 365 };
 
 // Sanity band on the derived cost. Guards against a corrupted/edited catalog
@@ -59,6 +73,11 @@ const MAX_COST_DIAMONDS = 100000;   // $1,000
 function resolvePlan(planKey) {
     if (!SUPPORTED_PLANS.includes(planKey)) return null;
     const plan = VIP_MEMBERSHIP && VIP_MEMBERSHIP[planKey];
+    /* `isDiamondCost` was the Daily Pass's marker - it meant "this plan's
+       `price` is already denominated in diamonds", and it was refused here
+       because this route derives the diamond cost from a USD price. The Daily
+       Pass is retired and no plan carries the flag any more; the guard stays
+       as a tripwire in case one ever does. */
     if (!plan || plan.isDiamondCost) return null;
 
     const usd = Number(plan.price);
@@ -68,10 +87,12 @@ function resolvePlan(planKey) {
     const cost = Math.round(usd * DIAMONDS_PER_DOLLAR);
     if (!Number.isInteger(cost) || cost < MIN_COST_DIAMONDS || cost > MAX_COST_DIAMONDS) return null;
 
-    const days = INTERVAL_DAYS[plan.interval];
-    if (!days) return null;
+    // A lifetime term has no day count, and that is not a failure to resolve.
+    const lifetime = plan.interval === 'lifetime';
+    const days = lifetime ? null : INTERVAL_DAYS[plan.interval];
+    if (!lifetime && !days) return null;
 
-    return { key: planKey, id: plan.id, name: plan.name, usd, cost, days };
+    return { key: planKey, id: plan.id, name: plan.name, usd, cost, days, lifetime };
 }
 
 // ── Idempotency ───────────────────────────────────────────────────────────
@@ -118,7 +139,9 @@ function buildReferenceId(userId, clientKey) {
 
 export default async function handler(req, res) {
   try {
+      setPrivateCommerceResponse(res);
       if (req.method !== 'POST') {
+          res.setHeader('Allow', 'POST');
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
@@ -149,15 +172,43 @@ export default async function handler(req, res) {
           }
           if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
+          if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > 512) {
+              return res.status(413).json({ success: false, error: 'Request body too large' });
+          }
+          const allowedFields = new Set(['plan', 'idempotencyKey']);
+          const unknownFields = Object.keys(req.body || {})
+              .filter((field) => !allowedFields.has(field));
+          if (unknownFields.length > 0) {
+              return res.status(400).json({
+                  success: false,
+                  error: `Unknown fields: ${unknownFields.join(', ')}`
+              });
+          }
+
           // ── Resolve the plan + cost SERVER-SIDE from the plan key ────────
           const planKey = req.body && typeof req.body.plan === 'string' ? req.body.plan.trim().toLowerCase() : '';
           if (!planKey) {
               return res.status(400).json({ success: false, error: 'plan is required' });
           }
+          // The Daily Pass was retired on 2026-09-05 (Dan: the terms are
+          // monthly, yearly and lifetime). Nothing was ever sold on it. An old
+          // cached bundle can still ask, so answer with the reason rather than
+          // a bare "unsupported plan".
           if (planKey === 'daily') {
+              return res.status(410).json({
+                  success: false,
+                  error: 'The VIP Daily Pass has been retired. VIP is monthly, yearly or lifetime.',
+                  supported: SUPPORTED_PLANS
+              });
+          }
+          // Likewise for the old name of the yearly term, so a stale client
+          // that still says 'annual' gets the membership it asked for.
+          if (planKey === 'annual') {
               return res.status(400).json({
                   success: false,
-                  error: 'Use /api/store/purchase-daily-vip for the 1-Day VIP pass'
+                  error: 'The annual plan is now called yearly.',
+                  supported: SUPPORTED_PLANS,
+                  renamedTo: 'yearly'
               });
           }
 

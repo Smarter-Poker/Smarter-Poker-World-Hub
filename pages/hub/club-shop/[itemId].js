@@ -13,6 +13,7 @@ import {
 } from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
 
 const CLUB_DETAIL_LOAD_TIMEOUT_MS = 20000;
 
@@ -158,7 +159,7 @@ export default function ClubShopItemDetail() {
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Authorizing diamond wallet settlement…' });
     try {
-      const response = await fetch('/api/club-arena/marketplace-purchase', {
+      const response = await boundedCommerceFetch('/api/club-arena/marketplace-purchase', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -208,21 +209,22 @@ export default function ClubShopItemDetail() {
       setState({ kind: 'error', message: 'Card Checkout Is Unavailable For This Item Price.' });
       return;
     }
+    const commerceIntent = {
+      scope: `club-detail-card-${item.id}`,
+      userId: authUser.id,
+      paymentMethod: 'card',
+      intent: { clubId, itemId: item.id },
+    };
     processingRef.current = true;
     setState({ kind: 'processing', message: 'Opening secure card checkout…' });
     try {
       const origin = window.location.origin;
-      const response = await fetch('/api/store/create-checkout-session', {
+      const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'X-Checkout-Request-ID': getOrCreateCommerceRequestId({
-            scope: `club-detail-card-${item.id}`,
-            userId: authUser?.id,
-            paymentMethod: 'card',
-            intent: { clubId, itemId: item.id },
-          }),
+          'X-Checkout-Request-ID': getOrCreateCommerceRequestId(commerceIntent),
         },
         body: JSON.stringify({
           type: 'diamonds',
@@ -234,10 +236,17 @@ export default function ClubShopItemDetail() {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.success || !body?.data?.url) {
-        throw new Error(body?.error?.message || 'Card checkout could not start.');
+        const checkoutError = new Error(
+          body?.error?.message || 'Card Checkout Could Not Start.'
+        );
+        checkoutError.code = body?.error?.code || null;
+        throw checkoutError;
       }
       window.location.href = body.data.url;
     } catch (error) {
+      if (error?.code === 'CHECKOUT_EXPIRED') {
+        clearCommerceRequestId(commerceIntent);
+      }
       setState({ kind: 'error', message: error?.message || 'Card checkout could not start.' });
     } finally {
       processingRef.current = false;
@@ -262,7 +271,7 @@ export default function ClubShopItemDetail() {
       setState({ kind: 'processing', message: 'Verifying card settlement before granting the item…' });
       for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
         try {
-          const response = await fetch(
+          const response = await boundedCommerceFetch(
             `/api/store/checkout-status?session_id=${encodeURIComponent(checkoutSessionId)}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );

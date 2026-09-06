@@ -1321,6 +1321,24 @@ export default function UniversalHeader({
                 }
 
                 .approved-global-header__button:active { opacity: .76; }
+
+                /* THE ARTWORK OWNS THE GEOMETRY, NOT A GLOBAL TOUCH FLOOR.
+                   src/index.css ships a mobile touch floor - a max-width 768px
+                   media query setting min-height 44px on a, button (except
+                   .sp-icon-btn), input, select and textarea. That rule is
+                   (0,1,1) and beat the
+                   (0,1,0) rules below it, so on every phone each of these hit
+                   regions was forced to 44px tall against a header that is only
+                   38.2px tall at 375px - and aspect-ratio 1 on the profile
+                   button was silently defeated, making its box 26.8 x 44 instead
+                   of 26.8 x 26.8. It bought nothing even as a touch target: the
+                   header clips its overflow, so the extra 11.5px was
+                   never hittable. What it did buy was a portrait sitting 8px
+                   below the ornament it belongs in. This selector is (0,2,0) so
+                   it wins without !important. */
+                .approved-global-header .approved-global-header__button {
+                    min-height: 0;
+                }
                 .approved-global-header__menu { left: 1.7%; width: 7%; }
                 .approved-global-header__back { left: 8%; width: 12%; }
                 .approved-global-header__hub { left: 19.1%; width: 12.9%; }
@@ -1374,7 +1392,17 @@ export default function UniversalHeader({
                        width centred at 50.7% / 46.9%. It was 72% at 50%/50% - 84.8 units
                        sitting 3.6 units low, wider than the aperture and nearly as wide as
                        the outer edge of the ring, so the photo covered the chrome band on
-                       three sides and hung past it at the bottom. */
+                       three sides and hung past it at the bottom.
+
+                       THESE PERCENTAGES ARE OF THE BUTTON BOX, AND THE BUTTON BOX MUST BE
+                       SQUARE. That is what broke on mobile and was reported on 2026-09-05:
+                       a global 44px touch floor (src/index.css) overrode the button's
+                       aspect-ratio 1, making the box 26.8 x 44 at 375px, so 46.9% of its
+                       height put the portrait 8px BELOW the ornament — the approved ring
+                       showing empty above the photo and the photo hanging past it below,
+                       which is the "thick broken frame". The floor is now excluded there
+                       and reset here; do not reintroduce a min-height, a fixed height, or
+                       padding on these buttons. */
                     top: 46.9% !important;
                     left: 50.7% !important;
                     z-index: 1;
@@ -1385,7 +1413,15 @@ export default function UniversalHeader({
                     transform: translate(-50%, -50%) !important;
                     overflow: hidden;
                     box-sizing: border-box;
-                    border: 0;
+                    /* THE HALF-PIXEL EDGE (Dan, restored 2026-09-05: "the thin .5 pixel
+                       invisible black frame"). Landed as 1px in #1136, thinned to 0.5px in
+                       #1157 because a full pixel reads as a drawn ring on an 18px circle,
+                       then dropped to 0 by #1216 while that commit was busy removing the
+                       opaque black disc. Without it the photo's own edge abuts the
+                       artwork's chrome band with nothing between them, and the two
+                       anti-alias against each other into a ragged line. Half a pixel is
+                       enough to separate them and too little to read as a border. */
+                    border: 0.5px solid rgba(0, 0, 0, .94);
                     border-radius: 50%;
                     background: transparent;
                     pointer-events: none;

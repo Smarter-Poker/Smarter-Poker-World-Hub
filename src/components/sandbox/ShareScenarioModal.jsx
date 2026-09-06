@@ -290,6 +290,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 {shareUrl && (
                     <>
                         <div
+                            data-pa-verbatim="true"
                             style={{
                                 background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
                                 padding: S.md, fontSize: F.bodySm, color: linkDead ? T.textDim : T.text,

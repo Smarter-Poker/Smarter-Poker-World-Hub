@@ -51,15 +51,15 @@ function getCardPath(card) {
 
 // 3D Illustrated avatar images
 const AVATARS = [
-    '/avatars/table/free_fox.png',          // Hero
-    '/avatars/table/vip_viking_warrior.png',// V1
-    '/avatars/table/free_wizard.png',       // V2
-    '/avatars/table/free_ninja.png',        // V3
-    '/avatars/table/vip_wolf.png',          // V4
-    '/avatars/table/vip_spartan.png',       // V5
-    '/avatars/table/vip_pharaoh.png',       // V6
-    '/avatars/table/vip_pirate.png',        // V7
-    '/avatars/table/free_cowboy.png',       // V8
+    '/avatars/table/free_fox.webp',          // Hero
+    '/avatars/table/vip_viking_warrior.webp',// V1
+    '/avatars/table/free_wizard.webp',       // V2
+    '/avatars/table/free_ninja.webp',        // V3
+    '/avatars/table/vip_wolf.webp',          // V4
+    '/avatars/table/vip_spartan.webp',       // V5
+    '/avatars/table/vip_pharaoh.webp',       // V6
+    '/avatars/table/vip_space_pirate.webp',        // V7
+    '/avatars/table/free_cowboy.webp',       // V8
 ];
 
 export default function MTTDeepStackUI({

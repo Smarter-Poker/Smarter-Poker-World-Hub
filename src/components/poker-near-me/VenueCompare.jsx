@@ -5,12 +5,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ResponsiveTable from '../ui/ResponsiveTable';
 import { haversineMiles } from './pnm-utils';
+import {
+  buildLiveCashGameIndex,
+  cashGameCountLabel,
+  findLiveCashGameEntry,
+  isModeledCashGameData,
+} from '../../lib/poker-near-me/liveCashGameData';
 
 const COMPARE_FIELDS = [
   { key: 'name', label: 'Venue' },
   { key: 'city_state', label: 'Location' },
   { key: 'distance', label: 'Distance' },
-  { key: 'live_games', label: 'Live Games' },
+  { key: 'live_games', label: 'Cash Game Tables' },
   { key: 'waiting_list', label: 'Waitlist' },
   { key: 'trust_score', label: 'Trust Score' },
   { key: 'tables_count', label: 'Total Tables' },
@@ -21,16 +27,7 @@ const COMPARE_FIELDS = [
 ];
 
 function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading = false) {
-  // Multi-key live data lookup: bravo_slug → normalized name
-  const findLive = (v) => {
-    if (v.bravo_slug && liveDataMap[v.bravo_slug]) return liveDataMap[v.bravo_slug];
-    if (v.slug && liveDataMap[v.slug]) return liveDataMap[v.slug];
-    if (v.name) {
-      const normalized = v.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (liveDataMap['_name:' + normalized]) return liveDataMap['_name:' + normalized];
-    }
-    return null;
-  };
+  const findLive = (v) => findLiveCashGameEntry(v, liveDataMap);
 
   switch (field) {
     case 'name': return venue.name || 'Unknown';
@@ -44,16 +41,16 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading
       // UX FIX: while the live-tables fetch is in flight this used to render the same
       // em-dash as "this venue has no live data".
       if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
-      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
-      const active = live.reduce((sum, g) => sum + (parseInt(g.tables_running) || 0), 0);
-      return active > 0 ? <span style={{ color: '#3fb950', fontWeight: 700 }}>{active} Running</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
+      if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
+      return <span style={{ color: isModeledCashGameData(live) ? '#c9a85a' : '#52d18b', fontWeight: 700 }}>{cashGameCountLabel(live)}</span>;
     }
     case 'waiting_list': {
       const live = findLive(venue);
       if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
-      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
-      const wait = live.reduce((sum, g) => sum + (parseInt(g.players_waiting) || 0), 0);
-      return wait > 0 ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>{wait} Waiting</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
+      if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
+      const wait = Number(live.players_waiting) || 0;
+      const suffix = isModeledCashGameData(live) ? ' Estimated' : ' Waiting';
+      return wait > 0 ? <span style={{ color: '#c9a85a', fontWeight: 700 }}>{wait}{suffix}</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
     }
     // BUG FIX: trust_score is recalculate_venue_trust_score()'s AVG(rating) on the
     // 1-5 review scale (LiveGamesFeed/VenueCard both render it as "/5"). Rendering
@@ -97,28 +94,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
       .then(data => {
         if (!mounted) return;
         if (data.venues) {
-          // Build multi-key lookup: by bravo_slug, venue_name (lowered), and normalized name
-          const map = {};
-          data.venues.forEach(v => {
-            const games = (v.games || []).map(g => ({
-              tables_running: g.tables_running || 0,
-              players_waiting: g.players_waiting || 0,
-              game_name: g.game || g.game_name || 'Unknown',
-            }));
-            // Key by bravo_slug
-            if (v.bravo_slug) map[v.bravo_slug] = games;
-            // findLive() also probes liveDataMap[venue.slug] (catalog venues carry a
-            // `slug` column). /api/poker/live-tables publishes `bravo_slug` only, so
-            // this extra key is a forward-compatible no-op today — the name key below
-            // is what actually resolves a catalog venue to its live row.
-            if (v.slug && !map[v.slug]) map[v.slug] = games;
-            // Key by venue_name (lowered) for fuzzy match
-            if (v.venue_name) {
-              const normalized = v.venue_name.toLowerCase().replace(/[^a-z0-9]/g, '');
-              map['_name:' + normalized] = games;
-            }
-          });
-          setLiveData(map);
+          setLiveData(buildLiveCashGameIndex(data));
         }
         setLiveLoading(false);
       })

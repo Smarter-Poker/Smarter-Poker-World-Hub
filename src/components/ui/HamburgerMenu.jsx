@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { X, Search, ChevronRight, ChevronDown, Star, Clock, WifiOff, Pencil } from 'lucide-react';
+import { X, Search, ChevronRight, ChevronDown, Star, Clock, WifiOff, Pencil, Menu } from 'lucide-react';
 import InviteFriendsModal from './InviteFriendsModal';
 import GeevesMenuWidget from './GeevesMenuWidget';
 import ReportBugWidget from './ReportBugWidget';
@@ -26,7 +26,7 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { getAuthUser, clearAuth } from '../../lib/authUtils';
 import { T } from '../sandbox/paTokens';
 import { homeGamePageUrl } from '../../lib/home-games/urls';
-import { resolveWorldMenu } from '../../config/worldMenuNavigation';
+import { getWorldMenuStyleVariables, resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
 import { getTutorialForPath, requestPageTutorial } from '../../tutorials';
@@ -149,6 +149,10 @@ function HamburgerMenuContent({
   );
   const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
   const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
+  const worldMenuStyle = useMemo(
+    () => getWorldMenuStyleVariables(activeWorld),
+    [activeWorld],
+  );
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [localUser, setLocalUser] = useState(null);
   const {
@@ -407,7 +411,7 @@ function HamburgerMenuContent({
         tileBg: '#FFFFFF', inputBg: '#F0F2F5', danger: '#D93025',
       };
     }
-    if (theme === 'pa') {
+    if (theme === 'pa' && !activeWorld) {
       return {
         bg: T.bg, text: T.text, textSec: T.textMuted, border: T.border,
         blue: T.accent, blueHover: T.accentPress, cardBg: T.surface,
@@ -415,14 +419,17 @@ function HamburgerMenuContent({
         danger: T.danger,
       };
     }
+    const palette = activeWorld?.menuPalette;
     return {
-      bg: '#03070b', text: '#edf4fb',
-      textSec: '#8b9aaa', border: 'rgba(174, 194, 212, 0.24)', blue: worldAccent,
-      blueHover: worldAccent, cardBg: 'rgba(12, 19, 26, 0.96)',
-      hoverBg: `${worldAccent}18`, tileBg: 'linear-gradient(145deg, rgba(25, 34, 43, 0.96), rgba(4, 8, 12, 0.98))',
-      inputBg: 'rgba(2, 6, 10, 0.94)', danger: '#ff697f',
+      bg: palette?.canvas || '#03070b', text: palette?.text || '#edf4fb',
+      textSec: palette?.muted || '#8b9aaa', border: palette?.border || 'rgba(174, 194, 212, 0.24)',
+      blue: worldAccent, blueHover: palette?.accentPressed || worldAccent,
+      cardBg: palette?.panel || 'rgba(12, 19, 26, 0.96)',
+      hoverBg: palette?.tileActive || `${worldAccent}18`,
+      tileBg: palette?.tile || 'linear-gradient(145deg, rgba(25, 34, 43, 0.96), rgba(4, 8, 12, 0.98))',
+      inputBg: palette?.canvasRaised || 'rgba(2, 6, 10, 0.94)', danger: '#ff697f',
     };
-  }, [theme, worldAccent, isFacebookMenu, activeWorld?.menuPalette?.accentPressed]);
+  }, [theme, worldAccent, isFacebookMenu, activeWorld]);
 
   // ── Derived menu structure ────────────────────────────────────────────────
   const actionableCount = useMemo(() => countActionable(menuItems), [menuItems]);
@@ -1004,7 +1011,10 @@ function HamburgerMenuContent({
         aria-label={`${activeWorld?.label || 'Smarter.Poker'} Command Menu`}
         aria-busy={pendingHref ? 'true' : 'false'}
         data-world-command-menu={activeWorld?.id || 'global'}
-        data-menu-symbol="command-grid"
+        data-world-menu-scheme={activeWorld?.menuPalette?.scheme || 'global'}
+        data-world-menu-texture={activeWorld?.menuPalette?.texture || 'none'}
+        data-responsive-composition={isFacebookMenu ? 'preserved' : 'adaptive'}
+        data-menu-symbol="hamburger"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onKeyDown={trapTab}
@@ -1043,15 +1053,25 @@ function HamburgerMenuContent({
           // fixed drawer cannot capture wheel events on desktop.
           pointerEvents: isOpen ? 'auto' : 'none',
           visibility: isOpen ? 'visible' : 'hidden',
-          '--world-accent': worldAccent,
+          ...worldMenuStyle,
         }}
       >
-        {/* World command identity and utilities. The symbol is a six-node
-            command grid. The approved header hamburger remains the menu trigger. */}
+        {/* World command identity and utilities. THE SYMBOL IS THE HAMBURGER
+            (Dan 2026-09-05: "hamburger menu of the World Hub lobby has the 6
+            dots, instead of the hamburger menu icon when you click on it from
+            the lobby. The open hamburger menu displays it").
+
+            It used to be a six-node command grid. That was defensible while the
+            grid was read as a "world command" mark rather than a menu icon, but
+            it is the only icon in the drawer's header and it sits exactly where
+            the control that opened the drawer was - so it reads as that
+            control, wearing the wrong face. The header's own trigger is the
+            hamburger baked into the approved artwork; the drawer now agrees
+            with it. Same tile chrome, one honest symbol. */}
         <div className="sp-command-utility-rail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px 9px' }}>
           <div className="sp-command-brand">
             <span className="sp-command-grid-mark" aria-hidden="true">
-              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+              <Menu size={20} strokeWidth={2.25} />
             </span>
             <span>
               <span className="sp-command-eyebrow">World Command</span>
@@ -1625,11 +1645,84 @@ function HamburgerMenuContent({
           isolation: isolate;
           overflow-x: hidden !important;
           background:
-            linear-gradient(90deg, rgba(255,255,255,.045), transparent 2px),
+            linear-gradient(90deg, color-mix(in srgb, var(--world-accent, #2e9bff) 9%, transparent), transparent 2px),
             repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0, rgba(255,255,255,.018) 1px, transparent 1px, transparent 5px),
-            linear-gradient(180deg, rgba(5,10,15,.99), rgba(1,4,7,.995)) !important;
-          box-shadow: 14px 0 48px rgba(0,0,0,.82), inset -12px 0 26px rgba(0,0,0,.5) !important;
+            linear-gradient(180deg, var(--world-canvas-raised, #050a0f), var(--world-canvas, #010407)) !important;
+          color: var(--world-text, #eef5fb);
+          box-shadow: 14px 0 48px rgba(0,0,0,.82), inset -12px 0 26px rgba(0,0,0,.5), inset -1px 0 var(--world-border, #607080) !important;
           font-family: var(--font-inter), Inter, system-ui, sans-serif;
+        }
+        .sp-drawer[data-world-menu-texture='circuit'] {
+          background:
+            linear-gradient(rgba(69,153,255,.055) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(155,124,255,.045) 1px, transparent 1px),
+            radial-gradient(circle at 84% 18%, var(--world-glow), transparent 34%),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+          background-size: 28px 28px, 28px 28px, auto, auto !important;
+        }
+        .sp-drawer[data-world-menu-texture='pulse'] {
+          background:
+            repeating-linear-gradient(165deg, rgba(34,230,122,.045) 0 1px, transparent 1px 18px),
+            radial-gradient(ellipse at 50% 0, var(--world-glow), transparent 42%),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='ticker'] {
+          background:
+            repeating-linear-gradient(90deg, rgba(255,122,26,.045) 0 1px, transparent 1px 38px),
+            linear-gradient(180deg, transparent 0 31px, rgba(255,255,255,.025) 32px 33px, transparent 34px),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='scanline'] {
+          background:
+            repeating-linear-gradient(0deg, rgba(32,214,255,.035) 0 1px, transparent 1px 5px),
+            radial-gradient(circle at 88% 14%, rgba(139,92,246,.2), transparent 34%),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='facets'],
+        .sp-drawer[data-world-menu-texture='luxury-facets'] {
+          background:
+            linear-gradient(135deg, transparent 0 47%, rgba(255,227,77,.045) 48% 50%, transparent 51%) 0 0 / 52px 52px,
+            linear-gradient(45deg, transparent 0 47%, rgba(255,255,255,.025) 48% 50%, transparent 51%) 0 0 / 52px 52px,
+            radial-gradient(circle at 82% 10%, var(--world-glow), transparent 30%),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='crest'] {
+          background:
+            linear-gradient(90deg, transparent 0 49.7%, rgba(40,201,255,.075) 50%, transparent 50.3%),
+            repeating-linear-gradient(150deg, rgba(55,209,138,.025) 0 1px, transparent 1px 16px),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='cinema'] {
+          background:
+            radial-gradient(ellipse at center, transparent 32%, rgba(0,0,0,.52) 100%),
+            repeating-linear-gradient(90deg, rgba(255,91,91,.035) 0 2px, transparent 2px 40px),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='analytic-grid'] {
+          background:
+            linear-gradient(rgba(78,156,255,.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34,211,238,.04) 1px, transparent 1px),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+          background-size: 18px 18px, 18px 18px, auto !important;
+        }
+        .sp-drawer[data-world-menu-texture='ledger'] {
+          background:
+            repeating-linear-gradient(90deg, transparent 0 47px, rgba(241,90,255,.055) 48px 49px),
+            repeating-linear-gradient(0deg, transparent 0 23px, rgba(73,209,125,.025) 24px 25px),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='chip-rings'] {
+          background:
+            radial-gradient(circle at 86% 14%, transparent 0 20px, rgba(255,176,32,.065) 21px 22px, transparent 23px 34px, rgba(57,157,235,.04) 35px 36px, transparent 37px),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+        }
+        .sp-drawer[data-world-menu-texture='range-matrix'] {
+          background:
+            linear-gradient(rgba(34,230,230,.045) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(216,180,90,.035) 1px, transparent 1px),
+            radial-gradient(circle at 86% 12%, var(--world-glow), transparent 28%),
+            linear-gradient(180deg, var(--world-canvas-raised), var(--world-canvas)) !important;
+          background-size: 22px 22px, 22px 22px, auto, auto !important;
         }
         .sp-drawer::after {
           content: '';
@@ -1648,36 +1741,37 @@ function HamburgerMenuContent({
           top: 0;
           z-index: 6;
           min-height: 64px;
-          background: linear-gradient(180deg, #070b10 74%, rgba(7,11,16,.86));
-          border-bottom: 1px solid rgba(179,198,215,.16);
+          background: linear-gradient(180deg, var(--world-rail, #070b10) 74%, color-mix(in srgb, var(--world-rail, #070b10) 86%, transparent));
+          border-bottom: 1px solid color-mix(in srgb, var(--world-border, #607080) 58%, transparent);
         }
         .sp-command-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        /* The tile chrome is unchanged - only the symbol inside it. The two
+           repeat() tracks and the round dot nodes they laid out are gone with
+           the six-node grid (Dan 2026-09-05).
+           NO BACKTICKS IN THIS COMMENT: the whole stylesheet is one template
+           literal, so a backtick here closes it and the build dies with
+           "Unexpected token" - which is exactly what happened, and what
+           __tests__/pa-no-undef.test.mjs caught. */
         .sp-command-grid-mark {
           width: 34px;
           height: 34px;
           flex: 0 0 34px;
           display: grid;
-          grid-template-columns: repeat(2, 8px);
-          grid-template-rows: repeat(3, 8px);
-          place-content: center;
-          gap: 2px;
-          border: 1px solid rgba(198,214,227,.48);
+          place-items: center;
+          border: 1px solid color-mix(in srgb, var(--world-border, #607080) 84%, white);
           border-radius: 3px;
-          background: linear-gradient(145deg, #1a232c, #05080c);
-          box-shadow: inset 0 1px rgba(255,255,255,.12), 0 0 12px rgba(46,155,255,.18);
+          background: linear-gradient(145deg, var(--world-panel, #1a232c), var(--world-canvas, #05080c));
+          box-shadow: inset 0 1px rgba(255,255,255,.12), 0 0 12px var(--world-glow, rgba(46,155,255,.18));
+          color: var(--world-accent, #2e9bff);
         }
-        .sp-command-grid-mark i {
+        .sp-command-grid-mark svg {
           display: block;
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--world-accent, #2e9bff);
-          box-shadow: inset 0 1px rgba(255,255,255,.6), 0 0 6px var(--world-accent, #2e9bff);
+          filter: drop-shadow(0 0 6px var(--world-accent, #2e9bff));
         }
         .sp-command-eyebrow, .sp-command-title { display: block; line-height: 1; }
         .sp-command-eyebrow {
           margin-bottom: 5px;
-          color: #718395;
+          color: var(--world-muted, #718395);
           font-size: 9px;
           font-weight: 800;
           letter-spacing: .2em;
@@ -1685,7 +1779,7 @@ function HamburgerMenuContent({
         }
         .sp-command-title {
           overflow: hidden;
-          color: #eef5fb;
+          color: var(--world-text, #eef5fb);
           font-family: var(--font-rajdhani), Rajdhani, sans-serif;
           font-size: 16px;
           font-weight: 600;
@@ -1696,22 +1790,22 @@ function HamburgerMenuContent({
         }
         .sp-command-close-label { margin-left: 5px; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .sp-command-context {
-          --world-accent: #2e9bff;
           margin: 10px 12px 12px;
           padding: 10px 12px;
-          border: 1px solid rgba(150,173,194,.28);
+          border: 1px solid color-mix(in srgb, var(--world-border, #607080) 72%, transparent);
           border-radius: 3px;
-          background: linear-gradient(145deg, rgba(17,27,36,.97), rgba(3,7,11,.99));
+          background: linear-gradient(145deg, var(--world-panel, #111b24), var(--world-canvas, #03070b));
           box-shadow: inset 0 1px rgba(255,255,255,.045);
         }
-        .sp-command-context p { margin: 7px 0 0; color: #8fa0b2; font-size: 11px; line-height: 1.35; }
-        .sp-command-status { display: flex; align-items: center; gap: 7px; color: #9fb0bf; font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+        .sp-command-context p { margin: 7px 0 0; color: var(--world-muted, #8fa0b2); font-size: 11px; line-height: 1.35; }
+        .sp-command-status { display: flex; align-items: center; gap: 7px; color: var(--world-muted, #9fb0bf); font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
         .sp-command-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--world-accent); box-shadow: 0 0 9px var(--world-accent); }
         .sp-command-search input { border-radius: 2px !important; }
         .sp-menu-row,
         .sp-grid-tile,
         .sp-sc-tile,
-        .sp-icon-btn {
+        .sp-icon-btn,
+        .sp-command-utility-button {
           -webkit-tap-highlight-color: transparent;
           touch-action: manipulation;
           transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
@@ -1721,7 +1815,8 @@ function HamburgerMenuContent({
           margin: 0 4px 3px !important;
           border: 1px solid transparent !important;
           border-radius: 2px !important;
-          background: linear-gradient(90deg, rgba(18,25,32,.86), rgba(5,9,13,.74)) !important;
+          color: var(--world-text, #edf4fb) !important;
+          background: linear-gradient(90deg, color-mix(in srgb, var(--world-tile, #121920) 92%, transparent), color-mix(in srgb, var(--world-canvas, #05090d) 84%, transparent)) !important;
         }
         .sp-menu-row[aria-current='page'] {
           border-color: color-mix(in srgb, var(--world-accent, #2e9bff) 52%, transparent) !important;
@@ -1745,7 +1840,7 @@ function HamburgerMenuContent({
         }
         .sp-grid-tile[aria-current='page'] {
           border-color: color-mix(in srgb, var(--world-accent, #2e9bff) 74%, #dbe9f5) !important;
-          background: linear-gradient(145deg, color-mix(in srgb, var(--world-accent, #2e9bff) 16%, #18222b), #05090d) !important;
+          background: linear-gradient(145deg, var(--world-tile-active, #18222b), var(--world-canvas, #05090d)) !important;
           box-shadow: inset 3px 0 var(--world-accent, #2e9bff), inset 0 1px rgba(255,255,255,.13), 0 0 18px color-mix(in srgb, var(--world-accent, #2e9bff) 26%, transparent);
         }
         .sp-grid-tile[aria-current='page']::after { height: 2px; opacity: 1; }
@@ -1819,25 +1914,38 @@ function HamburgerMenuContent({
         .sp-drawer[data-world-command-menu='social-media'] .sp-menu-row {
           background: linear-gradient(90deg, #ffffff, #f0f2f5) !important;
         }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-grid-tile {
+          color: #050505 !important;
+          border-color: #dadde1 !important;
+          background: #ffffff !important;
+          box-shadow: 0 2px 8px rgba(13,40,77,.1) !important;
+        }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-grid-tile[aria-current='page'] {
+          border-color: #1877f2 !important;
+          background: #e7f3ff !important;
+          box-shadow: inset 3px 0 #1877f2, 0 2px 10px rgba(24,119,242,.16) !important;
+        }
         @media (hover: hover) {
           .sp-drawer[data-world-command-menu='social-media'] .sp-menu-row:hover {
             background: #e7f3ff !important;
           }
         }
         .sp-menu-row:active,
-        .sp-icon-btn:active { transform: scale(0.985); filter: brightness(1.08); }
+        .sp-icon-btn:active,
+        .sp-command-utility-button:active { transform: scale(0.985); filter: brightness(1.08); }
         .sp-grid-tile:active,
         .sp-sc-tile:active { transform: scale(0.97); filter: brightness(1.08); }
         .sp-menu-row:focus-visible,
         .sp-grid-tile:focus-visible,
         .sp-sc-tile:focus-visible,
-        .sp-icon-btn:focus-visible {
-          outline: 2px solid #4599FF;
+        .sp-icon-btn:focus-visible,
+        .sp-command-utility-button:focus-visible {
+          outline: 2px solid var(--world-focus, #4599FF);
           outline-offset: -2px;
           border-radius: 3px;
         }
         @media (hover: hover) {
-          .sp-menu-row:hover { background: rgba(127, 148, 190, 0.14) !important; }
+          .sp-menu-row:hover { background: var(--world-tile-active, rgba(127, 148, 190, 0.14)) !important; }
           .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
         }
         @media (max-width: 420px) {
@@ -1845,6 +1953,19 @@ function HamburgerMenuContent({
           .sp-command-eyebrow { font-size: 8px; }
           .sp-command-close-label { display: none; }
           .sp-command-utility-rail .sp-icon-btn:last-child { width: 44px !important; }
+          .sp-drawer[data-responsive-composition='adaptive'] [data-world-primary-commands] {
+            gap: 7px !important;
+            padding-right: 10px !important;
+            padding-left: 10px !important;
+          }
+          .sp-drawer[data-responsive-composition='adaptive'] [data-world-primary-commands] .sp-grid-tile {
+            min-height: 78px !important;
+            padding: 10px !important;
+          }
+        }
+        @media (max-height: 620px) {
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context { margin-top: 6px; margin-bottom: 8px; padding-top: 8px; padding-bottom: 8px; }
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-search { padding-bottom: 8px !important; }
         }
         .sp-drawer input[type='search']::-webkit-search-cancel-button { display: none; }
         @media (prefers-reduced-motion: reduce) {
@@ -1853,14 +1974,16 @@ function HamburgerMenuContent({
           .sp-menu-row,
           .sp-grid-tile,
           .sp-sc-tile,
-          .sp-icon-btn {
+          .sp-icon-btn,
+          .sp-command-utility-button {
             transition: none !important;
             animation: none !important;
           }
           .sp-menu-row:active,
           .sp-grid-tile:active,
           .sp-sc-tile:active,
-          .sp-icon-btn:active { transform: none; }
+          .sp-icon-btn:active,
+          .sp-command-utility-button:active { transform: none; }
         }
       ` }} />
     </>

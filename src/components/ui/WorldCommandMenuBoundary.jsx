@@ -1,8 +1,16 @@
 import React, { useEffect, useRef } from 'react';
+import { getWorldMenuStyleVariables } from '../../config/worldMenuNavigation';
 
 function CommandMenuRecovery({ onClose, onRetry, world }) {
   const closeRef = useRef(null);
   const dialogRef = useRef(null);
+  const palette = world?.menuPalette || {};
+  const worldMenuStyle = getWorldMenuStyleVariables(world);
+  const recoveryButtonStyle = {
+    minHeight: 44, padding: '0 14px', color: palette.text || '#f4f8fc', font: 'inherit', fontWeight: 750,
+    border: `1px solid ${palette.border || 'rgba(190,208,224,.42)'}`, borderRadius: 3,
+    background: `linear-gradient(145deg,${palette.panel || '#202d38'},${palette.canvas || '#080d12'})`, cursor: 'pointer',
+  };
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -37,6 +45,8 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
   return (
     <div
       data-world-command-recovery={world?.id || 'global'}
+      data-world-menu-scheme={palette.scheme || 'global'}
+      data-world-menu-texture={palette.texture || 'none'}
       style={{ position: 'fixed', inset: 0, zIndex: 10100, background: 'rgba(0,0,0,.72)' }}
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose?.(); }}
     >
@@ -48,20 +58,22 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
         style={{
           width: 'min(400px, 100vw)', height: '100dvh', overflowY: 'auto', boxSizing: 'border-box',
           padding: 'max(22px, env(safe-area-inset-top)) 18px max(22px, env(safe-area-inset-bottom))',
-          color: '#edf4fb', background: 'linear-gradient(180deg,#070d13,#020507)',
-          borderRight: `1px solid ${world?.menuPalette?.accent || world?.accent || '#2e9bff'}`,
-          boxShadow: '18px 0 48px rgba(0,0,0,.75)',
+          color: palette.text || '#edf4fb',
+          background: `linear-gradient(180deg,${palette.canvasRaised || '#070d13'},${palette.canvas || '#020507'})`,
+          borderRight: `1px solid ${palette.accent || world?.accent || '#2e9bff'}`,
+          boxShadow: `18px 0 48px rgba(0,0,0,.75), inset -1px 0 ${palette.border || '#607080'}`,
+          ...worldMenuStyle,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'start' }}>
           <div>
-            <div style={{ fontSize: 10, letterSpacing: '.18em', color: '#8da1b5', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 10, letterSpacing: '.18em', color: palette.muted || '#8da1b5', textTransform: 'uppercase' }}>
               Safe Navigation
             </div>
             <h2 id="sp-command-recovery-title" style={{ margin: '8px 0 6px', fontSize: 20 }}>
               {world?.label || 'Smarter.Poker'} Commands
             </h2>
-            <p role="alert" style={{ margin: 0, color: '#b7c4d1', fontSize: 13, lineHeight: 1.45 }}>
+            <p role="alert" style={{ margin: 0, color: palette.muted || '#b7c4d1', fontSize: 13, lineHeight: 1.45 }}>
               A Menu Module Could Not Load. Your Primary Destinations Remain Available.
             </p>
           </div>
@@ -73,9 +85,10 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
           {(world?.primaryItems || []).map((item) => (
             <a key={`${item.href}-${item.label}`} href={item.href} style={{
               minHeight: 72, display: 'flex', alignItems: 'center', padding: 12, boxSizing: 'border-box',
-              color: '#f4f8fc', textDecoration: 'none', fontWeight: 750, fontSize: 14,
-              border: '1px solid rgba(190,208,224,.3)', background: 'linear-gradient(145deg,#17212a,#060a0e)',
-              boxShadow: `inset 0 -2px ${world?.menuPalette?.accent || world?.accent || '#2e9bff'}`,
+              color: palette.text || '#f4f8fc', textDecoration: 'none', fontWeight: 750, fontSize: 14,
+              border: `1px solid ${palette.border || 'rgba(190,208,224,.3)'}`,
+              background: `linear-gradient(145deg,${palette.tileActive || '#17212a'},${palette.tile || '#060a0e'})`,
+              boxShadow: `inset 0 -2px ${palette.accent || world?.accent || '#2e9bff'}`,
             }}>
               {item.label}
             </a>
@@ -88,12 +101,6 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
     </div>
   );
 }
-
-const recoveryButtonStyle = {
-  minHeight: 44, padding: '0 14px', color: '#f4f8fc', font: 'inherit', fontWeight: 750,
-  border: '1px solid rgba(190,208,224,.42)', borderRadius: 3,
-  background: 'linear-gradient(145deg,#202d38,#080d12)', cursor: 'pointer',
-};
 
 export class WorldCommandMenuBoundary extends React.Component {
   constructor(props) {

@@ -32,7 +32,7 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 pip install -r requirements.txt
 
 # Or install individually:
-pip install supabase-py pandas python-dotenv
+pip install supabase pandas python-dotenv
 
 ## Step 3: Set Environment Variables (Windows PowerShell) ##
 $env:SUPABASE_URL="https://kuklfnapbkmacvwxktbh.supabase.co"

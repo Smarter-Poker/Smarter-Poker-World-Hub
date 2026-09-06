@@ -9,11 +9,21 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 const {
     isPrintfulReady,
     resolvePrintfulMapping,
 } = require('../../../src/lib/store/printfulFulfillment');
+
+const MAX_CHECKOUT_BODY_BYTES = 64 * 1024;
+const CHECKOUT_BODY_FIELDS = new Set([
+    'type',
+    'items',
+    'successUrl',
+    'cancelUrl',
+    'redemptionIntent',
+]);
 
 let _supabase = null;
 function getSupabase() {
@@ -134,7 +144,7 @@ function resolveDiamondPackage(item, catalog) {
 // ═════════════════════════════════════════════════════════════
 // VIP_PRICE_FALLBACK — Daniel's confirmed pricing, in cents, server-side.
 // Both paid tiers were unbuyable because STRIPE_VIP_MONTHLY_PRICE_ID and
-// STRIPE_VIP_ANNUAL_PRICE_ID have never been set in any environment, so every
+// STRIPE_VIP_YEARLY_PRICE_ID have never been set in any environment, so every
 // attempt answered 503 SUBSCRIPTIONS_NOT_CONFIGURED. Creating those prices by
 // hand in the Stripe dashboard was the only thing standing between the
 // product and revenue.
@@ -158,17 +168,30 @@ const VIP_SUBSCRIPTION_PLANS = {
         interval: 'month',
         label: 'Smarter.Poker VIP - Monthly',
     },
-    annual: {
-        tier: 'annual',
-        envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID',
+    yearly: {
+        tier: 'yearly',
+        envVar: 'STRIPE_VIP_YEARLY_PRICE_ID',
         unitAmount: 19999,         // $199.99
         interval: 'year',
-        label: 'Smarter.Poker VIP - Annual',
+        label: 'Smarter.Poker VIP - Yearly',
     },
+    /* LIFETIME IS NOT IN THIS TABLE ON PURPOSE.
+       Dan set it at $499 on 2026-09-05 and it is buyable today - with diamonds,
+       through /api/store/purchase-vip-with-diamonds, which the storefront
+       offers. It is absent HERE because a lifetime purchase is one payment, not
+       a subscription: `mode` at the session build below is `type === 
+       'subscription' ? 'subscription' : 'payment'`, prepareCheckout refuses a
+       price with no `.recurring`, and handleCheckoutCompleted in
+       webhooks/stripe.js has no VIP branch under `mode === 'payment'` at all -
+       a one-time VIP session would be paid and grant NOTHING, silently, and
+       return 200 so Stripe never retries.
+       Adding the card path means a third checkout branch, a webhook branch and
+       an idempotent settlement, and it is being done as its own change. Until
+       then the storefront must not offer a card button for lifetime. */
 };
 
 /**
- * Resolve a client plan key ('monthly' | 'annual', with an optional 'vip-'
+ * Resolve a client plan key ('monthly' | 'yearly', with an optional 'vip-'
  * prefix as produced by VIP_MEMBERSHIP ids) to its server-side Stripe price.
  * Returns null for unknown plans; returns priceId:null when the env var for a
  * known plan is not configured (deployment problem, not a client error).
@@ -219,6 +242,16 @@ class CheckoutInputError extends Error {
     }
 }
 
+function isConcurrentStripeReplay(error) {
+    return error?.type === 'StripeIdempotencyError'
+        || error?.code === 'idempotency_key_in_use';
+}
+
+function isAmbiguousStripeCreateFailure(error) {
+    return isConcurrentStripeReplay(error)
+        || ['StripeConnectionError', 'StripeAPIError'].includes(error?.type);
+}
+
 function validateCheckoutRequestId(value) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -239,6 +272,9 @@ function computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent = nu
             unitAmount: preparedCheckout.plan.unitAmount,
             interval: preparedCheckout.plan.interval,
         };
+    } else if (type === 'vip_lifetime') {
+        // No interval: a lifetime term is a price, not a rate.
+        intent = { plan: 'lifetime', unitAmount: preparedCheckout.unitAmount };
     } else {
         intent = preparedCheckout.resolvedItems
             .map(({ id, variantId, quantity, price, providerVariant }) => ({
@@ -255,13 +291,40 @@ function computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent = nu
         .digest('hex');
 }
 
+/**
+ * Give request-bound purchase rows a stable primary key without requiring a
+ * production schema change. This closes the gap between the database insert
+ * and Stripe's response: if the first response is lost, every retry builds the
+ * same pending row and therefore sends the same metadata to Stripe under the
+ * same idempotency key.
+ *
+ * The version/variant bits make the first 128 bits of the SHA-256 digest a
+ * standards-shaped, name-derived UUID accepted by the existing uuid column.
+ */
+function deriveCheckoutRecordId(type, userId, checkoutRequestId) {
+    const bytes = createHash('sha256')
+        .update(`smarter.poker:checkout-record:v1:${type}:${userId}:${checkoutRequestId}`)
+        .digest()
+        .subarray(0, 16);
+    bytes[6] = (bytes[6] & 0x0f) | 0x50;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = bytes.toString('hex');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function normalizeRedemptionIntent(type, raw) {
     if (raw == null) return null;
     if (type !== 'diamonds' || typeof raw !== 'object' || Array.isArray(raw)) {
         throw new CheckoutInputError('INVALID_REDEMPTION_INTENT', 'Invalid card-funded redemption target');
     }
-    if (raw.kind === 'vip_daily') return { kind: 'vip_daily' };
+    /* 'vip_daily' was the card-funded Daily Pass: buy diamonds, auto-redeem
+       150 of them for 24 hours. The Daily Pass was retired on 2026-09-05 (Dan:
+       the terms are monthly, yearly and lifetime) and this intent with it.
+       Measured before removing: 0 diamond_purchases have ever carried it, so
+       nothing is in flight. An old bundle that still sends it now gets no
+       redemption intent at all, which means it simply receives the diamonds it
+       paid for - the safe direction. */
     if (raw.kind === 'club_shop'
         && UUID_RE.test(String(raw.clubId || ''))
         && UUID_RE.test(String(raw.itemId || ''))) {
@@ -310,6 +373,64 @@ async function prepareCheckout(type, items) {
             }
         }
         return { resolvedPackages };
+    }
+
+    if (type === 'vip_lifetime') {
+        /* Lifetime is $499 and the amount lives HERE, on the server, exactly
+           like VIP_SUBSCRIPTION_PLANS. The client sends only a plan key, never
+           a price, so a tampered request cannot buy a permanent membership for
+           a dollar. Kept in step with VIP_MEMBERSHIP.lifetime in
+           src/data/diamondStoreData.js, which is display-only. */
+        const item = items[0];
+        const key = String(item?.plan ?? item?.planId ?? item?.id ?? '').replace(/^vip-/, '').toLowerCase();
+        if (key !== 'lifetime') {
+            throw new CheckoutInputError('INVALID_PLAN', `Unknown lifetime plan: ${key || 'unknown'}`);
+        }
+
+        /* STRIPE_VIP_LIFETIME_PRICE_ID is the same deal the two subscription
+           terms get: when it is set, the Stripe price object is the source of
+           truth and the amount is managed from the dashboard; when it is not,
+           the server-side constant below still sells the term rather than
+           refusing the sale. Lifetime had no env var at all until now, so it
+           was the one term Dan could not reprice without a deploy. */
+        const priceId = process.env.STRIPE_VIP_LIFETIME_PRICE_ID || null;
+        if (priceId) {
+            let stripePrice = null;
+            try {
+                stripePrice = await stripe.prices.retrieve(priceId);
+            } catch (error) {
+                console.warn('[Checkout] STRIPE_VIP_LIFETIME_PRICE_ID points at an unknown Stripe price:',
+                    priceId, error?.message);
+                throw new CheckoutInputError(
+                    'LIFETIME_NOT_CONFIGURED',
+                    'Lifetime VIP is not available right now. Please contact support.',
+                    503
+                );
+            }
+            /* A lifetime term is a price, not a rate. A recurring price here
+               would charge the player again every interval for something sold
+               as permanent, so refuse it rather than sell it. */
+            const lifetimeUnitAmount = Number(stripePrice?.unit_amount);
+            if (!stripePrice?.active
+                || stripePrice.recurring
+                || stripePrice.currency !== 'usd'
+                || !Number.isSafeInteger(lifetimeUnitAmount)
+                || lifetimeUnitAmount !== 49900) {
+                console.warn('[Checkout] STRIPE_VIP_LIFETIME_PRICE_ID is not the fixed $499 USD one-time price:', priceId);
+                throw new CheckoutInputError(
+                    'LIFETIME_NOT_CONFIGURED',
+                    'Lifetime VIP is not available right now. Please contact support.',
+                    503
+                );
+            }
+            return {
+                unitAmount: lifetimeUnitAmount,
+                label: 'Smarter.Poker VIP - Lifetime',
+                priceId,
+            };
+        }
+
+        return { unitAmount: 49900, label: 'Smarter.Poker VIP - Lifetime', priceId: null };
     }
 
     if (type === 'subscription') {
@@ -496,9 +617,112 @@ async function prepareCheckout(type, items) {
     };
 }
 
+function isMissingStripeCheckout(error) {
+    return error?.code === 'resource_missing'
+        || (error?.type === 'StripeInvalidRequestError' && Number(error?.statusCode) === 404);
+}
+
+async function closeExpiredCheckoutRecord(type, userId, recordId, sessionId) {
+    const table = type === 'diamonds'
+        ? 'diamond_purchases'
+        : type === 'merchandise'
+            ? 'merchandise_orders'
+            : 'vip_lifetime_purchases';
+    const terminalStatus = type === 'merchandise' ? 'canceled' : 'failed';
+    const patch = type === 'merchandise'
+        ? { status: terminalStatus, updated_at: new Date().toISOString() }
+        : { status: terminalStatus };
+
+    // First close a row already linked to this exact Stripe session. If the
+    // webhook beat the link write, a still-null link may be claimed by this
+    // same session. A different linked session is never overwritten.
+    let { data, error } = await getSupabase()
+        .from(table)
+        .update({ ...patch, stripe_checkout_session_id: sessionId })
+        .eq('id', recordId)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .eq('stripe_checkout_session_id', sessionId)
+        .select('id');
+    if (!error && !data?.length) {
+        ({ data, error } = await getSupabase()
+            .from(table)
+            .update({ ...patch, stripe_checkout_session_id: sessionId })
+            .eq('id', recordId)
+            .eq('user_id', userId)
+            .eq('status', 'pending')
+            .is('stripe_checkout_session_id', null)
+            .select('id'));
+    }
+    if (error) {
+        console.warn(`[Checkout] Could not close expired ${type} checkout:`, error.message);
+    }
+}
+
+async function inspectLinkedCheckout(type, userId, row) {
+    if (!row?.stripe_checkout_session_id) return null;
+    try {
+        const session = await stripe.checkout.sessions.retrieve(row.stripe_checkout_session_id);
+        if (session?.status === 'expired') {
+            await closeExpiredCheckoutRecord(type, userId, row.id, session.id);
+            return { expired: true, sessionId: session.id };
+        }
+        return session?.url
+            ? { sessionId: session.id, url: session.url, status: session.status }
+            : { initializing: true };
+    } catch (error) {
+        if (isMissingStripeCheckout(error)) {
+            await closeExpiredCheckoutRecord(type, userId, row.id, row.stripe_checkout_session_id);
+            return { expired: true, sessionId: row.stripe_checkout_session_id };
+        }
+        console.warn('[Checkout] Existing session lookup failed:', error?.message || error);
+        return { initializing: true };
+    }
+}
+
+function classifyStoredCheckout(row, intentHash, linkedInspection = null) {
+    const storedHash = row?.metadata?.checkout_intent_hash;
+    if (!storedHash || storedHash !== intentHash) return { conflict: true };
+    const terminalOrRefunded = ['refunded', 'canceled', 'cancelled'].includes(row.status)
+        || row.metadata?.refund_before_settlement === true
+        || row.metadata?.stock_restore_pending_return === true
+        || ['partial', 'full'].includes(row.metadata?.refund_status);
+    // A linked expired/missing Stripe session is resettable even when its
+    // webhook already changed the local merchandise row to `canceled`.
+    if (linkedInspection?.expired) return linkedInspection;
+    if (terminalOrRefunded) return { conflict: true };
+    if (linkedInspection) return linkedInspection;
+    if (!row.stripe_checkout_session_id) {
+        if (!['pending', 'failed'].includes(row.status)) return { conflict: true };
+        return {
+            resume: true,
+            recordId: row.id,
+            status: row.status,
+            metadata: row.metadata || {},
+        };
+    }
+    return { initializing: true };
+}
+
+function vipOwnershipError(type, profile) {
+    if (!['subscription', 'vip_lifetime'].includes(type) || profile?.vip_tier !== 'lifetime') {
+        return null;
+    }
+    return {
+        code: 'LIFETIME_VIP_ALREADY_OWNED',
+        message: type === 'subscription'
+            ? 'Lifetime VIP already includes every subscription benefit.'
+            : 'You already have Lifetime VIP.',
+    };
+}
+
 async function findExistingCheckout(type, userId, checkoutRequestId, intentHash) {
-    if (!checkoutRequestId || !['diamonds', 'merchandise'].includes(type)) return null;
-    const table = type === 'diamonds' ? 'diamond_purchases' : 'merchandise_orders';
+    if (!checkoutRequestId || !['diamonds', 'merchandise', 'vip_lifetime'].includes(type)) return null;
+    const table = type === 'diamonds'
+        ? 'diamond_purchases'
+        : type === 'merchandise'
+            ? 'merchandise_orders'
+            : 'vip_lifetime_purchases';
     const { data, error } = await getSupabase()
         .from(table)
         .select('id, status, stripe_checkout_session_id, metadata')
@@ -513,73 +737,51 @@ async function findExistingCheckout(type, userId, checkoutRequestId, intentHash)
         return null;
     }
     if (!data) return null;
-    const storedHash = data.metadata?.checkout_intent_hash;
     // Rows created before intent binding cannot prove what the buyer originally
     // authorized. Never attach a new financial payload to a legacy request id;
     // the client must generate a fresh checkout request instead.
-    if (!storedHash || storedHash !== intentHash) return { conflict: true };
-    const terminalOrRefunded = ['refunded', 'canceled', 'cancelled'].includes(data.status)
-        || data.metadata?.refund_before_settlement === true
-        || data.metadata?.stock_restore_pending_return === true
-        || ['partial', 'full'].includes(data.metadata?.refund_status);
-    if (terminalOrRefunded) return { conflict: true };
-    if (!data.stripe_checkout_session_id) {
-        if (!['pending', 'failed'].includes(data.status)) return { conflict: true };
-        return {
-            resume: true,
-            recordId: data.id,
-            status: data.status,
-            metadata: data.metadata || {},
-        };
+    if (!data.metadata?.checkout_intent_hash
+        || data.metadata.checkout_intent_hash !== intentHash) return { conflict: true };
+    // Inspect a linked Stripe session before classifying a canceled row. The
+    // expiration webhook intentionally turns pending merchandise into
+    // `canceled`; returning IDEMPOTENCY_CONFLICT first strands the browser's
+    // durable request key forever instead of allowing CHECKOUT_EXPIRED reset.
+    if (data.stripe_checkout_session_id) {
+        const linked = await inspectLinkedCheckout(type, userId, data);
+        return classifyStoredCheckout(data, intentHash, linked);
     }
+    return classifyStoredCheckout(data, intentHash);
+}
 
-    try {
-        const session = await stripe.checkout.sessions.retrieve(data.stripe_checkout_session_id);
-        return session?.url
-            ? { sessionId: session.id, url: session.url, status: session.status }
-            : { initializing: true };
-    } catch (error) {
-        console.warn('[Checkout] Existing session lookup failed:', error?.message || error);
-        return { initializing: true };
-    }
+async function findActiveLifetimeCheckout(userId) {
+    const { data, error } = await getSupabase()
+        .from('vip_lifetime_purchases')
+        .select('id, status, stripe_checkout_session_id, metadata')
+        .eq('user_id', userId)
+        .in('status', ['pending', 'completed'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    if (data.status === 'completed') return { owned: true };
+    if (!data.stripe_checkout_session_id) return { initializing: true };
+    return inspectLinkedCheckout('vip_lifetime', userId, data);
 }
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
       if (req.method !== 'POST') {
+          res.setHeader('Allow', 'POST');
           return res.status(405).json({
               success: false,
               error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
           });
-      }
-
-      // Check if Stripe is configured
-      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-      const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-      if (!stripe || !stripePublishableKey) {
-          console.warn('[Checkout] Missing Stripe keys:', {
-              hasStripe: !!stripe,
-              hasPublishable: !!stripePublishableKey
-          });
-          return res.status(503).json({
-              success: false,
-              error: {
-                  code: 'PAYMENTS_NOT_CONFIGURED',
-                  message: 'Payment processing is not yet configured. Please contact support.',
-                  details: 'Stripe keys are missing from environment variables'
-              }
-          });
-      }
-
-      // Validate key format — warn loudly if a test key is used in production
-      const keyPrefix = stripeSecretKey.substring(0, 7);
-      if (process.env.NODE_ENV === 'production' && keyPrefix === 'sk_test') {
-          console.warn('[Checkout] WARNING: Stripe TEST secret key is being used in production');
       }
 
       let subscriptionClaim = null;
@@ -609,6 +811,25 @@ export default async function handler(req, res) {
           }
           if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
+          const bodyBytes = Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8');
+          if (bodyBytes > MAX_CHECKOUT_BODY_BYTES) {
+              return res.status(413).json({
+                  success: false,
+                  error: { code: 'BODY_TOO_LARGE', message: 'Checkout request body is too large' }
+              });
+          }
+          const unknownFields = Object.keys(req.body || {})
+              .filter((field) => !CHECKOUT_BODY_FIELDS.has(field));
+          if (unknownFields.length > 0) {
+              return res.status(400).json({
+                  success: false,
+                  error: {
+                      code: 'UNKNOWN_FIELDS',
+                      message: `Unknown checkout fields: ${unknownFields.join(', ')}`
+                  }
+              });
+          }
+
           const { type, items, successUrl, cancelUrl, redemptionIntent: rawRedemptionIntent } = req.body || {};
 
           if (!type || !items || !Array.isArray(items) || items.length === 0) {
@@ -618,7 +839,11 @@ export default async function handler(req, res) {
               });
           }
 
-          const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise']);
+          /* 'vip_lifetime' is a ONE-TIME VIP purchase ($499, Dan 2026-09-05).
+             It is its own type rather than a fourth plan under 'subscription'
+             because `mode` below is derived from this string, and a lifetime
+             term must not open a Stripe subscription that would renew. */
+          const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise', 'vip_lifetime']);
           if (!checkoutTypes.has(type)) {
               return res.status(400).json({
                   success: false,
@@ -640,6 +865,12 @@ export default async function handler(req, res) {
                   error: { code: 'INVALID_ITEMS', message: 'A subscription checkout requires one plan' }
               });
           }
+          if (type === 'vip_lifetime' && items.length !== 1) {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'INVALID_ITEMS', message: 'A lifetime checkout requires one plan' }
+              });
+          }
 
           const rawCheckoutRequestId = req.headers['x-checkout-request-id'] || req.headers['x-idempotency-key'];
           const checkoutRequestId = validateCheckoutRequestId(rawCheckoutRequestId);
@@ -649,12 +880,60 @@ export default async function handler(req, res) {
                   error: { code: 'INVALID_REQUEST_ID', message: 'Invalid checkout request identifier' }
               });
           }
+          if (type === 'vip_lifetime' && !checkoutRequestId) {
+              return res.status(400).json({
+                  success: false,
+                  error: {
+                      code: 'REQUEST_ID_REQUIRED',
+                      message: 'A checkout request identifier is required for a lifetime purchase'
+                  }
+              });
+          }
           if (type === 'subscription' && !checkoutRequestId) {
               return res.status(400).json({
                   success: false,
                   error: { code: 'REQUEST_ID_REQUIRED', message: 'A checkout request identifier is required' }
               });
           }
+          if (type === 'vip_lifetime') {
+              // The UI capability flag mirrors this fail-closed server gate.
+              // Lifetime remains available through the atomic Diamond path;
+              // card checkout is withheld until refund/dispute provenance and
+              // cross-method acquisition state can be introduced together.
+              return res.status(503).json({
+                  success: false,
+                  error: {
+                      code: 'LIFETIME_CARD_CHECKOUT_PAUSED',
+                      message: 'Lifetime VIP is currently available with Diamonds.'
+                  }
+              });
+          }
+
+          /* Authenticate and validate the request shape before revealing payment
+             configuration state or touching a catalog/database dependency. An
+             anonymous request must always receive the same authentication
+             boundary, even during a Stripe configuration incident. */
+          const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+          const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+          if (!stripe || !stripePublishableKey) {
+              console.warn('[Checkout] Missing Stripe keys:', {
+                  hasStripe: !!stripe,
+                  hasPublishable: !!stripePublishableKey
+              });
+              return res.status(503).json({
+                  success: false,
+                  error: {
+                      code: 'PAYMENTS_NOT_CONFIGURED',
+                      message: 'Payment Processing Is Temporarily Unavailable. Please Contact Support.'
+                  }
+              });
+          }
+
+          const keyPrefix = stripeSecretKey.substring(0, 7);
+          if (process.env.NODE_ENV === 'production' && keyPrefix === 'sk_test') {
+              console.warn('[Checkout] WARNING: Stripe TEST secret key is being used in production');
+          }
+
           let preparedCheckout;
           let redemptionIntent;
           try {
@@ -670,6 +949,73 @@ export default async function handler(req, res) {
               throw inputError;
           }
           const checkoutIntentHash = computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent);
+
+          // Entitlement and renewal guards MUST run before an old Checkout URL
+          // is returned. A user can acquire Lifetime VIP with Diamonds after a
+          // card session was opened; handing that still-payable URL back would
+          // invite a second $499 charge for an entitlement they already own.
+          const { data: profile, error: profileReadError } = await getSupabase()
+              .from('profiles')
+              .select('stripe_customer_id, email, username, is_vip, vip_tier')
+              .eq('id', user.id)
+              .maybeSingle();
+          if (profileReadError) throw profileReadError;
+
+          const ownershipError = vipOwnershipError(type, profile);
+          if (ownershipError) {
+              return res.status(409).json({
+                  success: false,
+                  error: ownershipError
+              });
+          }
+
+          if (type === 'subscription' || type === 'vip_lifetime') {
+              const { data: activeRows, error: activeReadError } = await getSupabase()
+                  .from('vip_subscriptions')
+                  .select('stripe_subscription_id, status')
+                  .eq('user_id', user.id)
+                  .in('status', ['active', 'trialing', 'past_due', 'unpaid']);
+              if (activeReadError) throw activeReadError;
+              const hasCardSubscription = (activeRows || []).some((row) => (
+                  row.stripe_subscription_id
+                  && !String(row.stripe_subscription_id).startsWith('diamond_')
+              ));
+              if (hasCardSubscription) {
+                  return res.status(409).json({
+                      success: false,
+                      error: {
+                          code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+                          message: type === 'vip_lifetime'
+                              ? 'Cancel your active recurring VIP plan before purchasing Lifetime VIP.'
+                              : 'You already have an active VIP subscription.'
+                      }
+                  });
+              }
+
+              // Stripe is the final authority if a prior webhook has not yet
+              // reached our local ledger.
+              if (profile?.stripe_customer_id) {
+                  const subscriptions = await stripe.subscriptions.list({
+                      customer: profile.stripe_customer_id,
+                      status: 'all',
+                      limit: 100,
+                  });
+                  if (subscriptions.data.some((entry) => (
+                      ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
+                          .includes(entry.status)
+                  ))) {
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+                              message: type === 'vip_lifetime'
+                                  ? 'Cancel your active recurring VIP plan before purchasing Lifetime VIP.'
+                                  : 'You already have an active VIP subscription.'
+                          }
+                      });
+                  }
+              }
+          }
 
           const existingCheckout = await findExistingCheckout(
               type,
@@ -696,6 +1042,15 @@ export default async function handler(req, res) {
                   }
               });
           }
+          if (existingCheckout?.expired) {
+              return res.status(409).json({
+                  success: false,
+                  error: {
+                      code: 'CHECKOUT_EXPIRED',
+                      message: 'That checkout expired. Start a new checkout to continue.'
+                  }
+              });
+          }
           if (existingCheckout?.initializing) {
               return res.status(503).json({
                   success: false,
@@ -706,69 +1061,44 @@ export default async function handler(req, res) {
                   }
               });
           }
-          // Stripe is initialized at module level above
-
-          // Get or create Stripe customer
-          let customerId;
-          const { data: profile, error: profileReadError } = await getSupabase()
-              .from('profiles')
-              .select('stripe_customer_id, email, username, is_vip, vip_tier')
-              .eq('id', user.id)
-              .maybeSingle();
-          if (profileReadError) throw profileReadError;
-
-          if (type === 'subscription') {
-              if (profile?.vip_tier === 'lifetime') {
+          if (type === 'vip_lifetime' && !existingCheckout?.resume) {
+              const activeLifetimeCheckout = await findActiveLifetimeCheckout(user.id);
+              if (activeLifetimeCheckout?.owned) {
                   return res.status(409).json({
                       success: false,
                       error: {
                           code: 'LIFETIME_VIP_ALREADY_OWNED',
-                          message: 'Lifetime VIP already includes every subscription benefit.'
+                          message: 'You already have Lifetime VIP.'
                       }
                   });
               }
-              const { data: activeRows, error: activeReadError } = await getSupabase()
-                  .from('vip_subscriptions')
-                  .select('stripe_subscription_id, status')
-                  .eq('user_id', user.id)
-                  .in('status', ['active', 'trialing', 'past_due', 'unpaid']);
-              if (activeReadError) throw activeReadError;
-              const hasCardSubscription = (activeRows || []).some((row) => (
-                  row.stripe_subscription_id
-                  && !String(row.stripe_subscription_id).startsWith('diamond_')
-              ));
-              if (hasCardSubscription) {
-                  return res.status(409).json({
+              if (activeLifetimeCheckout?.url) {
+                  return res.status(200).json({
+                      success: true,
+                      duplicate: true,
+                      data: {
+                          session_id: activeLifetimeCheckout.sessionId,
+                          url: activeLifetimeCheckout.url
+                      }
+                  });
+              }
+              if (activeLifetimeCheckout?.initializing) {
+                  return res.status(503).json({
                       success: false,
+                      retryable: true,
                       error: {
-                          code: 'ACTIVE_SUBSCRIPTION_EXISTS',
-                          message: 'You already have an active VIP subscription.'
+                          code: 'CHECKOUT_RECOVERY_PENDING',
+                          message: 'Your existing Lifetime VIP checkout is still being recovered. Retry shortly.'
                       }
                   });
               }
-
-              // Stripe is the final authority if a prior webhook has not yet
-              // reached our local ledger.
-              if (profile?.stripe_customer_id) {
-                  const subscriptions = await stripe.subscriptions.list({
-                      customer: profile.stripe_customer_id,
-                      status: 'all',
-                      limit: 100,
-                  });
-                  if (subscriptions.data.some((entry) => (
-                      ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
-                          .includes(entry.status)
-                  ))) {
-                      return res.status(409).json({
-                          success: false,
-                          error: {
-                              code: 'ACTIVE_SUBSCRIPTION_EXISTS',
-                              message: 'You already have an active VIP subscription.'
-                          }
-                      });
-                  }
-              }
+              // `expired` means the helper closed the old pending row with a
+              // session-matched CAS. This fresh request can now claim a row.
           }
+          // Stripe is initialized at module level above
+
+          // Get or create Stripe customer
+          let customerId;
 
           if (profile?.stripe_customer_id) {
               customerId = profile.stripe_customer_id;
@@ -882,7 +1212,7 @@ export default async function handler(req, res) {
           }
 
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
-          const returnRoute = type === 'subscription'
+          const returnRoute = (type === 'subscription' || type === 'vip_lifetime')
               ? '/hub/vip-membership'
               : type === 'merchandise'
                   ? '/hub/merch-store'
@@ -903,6 +1233,9 @@ export default async function handler(req, res) {
 
           let sessionConfig = {
               customer: customerId,
+              /* Only a subscription opens a recurring session. 'vip_lifetime'
+                 is one payment and must land in `payment` mode, or Stripe
+                 would renew a membership that by definition never renews. */
               mode: type === 'subscription' ? 'subscription' : 'payment',
               ...(type !== 'subscription' ? { payment_method_types: ['card'] } : {}),
               success_url: safeSuccessUrl,
@@ -1024,7 +1357,7 @@ export default async function handler(req, res) {
 
           } else if (type === 'subscription') {
               // VIP subscription
-              // SECURITY: The client sends only a plan key ('monthly' | 'annual').
+              // SECURITY: The client sends only a plan key ('monthly' | 'yearly').
               // The Stripe price ID is resolved SERVER-SIDE from env config, so a
               // client can never pair a cheap price with a premium tier claim.
               const { plan, stripePrice: preparedStripePrice } = preparedCheckout;
@@ -1041,7 +1374,7 @@ export default async function handler(req, res) {
                   // quietly charge a different amount.
                   const stripePrice = preparedStripePrice;
                   vipTier = stripePrice.metadata?.vip_tier
-                      || (stripePrice.recurring.interval === 'year' ? 'annual' : plan.tier);
+                      || (stripePrice.recurring.interval === 'year' ? 'yearly' : plan.tier);
 
                   sessionConfig.line_items = [{ price: plan.priceId, quantity: 1 }];
               } else {
@@ -1077,6 +1410,142 @@ export default async function handler(req, res) {
                       vip_tier: vipTier
                   }
               };
+
+          } else if (type === 'vip_lifetime') {
+              const { unitAmount, label, priceId: lifetimePriceId } = preparedCheckout;
+
+              const lifetimeRecordId = deriveCheckoutRecordId(
+                  type,
+                  user.id,
+                  checkoutRequestId
+              );
+
+              /* A pending row FIRST, for the same reason the diamond path has
+                 one: the webhook settles by purchase_id, can fire more than
+                 once, and can fire for a charge that is later refunded. Never
+                 create a payable session without a record it can be settled
+                 against - otherwise the money is taken and nothing points at
+                 the membership that was owed. */
+              const lifetimeMutation = existingCheckout?.resume
+                  ? getSupabase().from('vip_lifetime_purchases').update({
+                      price_usd: unitAmount / 100,
+                      status: 'pending',
+                      metadata: {
+                          ...existingCheckout.metadata,
+                          checkout_request_id: checkoutRequestId,
+                          checkout_intent_hash: checkoutIntentHash,
+                      },
+                  })
+                      .eq('id', existingCheckout.recordId)
+                      .eq('user_id', user.id)
+                      .in('status', ['pending', 'failed'])
+                      .is('stripe_checkout_session_id', null)
+                  : getSupabase().from('vip_lifetime_purchases').insert({
+                      id: lifetimeRecordId,
+                      user_id: user.id,
+                      price_usd: unitAmount / 100,
+                      status: 'pending',
+                      metadata: {
+                          checkout_request_id: checkoutRequestId,
+                          checkout_intent_hash: checkoutIntentHash,
+                      },
+                  });
+              let { data: lifetimeRow, error: lifetimeInsertErr } = await lifetimeMutation
+                  .select('id')
+                  .maybeSingle();
+
+              if (lifetimeInsertErr?.code === '23505') {
+                  /* Two first attempts can both finish their read before either
+                     inserts. The deterministic primary key lets exactly one
+                     become the initializer. The other request must not create
+                     or clean up financial state owned by the winner. */
+                  let recovered = await findExistingCheckout(
+                      type,
+                      user.id,
+                      checkoutRequestId,
+                      checkoutIntentHash
+                  );
+                  if (!recovered) recovered = await findActiveLifetimeCheckout(user.id);
+                  if (recovered?.conflict) {
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: 'IDEMPOTENCY_CONFLICT',
+                              message: 'This checkout request identifier was already used for different items.'
+                          }
+                      });
+                  }
+                  if (recovered?.url) {
+                      return res.status(200).json({
+                          success: true,
+                          duplicate: true,
+                          data: { session_id: recovered.sessionId, url: recovered.url }
+                      });
+                  }
+                  if (recovered?.owned) {
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: 'LIFETIME_VIP_ALREADY_OWNED',
+                              message: 'You already have Lifetime VIP.'
+                          }
+                      });
+                  }
+                  if (recovered?.expired) {
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: 'CHECKOUT_EXPIRED',
+                              message: 'That checkout expired. Start a new checkout to continue.'
+                          }
+                      });
+                  }
+                  return res.status(503).json({
+                      success: false,
+                      retryable: true,
+                      error: {
+                          code: 'CHECKOUT_RECOVERY_PENDING',
+                          message: 'Your Lifetime VIP checkout is being initialized. Retry this same request shortly.'
+                      }
+                  });
+              }
+
+              if (lifetimeInsertErr || !lifetimeRow) {
+                  console.warn('[Checkout] Failed to create pending lifetime purchase:',
+                      lifetimeInsertErr?.message);
+                  return res.status(500).json({
+                      success: false,
+                      error: {
+                          code: 'PURCHASE_RECORD_FAILED',
+                          message: 'Could not initialize purchase. Please try again.'
+                      }
+                  });
+              }
+
+              /* When STRIPE_VIP_LIFETIME_PRICE_ID is configured, charge the
+                 Stripe price object itself so the dashboard is the place the
+                 amount is changed. `unitAmount` above already came from that
+                 same price, so the pending row and the charge cannot disagree.
+                 Without it, the inline price still sells the term. Either way
+                 there is NO `recurring` block - that is what makes this one
+                 payment rather than a subscription. */
+              sessionConfig.line_items = [
+                  lifetimePriceId
+                      ? { price: lifetimePriceId, quantity: 1 }
+                      : {
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: label,
+                                    description: 'Every VIP feature, permanently. Never renews, never expires.',
+                                },
+                                unit_amount: unitAmount,
+                            },
+                            quantity: 1,
+                        },
+              ];
+              sessionConfig.metadata.purchase_id = lifetimeRow.id;
+              sessionConfig.metadata.vip_tier = 'lifetime';
 
           } else if (type === 'merchandise') {
               // Catalog identity, stock, quantity, and price were already
@@ -1214,6 +1683,31 @@ export default async function handler(req, res) {
                   stripeRequestOptions.idempotencyKey ? stripeRequestOptions : undefined
               );
           } catch (sessionError) {
+              if (type === 'vip_lifetime' && sessionConfig.metadata.purchase_id) {
+                  if (isAmbiguousStripeCreateFailure(sessionError)) {
+                      /* Stripe may have accepted the request even though this
+                         invocation never received its response. Keep the
+                         deterministic pending row intact: the next request
+                         reuses both its purchase ID and Stripe idempotency key,
+                         then links the recovered session. A concurrent replay
+                         must never mark the winner's row failed. */
+                      sessionError.checkoutRetryable = true;
+                  } else {
+                      const { data: cleanedRows, error: cleanupError } = await getSupabase()
+                          .from('vip_lifetime_purchases')
+                          .update({ status: 'failed' })
+                          .eq('id', sessionConfig.metadata.purchase_id)
+                          .eq('user_id', user.id)
+                          .eq('status', 'pending')
+                          .is('stripe_checkout_session_id', null)
+                          .select('id');
+                      if (cleanupError) {
+                          console.error('[Checkout] Pending Lifetime VIP cleanup failed:', cleanupError.message);
+                      } else if (!cleanedRows?.length) {
+                          console.info('[Checkout] Pending Lifetime VIP purchase was already linked or terminal');
+                      }
+                  }
+              }
               if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {
                   const { data: cleanedRows, error: cleanupError } = await getSupabase()
                       .from('diamond_purchases')
@@ -1260,6 +1754,45 @@ export default async function handler(req, res) {
           // Persist the session immediately instead of waiting for payment.
           // This makes abandoned/expired sessions observable and lets the
           // authenticated return-status endpoint reconcile the pending record.
+          if (type === 'vip_lifetime' && sessionConfig.metadata.purchase_id) {
+              const { data: linkedRows, error: linkError } = await getSupabase()
+                  .from('vip_lifetime_purchases')
+                  .update({ stripe_checkout_session_id: session.id })
+                  .eq('id', sessionConfig.metadata.purchase_id)
+                  .eq('user_id', user.id)
+                  .eq('status', 'pending')
+                  .is('stripe_checkout_session_id', null)
+                  .select('id');
+              let lifetimeSessionLinked = !linkError && Boolean(linkedRows?.length);
+              if (!lifetimeSessionLinked) {
+                  /* A same-key concurrent replay may have linked the identical
+                     Stripe session between this update and its result. Treat
+                     that as success, but never accept a different session. */
+                  const { data: recoveredLink, error: recoveryReadError } = await getSupabase()
+                      .from('vip_lifetime_purchases')
+                      .select('id')
+                      .eq('id', sessionConfig.metadata.purchase_id)
+                      .eq('user_id', user.id)
+                      .eq('stripe_checkout_session_id', session.id)
+                      .maybeSingle();
+                  lifetimeSessionLinked = !recoveryReadError && Boolean(recoveredLink);
+              }
+              if (!lifetimeSessionLinked) {
+                  console.error(
+                      '[Checkout] Could not link Lifetime VIP purchase to session:',
+                      linkError?.message || 'zero rows'
+                  );
+                  /* Do not expire an ambiguously linked lifetime session. Its
+                     metadata still identifies the deterministic purchase row,
+                     so a Stripe webhook can settle it and a same-key retry can
+                     safely finish the link. */
+                  const recoveryError = new Error(
+                      'Lifetime VIP Checkout Is Being Recovered. Retry This Same Purchase Shortly.'
+                  );
+                  recoveryError.checkoutRetryable = true;
+                  throw recoveryError;
+              }
+          }
           if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {
               const { data: linkedRows, error: linkError } = await getSupabase()
                   .from('diamond_purchases')
@@ -1330,11 +1863,14 @@ export default async function handler(req, res) {
               errorCode = 'STRIPE_INVALID_REQUEST';
           }
 
-          return res.status(500).json({
+          return res.status(error.checkoutRetryable ? 503 : 500).json({
               success: false,
+              ...(error.checkoutRetryable ? { retryable: true } : {}),
               error: {
-                  code: errorCode,
-                  message: userMessage
+                  code: error.checkoutRetryable ? 'CHECKOUT_RECOVERY_PENDING' : errorCode,
+                  message: error.checkoutRetryable
+                      ? 'Your Checkout Is Being Recovered. Retry This Same Purchase Shortly.'
+                      : userMessage
               }
           });
       }
