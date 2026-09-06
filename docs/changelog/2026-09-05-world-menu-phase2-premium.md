@@ -27,4 +27,3 @@ Phase 2 gives every World Hub hamburger menu a deliberate visual identity while 
 - Deterministic visual comparisons: 14 passed across 28 baselines.
 - iPhone WebKit interaction checks: 14 passed.
 - TypeScript, lint, production build, and whitespace validation passed.
-

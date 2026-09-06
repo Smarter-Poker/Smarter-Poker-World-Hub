@@ -26,7 +26,6 @@ const SCHEMES = Object.freeze({
   'poker-near-me': 'casino-realism',
   marketplace: 'luxury-market',
 });
-
 const TOKENS = [
   'scheme', 'accent', 'accentPressed', 'secondary', 'focus', 'canvas',
   'canvasRaised', 'rail', 'panel', 'tile', 'tileActive', 'border', 'text',
@@ -111,4 +110,3 @@ test('Phase 2 does not replace menu icons or approved artwork', () => {
     assert.doesNotMatch(source, /<Gear\b|<Cog\b|<Settings\b|<Grid3X3\b|<LayoutGrid\b|<Ellipsis/);
   }
 });
-
