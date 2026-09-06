@@ -56,7 +56,23 @@ test('empty filter results use branded status and never charge or block with an 
 });
 
 test('VIP checkout sends the server-owned plan key and is idempotent', () => {
-    assert.match(PAGE, /'X-Checkout-Request-ID': `preflop-vip-\$\{crypto\.randomUUID\(\)\}`/);
+    /* PIN MOVED 2026-09-06. This required the literal
+       `preflop-vip-${crypto.randomUUID()}`, and that literal was the WEAKER
+       mechanism: a fresh UUID on every click is unique, not idempotent - press
+       Upgrade twice, or retry a request whose response was lost, and the server
+       sees two unrelated checkouts. The page derives a STABLE key from the
+       intent now (`getOrCreateCommerceRequestId`, the same helper the diamond
+       store and the club shop use), so a replayed request carries the identity
+       the first one had and the server can collapse it.
+
+       This test's own name says "and is idempotent"; the assertion under it was
+       pinning the thing that was not. The pin follows the guarantee rather than
+       the string: the key comes from the shared helper, and it is scoped to
+       this purchase so it cannot collide with another product's. */
+    assert.match(PAGE, /const checkoutRequestId = getOrCreateCommerceRequestId\(commerceIntent\)/);
+    assert.match(PAGE, /scope: 'preflop-vip-monthly'/);
+    assert.match(PAGE, /'X-Checkout-Request-ID': checkoutRequestId/);
+    assert.doesNotMatch(PAGE, /'X-Checkout-Request-ID': `preflop-vip-\$\{crypto\.randomUUID\(\)\}`/);
     assert.match(PAGE, /items: \[\{ plan: 'monthly' \}\]/);
     assert.doesNotMatch(PAGE, /NEXT_PUBLIC_STRIPE_VIP_PRICE_ID|price_vip_monthly/);
     assert.match(PAGE, /if \(vipCheckoutRef\.current\) return;[\s\S]*vipCheckoutRef\.current = true/);

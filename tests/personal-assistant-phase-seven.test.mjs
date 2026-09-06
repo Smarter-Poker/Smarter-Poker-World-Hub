@@ -9,6 +9,7 @@ import {
   buildEvidenceChain,
   confidenceBreakdown,
   decisionCoverage,
+  evidenceFingerprint,
   receiptFingerprint,
 } from '../src/lib/personal-assistant/coachingIntelligence.mjs';
 
@@ -81,12 +82,36 @@ test('evidence inspector fails closed when a stage has no source evidence', () =
   assert.match(absent[0].detail, /No Source Hand/);
 });
 
+test('evidence inspector reconstructs the deterministic solver leak group without an example link', () => {
+  const groupedLeak = { id: 'solver_club_arena_cash_river_btn_facing_bet', leakType: 'solver_club_arena_cash_river_btn_facing_bet' };
+  const groupedDecision = {
+    hand_external_id: 'club-hand-17', decision_key: 'river-decision', evidence_scope: 'club_arena',
+    game_id: 'cash', street: 'river', hero_position: 'BTN', spot_type: 'facing bet',
+    solver_verified: true, solver_source: 'solver|hand-audit-v3', classification: 'mistake',
+  };
+  const chain = buildEvidenceChain(groupedLeak, [groupedDecision], [], {});
+  assert.equal(chain[0].detail, 'club-hand-17');
+  assert.equal(chain[1].detail, 'river-decision');
+  assert.equal(chain[2].state, 'verified');
+});
+
 test('receipt fingerprints are stable and version-sensitive', () => {
   const a = buildCoachingSnapshot({ leaks, decisions, reviews, now, versions: { matcher: 'v3' } });
   const b = buildCoachingSnapshot({ leaks, decisions, reviews, now: now + 60_000, versions: { matcher: 'v3' } });
   const c = buildCoachingSnapshot({ leaks, decisions, reviews, now, versions: { matcher: 'v4' } });
   assert.equal(receiptFingerprint(a), receiptFingerprint(b));
   assert.notEqual(receiptFingerprint(a), receiptFingerprint(c));
+  assert.match(receiptFingerprint(a), /^pa7-[0-9a-f]{16}$/);
+});
+
+test('receipts bind the exact evidence set without depending on row order', () => {
+  const baseline = buildCoachingSnapshot({ leaks, decisions, reviews, now, versions: { matcher: 'v3' } });
+  const reordered = buildCoachingSnapshot({ leaks: [...leaks].reverse(), decisions: [...decisions].reverse(), reviews, now, versions: { matcher: 'v3' } });
+  const changedDecision = decisions.map((decision, index) => index === 0 ? { ...decision, decision_key: 'decision-regraded' } : decision);
+  const changed = buildCoachingSnapshot({ leaks, decisions: changedDecision, reviews, now, versions: { matcher: 'v3' } });
+  assert.equal(evidenceFingerprint({ leaks, decisions, reviews }), evidenceFingerprint({ leaks: [...leaks].reverse(), decisions: [...decisions].reverse(), reviews }));
+  assert.equal(receiptFingerprint(baseline), receiptFingerprint(reordered));
+  assert.notEqual(receiptFingerprint(baseline), receiptFingerprint(changed));
 });
 
 test('coaching workspace is owner scoped, persisted, and force protected by RLS', () => {
@@ -105,10 +130,16 @@ test('coaching API authenticates server-side and supports only bounded explicit 
   assert.match(api, /getServerUserWithFallback\(req, supabase\)/);
   assert.doesNotMatch(api, /req\.body\.userId|req\.query\.userId/);
   assert.match(api, /save_goal/);
+  assert.match(api, /delete_goal/);
   assert.match(api, /submit_feedback/);
   assert.match(api, /save_preferences/);
   assert.match(api, /Cache-Control', 'private, no-store/);
   assert.match(api, /\.eq\('user_id', userId\)/);
+  assert.match(api, /T23:59:59\.999Z/);
+  assert.match(api, /optionalLeakId\(body\.leakId\)/);
+  assert.match(api, /evidence_scope: 'club_arena'/);
+  assert.match(api, /DECISION_WINDOW_LIMIT = 5000/);
+  assert.match(api, /coverage\.windowLimited/);
 });
 
 test('Leak Finder wires the complete coaching and exact-hand continuity workspace', () => {
@@ -122,6 +153,13 @@ test('Leak Finder wires the complete coaching and exact-hand continuity workspac
   assert.match(workspace, /No Persisted Example Hand Is Attached/);
   assert.match(workspace, /Weekly Coaching Report/);
   assert.match(workspace, /Analysis Receipt/);
+  assert.match(workspace, /Analysis Depth/);
+  assert.match(workspace, /Expert Analysis Provenance/);
+  assert.match(workspace, /Older Evidence Remains Stored/);
+  assert.match(workspace, /action: 'delete_goal'/);
+  assert.doesNotMatch(workspace, /window\.confirm/);
+  assert.match(workspace, /Confirm Remove/);
+  assert.match(workspace, /timeZone: 'UTC'/);
 });
 
 test('Phase 7 is permanently included in the leak engine and production watchdog gates', () => {

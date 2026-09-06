@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
 
 const ROOT = new URL('../', import.meta.url);
+const ROOT_PATH = fileURLToPath(ROOT);
 const read = path => readFile(new URL(path, ROOT), 'utf8');
 
 const MARKETPLACE_ROUTE_ROOTS = [
@@ -84,8 +89,69 @@ test('repository title-case enforcement covers Pages Router JavaScript without c
   const gate = await read('scripts/ci/check-title-case.mjs');
 
   assert.match(gate, /const JSX_EXTS = new Set\(\['\.js', '\.jsx', '\.tsx'\]\)/);
+  assert.match(gate, /const USER_VISIBLE_ATTRIBUTES = new Set\(\['placeholder', 'aria-label', 'alt', 'title'\]\)/);
+  assert.match(gate, /const MARKETPLACE_ATTRIBUTE_PATH = \/\^\(\?:pages/);
+  assert.match(gate, /ts\.isJsxAttribute\(node\)/);
+  assert.match(gate, /ts\.isStringLiteral\(initializer\)/);
+  assert.match(gate, /!isNonProseAttributeValue\(text\)/);
   assert.match(gate, /if \(\/\\d\/\.test\(before\)\) return word;/);
   assert.match(gate, /1\.5x, 7d, 24h, GPT-4o/);
+});
+
+test('Marketplace literal placeholders and accessible labels are Title Cased', async () => {
+  const files = await Promise.all([
+    'pages/hub/diamond-store.js',
+    'pages/hub/diamond-store/orders.js',
+    'pages/hub/merch-store/fulfillment.js',
+    'pages/hub/vip-membership/manage.js',
+    'src/components/store/RewardTelemetryConsole.jsx',
+    'src/components/store/DiamondWalletModal.jsx',
+  ].map(read));
+
+  for (const source of files) {
+    for (const gone of [
+      'placeholder="Search items..."',
+      'placeholder="Item name"',
+      'placeholder="Description (optional)"',
+      'placeholder="Image URL (optional)"',
+      'placeholder="Order number, item, or status"',
+      'aria-label="Merchandise fulfillment orders"',
+      'aria-label="Close fulfillment operation"',
+      'aria-label="VIP recurring plan controls"',
+      'aria-label="Reward account signals"',
+      'aria-label="Diamond transactions"',
+    ]) {
+      assert.ok(!source.includes(gone), `${gone} must remain Title Cased`);
+    }
+  }
+});
+
+test('title-case gate catches and safely fixes literal attributes without touching expressions or protocols', async (t) => {
+  const fixtureDir = await mkdtemp(join(tmpdir(), 'marketplace-title-case-'));
+  const fixture = join(fixtureDir, 'fixture.jsx');
+  t.after(() => rm(fixtureDir, { recursive: true, force: true }));
+  await writeFile(fixture, `export default function Fixture() {
+    return <><input placeholder="Search items..." aria-label="Reward account signals" />
+      <input placeholder={'dynamic lowercase'} title="https://" /></>;
+  }\n`);
+
+  const check = spawnSync(process.execPath, [
+    'scripts/ci/check-title-case.mjs', '--scan-file', fixture,
+  ], { cwd: ROOT_PATH, encoding: 'utf8' });
+  assert.equal(check.status, 1);
+  assert.match(check.stderr, /\[placeholder\]: Search items\.\.\./);
+  assert.match(check.stderr, /\[aria-label\]: Reward account signals/);
+  assert.doesNotMatch(check.stderr, /dynamic lowercase|Https:\/\//);
+
+  const fix = spawnSync(process.execPath, [
+    'scripts/ci/check-title-case.mjs', '--fix', '--scan-file', fixture,
+  ], { cwd: ROOT_PATH, encoding: 'utf8' });
+  assert.equal(fix.status, 0, fix.stderr);
+  const corrected = await readFile(fixture, 'utf8');
+  assert.match(corrected, /placeholder="Search Items\.\.\."/);
+  assert.match(corrected, /aria-label="Reward Account Signals"/);
+  assert.match(corrected, /placeholder=\{'dynamic lowercase'\}/);
+  assert.match(corrected, /title="https:\/\/"/);
 });
 
 test('accessible Marketplace shell copy is normalized before rendering or entering metadata', async () => {

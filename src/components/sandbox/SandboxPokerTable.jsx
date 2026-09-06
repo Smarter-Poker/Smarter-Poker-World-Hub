@@ -288,12 +288,12 @@ function HeroCardItem({ card, i, onRemove, onTap, w, h, editMode, reduce }) {
 
 // Deterministic avatar assignment for sandbox seats (max table = hero + 5)
 const SANDBOX_AVATARS = [
-    '/avatars/table/free_fox.png',       // Hero
-    '/avatars/table/free_shark.png',
-    '/avatars/table/free_ninja.png',
-    '/avatars/table/free_viking.png',
-    '/avatars/table/free_lion.png',
-    '/avatars/table/free_owl.png',
+    '/avatars/table/free_fox.webp',       // Hero
+    '/avatars/table/free_shark.webp',
+    '/avatars/table/free_ninja.webp',
+    '/avatars/table/free_viking.webp',
+    '/avatars/table/free_lion.webp',
+    '/avatars/table/free_owl.webp',
 ];
 
 const BASE_WIDTH = 300;

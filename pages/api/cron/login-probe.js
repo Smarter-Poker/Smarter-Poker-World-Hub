@@ -75,6 +75,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { isDedicatedProbeAccount } from '../../../src/lib/probeIdentity';
 import { unconfiguredProbe } from '../../../src/lib/probeUnconfigured';
 
 let _admin = null, _anon = null;
@@ -98,26 +99,19 @@ function getAnon() {
 export const config = { maxDuration: 30 };
 
 /**
- * The only accounts a synthetic probe may sign in as. The SETUP block at the
- * top has named probe-login@probe.smarter.poker since 2026-05-18; this makes
- * the convention a gate. Exported so the law test pins it.
+ * The gate that says who a probe may be lives in src/lib/probeIdentity.js and
+ * is SHARED, since 2026-09-06, with the Club Arena table-socket probe.
+ *
+ * It used to be declared right here. When a second probe needed the same rule
+ * the choice was to copy it or to move it, and a copied security gate is one
+ * that drifts - the drifted copy always being the one nobody remembers exists.
+ * Re-exported so anything importing it from this route keeps working.
  */
-export const PROBE_ACCOUNT_DOMAIN = 'probe.smarter.poker';
-/**
- * Dan, 2026-09-04, mid-incident: "DON'T USE MY ACCOUNT FOR THE CRON, USE THE
- * OTHER 'GOD MODE ADMIN ACCOUNT'. IT HAS THE SAME PASSWORD. KEEP MY ACCOUNT
- * CLEAN." The platform's service identity (profiles.role = 'god', display
- * name "Smarter.Poker Official") is the one non-probe address a probe may
- * sign in as. His personal account is not on this list and must never be.
- */
-export const PROBE_ALLOWED_ACCOUNTS = Object.freeze(['daniel@smarter.poker']);
-export function isDedicatedProbeAccount(email) {
-    const normalized = String(email || '').trim().toLowerCase();
-    const at = normalized.lastIndexOf('@');
-    if (at <= 0) return false;
-    if (PROBE_ALLOWED_ACCOUNTS.includes(normalized)) return true;
-    return normalized.slice(at + 1) === PROBE_ACCOUNT_DOMAIN;
-}
+export {
+    PROBE_ACCOUNT_DOMAIN,
+    PROBE_ALLOWED_ACCOUNTS,
+    isDedicatedProbeAccount,
+} from '../../../src/lib/probeIdentity';
 
 // ── Ops alert (mirrors auth-integrity-audit.js's Resend block) ────────────
 // A probe_heartbeats row alone is not an alert — nobody is watching the

@@ -16,13 +16,49 @@ const {
     sanitizeExternalOrderId,
 } = require('../../../../src/lib/store/printfulFulfillment');
 
-// Helper to read raw body from request stream
+const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1024 * 1024;
+
+// Read only the bounded raw bytes Stripe signs. Signature verification is the
+// authentication boundary, but it must not require buffering an unbounded
+// attacker-controlled stream first.
 async function getRawBody(req) {
     return new Promise((resolve, reject) => {
         const chunks = [];
-        req.on('data', chunk => chunks.push(chunk));
-        req.on('end', () => resolve(Buffer.concat(chunks)));
-        req.on('error', reject);
+        let bytes = 0;
+        let settled = false;
+        const cleanup = () => {
+            req.off('data', onData);
+            req.off('end', onEnd);
+            req.off('error', onError);
+        };
+        const fail = (error) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        };
+        const onData = (chunk) => {
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            bytes += buffer.length;
+            if (bytes > MAX_STRIPE_WEBHOOK_BODY_BYTES) {
+                const error = new Error('Stripe webhook payload exceeds the byte limit');
+                error.code = 'BODY_TOO_LARGE';
+                fail(error);
+                req.resume?.();
+                return;
+            }
+            chunks.push(buffer);
+        };
+        const onEnd = () => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(Buffer.concat(chunks, bytes));
+        };
+        const onError = (error) => fail(error);
+        req.on('data', onData);
+        req.on('end', onEnd);
+        req.on('error', onError);
     });
 }
 
@@ -63,27 +99,25 @@ export default async function handler(req, res) {
 
       let event;
 
+      if (!endpointSecret || !stripe) {
+          console.warn('[stripe-webhook] payment webhook configuration is unavailable');
+          return res.status(503).json({ error: 'Webhook unavailable' });
+      }
+      if (!sig) {
+          return res.status(400).json({ error: 'Invalid webhook signature' });
+      }
+
       try {
           // Get raw body for signature verification
           const rawBody = await getRawBody(req);
 
-          // SECURITY: Signature verification is REQUIRED.
-          // If webhook secret is not configured, reject all events.
-          if (!endpointSecret) {
-              console.warn('STRIPE_WEBHOOK_SECRET not configured - rejecting webhook');
-              return res.status(500).json({ error: 'Webhook secret not configured' });
-          }
-          if (!sig) {
-              return res.status(400).json({ error: 'Missing stripe-signature header' });
-          }
-          if (!stripe) {
-              return res.status(500).json({ error: 'Stripe not configured' });
-          }
-
           event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
       } catch (err) {
-          console.warn('Webhook signature verification failed:', err.message);
-          return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+          if (err?.code === 'BODY_TOO_LARGE') {
+              return res.status(413).json({ error: 'Webhook payload too large' });
+          }
+          console.warn('Webhook signature verification failed:', err?.message || err);
+          return res.status(400).json({ error: 'Invalid webhook signature' });
       }
 
       // ═════════════════════════════════════════════════════════════════════
@@ -503,43 +537,66 @@ async function handleCheckoutCompleted(session) {
     }
 }
 
+async function closeExpiredPendingRow({ table, id, sessionId, patch, label }) {
+    let { data, error } = await getSupabase()
+        .from(table)
+        .update({ ...patch, stripe_checkout_session_id: sessionId })
+        .eq('id', id)
+        .eq('status', 'pending')
+        .eq('stripe_checkout_session_id', sessionId)
+        .select('id');
+    if (!error && !data?.length) {
+        ({ data, error } = await getSupabase()
+            .from(table)
+            .update({ ...patch, stripe_checkout_session_id: sessionId })
+            .eq('id', id)
+            .eq('status', 'pending')
+            .is('stripe_checkout_session_id', null)
+            .select('id'));
+    }
+    if (error) {
+        console.warn(`[stripe-webhook] expired ${label} checkout cleanup failed:`, error.message);
+        throw error;
+    }
+    if (!data?.length) {
+        console.info(`[stripe-webhook] expired ${label} checkout was already terminal, missing, or linked to another session`);
+    }
+}
+
 async function handleCheckoutExpired(session) {
     const metadata = session?.metadata || {};
 
     if (metadata.type === 'diamonds' && metadata.purchase_id) {
-        const { data: updatedRows, error } = await getSupabase()
-            .from('diamond_purchases')
-            .update({ status: 'failed', stripe_checkout_session_id: session.id })
-            .eq('id', metadata.purchase_id)
-            .eq('status', 'pending')
-            .select('id');
-        if (error) {
-            console.warn('[stripe-webhook] expired diamond checkout cleanup failed:', error.message);
-            throw error;
-        }
-        if (!updatedRows?.length) {
-            console.info('[stripe-webhook] expired diamond checkout was already terminal or missing');
-        }
+        await closeExpiredPendingRow({
+            table: 'diamond_purchases',
+            id: metadata.purchase_id,
+            sessionId: session.id,
+            patch: { status: 'failed' },
+            label: 'Diamond',
+        });
     }
 
     if (metadata.type === 'merchandise' && metadata.order_id) {
-        const { data: updatedRows, error } = await getSupabase()
-            .from('merchandise_orders')
-            .update({
+        await closeExpiredPendingRow({
+            table: 'merchandise_orders',
+            id: metadata.order_id,
+            sessionId: session.id,
+            patch: {
                 status: 'canceled',
-                stripe_checkout_session_id: session.id,
                 updated_at: new Date().toISOString(),
-            })
-            .eq('id', metadata.order_id)
-            .eq('status', 'pending')
-            .select('id');
-        if (error) {
-            console.warn('[stripe-webhook] expired merchandise checkout cleanup failed:', error.message);
-            throw error;
-        }
-        if (!updatedRows?.length) {
-            console.info('[stripe-webhook] expired merchandise checkout was already terminal or missing');
-        }
+            },
+            label: 'Merchandise',
+        });
+    }
+
+    if (metadata.type === 'vip_lifetime' && metadata.purchase_id) {
+        await closeExpiredPendingRow({
+            table: 'vip_lifetime_purchases',
+            id: metadata.purchase_id,
+            sessionId: session.id,
+            patch: { status: 'failed' },
+            label: 'Lifetime VIP',
+        });
     }
 }
 

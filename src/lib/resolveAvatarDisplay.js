@@ -8,21 +8,21 @@
  */
 
 const AVATAR_FALLBACKS = [
-    '/avatars/table/free_shark.png',
-    '/avatars/table/free_lion.png',
-    '/avatars/table/free_owl.png',
-    '/avatars/table/free_fox.png',
-    '/avatars/table/free_ninja.png',
-    '/avatars/table/free_pirate.png',
-    '/avatars/table/free_samurai.png',
-    '/avatars/table/free_viking.png',
-    '/avatars/table/free_knight.png',
-    '/avatars/table/free_cowboy.png',
-    '/avatars/table/free_wizard.png',
-    '/avatars/table/free_rockstar.png',
-    '/avatars/table/free_detective.png',
-    '/avatars/table/free_cyborg.png',
-    '/avatars/table/free_penguin.png',
+    '/avatars/table/free_shark.webp',
+    '/avatars/table/free_lion.webp',
+    '/avatars/table/free_owl.webp',
+    '/avatars/table/free_fox.webp',
+    '/avatars/table/free_ninja.webp',
+    '/avatars/table/free_pirate.webp',
+    '/avatars/table/free_samurai.webp',
+    '/avatars/table/free_viking.webp',
+    '/avatars/table/free_knight.webp',
+    '/avatars/table/free_cowboy.webp',
+    '/avatars/table/free_wizard.webp',
+    '/avatars/table/free_rockstar.webp',
+    '/avatars/table/free_detective.webp',
+    '/avatars/table/free_cyborg.webp',
+    '/avatars/table/free_penguin.webp',
 ];
 
 /**
@@ -55,9 +55,9 @@ export function resolveAvatarDisplay(avatarUrl, seed = '') {
     }
     // Library avatar path → table-optimized version
     if (avatarUrl && avatarUrl.startsWith('/avatars/')) {
-        const filename = avatarUrl.split('/').pop().replace('.png', '');
+        const filename = avatarUrl.split('/').pop().replace(/\.(png|webp)$/, '');
         const tier = avatarUrl.includes('/vip/') ? 'vip' : 'free';
-        return `/avatars/table/${tier}_${filename}.png`;
+        return `/avatars/table/${tier}_${filename}.webp`;
     }
     // Deterministic fallback
     const idx = typeof seed === 'number' ? seed : hashSeed(String(seed));
