@@ -226,7 +226,6 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
 export function receiptFingerprint(snapshot = {}) {
   const input = JSON.stringify({
     versions: snapshot.versions || {},
-    generatedAt: snapshot.generatedAt || null,
     priorities: (snapshot.priorities || []).map(item => [item.id, item.score, item.confidence?.score]),
     coverage: snapshot.coverage || {},
   });
