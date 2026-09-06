@@ -75,6 +75,9 @@ and the production re-certification passes.
 - Completion evidence was captured while review-panel entrance motion was still
   fading in, which made a healthy page appear artificially dim. The harness now
   waits for the settled review state before recording desktop and mobile proof.
+- The new exact-geometry guard passed the focused suite but was not named by a
+  permanent npm or CI entrypoint. The repository reachability meta-guard caught
+  the gap; the production build now runs the geometry guard on every release.
 
 ## Current Club Arena Contract
 
