@@ -2,34 +2,34 @@
  * A PULL REQUEST WITH NO CHECKS IS NOT WAITING. IT IS STUCK, FOREVER, SILENTLY.
  *
  * ── WHAT HAPPENS ─────────────────────────────────────────────────────────────
- * `agent-open-pr.yml` opens the pull request with the first token it can get:
- * the Autopilot App, then `GH_PAT`, then `GITHUB_TOKEN`. That file already
- * knows the last one is different, and says so in its own comment:
+ * A pull request needs `pull_request` workflow runs ON ITS CURRENT HEAD SHA.
+ * Those are the required checks; without them auto-merge can never be
+ * satisfied and the pull request waits forever. There are two ways to end up
+ * with none, they need OPPOSITE fixes, and telling them apart is most of what
+ * this script is for.
  *
- *     "opened with GITHUB_TOKEN (sweep must rescue events)"
+ * **1. It conflicts with `main`.** GitHub runs `on: pull_request` workflows
+ * against the MERGE commit (`refs/pull/N/merge`). If the branch conflicts,
+ * that ref cannot be produced, so no run is even attempted. Reopening does
+ * nothing. The only fix is to merge `origin/main` into the branch - which
+ * CLAUDE.md 12 requires anyway, since rebasing is refused here.
  *
- * **GitHub fires no `pull_request` events for a pull request created with
- * `GITHUB_TOKEN`** - deliberately, so that a workflow cannot trigger itself. So
- * none of the `on: pull_request` workflows ever run: no CI, no Build Safety
- * Gate, no Global Footer E2E. Not late - never.
+ * **2. Something moved the head without firing an event.** GitHub fires no
+ * `pull_request` events for anything done with `GITHUB_TOKEN` - deliberately,
+ * so a workflow cannot trigger itself. `agent-open-pr.yml` says so in its own
+ * log line, "opened with GITHUB_TOKEN (sweep must rescue events)", and the
+ * same rule silences a `synchronize` when a workflow pushes to the branch.
+ * The pull request then looks healthy - open, auto-merge armed, reporting
+ * itself as waiting for checks - and the checks it waits for were never
+ * created. THAT one is repaired by closing and reopening it.
  *
- * `agent-open-pr` then arms squash auto-merge, correctly and immediately. The
- * result is the worst shape a pipeline has: a pull request that LOOKS healthy.
- * It is open, it is armed, it reports itself waiting for required checks - and
- * the checks it waits for do not exist and will never be created. GitHub does
- * not even compute `mergeable`; every one of these reads `unknown`.
- *
- * The sweep that comment relies on does not rescue this. The every-30-minutes
- * pass in `agent-autopilot` ARMS auto-merge, and arming was never the missing
- * part. Nothing in the estate re-creates the absent check runs, and nothing
- * notices they are absent.
+ * No sweep rescued either case. `agent-autopilot`'s every-30-minutes pass ARMS
+ * auto-merge, and arming was never the missing part.
  *
  * ── MEASURED, 2026-09-06 ─────────────────────────────────────────────────────
- * Found by accident while verifying an unrelated fix, which is the same way
- * `Global Footer E2E` was found two days earlier. The first sweep looked only
- * at the two busy repos and found seven. Widening it to the estate - the exact
- * correction `check-main-is-green.mjs` had to make a day earlier, for the same
- * reason - found two more that nobody had looked at in over a week:
+ * Found by accident while verifying an unrelated fix - the same way `Global
+ * Footer E2E` was found two days earlier, and the second time in one week that
+ * the discovery method was "somebody happened to look".
  *
  *   PepNationLab #89    add agent playbook and rules            210 hours idle
  *   PepNationLab #117   super agent price floor                 210 hours idle
@@ -41,16 +41,24 @@
  *   Club Arena   #3009  remove direct payment rails               7 hours idle
  *   Club Arena   #3286  realtime phase 6                          1 hour idle
  *
- * Nine pull requests, zero check runs between them, every one armed to merge.
- * Two touch money routes. The oldest pair had been sitting for nine days with
- * nobody told, because there was nothing to tell anybody.
+ * Nine, zero checks between them, every one armed to merge, two touching money
+ * routes, the oldest pair idle for nine days.
  *
- * So this sweeps all seven repos from its first line. A detector scoped to one
- * repo reports that the estate is fine because the room it is standing in is.
+ * **All nine turned out to be case 1**, and finding that out cost a wrong fix
+ * first: they were reopened, which created no checks at all, because a
+ * conflicting pull request has no merge ref to run against. What the reopen DID
+ * do was force GitHub to compute `mergeable_state`, which had read `unknown` on
+ * every one of them - the answer was `dirty`, nine times.
  *
- * This is CLAUDE.md 10.83 one level up. That law says a check nobody can see is
- * not a check. This says a pull request nobody can merge is not a pull request,
- * and it fails in the same direction: quietly, looking fine.
+ * Their history says the rest. #1308's last `pull_request` runs were on sha
+ * c3e034066 on 2026-09-04; its head is 1903fe96d, which carries only `Agent
+ * Open PR` runs from `push` and `create`. The head moved, nothing re-ran, and
+ * the branch drifted into conflict while the pull request went on reporting
+ * itself as merely waiting.
+ *
+ * So a detector that had only known about case 2 would have reported nine
+ * pull requests as a token problem and sent the next agent to reopen them
+ * again. It classifies now, and says which fix each one needs.
  *
  * ── WHAT THIS DOES ───────────────────────────────────────────────────────────
  * Sweeps the estate for open pull requests with NO `pull_request` workflow run
@@ -96,10 +104,24 @@ const REPOS = (() => {
 
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
 /**
- * Grace period. A pull request opened seconds ago has no runs yet and is not
- * stuck, it is new. Thirty minutes is comfortably past the worst runner queue
- * this estate has measured - 14 minutes on 2026-09-04, before the World Hub
- * was given twelve more runners.
+ * Grace period, measured against the HEAD COMMIT - not against the pull
+ * request's `updated_at`.
+ *
+ * The first version used `updated_at`, and it hid its own failure. This
+ * script's repair closes and reopens the pull request, which UPDATES
+ * `updated_at`; so on the next pass every pull request it had just failed to
+ * fix looked freshly touched, fell inside the grace period, and was skipped.
+ * It printed "every open pull request has had its gates run" while nine were
+ * still sitting there with zero checks. Caught the same hour by asking GitHub
+ * directly instead of believing the script.
+ *
+ * Anything that touches a pull request moves `updated_at` - a comment, a
+ * label, a bot. The question here is "has THIS head sha had time to collect
+ * its checks", so the honest clock is when that commit arrived.
+ *
+ * Thirty minutes is comfortably past the worst runner queue this estate has
+ * measured: 14 minutes on 2026-09-04, before the World Hub was given twelve
+ * more runners.
  */
 const MINUTES = Number(process.env.STUCK_PR_MINUTES || 30);
 const REPAIR = process.argv.includes('--repair');
@@ -146,20 +168,54 @@ const whoAmI = async () => {
   return 'unknown';
 };
 
+/**
+ * `mergeable_state` is computed lazily: the first read of a pull request
+ * GitHub has not looked at lately returns `unknown`. Ask again rather than
+ * treating "I do not know yet" as "not conflicting" - guessing wrong here
+ * sends the repair at a pull request it cannot help.
+ */
+const mergeStateOf = async (repo, number) => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const pr = await api(`/repos/${repo}/pulls/${number}`);
+    if (!pr.ok) return 'unreadable';
+    const state = pr.json && pr.json.mergeable_state;
+    if (state && state !== 'unknown') return state;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return 'unknown';
+};
+
+/** When the current head commit arrived. See MINUTES for why not `updated_at`. */
+const headAgeMinutes = async (repo, pr) => {
+  const c = await api(`/repos/${repo}/commits/${pr.head.sha}`);
+  const when =
+    (c.ok && c.json && c.json.commit && c.json.commit.committer && c.json.commit.committer.date) ||
+    pr.created_at;
+  return (Date.now() - new Date(when).getTime()) / 60000;
+};
+
 const scan = async (repo) => {
   const prs = await api(`/repos/${repo}/pulls?state=open&per_page=100`);
   if (!prs.ok || !Array.isArray(prs.json)) return { repo, unreadable: String(prs.status) };
-  const now = Date.now();
   const stuck = [];
   for (const pr of prs.json) {
-    const idle = (now - new Date(pr.updated_at).getTime()) / 60000;
-    if (idle < MINUTES) continue;
+    // Runs first: it is one call, and a pull request with checks needs no
+    // further questions asked about it. Only the rare bare one costs more.
     const runs = await api(`/repos/${repo}/actions/runs?head_sha=${pr.head.sha}&per_page=30`);
     if (!runs.ok) continue; // cannot tell; never an alarm
     const fromPr = ((runs.json && runs.json.workflow_runs) || []).filter((r) => r.event === 'pull_request');
-    if (fromPr.length === 0) {
-      stuck.push({ number: pr.number, branch: pr.head.ref, idle, title: pr.title });
-    }
+    if (fromPr.length > 0) continue;
+    const idle = await headAgeMinutes(repo, pr);
+    if (idle < MINUTES) continue; // genuinely new, not stuck
+    const state = await mergeStateOf(repo, pr.number);
+    stuck.push({
+      number: pr.number,
+      branch: pr.head.ref,
+      idle,
+      title: pr.title,
+      state,
+      conflicting: state === 'dirty',
+    });
   }
   return { repo, open: prs.json.length, stuck };
 };
@@ -187,19 +243,39 @@ if (stuck.length === 0) {
   process.exit(0);
 }
 
+const conflicting = stuck.filter((s) => s.conflicting);
+const eventless = stuck.filter((s) => !s.conflicting);
+
 for (const s of stuck) {
-  console.log(`  STUCK ${s.repo}#${s.number}  ${mins(s.idle).padStart(6)} idle  ${s.branch}`);
+  const why = s.conflicting ? 'CONFLICTS with main' : `no events (${s.state})`;
+  console.log(`  STUCK ${s.repo}#${s.number}  ${mins(s.idle).padStart(6)} idle  ${why.padEnd(22)} ${s.branch}`);
 }
 console.log('');
+
+if (conflicting.length) {
+  console.log(
+    `${conflicting.length} conflict with main. A conflicting pull request has no merge ref, so no ` +
+      `check CAN run on it - reopening one changes nothing. Merge origin/main into the branch ` +
+      `(CLAUDE.md 12: never rebase), push, and the gates run themselves.`
+  );
+}
 
 if (!REPAIR) {
   console.error(
     `::error title=PULL REQUESTS THAT CAN NEVER MERGE::${stuck.length} open pull request(s) have no ` +
-      `pull_request workflow run at all, so their required checks will never exist and auto-merge can ` +
-      `never be satisfied. They were opened with GITHUB_TOKEN, which fires no pull_request events. ` +
-      `Re-run with --repair, or close and reopen each one by hand.`
+      `pull_request workflow run on their head sha, so their required checks do not exist and ` +
+      `auto-merge can never be satisfied. ${conflicting.length} conflict with main and need ` +
+      `origin/main merged into the branch; ${eventless.length} lost their events (a GITHUB_TOKEN ` +
+      `write fires none) and are repaired by closing and reopening them.`
   );
-  for (const s of stuck) console.error(`  ${s.repo}#${s.number} (${mins(s.idle)} idle): ${s.title}`);
+  for (const s of stuck) {
+    console.error(`  ${s.repo}#${s.number} (${mins(s.idle)} idle, ${s.state}): ${s.title}`);
+  }
+  process.exit(1);
+}
+
+if (eventless.length === 0) {
+  console.log('Nothing here is repairable by reopening; every one of them needs main merged in.');
   process.exit(1);
 }
 
@@ -212,10 +288,10 @@ if (who === 'github-actions[bot]') {
   );
   process.exit(1);
 }
-console.log(`Repairing as ${who} - close, then reopen; a reopened event runs every gate.`);
+console.log(`Repairing ${eventless.length} as ${who} - close, then reopen; a reopened event runs every gate.`);
 
 let failed = 0;
-for (const s of stuck) {
+for (const s of eventless) {
   const shut = await api(`/repos/${s.repo}/pulls/${s.number}`, {
     method: 'PATCH',
     body: JSON.stringify({ state: 'closed' }),
@@ -240,9 +316,10 @@ for (const s of stuck) {
   console.log(`  ${s.repo}#${s.number}: reopened; its gates run on the next tick.`);
 }
 
-if (failed) {
-  console.error(`\n${failed} of ${stuck.length} could not be repaired.`);
+if (failed || conflicting.length) {
+  if (failed) console.error(`\n${failed} of ${eventless.length} could not be repaired.`);
+  if (conflicting.length) console.error(`\n${conflicting.length} still need main merged into them by hand.`);
   process.exit(1);
 }
-console.log(`\nRepaired all ${stuck.length}. Their checks run now; a red one still blocks, as it should.`);
+console.log(`\nRepaired all ${eventless.length}. Their checks run now; a red one still blocks, as it should.`);
 process.exit(0);

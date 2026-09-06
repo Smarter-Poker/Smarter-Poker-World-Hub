@@ -1,90 +1,99 @@
-# Nine pull requests that could never merge, and nothing was watching
+# Nine pull requests that could never merge, and two wrong diagnoses on the way
 
 Found 2026-09-06, by accident, while verifying an unrelated fix - the same way
-`Global Footer E2E` was found two days earlier, and the second time this week
+`Global Footer E2E` was found two days earlier, and the second time in one week
 that the discovery method was "somebody happened to look".
 
-## The shape
+## What was actually wrong
 
-`agent-open-pr.yml` opens a pull request with the first token it can get: the
-Autopilot App, then `GH_PAT`, then `GITHUB_TOKEN`. It already knows the last one
-is different and says so in its own log line:
+A pull request needs `pull_request` workflow runs **on its current head sha**.
+Those are the required checks. Without them auto-merge can never be satisfied,
+and the pull request waits forever while looking perfectly healthy: open, armed,
+reporting itself as waiting for checks that do not exist.
 
-    opened with GITHUB_TOKEN (sweep must rescue events)
-
-**GitHub fires no `pull_request` events for a pull request created with
-`GITHUB_TOKEN`.** That is deliberate on GitHub's part - it stops a workflow
-triggering itself. The consequence here is that none of the `on: pull_request`
-gates ever run. Not late. Never.
-
-`agent-open-pr` then arms squash auto-merge, correctly and immediately. What is
-left is the worst shape a pipeline can produce: a pull request that looks
-healthy. Open, armed, reporting itself as waiting for required checks - checks
-that do not exist and will not be created. GitHub does not even compute
-`mergeable`; all nine read `unknown`.
-
-**No sweep rescues this.** The comment says one must. `agent-autopilot`'s
-every-30-minutes pass ARMS auto-merge, and arming was never the missing part.
-Nothing in the estate re-creates absent check runs, and nothing notices they are
-absent.
-
-## What was actually sitting there
+Nine were in that state across the estate:
 
 | repo | PR | idle | what it is |
 | --- | --- | --- | --- |
-| PepNationLab | #89 | 210h | add agent playbook and rules |
-| PepNationLab | #117 | 210h | super agent price floor |
-| World Hub | #1308 | 58h | five money routes respect the freeze |
-| World Hub | #1329 | 50h | no feather on the frame alpha |
+| PepNationLab | #89 | 211h | add agent playbook and rules |
+| PepNationLab | #117 | 211h | super agent price floor |
+| World Hub | #1308 | 59h | five money routes respect the freeze |
+| World Hub | #1329 | 51h | no feather on the frame alpha |
+| Club Arena | #3009 | 39h | remove direct payment rails |
 | Club Arena | #3143 | 19h | profile phase 2, 270 files |
 | Club Arena | #3167 | 17h | handoff, card presentation |
-| World Hub | #1384 | 16h | diamond wallet realism |
-| Club Arena | #3009 | 7h | remove direct payment rails |
-| Club Arena | #3286 | 1h | realtime phase 6 |
+| World Hub | #1384 | 17h | diamond wallet realism |
+| Club Arena | #3286 | 2h | realtime phase 6 |
 
-Nine, zero check runs between them, every one armed to merge. Two touch money
-routes. The oldest pair had been waiting nine days.
+Two touch money routes. The oldest pair had waited nine days.
 
-**The first sweep found seven.** It looked at the two busy repos only. Widening
-it to the estate found the PepNationLab pair - the identical correction
-`check-main-is-green.mjs` had to make one day earlier, for the identical reason:
-a detector scoped to one repo reports that the estate is fine because the room
-it is standing in is fine. That mistake has now been made twice in two days by
-two different detectors, which is worth more than the bug itself.
+## The first diagnosis was wrong, and the fix built on it did nothing
 
-## The fix
+`agent-open-pr.yml` documents a real trap in its own log line - "opened with
+GITHUB_TOKEN (sweep must rescue events)" - because GitHub fires no
+`pull_request` events for anything done with `GITHUB_TOKEN`. That is true, it is
+exactly what happened to #1445 earlier the same day, and it was the obvious
+explanation.
 
-`scripts/ci/check-prs-can-actually-merge.mjs`, in `publish-watchdog.yml`
-alongside the other estate sweeps, on the same 15-minute schedule and the same
-owner-scoped App token.
+So all nine were closed and reopened, on the theory that a `reopened` event
+would run their gates. **It created not one check.** A conflicting pull request
+has no `refs/pull/N/merge` for GitHub to run against, so no run is even
+attempted.
 
-It reports any open pull request with no `pull_request` workflow run on its head
-sha past a 30-minute grace period, and with `--repair` it closes and reopens
-each one. `reopened` is in the default activity set for `on: pull_request`, so
-every gate runs on the next tick. It merges nothing, moves no branch and changes
-no code - it only lets the pipeline that was supposed to run, run.
+What the reopen did do was useful by accident: it forced GitHub to compute
+`mergeable_state`, which had read `unknown` on every one of them. The answer was
+`dirty`, nine times out of nine. Their run history says the rest - #1308's last
+`pull_request` runs were on sha `c3e034066` on 2026-09-04, while its head is
+`1903fe96d`, carrying only `Agent Open PR` runs from `push` and `create`. The
+head moved, nothing re-ran, and the branch drifted into conflict while the pull
+request went on reporting itself as merely waiting.
 
-**The repair refuses to run as `github-actions[bot]`.** Reopening with
-`GITHUB_TOKEN` fires no events either, so that repair would report success and
-change nothing - closing the loop on itself and teaching everyone the repair
-does not work. It says so and exits 1 instead.
+**The correct fix for all nine is to merge `origin/main` into each branch**
+(CLAUDE.md 12: never rebase here). Nothing else can work, and no watchdog can do
+it for them, because a conflict needs a human decision about the conflicting
+hunks.
 
-## What this is NOT
+## The second wrong thing was in the detector itself
 
-It is not a way to make a red pull request merge. Reopening creates the checks;
-a failing check still blocks, exactly as it should. Several of the nine are days
-old against a fast-moving `main` and will come back CONFLICTING - which is also
-the correct answer, and one nobody could see before today.
+The first version measured "idle" from the pull request's `updated_at`. Its own
+repair closes and reopens the pull request, which UPDATES `updated_at` - so on
+the very next pass, every pull request it had just failed to fix looked freshly
+touched, fell inside the 30-minute grace period, and was skipped. It printed
+
+    OK - every open pull request has had its gates run.
+
+while all nine were still sitting there with zero checks. **A repair that hides
+its own failure is the exact pattern this estate keeps writing laws about**, and
+it was caught within the hour only because the result was checked against GitHub
+directly instead of being believed.
+
+It measures the age of the HEAD COMMIT now. Anything can touch `updated_at` - a
+comment, a label, a bot, this script; only the head commit answers the question
+being asked, which is whether THIS sha has had time to collect its checks.
+
+## What shipped
+
+`scripts/ci/check-prs-can-actually-merge.mjs`, in `publish-watchdog.yml` beside
+the other estate sweeps, on the same 15-minute schedule and owner-scoped App
+token. It sweeps all seven repos from its first line, because
+`check-main-is-green.mjs` had to learn that same lesson one day earlier and the
+narrower version here would have missed both PepNationLab pull requests.
+
+It **classifies** rather than assuming, which is the whole point:
+
+- `dirty` - conflicts with `main`. No check CAN run. Reopening is useless. It
+  says so and names the fix: merge `origin/main` into the branch.
+- anything else with no runs - the events really were lost. `--repair` closes
+  and reopens it, and a `reopened` event runs every gate.
+
+The repair refuses to run as `github-actions[bot]`, because reopening with
+`GITHUB_TOKEN` fires no events either and would report a success that changed
+nothing.
 
 ## The rule underneath
 
 CLAUDE.md 10.83 says a check nobody can see is not a check. This is that law one
-level up: **a pull request nobody can merge is not a pull request**, and it fails
-in the same direction - quietly, while looking fine.
-
-The deeper fix would be to stop `agent-open-pr` ever falling back to
-`GITHUB_TOKEN`, since every pull request it opens that way is born broken. That
-needs the Autopilot App installed with PR scope in all seven repos, or `GH_PAT`
-present as a secret in each. Until then the fallback is better than failing to
-open a pull request at all - but only because something now repairs what it
-produces.
+level up: **a pull request nobody can merge is not a pull request.** It fails in
+the same direction - quietly, while looking fine - and it took two wrong
+diagnoses to find, both of which looked right and neither of which was tested
+against the thing itself until afterwards.
