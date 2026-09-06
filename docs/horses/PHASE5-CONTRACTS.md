@@ -161,26 +161,44 @@ render as ordinary health:
 
 ## 2. What the data actually supports
 
-Measured 2026-09-04, because the plan's item list was written before anybody
-counted:
+Re-measured from production on 2026-09-06 at 10:04 UTC, after the detector
+repair and removal of the horse suppression. These are moving counts, not
+fixtures:
 
 | Table | Rows | What it can support |
 | --- | --- | --- |
-| `collusion_tracking` | 169,530 | I1. Real signal, but see below |
+| `collusion_tracking` | 176,153 | I1. 6,630 open observations and 169,523 cleared history |
 | `anti_cheat_flags` | 16 | I2. Small and real |
 | `anti_cheat_events` | 6 | I2 context |
-| `hand_history` | 2,753,440 | I7 investigator search |
-| `horse_decision_latency` | 57 | I5, thin |
-| `ca_collusion_signals` | **0** | Nothing. Never written |
+| `hand_history` | 3,231,827 | I7 investigator search |
+| `horse_decision_latency` | 84 | I5, still thin and horse-only |
+| `ca_collusion_signals` | 104 | I1 and I4. Seven-day pairwise chip-flow signals, all horse-versus-horse at measurement time |
 | `signup_abuse_log` | **0** | I3 has no data at all |
 | `user_devices` | **0** | I3 has no data at all |
 
-`collusion_tracking` breaks down as: 169,509 `WIN_RATE_ANOMALY`, 18
-`CHIP_DUMP`, 3 `TIMING_CORRELATION`; 169,523 already `cleared` and **7 open**.
-Every row scores 70 or above, so the score does not discriminate either.
+The 6,630 open `collusion_tracking` observations are 6,188
+`TIMING_CORRELATION`, 437 `CHIP_DUMP`, one `SOFT_PLAY`, and four old
+`WIN_RATE_ANOMALY` rows. The last two days contain 6,623 open observations:
 
-So the actionable population today is about two dozen rows, and a queue that
-does not say so is a queue nobody will open twice.
+| Pattern | Observations | Distinct pairs | Score range | Median | Horse / horse | Horse / human | Human / human |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `TIMING_CORRELATION` | 6,185 | 5,497 | 50 to 100 | 66 | 6,181 | 4 | 0 |
+| `CHIP_DUMP` | 437 | 432 | 80 to 100 | 82 | 437 | 0 | 0 |
+| `SOFT_PLAY` | 1 | 1 | 66 | 66 | 1 | 0 | 0 |
+
+This means the queue is no longer a two-dozen-row surface and score alone no
+longer identifies what deserves the next review. Horses share one deterministic
+HorseLogic engine, so timing correlation dominates by construction. The queue
+must group repeated observations by canonical player pair, rank direct and
+corroborated value-transfer evidence ahead of timing-only evidence, and disclose
+the complete pattern and participant composition. It must never achieve that
+ordering by removing horse rows.
+
+`ca_collusion_signals` is no longer dormant. Its 104 rows were produced by the
+separate seven-day chip-flow detector, and 18 pairs overlapped an open
+`collusion_tracking` pair when measured. The Phase 5 queue therefore reads both
+sources and makes overlap visible rather than presenting either source as the
+whole detector population.
 
 **Therefore I3 (multi-accounting link graph) is DEFERRED**, for the same reason
 Phase 4 deferred markers of harm: `signup_abuse_log` and `user_devices` are
