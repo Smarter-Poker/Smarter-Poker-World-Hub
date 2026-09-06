@@ -374,14 +374,11 @@ export const VIP_MEMBERSHIP = {
         name: 'VIP Lifetime',
         price: 499,
         interval: 'lifetime',
-        /* One payment, no renewal. `oneTime` is what makes the storefront send
-           checkout type 'vip_lifetime' instead of 'subscription', so Stripe
-           opens a payment-mode session rather than a recurring one. The card
-           path shipped 2026-09-05 (migration 20260905180000 + the
-           mode === 'payment' VIP branch in webhooks/stripe.js), so this term is
-           now buyable both ways: $499 by card, 49,900 diamonds. */
+        /* One payment, no renewal. The server-side card path is retained behind
+           this capability flag while its cross-method refund/provenance state
+           machine is completed. Diamond settlement is live and atomic. */
         oneTime: true,
-        cardCheckoutReady: true,
+        cardCheckoutReady: false,
         popular: false,
     },
 };

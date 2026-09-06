@@ -92,6 +92,10 @@ import CapHitPopup from '../diamonds/CapHitPopup';
 // and queries them. See the file header for why it is not a list of type names.
 import { matchesFilter } from '../../lib/diamonds/ledgerFilters';
 import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
+import {
+  clearCommerceRequestId,
+  getOrCreateCommerceRequestId,
+} from '../../lib/store/checkoutIntentStore';
 // #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
 import styles from './DiamondWalletModal.module.css';
 
@@ -1253,11 +1257,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         setTransferError('Session expired. Please sign in again.');
         return;
       }
+      const currentUser = getAuthUser();
+      if (!currentUser?.id) {
+        setTransferError('Session Expired. Please Sign In Again.');
+        return;
+      }
+      const transferIntent = {
+        scope: 'diamond-transfer',
+        userId: currentUser.id,
+        paymentMethod: 'diamonds',
+        intent: {
+          recipientId: recipient.id,
+          amount,
+        },
+      };
+      // Keep the same identity through timeouts, connection loss, and
+      // recovery-pending responses. Only an authoritative success or a
+      // confirmed compensating refund retires it.
+      const transferRequestId = getOrCreateCommerceRequestId(transferIntent);
       const res = await boundedCommerceFetch('/api/store/diamond-transfer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
+          'X-Idempotency-Key': transferRequestId,
         },
         body: JSON.stringify({
           recipientId: recipient.id,
@@ -1272,6 +1295,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         data = { error: `Server error ${res.status}. Please try again.` };
       }
       if (data.success) {
+        clearCommerceRequestId(transferIntent);
         const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
         const successMsg = `Sent ${amount} diamonds to ${recipient.display_name || recipient.username}${tierLabel}!`;
         setTransferSuccess(successMsg);
@@ -1342,6 +1366,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
         successTimeoutRef.current = setTimeout(() => setTransferSuccess(''), 4000);
       } else {
+        if (data.idempotencyTerminal === true) {
+          clearCommerceRequestId(transferIntent);
+        }
         const errMsg = data.error || 'Transfer failed';
         if (data?.gateType) {
           setPopupData(data);
@@ -2419,7 +2446,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     fontSize: 11,
                     color: '#58d9ff',
                     padding: '6px 10px',
-                    background: 'rgba(74,222,128,0.08)',
+                    background: 'rgba(0,212,255,0.08)',
                     borderRadius: 6,
                   }}
                 >
@@ -2507,7 +2534,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               style={{
                 padding: '12px 16px',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
-                background: 'rgba(168,85,247,0.04)',
+                background: 'rgba(0,212,255,0.04)',
               }}
             >
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -2537,7 +2564,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               style={{
                 padding: '12px 16px',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                background: 'rgba(168, 85, 247, 0.04)',
+                background: 'rgba(0, 212, 255, 0.04)',
                 animation: 'walletFadeIn 0.2s ease',
               }}
             >
@@ -2551,7 +2578,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               >
                 <div
                   style={{
-                    background: 'rgba(74, 222, 128, 0.08)',
+                    background: 'rgba(0, 212, 255, 0.08)',
                     borderRadius: 8,
                     padding: '8px 10px',
                   }}
@@ -2816,7 +2843,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 </div>
                 <div
                   style={{
-                    background: 'rgba(74,222,128,0.08)',
+                      background: 'rgba(0,212,255,0.08)',
                     borderRadius: 8,
                     padding: '6px 8px',
                     textAlign: 'center',
@@ -2923,7 +2950,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           {/* Transaction List */}
           <div
             role="list"
-            aria-label="Diamond transactions"
+            aria-label="Diamond Transactions"
             style={{
               padding: '4px 0 24px 0',
             }}
@@ -3225,9 +3252,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               padding: '3px 10px',
                               background:
                                 copiedTxId === tx.id
-                                  ? 'rgba(74,222,128,0.15)'
+                                  ? 'rgba(0,212,255,0.15)'
                                   : 'rgba(255,255,255,0.04)',
-                              border: `1px solid ${copiedTxId === tx.id ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                              border: `1px solid ${copiedTxId === tx.id ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
                               borderRadius: 6,
                               color: copiedTxId === tx.id ? '#58d9ff' : 'rgba(255,255,255,0.4)',
                               fontSize: 10,

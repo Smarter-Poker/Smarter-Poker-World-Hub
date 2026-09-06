@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
+const COPY_AUDIT_CLUB_ID = '00000000-0000-4000-8000-000000000093';
+const COPY_AUDIT_CLUB_ITEM_ID = '00000000-0000-4000-8000-000000000094';
 
 const ROUTES = [
   { path: '/hub/diamond-store', title: 'Diamond Store: Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
@@ -25,6 +27,7 @@ const MARKETPLACE_COPY_ROUTES = [
   '/hub/smarter-rewards',
   '/hub/smarter-rewards/daily_login',
   '/hub/club-shop',
+  `/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}`,
 ] as const;
 
 test.describe('5. Storefront Routes And Design Contract', () => {
@@ -116,6 +119,33 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         token_type: 'bearer',
         user,
       }));
+    });
+    // The Club Shop detail route is owner-scoped and therefore cannot rely on
+    // anonymous production inventory. Supply one deterministic item so the
+    // copy audit exercises the fully rendered subpage instead of a not-found
+    // boundary. All other Marketplace requests continue to their real target.
+    await page.route('**/api/club-arena/marketplace-items?*', async (route) => {
+      const requestUrl = new URL(route.request().url());
+      if (requestUrl.searchParams.get('clubId') !== COPY_AUDIT_CLUB_ID) {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          clubId: COPY_AUDIT_CLUB_ID,
+          balance: 5000,
+          items: [{
+            id: COPY_AUDIT_CLUB_ITEM_ID,
+            name: 'Verified Club Detail',
+            description: 'Every Dynamic Word Follows The Marketplace Copy Contract',
+            price: 1500,
+            category: 'Time Banks',
+          }],
+        }),
+      });
     });
 
     for (const path of MARKETPLACE_COPY_ROUTES) {

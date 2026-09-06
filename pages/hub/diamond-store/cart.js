@@ -476,21 +476,21 @@ export default function ShoppingCart() {
       return;
     }
 
+    const commerceIntent = {
+      scope: `cart-${cardGroup}`,
+      userId: user.id,
+      paymentMethod: 'card',
+      intent: {
+        type: payload.type,
+        items: payload.items.map((item) => ({
+          id: item.catalogId || item.id || item.packageId,
+          variantId: item.variantId || item.variant_id || null,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+        })),
+      },
+    };
     setCheckingOut(true);
     try {
-      const commerceIntent = {
-        scope: `cart-${cardGroup}`,
-        userId: user.id,
-        paymentMethod: 'card',
-        intent: {
-          type: payload.type,
-          items: payload.items.map((item) => ({
-            id: item.catalogId || item.id || item.packageId,
-            variantId: item.variantId || item.variant_id || null,
-            quantity: Math.max(1, Number(item.quantity) || 1),
-          })),
-        },
-      };
       const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       const res = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
@@ -503,7 +503,9 @@ export default function ShoppingCart() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(checkoutErrorMessage(data, res.status));
+        const checkoutError = new Error(checkoutErrorMessage(data, res.status));
+        checkoutError.code = data?.error?.code || null;
+        throw checkoutError;
       }
       const url = data?.data?.url || data?.url;
       if (url) {
@@ -512,6 +514,9 @@ export default function ShoppingCart() {
       }
       throw new Error('Checkout Session Missing Redirect URL');
     } catch (err) {
+      if (err?.code === 'CHECKOUT_EXPIRED') {
+        clearCommerceRequestId(commerceIntent);
+      }
       // Stay on the cart so the user can retry: the button re-enables via finally
       toast.error(err.message || 'Checkout Unavailable. Please Try Again.');
     } finally {
