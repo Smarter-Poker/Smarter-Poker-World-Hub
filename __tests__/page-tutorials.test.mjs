@@ -72,8 +72,8 @@ test('the prompt says what Dan asked, lasts three seconds, and points at the ham
   assert.match(prompt, /aria-label="Close"/);
   assert.match(read('src/tutorials/index.js'), /TUTORIAL_PROMPT_MS = 3000/);
   const css = read('src/styles/tutorial.css');
-  assert.match(css, /\.sp-tutorial-prompt-close \{[^}]*width: 44px;[^}]*height: 44px;/s);
-  assert.match(css, /\.sp-tutorial-prompt-start \{[^}]*min-height: 44px;/s);
+  assert.match(css, /\.sp-tutorial-prompt-close \{[^}]*width: 45px;[^}]*height: 45px;/s);
+  assert.match(css, /\.sp-tutorial-prompt-start \{[^}]*min-height: 45px !important;/s);
   assert.match(css, /env\(safe-area-inset-bottom/);
   assert.doesNotMatch(css, /overflow-x:\s*hidden\s*;(?![^}]*overflow-(x|y))/, 'no bare overflow-x hidden');
 });
