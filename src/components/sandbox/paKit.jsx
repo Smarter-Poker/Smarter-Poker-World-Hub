@@ -317,9 +317,12 @@ export function BottomSheet({
     }, [open, closeSheet]);
 
     const motionProps = reduce
-        ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
+        ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
         : {
-            initial: { y: '100%' }, animate: { y: 0 }, exit: { y: '100%' },
+            // Never mount an actionable sheet outside the viewport. Browsers
+            // can throttle entrance animation frames in background tabs,
+            // leaving a visible footer unreachable. Exit motion is safe.
+            initial: false, animate: { y: 0 }, exit: { y: '100%' },
             transition: { type: 'spring', stiffness: 320, damping: 34 },
         };
 
