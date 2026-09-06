@@ -2509,6 +2509,8 @@ export default function PokerNearMeLobby() {
         jsonLd={LOBBY_JSON_LD}
       />
 
+      <a className="pnm-lobby-skip" href="#pnm-lobby-main">Skip To Poker Near Me Choices</a>
+
       <HubPageShell
         className="pnm"
         maxWidth={1080}
@@ -2539,7 +2541,6 @@ export default function PokerNearMeLobby() {
         onMenuClick={() => setMenuOpen(true)}
       >
       <div className="pnm-lobby-page">
-        <a className="pnm-lobby-skip" href="#pnm-lobby-main">Skip To Poker Near Me Choices</a>
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this
             block the delivered HTML has no h1 and none of the twelve internal
