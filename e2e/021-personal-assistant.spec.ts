@@ -305,9 +305,9 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     // before exercising wraparound so its 60ms focus timer cannot race the
     // Shift+Tab assertion and move focus back to the first control.
     await expect(first).toBeFocused({ timeout: 5_000 });
-    await page.keyboard.press('Shift+Tab');
+    await first.press('Shift+Tab');
     await expect(last).toBeFocused();
-    await page.keyboard.press('Tab');
+    await last.press('Tab');
     await expect(first).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
@@ -347,6 +347,31 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await page.getByRole('button', { name: 'Load a saved hand' }).click();
     await page.getByRole('button', { name: /Study analytics/i }).click();
     await expect(page.getByRole('dialog', { name: /Study analytics/i })).toBeVisible();
+    await expectHealthyLayout(page);
+  });
+
+  test('Sandbox imports a native solver node without inventing missing state', async ({ page }, testInfo) => {
+    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
+    await activateControl(page.getByRole('button', { name: /Open .* Command Menu|Open Menu/i }), testInfo.project.name);
+    const commandMenu = page.getByRole('dialog', { name: /Command Menu/i });
+    await expect(commandMenu).toBeVisible();
+    await commandMenu.getByLabel('Search Menu').fill('Pro Import');
+    await activateControl(commandMenu.getByRole('button', { name: 'Pro Import' }), testInfo.project.name);
+    const importer = page.getByRole('dialog', { name: 'Import Native Solver Scenario' });
+    await expect(importer).toBeVisible();
+    await importer.getByLabel('Solver Export Text').fill(`PioSOLVER
+Board: Kh Jd 3c
+Pot: 75
+Effective Stack: 120
+Hero Position: CO
+Villain Position: BB
+Villain Range: AA,KK,QQ,AKs`);
+    await activateControl(importer.getByRole('button', { name: 'Check Scenario' }), testInfo.project.name);
+    await expect(importer.getByText('PioSolver Import Verified.')).toBeVisible();
+    await expect(importer.getByText('CO', { exact: true })).toBeVisible();
+    await expect(importer.getByText('BB', { exact: true })).toBeVisible();
+    await activateControl(importer.getByRole('button', { name: 'Load Scenario' }), testInfo.project.name);
+    await expect(importer).toHaveCount(0);
     await expectHealthyLayout(page);
   });
 
@@ -408,9 +433,9 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
-  test('Leak Finder coaching workspace exposes evidence, goals, timeline, and weekly reporting', async ({ page }, testInfo) => {
+  test('Leak Finder coaching workspace exposes evidence, goals, timeline, reporting, and data controls', async ({ page }, testInfo) => {
     const leakId = '11111111-1111-4111-8111-111111111111';
-    const coachingWrites = [];
+    const coachingWrites: Array<{ action?: string; preferences?: { analysisDepth?: string } }> = [];
     await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -462,6 +487,31 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
         }),
       });
     });
+    await page.route('**/api/assistant/data-controls**', async route => {
+      if (route.request().method() === 'POST') {
+        const request = route.request().postDataJSON();
+        if (request?.action === 'request_deletion') {
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, scope: request.scope, challenge: 'signed-test-challenge', confirmation: 'DELETE MY PERSONAL ASSISTANT DATA', expiresInSeconds: 600 }),
+          });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, preference: { retention_days: 90 } }) });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          counts: { leaks: 1, decisions: 4, reviews: 2, goals: 0, sandboxSessions: 3, savedHands: 1, coachResults: 5, bookmarks: 1, equityHistory: 2, templates: 1, sharedScenarios: 1, solutionBookmarks: 1 },
+          retentionDays: null,
+          lastRetentionRunAt: null,
+          receipts: [],
+          sourceHandsIncludedInDeletion: false,
+        }),
+      });
+    });
 
     await navigateStable(page, '/hub/personal-assistant/leaks');
     await activateControl(page.getByRole('button', { name: 'Coaching' }), testInfo.project.name);
@@ -480,6 +530,17 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByText('Tie Progress To Measured Evidence')).toBeVisible();
     await activateControl(page.getByRole('button', { name: 'Report', exact: true }), testInfo.project.name);
     await expect(page.getByText('Your Next Seven Days')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Data', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Data And Privacy')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Download Verified Export' })).toBeVisible();
+    await expect(page.getByText('Coach Decisions')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Review Permanent Deletion' }), testInfo.project.name);
+    const confirmation = page.getByLabel('Exact Confirmation');
+    await expect(confirmation).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Permanently Remove Selected Records' })).toBeDisabled();
+    await confirmation.fill('DELETE MY PERSONAL ASSISTANT DATA');
+    await expect(page.getByRole('button', { name: 'Permanently Remove Selected Records' })).toBeEnabled();
+    await activateControl(page.getByRole('button', { name: 'Cancel', exact: true }), testInfo.project.name);
     const coachingControlSizes = await page.locator('#leak-coaching').evaluate(root => [...root.querySelectorAll('button,a[href],input,select,textarea')].filter(element => {
       const box = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
