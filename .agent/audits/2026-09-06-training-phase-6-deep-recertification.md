@@ -1,7 +1,7 @@
 # Training Phase 6 Of 16: Deep Re-Certification
 
 Date: 2026-09-06
-Status: Local release candidate complete; protected publication pending
+Status: Protected implementation merged; post-merge E2E remediation in progress
 Protected Main Baseline: `088e1163dd62cb3e1ba4a34fd3ad93d856a0e72f`
 
 ## Release Decision
@@ -78,6 +78,11 @@ and the production re-certification passes.
 - The new exact-geometry guard passed the focused suite but was not named by a
   permanent npm or CI entrypoint. The repository reachability meta-guard caught
   the gap; the production build now runs the geometry guard on every release.
+- The new authenticated Training E2E read `playwright/.auth/user.json` at module
+  scope. A clean CI checkout therefore failed during test discovery before its
+  declared authentication setup dependency could create the file. Saved state
+  is now read inside the dependent test body, and a permanent source guard
+  rejects any return to a discovery-time read.
 
 ## Current Club Arena Contract
 
@@ -135,6 +140,8 @@ seat, table, header, footer, collision, overflow, and image guards. Both
   contracts: 147/147 passed.
 - Independent authenticated gameplay E2E: 2/2 passed in desktop Chromium and
   mobile Chrome.
+- Clean Playwright collection now discovers setup, desktop, and mobile tests
+  without opening the saved-state file; the post-setup gameplay run passes 2/2.
 - Strict TypeScript: passed.
 - Full repository lint: passed across 3,947 source and test files.
 - Production build: passed with 403/403 statically generated pages.
@@ -148,9 +155,16 @@ seat, table, header, footer, collision, overflow, and image guards. Both
 
 ## Publication And Production Verification
 
-Pending protected pull-request publication. This section must be updated with
-the pull request, merge revision, deployed production revision, and fresh
-production browser receipt before Phase 6 can be marked complete.
+- Implementation PR #1417 merged normally through protected checks as
+  `d43f557036e38081c5c33393b95b841c3fcb681c`.
+- Production `/api/health` served exact revision `d43f5570` with a healthy
+  database after the Git-integrated deployment landed.
+- The optional cross-browser global footer, World menu, and mobile performance
+  workflow passed without touching the approved global header.
+- The general post-merge E2E exposed the discovery-time saved-state defect
+  above. Phase 6 remains open until its protected remediation merges, all
+  post-merge jobs pass, production serves the final descendant, and the full
+  production Training browser receipts pass against that exact release.
 
 ## Next Phase
 

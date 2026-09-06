@@ -2,18 +2,24 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const savedAuthState = JSON.parse(
-  readFileSync(resolve(process.cwd(), 'playwright/.auth/user.json'), 'utf8'),
-);
-const savedSmarterPokerStorage = (savedAuthState.origins || [])
-  .find((origin: { origin: string }) => new URL(origin.origin).hostname === 'smarter.poker')
-  ?.localStorage || [];
+function loadSavedSmarterPokerStorage() {
+  // Test files are collected before dependency projects run. Reading this file
+  // at module scope makes a clean CI checkout fail before 00-auth.setup.ts can
+  // create it. The dependent test body runs only after setup has completed.
+  const savedAuthState = JSON.parse(
+    readFileSync(resolve(process.cwd(), 'playwright/.auth/user.json'), 'utf8'),
+  );
+  return (savedAuthState.origins || [])
+    .find((origin: { origin: string }) => new URL(origin.origin).hostname === 'smarter.poker')
+    ?.localStorage || [];
+}
 
 test.describe('3. GTO Training Flow', () => {
   test('Club Arena gameplay grades, persists, and waits for explicit Next', async ({ page }) => {
     test.setTimeout(90_000);
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
+    const savedSmarterPokerStorage = loadSavedSmarterPokerStorage();
 
     // Playwright scopes localStorage to the saved production origin. Protected
     // previews and local release builds use the same authenticated account but

@@ -808,3 +808,20 @@ test('legacy simulated reports and play surfaces route to verified data or Club 
   assert.match(godMode, /source="Authenticated Hand History"/);
   assert.match(godMode, /source="Production Integration State"/);
 });
+
+test('authenticated Training E2E waits for its setup dependency before reading saved state', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'e2e/03-training-gto.spec.ts'), 'utf8');
+  assert.match(source, /function loadSavedSmarterPokerStorage\(\)/);
+  const loaderStart = source.indexOf('function loadSavedSmarterPokerStorage()');
+  const savedStateRead = source.indexOf("readFileSync(resolve(process.cwd(), 'playwright/.auth/user.json')");
+  assert.ok(loaderStart >= 0 && savedStateRead > loaderStart);
+  assert.doesNotMatch(
+    source.slice(0, loaderStart),
+    /readFileSync\(/,
+    'saved authentication state must not be read during Playwright test discovery',
+  );
+  assert.match(
+    source,
+    /test\('Club Arena gameplay grades[\s\S]*loadSavedSmarterPokerStorage\(\)/,
+  );
+});
