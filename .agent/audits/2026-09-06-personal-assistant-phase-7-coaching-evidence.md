@@ -36,6 +36,10 @@ Phase 7 turns persisted Club Arena audit evidence into an owner-private coaching
 
 ## Publication Evidence
 
-Pending release merge and production verification.
+- Pull request #1421 squash-merged the Phase 7 workspace as `f047f89a30adf6bc366ef231440016d478c44afc`.
+- Production health reported exact revision `f047f89a` with database status healthy.
+- The authenticated production watchdog passed all four public routes, sixteen bounded requests at concurrency four with 283 ms p95, all thirteen protected API reads, and all seven owner-isolation probes.
+- Live authenticated desktop and 390-pixel mobile rendering exposed all five coaching views with zero horizontal overflow and zero undersized controls.
+- The first live dual-viewport inspection correctly caught that request time made receipt hashes differ. The receipt input now excludes presentation time and is permanently tested across distinct generation timestamps; evidence and engine version changes still produce a new receipt.
 
-Phase 7 is not complete until this section records the deployed revision and live checks.
+The receipt-stability correction must be merged and production-verified before Phase 7 is complete.
