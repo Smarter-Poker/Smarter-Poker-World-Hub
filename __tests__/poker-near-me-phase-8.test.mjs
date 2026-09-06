@@ -95,7 +95,7 @@ test('venue API and both shared maps enforce the integrity contract', async () =
   }
   assert.match(readout, /Held For Review/);
   assert.match(readout, /Privacy-Safe/);
-  assert.match(detail, /Location signal held for review/);
+  assert.match(detail, /Location Signal Held For Review/);
   assert.match(detail, /!locationConflict && venue\.latitude/);
   assert.match(activity, /held_count:/);
   assert.doesNotMatch(activity, /\blatitude\b|\blongitude\b/);

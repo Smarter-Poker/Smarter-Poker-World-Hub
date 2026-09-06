@@ -2,6 +2,25 @@ import { US_STATES_BY_CODE, cityTitleToSlug } from '../home-games/locationUtils.
 
 const EXCLUDED_VENUE_TYPES = new Set(['series', 'tour', 'home_game']);
 
+/** Public discovery surfaces with distinct search intent and server HTML. */
+export const POKER_DISCOVERY_SITEMAP_ROUTES = Object.freeze([
+  { path: '/hub/poker-near-me/venues', priority: '0.9', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/live-games', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/map', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/tours', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/series', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/daily-tournaments', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/events-calendar', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/poker-near-me/more', priority: '0.5', changefreq: 'weekly' },
+  { path: '/hub/poker-near-me/roadtrip', priority: '0.6', changefreq: 'weekly' },
+]);
+
+export const PRIVATE_POKER_DISCOVERY_SLUGS = Object.freeze(['saved', 'alerts']);
+
+export function isPokerDiscoveryRouteIndexable(slug) {
+  return !PRIVATE_POKER_DISCOVERY_SLUGS.includes(String(slug || ''));
+}
+
 /**
  * Project the public venue directory into canonical sitemap entries.
  *

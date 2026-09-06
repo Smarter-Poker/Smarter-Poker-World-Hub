@@ -6,6 +6,8 @@
  * Serves at https://smarter.poker/sitemap.xml
  */
 
+import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes';
+
 const SITE_URL = 'https://smarter.poker';
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
@@ -19,6 +21,7 @@ const staticPages = [
   { path: '/hub', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/poker-near-me/lobby', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/poker-near-me/in', priority: '0.8', changefreq: 'daily' },
+  ...POKER_DISCOVERY_SITEMAP_ROUTES,
   { path: '/hub/home-games', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
