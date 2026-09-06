@@ -121,6 +121,11 @@ if [[ "$MERGED" != "true" ]]; then
   echo "  If branch protection regressed: node scripts/check-branch-protection.mjs --fix" >&2
   exit 1
 fi
-echo "[agent-push] merged $(node -e "try{console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).sha||'')}catch(e){}" <<<"$MERGE_RESP")"
+MERGE_SHA="$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(0,"utf8")).sha||"")}catch(e){}' <<<"$MERGE_RESP")"
+if [[ -z "$MERGE_SHA" ]]; then
+  echo "[agent-push] merge succeeded but the response did not include a merge SHA" >&2
+  exit 1
+fi
+echo "[agent-push] merged $MERGE_SHA"
 curl -sS -X DELETE "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${BRANCH}" -H "Authorization: Bearer ${TOKEN}" >/dev/null || true
 echo "[agent-push] DONE"

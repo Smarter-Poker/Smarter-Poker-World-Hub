@@ -236,3 +236,23 @@ test('the authenticated E2E gate can finish and report without masking test resu
         'a PR-comment outage can mask the browser suite result by failing the reporting step'
     );
 });
+
+test('the isolated push helper reports the merge SHA without nested-shell quoting', () => {
+    const helper = fs.readFileSync(path.join(REPO, 'scripts/agent-push.sh'), 'utf8');
+
+    assert.match(
+        helper,
+        /MERGE_SHA="\$\(node -e '[^']+' <<<"\$MERGE_RESP"\)"/,
+        'the merge SHA must be parsed in a separate, shell-safe assignment'
+    );
+    assert.match(
+        helper,
+        /\[ -z "\$MERGE_SHA" \]/,
+        'a successful merge without a parseable SHA must fail instead of printing a blank receipt'
+    );
+    assert.doesNotMatch(
+        helper,
+        /echo "\[agent-push\] merged \$\(node -e "/,
+        'nested double quotes split the node parser into invalid shell arguments on current runtimes'
+    );
+});
