@@ -42,7 +42,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
     const status = page.locator('.pnm-directory-source');
-    await expect(page.getByRole('main', { name: 'Poker Near Me discovery results' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Poker Near Me discovery results' })).toBeVisible();
     await expect(status).toHaveAttribute('data-directory-source', 'static_snapshot');
     await expect(status).toContainText('Published Venue Snapshot');
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
@@ -55,7 +55,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const route = '/hub/poker-near-me/lobby';
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole('main', { name: 'Poker Near Me discovery lobby' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Poker Near Me discovery lobby' })).toBeVisible();
 
     // Touch-emulated mobile projects do not expose desktop Tab traversal.
     // The Chromium project owns the keyboard-order assertion; mobile still

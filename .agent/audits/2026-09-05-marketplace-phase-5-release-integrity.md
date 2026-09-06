@@ -62,5 +62,26 @@ deferred.
 
 ## Publication Evidence
 
-Publication evidence is recorded after protected-main merge and exact-release
-production verification.
+- The Marketplace implementation merged through
+  [pull request 1390](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1390)
+  at commit `08b3101642a20ff2be19dec4969b41213ef51ed4`.
+- The production-packaging repair merged through
+  [pull request 1393](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1393)
+  at commit `153ca002a584283d269ebe0299d6a96798cedbb1`.
+- Vercel production deployment `dpl_12cehL1UfK9sqDFTsSWYhwMLGAUp`
+  published exact protected-main commit `153ca002a584283d269ebe0299d6a96798cedbb1`
+  to `smarter.poker`. This commit contains the Marketplace implementation as
+  an ancestor.
+- The strict live deployment verifier passed every storefront, subpage, hero
+  asset, private API, readiness, capability, checkout, and performance check.
+  Card and Diamond checkout were both available. Automatic merchandise
+  fulfillment remained deliberately deferred.
+- Five consecutive public health probes returned HTTP 200 with status `ok`
+  and version `153ca002`. A final expanded probe also reported database status
+  `ok` with a 377 millisecond response.
+- Anonymous VIP cancellation and plan-switch requests returned HTTP 401 with
+  `private, no-store, max-age=0` and `Vary: Authorization`.
+- The complete live Marketplace browser suite passed 62 of 62 desktop and
+  mobile checks, including same-surface navigation, accessibility, responsive
+  controls, card and Diamond purchase choices, and the one-time Lifetime VIP
+  card path.

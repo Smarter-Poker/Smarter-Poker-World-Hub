@@ -72,6 +72,7 @@ const CRON_REGISTRY = [
     { name: 'social-page-completion-nudge', location: 'open-claw', intervalMin: 4320, description: 'Nudge incomplete social pages' },
     { name: 'transcode-videos',           location: 'open-claw', intervalMin: 1,     description: 'Drain video transcode queue' },
     { name: 'yt-pipeline-recovery',       location: 'open-claw', intervalMin: 15,    description: 'YT worker queue top-up' },
+    { name: 'pnm-integrity-refresh',      location: 'open-claw', intervalMin: 1440,  description: 'Rebuild Poker Near Me anomaly queue' },
 
     // ── Remote jobs (no local handler; telemetry must come from THEIR side) ──
     { name: 'daily-challenge',            location: 'open-claw', intervalMin: 1440,  remote: true, description: 'Generate daily trivia challenge (workers repo)' },

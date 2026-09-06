@@ -141,9 +141,9 @@ test('API, SSR, location families, and lobby accessibility share the Phase 11 co
   assert.match(discovery, /data-directory-source/);
   assert.match(discovery, /Retry Live Registry/);
   assert.match(discovery, /fetchVenueDirectoryResilient/);
-  assert.match(discovery, /<main className="pnm-layout" aria-label="Poker Near Me discovery results">/);
+  assert.match(discovery, /<section className="pnm-layout" aria-label="Poker Near Me discovery results">/);
   assert.match(locations, /fetchVenueDirectoryResilient/);
-  assert.match(lobby, /<main id="pnm-lobby-main"/);
+  assert.match(lobby, /<section id="pnm-lobby-main"/);
   assert.match(lobby, /Skip To Poker Near Me Choices/);
   assert.match(lobbyCss, /min-width: 44px !important/);
   assert.match(lobbyCss, /min-height: 44px !important/);

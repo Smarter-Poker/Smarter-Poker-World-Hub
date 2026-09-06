@@ -2571,7 +2571,7 @@ export default function PokerNearMeLobby() {
         />
 
         <PullToRefresh onRefresh={handleRefreshAll} disabled={anySheetOpen}>
-        <main id="pnm-lobby-main" className="pnm-lobby-stage" aria-label="Poker Near Me discovery lobby">
+        <section id="pnm-lobby-main" className="pnm-lobby-stage" aria-label="Poker Near Me discovery lobby">
           {/* Layer 1 — Background */}
           <LobbyCanvas />
 
@@ -2612,7 +2612,7 @@ export default function PokerNearMeLobby() {
             venueCount={totalVenueCount || venues.length}
             onSearchBarClick={() => setShowGlobalSearch(true)}
           />
-        </main>
+        </section>
         </PullToRefresh>
 
 

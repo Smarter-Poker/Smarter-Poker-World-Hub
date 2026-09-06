@@ -159,6 +159,50 @@ const TREND_COLUMNS = [
   ['hands', 'Captured Hands'],
   ['rate_per_1000', 'Rate Per 1000 Hands'],
 ];
+/* 2026-09-05: the three cards below surface work that had no reader on this
+   page at all. 66% of horse play is tournaments and the panel could not show
+   a single result; the frequency leaks are the ones no 20bb hand tag can see;
+   and the solver agreement is the only ABSOLUTE score the platform produces -
+   the league card above it measures one config against another and can never
+   say whether either plays well. */
+/* A rate stored 0..1, shown as a percent. Null and undefined are a real
+   answer here - fn_horse_frequency_leaks returns null for a rate whose
+   denominator was too small to mean anything, and a dash says that where a
+   0% would be a lie. */
+function pct(v) {
+  const n = Number(v);
+  return v === null || v === undefined || !Number.isFinite(n) ? '-' : `${(n * 100).toFixed(1)}%`;
+}
+
+const TOURNAMENT_COLUMNS = [
+  ['tournament_type', 'Type'],
+  ['variant', 'Variant'],
+  ['entries', 'Entries'],
+  ['invested', 'Invested'],
+  ['won', 'Won'],
+  ['roi_pct', 'ROI Percent'],
+  ['itm_pct', 'In The Money Percent'],
+  ['avg_finish_pct', 'Average Finish'],
+  ['horses', 'Horses'],
+];
+const FREQUENCY_COLUMNS = [
+  ['alias', 'Horse'],
+  ['hands', 'Hands'],
+  ['vpip', 'VPIP'],
+  ['pfr_of_vpip', 'PFR Of VPIP'],
+  ['three_bet', 'Three Bet'],
+  ['fold_to_3bet', 'Fold To Three Bet'],
+  ['wwsf', 'Won When Saw Flop'],
+  ['af', 'Aggression Factor'],
+  ['leaks', 'Leaks'],
+];
+const AGREEMENT_COLUMNS = [
+  ['run_date', 'Run'],
+  ['reference', 'Reference'],
+  ['spots', 'Spots'],
+  ['agreement', 'Agreement'],
+  ['pure_misses', 'Pure Misses'],
+];
 const FLEET_COLUMNS = [
   ['alias', 'Horse'],
   ['horse_user_id', 'Horse User Id'],
@@ -337,6 +381,15 @@ export default function HorseHandReviews() {
   const [leagueOpen, setLeagueOpen] = useState(false);
   const [tagTrends, setTagTrends] = useState([]);
   const [tagTrendsError, setTagTrendsError] = useState(null);
+  const [tourney, setTourney] = useState([]);
+  const [tourneyError, setTourneyError] = useState(null);
+  const [tourneyOpen, setTourneyOpen] = useState(false);
+  const [freq, setFreq] = useState([]);
+  const [freqError, setFreqError] = useState(null);
+  const [freqOpen, setFreqOpen] = useState(false);
+  const [agree, setAgree] = useState([]);
+  const [agreeError, setAgreeError] = useState(null);
+  const [agreeOpen, setAgreeOpen] = useState(false);
   const [trendsOpen, setTrendsOpen] = useState(false);
 
   // The fleet table used to render horses.slice(0, 40) with nothing to say a
@@ -448,6 +501,39 @@ export default function HorseHandReviews() {
     } else {
       setTagTrendsError(null);
       setTagTrends(ttData || []);
+    }
+    // Same error discipline as every read above: a failed RPC must LOOK
+    // failed, not render as "No Data Yet" - on this page an empty card is
+    // itself a finding, so the two states can never be allowed to look alike.
+    const { data: tcData, error: tcErr } = await supabase.rpc('ca_horse_tournament_card', {
+      p_days: 7,
+    });
+    if (tcErr) {
+      setTourneyError(tcErr.message);
+      setTourney([]);
+    } else {
+      setTourneyError(null);
+      setTourney(tcData || []);
+    }
+    const { data: fqData, error: fqErr } = await supabase.rpc('ca_horse_frequency_card', {
+      p_days: 7,
+    });
+    if (fqErr) {
+      setFreqError(fqErr.message);
+      setFreq([]);
+    } else {
+      setFreqError(null);
+      setFreq(fqData || []);
+    }
+    const { data: agData, error: agErr } = await supabase.rpc('ca_horse_solver_agreement', {
+      p_runs: 14,
+    });
+    if (agErr) {
+      setAgreeError(agErr.message);
+      setAgree([]);
+    } else {
+      setAgreeError(null);
+      setAgree(agData || []);
     }
   }, []);
 
@@ -722,6 +808,279 @@ export default function HorseHandReviews() {
                           {ledgerError
                             ? `The Ledger Read FAILED (${ledgerError}). This Is Not Evidence The Ledger Is Empty, The Query Did Not Run.`
                             : 'No Ledger Rows. The Engine Writes Its Contract At Boot; An Empty Ledger Is The Critical Audit Finding Named Data Ledger Missing.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ═══ 2026-09-05: THE THREE CARDS THIS PAGE COULD NOT SHOW ═══
+              Each one reads an RPC that existed with no reader. A number
+              nobody can see is a number nobody acts on, which is the same
+              failure as a tag nobody reads - the thing this whole programme
+              was started to fix. */}
+
+          {/* TOURNAMENT SCOREBOARD. 66% of horse seat-hands are tournaments
+              and this page could not show one result: the self-tuner is
+              cash-only by design and horse_daily_nets records tournament
+              chips as 0.0 bb/100, because chips are not bb-comparable. ROI
+              against the fee is the number that IS comparable. */}
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={tourneyOpen}
+              aria-controls="tourney-panel"
+              onClick={() => setTourneyOpen(!tourneyOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
+            >
+              <span style={{ fontWeight: 700 }}>Tournament Scoreboard</span>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
+                Seven Days Of Entries, Buy Ins And Prizes. The Fleet Plays Itself, So Pooled ROI
+                Is Minus The Fee Plus Any Overlay. Compare Against Minus The Fee, Never Zero.
+              </span>
+              <span style={{ marginLeft: 'auto', color: T.positive, fontSize: '0.8rem' }}>
+                {tourneyError ? 'Read Failed' : tourney.length > 0 ? `${tourney.length} Rows` : 'No Data Yet'}
+              </span>
+            </button>
+            {tourneyOpen && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <ExportCsvButton rows={tourney} columns={TOURNAMENT_COLUMNS} filePrefix="horse-tournament-card" />
+              </div>
+            )}
+            {tourneyOpen && (
+              <div id="tourney-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ color: T.muted, textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem' }}>Type</th>
+                      <th style={{ padding: '0.3rem' }}>Variant</th>
+                      <th style={{ padding: '0.3rem' }}>Entries</th>
+                      <th style={{ padding: '0.3rem' }}>ROI</th>
+                      <th style={{ padding: '0.3rem' }}>In The Money</th>
+                      <th style={{ padding: '0.3rem' }}>Average Finish</th>
+                      <th style={{ padding: '0.3rem' }}>Horses</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tourney.map((r) => {
+                      const roi = Number(r.roi_pct);
+                      // A losing ROI is not automatically a fault: the fleet
+                      // plays itself, so the pooled figure is the fee. Only a
+                      // deep loss is coloured as one.
+                      const bad = Number.isFinite(roi) && roi < -15;
+                      return (
+                        <tr key={`${r.tournament_type}-${r.variant}`} style={{ borderTop: `1px solid ${T.line}` }}>
+                          <td style={{ padding: '0.3rem', fontWeight: 600 }}>{r.tournament_type}</td>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{r.variant}</td>
+                          <td style={{ padding: '0.3rem' }}>{r.entries}</td>
+                          <td style={{ padding: '0.3rem', fontWeight: 600, color: bad ? T.danger : roi >= 0 ? T.positive : T.text }}>
+                            {r.roi_pct === null || r.roi_pct === undefined ? '-' : `${r.roi_pct}%`}
+                          </td>
+                          <td style={{ padding: '0.3rem', color: T.muted }}>
+                            {r.itm_pct === null || r.itm_pct === undefined ? '-' : `${r.itm_pct}%`}
+                          </td>
+                          <td style={{ padding: '0.3rem', color: T.muted }}>{r.avg_finish_pct ?? '-'}</td>
+                          <td style={{ padding: '0.3rem', color: T.muted }}>{r.horses}</td>
+                        </tr>
+                      );
+                    })}
+                    {tourney.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '0.4rem', color: T.muted }}>
+                          {tourneyError
+                            ? `The Tournament Read FAILED (${tourneyError}). Fix The Read Before Drawing Conclusions.`
+                            : 'No Completed Tournaments In The Window Yet.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* FREQUENCY LEAKS. Every hand tag needs a 20bb pot and most need a
+              showdown, so over folding, never three betting, limping and
+              passive postflop play could never reach one - they do not cost
+              20bb in a single pot. These come from horse_daily_play on the
+              same bands the self tuner moves the dials against. */}
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={freqOpen}
+              aria-controls="freq-panel"
+              onClick={() => setFreqOpen(!freqOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
+            >
+              <span style={{ fontWeight: 700 }}>Frequency Leaks</span>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
+                The Leaks No Twenty BB Hand Tag Can See. A Leak Shared By A Third Of The Fleet Is A
+                Bar In The Brain, Not A Personality.
+              </span>
+              <span style={{ marginLeft: 'auto', color: T.positive, fontSize: '0.8rem' }}>
+                {freqError ? 'Read Failed' : freq.length > 0 ? `${freq.length} Horses` : 'No Data Yet'}
+              </span>
+            </button>
+            {freqOpen && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <ExportCsvButton
+                  rows={freq.map((r) => ({ ...r, leaks: (r.leaks || []).join(' ') }))}
+                  columns={FREQUENCY_COLUMNS}
+                  filePrefix="horse-frequency-leaks"
+                />
+              </div>
+            )}
+            {freqOpen && (
+              <div id="freq-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
+                {/* THE FLEET WIDE READ COMES FIRST. One horse outside a band
+                    is a personality the tuner will move tonight. A third of
+                    the fleet outside the same band is a threshold in
+                    HorsePreflop, and tuning dials against it is the fleet
+                    trying and losing. */}
+                {(() => {
+                  const tally = {};
+                  for (const r of freq) for (const l of r.leaks || []) tally[l] = (tally[l] || 0) + 1;
+                  const worst = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+                  if (!worst || freq.length === 0) return null;
+                  const share = worst[1] / freq.length;
+                  if (share < 0.33) return null;
+                  return (
+                    <div
+                      role="alert"
+                      style={{
+                        background: T.inset,
+                        border: `1px solid ${T.danger}`,
+                        borderRadius: 6,
+                        padding: '0.5rem 0.75rem',
+                        marginBottom: 8,
+                        fontSize: '0.8rem',
+                        color: T.danger,
+                      }}
+                    >
+                      {`Fleet Wide: ${worst[0]} On ${worst[1]} Of ${freq.length} Studied Horses. `}
+                      <span style={{ color: T.muted }}>
+                        A Third Of The Fleet Sharing One Frequency Is A Threshold In The Brain, Not A
+                        Set Of Dials. Find The Bar Before Tuning Anything.
+                      </span>
+                    </div>
+                  );
+                })()}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ color: T.muted, textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem' }}>Horse</th>
+                      <th style={{ padding: '0.3rem' }}>Hands</th>
+                      <th style={{ padding: '0.3rem' }}>VPIP</th>
+                      <th style={{ padding: '0.3rem' }}>PFR Of VPIP</th>
+                      <th style={{ padding: '0.3rem' }}>Fold To Three Bet</th>
+                      <th style={{ padding: '0.3rem' }}>Aggression</th>
+                      <th style={{ padding: '0.3rem' }}>Leaks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {freq.slice(0, 60).map((r) => (
+                      <tr key={r.horse_user_id} style={{ borderTop: `1px solid ${T.line}` }}>
+                        <td style={{ padding: '0.3rem' }}>{r.alias || r.horse_user_id}</td>
+                        <td style={{ padding: '0.3rem', color: T.muted }}>{r.hands}</td>
+                        <td style={{ padding: '0.3rem' }}>{pct(r.vpip)}</td>
+                        <td style={{ padding: '0.3rem' }}>{pct(r.pfr_of_vpip)}</td>
+                        <td style={{ padding: '0.3rem' }}>{pct(r.fold_to_3bet)}</td>
+                        <td style={{ padding: '0.3rem' }}>{r.af ?? '-'}</td>
+                        <td style={{ padding: '0.3rem', color: T.danger, fontFamily: 'monospace' }}>
+                          {(r.leaks || []).join(' ')}
+                        </td>
+                      </tr>
+                    ))}
+                    {freq.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '0.4rem', color: T.muted }}>
+                          {freqError
+                            ? `The Frequency Read FAILED (${freqError}). Fix The Read Before Drawing Conclusions.`
+                            : 'No Horse Has A Thousand Cash Hands In The Window Yet.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* SOLVER AGREEMENT. The league card above measures one config
+              against another and can never say whether either plays well.
+              This is the absolute score: the mean solver frequency of the
+              action the horse chose, over hold em push fold spots. */}
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={agreeOpen}
+              aria-controls="agree-panel"
+              onClick={() => setAgreeOpen(!agreeOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
+            >
+              <span style={{ fontWeight: 700 }}>Solver Agreement</span>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
+                The Absolute Score The League Cannot Produce. Hold Em Push Fold Only. A Pure Miss Is
+                A Spot The Solver Plays One Way Ninety Percent Of The Time And The Horse Did Not.
+              </span>
+              <span style={{ marginLeft: 'auto', color: T.positive, fontSize: '0.8rem' }}>
+                {agreeError ? 'Read Failed' : agree.length > 0 ? `${agree.length} Runs` : 'No Data Yet'}
+              </span>
+            </button>
+            {agreeOpen && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <ExportCsvButton rows={agree} columns={AGREEMENT_COLUMNS} filePrefix="horse-solver-agreement" />
+              </div>
+            )}
+            {agreeOpen && (
+              <div id="agree-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ color: T.muted, textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem' }}>Run</th>
+                      <th style={{ padding: '0.3rem' }}>Reference</th>
+                      <th style={{ padding: '0.3rem' }}>Spots</th>
+                      <th style={{ padding: '0.3rem' }}>Agreement</th>
+                      <th style={{ padding: '0.3rem' }}>Change</th>
+                      <th style={{ padding: '0.3rem' }}>Pure Misses</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agree.map((r, i) => {
+                      // The rows arrive newest first, so the previous run is
+                      // the NEXT element. A fall is the regression the league
+                      // structurally cannot see.
+                      const prev = agree[i + 1];
+                      const delta =
+                        prev && Number.isFinite(Number(prev.agreement))
+                          ? Number(r.agreement) - Number(prev.agreement)
+                          : null;
+                      const dropped = delta !== null && delta < -0.03;
+                      return (
+                        <tr key={`${r.run_date}-${r.reference}`} style={{ borderTop: `1px solid ${T.line}` }}>
+                          <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{r.run_date}</td>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace', color: T.muted }}>{r.reference}</td>
+                          <td style={{ padding: '0.3rem', color: Number(r.spots) < 50 ? T.warn : T.muted }}>{r.spots}</td>
+                          <td style={{ padding: '0.3rem', fontWeight: 600 }}>{r.agreement}</td>
+                          <td style={{ padding: '0.3rem', color: dropped ? T.danger : delta === null ? T.muted : T.positive }}>
+                            {delta === null ? '-' : `${delta >= 0 ? '+' : ''}${delta.toFixed(3)}`}
+                          </td>
+                          <td style={{ padding: '0.3rem', color: T.muted }}>{r.pure_misses}</td>
+                        </tr>
+                      );
+                    })}
+                    {agree.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '0.4rem', color: T.muted }}>
+                          {agreeError
+                            ? `The Agreement Read FAILED (${agreeError}). Fix The Read Before Drawing Conclusions.`
+                            : 'No Probe Has Run Yet. It Runs With The Nightly League.'}
                         </td>
                       </tr>
                     )}
