@@ -52,7 +52,7 @@ body.world-poker-near-me :is(
   .pnm-page, .pnm-lobby-page, .venue-page, .pnm-location-listing
 ) :is(button, input, select, textarea):focus-visible {
   border-color: var(--pnm-v2-energy) !important;
-  outline: 2px solid rgba(72, 199, 255, 0.72) !important;
+  outline: 3px solid rgba(72, 199, 255, 0.82) !important;
   outline-offset: 2px !important;
   box-shadow: var(--pnm-v2-inset), 0 0 18px rgba(72, 199, 255, 0.14) !important;
 }
@@ -194,6 +194,10 @@ body.world-poker-near-me .sp-drawer :is(
   clip-path: none !important;
 }
 
+body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile) {
+  border-radius: 3px !important;
+}
+
 body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile, .sp-command-utility-button) {
   border-color: rgba(170, 184, 196, 0.24) !important;
   background-image: none !important;
@@ -203,7 +207,7 @@ body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile, .sp-command
 body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile)[aria-current='page'],
 body.world-poker-near-me .sp-drawer :is(.sp-menu-row, .sp-grid-tile)[aria-pressed='true'] {
   color: #eef8ff !important;
-  border-color: rgba(72, 199, 255, 0.58) !important;
+  border-color: var(--pnm-v2-energy) !important;
   background: #0a1721 !important;
   box-shadow: inset 3px 0 var(--pnm-v2-energy), inset 0 1px rgba(255, 255, 255, 0.055) !important;
 }
