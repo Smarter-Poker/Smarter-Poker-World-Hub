@@ -32,7 +32,7 @@ REALISM FEATURES:
   • Waitlist only appears when tables > baseline (overflow condition)
   • Venues can go dark as a whole; per-game random blackouts removed
   • Batch_id prefixed "sim-" for audit trail (never confused with real scrapes)
-  • Writes source='bravo' so API treats it as real-time priority data
+  • Writes observation_kind='modeled' while retaining the legacy source key
   • Venues with FRESH REAL scraped data are skipped entirely
   • scrape_html_hash is NULL — nothing was fetched, so no page hash exists
   • DST-aware Central time offset computed dynamically
@@ -113,6 +113,12 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Optional
 from dotenv import load_dotenv
+from scraper_data_truth import (
+    OBSERVATION_MODELED,
+    QUALITY_MODELED,
+    classify_persisted_run,
+    is_observed_bravo_row,
+)
 
 # ── PATH SETUP ──────────────────────────────────────────────────
 project_root = Path(__file__).resolve().parent.parent
@@ -259,48 +265,20 @@ def _is_retryable_http(e: urllib.error.HTTPError) -> bool:
 # fetched. Labelling them 'scraped_verified' told every future consumer that a
 # generated number was a verified scrape. The honest value is 'simulated'.
 #
-# venue_live_tables.data_quality carries a CHECK constraint that historically
-# allowed only ('scraped_verified','stale','expired'). Migration
-# 20260809_widen_live_tables_data_quality.sql adds 'simulated'. Until that runs,
-# writing the honest value would be rejected and the cash-games surface would go
-# dark - so sb_insert detects the CHECK violation (SQLSTATE 23514), downgrades
-# once per process, and logs loudly. Safe to deploy before OR after the
-# migration; it corrects itself either way.
+# venue_live_tables.data_quality historically rejected 'simulated'. Migration
+# 20260906173000_pnm_scraper_data_truth.sql adds the honest quality and the
+# observation_kind discriminator. This daemon deliberately FAILS CLOSED when
+# that contract is absent: a modeled row may never be relabelled as a verified
+# scrape merely to keep a dashboard populated.
 #
 # NOTE: `source` deliberately stays 'bravo'. live-tables.js keys its
 # cross-source slug index on source=='bravo' and derives simulated-ness from
 # scrape_batch_id starting 'sim-' (isSimulatedRow), so changing source would
 # empty that index and break PokerAtlas->Bravo venue merging, while fixing
 # nothing the batch-id check does not already handle.
-SIM_DATA_QUALITY_HONEST   = 'simulated'
-SIM_DATA_QUALITY_FALLBACK = 'scraped_verified'
-_SIM_DQ_STATE = {'value': SIM_DATA_QUALITY_HONEST, 'downgraded': False}
-
-
 def sim_data_quality() -> str:
     """Label to stamp on generated rows this cycle."""
-    return _SIM_DQ_STATE['value']
-
-
-def _downgrade_data_quality_if_needed(detail: str) -> bool:
-    """If a batch was rejected by the data_quality CHECK, fall back once.
-
-    Returns True when the caller should retry the chunk with the old label.
-    """
-    if _SIM_DQ_STATE['downgraded']:
-        return False
-    d = (detail or '').lower()
-    if '23514' in d or ('data_quality' in d and 'check' in d) or 'violates check constraint' in d:
-        _SIM_DQ_STATE['value'] = SIM_DATA_QUALITY_FALLBACK
-        _SIM_DQ_STATE['downgraded'] = True
-        log.error(
-            '  data_quality=%r rejected by the venue_live_tables CHECK constraint. '
-            'Falling back to %r for this process so cash games stay published. '
-            'RUN migration 20260809_widen_live_tables_data_quality.sql to allow the '
-            'honest label - until then these rows remain mislabelled as verified scrapes.',
-            SIM_DATA_QUALITY_HONEST, SIM_DATA_QUALITY_FALLBACK)
-        return True
-    return False
+    return QUALITY_MODELED
 
 
 def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
@@ -321,14 +299,6 @@ def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
     failed_chunks = 0
     for i in range(0, len(data), batch_size):
         chunk = data[i:i + batch_size]
-        # If an earlier chunk already tripped the CHECK downgrade, relabel this
-        # one BEFORE sending. Without this, every later chunk would still carry
-        # the honest label, be permanently rejected, and the cycle would lose
-        # most of its rows - the exact partial outage this function warns about.
-        if _SIM_DQ_STATE['downgraded']:
-            for _r in chunk:
-                if _r.get('data_quality') == SIM_DATA_QUALITY_HONEST:
-                    _r['data_quality'] = SIM_DATA_QUALITY_FALLBACK
         body = json.dumps(chunk).encode()
         chunk_no = i // batch_size + 1
         saved = False
@@ -348,14 +318,6 @@ def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
             except urllib.error.HTTPError as e:
                 detail = _http_error_detail(e)
                 if not _is_retryable_http(e):
-                    # A data_quality CHECK rejection is recoverable: relabel and
-                    # replay this same chunk rather than losing the cycle.
-                    if _downgrade_data_quality_if_needed(detail):
-                        for _r in chunk:
-                            if _r.get('data_quality') == SIM_DATA_QUALITY_HONEST:
-                                _r['data_quality'] = SIM_DATA_QUALITY_FALLBACK
-                        body = json.dumps(chunk).encode()
-                        continue
                     log.error(f'  Batch {chunk_no} PERMANENTLY REJECTED: {detail}')
                     break
                 if attempt < 2:
@@ -439,7 +401,7 @@ def fetch_fresh_real_slugs() -> set:
         rows = sb_fetch(
             'venue_live_tables',
             {
-                'select':           'bravo_slug,scrape_batch_id,scrape_timestamp',
+                'select':           'bravo_slug,source,observation_kind,scrape_batch_id,scrape_timestamp',
                 'scrape_timestamp': f'gte.{cutoff}',
                 'order':            'bravo_slug.asc,game_name.asc,scrape_timestamp.desc',
                 'limit':            page_size,
@@ -449,9 +411,8 @@ def fetch_fresh_real_slugs() -> set:
         if not rows:
             break
         for row in rows:
-            batch = row.get('scrape_batch_id') or ''
             slug  = row.get('bravo_slug') or ''
-            if slug and not batch.startswith('sim-'):
+            if slug and is_observed_bravo_row(row):
                 fresh.add(slug)
         if len(rows) < page_size:
             break
@@ -1135,8 +1096,9 @@ def generate_snapshot(model: PatternModel, now_utc: datetime,
                 # artifact that made a generated row look like a verified fetch.
                 'scrape_html_hash': None,
                 'scrape_batch_id':  batch_id,
-                # Modelled, not observed - see SIM_DATA_QUALITY_HONEST above.
+                # Modelled, not observed - see the provenance contract above.
                 'data_quality':     sim_data_quality(),
+                'observation_kind': OBSERVATION_MODELED,
                 'source':           'bravo',             # API gives Bravo priority over PA catalog
                 'buyin_range':      pat.get('buyin_range') or None,
                 'runs_schedule':    None,
@@ -1318,6 +1280,57 @@ def write_heartbeat(status: str, extra: Optional[dict] = None):
             pass
 
 
+def write_scraper_metric(cycle_start: datetime, outcome: dict,
+                         venues_scraped: int, venues_with_data: int) -> bool:
+    """Persist output-aware health for the admin scraper dashboard.
+
+    The extended fields are introduced by the data-truth migration. A legacy
+    retry keeps pre-migration dashboards observable, but the modeled data write
+    itself never falls back to dishonest provenance.
+    """
+    duration = max(0, int((datetime.now(timezone.utc) - cycle_start).total_seconds()))
+    payload = {
+        'source': 'bravo-simulator',
+        'cycle_start': cycle_start.isoformat(),
+        'duration_seconds': duration,
+        'venues_scraped': max(0, int(venues_scraped or 0)),
+        'venues_with_data': max(0, int(venues_with_data or 0)),
+        **outcome,
+    }
+
+    def _post(row: dict) -> None:
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
+            data=json.dumps(row).encode(), method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'},
+        )
+        urllib.request.urlopen(req, timeout=15)
+
+    try:
+        _post(payload)
+        return True
+    except urllib.error.HTTPError as e:
+        detail = _http_error_detail(e)
+        if e.code == 400 and any(name in detail for name in (
+                'run_status', 'records_attempted', 'records_rejected', 'status_reason')):
+            legacy = {k: payload[k] for k in (
+                'source', 'cycle_start', 'duration_seconds', 'venues_scraped',
+                'venues_with_data', 'errors', 'records_saved')}
+            try:
+                _post(legacy)
+                log.error('  scraper_metrics schema is missing the data-truth columns; '
+                          'legacy metric written, but this run cannot be explicitly classified')
+                return False
+            except Exception as legacy_err:
+                log.error(f'  scraper_metrics legacy retry FAILED: {legacy_err}')
+                return False
+        log.error(f'  scraper_metrics insert FAILED: {detail}')
+        return False
+    except Exception as e:
+        log.error(f'  scraper_metrics insert FAILED: {type(e).__name__}: {e}')
+        return False
+
+
 # ═════════════════════════════════════════════════════════════════
 # PID GUARD
 # ═════════════════════════════════════════════════════════════════
@@ -1474,6 +1487,7 @@ def run():
         cycle += 1
         cycle_start = time.time()
         now_utc = datetime.now(timezone.utc)
+        records_attempted = 0
 
         log.info(f'--- Cycle #{cycle} | {now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")} ---')
         # Keep the heartbeat fresh while the cycle runs, WITHOUT clearing the
@@ -1554,37 +1568,58 @@ def run():
                     consecutive_failures = 0
                     delete_failures      = 0
                     last_good_batch_id   = None
+                    outcome = classify_persisted_run(
+                        attempted=0, persisted=0, valid_empty=True,
+                        status_reason='observed_bravo_covers_all_modeled_venues')
                     write_heartbeat('idle', {
                         'cycle':                cycle,
                         'reason':               'real_data_covers_all_venues',
+                        'run_status':           outcome['run_status'],
+                        'valid_empty':          True,
                         'venues_skipped_real':  len(skip_slugs),
                         'records_saved':        0,
                         'history_age_days':     round(age_days, 2),
                         'consecutive_failures': 0,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), len(skip_slugs))
                 else:
                     consecutive_failures += 1
                     log.error('  Leftover sim-row purge FAILED while standing down.')
+                    outcome = classify_persisted_run(
+                        attempted=0, persisted=0, errors=1,
+                        status_reason='stale_modeled_row_delete_failed')
                     write_heartbeat('error', {
                         'cycle':                cycle,
                         'error':                'stale_delete_failed',
+                        'run_status':           outcome['run_status'],
                         'records_saved':        0,
                         'consecutive_failures': consecutive_failures,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), 0)
             elif not rows:
                 # This IS a failure: venues remain uncovered by real data and the
                 # model still produced nothing for them, so the live-tables
                 # surface has nothing behind it.
                 consecutive_failures += 1
                 log.error('  No rows generated — pattern model produced nothing.')
+                outcome = classify_persisted_run(
+                    attempted=0, persisted=0, errors=1,
+                    status_reason='model_generated_zero_rows_without_observed_coverage')
                 write_heartbeat('error', {
                     'cycle': cycle,
                     'error': 'no_rows_generated',
+                    'run_status': outcome['run_status'],
+                    'records_saved': 0,
                     'venues_skipped_real': len(skip_slugs),
                     'consecutive_failures': consecutive_failures,
                 })
+                write_scraper_metric(
+                    now_utc, outcome, len(_generatable_venues(model)), 0)
             else:
                 batch_id = rows[0]['scrape_batch_id']
+                records_attempted = len(rows)
 
                 # FIX: INSERT the new batch FIRST, then DELETE the older sim
                 # rows. The old order (delete → insert) guaranteed a window of
@@ -1604,12 +1639,20 @@ def run():
                         f'check Supabase connection and RLS policies. '
                         f'Previous batch left in place.'
                     )
+                    outcome = classify_persisted_run(
+                        attempted=len(rows), persisted=0, rejected=len(rows),
+                        errors=max(1, failed_chunks), status_reason='modeled_batch_persisted_zero_rows')
                     write_heartbeat('error', {
                         'cycle': cycle,
                         'error': 'zero_rows_saved',
+                        'run_status': outcome['run_status'],
                         'records_saved': 0,
+                        'records_attempted': len(rows),
+                        'records_rejected': len(rows),
                         'consecutive_failures': consecutive_failures,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), 0)
                 elif failed_chunks:
                     # A partial insert is a partial outage. Do NOT delete the
                     # previous batch — its rows still cover the venues this
@@ -1620,14 +1663,21 @@ def run():
                         f'{failed_chunks} chunk(s) failed. Previous batch kept as '
                         f'cover; stale-row cleanup skipped.'
                     )
+                    outcome = classify_persisted_run(
+                        attempted=len(rows), persisted=saved,
+                        rejected=max(0, len(rows) - saved), errors=failed_chunks,
+                        status_reason='modeled_batch_partially_persisted')
                     write_heartbeat('error', {
                         'cycle': cycle,
                         'error': f'partial_write:{failed_chunks}_chunks_failed',
+                        'run_status': outcome['run_status'],
                         'records_saved': saved,
                         'records_expected': len(rows),
                         'batch_id': batch_id,
                         'consecutive_failures': consecutive_failures,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), venues_live)
                 else:
                     log.info(f'  Saved {saved:,}/{len(rows):,} rows | Batch: {batch_id}')
                     log.info(
@@ -1641,9 +1691,15 @@ def run():
                         delete_failures = 0
                         consecutive_failures = 0
                         last_good_batch_id = batch_id
+                        outcome = classify_persisted_run(
+                            attempted=len(rows), persisted=saved,
+                            status_reason='modeled_batch_persisted_and_previous_batch_retired')
                         write_heartbeat('running', {
                             'cycle':                cycle,
+                            'run_status':           outcome['run_status'],
                             'records_saved':        saved,
+                            'records_attempted':    len(rows),
+                            'records_rejected':     0,
                             'venues_active':        venues_live,
                             'venues_skipped_real':  len(skip_slugs),
                             'tables_running':       live_tables,
@@ -1652,6 +1708,8 @@ def run():
                             'history_age_days':     round(age_days, 2),
                             'consecutive_failures': 0,
                         })
+                        write_scraper_metric(
+                            now_utc, outcome, len(_generatable_venues(model)), venues_live)
                     else:
                         # Rows are correct but duplicated with the prior batch.
                         delete_failures      += 1
@@ -1661,23 +1719,40 @@ def run():
                             f'  Stale sim-row DELETE failed ({delete_failures} in a row) — '
                             f'venue_live_tables now holds duplicate sim batches.'
                         )
+                        outcome = classify_persisted_run(
+                            attempted=len(rows), persisted=saved, errors=1,
+                            status_reason='modeled_batch_persisted_but_previous_batch_not_retired')
                         write_heartbeat('error', {
                             'cycle':                cycle,
                             'error':                'stale_delete_failed',
+                            'run_status':           outcome['run_status'],
                             'records_saved':        saved,
+                            'records_attempted':    len(rows),
+                            'records_rejected':     0,
                             'batch_id':             batch_id,
                             'consecutive_failures': consecutive_failures,
                         })
+                        write_scraper_metric(
+                            now_utc, outcome, len(_generatable_venues(model)), venues_live)
 
         except Exception as e:
             consecutive_failures += 1
             log.error(f'  Cycle #{cycle} error: {type(e).__name__}: {e}')
             traceback.print_exc()
+            outcome = classify_persisted_run(
+                attempted=records_attempted, persisted=0,
+                rejected=records_attempted, errors=1,
+                status_reason=f'cycle_exception:{type(e).__name__}')
             write_heartbeat('error', {
                 'cycle': cycle,
                 'error': str(e),
+                'run_status': outcome['run_status'],
+                'records_saved': 0,
+                'records_attempted': records_attempted,
+                'records_rejected': records_attempted,
                 'consecutive_failures': consecutive_failures,
             })
+            write_scraper_metric(now_utc, outcome, 0, 0)
 
         # ── Sleep until next cycle ──────────────────────────────────
         elapsed   = time.time() - cycle_start

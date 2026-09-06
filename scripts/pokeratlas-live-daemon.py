@@ -32,6 +32,14 @@ import subprocess
 import threading
 from typing import Dict, List, Optional
 from pathlib import Path
+from scraper_data_truth import (
+    OBSERVATION_CATALOG,
+    QUALITY_CATALOG,
+    RUN_FAILED,
+    RUN_PARTIAL,
+    classify_persisted_run,
+    is_observed_bravo_row,
+)
 
 # ── PYTHON RUNTIME COMPATIBILITY GUARD ──
 # greenlet 3.x has a known infinite CPU spin bug on Python 3.14+.
@@ -215,24 +223,45 @@ SB_HEADERS = {
 }
 
 def sb_upsert(table, data):
-    """UPSERT to Supabase REST API with chunked batches and retry."""
+    """UPSERT and return the row count PostgREST confirms persisted."""
     BATCH_SIZE = 100
     total_saved = 0
     for i in range(0, len(data), BATCH_SIZE):
         chunk = data[i:i + BATCH_SIZE]
         body = json.dumps(chunk).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/{table}',
-            data=body, method='POST',
-            headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal'}
-        )
         success = False
         for attempt in range(3):
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/{table}',
+                data=body, method='POST',
+                headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation'}
+            )
             try:
-                urllib.request.urlopen(req, timeout=30)
-                total_saved += len(chunk)
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    returned = json.loads(response.read() or b'[]')
+                persisted = len(returned) if isinstance(returned, list) else 0
+                total_saved += persisted
+                if persisted != len(chunk):
+                    log.error(
+                        f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} persistence mismatch: '
+                        f'{persisted}/{len(chunk)} rows confirmed')
                 success = True
                 break
+            except urllib.error.HTTPError as e:
+                try:
+                    detail = e.read().decode('utf-8', 'replace')[:500]
+                except Exception:
+                    detail = str(e)
+                if e.code not in (408, 429) and e.code < 500:
+                    log.error(
+                        f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} permanently rejected '
+                        f'(HTTP {e.code}): {detail}')
+                    break
+                if attempt < 2:
+                    log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} (HTTP {e.code})')
+                    time.sleep(2 ** attempt)
+                else:
+                    log.error(f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} FAILED after 3 retries: {detail}')
             except Exception as e:
                 if attempt < 2:
                     log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} ({e})')
@@ -240,9 +269,9 @@ def sb_upsert(table, data):
                 else:
                     log.error(f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} FAILED after 3 retries: {e}')
         if not success:
-            return False
+            continue
     log.info(f'  Upserted {total_saved}/{len(data)} records in {(len(data) + BATCH_SIZE - 1) // BATCH_SIZE} batches')
-    return True
+    return total_saved
 
 def sb_delete(table, query):
     """DELETE from Supabase REST API."""
@@ -524,10 +553,9 @@ def build_payload_from_results(venue_results, batch_id):
       - tables_running is ALWAYS NULL for source='pokeratlas'. These rows are a
         game catalog (game, buy-in range, run schedule), not a live count.
         Consumers must treat NULL as "unknown", never as zero tables.
-      - data_quality stays 'scraped_verified' only because venue_live_tables
-        has a DB CHECK constraint that rejects other values (see
-        bravo-simulator-daemon.py). A 'catalog_unverified' label needs a
-        migration to that constraint and is deliberately NOT attempted here.
+      - data_quality='catalog_verified' means the source page was verified but
+        the row is catalog availability, not a live table-count observation.
+        observation_kind='catalog' makes that distinction machine-readable.
       - The source page URL is not written to the row: venue_live_tables has no
         source_url column and this script must not invent one. It is recorded
         in the per-cycle evidence + snapshot JSON instead.
@@ -563,7 +591,8 @@ def build_payload_from_results(venue_results, batch_id):
                 'scrape_timestamp': venue_data['scrape_timestamp'],
                 'scrape_html_hash': venue_data['scrape_html_hash'],
                 'scrape_batch_id': batch_id,
-                'data_quality': 'scraped_verified',
+                'data_quality': QUALITY_CATALOG,
+                'observation_kind': OBSERVATION_CATALOG,
                 'source': 'pokeratlas',
                 'bravo_slug': f'pa-{venue_slug}',
                 'buyin_range': game.get('buyin', ''),
@@ -591,7 +620,8 @@ def build_payload_from_results(venue_results, batch_id):
                 'scrape_timestamp': venue_data['scrape_timestamp'],
                 'scrape_html_hash': venue_data['scrape_html_hash'],
                 'scrape_batch_id': batch_id,
-                'data_quality': 'scraped_verified',
+                'data_quality': QUALITY_CATALOG,
+                'observation_kind': OBSERVATION_CATALOG,
                 'source': 'pokeratlas',
                 'bravo_slug': f'pa-{venue_slug}',
                 'buyin_range': '',
@@ -620,6 +650,52 @@ def write_heartbeat(status, extra=None):
     except Exception as e:
         # The watchdog reads this file — a silent failure here blinds it.
         log.error(f'Heartbeat write FAILED ({HEARTBEAT_FILE}): {e}')
+
+
+def write_scraper_metric(cycle_start, outcome, venues_scraped, venues_with_data):
+    """Persist a confirmed-output metric, with a pre-migration legacy retry."""
+    payload = {
+        'source': 'pokeratlas',
+        'cycle_start': cycle_start.isoformat(),
+        'duration_seconds': int((datetime.now(timezone.utc) - cycle_start).total_seconds()),
+        'venues_scraped': max(0, int(venues_scraped or 0)),
+        'venues_with_data': max(0, int(venues_with_data or 0)),
+        **outcome,
+    }
+
+    def _post(row):
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
+            data=json.dumps(row).encode(), method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'},
+        )
+        urllib.request.urlopen(req, timeout=10)
+
+    try:
+        _post(payload)
+        return True
+    except urllib.error.HTTPError as e:
+        try:
+            detail = e.read().decode('utf-8', 'replace')[:500]
+        except Exception:
+            detail = str(e)
+        if e.code == 400 and any(name in detail for name in (
+                'run_status', 'records_attempted', 'records_rejected', 'status_reason')):
+            legacy = {k: payload[k] for k in (
+                'source', 'cycle_start', 'duration_seconds', 'venues_scraped',
+                'venues_with_data', 'errors', 'records_saved')}
+            try:
+                _post(legacy)
+                log.error('  scraper_metrics schema lacks data-truth columns; legacy metric written')
+                return False
+            except Exception as legacy_err:
+                log.error(f'{ERROR_SUPABASE}: scraper_metrics legacy retry FAILED: {legacy_err}')
+                return False
+        log.error(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED: HTTP {e.code}: {detail}')
+        return False
+    except Exception as e:
+        log.error(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED: {e}')
+        return False
 
 
 # ============================================================
@@ -988,6 +1064,7 @@ def save_history_snapshot(batch_id, all_venues):
                 'total_waiting': total_waiting,
                 'game_count': len(vdata['live_games']),
                 'source': 'pokeratlas',
+                'observation_kind': OBSERVATION_CATALOG,
                 'snapshot_time': now,
                 'batch_id': batch_id,
             })
@@ -1046,6 +1123,7 @@ def save_game_history_snapshot(batch_id, all_venues):
                     'tables': None,
                     'waiting': waitlist_map.get(game['game'].lower().strip(), 0),
                     'source': 'pokeratlas',
+                    'observation_kind': OBSERVATION_CATALOG,
                     'snapshot_time': now,
                     'batch_id': batch_id,
                 })
@@ -1061,6 +1139,7 @@ def save_game_history_snapshot(batch_id, all_venues):
                         'tables': None,
                         'waiting': w['players_waiting'],
                         'source': 'pokeratlas',
+                        'observation_kind': OBSERVATION_CATALOG,
                         'snapshot_time': now,
                         'batch_id': batch_id,
                     })
@@ -1450,7 +1529,7 @@ def run_scrape_cycle(mgr):
         for page in range(MAX_PAGES):
             req = urllib.request.Request(
                 f'{SUPABASE_URL}/rest/v1/venue_live_tables'
-                f'?source=eq.bravo&select=venue_name,bravo_slug'
+                f'?source=eq.bravo&select=venue_name,bravo_slug,observation_kind,scrape_batch_id'
                 f'&order=bravo_slug.asc&limit={PAGE}&offset={page * PAGE}',
                 headers=SB_HEADERS,
             )
@@ -1462,7 +1541,12 @@ def run_scrape_cycle(mgr):
         else:
             log.warning(f'  Dedup: hit {MAX_PAGES * PAGE}-row page ceiling — index may be partial')
 
-        for r in bravo_rows:
+        # Only genuinely observed Bravo rows suppress PokerAtlas catalog data.
+        # Legacy and current simulator rows retain source='bravo' for consumer
+        # compatibility, so source alone is not an evidence boundary.
+        observed_bravo_rows = [r for r in bravo_rows if is_observed_bravo_row(r)]
+        modeled_excluded = len(bravo_rows) - len(observed_bravo_rows)
+        for r in observed_bravo_rows:
             name = r.get('venue_name', '') or ''
             slug = r.get('bravo_slug', '') or ''
             bravo_names.add(name)
@@ -1473,8 +1557,9 @@ def run_scrape_cycle(mgr):
                     bravo_slug_wordsets.append(words)
         dedup_index_ok = True
         log.info(
-            f'  Dedup: {len(bravo_names)} Bravo venues loaded from {len(bravo_rows)} rows '
-            f'(3-tier match active)'
+            f'  Dedup: {len(bravo_names)} observed Bravo venues loaded from '
+            f'{len(observed_bravo_rows)} rows ({modeled_excluded} modeled rows excluded; '
+            f'3-tier match active)'
         )
     except Exception as e:
         # FAIL CLOSED: with an empty index every PokerAtlas venue looks unique,
@@ -1554,18 +1639,24 @@ def run_scrape_cycle(mgr):
         write_blocked = True
     elif payload:
         # Atomic Batch Insert — only delete PokerAtlas records
-        if sb_upsert('venue_live_tables', payload):
-            saved = len(payload)
+        saved = sb_upsert('venue_live_tables', payload)
+        if saved == len(payload):
             # Save historical snapshot for trend analysis
             if not save_history_snapshot(batch_id, filtered_venues):
                 history_failures += 1
             # Save per-game history for game-type heatmaps
             if not save_game_history_snapshot(batch_id, filtered_venues):
                 history_failures += 1
-        else:
+        elif saved == 0:
             log.error(
                 f'{ERROR_SUPABASE}: venue_live_tables upsert FAILED — '
                 f'{len(payload)} records NOT saved; leaving previous batch in place'
+            )
+            write_blocked = True
+        else:
+            log.error(
+                f'{ERROR_SUPABASE}: venue_live_tables PARTIAL WRITE — '
+                f'{saved}/{len(payload)} records confirmed; leaving previous batch in place'
             )
             write_blocked = True
     else:
@@ -1626,6 +1717,30 @@ def run_scrape_cycle(mgr):
                 f'serve duplicate/stale PokerAtlas rows for batch != {batch_id[:8]}'
             )
 
+    attempted = len(payload)
+    rejected = max(0, attempted - saved)
+    integrity_errors = errors + history_failures
+    if write_blocked:
+        integrity_errors += 1
+    if stale_cleanup_ok is False:
+        integrity_errors += 1
+
+    valid_empty_reason = None
+    if attempted == 0 and integrity_errors == 0:
+        if all_venues and not filtered_venues:
+            valid_empty_reason = 'all_catalog_venues_already_covered_by_observed_bravo'
+        elif no_page > 0 and fetch_ok == 0 and parsed_empty == 0:
+            valid_empty_reason = 'all_checked_venues_confirmed_no_cash_games_page'
+
+    outcome = classify_persisted_run(
+        attempted=attempted,
+        persisted=saved,
+        rejected=rejected,
+        errors=integrity_errors,
+        valid_empty=bool(valid_empty_reason),
+        status_reason=valid_empty_reason or '',
+    )
+
     # Save evidence
     evidence = {
         'batch_id': batch_id,
@@ -1643,33 +1758,25 @@ def run_scrape_cycle(mgr):
         'stale_cleanup_ok': stale_cleanup_ok,
         'history_insert_failures': history_failures,
         'errors': errors,
+        **outcome,
         'duration_seconds': (datetime.now(timezone.utc) - cycle_start).total_seconds(),
     }
     evidence_file = EVIDENCE_DIR / f'pokeratlas_live_{cycle_start.strftime("%Y%m%d_%H%M%S")}.json'
     with open(evidence_file, 'w') as f:
         json.dump(evidence, f, indent=2)
 
-    # Save performance metrics to Supabase for monitoring dashboard
+    # Save confirmed-output metrics to Supabase for monitoring dashboard.
     try:
-        metrics_row = json.dumps({
-            'source': 'pokeratlas',
-            'cycle_start': cycle_start.isoformat(),
-            'duration_seconds': int((datetime.now(timezone.utc) - cycle_start).total_seconds()),
-            'venues_scraped': len(all_venues),
-            'venues_with_data': len(filtered_venues),
-            'errors': errors,
-            'records_saved': saved,
-        }).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
-            data=metrics_row, method='POST',
-            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-        )
-        urllib.request.urlopen(req, timeout=10)
-        log.info('  📈 Scraper metrics recorded')
+        if write_scraper_metric(
+                cycle_start, outcome,
+                fetch_ok + no_page + errors,
+                len(filtered_venues)):
+            log.info('  📈 Scraper metrics recorded')
+        else:
+            metrics_failed = True
     except Exception as e:
         metrics_failed = True
-        log.warning(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED (monitoring blind this cycle): {e}')
+        log.warning(f'{ERROR_SUPABASE}: scraper_metrics insert threw: {e}')
 
     # Snapshot
     with open(BASE_DIR / 'data' / 'pokeratlas-live-snapshot.json', 'w') as f:
@@ -1686,34 +1793,45 @@ def run_scrape_cycle(mgr):
 
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
     mgr.total_cycles += 1
-    mgr.consecutive_failures = 0
+    if outcome['run_status'] in (RUN_FAILED, RUN_PARTIAL):
+        mgr.consecutive_failures += 1
+    else:
+        mgr.consecutive_failures = 0
     # Empty cycles must NOT reset this — it drives the retry backoff so a
     # broken parser cannot re-scrape every ~5 seconds forever.
-    if saved > 0:
+    if saved > 0 or outcome['run_status'] == 'valid_empty':
         mgr.empty_cycle_streak = 0
     else:
         mgr.empty_cycle_streak += 1
 
     # Heartbeat status contract with scraper-watchdog-local.sh:
     #   'ok'          → healthy, data published
-    #   'idle'        → healthy-but-no-data; a restart CANNOT fix a parser
-    #                   break, so we deliberately avoid a status that makes the
-    #                   watchdog bounce the process every 5 minutes. The
-    #                   parser_alert/empty_cycle_streak fields carry the alarm.
+    #   'idle'        → explicitly proven valid-empty; never a parser default.
+    #   'degraded'    → some output persisted but the run was incomplete.
+    #   'no_output'   → zero persisted rows without a valid-empty proof.
     #   'save_failed' → write path broken; needs attention (and a restart is
     #                   at least harmless).
-    if write_blocked:
+    if outcome['run_status'] == RUN_FAILED:
         hb_status = 'save_failed'
-    elif saved > 0:
-        hb_status = 'ok'
-    else:
+        if not write_blocked:
+            hb_status = 'no_output'
+    elif outcome['run_status'] == RUN_PARTIAL:
+        hb_status = 'degraded'
+    elif outcome['run_status'] == 'valid_empty':
         hb_status = 'idle'
+    else:
+        hb_status = 'ok'
 
     write_heartbeat(hb_status, {
         'cycle': mgr.total_cycles,
         'records_saved': saved,
+        'records_attempted': attempted,
+        'records_rejected': rejected,
+        'run_status': outcome['run_status'],
+        'status_reason': outcome['status_reason'],
+        'valid_empty': outcome['run_status'] == 'valid_empty',
         'venues_with_data': len(all_venues),
-        'errors': errors,
+        'errors': integrity_errors,
         'consecutive_failures': mgr.consecutive_failures,
         'empty_cycle_streak': mgr.empty_cycle_streak,
         'parser_alert': parsed_empty > 0 or (fetch_ok > 0 and not all_venues),
@@ -1736,7 +1854,7 @@ def run_scrape_cycle(mgr):
     # Run daily discovery AFTER validated scrape (so real data gets published first).
     # Gated on a successful publish OR a clean-but-empty cycle, so discovery is
     # not permanently blocked while a region set legitimately yields nothing.
-    if saved > 0 or (not write_blocked and fetch_ok > 0):
+    if outcome['run_status'] in ('success', 'valid_empty'):
         discover_regions(mgr)
 
     # Return records actually WRITTEN, not venues parsed. main() treats the
