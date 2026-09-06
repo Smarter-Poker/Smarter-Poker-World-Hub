@@ -190,3 +190,73 @@ jobs:
             gh issue comment "$n" --body "Fleet is recording runs again. Closing automatically."
             gh issue close "$n" || true
           done
+
+      # ── NOTHING IS SILENTLY RED ON main (2026-09-06) ────────────────────────
+      #
+      # `Global Footer E2E` failed on every run on main from 2026-09-04 and was
+      # found two days later by accident. It is not in the ruleset, so a red run
+      # blocked no merge, opened no issue and coloured nothing anybody reads;
+      # twenty-odd merges landed on top of it. Required checks cannot reach that
+      # state - a red one stops the queue - so this is for all the others, and
+      # the others are most of them.
+      #
+      # Lives here rather than in Open Claw for the reason section 11.4 already
+      # gives about this workflow: it asks GitHub about GitHub, and a detector
+      # that shares a failure domain with the thing it watches is not a
+      # detector.
+      #
+      # It reports a failing workflow as `loud` when an open issue already names
+      # it, so `Publish Watchdog` raising its own alarm is not treated as a
+      # defect. SILENT is the only thing that pages.
+      - name: Nothing is silently red on main
+        id: main-green
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          # PIPESTATUS[0], not the pipeline's code - the same trap the cron
+          # fleet step above documents. `tee` always succeeds.
+          set +e
+          node scripts/ci/check-main-is-green.mjs 2>&1 | tee /tmp/main-green.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "check-main-is-green exited ${code}"
+
+      - name: Raise the alarm for a silently red main
+        if: always() && steps.main-green.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="A workflow has been failing on main with nobody watching"
+          BODY=$(printf '%s\n' \
+            "One or more workflows have been red on \`main\` past the threshold and have no open issue naming them." \
+            "" \
+            "A check that is red and blocks nobody stops being a check: it cannot fail any louder than it already is, so the next person to break the same thing learns nothing." \
+            '```' \
+            "$(cat /tmp/main-green.log)" \
+            '```' \
+            "" \
+            "Detector: \`scripts/ci/check-main-is-green.mjs\`. Closes itself once every workflow's latest run on main is green, or once an issue exists that names it.")
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" || true
+          fi
+
+      - name: Close it when main is green again
+        if: always() && steps.main-green.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="A workflow has been failing on main with nobody watching"
+          for n in $(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[].number' || true); do
+            gh issue comment "$n" --body "Every workflow's latest run on main is green, or is now tracked by its own issue. Closing automatically."
+            gh issue close "$n" || true
+          done
