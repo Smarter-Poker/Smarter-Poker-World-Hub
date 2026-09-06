@@ -308,6 +308,7 @@ const privateProbeContracts = [
   { path: '/api/store/checkout-status?session_id=invalid' },
   { path: '/api/store/purchase-with-diamonds', method: 'POST' },
   { path: '/api/store/purchase-vip-with-diamonds', method: 'POST' },
+  { path: '/api/store/purchase-daily-vip', method: 'POST', expectedStatus: 410 },
   { path: '/api/store/fulfillment-operations' },
   { path: '/api/store/fulfillment-operations', method: 'POST', expectedStatus: 405 },
   { path: '/api/club-arena/manage-shop' },
@@ -656,11 +657,6 @@ if (requireProductionTruth) {
       path: '/api/club-arena/purchase-chips',
       method: 'POST',
       expectedStatus: 410,
-    }),
-    probeExpectedStatus({
-      path: '/api/store/purchase-daily-vip',
-      method: 'POST',
-      expectedStatus: 404,
     }),
   ]));
 }

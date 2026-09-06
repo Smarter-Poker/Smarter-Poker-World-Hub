@@ -197,9 +197,9 @@ test('refund replay guards keep uncredited Diamonds and shipped stock untouched'
 });
 
 test('Club Shop and VIP Diamond purchases have durable identities and lifetime protection', async () => {
-  // purchase-daily-vip.js was deleted on 2026-09-05 with the Daily Pass
-  // (Dan: the terms are monthly, yearly and lifetime). Nothing was ever sold
-  // on it, so there is no idempotency contract left to pin.
+  // The Daily Pass implementation was retired on 2026-09-05. Its API path is
+  // now only a terminal 410 tombstone for cached clients, so there is no
+  // settlement or idempotency contract left to pin here.
   const [clubApi, clubUi, vipMonthly, migration, hardening, vipUi] = await Promise.all([
     read('pages/api/club-arena/marketplace-purchase.js'),
     read('pages/hub/club-shop/[itemId].js'),

@@ -29,9 +29,10 @@ const CLUB_CARD_REFRESH_CODES = new Set([
   'CLUB_CARD_QUOTE_CONFIRMATION_REQUIRED',
 ]);
 
-export default function ClubShopItemDetail() {
+export default function ClubShopItemDetail({ routeItemId = null }) {
   const router = useRouter();
-  const itemId = Array.isArray(router.query.itemId) ? router.query.itemId[0] : router.query.itemId;
+  const routerItemId = Array.isArray(router.query.itemId) ? router.query.itemId[0] : router.query.itemId;
+  const itemId = routerItemId || routeItemId;
   const requestedClubId = Array.isArray(router.query.clubId) ? router.query.clubId[0] : router.query.clubId;
   const checkoutSessionId = Array.isArray(router.query.session_id)
     ? router.query.session_id[0]
@@ -48,7 +49,9 @@ export default function ClubShopItemDetail() {
   const processingRef = useRef(false);
   const diamondReviewTriggerRef = useRef(null);
   const diamondReviewTitleRef = useRef(null);
-  const canonical = itemId ? `/hub/club-shop/${itemId}` : '/hub/club-shop';
+  const canonical = itemId
+    ? `/hub/club-shop/${encodeURIComponent(itemId)}`
+    : '/hub/club-shop';
 
   const loadItem = useCallback(async ({ preserveContext = false, completionMessage = '' } = {}) => {
     const requestId = ++loadRequestRef.current;
@@ -613,4 +616,13 @@ export default function ClubShopItemDetail() {
       )}
     </MarketplaceDetailExperience>
   );
+}
+
+export function getServerSideProps({ params }) {
+  const routeItemId = Array.isArray(params?.itemId) ? params.itemId[0] : params?.itemId;
+  return {
+    props: {
+      routeItemId: typeof routeItemId === 'string' ? routeItemId : null,
+    },
+  };
 }
