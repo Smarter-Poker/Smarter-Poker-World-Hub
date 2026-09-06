@@ -61,6 +61,11 @@ const C = {
  * @param {Object} props
  * @param {Function} [props.onMenuClick]
  * @param {Function} [props.onBackClick]
+ * @param {Array} [props.commandMenuItems]
+ * @param {Array} [props.commandMenuBottomLinks]
+ * @param {boolean} [props.commandMenuShowProfile]
+ * @param {React.ReactNode} [props.commandMenuProfileExtras]
+ * @param {Array} [props.commandMenuShortcuts]
  */
 // ── Header data cache freshness window ────────────────────────────────────
 // The header is rendered per-page (it is NOT mounted in _app), so it remounts on
@@ -88,6 +93,11 @@ export default function UniversalHeader({
   onBackClick, // Override for back navigation
   commandMenuOpen,
   onCommandMenuOpenChange,
+  commandMenuItems = [],
+  commandMenuBottomLinks = [],
+  commandMenuShowProfile = true,
+  commandMenuProfileExtras = null,
+  commandMenuShortcuts = null,
 }) {
   const router = useRouter();
   const [fallbackMenuOpen, setFallbackMenuOpen] = useState(false);
@@ -103,10 +113,28 @@ export default function UniversalHeader({
   const resolvedCommandMenuOpen = isCommandMenuControlled
     ? commandMenuOpen
     : fallbackMenuOpen;
+  const commandMenuId = `sp-world-command-menu-${resolvedHeaderWorld?.id || 'global'}`;
+  const [observedCommandMenuOpen, setObservedCommandMenuOpen] = useState(false);
   const setCommandMenuOpen = (nextOpen) => {
     if (!isCommandMenuControlled) setFallbackMenuOpen(nextOpen);
     onCommandMenuOpenChange?.(nextOpen);
   };
+
+  useIsomorphicLayoutEffect(() => {
+    window.dispatchEvent(new CustomEvent('sp:approved-world-menu-owner', {
+      detail: { id: resolvedHeaderWorld?.id || null },
+    }));
+  }, [resolvedHeaderWorld?.id]);
+
+  useEffect(() => {
+    const syncCommandMenuState = (event) => {
+      if (event.detail?.id === commandMenuId) {
+        setObservedCommandMenuOpen(Boolean(event.detail.open));
+      }
+    };
+    window.addEventListener('sp:world-command-menu-state', syncCommandMenuState);
+    return () => window.removeEventListener('sp:world-command-menu-state', syncCommandMenuState);
+  }, [commandMenuId]);
 
   // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
   // Parses localStorage once and returns the cached header object (or null if expired/missing).
@@ -1500,8 +1528,11 @@ export default function UniversalHeader({
           direction="left"
           theme="dark"
           user={user}
-          menuItems={[]}
-          bottomLinks={[]}
+          menuItems={commandMenuItems}
+          bottomLinks={commandMenuBottomLinks}
+          showProfile={commandMenuShowProfile}
+          profileExtras={commandMenuProfileExtras}
+          shortcuts={commandMenuShortcuts}
           menuKey={router.asPath || 'global-header-default'}
         />
       )}
@@ -1523,6 +1554,9 @@ export default function UniversalHeader({
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
             data-menu-symbol="hamburger"
+            aria-haspopup="dialog"
+            aria-expanded={resolvedCommandMenuOpen || observedCommandMenuOpen}
+            aria-controls={commandMenuId}
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()

@@ -12,33 +12,49 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
     background: `linear-gradient(145deg,${palette.panel || '#202d38'},${palette.canvas || '#080d12'})`, cursor: 'pointer',
   };
 
+  const containDialogKey = (event) => {
+    event.stopPropagation();
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose?.();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement;
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
-    const onKeyDown = (event) => {
+    const containOutsideKey = (event) => {
+      if (dialogRef.current?.contains(event.target)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
       if (event.key === 'Escape') onClose?.();
-      if (event.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      if (!focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
     };
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', containOutsideKey, true);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', containOutsideKey, true);
       document.body.style.overflow = previousOverflow;
-      previousFocus?.focus?.();
+      const focusTarget = previousFocus?.isConnected
+        ? previousFocus
+        : document.querySelector('[data-world-menu-trigger="approved-header"]')
+          || document.querySelector('[data-world-menu-trigger="route-fallback"]');
+      focusTarget?.focus?.();
     };
   }, [onClose]);
 
@@ -52,6 +68,7 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
     >
       <section
         ref={dialogRef}
+        onKeyDown={containDialogKey}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sp-command-recovery-title"
