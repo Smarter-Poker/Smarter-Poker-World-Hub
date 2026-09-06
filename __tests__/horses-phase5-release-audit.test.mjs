@@ -104,3 +104,16 @@ test('flags render named players and never expose reason JSON as the heading', (
   assert.match(panel, /'player_is_horse', 'playerIsHorse'/);
   assert.match(panel, /label="Events In Thirty Days"/);
 });
+
+test('timing expands the RPC distribution and renders its exact coverage', () => {
+  assert.match(panel, /timingRowsOf\(timing\.data\)/);
+  assert.match(panel, /label="Adjacent Action Pairs"/);
+  assert.match(panel, /label="Distinct Hands"/);
+  assert.match(panel, /label="Pairs Under 500 Milliseconds"/);
+  assert.match(panel, /label="Hands Sampled"/);
+  assert.match(panel, /label="Sample Truncated"/);
+  assert.match(panel, /booleanLabel\(first\(timingCoverage, 'truncated'\)\)/,
+    'a missing truncation field must remain unknown');
+  assert.doesNotMatch(panel, /Ninety-Fifth Percentile/,
+    'the UI must not ask for a percentile the timing RPC does not return');
+});
