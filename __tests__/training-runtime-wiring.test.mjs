@@ -4,11 +4,20 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { filterCachedRowsForGame } from '../src/lib/training/cacheContract.mjs';
+import {
+  filterCachedRowsForGame,
+  hydrateMissingPIOScenarioContract,
+} from '../src/lib/training/cacheContract.mjs';
 import { isCustomTrainerConfig } from '../src/lib/training/trainerConfigMode.mjs';
 import { buildQuestionConfusion } from '../src/lib/training/questionAnalytics.mjs';
 import { isVerifiedSolverQuestion } from '../src/lib/training/solverDecisionEvidence.js';
 import { handNotationToRepresentativeCards } from '../src/lib/training/representativeCards.mjs';
+import { isRetryable } from '../src/lib/supabaseRetry.js';
+import {
+  isTrainingPersistenceUnavailable,
+  runTrainingPersistenceQuery,
+  trainingPersistenceUnavailableBody,
+} from '../src/lib/training/trainingPersistence.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -87,6 +96,38 @@ test('PIO games reject a cached solver row from the wrong family or stack', () =
     }).map((row) => row.id),
     ['right'],
   );
+});
+
+test('generated questions inherit the missing server-side PIO family and stack contract', () => {
+  const question = {
+    source: 'POSTFLOP_ENGINE',
+    scenario: { street: 'flop', pot: 20.5 },
+  };
+  const gameConfig = {
+    sourceOfTruth: 'PioSOLVER',
+    pioGameType: 'hu_cash',
+    pioStackDepth: 100,
+  };
+  assert.equal(hydrateMissingPIOScenarioContract(question, gameConfig), question);
+  assert.deepEqual(question.scenario, {
+    street: 'flop', pot: 20.5, gameType: 'hu_cash', stackDepth: 100,
+  });
+  assert.deepEqual(
+    filterCachedRowsForGame([{ engine_type: 'PIO', question_data: question }], gameConfig),
+    [{ engine_type: 'PIO', question_data: question }],
+  );
+
+  const authored = { scenario: { gameType: 'wrong_family', stackDepth: 40 } };
+  hydrateMissingPIOScenarioContract(authored, gameConfig);
+  assert.deepEqual(authored.scenario, { gameType: 'wrong_family', stackDepth: 40 });
+});
+
+test('postflop generation rejects missing pot geometry instead of inventing a six-BB pot', () => {
+  const engine = fs.readFileSync('src/engines/DeterministicGTOEngine.js', 'utf8');
+  assert.match(engine, /const postflopPot = Number\(scenario\.potSize\)/);
+  assert.match(engine, /!Number\.isFinite\(postflopPot\) \|\| postflopPot <= 0/);
+  assert.match(engine, /pot: postflopPot/);
+  assert.doesNotMatch(engine, /pot: scenario\.potSize \|\| 6/);
 });
 
 test('unsealed warehouse cache rows cannot bypass live matrix and EV validation', () => {
@@ -178,17 +219,106 @@ test('single-question canonicalization preserves mastery levels eleven and twelv
 test('both question endpoints persist the exact post-contract envelope used for grading', () => {
   const single = fs.readFileSync('pages/api/training/get-question.js', 'utf8');
   const batch = fs.readFileSync('pages/api/training/batch-preload.js', 'utf8');
-  assert.match(single, /Existing legacy rows[\s\S]*\.update\(canonicalPayload\)/);
+  assert.match(single, /Existing legacy rows[\s\S]*\.upsert\(canonicalPayload/);
+  assert.match(single, /defaultToNull: false/);
+  assert.match(single, /Refusing to serve an uncanonicalized question/);
+  assert.match(single, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
   assert.match(batch, /const canonicalRows = Array\.from\(new Map\(enrichedBatch/);
   assert.match(batch, /new Map\(enrichedBatch[\s\S]*String\(q\.id\)\.slice\(0, 180\)/);
-  assert.match(batch, /\.upsert\(cachedCanonicalRows, \{ onConflict: 'question_id' \}\)/);
-  assert.match(batch, /\.upsert\(generatedCanonicalRows, \{ onConflict: 'question_id' \}\)/);
+  assert.match(batch, /\.upsert\(cachedCanonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /\.upsert\(generatedCanonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /Refusing to serve uncanonicalized questions/);
+  assert.match(batch, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
   assert.doesNotMatch(batch, /\.upsert\((?:cached|generated)CanonicalRows, \{[^}]*ignoreDuplicates: true/);
   const recorder = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
   assert.match(recorder, /async function getEligibleCanonicalQuestion/);
   assert.match(recorder, /attempt < 4/);
   assert.match(recorder, /100 \* \(2 \*\* attempt\)/);
   assert.doesNotMatch(recorder, /req\.body\.(?:question|correctAnswer)/);
+  assert.match(batch, /hydrateMissingPIOScenarioContract\(qData, declaredCfg\)/);
+  const hook = fs.readFileSync('src/hooks/useGTOTrainer.js', 'utf8');
+  assert.match(hook, /TRAINING_QUESTION_REFRESH_REQUIRED/);
+  assert.match(hook, /pendingAnswerPersistenceRef\.current/);
+  assert.match(hook, /refreshRequiredQuestionIdsRef\.current\.delete/);
+  assert.match(hook, /await fetchSingleQuestion\(level\)/);
+  assert.match(hook, /const answerPersisted = pendingPersistence \? await pendingPersistence : true/);
+  assert.match(hook, /if \(nextQuestionInFlightRef\.current\) return;[\s\S]*nextQuestionInFlightRef\.current = true/);
+  assert.match(hook, /finally \{[\s\S]*nextQuestionInFlightRef\.current = false/);
+  assert.match(hook, /if \(answerPersisted === false\)[\s\S]*setError\('Your answer could not be saved\./);
+  assert.match(hook, /setError\('Your answer could not be saved[\s\S]*return;[\s\S]*setShowFeedback\(false\)/);
+});
+
+test('Training persistence retries an invalid HTTP2 session with a fresh bounded query', async () => {
+  let calls = 0;
+  const result = await runTrainingPersistenceQuery(
+    () => ({
+      async abortSignal(signal) {
+        assert.ok(signal instanceof AbortSignal);
+        calls += 1;
+        if (calls === 1) {
+          return {
+            data: null,
+            error: { code: 'ERR_HTTP2_INVALID_SESSION', message: 'The session has been destroyed' },
+          };
+        }
+        return { data: [{ id: 'canonical' }], error: null };
+      },
+    }),
+    { label: 'Test:HTTP2', baseDelay: 0, timeoutMs: 100 },
+  );
+
+  assert.equal(calls, 2);
+  assert.deepEqual(result.data, [{ id: 'canonical' }]);
+  assert.equal(isRetryable({ cause: { code: 'ERR_HTTP2_INVALID_SESSION' } }), true);
+});
+
+test('Training persistence fails closed with one stable retryable API contract', async () => {
+  await assert.rejects(
+    runTrainingPersistenceQuery(
+      () => ({
+        async abortSignal() {
+          return { data: null, error: { code: '23514', message: 'contract rejected' } };
+        },
+      }),
+      { label: 'Test:Failure', maxRetries: 0, timeoutMs: 100 },
+    ),
+    (error) => isTrainingPersistenceUnavailable(error) && error.code === '23514',
+  );
+  assert.deepEqual(trainingPersistenceUnavailableBody(), {
+    success: false,
+    error: 'Training data is temporarily unavailable. Please retry this hand.',
+    code: 'TRAINING_PERSISTENCE_UNAVAILABLE',
+    retryable: true,
+  });
+
+  const record = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
+  assert.match(record, /runTrainingPersistenceQuery/);
+  assert.match(record, /isTrainingPersistenceUnavailable/);
+  assert.match(record, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
+  assert.doesNotMatch(record, /withRetry/);
+});
+
+test('Training persistence aborts a stalled PostgREST attempt at its deadline', async () => {
+  let abortObserved = false;
+  await assert.rejects(
+    runTrainingPersistenceQuery(
+      () => ({
+        abortSignal(signal) {
+          return new Promise((resolve, reject) => {
+            signal.addEventListener('abort', () => {
+              abortObserved = true;
+              const error = new Error('request deadline elapsed');
+              error.name = 'AbortError';
+              reject(error);
+            }, { once: true });
+          });
+        },
+      }),
+      { label: 'Test:Deadline', maxRetries: 0, timeoutMs: 5 },
+    ),
+    (error) => isTrainingPersistenceUnavailable(error) && error.cause?.name === 'AbortError',
+  );
+  assert.equal(abortObserved, true);
 });
 
 test('an explicit street target filters warm cache rows before generation', () => {

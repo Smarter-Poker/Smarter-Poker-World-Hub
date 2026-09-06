@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-6 Complete; Phase 7 In Progress
+Status: Phases 1-5 Complete; Phase 6 Deep Re-Certification In Progress
 
 ## Objective
 
@@ -131,6 +131,15 @@ Me skip-link focus and overlapping-marker selection contracts. The final Phase
 release-harness test pins configured health routing, shared-auth prompt
 isolation, canonical Wallet navigation, keyboard focus, and footerless mobile
 arena geometry together so one repair cannot regress while the others pass.
+
+On 2026-09-06, the user-requested deep gate re-opened Phase 6 before any further
+Phase 7 work. It compares Training against the current Club Arena source,
+replaces retained geometry with the current responsive contract, closes
+canonical question and answer persistence gaps, strengthens the permanent E2E,
+and repeats the 107-game and representative parity matrices. Detailed evidence
+is recorded in `2026-09-06-training-phase-6-deep-recertification.md`. Phase 6
+does not close again until that candidate merges normally, production serves
+it, and the production re-certification passes.
 
 ### Phase 7: Every Game's Secondary Pages
 

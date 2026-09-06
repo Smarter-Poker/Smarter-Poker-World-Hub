@@ -34,6 +34,16 @@ import { committedFor, computeDisplayPot } from './potMath';
 import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars';
 import TrainingQuestionReport from '../TrainingQuestionReport';
 import { isVerifiedSolverQuestion } from '../../../lib/training/solverDecisionEvidence';
+import {
+    CLUB_ARENA_GEOMETRY_SOURCE,
+    CLUB_ARENA_SEAT_LAYOUTS,
+    clubArenaSeatPortrait,
+    clubArenaHeroClearPx,
+    clubArenaChipPosition,
+    clubArenaDealerPosition,
+    resolveClubArenaTableBox,
+    seatPodPx,
+} from '../../../lib/training/clubArenaTableGeometry.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -559,92 +569,28 @@ function StreakToast({ message }) {
 // SEAT POSITIONS — 9-Max Layout (portrait orientation)
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Entry 0 is ALWAYS hero and the rest run clockwise from him. This ordering is
-// the hero-relative coordinate space that DEALER_BUTTON_SEAT_KEYS,
-// DEALER_BUTTON_POSITIONS and CHIP_STACK_POSITIONS are keyed in; absolute
-// `seats` indices must be rotated into it before they touch those tables.
-//
-// 2026-07-27: the mid rows were pulled clear of the board's horizontal band.
-// The felt is a 1:1.45 PORTRAIT oval, so a five-card board is nearly as wide as
-// the felt is at its waist -- seats parked at 30% / 58% had their nameplates and
-// cards running straight through the community cards. Rows moved outward along
-// the oval, not sideways, so each seat keeps its relationship to its own dealer
-// button and chip slot (both of which sit between the seat and the pot).
-const SEAT_CONFIGS = {
-    9: [
-        { id: 0, name: 'BTN', x: 50, y: 100 },
-        { id: 1, name: 'SB', x: 10.5, y: 82.5 },
-        { id: 2, name: 'BB', x: 8, y: 58 },
-        { id: 3, name: 'UTG', x: 8, y: 30 },
-        { id: 4, name: 'UTG+1', x: 27, y: 6 },
-        { id: 5, name: 'MP', x: 73, y: 6 },
-        { id: 6, name: 'MP+1', x: 92, y: 30 },
-        { id: 7, name: 'HJ', x: 92, y: 58 },
-        { id: 8, name: 'CO', x: 89.5, y: 82.5 },
-    ],
-    6: [
-        { id: 0, name: 'BTN', x: 50, y: 100 },
-        { id: 1, name: 'SB', x: 8, y: 66 },
-        { id: 2, name: 'BB', x: 8, y: 33 },
-        { id: 3, name: 'UTG', x: 50, y: 5 },
-        { id: 4, name: 'HJ', x: 92, y: 33 },
-        { id: 5, name: 'CO', x: 92, y: 66 },
-    ],
-    3: [
-        { id: 0, name: 'BTN', x: 50, y: 100 },
-        { id: 1, name: 'SB', x: 20.5, y: 6 },
-        { id: 2, name: 'BB', x: 79.5, y: 6 },
-    ],
-    2: [
-        { id: 0, name: 'BTN/SB', x: 50, y: 100 },
-        { id: 1, name: 'BB', x: 50, y: 5 },
-    ],
+// Entry 0 is ALWAYS hero and the rest run clockwise from him. Coordinates are
+// the current Club Arena rings, while names remain Training's position labels.
+const SEAT_NAMES = {
+    9: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO'],
+    6: ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'],
+    3: ['BTN', 'SB', 'BB'],
+    2: ['BTN/SB', 'BB'],
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DEALER BUTTON POSITIONS — canonical percentages from
-// DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md (hero + v1..v8 clockwise from hero)
-// ═══════════════════════════════════════════════════════════════════════════
-const DEALER_BUTTON_POSITIONS = {
-    hero: { left: 50.49, top: 75.74 },
-    v1: { left: 28.73, top: 71.38 },
-    v2: { left: 27.26, top: 55.15 },
-    v3: { left: 27.85, top: 31.73 },
-    v4: { left: 35.05, top: 15.28 },
-    v5: { left: 62.55, top: 14.74 },
-    v6: { left: 73.14, top: 31.95 },
-    v7: { left: 72.70, top: 54.06 },
-    v8: { left: 71.96, top: 71.60 },
-};
-
-// Map SEAT_CONFIGS index → law position key per table size (approximate:
-// the law's v1..v8 run clockwise from hero, nearest match to each seat's x/y)
-// Chip stack coordinates, same law, same table-area percentage basis.
-// CHIP_STACK_LAW.md: "Chip positions are always calculated as
-// button_position + offset" -- these are the user-verified resolved values.
-const CHIP_STACK_POSITIONS = {
-    hero: { left: 47.70, top: 71.82 },
-    v1: { left: 31.67, top: 69.75 },
-    v2: { left: 29.61, top: 54.61 },
-    v3: { left: 30.79, top: 31.19 },
-    v4: { left: 33.29, top: 18.01 },
-    v5: { left: 58.29, top: 17.57 },
-    v6: { left: 64.61, top: 31.52 },
-    v7: { left: 64.32, top: 53.63 },
-    v8: { left: 64.17, top: 69.10 },
-};
+const SEAT_CONFIGS = Object.fromEntries(
+    Object.entries(CLUB_ARENA_SEAT_LAYOUTS).map(([count, ring]) => [
+        count,
+        ring.map((position, index) => ({
+            id: index,
+            name: SEAT_NAMES[count][index],
+            ...position,
+        })),
+    ]),
+);
 
 // Height of the strip reserved under the felt on a phone for the countdown and
 // the question pill. Every pixel here comes straight off the felt, so it is
 // exactly the compact 42px countdown plate plus a hairline.
-const CORNER_RAIL_BAND = 44;
-
-const DEALER_BUTTON_SEAT_KEYS = {
-    9: ['hero', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'],
-    6: ['hero', 'v2', 'v3', 'v4', 'v6', 'v7'],
-    3: ['hero', 'v3', 'v6'],
-    2: ['hero', 'v4'],
-};
 
 // Position name mapping for display
 const POSITION_NAMES = {
@@ -675,7 +621,7 @@ const POSITION_NAMES = {
 // the asset is missing or fails to decode, so a bad path can never leave a
 // blank hole on the felt where a character should be. Module-level because it
 // owns state and the seats are rendered inside a .map().
-function SeatAvatar({ src, label, fontSize, tableCutout = false }) {
+function SeatAvatar({ src, label, fontSize, tableCutout = false, bustScale = 1 }) {
     const [failed, setFailed] = React.useState(false);
     React.useEffect(() => { setFailed(false); }, [src]);
     if (!src || failed) {
@@ -708,6 +654,8 @@ function SeatAvatar({ src, label, fontSize, tableCutout = false }) {
                 height: '100%',
                 objectFit: tableCutout ? 'contain' : 'cover',
                 objectPosition: tableCutout ? '50% 100%' : '50% 20%',
+                transform: tableCutout ? `scale(${bustScale})` : undefined,
+                transformOrigin: tableCutout ? '50% 100%' : undefined,
                 display: 'block',
             }}
         />
@@ -1668,6 +1616,7 @@ function UniversalDynamicTable({
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
+    const [viewportWidth, setViewportWidth] = React.useState(1024);
     // GTOW parity #48. `isMobile` breaks at 768px, which is the TABLET break —
     // it is the right threshold for shrinking card and avatar furniture and the
     // wrong one for the top bar, which only actually runs out of room near
@@ -1683,6 +1632,7 @@ function UniversalDynamicTable({
     useEffect(() => {
         const check = () => {
             const vw = window.innerWidth;
+            setViewportWidth(vw);
             setIsMobile(vw < 768);
             setIsNarrow(vw < 480);
             // Scale factor: ratio of viewport to design width, capped at 1.0 (never upscale)
@@ -1759,56 +1709,6 @@ function UniversalDynamicTable({
     // ui(px) -> px scaled to the measured felt. Use for EVERY fixed dimension
     // drawn inside styles.basicTable.
     const ui = useCallback((n) => Math.round(n * feltScale), [feltScale]);
-
-    // ═══ RESPONSIVE FELT ASPECT ═════════════════════════════════════════════
-    // On a height-starved viewport (360x640: ~356px of page chrome) the LOCKED
-    // 1/1.45 portrait oval starves its own width -- maxHeight wins, the felt
-    // lands at 161x233 and feltScale bottoms out at its 0.58 floor, so the
-    // floor-scaled furniture is drawn on a felt that kept shrinking under it.
-    // Measured: the top seat row touched the board and the five board cards
-    // were WIDER than the felt at 320px.
-    //
-    // The design call (owner-delegated, 2026-08-08): LET THE OVAL FLATTEN.
-    // When the height the area offers would force feltScale below FLATTEN_HI
-    // at the locked ratio, interpolate the aspect toward a flatter portrait
-    // oval so the oval reclaims the width the viewport actually has. Clamped
-    // at FELT_ASPECT_FLAT -- still portrait, never landscape, so the template
-    // silhouette (.agent/design/training-table-template.png) survives.
-    //
-    // The REJECTED alternative, for the record: capping the seat count ("show
-    // 6-max when feltScale <= 0.65") shipped once and was reverted for cause
-    // -- it re-broke the dealer-button rotation and hid villains who had chips
-    // committed in the pot. Seats are never dropped for layout reasons.
-    // See .agent/design/TRAINING-UI-SPEC.md ("Height-constrained viewports").
-    //
-    // `predicted` replays the locked-ratio layout arithmetic (basicTable is
-    // width 92% / maxWidth 440 / maxHeight 100% of the area, minus the 2.5px
-    // gold border each side), so the aspect is a pure function of the area
-    // box and cannot oscillate. Above FLATTEN_HI nothing changes: the felt
-    // keeps the template's exact 1/1.45.
-    const FELT_ASPECT_FULL = 1.45;
-    const FELT_ASPECT_FLAT = 1.12;
-    const FLATTEN_HI = 0.68;  // locked-ratio feltScale at/above this: no flatten
-    const FLATTEN_LO = 0.52;  // locked-ratio feltScale at/below this: fully flat
-    const feltAspect = useMemo(() => {
-        if (!areaBox.w || !areaBox.h) return FELT_ASPECT_FULL;
-        const availW = Math.min(areaBox.w * 0.92, 440);
-        const lockedW = Math.min(availW, areaBox.h / FELT_ASPECT_FULL) - 5;
-        const predicted = Math.min(1, lockedW / FELT_DESIGN_W);
-        if (predicted >= FLATTEN_HI) return FELT_ASPECT_FULL;
-        const t = Math.min(1, (FLATTEN_HI - predicted) / (FLATTEN_HI - FLATTEN_LO));
-        return FELT_ASPECT_FULL - t * (FELT_ASPECT_FULL - FELT_ASPECT_FLAT);
-    }, [areaBox.w, areaBox.h]);
-
-    // The Club Arena skin is a fixed 605×1000 portrait surface. `maxHeight`
-    // used to shrink the table independently of its width on short desktop
-    // screens, turning that portrait table into a landscape oval. Resolve one
-    // width from both available axes and let aspect-ratio own the height, so the
-    // production table can scale down but can never distort.
-    const clubTableWidth = useMemo(() => {
-        if (!areaBox.w || !areaBox.h) return '88%';
-        return Math.max(1, Math.min(areaBox.w * 0.88, areaBox.h * (605 / 1000), 605));
-    }, [areaBox.w, areaBox.h]);
 
     // Honour the OS "reduce motion" setting: no deal-in, no travel, no pulse.
     const reduceMotion = useReducedMotion();
@@ -2332,6 +2232,12 @@ function UniversalDynamicTable({
 
     // Get seat configuration
     const seats = SEAT_CONFIGS[playerCount] || SEAT_CONFIGS[9];
+    const clubTableBox = useMemo(() => resolveClubArenaTableBox({
+        areaWidth: areaBox.w,
+        areaHeight: areaBox.h,
+        playerCount,
+        mobile: isMobile,
+    }), [areaBox.w, areaBox.h, playerCount, isMobile]);
 
     // Find hero seat index based on position
     const heroSeatIndex = getHeroSeatIndex(heroPosition, playerCount);
@@ -2363,13 +2269,10 @@ function UniversalDynamicTable({
         if (vp === 'BTN' || vp === 'BUTTON' || vp === 'BTN/SB') return villainSeatIndex;
         const btnIdx = seats.findIndex(s => (s.name || '').toUpperCase().startsWith('BTN'));
         if (btnIdx >= 0) return btnIdx;
-        // DEALER_BUTTON_SEAT_KEYS is HERO-RELATIVE -- index 0 is always 'hero'.
-        // Falling back to 0 therefore did not mean "unknown", it meant "hero has
-        // the button", and that is what shipped: on a BB vs BTN hand the D chip
-        // sat on hero while the scenario said hero was the big blind. When we
-        // know hero's position and it is not the button, refuse to guess. A
-        // button on the wrong seat contradicts the very thing being trained;
-        // no button at all is the honest render.
+        // The rendered ring is HERO-RELATIVE, so index 0 means "hero has the
+        // button", not "unknown". When hero's position is known and is not the
+        // button, refuse to guess. A missing marker is more honest than one on
+        // the wrong player.
         if (hp) return -1;
         return 0;
     })();
@@ -3122,6 +3025,13 @@ function UniversalDynamicTable({
         return <LoadingSkeleton />;
     }
 
+    const actionOptionCount = Math.min(displayOptions.length, 9);
+    const actionColumnCount = isMobile
+        ? (actionOptionCount <= 3
+            ? Math.max(1, actionOptionCount)
+            : (actionOptionCount > 4 ? 3 : 2))
+        : Math.max(1, Math.min(actionOptionCount, 4));
+
     return (
         <div
             className="gto-trainer-container"
@@ -3132,6 +3042,7 @@ function UniversalDynamicTable({
             data-training-street={streetLabel.toLowerCase()}
             data-training-player-count={playerCount}
             data-training-board-count={visibleBoard.length}
+            data-training-club-arena-source={CLUB_ARENA_GEOMETRY_SOURCE.commit}
             style={styles.container}
         >
             {/* ═══ THE QUESTION — first element on the page, pinned to the top ═══
@@ -3394,7 +3305,7 @@ function UniversalDynamicTable({
                     }
                     .sp-club-gto-actions [data-action] {
                         height: auto !important;
-                        min-height: 88px !important;
+                        min-height: 72px !important;
                         padding: 10px 12px 8px !important;
                     }
                     .sp-club-gto-actions [data-action] > span:first-child {
@@ -3713,7 +3624,7 @@ function UniversalDynamicTable({
                 // and the question pill without them reaching into hero's hole
                 // cards. Reserve a strip UNDER the felt for them instead, and
                 // let the oval shrink into what is left.
-                paddingBottom: isMobile ? CORNER_RAIL_BAND : 0,
+                paddingBottom: isMobile ? clubArenaHeroClearPx(viewportWidth) : 60,
             }}>
 
                 <aside className="sp-club-gto-desktop-rail is-left" aria-label="Current Training Decision">
@@ -3831,7 +3742,8 @@ function UniversalDynamicTable({
                     ref={tableRef}
                     className="sp-club-gto-table"
                     data-training-table="true"
-                    style={{ ...styles.basicTable, width: clubTableWidth, aspectRatio: '605 / 1000' }}
+                    data-training-table-shape={playerCount <= 6 ? 'small-ring' : 'full-ring'}
+                    style={{ ...styles.basicTable, ...clubTableBox }}
                 >
 
                 {/* THE FELT — inset into the rail above. Purely decorative and
@@ -3910,36 +3822,24 @@ function UniversalDynamicTable({
                         // ── SEAT GEOMETRY ────────────────────────────────
                         // SEAT_CONFIGS is HERO-RELATIVE by construction: entry 0
                         // is hero at the bottom of the felt and the rest run
-                        // clockwise from him -- the SAME ordering that
-                        // DEALER_BUTTON_SEAT_KEYS / DEALER_BUTTON_POSITIONS /
-                        // CHIP_STACK_POSITIONS use. Absolute `seats` indices are
+                        // clockwise from him. Absolute `seats` indices are
                         // rotated into that space with
                         //   ((absolute - heroSeatIndex) % playerCount + playerCount) % playerCount
                         // wherever they meet those tables (dealer button and chip
                         // blocks below).
                         const ringSeat = seats[seatRel] || seat;
                         const seatX = ringSeat.x;
-                        // The Club Arena phone layout reserves a rail beneath
-                        // the felt, but desktop uses the full table-area height.
-                        // Leaving the hero at y=100 therefore placed half of
-                        // the avatar/nameplate behind the action bar, while the
-                        // top opponent at y=5 touched the global header. Pull
-                        // only those two desktop anchors into the safe visual
-                        // field; phone/tablet retain the production Club Arena
-                        // edge placement and its dedicated lower rail.
-                        const seatY = isHero && !isMobile
-                            ? Math.min(ringSeat.y, 88)
-                            : (!isMobile && ringSeat.y <= 6 ? 12 : ringSeat.y);
-                        const clubSeatTier = scaleFactor <= (380 / DESIGN_WIDTH)
-                            ? { villain: { width: 72, height: 79 }, hero: { width: 79, height: 96 } }
-                            : isNarrow
-                                ? { villain: { width: 80, height: 88 }, hero: { width: 88, height: 108 } }
-                                : isMobile
-                                    ? { villain: { width: 88, height: 99 }, hero: { width: 101, height: 121 } }
-                                    : { villain: { width: 96, height: 122 }, hero: { width: 128, height: 150 } };
-                        const portraitBox = isHero ? clubSeatTier.hero : clubSeatTier.villain;
-                        const avatarPx = portraitBox.width;
-                        const avatarHeightPx = portraitBox.height;
+                        const seatY = ringSeat.y;
+                        const portraitBox = clubArenaSeatPortrait({
+                            tableWidth: feltBox.w,
+                            playerCount,
+                            seatY,
+                            isHero,
+                            tournament: gameType === 'mtt' || gameType === 'spins' || gameType === 'sng',
+                        });
+                        const avatarPx = portraitBox.w;
+                        const avatarHeightPx = portraitBox.h;
+                        const isTopSeat = seatY <= 6;
                         const plateW = isHero ? ui(94) : ui(78);
                         const heroCardSizing = heroCards.length >= 6
                             ? { width: 54, height: 76, step: 21 }
@@ -3966,6 +3866,11 @@ function UniversalDynamicTable({
                                 data-training-seat={isHero ? 'hero' : 'villain'}
                                 data-training-seat-index={index}
                                 data-training-seat-position={seat.name}
+                                data-training-seat-x={seatX}
+                                data-training-seat-y={seatY}
+                                data-training-avatar-width={avatarPx}
+                                data-training-avatar-height={avatarHeightPx}
+                                data-training-bust-scale={portraitBox.bustScale}
                                 key={seat.id}
                                 initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
                                 animate={{ opacity: villainFolded ? 0.42 : 1, scale: 1 }}
@@ -4026,6 +3931,7 @@ function UniversalDynamicTable({
                                         label={seatLabel}
                                         fontSize={Math.max(12, Math.round(avatarPx * 0.42))}
                                         tableCutout
+                                        bustScale={portraitBox.bustScale}
                                     />
                                 </motion.div>
 
@@ -4197,14 +4103,19 @@ function UniversalDynamicTable({
                                         off the felt and over the HUD header. */}
                                     {villainSeatAction && villainSeatAction.action && (
                                         <motion.div
+                                            data-training-seat-action="true"
                                             initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.9 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             transition={{ duration: 0.22, delay: reduceMotion ? 0 : 0.18 }}
                                             style={{
                                                 ...styles.villainActionBubble,
-                                                top: -bubbleH,
-                                                right: -bubbleOverhang,
-                                                left: 'auto',
+                                                top: isTopSeat
+                                                    ? Math.max(0, (avatarHeightPx - bubbleH) / 2)
+                                                    : -bubbleH,
+                                                right: isTopSeat && seatX > 50
+                                                    ? 'auto'
+                                                    : (isTopSeat ? -plateW : -bubbleOverhang),
+                                                left: isTopSeat && seatX > 50 ? -plateW : 'auto',
                                                 padding: `${ui(3)}px ${ui(7)}px`,
                                                 fontSize: Math.max(9, ui(11)),
                                                 minWidth: ui(54),
@@ -4235,17 +4146,22 @@ function UniversalDynamicTable({
                 {/* DEALER BUTTON — positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
                 {(() => {
                     if (dealerButtonSeatIndex < 0) return null; // seat unknown: draw nothing
-                    const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
-                    // keys is HERO-RELATIVE (index 0 is hero, 1 is the seat to
-                    // hero's left, ...) while dealerButtonSeatIndex is an ABSOLUTE
-                    // index into `seats`. Indexing one with the other only agreed
-                    // when hero happened to sit at absolute 0. Rotate first.
                     const btnRel = ((dealerButtonSeatIndex - heroSeatIndex) % playerCount + playerCount) % playerCount;
-                    const lawKey = keys[btnRel];
-                    if (!lawKey) return null;
-                    const btnPos = DEALER_BUTTON_POSITIONS[lawKey] || DEALER_BUTTON_POSITIONS.hero;
+                    const owner = seats[btnRel];
+                    if (!owner) return null;
+                    const btnPos = clubArenaDealerPosition(
+                        owner,
+                        { w: feltBox.w, h: feltBox.h },
+                        seatPodPx(viewportWidth, btnRel === 0),
+                    );
                     return (
-                        <div className="sp-club-gto-dealer-button" data-training-dealer-button="true" style={{
+                        <div
+                            className="sp-club-gto-dealer-button"
+                            data-training-dealer-button="true"
+                            data-training-dealer-seat-relative={btnRel}
+                            data-training-marker-x={btnPos.x}
+                            data-training-marker-y={btnPos.y}
+                            style={{
                             ...styles.dealerButton,
                             // BUTTONS ARE PART OF THE THEME too (Dan 2026-08-30). The dealer
                             // marker is the only real button on this surface, so it is the
@@ -4254,8 +4170,8 @@ function UniversalDynamicTable({
                             ...(arenaTheme?.dealerButton
                                 ? { background: arenaTheme.dealerButton.bg, color: arenaTheme.dealerButton.color }
                                 : null),
-                            top: `${btnPos.top}%`,
-                            left: `${btnPos.left}%`,
+                            top: `${btnPos.y}%`,
+                            left: `${btnPos.x}%`,
                             width: ui(22),
                             height: ui(22),
                             fontSize: Math.max(8, ui(11)),
@@ -4271,7 +4187,6 @@ function UniversalDynamicTable({
                     the per-seat bets that produced it, so a villain "raises 3bb" had
                     no representation on the table at all. */}
                 {(() => {
-                    const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
                     const isPreflopStreet = streetLabel === 'PREFLOP';
 
                     // committedFor() is the SAME function the POT pill sums over
@@ -4292,14 +4207,16 @@ function UniversalDynamicTable({
                             );
                         if (!shown) return null;
                         // Same absolute-vs-hero-relative mismatch as the dealer
-                        // button: `index` walks `seats` from absolute 0, `keys` is
-                        // measured from hero. Unrotated, a hero posting the big
-                        // blind drew his chips in a villain's chip slot.
+                        // button: `index` walks absolute seats while the Club
+                        // Arena ring is measured from hero. Rotate first.
                         const chipRel = ((index - heroSeatIndex) % playerCount + playerCount) % playerCount;
-                        const chipKey = keys[chipRel];
-                        if (!chipKey) return null;
-                        const pos = CHIP_STACK_POSITIONS[chipKey];
-                        if (!pos) return null;
+                        const ringSeat = seats[chipRel];
+                        if (!ringSeat) return null;
+                        const pos = clubArenaChipPosition(
+                            ringSeat,
+                            { w: feltBox.w, h: feltBox.h },
+                            seatPodPx(viewportWidth, chipRel === 0),
+                        );
                         // Chips travel from the seat they were bet from toward
                         // the pot and settle in their law-defined slot. Keyed on
                         // the amount so a NEW bet re-runs the slide and an
@@ -4308,24 +4225,26 @@ function UniversalDynamicTable({
                         // hero-relative ring slot, not from its position's
                         // coordinates -- otherwise the chips fly in from an
                         // empty patch of felt whenever hero is not on the button.
-                        const ringSeat = seats[chipRel] || seat;
                         const srcTop = isHeroSeat ? 100 : ringSeat.y;
                         const srcLeft = ringSeat.x;
                         return (
                             <motion.div
                                 className="sp-club-gto-chip-stack"
                                 data-training-chip-seat-index={index}
+                                data-training-chip-seat-relative={chipRel}
                                 data-training-chip-amount={amount}
+                                data-training-marker-x={pos.x}
+                                data-training-marker-y={pos.y}
                                 key={`chip-${index}-${amount}`}
                                 initial={reduceMotion
                                     ? false
                                     : { top: `${srcTop}%`, left: `${srcLeft}%`, opacity: 0, scale: 0.55 }}
-                                animate={{ top: `${pos.top}%`, left: `${pos.left}%`, opacity: 1, scale: 1 }}
+                                animate={{ top: `${pos.y}%`, left: `${pos.x}%`, opacity: 1, scale: 1 }}
                                 transition={{ duration: reduceMotion ? 0 : 0.34, ease: [0.22, 0.9, 0.3, 1] }}
                                 style={{
                                     ...styles.chipStack,
-                                    top: `${pos.top}%`,
-                                    left: `${pos.left}%`,
+                                    top: `${pos.y}%`,
+                                    left: `${pos.x}%`,
                                     gap: ui(4),
                                     padding: `${ui(2)}px ${ui(7)}px ${ui(2)}px ${ui(3)}px`,
                                     borderRadius: ui(10),
@@ -4693,7 +4612,7 @@ function UniversalDynamicTable({
                 // row of four thin slivers. Two columns up to four options;
                 // beyond that a third column, because a 2-wide grid of nine
                 // buttons would push the felt off a phone screen.
-                gridTemplateColumns: `repeat(${Math.min(displayOptions.length, 9) <= 3 ? Math.max(1, Math.min(displayOptions.length, 3)) : (Math.min(displayOptions.length, 9) > 4 ? 3 : 2)}, minmax(0, 1fr))`,
+                gridTemplateColumns: `repeat(${actionColumnCount}, minmax(0, 1fr))`,
             }}>
                 {/* YOUR ACTION turn indicator */}
                 {!showFeedback && (
@@ -6615,7 +6534,7 @@ const styles = {
     container: {
         position: 'relative',
         width: '100%',
-        height: '100vh',
+        height: 'calc(100dvh - var(--sp-header-height, 56px))',
         display: 'flex',
         flexDirection: 'column',
         background: 'linear-gradient(135deg,#122732 0%,#071019 47%,#102833 100%)',

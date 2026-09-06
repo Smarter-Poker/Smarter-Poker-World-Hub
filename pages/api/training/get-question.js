@@ -28,6 +28,10 @@ import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
 import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
+import {
+  runTrainingPersistenceQuery,
+  trainingPersistenceUnavailableBody,
+} from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -239,13 +243,9 @@ export default async function handler(req, res) {
       // must be refreshed too: their in-memory sanitized envelope is the only
       // grade-eligible representation and cannot be discarded after serving.
       if (question?.id) {
-        const { data: existingCanonical } = await getSupabase()
-          .from('training_question_cache')
-          .select('question_id')
-          .eq('question_id', String(question.id))
-          .maybeSingle();
         const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
         const canonicalPayload = {
+          question_id: String(question.id).slice(0, 180),
           game_id: gameId,
           engine_type: preferredEngine === 'SCENARIO' ? 'SCENARIO'
             : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
@@ -254,21 +254,19 @@ export default async function handler(req, res) {
           level: Math.min(12, Math.max(1, parseInt(level, 10) || 1)),
           question_data: question,
         };
-        const canonicalizeResult = existingCanonical
-          ? await getSupabase()
+        try {
+          await runTrainingPersistenceQuery(
+            () => getSupabase()
               .from('training_question_cache')
-              .update(canonicalPayload)
-              .eq('question_id', String(question.id))
-          : await getSupabase()
-            .from('training_question_cache')
-            .insert({
-              question_id: String(question.id).slice(0, 180),
-              ...canonicalPayload,
-              times_used: 1,
-            });
-        const canonicalizeErr = canonicalizeResult?.error;
-        if (canonicalizeErr && canonicalizeErr.code !== '23505') {
-          console.warn('[Training] Could not canonicalize served question:', canonicalizeErr.message);
+              .upsert(canonicalPayload, {
+                onConflict: 'question_id',
+                defaultToNull: false,
+              }),
+            { label: 'GetQuestion:canonicalize' },
+          );
+        } catch (canonicalizeError) {
+          console.warn('[Training] Refusing to serve an uncanonicalized question:', canonicalizeError.message);
+          return res.status(503).json(trainingPersistenceUnavailableBody());
         }
       }
 

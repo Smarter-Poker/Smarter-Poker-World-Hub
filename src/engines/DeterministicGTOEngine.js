@@ -495,6 +495,11 @@ export class DeterministicGTOEngine {
                 console.warn(`[DeterministicEngine] No postflop scenario for L${level}`);
                 return null;
             }
+            const postflopPot = Number(scenario.potSize);
+            if (!Number.isFinite(postflopPot) || postflopPot <= 0) {
+                console.warn(`[DeterministicEngine] Postflop scenario has no valid pot geometry for L${level}`);
+                return null;
+            }
 
             // Build unique ID to avoid repeats
             let scenarioId = `postflop_L${level}_${scenario.heroCards.join('')}_${scenario.board.join('')}`;
@@ -564,11 +569,10 @@ export class DeterministicGTOEngine {
                     heroPosition: scenario.position,
                     villainPosition: villainPos,
                     // scenario.potSize / effectiveStack are the street-correct
-                    // numbers from PostflopScenarioGenerator.potGeometry. The old
-                    // `|| 6` fallback drew every flop, turn and river node with a
-                    // 6bb pot against a full 100bb stack, which put SPR 16.7 on
-                    // the river and made the "% of pot" EV figure ~4x too big.
-                    pot: scenario.potSize || 6,
+                    // numbers from PostflopScenarioGenerator.potGeometry. A
+                    // missing pot now rejects the scenario above; substituting
+                    // a generic pot would change the exact decision and SPR.
+                    pot: postflopPot,
                     heroStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
                     villainStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
                     street: scenario.street,

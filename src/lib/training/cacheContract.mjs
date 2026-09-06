@@ -3,6 +3,31 @@ import { isVerifiedSolverQuestion } from './solverDecisionEvidence.js';
 
 const normalize = (value) => String(value || '').trim().toUpperCase();
 
+/**
+ * Questions produced by the deterministic/curated engines still belong to the
+ * exact Training game contract that requested them. Preserve authored values,
+ * but fill missing PIO family and stack metadata before the served envelope is
+ * cached. record-question revalidates these fields from the server-owned row;
+ * without them a hand can be shown and graded in the browser, then rejected as
+ * expired when its answer is persisted.
+ */
+export function hydrateMissingPIOScenarioContract(question, gameConfig) {
+  if (!question || typeof question !== 'object') return question;
+  const source = normalize(gameConfig?.sourceOfTruth);
+  if (source === 'ICMIZER' || source === 'SCENARIO') return question;
+  const scenario = question.scenario && typeof question.scenario === 'object'
+    ? question.scenario
+    : {};
+  if (!scenario.gameType && gameConfig?.pioGameType) {
+    scenario.gameType = String(gameConfig.pioGameType);
+  }
+  if (!Number.isFinite(Number(scenario.stackDepth)) && Number.isFinite(Number(gameConfig?.pioStackDepth))) {
+    scenario.stackDepth = Number(gameConfig.pioStackDepth);
+  }
+  question.scenario = scenario;
+  return question;
+}
+
 function optionFamilies(question) {
   return new Set((question?.options || []).map((option) => {
     const text = normalize(typeof option === 'string' ? option : `${option?.id || ''} ${option?.text || ''}`);
