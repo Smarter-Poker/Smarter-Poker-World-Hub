@@ -31,8 +31,9 @@ const PRODUCTION_PROJECT_REF = 'kuklfnapbkmacvwxktbh';
 const projectRef = process.env.SUPABASE_PROJECT_REF || PRODUCTION_PROJECT_REF;
 const allowProduction = process.env.TRIVIA_LIFELINE_ALLOW_PRODUCTION_REHEARSAL === 'true';
 const rehearsalTarget = process.env.TRIVIA_LIFELINE_REHEARSAL_TARGET;
+const verifyLive = process.argv.includes('--verify-live');
 const migrationPath = path.resolve(
-    process.argv[2]
+    process.argv.find(argument => !argument.startsWith('--') && argument.endsWith('.sql'))
     || 'supabase/migrations/20260906210000_deduct_diamonds_idempotency_binding.sql',
 );
 
@@ -166,7 +167,10 @@ async function main() {
 
     try {
         const preimage = await currentFunction(client);
-        invariant(!preimage.hardened, 'Production already contains the hardened function');
+        invariant(verifyLive ? preimage.hardened : !preimage.hardened,
+            verifyLive
+                ? 'Live verifier requires the hardened production function'
+                : 'Rollback rehearsal requires the pre-migration function');
 
         ({ rows: [wallet] } = await client.query(`
             SELECT id, diamonds, diamond_balance
@@ -186,12 +190,14 @@ async function main() {
         const { rows: [txStart] } = await client.query(
             'SELECT txid_current()::text AS id',
         );
-        await client.query(activeSql);
-        const { rows: [txAfterMigration] } = await client.query(
-            'SELECT txid_current()::text AS id',
-        );
-        invariant(txAfterMigration.id === txStart.id,
-            'Migration escaped the rollback-only outer transaction');
+        if (!verifyLive) {
+            await client.query(activeSql);
+            const { rows: [txAfterMigration] } = await client.query(
+                'SELECT txid_current()::text AS id',
+            );
+            invariant(txAfterMigration.id === txStart.id,
+                'Migration escaped the rollback-only outer transaction');
+        }
 
         const hardened = await currentFunction(client);
         invariant(hardened.hardened, 'Migration did not install replay binding');
@@ -311,15 +317,17 @@ async function main() {
         `, [Object.values(references)]);
         invariant(inside.rows === 3, 'Unexpected rehearsal receipt count');
 
-        await client.query(rollbackSql);
-        const rolledBackFunction = await currentFunction(client);
-        invariant(rolledBackFunction.source_md5 === preimage.source_md5,
-            'Documented rollback does not restore the exact function source');
-        const { rows: [txAfterRollback] } = await client.query(
-            'SELECT txid_current()::text AS id',
-        );
-        invariant(txAfterRollback.id === txStart.id,
-            'Documented rollback escaped the rollback-only outer transaction');
+        if (!verifyLive) {
+            await client.query(rollbackSql);
+            const rolledBackFunction = await currentFunction(client);
+            invariant(rolledBackFunction.source_md5 === preimage.source_md5,
+                'Documented rollback does not restore the exact function source');
+            const { rows: [txAfterRollback] } = await client.query(
+                'SELECT txid_current()::text AS id',
+            );
+            invariant(txAfterRollback.id === txStart.id,
+                'Documented rollback escaped the rollback-only outer transaction');
+        }
 
         await client.query('ROLLBACK');
 
@@ -338,7 +346,8 @@ async function main() {
             'SELECT count(*)::bigint AS count FROM public.diamond_transactions',
         );
 
-        invariant(restored.source_md5 === preimage.source_md5 && !restored.hardened,
+        invariant(restored.source_md5 === preimage.source_md5
+            && restored.hardened === preimage.hardened,
             'Production function was not restored after rehearsal');
         invariant(walletAfter.diamonds === wallet.diamonds
             && walletAfter.diamond_balance === wallet.diamond_balance,
@@ -348,8 +357,9 @@ async function main() {
 
         process.stdout.write(`${JSON.stringify({
             success: true,
-            migrationCompiledInOneTransaction: true,
-            documentedRollbackCompiledInOneTransaction: true,
+            mode: verifyLive ? 'post_deploy_verification' : 'rollback_only_migration_rehearsal',
+            migrationCompiledInOneTransaction: !verifyLive,
+            documentedRollbackCompiledInOneTransaction: !verifyLive,
             adversarialCases: 6,
             exactReplayAfterBalanceChange: true,
             persistentWalletChanges: 0,
