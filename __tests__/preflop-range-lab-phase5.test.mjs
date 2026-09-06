@@ -56,7 +56,10 @@ test('empty filter results use branded status and never charge or block with an 
 });
 
 test('VIP checkout sends the server-owned plan key and is idempotent', () => {
-    assert.match(PAGE, /'X-Checkout-Request-ID': `preflop-vip-\$\{crypto\.randomUUID\(\)\}`/);
+    assert.match(PAGE, /scope: 'preflop-vip-monthly'/);
+    assert.match(PAGE, /const checkoutRequestId = getOrCreateCommerceRequestId\(commerceIntent\)/);
+    assert.match(PAGE, /'X-Checkout-Request-ID': checkoutRequestId/);
+    assert.match(PAGE, /clearCommerceRequestId\(commerceIntent\)/);
     assert.match(PAGE, /items: \[\{ plan: 'monthly' \}\]/);
     assert.doesNotMatch(PAGE, /NEXT_PUBLIC_STRIPE_VIP_PRICE_ID|price_vip_monthly/);
     assert.match(PAGE, /if \(vipCheckoutRef\.current\) return;[\s\S]*vipCheckoutRef\.current = true/);
