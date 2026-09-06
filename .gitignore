@@ -169,5 +169,6 @@ data/tour-logs/*
 /sw.ts
 /textarea-calibration-tool.html
 # Generated Playwright output belongs in CI artifacts, never source control.
+/.cache/
 playwright-report/
 test-results/

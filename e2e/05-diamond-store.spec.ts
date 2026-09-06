@@ -410,18 +410,11 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
   });
 
-  /* Was 'VIP daily access exposes verified card and diamond settlement
-     controls'. The Daily Pass was retired on 2026-09-05 (Dan: the terms are
-     monthly, yearly and lifetime) and it had never been sold. Lifetime takes
-     its place in this test because it is the term with the unusual settlement
-     shape now: one payment, diamonds only until its card path is built. */
-  test('VIP lifetime access is offered, and is settled in diamonds', async ({ page }) => {
+  test('VIP lifetime access offers one-time card and Diamond settlement', async ({ page }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: /Select VIP Lifetime/ }).click();
-    await expect(page.getByText(/Lifetime VIP Is Bought With Diamonds: 49,900/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Pay With Diamonds Instead: 49,900/ })).toBeVisible();
-    // No card button for a term whose one-time checkout does not exist yet.
-    await expect(page.getByRole('button', { name: /Pay For .* With Card/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
   });
 
