@@ -66,6 +66,11 @@ async function handler(req, res) {
         }
         // Shared fail-closed cron gate - this route moves diamonds.
         if (!requireAdminSecret(req, res, { label: 'pvp-settle' })) return;
+        // The recovery sweep intentionally remains available while new PvP
+        // entry is disabled so an already-funded match can never be stranded
+        // behind the public release switch. Its private response can contain
+        // settlement identifiers and must never be cached by an intermediary.
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
         const sb = serviceClient();
         const cutoffIso = new Date(Date.now() - STALE_AFTER_MS).toISOString();
