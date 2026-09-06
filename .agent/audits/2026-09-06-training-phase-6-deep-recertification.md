@@ -83,6 +83,13 @@ and the production re-certification passes.
   declared authentication setup dependency could create the file. Saved state
   is now read inside the dependent test body, and a permanent source guard
   rejects any return to a discovery-time read.
+- After that repair, the full 753-test post-merge matrix passed both Training
+  journeys but exposed three unrelated timing defects in the repository test
+  harness: a live Poker Near Me card locator could switch cards between its
+  fallback and initials assertions, a progressively replaced map could lose
+  focus immediately after the check, and a Personal Assistant focus timer could
+  race its own wraparound assertion. The checks now observe one atomic fallback
+  state and wait for the declared stable map and initial-focus contracts.
 
 ## Current Club Arena Contract
 

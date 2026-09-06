@@ -301,7 +301,10 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     const focusable = dialog.locator('a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])');
     const first = focusable.first();
     const last = focusable.last();
-    await first.focus();
+    // BottomSheet schedules initial focus after mount. Wait for that contract
+    // before exercising wraparound so its 60ms focus timer cannot race the
+    // Shift+Tab assertion and move focus back to the first control.
+    await expect(first).toBeFocused({ timeout: 5_000 });
     await page.keyboard.press('Shift+Tab');
     await expect(last).toBeFocused();
     await page.keyboard.press('Tab');
