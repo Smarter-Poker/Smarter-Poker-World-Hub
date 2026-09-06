@@ -88,7 +88,7 @@ test.describe('Poker Near Me phase 12 parity, performance, and regional surfaces
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
     const map = page.locator('[data-map-ready]').first();
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
-    await expect(page.locator('.leaflet-container')).toBeVisible();
+    await expect(map).toBeVisible();
     expect(mapRuntimeErrors).toEqual([]);
     await expectNoOverflow(page, route);
   });
@@ -122,7 +122,9 @@ test.describe('Poker Near Me phase 12 parity, performance, and regional surfaces
       await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
       await expectNoOverflow(page, `${route} at 200%`);
       await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
-      const controls = page.locator('main a:visible, main button:visible');
+      // The lobby's clipped crawlable link graph is deliberately removed from
+      // keyboard order with tabindex=-1. Audit only controls a person can use.
+      const controls = page.locator('main a[href]:visible:not([tabindex="-1"]), main button:visible');
       const count = Math.min(await controls.count(), 10);
       for (let index = 0; index < count; index += 1) {
         const box = await controls.nth(index).boundingBox();

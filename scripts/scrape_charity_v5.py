@@ -1368,14 +1368,16 @@ def log_audit(action, count, extra=None):
     rest_upsert('data_audit_log', {
         'table_name': 'venue_daily_tournaments',
         'action': action,
-        'records_affected': count,
         'batch_id': BATCH_ID,
         'agent_id': 'charity_scraper_v5',
-        'details': json.dumps({
+        'record_id': f'batch:{BATCH_ID}',
+        # `records_affected` and `details` are NOT columns of this table.
+        'new_data': {
+            'records_affected': count,
             'scrape_script': SCRIPT_NAME,
             'timestamp': datetime.now(timezone.utc).isoformat(),
             **(extra or {}),
-        }),
+        },
     })
 
 

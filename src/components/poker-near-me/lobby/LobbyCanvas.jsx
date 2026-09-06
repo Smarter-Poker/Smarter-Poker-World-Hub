@@ -147,7 +147,12 @@ export default function LobbyCanvas() {
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           opacity: bgLoaded ? 1 : 0,
-          transition: 'opacity 1.2s ease-in',
+          // This image is the mobile LCP candidate. A 1.2-second opacity
+          // reveal delayed LCP by the full animation even after the asset was
+          // decoded, pushing the production budget over 2.5 seconds on CI.
+          // Reveal the already-decoded frame atomically; the radar/sonar layer
+          // still provides the intended restrained motion.
+          transition: 'none',
         }}
       />
 

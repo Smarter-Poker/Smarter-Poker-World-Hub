@@ -17,12 +17,19 @@ applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
-import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
+import {
+    filterCachedRowsForGame,
+    hydrateMissingPIOScenarioContract,
+} from '../../../src/lib/training/cacheContract.mjs';
 import { streetOfCachedRow } from '../../../src/lib/training/declaredStreet';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
 import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+    runTrainingPersistenceQuery,
+    trainingPersistenceUnavailableBody,
+} from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
 function hashSeed(str) {
@@ -470,6 +477,7 @@ export default async function handler(req, res) {
                   scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 500);
               }
               qData.scenario = scenario;
+              hydrateMissingPIOScenarioContract(qData, declaredCfg);
               if (!qData.source) qData.source = 'CACHED_SCENARIO';
               // IMP-5: Tag data quality for frontend confidence indicators
               qData.dataQuality = dataQuality;
@@ -510,19 +518,32 @@ export default async function handler(req, res) {
                   .filter(row => generatedIds.has(row.question_id))
                   .map(row => ({ ...row, times_used: 1 }));
               if (canonicalRows.length > 0) {
-                  const canonicalWrites = await Promise.all([
+                  try {
+                    await Promise.all([
                       cachedCanonicalRows.length > 0
-                          ? getSupabase().from('training_question_cache')
-                              .upsert(cachedCanonicalRows, { onConflict: 'question_id' })
+                          ? runTrainingPersistenceQuery(
+                              () => getSupabase().from('training_question_cache')
+                                  .upsert(cachedCanonicalRows, {
+                                      onConflict: 'question_id',
+                                      defaultToNull: false,
+                                  }),
+                              { label: 'BatchPreload:canonicalize-cached' },
+                            )
                           : Promise.resolve({ error: null }),
                       generatedCanonicalRows.length > 0
-                          ? getSupabase().from('training_question_cache')
-                              .upsert(generatedCanonicalRows, { onConflict: 'question_id' })
+                          ? runTrainingPersistenceQuery(
+                              () => getSupabase().from('training_question_cache')
+                                  .upsert(generatedCanonicalRows, {
+                                      onConflict: 'question_id',
+                                      defaultToNull: false,
+                                  }),
+                              { label: 'BatchPreload:canonicalize-generated' },
+                            )
                           : Promise.resolve({ error: null }),
-                  ]);
-                  const cacheWriteErr = canonicalWrites.find(result => result?.error)?.error;
-                  if (cacheWriteErr) {
-                      console.warn('[BatchPreload] Could not canonicalize served questions:', cacheWriteErr.message);
+                    ]);
+                  } catch (canonicalizeError) {
+                      console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
+                      return res.status(503).json(trainingPersistenceUnavailableBody());
                   }
               }
 

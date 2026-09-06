@@ -40,6 +40,9 @@ function solverQuestion(overrides = {}) {
     nodeType: 'hero_bets_or_checks',
     tableSize: 6,
     stackDepth: 100,
+    villainPosition: 'BB',
+    potSize: 6,
+    actionHistory: [],
     ...(overrides.scenario || {}),
   };
   return {
@@ -75,10 +78,14 @@ function parsedHand(overrides = {}) {
     variant: 'holdem',
     gameType: 'nlh',
     tableSize: 6,
-    hero: { position: 'BTN', holeCards: ['Jh', 'Th'], stack: 100 },
+    hero: { id: 'hero', position: 'BTN', holeCards: ['Jh', 'Th'], stack: 100 },
+    players: [
+      { id: 'hero', position: 'BTN', stack: 100 },
+      { id: 'villain', position: 'BB', stack: 100 },
+    ],
     streets: {
       preflop: { actions: [] },
-      flop: { board: ['As', 'Ks', '2d'], actions: [{ isHero: true, action: 'check', amount: 0 }] },
+      flop: { board: ['As', 'Ks', '2d'], actions: [{ isHero: true, action: 'check', amount: 0, potBeforeBB: 6 }] },
       turn: null,
       river: null,
     },
@@ -93,7 +100,7 @@ function cachedQuestion(question, id = 'question-1') {
 test('Leak Finder consumes canonical training answers and hand audits', () => {
   assert.match(detect, /from\('training_answers'\)/);
   assert.match(detect, /from\('hand_audit_decisions'\)/);
-  assert.match(detect, /like\('solver_source', '%\|hand-audit-v2'\)/);
+  assert.match(detect, /like\('solver_source', '%\|hand-audit-v3'\)/);
   assert.match(detect, /aggregateSolverLeaks/);
   assert.doesNotMatch(detect, /classification_counts/);
   assert.doesNotMatch(detect, /combineLiveAndTrainingStats/);
@@ -159,12 +166,13 @@ test('Club Arena hand filters use valid JSON containment and include the live re
     ['audit engine', auditEngine],
     ['leak detector', detect],
     ['poker hand history', pokerHistory],
-    ['Club Arena My Hands', read('pages/api/club-arena/my-hands.js')],
     ['hand-history library', read('src/lib/poker-engine/HandHistory.js')],
   ]) {
     assert.doesNotMatch(source, /\.contains\('players', \[\{/, `${name} must not emit invalid PostgREST JSON`);
     assert.match(source, /\.contains\('players', JSON\.stringify\(\[\{/, `${name} must serialize JSON containment`);
   }
+  const myHands = read('pages/api/club-arena/my-hands.js');
+  assert.match(myHands, /\.or\(clubArenaParticipantFilter\(user\.id\)\)/);
   assert.match(auditEngine, /\['manual', 'wh-engine', 'engine-api'\]/);
 });
 
@@ -262,7 +270,7 @@ test('Club Arena solver identity uses starting stacks in big blinds and explicit
   assert.equal(unknown?.hero.stack, null);
 });
 
-test('exact Club Arena matches are stamped with matcher v2 provenance', async () => {
+test('exact Club Arena matches are stamped with matcher v3 provenance', async () => {
   const result = await auditParsedHands(
     auditDb([cachedQuestion(solverQuestion())]),
     'hero',
@@ -272,7 +280,7 @@ test('exact Club Arena matches are stamped with matcher v2 provenance', async ()
 
   assert.equal(result.solverVerified, 1);
   assert.equal(result.complete, true);
-  assert.match(result.analyses[0].decisions[0].solverSource, /\|hand-audit-v2$/);
+  assert.match(result.analyses[0].decisions[0].solverSource, /\|hand-audit-v3$/);
 });
 
 test('solver lookup filters by indexed hero hand before applying its candidate cap', async () => {
@@ -367,7 +375,7 @@ test('legacy PIO cache prompts infer only an unambiguous postflop node', async (
   );
 
   assert.equal(result.solverVerified, 1);
-  assert.match(result.analyses[0].decisions[0].solverSource, /^PIO_DATABASE\|hand-audit-v2$/);
+  assert.match(result.analyses[0].decisions[0].solverSource, /^PIO_DATABASE\|hand-audit-v3$/);
 });
 
 test('turn and river order cannot be collapsed into a false exact board match', async () => {
@@ -437,6 +445,7 @@ test('recorded bets without normalized sizing remain unpriced', async () => {
 
   assert.equal(result.solverMatches, 1);
   assert.equal(result.solverVerified, 0);
+  assert.match(result.analyses[0].decisions[0].solverSource, /hand-audit-v3:unpriced$/);
 });
 
 test('forced blind postings are excluded from hero decision counts', async () => {
@@ -469,7 +478,7 @@ test('solver lookup failures are explicit incomplete audits, not clean unpriced 
 
   assert.equal(result.solverLookupFailures, 1);
   assert.equal(result.complete, false);
-  assert.equal(result.analyses[0].decisions[0].solverSource, 'hand-audit-v2:lookup-failed');
+  assert.equal(result.analyses[0].decisions[0].solverSource, 'hand-audit-v3:lookup-failed');
 });
 
 test('migrations preserve provenance and idempotent hand audits', () => {

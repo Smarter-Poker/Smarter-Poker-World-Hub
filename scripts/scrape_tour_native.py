@@ -454,8 +454,9 @@ def seed_to_supabase(events, tour_code, batch_id, dry_run=False, prov=None):
             "table_name": "tour_stop_events",
             "action": "native_scrape_upsert",
             "batch_id": batch_id,
-            "records_count": inserted,
-            "tour_code": tour_code,
+            "record_id": f"batch:{batch_id}",
+            # `records_count` and `tour_code` are NOT columns of this table.
+            "new_data": {"records_count": inserted, "tour_code": tour_code},
             "agent_id": "scrape_tour_native.py",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }).execute()

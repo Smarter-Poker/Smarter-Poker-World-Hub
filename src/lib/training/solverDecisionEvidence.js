@@ -119,7 +119,7 @@ export function isVerifiedSolverQuestion(question) {
   // An explicit provenance object is the only source-less compatibility path.
   // `dataQuality=SOLVER_EXACT` alone is insufficient because legacy enrichment
   // initialized that label before it knew whether frequencies were fabricated.
-  return hasCompleteWarehouseProvenance(question);
+  return !source && hasCompleteWarehouseProvenance(question);
 }
 
 const SOLVER_CLAIM_RE = /\b(?:according to gto|gto mixes|gto solver|solver picks|nash equilibrium|solver[- ]exact|pure\s+[a-z-]+\s*\(\d+%|what is the gto play)\b/i;
@@ -287,6 +287,7 @@ export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErro
       groups.set(key, {
         evidenceScope, gameId, street, position, spotType,
         samples: 0, mistakes: 0, totalMeasuredEV: 0, measuredEVMistakes: 0,
+        mistakenHandExternalIds: [],
         newestAt: null,
       });
     }
@@ -295,6 +296,12 @@ export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErro
     const isMistake = !GOOD_CLASSIFICATIONS.has(classification);
     if (isMistake) {
       group.mistakes += 1;
+      if (evidenceScope === 'club_arena' && row.hand_external_id) {
+        const externalId = String(row.hand_external_id);
+        if (!group.mistakenHandExternalIds.includes(externalId)) {
+          group.mistakenHandExternalIds.push(externalId);
+        }
+      }
       if (row.ev_loss_measured && finiteNumber(row.ev_loss) !== null) {
         group.totalMeasuredEV += Math.max(0, finiteNumber(row.ev_loss));
         group.measuredEVMistakes += 1;
@@ -381,6 +388,7 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
         _sample_count: group.samples,
         _mistake_count: group.mistakes,
         _ev_measured_count: group.measuredEVMistakes,
+        _mistaken_hand_external_ids: group.mistakenHandExternalIds,
       };
     })
     .filter(Boolean)

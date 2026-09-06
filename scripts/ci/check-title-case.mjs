@@ -22,8 +22,11 @@
  * paint as text and nothing else.
  *
  * WHAT IT DOES NOT TOUCH
- *   - anything inside {} - those are expressions, and their values are cased at
- *     their source (or by formatPopupText for toasts)
+ *   - child copy inside {} - those are expressions, and their values are cased
+ *     at their source (or by formatPopupText for toasts)
+ *   - expression-valued attributes - only direct string literals in the
+ *     user-visible placeholder, aria-label, alt and title attributes are safe
+ *     for this gate to inspect or fix
  *   - words already shouting (VIP, BBJ, LIVE), which are acronyms or emphasis
  *   - tokens that start with a digit (6max, 3rd, 2x): the letters are a suffix
  *   - HTML entities (&nbsp; &rsquo;)
@@ -33,7 +36,7 @@
  */
 
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { join, extname, resolve } from 'node:path';
 import ts from 'typescript';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
@@ -68,7 +71,28 @@ const ACRONYMS = new Set([
 // forward-facing pages, including every top-level Marketplace storefront.
 const JSX_EXTS = new Set(['.js', '.jsx', '.tsx']);
 
+// Direct string literals in these attributes are browser-visible copy with no
+// ambiguity about their purpose. Expression values stay deliberately excluded:
+// an expression can be a route, CSS token, protocol, dynamic inventory value or
+// prose, and rewriting it here would be unsafe.
+const USER_VISIBLE_ATTRIBUTES = new Set(['placeholder', 'aria-label', 'alt', 'title']);
+const MARKETPLACE_ATTRIBUTE_PATH = /^(?:pages\/hub\/(?:diamond-store|merch-store|vip-membership|smarter-rewards|club-shop)(?:\.js|\/)|src\/components\/(?:store|diamond-store)\/)/;
+
+function isNonProseAttributeValue(text) {
+  const value = text.trim();
+  if (!value) return true;
+  // These are machine-addressed values even when they sit in a visible
+  // attribute (for example a URL input's "https://" placeholder). Changing
+  // their case can alter meaning or teach users an invalid value.
+  return /^(?:[a-z][a-z0-9+.-]*:|\/|#|\?)/i.test(value)
+    || /^[^\s@]+@[^\s@]+$/.test(value);
+}
+
 const fix = process.argv.includes('--fix');
+const scanFileIndex = process.argv.indexOf('--scan-file');
+const scanFile = scanFileIndex >= 0 && process.argv[scanFileIndex + 1]
+  ? resolve(process.argv[scanFileIndex + 1])
+  : null;
 
 function walk(dir, acc = []) {
   try {
@@ -119,7 +143,7 @@ export function titleCaseText(text) {
  * corrupts a page is worse than one that covers the 95% that is unambiguous,
  * so those fragments are left to their authors.
  */
-function jsxTextNodes(file, source) {
+function jsxCopyNodes(file, source, scanAttributes) {
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const out = [];
   /**
@@ -171,7 +195,25 @@ function jsxTextNodes(file, source) {
       if (/[A-Za-z]/.test(text)) {
         const suffix = /^[A-Za-z]/.test(text) && continuesAWord(node);
         const prefix = /[A-Za-z]$/.test(text) && precedesAnExpression(node);
-        out.push({ start, end, text, suffix, prefix });
+        out.push({ start, end, text, suffix, prefix, kind: 'text' });
+      }
+    } else if (scanAttributes && ts.isJsxAttribute(node)) {
+      const attribute = node.name.getText(sf).toLowerCase();
+      const initializer = node.initializer;
+      if (USER_VISIBLE_ATTRIBUTES.has(attribute) && initializer && ts.isStringLiteral(initializer)) {
+        const literalStart = initializer.getStart(sf);
+        const quote = source[literalStart];
+        const literalEnd = initializer.end;
+        // JSX direct string attributes are quoted. Keep the delimiters outside
+        // the replacement range so --fix cannot alter syntax.
+        if ((quote === '"' || quote === "'") && source[literalEnd - 1] === quote) {
+          const start = literalStart + 1;
+          const end = literalEnd - 1;
+          const text = source.slice(start, end);
+          if (/[A-Za-z]/.test(text) && !isNonProseAttributeValue(text)) {
+            out.push({ start, end, text, suffix: false, prefix: false, kind: attribute });
+          }
+        }
       }
     }
     node.forEachChild(visit);
@@ -184,13 +226,16 @@ const offenders = [];
 let fixedNodes = 0;
 let fixedFiles = 0;
 
-for (const file of [...new Set(SCAN_ROOTS.flatMap((r) => walk(r)))]) {
+const files = scanFile ? [scanFile] : [...new Set(SCAN_ROOTS.flatMap((r) => walk(r)))];
+
+for (const file of files) {
   const original = readFileSync(file, 'utf8');
   if (!original.includes('<')) continue;
+  const relativeFile = file.replace(ROOT, '').replaceAll('\\', '/');
 
   let nodes;
   try {
-    nodes = jsxTextNodes(file, original);
+    nodes = jsxCopyNodes(file, original, Boolean(scanFile) || MARKETPLACE_ATTRIBUTE_PATH.test(relativeFile));
   } catch {
     continue; // a file the parser cannot read is not this gate's problem
   }
@@ -229,7 +274,8 @@ for (const file of [...new Set(SCAN_ROOTS.flatMap((r) => walk(r)))]) {
   } else {
     for (const c of changes) {
       const line = original.slice(0, c.start).split('\n').length;
-      offenders.push(`${file.replace(ROOT, '')}:${line}: ${c.text.trim().slice(0, 90)}`);
+      const context = c.kind === 'text' ? '' : ` [${c.kind}]`;
+      offenders.push(`${relativeFile}:${line}${context}: ${c.text.trim().slice(0, 90)}`);
     }
   }
 }

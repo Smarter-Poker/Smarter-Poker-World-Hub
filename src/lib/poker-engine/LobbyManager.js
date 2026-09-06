@@ -234,6 +234,7 @@ class LobbyManager {
       tableId: config.tableId,
       clubId: config.clubId,
       variant: config.variant || GAME_VARIANT.HOLDEM,
+      format: config.format || config.gameFormat || 'cash',
       bettingStructure: config.bettingStructure || BETTING_STRUCTURES.NO_LIMIT,
       smallBlind: config.smallBlind,
       bigBlind: config.bigBlind,
@@ -592,6 +593,10 @@ class LobbyManager {
           type: data.action.type,
           amount: data.action.amount,
           auto: data.action.auto,
+          potBefore: data.potBefore,
+          currentBetBefore: data.currentBetBefore,
+          raiseTo: data.action.type === 'raise' ? data.currentBet : null,
+          sizingPct: data.sizingPct,
         });
       }
     });

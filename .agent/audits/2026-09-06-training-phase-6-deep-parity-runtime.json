@@ -1,0 +1,549 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T05:55:30.219Z",
+  "baseUrl": "http://127.0.0.1:3046",
+  "success": true,
+  "clubArenaSource": "30702e1af",
+  "viewports": [
+    {
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "cases": [
+        {
+          "gameId": "cash-001",
+          "caseId": "cash-001",
+          "level": 1,
+          "family": "6max",
+          "action": {
+            "street": "preflop",
+            "playerCount": 6,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "c",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": true,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-002",
+          "caseId": "cash-002-prerequisite",
+          "level": 1,
+          "family": "cbet-prerequisite",
+          "action": {
+            "street": "preflop",
+            "playerCount": 6,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-002",
+          "caseId": "cash-002-flop",
+          "level": 8,
+          "family": "6max-postflop",
+          "action": {
+            "street": "flop",
+            "playerCount": 6,
+            "boardCount": 3,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-012",
+          "caseId": "cash-012",
+          "level": 1,
+          "family": "river",
+          "action": {
+            "street": "river",
+            "playerCount": 6,
+            "boardCount": 5,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-018",
+          "caseId": "cash-018",
+          "level": 1,
+          "family": "heads-up",
+          "action": {
+            "street": "preflop",
+            "playerCount": 2,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "spins-001",
+          "caseId": "spins-001",
+          "level": 1,
+          "family": "spins",
+          "action": {
+            "street": "preflop",
+            "playerCount": 3,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "mtt-002",
+          "caseId": "mtt-002",
+          "level": 1,
+          "family": "mtt",
+          "action": {
+            "street": "preflop",
+            "playerCount": 9,
+            "boardCount": 0,
+            "tableShape": "full-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "mtt-021",
+          "caseId": "mtt-021",
+          "level": 1,
+          "family": "postflop-mtt",
+          "action": {
+            "street": "turn",
+            "playerCount": 9,
+            "boardCount": 4,
+            "tableShape": "full-ring",
+            "answerCount": 4,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "mtt-001",
+          "caseId": "mtt-001",
+          "level": 1,
+          "family": "push-fold",
+          "action": {
+            "street": "preflop",
+            "playerCount": 9,
+            "boardCount": 0,
+            "tableShape": "full-ring",
+            "answerCount": 2,
+            "rootBottom": 843.75,
+            "viewportHeight": 844,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "push",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 1000
+      },
+      "cases": [
+        {
+          "gameId": "cash-001",
+          "caseId": "cash-001",
+          "level": 1,
+          "family": "6max",
+          "action": {
+            "street": "preflop",
+            "playerCount": 6,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "r",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": true,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-002",
+          "caseId": "cash-002-prerequisite",
+          "level": 1,
+          "family": "cbet-prerequisite",
+          "action": {
+            "street": "preflop",
+            "playerCount": 6,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-002",
+          "caseId": "cash-002-flop",
+          "level": 8,
+          "family": "6max-postflop",
+          "action": {
+            "street": "flop",
+            "playerCount": 6,
+            "boardCount": 3,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-012",
+          "caseId": "cash-012",
+          "level": 1,
+          "family": "river",
+          "action": {
+            "street": "river",
+            "playerCount": 6,
+            "boardCount": 5,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "cash-018",
+          "caseId": "cash-018",
+          "level": 1,
+          "family": "heads-up",
+          "action": {
+            "street": "preflop",
+            "playerCount": 2,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "spins-001",
+          "caseId": "spins-001",
+          "level": 1,
+          "family": "spins",
+          "action": {
+            "street": "preflop",
+            "playerCount": 3,
+            "boardCount": 0,
+            "tableShape": "small-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "mtt-002",
+          "caseId": "mtt-002",
+          "level": 1,
+          "family": "mtt",
+          "action": {
+            "street": "preflop",
+            "playerCount": 9,
+            "boardCount": 0,
+            "tableShape": "full-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "mtt-021",
+          "caseId": "mtt-021",
+          "level": 1,
+          "family": "postflop-mtt",
+          "action": {
+            "street": "turn",
+            "playerCount": 9,
+            "boardCount": 4,
+            "tableShape": "full-ring",
+            "answerCount": 4,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "a",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        },
+        {
+          "gameId": "mtt-001",
+          "caseId": "mtt-001",
+          "level": 1,
+          "family": "push-fold",
+          "action": {
+            "street": "preflop",
+            "playerCount": 9,
+            "boardCount": 0,
+            "tableShape": "full-ring",
+            "answerCount": 2,
+            "rootBottom": 999.78125,
+            "viewportHeight": 1000,
+            "overflow": 0,
+            "brokenVisibleImages": [],
+            "actionTextOverflows": []
+          },
+          "verdict": {
+            "visibleFeedbackPanels": 1,
+            "selectedAction": "push",
+            "overflow": 0,
+            "brokenVisibleImages": []
+          },
+          "completion": null,
+          "browserErrors": {
+            "pageErrors": [],
+            "consoleErrors": []
+          }
+        }
+      ]
+    }
+  ]
+}

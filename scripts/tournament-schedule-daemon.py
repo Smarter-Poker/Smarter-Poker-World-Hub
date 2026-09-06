@@ -47,7 +47,7 @@ Usage:
   tail -f data/tournament-logs/daemon_$(date +%Y%m%d).log
 """
 
-import argparse, hashlib, io, json, os, re, sys, time, urllib.request, urllib.parse, uuid
+import argparse, hashlib, io, json, os, re, sys, time, urllib.request, urllib.parse, urllib.error, uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -181,11 +181,59 @@ def write_heartbeat(cycle: int, venues_done: int, total_rec: int, batch_id: str,
 def sha256h(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
+# ─────────────────────────────────────────────────────────────────────────────
+# A DAEMON THAT CANNOT MAKE PROGRESS MUST DIE SO launchd CAN RESTART IT.
+#
+# Found 2026-09-06. This process sat in a connect-failure loop for FOUR DAYS
+# AND NINETEEN HOURS - 1,355 consecutive cycles, `venues_done: 0`,
+# `records_total: 0` - retrying every five minutes and heartbeating the whole
+# time. `venue_daily_tournaments` had not been written since 2026-09-04 and the
+# audit volume behind it fell from ~40,000 rows a day to one.
+#
+# The plist already says `KeepAlive: true`. It never helped, because the loop
+# above `continue`s forever and the process never exits: a restart policy
+# cannot restart something that refuses to stop. Restarting it by hand
+# recovered it INSTANTLY - a fresh process passed the same network check on its
+# first try - so whatever the wedge was, it lived in this process and not in
+# the machine.
+#
+# So: after MAX_CONNECT_FAILURES consecutive failures, say so loudly and exit
+# non-zero. launchd brings back a clean process, which is the only thing that
+# has ever fixed this. Twelve failures is an hour of retrying, which is long
+# enough to ride out a real outage and short enough that nobody loses a day.
+MAX_CONNECT_FAILURES = 12
+
+def _die_if_wedged(streak: int, what: str) -> None:
+    if streak < MAX_CONNECT_FAILURES:
+        return
+    log("=" * 70)
+    log(f"WEDGED: {what} {streak} times in a row (~{streak * 5} minutes).")
+    log("Exiting non-zero so launchd (KeepAlive) restarts a clean process.")
+    log("A daemon that cannot make progress is worse than one that is down:")
+    log("it heartbeats, so everything downstream reads it as healthy.")
+    log("=" * 70)
+    sys.stdout.flush()
+    sys.exit(1)
+
 def network_ok() -> bool:
-    for url in ("https://1.1.1.1", "https://www.google.com", "https://supabase.com"):
+    """
+    Is the network up?
+
+    AN HTTP ERROR IS PROOF THAT IT IS. `urlopen` raises HTTPError for any
+    non-2xx, and this used to catch that alongside real connection failures -
+    so a 403 from 1.1.1.1, which can only be produced by a server that received
+    the request, was read as "no network". Measured 2026-09-06: 1.1.1.1 answers
+    403 Forbidden from this machine, every time.
+
+    Only a genuine transport failure (URLError, socket timeout, DNS) means
+    down. An HTTPError means a server answered, which is the whole question.
+    """
+    for url in ("https://www.google.com", "https://supabase.com", "https://1.1.1.1"):
         try:
             urllib.request.urlopen(url, timeout=6)
             return True
+        except urllib.error.HTTPError:
+            return True          # a server replied - the network is up
         except Exception:
             continue
     return False
@@ -798,8 +846,10 @@ def sb_audit(batch_id:str, venues:int, records:int, notes:str=""):
             f"{SUPABASE_URL}/rest/v1/data_audit_log",
             data=json.dumps({"table_name":"venue_daily_tournaments",
                 "action":"tournament_daemon_scrape","batch_id":batch_id,
-                "records_affected":records,"agent_id":"DAILY VENUE TOURNAMENT SCRAPER",
-                "notes":f"Venues:{venues}. {notes}",
+                "agent_id":"DAILY VENUE TOURNAMENT SCRAPER",
+                "record_id":f"batch:{batch_id}",
+                # `records_affected` and `notes` are NOT columns of this table.
+                "new_data":{"records_affected":records,"notes":f"Venues:{venues}. {notes}"},
                 "created_at":datetime.now(timezone.utc).isoformat()}).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}
         )
@@ -2360,10 +2410,11 @@ def main():
         WRITE_FAILURES=0  # per-cycle write-failure count
 
         if not network_ok():
-            log("Network unavailable — retry in 5 min")
             connect_failures+=1
+            log(f"Network unavailable (streak {connect_failures}) — retry in 5 min")
             write_heartbeat(cycle,0,0,batch_id,status="connect_failed",
                             consecutive_failures=connect_failures)
+            _die_if_wedged(connect_failures, "network_ok() has failed")
             time.sleep(300); continue
 
         log(f"\n{'='*70}\nCYCLE {cycle}  batch_id={batch_id}\n{'='*70}")
@@ -2377,6 +2428,7 @@ def main():
             log(f"Browser session failed to start (streak {connect_failures}) — retry in 5 min")
             write_heartbeat(cycle,0,0,batch_id,status="connect_failed",
                             consecutive_failures=connect_failures)
+            _die_if_wedged(connect_failures, "the browser session has failed to start")
             if args.batch or args.missing or args.venue_ids:
                 log("Single-pass mode — exiting non-zero so the caller sees the failure.")
                 sys.exit(1)

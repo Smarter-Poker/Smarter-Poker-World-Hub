@@ -36,11 +36,14 @@ test.describe('Poker Near Me phase 7 map scale and operations', () => {
     expect(visible).toBeGreaterThanOrEqual(0);
     expect(visible).toBeLessThanOrEqual(total);
     expect(remoteMapAssets).toEqual([]);
-    await expect(coverage.locator('.pnm-map-coverage__signal')).toHaveScreenshot('phase7-map-signal.png', {
-      animations: 'disabled',
-      caret: 'hide',
-      maxDiffPixelRatio: 0.02,
-    });
+    await expect(coverage.locator('.pnm-map-coverage__signal')).toHaveScreenshot(
+      `phase7-map-signal-${testInfo.project.name}.png`,
+      {
+        animations: 'disabled',
+        caret: 'hide',
+        maxDiffPixelRatio: 0.02,
+      }
+    );
     await expectNoOverflow(page, '/hub/poker-series');
   });
 

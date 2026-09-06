@@ -62,19 +62,23 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
     const mark = String.fromCharCode(0x2014);
     const attributes = ['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'];
     const attributeViolations = [...document.querySelectorAll('*')].filter(element =>
+      !element.closest('pre,code,[data-pa-verbatim]') &&
       attributes.some(name => element.getAttribute(name)?.includes(mark))
     ).length;
     const sentenceCaseAttributes = [...document.querySelectorAll('*')].filter(element =>
+      !element.closest('pre,code,[data-pa-verbatim]') &&
       attributes.some(name => /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/.test(element.getAttribute(name) || ''))
     ).length;
     const sentenceCaseText = [...document.querySelectorAll('body *')]
       .filter(element => !['SCRIPT', 'STYLE', 'TEXTAREA', 'TEMPLATE'].includes(element.tagName))
+      .filter(element => !element.closest('pre,code,[data-pa-verbatim]'))
       .reduce((count, element) => (
         count + [...element.childNodes]
           .filter(node => node.nodeType === Node.TEXT_NODE)
           .filter(node => /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/.test(node.textContent || '')).length
       ), 0);
     const transformViolations = [...document.querySelectorAll('main *')].filter(element => {
+      if (element.closest('pre,code,[data-pa-verbatim]')) return false;
       const directText = [...element.childNodes]
         .filter(node => node.nodeType === Node.TEXT_NODE)
         .some(node => node.textContent?.trim());
@@ -83,7 +87,14 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
     return {
       bodyTransform: window.getComputedStyle(document.body).textTransform,
       titleViolations: document.title.includes(mark) ? 1 : 0,
-      textViolations: (document.body.innerText.match(new RegExp(mark, 'g')) || []).length,
+      textViolations: [...document.querySelectorAll('body *')]
+        .filter(element => !['SCRIPT', 'STYLE', 'TEXTAREA', 'TEMPLATE'].includes(element.tagName))
+        .filter(element => !element.closest('pre,code,[data-pa-verbatim]'))
+        .reduce((count, element) => (
+          count + [...element.childNodes]
+            .filter(node => node.nodeType === Node.TEXT_NODE)
+            .reduce((nodeCount, node) => nodeCount + ((node.textContent || '').match(new RegExp(mark, 'g')) || []).length, 0)
+        ), 0),
       attributeViolations,
       sentenceCaseAttributes,
       sentenceCaseText,
@@ -156,6 +167,41 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     }
   });
 
+  test('copy policy preserves verbatim URL and JSON content added after hydration', async ({ page }) => {
+    await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
+    const technicalCopy = await page.evaluate(async () => {
+      const url = document.createElement('span');
+      url.dataset.paVerbatim = 'true';
+      url.textContent = 'https://smarter.poker/sandbox/aBc123?heroPosition=smallBlind';
+      const json = document.createElement('code');
+      json.textContent = '{"heroPosition":"small blind","shareId":"aBc123"}';
+      document.body.append(url, json);
+      await new Promise(resolve => window.setTimeout(resolve, 0));
+      const result = {
+        url: url.textContent,
+        json: json.textContent,
+        urlTransform: window.getComputedStyle(url).textTransform,
+        jsonTransform: window.getComputedStyle(json).textTransform,
+      };
+      url.remove();
+      json.remove();
+      return result;
+    });
+    expect(technicalCopy).toEqual({
+      url: 'https://smarter.poker/sandbox/aBc123?heroPosition=smallBlind',
+      json: '{"heroPosition":"small blind","shareId":"aBc123"}',
+      urlTransform: 'none',
+      jsonTransform: 'none',
+    });
+  });
+
+  test('expired one-time shared hand-off reports the problem and cleans its URL', async ({ page }) => {
+    await page.addInitScript(() => window.sessionStorage.removeItem('shared-sandbox-state'));
+    await page.goto('/hub/personal-assistant/sandbox?loadShared=true', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('That Shared Scenario Has Expired · Open The Original Link Again')).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.has('loadShared')).toBe(false);
+  });
+
   test('strategy hub keeps its primary command fully inside the mobile hero bay', async ({ page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('mobile'), 'mobile project only');
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
@@ -181,7 +227,8 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
         question: {
           id: 'solver-question-test',
           hero_hand: 'T9s',
-          heroCards: ['Ts', '9s'],
+          // Deliberately stale: the canonical scenario must win.
+          heroCards: ['Ah', 'Kd'],
           hero_position: 'BTN',
           board_cards: ['Qc', '5h', '3s'],
           scenario_text: 'You Hold T9s On The Flop. What Is The GTO Play?',
@@ -194,6 +241,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(dailySection.getByRole('heading', { name: 'Hand Of The Day' })).toBeVisible();
     await expect(dailySection.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
     await expect(dailySection.getByText('BTN · Pot 6 BB')).toBeVisible();
+    await expect(dailySection.getByLabel('Hero Hand Ts9s')).toBeVisible();
     await expect(dailySection.getByRole('button', { name: /Load In Sandbox/i })).toBeVisible();
     await expectHealthyLayout(page);
   });
@@ -242,15 +290,27 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
-  test('Sandbox setup sheet opens, traps context, and closes with Escape', async ({ page }) => {
+  test('Sandbox setup sheet opens, traps context, and closes with Escape', async ({ page }, testInfo) => {
     const response = await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
     await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeAttached();
     await expect(page.locator('#sandbox-table')).toBeVisible();
-    await page.getByRole('button', { name: 'Open setup' }).click();
-    await expect(page.getByRole('dialog', { name: /Setup/i })).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Open setup' }), testInfo.project.name);
+    const dialog = page.getByRole('dialog', { name: /Setup/i });
+    await expect(dialog).toBeVisible();
+    const focusable = dialog.locator('a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])');
+    const first = focusable.first();
+    const last = focusable.last();
+    // BottomSheet schedules initial focus after mount. Wait for that contract
+    // before exercising wraparound so its 60ms focus timer cannot race the
+    // Shift+Tab assertion and move focus back to the first control.
+    await expect(first).toBeFocused({ timeout: 5_000 });
+    await page.keyboard.press('Shift+Tab');
+    await expect(last).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(first).toBeFocused();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: /Setup/i })).toHaveCount(0);
+    await expect(dialog).toHaveCount(0);
     await expectHealthyLayout(page);
   });
 
@@ -307,6 +367,28 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('Sandbox preflop grid has one tab stop, arrow navigation, and mobile-sized cells', async ({ page }, testInfo) => {
+    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
+    const toggle = page.getByRole('button', { name: /Range Chart/i });
+    await activateControl(toggle, testInfo.project.name);
+    const grid = page.getByRole('grid', { name: /Preflop Range/i });
+    await expect(grid).toBeVisible();
+    const cells = grid.getByRole('gridcell');
+    await expect(cells).toHaveCount(169);
+    expect(await cells.evaluateAll(nodes => nodes.filter(node => node.getAttribute('tabindex') === '0').length)).toBe(1);
+    await cells.first().focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(cells.nth(1)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(cells.nth(14)).toBeFocused();
+    if (testInfo.project.name.includes('mobile')) {
+      const box = await cells.nth(14).boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
   test('Leak Finder switches between leaks and every analytics sub-surface', async ({ page }, testInfo) => {
     await page.route('**/api/assistant/leaks/detect', route => route.fulfill({
       status: 200,
@@ -323,6 +405,82 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByText('Weekly Leaderboard')).toBeVisible();
     await expect(page.getByText('Macro Leak Detector')).toBeVisible();
     await expect(page.getByText('Position Leak Map')).toBeVisible();
+    await expectHealthyLayout(page);
+  });
+
+  test('Leak Finder coaching workspace exposes evidence, goals, timeline, and weekly reporting', async ({ page }, testInfo) => {
+    const leakId = '11111111-1111-4111-8111-111111111111';
+    await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, leaks: [{
+        id: leakId,
+        leak_type: 'river_overfold',
+        leak_name: 'River Overfold',
+        situation_class: 'River Overfold',
+        status: 'persistent',
+        confidence: 'high',
+        avg_ev_loss_bb: 0.7,
+        ev_loss_measured: true,
+        occurrence_count: 12,
+        total_samples: 40,
+      }] }),
+    }));
+    await page.route('**/api/assistant/leaks/examples?*', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, examples: [{ id: 'example-1', handId: 'hand-1', evLoss: 0.7, snapshot: { external_id: 'club-hand-1', hero_cards: ['As', 'Kh'], board: ['Qc', '7h', '2s', 'Td', '4c'], street: 'river', pot_size: 18 } }] }),
+    }));
+    await page.route('**/api/assistant/coaching', async route => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, result: {} }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          snapshot: {
+            receipt: 'pa7-test-receipt',
+            versions: { matcher: 'hand-audit-v3' },
+            summary: { active: 1, resolved: 0, due: 1, measuredEvLoss: 8.4 },
+            coverage: { decisions: 1, verified: 1, partiallyMatched: 0, unpriced: 0, rejected: 0, verifiedPercent: 100 },
+            priorities: [{ id: leakId, title: 'River Overfold', category: 'River', status: 'persistent', reason: '12 Repeated Mistakes With 0.70 BB Measured Loss Per Occurrence', confidence: { score: 96, level: 'high', reasons: ['Measured EV Evidence Is Available'] } }],
+            nextBestAction: { leakId, title: 'River Overfold', action: 'Complete The Due Corrective Review', reason: 'Highest Measured Impact' },
+            timeline: [{ at: '2026-09-06T00:00:00.000Z', leakId, type: 'detected', title: 'River Overfold Detected' }],
+            sessionDebrief: { headline: 'One Active Leak Needs Attention', strongestSignal: 'River Overfold', expensiveMistake: 'River Overfold', coverageNote: 'One Of One Decisions Is Solver Verified' },
+            weeklyReport: { verifiedCoverage: 100, reviewLoad: 1, measuredEvLoss: 8.4, focus: [{ id: leakId, rank: 1, title: 'River Overfold', targetReviews: 3 }] },
+          },
+          decisions: [{ hand_external_id: 'club-hand-1', decision_key: 'decision-1', leak_type: 'river_overfold', solver_verified: true, solver_source: 'hand-audit-v3', classification: 'mistake' }],
+          reviews: [{ leak_id: leakId, due_at: '2026-09-06T00:00:00.000Z' }],
+          goals: [],
+          feedback: [],
+          preferences: { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {} },
+        }),
+      });
+    });
+
+    await navigateStable(page, '/hub/personal-assistant/leaks');
+    await activateControl(page.getByRole('button', { name: 'Coaching' }), testInfo.project.name);
+    await expect(page.getByRole('heading', { name: 'Your Evidence-Backed Improvement Plan' })).toBeVisible();
+    await expect(page.getByText('pa7-test-receipt')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Evidence', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Source-To-Training Trace')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Exact Sandbox Spot' })).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Timeline', exact: true }), testInfo.project.name);
+    await expect(page.getByText('From Detection To Real-Play Confirmation')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Goals', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Tie Progress To Measured Evidence')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Report', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Your Next Seven Days')).toBeVisible();
+    const coachingControlSizes = await page.locator('#leak-coaching').evaluate(root => [...root.querySelectorAll('button,a[href],input,select,textarea')].filter(element => {
+      const box = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0 && (box.width < 44 || box.height < 44);
+    }).map(element => ({ text: element.textContent?.trim(), tag: element.tagName, box: element.getBoundingClientRect().toJSON() })));
+    expect(coachingControlSizes).toEqual([]);
+    await expectAccessibleMain(page);
     await expectHealthyLayout(page);
   });
 

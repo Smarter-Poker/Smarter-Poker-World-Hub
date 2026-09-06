@@ -11,7 +11,9 @@ test('discovery navigation distinguishes user history from filter synchronizatio
   assert.match(page, /const pushDiscoverySurface = \(nextState\) =>/);
   assert.match(page, /window\.history\.pushState\(/);
   assert.match(page, /window\.history\.replaceState\(/);
-  assert.match(page, /options: \{ \.\.\.window\.history\.state\?\.options, shallow: true, scroll: false \}/);
+  assert.match(page, /spPnmDiscovery: true/);
+  assert.match(page, /options: \{ shallow: true, scroll: false \}/);
+  assert.doesNotMatch(page, /window\.history\.pushState\(\s*\{\s*\.\.\.window\.history\.state/);
   assert.match(page, /`\$\{window\.location\.pathname\}\$\{window\.location\.search\}`/);
   assert.match(page, /window\.addEventListener\('popstate', restoreDiscoveryState\)/);
   assert.match(page, /window\.removeEventListener\('popstate', restoreDiscoveryState\)/);
@@ -20,6 +22,46 @@ test('discovery navigation distinguishes user history from filter synchronizatio
   assert.match(page, /const addressSlug = normalizeRouteSlug\(/);
   assert.match(page, /if \(addressSlug !== pathSlug\) return/);
   assert.doesNotMatch(page, /const currentUrl = router\.asPath/);
+});
+
+test('closed report-game shells never pollute discovery history', async () => {
+  const reportGameModal = await source('src/components/poker-near-me/ReportGameModal.jsx');
+  assert.match(reportGameModal, /useModalHistory\(!!isOpen, onClose\)/);
+  assert.doesNotMatch(reportGameModal, /useModalHistory\(true, onClose\)/);
+});
+
+test('the lobby LCP image is not delayed by a cosmetic opacity reveal', async () => {
+  const lobbyCanvas = await source('src/components/poker-near-me/lobby/LobbyCanvas.jsx');
+  assert.match(lobbyCanvas, /transition: 'none'/);
+  assert.doesNotMatch(lobbyCanvas, /transition: ['"]opacity/);
+});
+
+test('dynamic mobile notices keep a physical touch-target cushion', async () => {
+  const [tutorialCss, globalErrorCatcher] = await Promise.all([
+    source('src/styles/tutorial.css'),
+    source('src/components/ui/GlobalErrorCatcher.jsx'),
+  ]);
+  assert.match(tutorialCss, /\.sp-tutorial-prompt-start \{[^}]*min-height: 45px !important/s);
+  assert.match(tutorialCss, /\.sp-tutorial-prompt-close \{[^}]*width: 45px;[^}]*height: 45px/s);
+  assert.match(globalErrorCatcher, /aria-label="Dismiss Error Notice"/);
+  assert.match(globalErrorCatcher, /minWidth: 45/);
+  assert.match(globalErrorCatcher, /minHeight: 45/);
+});
+
+test('responsive visual baselines and live map probes remain project-stable', async () => {
+  const [phase6, phase7, phase14] = await Promise.all([
+    source('e2e/06-poker-near-me-phase-6.spec.ts'),
+    source('e2e/07-poker-near-me-phase-7.spec.ts'),
+    source('e2e/012-poker-near-me-phase-14.spec.ts'),
+  ]);
+
+  assert.match(phase6, /phase6-location-section-\$\{testInfo\.project\.name\}\.png/);
+  assert.match(phase7, /phase7-map-signal-\$\{testInfo\.project\.name\}\.png/);
+  assert.match(phase14, /const activated = await candidate\.evaluate/);
+  assert.match(phase14, /element\.click\(\);/);
+  assert.match(phase14, /const popupContract = await map\.evaluate/);
+  assert.doesNotMatch(phase14, /await candidate\.click\(\)/);
+  assert.doesNotMatch(phase14, /popup\.locator\('\.directions-trigger'\)/);
 });
 
 test('restored routes remain explicit to assistive technology', async () => {

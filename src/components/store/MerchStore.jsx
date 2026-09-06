@@ -55,6 +55,7 @@ import { wishlistService } from '../../services/preferences-service';
 import useCartStore from '../../stores/cartStore';
 import { supabase } from '../../lib/supabase';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -1274,7 +1275,7 @@ export default function MerchStore({
         value_usd: unitPriceUsd * quantity,
       });
       const post = (includePrice) =>
-        fetch('/api/store/create-checkout-session', {
+        boundedCommerceFetch('/api/store/create-checkout-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1306,7 +1307,9 @@ export default function MerchStore({
         }
 
         if (!res.ok || !data?.success) {
-          throw new Error(errorMessageOf(data, res.status));
+          const checkoutError = new Error(errorMessageOf(data, res.status));
+          checkoutError.code = errorCodeOf(data);
+          throw checkoutError;
         }
         if (!data.data?.url) {
           throw new Error('Checkout Session Missing Redirect URL');
@@ -1319,6 +1322,9 @@ export default function MerchStore({
         // Leave the busy state on through the navigation.
         window.location.href = data.data.url;
       } catch (err) {
+        if (err?.code === 'CHECKOUT_EXPIRED') {
+          clearCommerceRequestId(commerceIntent);
+        }
         console.warn('[MerchStore] Card checkout failed:', err?.message || err);
         captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
         showStoreToast(
@@ -1401,7 +1407,7 @@ export default function MerchStore({
         diamonds: cost,
       });
       try {
-        const res = await fetch('/api/store/purchase-with-diamonds', {
+        const res = await boundedCommerceFetch('/api/store/purchase-with-diamonds', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

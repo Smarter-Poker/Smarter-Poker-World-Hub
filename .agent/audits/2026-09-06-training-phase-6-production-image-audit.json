@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "phase": 6,
+  "productionRevision": "cfa00625ea196aaddf3cfc2113e409ee5e9e3808",
+  "initialExhaustiveRun": {
+    "success": false,
+    "games": 107,
+    "viewports": ["mobile", "desktop"],
+    "surfaceChecks": 642,
+    "playChecks": 214,
+    "arenaChecks": 214,
+    "lifecycleChecks": 214,
+    "lifecycleStateChecks": {
+      "loadRecovery": 214,
+      "correctFeedback": 214,
+      "incorrectFeedback": 214,
+      "manualNext": 214,
+      "completion": 214,
+      "retry": 214,
+      "levelTransition": 214
+    },
+    "imageFailureCount": 12,
+    "reportedRoutes": [
+      "adv-012:mobile",
+      "cash-002:mobile",
+      "cash-022:mobile",
+      "cash-023:mobile",
+      "mtt-001:mobile",
+      "mtt-013:mobile",
+      "mtt-015:mobile",
+      "mtt-019:desktop",
+      "mtt-025:mobile",
+      "psy-018:mobile",
+      "spins-003:mobile",
+      "study-group:mobile"
+    ]
+  },
+  "diagnosis": {
+    "assetRequestsRetested": 9,
+    "assetRequestsHttp200": 9,
+    "assetBytesMatchedRepository": 9,
+    "cash022ConsecutiveMobilePasses": 3,
+    "rootCause": "The auditor treated pending and off-screen lazy images as broken 100 milliseconds after navigation."
+  },
+  "correctedTargetedRun": {
+    "success": true,
+    "games": 12,
+    "viewports": ["mobile", "desktop"],
+    "surfaceChecks": 48,
+    "playChecks": 24,
+    "arenaChecks": 24,
+    "clubArenaChecks": 22,
+    "psychologyChecks": 2,
+    "imageRecoveryChecks": 0,
+    "failures": []
+  }
+}

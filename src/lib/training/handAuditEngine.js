@@ -3,7 +3,7 @@ import { gradeSolverDecision } from './solverDecisionEvidence.js';
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
-const MATCHER_VERSION = 'hand-audit-v2';
+const MATCHER_VERSION = 'hand-audit-v3';
 const LOOKUP_FAILED_SOURCE = `${MATCHER_VERSION}:lookup-failed`;
 const FORCED_ACTIONS = new Set([
   'ante', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
@@ -126,10 +126,11 @@ export function normalizeClubArenaHand(row, userId) {
   const heroRaw = rawPlayers.find(player => String(playerId(player)) === String(userId));
   if (!heroRaw) return null;
 
+  const bigBlind = Number(summary.bigBlind ?? summary.big_blind ?? row?.big_blind);
   const players = positionedPlayers(
     rawPlayers,
     summary.buttonSeat ?? summary.button_seat ?? row?.button_seat,
-    summary.bigBlind ?? summary.big_blind ?? row?.big_blind,
+    bigBlind,
   );
   const heroPlayer = players.find(player => String(player.id) === String(userId));
   // The Hetzner Club Arena recorder stores showdown holdings in the
@@ -164,11 +165,33 @@ export function normalizeClubArenaHand(row, userId) {
       const isHero = hasPlayerId
         ? String(actionPlayerId) === String(userId)
         : heroNames.includes(String(actionPlayer).trim().toLowerCase());
+      const actor = players.find(player => String(player.id) === String(actionPlayerId));
+      const amount = Number(action.amount) || 0;
+      const rawPotBefore = [
+        action.potBefore, action.pot_before, action.potSizeBefore, action.pot_size_before,
+      ].map(Number).find(value => Number.isFinite(value) && value >= 0);
+      const explicitSizing = [
+        action.sizingPct, action.sizing_pct, action.sizePct, action.size_pct,
+        action.betPctPot, action.bet_pct_pot, action.potPercentage, action.pot_percentage,
+      ].map(Number).find(value => Number.isFinite(value) && value > 0);
+      const normalizedAction = actionName(action);
+      const computedBetSizing = normalizedAction === 'bet' && rawPotBefore > 0 && amount > 0
+        ? (amount / rawPotBefore) * 100
+        : null;
       return {
         player: actionPlayer,
         playerId: actionPlayerId,
-        action: actionName(action),
-        amount: Number(action.amount) || 0,
+        position: actor?.position || String(action.position || '').toUpperCase(),
+        action: normalizedAction,
+        amount,
+        amountBB: Number.isFinite(bigBlind) && bigBlind > 0 ? amount / bigBlind : null,
+        potBefore: rawPotBefore ?? null,
+        potBeforeBB: rawPotBefore !== undefined && Number.isFinite(bigBlind) && bigBlind > 0
+          ? rawPotBefore / bigBlind
+          : null,
+        sizingPct: explicitSizing ?? computedBetSizing,
+        currentBetBefore: Number.isFinite(Number(action.currentBetBefore)) ? Number(action.currentBetBefore) : null,
+        raiseTo: Number.isFinite(Number(action.raiseTo)) ? Number(action.raiseTo) : null,
         isHero,
       };
     }).filter(action => action.action);
@@ -195,6 +218,7 @@ export function normalizeClubArenaHand(row, userId) {
     format,
     gameType: ['nlh', 'nlhe'].includes(gameType) ? 'nlhe' : 'no-limit-holdem',
     tableSize: players.length,
+    bigBlind: Number.isFinite(bigBlind) && bigBlind > 0 ? bigBlind : null,
     buttonSeat: summary.buttonSeat ?? summary.button_seat ?? row?.button_seat ?? null,
     players,
     hero: {
@@ -295,22 +319,66 @@ function optionAction(option) {
   if (id === 'x' || id === 'check' || /^check/.test(label)) return 'check';
   if (id === 'c' || id === 'call' || /^call/.test(label)) return 'call';
   if (/allin|push|shove|jam/.test(`${id} ${label}`)) return 'allin';
-  if (/^r\d*$/.test(id) || /raise|3-bet|4-bet/.test(label)) return 'raise';
-  if (/^b\d*$/.test(id) || /^bet/.test(label)) return 'bet';
+  if (/^(?:r\d*|raise[_-]?\d*)$/.test(id) || /raise|3-bet|4-bet/.test(label)) return 'raise';
+  if (/^(?:b\d*|bet[_-]?\d*)$/.test(id) || /^bet/.test(label)) return 'bet';
   return null;
+}
+
+function optionSizingPercent(option) {
+  const id = String(option?.id ?? option ?? '').toLowerCase().replace(/[\s-]/g, '_');
+  const label = String(option?.text ?? option?.label ?? option ?? '').toLowerCase();
+  const idMatch = /^(?:b|r|bet_|raise_)(\d+(?:\.\d+)?)$/.exec(id);
+  const labelMatch = /(?:bet|raise|overbet)[^\d]*(\d+(?:\.\d+)?)\s*%/.exec(label);
+  const value = Number(idMatch?.[1] ?? labelMatch?.[1]);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function mapPlayedAction(question, point) {
   const played = actionName({ action: point?.action });
   const matches = (question?.options || []).filter(option => optionAction(option) === played);
-  // A recorded amount without the pot/raise-to context cannot prove that a
-  // b16/b50/r150 solver option was actually chosen. Fail closed on sized
-  // actions until the hand parser supplies a normalized percentage.
   if (played === 'bet' || played === 'raise') {
-    const sized = matches.some(option => /\d/.test(String(option?.id ?? option)) || /\d+\s*%/.test(String(option?.text ?? option?.label ?? '')));
-    if (sized) return null;
+    const sized = matches.map(option => ({ option, pct: optionSizingPercent(option) }))
+      .filter(candidate => candidate.pct !== null);
+    if (sized.length > 0) {
+      const playedPct = Number(point?.sizingPct);
+      if (!Number.isFinite(playedPct) || playedPct <= 0) return null;
+      const closestDistance = Math.min(...sized.map(candidate => Math.abs(candidate.pct - playedPct)));
+      // Recorder rounding can move a canonical percentage slightly, but two
+      // equally close solver actions remain ambiguous and must never be graded.
+      const closest = sized.filter(candidate => Math.abs(candidate.pct - playedPct) === closestDistance);
+      if (closestDistance > 2 || closest.length !== 1) return null;
+      return String(closest[0].option?.id ?? closest[0].option);
+    }
   }
   return matches.length === 1 ? String(matches[0]?.id ?? matches[0]) : null;
+}
+
+function normalizedDecisionAction(action) {
+  return {
+    street: String(action?.street || '').toLowerCase(),
+    position: String(action?.position || '').toUpperCase(),
+    action: optionAction({ id: action?.action ?? action?.id, text: action?.label ?? action?.text }) || actionName(action),
+    sizingPct: Number.isFinite(Number(action?.sizingPct ?? action?.sizePct))
+      ? Number(action?.sizingPct ?? action?.sizePct)
+      : optionSizingPercent(action?.action ?? action?.id),
+  };
+}
+
+function exactActionHistoryCompatible(questionActions, pointActions) {
+  if (!Array.isArray(questionActions)) return true;
+  if (!Array.isArray(pointActions) || questionActions.length !== pointActions.length) return false;
+  return questionActions.every((rawQuestionAction, index) => {
+    const expected = normalizedDecisionAction(rawQuestionAction);
+    const actual = normalizedDecisionAction(pointActions[index]);
+    if (!expected.action || !expected.street || !expected.position) return false;
+    if (expected.action !== actual.action || expected.street !== actual.street
+      || expected.position !== actual.position) return false;
+    if (['bet', 'raise'].includes(expected.action) && expected.sizingPct === null) return false;
+    if (expected.sizingPct !== null) {
+      return actual.sizingPct !== null && Math.abs(expected.sizingPct - actual.sizingPct) <= 2;
+    }
+    return true;
+  });
 }
 
 function questionNode(question) {
@@ -374,6 +442,23 @@ function exactIdentityCompatible(question, hand, point) {
     const heroStack = Number(hand?.hero?.stack);
     if (!Number.isFinite(heroStack) || Math.abs(heroStack - questionStack) > 1) return false;
   }
+
+  const rawQuestionPot = scenario.potSize ?? scenario.pot;
+  const rawDecisionPot = point?.potBeforeBB;
+  const questionPot = rawQuestionPot === null || rawQuestionPot === undefined || rawQuestionPot === ''
+    ? Number.NaN : Number(rawQuestionPot);
+  const decisionPot = rawDecisionPot === null || rawDecisionPot === undefined || rawDecisionPot === ''
+    ? Number.NaN : Number(rawDecisionPot);
+  if (!Number.isFinite(questionPot) || questionPot < 0
+    || !Number.isFinite(decisionPot) || decisionPot < 0
+    || Math.abs(decisionPot - questionPot) > 0.05) return false;
+
+  const questionVillain = String(scenario.villainPosition || '').toUpperCase();
+  const decisionVillain = String(point?.villainPosition || '').toUpperCase();
+  if (!questionVillain || !decisionVillain || decisionVillain !== questionVillain) return false;
+
+  if (!Array.isArray(scenario.actionHistory)
+    || !exactActionHistoryCompatible(scenario.actionHistory, point?.priorActions)) return false;
 
   return true;
 }
@@ -505,6 +590,8 @@ export async function auditParsedHands(db, userId, hands, {
         hand.format, hand.gameType, hand.tableSize, hand.hero?.stack,
         point.street, point.position, point.nodeClass, handNotation(point.holeCards),
         canonicalCombo(point.holeCards), canonicalBoard(point.board), point.action, point.amount,
+        point.potBeforeBB, point.sizingPct, point.villainPosition,
+        JSON.stringify(point.priorActions || []),
       ].join('|');
       work.push({ hand, handIndex, index, point, signature, externalHandId });
     }
@@ -557,9 +644,14 @@ export async function auditParsedHands(db, userId, hands, {
         ev_loss: solverVerified ? grade.evLoss : null,
         ev_loss_measured: solverVerified && !!grade.evLossMeasured,
         solver_verified: solverVerified,
+        // Every result, including an honest unpriced result, carries the
+        // matcher version. Otherwise a freshly written v2 unpriced row looks
+        // current to v3 and can skip the mandatory re-audit indefinitely.
         solver_source: lookupFailed
           ? LOOKUP_FAILED_SOURCE
-          : (solverVerified ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}` : candidate?.question_data?.source || null),
+          : (solverVerified
+            ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}`
+            : `${candidate?.question_data?.source ? `${candidate.question_data.source}|` : ''}${MATCHER_VERSION}:unpriced`),
         match_tier: candidate?.matchTier || null,
         audited_at: now,
         updated_at: now,
@@ -621,10 +713,8 @@ export async function auditParsedHands(db, userId, hands, {
 async function fetchClubHandsForKey(db, userId, key, {
   pageSize,
   snapshotAt,
-  cursor = null,
-  done = false,
+  boundary = null,
 }) {
-  if (done) return { data: [], error: null, complete: true, nextCursor: null };
   const size = Math.max(1, Math.min(1000, Number(pageSize) || 100));
   let result;
   try {
@@ -640,27 +730,28 @@ async function fetchClubHandsForKey(db, userId, key, {
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
         .lte('created_at', snapshotAt);
-    if (cursor?.createdAt && cursor?.id) {
+    if (boundary?.createdAt && boundary?.id) {
       query = query.or(
-        `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`,
+        `created_at.lt.${boundary.createdAt},and(created_at.eq.${boundary.createdAt},id.lt.${boundary.id})`,
       );
     }
     // One sentinel row proves whether another bounded continuation is needed.
     result = await query.range(0, size);
   } catch (error) {
-    return { data: [], error, complete: false, nextCursor: cursor };
+    return { data: [], error, complete: false };
   }
-  if (result?.error) return { data: [], error: result.error, complete: false, nextCursor: cursor };
+  if (result?.error) return { data: [], error: result.error, complete: false };
   const fetched = Array.isArray(result?.data) ? result.data : [];
-  const data = fetched.slice(0, size);
-  const hasMore = fetched.length > size;
-  const last = data[data.length - 1];
   return {
-    data,
+    data: fetched,
     error: null,
-    complete: !hasMore,
-    nextCursor: hasMore && last ? { createdAt: last.created_at, id: String(last.id) } : null,
+    complete: fetched.length <= size,
   };
+}
+
+function compareHandKeyDescending(a, b) {
+  const timeOrder = String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
+  return timeOrder || String(b?.id || '').localeCompare(String(a?.id || ''));
 }
 
 async function fetchExistingAuditRows(db, userId, externalIds) {
@@ -691,21 +782,20 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   nowMs = Date.now(),
   cursor = null,
 } = {}) {
+  const legacyCursor = cursor && cursor.version !== 2;
   const snapshotAt = cursor?.snapshotAt || new Date(nowMs).toISOString();
   const requestedCursor = {
+    version: 2,
     snapshotAt,
-    modern: cursor?.modern || null,
-    legacy: cursor?.legacy || null,
-    modernDone: cursor?.modernDone === true,
-    legacyDone: cursor?.legacyDone === true,
-    cumulativeHandsFound: Math.max(0, Number(cursor?.cumulativeHandsFound) || 0),
+    boundary: legacyCursor ? null : (cursor?.boundary || null),
+    cumulativeHandsFound: legacyCursor ? 0 : Math.max(0, Number(cursor?.cumulativeHandsFound) || 0),
   };
   const [modern, legacy] = await Promise.all([
     fetchClubHandsForKey(db, userId, 'userId', {
-      pageSize: limit, snapshotAt, cursor: requestedCursor.modern, done: requestedCursor.modernDone,
+      pageSize: limit, snapshotAt, boundary: requestedCursor.boundary,
     }),
     fetchClubHandsForKey(db, userId, 'id', {
-      pageSize: limit, snapshotAt, cursor: requestedCursor.legacy, done: requestedCursor.legacyDone,
+      pageSize: limit, snapshotAt, boundary: requestedCursor.boundary,
     }),
   ]);
   const errors = [modern.error, legacy.error].filter(Boolean);
@@ -725,14 +815,17 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   }
   const byId = new Map();
   for (const row of [...(modern.data || []), ...(legacy.data || [])]) byId.set(String(row.id), row);
-  const sourceIncomplete = modern.complete !== true || legacy.complete !== true;
-  const handRows = [...byId.values()];
+  const globallyOrdered = [...byId.values()].sort(compareHandKeyDescending);
+  const handRows = globallyOrdered.slice(0, Math.max(1, Math.min(1000, Number(limit) || 100)));
+  const sourceIncomplete = globallyOrdered.length > handRows.length
+    || modern.complete !== true || legacy.complete !== true;
+  const last = handRows[handRows.length - 1];
   const advancedCursor = {
+    version: 2,
     snapshotAt,
-    modern: modern.nextCursor,
-    legacy: legacy.nextCursor,
-    modernDone: modern.complete === true,
-    legacyDone: legacy.complete === true,
+    boundary: sourceIncomplete && last
+      ? { createdAt: last.created_at, id: String(last.id) }
+      : null,
     cumulativeHandsFound: requestedCursor.cumulativeHandsFound + handRows.length,
   };
   const privateFacts = await fetchPrivateHeroCards(db, userId, handRows);
@@ -839,12 +932,12 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
     const hasUntrustedClassification = rows.some(row =>
       row.solver_verified !== true && row.classification !== 'unpriced');
-    const hasLegacyVerification = rows.some(row =>
-      row.solver_verified === true && !String(row.solver_source || '').includes(`|${MATCHER_VERSION}`));
+    const hasMatcherDrift = rows.some(row =>
+      !String(row.solver_source || '').includes(MATCHER_VERSION));
     const hasLookupFailure = rows.some(row => row.solver_source === LOOKUP_FAILED_SOURCE);
     const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
     const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
-    if (partialAudit || hasUntrustedClassification || hasLegacyVerification || hasLookupFailure || staleUnpricedAudit) {
+    if (partialAudit || hasUntrustedClassification || hasMatcherDrift || hasLookupFailure || staleUnpricedAudit) {
       handsQueuedForRetry += 1;
       return true;
     }

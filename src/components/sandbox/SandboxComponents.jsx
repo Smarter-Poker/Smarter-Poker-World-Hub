@@ -19,6 +19,7 @@ import { SocialService } from '../../services/SocialService';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
+import { isRangeGridNavigationKey, nextRangeGridIndex } from '../../lib/personal-assistant/rangeGridNavigation.mjs';
 import { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
 export { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
 // react-hot-toast matches the <Toaster> host the sandbox page mounts. The old
@@ -402,19 +403,32 @@ function getMatrixColor(freq) {
     return 'rgba(255,255,255,0.03)';
 }
 
+function moveRangeGridFocus(event, index, setActiveIndex, total = 169) {
+    if (!isRangeGridNavigationKey(event.key)) return;
+    event.preventDefault();
+    const next = nextRangeGridIndex(index, event.key, total);
+    setActiveIndex(next);
+    event.currentTarget.closest('[role="grid"]')
+        ?.querySelector(`[data-range-grid-index="${next}"]`)
+        ?.focus({ preventScroll: false });
+}
+
 // Module-level memoized cell · only the two cells whose selection flips re-render
 // when the user sweeps across the 169-cell grid. Tap (not hover) selects, so the
 // detail view is reachable on touch.
-const MatrixCell = memo(function MatrixCell({ handKey, freq, isSelected, onSelect, fontSize }) {
-    const select = useCallback(() => onSelect(handKey), [onSelect, handKey]);
+const MatrixCell = memo(function MatrixCell({ handKey, freq, index, isActive, isSelected, onFocus, onSelect, fontSize }) {
+    const select = useCallback(() => { onFocus(index); onSelect(handKey); }, [onFocus, index, onSelect, handKey]);
     return (
-        <div
-            role="button"
-            tabIndex={0}
+        <button
+            type="button"
+            role="gridcell"
+            data-range-grid-index={index}
+            tabIndex={isActive ? 0 : -1}
             aria-label={`${handKey}${freq != null ? `, ${freq}%` : ', not in range'}`}
-            aria-pressed={isSelected}
+            aria-selected={isSelected}
             onClick={select}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } }}
+            onFocus={() => onFocus(index)}
+            onKeyDown={(event) => moveRangeGridFocus(event, index, onFocus)}
             onMouseEnter={() => onSelect(handKey, true)}
             style={{
                 aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -422,9 +436,9 @@ const MatrixCell = memo(function MatrixCell({ handKey, freq, isSelected, onSelec
                 background: getMatrixColor(freq), cursor: 'pointer', transition: 'opacity .15s',
                 opacity: isSelected ? 1 : 0.85, letterSpacing: -0.4, overflow: 'hidden',
                 outline: isSelected ? `2px solid ${T.text}` : 'none', outlineOffset: -2,
-                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', border: 0, padding: 0,
             }}
-        >{handKey}</div>
+        >{handKey}</button>
     );
 });
 
@@ -436,6 +450,7 @@ const MatrixCell = memo(function MatrixCell({ handKey, freq, isSelected, onSelec
 export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
     const [pinned, setPinned] = useState(null);
     const [expanded, setExpanded] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(0);
     const handleSelect = useCallback((hk, isHover) => {
         if (isHover) { if (typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)')?.matches) setPinned(hk); return; }
         setPinned(prev => (prev === hk ? null : hk));
@@ -445,21 +460,24 @@ export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
     const detail = pinned ? rangeHeatmap.data[pinned] : null;
 
     const grid = (fontSize) => (
-        <div className="pa-range-grid" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
-            background: T.surface2, borderRadius: R.sm, overflow: 'hidden', padding: 1, width: '100%',
-        }}>
-            {RANKS.map((_, row) => RANKS.map((_, col) => {
-                const hk = getMatrixHandKey(row, col);
-                const freq = rangeHeatmap.data[hk]?.[actionId] ?? null;
-                return (
-                    <MatrixCell key={`${row}-${col}`}
-                        handKey={hk} freq={freq} fontSize={fontSize}
-                        isSelected={pinned === hk}
-                        onSelect={handleSelect}
-                    />
-                );
-            }))}
+        <div className="pa-range-grid-scroll" data-hscroll="true">
+            <div className="pa-range-grid" role="grid" aria-label="Solver hand range" style={{
+                display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
+                background: T.surface2, borderRadius: R.sm, overflow: 'hidden', padding: 1, width: '100%',
+            }}>
+                {RANKS.map((_, row) => RANKS.map((_, col) => {
+                    const index = row * 13 + col;
+                    const hk = getMatrixHandKey(row, col);
+                    const freq = rangeHeatmap.data[hk]?.[actionId] ?? null;
+                    return (
+                        <MatrixCell key={`${row}-${col}`}
+                            handKey={hk} freq={freq} fontSize={fontSize} index={index}
+                            isActive={activeIndex === index} isSelected={pinned === hk}
+                            onFocus={setActiveIndex} onSelect={handleSelect}
+                        />
+                    );
+                }))}
+            </div>
         </div>
     );
 
@@ -1318,6 +1336,7 @@ export function AnalysisSkeleton() {
 // ═══════════════════════════════════════════════════════════════════════════
 export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercent, onChangeScenario, onPickHand }) {
     const [picked, setPicked] = useState(null);
+    const [activeIndex, setActiveIndex] = useState(0);
     if (!rangeGrid) return null;
 
     // 'check' is emitted for BB RFI (the BB is never first-in · an unopened pot
@@ -1343,27 +1362,34 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
                     ))}
                 </div>
             </div>
-            <div className="pa-range-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, fontSize: F.caption }}>
-                {cells.map((cell, i) => {
-                    // getRangeGrid can emit sparse rows · a null cell used to crash
-                    // the whole preflop panel on `cell.inRange`.
-                    if (!cell) return <div key={i} aria-hidden="true" style={{ aspectRatio: '1' }} />;
-                    const isPicked = picked === cell.hand;
-                    return (
-                        <button key={i} type="button" onClick={() => { setPicked(cell.hand); onPickHand?.(cell.hand); }}
-                            aria-label={`${cell.hand}: ${cell.inRange ? cell.action || 'in range' : 'fold'}`}
-                            style={{
-                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                padding: 0, borderRadius: 2, cursor: 'pointer', overflow: 'hidden',
-                                letterSpacing: -0.6, fontSize: F.caption,
-                                background: cell.inRange ? cellColor(cell.action) + '33' : T.surface,
-                                border: isPicked ? `1px solid ${T.text}` : cell.inRange ? `1px solid ${cellColor(cell.action)}44` : '1px solid transparent',
-                                color: cell.inRange ? T.text : T.surface3,
-                                fontWeight: cell.inRange ? 700 : 400,
-                                touchAction: 'manipulation',
-                            }}>{cell.hand}</button>
-                    );
-                })}
+            <div className="pa-range-grid-scroll" data-hscroll="true">
+                <div className="pa-range-grid" role="grid" aria-label={`${position} preflop range`} style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, fontSize: F.caption }}>
+                    {cells.map((cell, i) => {
+                        // getRangeGrid can emit sparse rows · a null cell used to crash
+                        // the whole preflop panel on `cell.inRange`.
+                        if (!cell) return <div key={i} aria-hidden="true" style={{ aspectRatio: '1' }} />;
+                        const isPicked = picked === cell.hand;
+                        return (
+                            <button key={i} type="button" role="gridcell" data-range-grid-index={i}
+                                tabIndex={activeIndex === i ? 0 : -1}
+                                onFocus={() => setActiveIndex(i)}
+                                onKeyDown={(event) => moveRangeGridFocus(event, i, setActiveIndex, cells.length)}
+                                onClick={() => { setActiveIndex(i); setPicked(cell.hand); onPickHand?.(cell.hand); }}
+                                aria-label={`${cell.hand}: ${cell.inRange ? cell.action || 'in range' : 'fold'}`}
+                                aria-selected={isPicked}
+                                style={{
+                                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: 0, borderRadius: 2, cursor: 'pointer', overflow: 'hidden',
+                                    letterSpacing: -0.6, fontSize: F.caption,
+                                    background: cell.inRange ? cellColor(cell.action) + '33' : T.surface,
+                                    border: isPicked ? `1px solid ${T.text}` : cell.inRange ? `1px solid ${cellColor(cell.action)}44` : '1px solid transparent',
+                                    color: cell.inRange ? T.text : T.surface3,
+                                    fontWeight: cell.inRange ? 700 : 400,
+                                    touchAction: 'manipulation',
+                                }}>{cell.hand}</button>
+                        );
+                    })}
+                </div>
             </div>
             <div style={{ display: 'flex', gap: S.md, marginTop: S.sm, fontSize: F.caption, flexWrap: 'wrap', fontWeight: 700 }}>
                 <span style={{ color: actionColors.raise }}>Raise</span>

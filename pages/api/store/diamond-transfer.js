@@ -28,10 +28,11 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { randomUUID, createHash } from 'crypto';
+import { createHash } from 'crypto';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 const { requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 let _supabase = null;
 function getSupabase() {
@@ -60,6 +61,108 @@ const EXEMPT_USER_IDS = new Set(
 // Strict UUID shape for recipient IDs — recipientId is interpolated into
 // PostgREST .or()/.ilike() filters below, so it must never carry raw user input.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IDEMPOTENCY_KEY_RE = /^[a-z0-9][a-z0-9._:-]{11,127}$/i;
+const ORPHAN_RECOVERY_DELAY_MS = 15_000;
+const MAX_TRANSFER_BODY_BYTES = 1_024;
+
+function transferIdFor(userId, recipientId, amount, idempotencyKey) {
+    return createHash('sha256')
+        .update([userId, recipientId, String(amount), idempotencyKey].join('|'))
+        .digest('hex')
+        .slice(0, 32);
+}
+
+function transferDisplayName(value) {
+    return String(value || 'friend')
+        .toLowerCase()
+        .split(' ')
+        .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+        .join(' ');
+}
+
+function classifyTransferDebit(result, error) {
+    if (error) return 'error';
+    if (!result) return 'pending';
+    return result.success === true || result.idempotent === true ? 'committed' : 'rejected';
+}
+
+function classifyTransferCredit(result, error, ledgerConfirmed = false) {
+    if (ledgerConfirmed || result?.success === true || result?.duplicate === true) return 'committed';
+    // A transport error or missing RPC payload is ambiguous: the database may
+    // still have committed. It is never an authoritative reason to refund.
+    if (error || !result) return 'pending';
+    return 'rejected';
+}
+
+async function reconcileCompletedTransferSideEffects({
+    userId,
+    recipientId,
+    amount,
+    clientIp,
+    senderName,
+    transferId,
+    creditCreatedAt,
+}) {
+    const supabase = getSupabase();
+    const creditTime = Number.isFinite(Date.parse(creditCreatedAt || ''))
+        ? creditCreatedAt
+        : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: ipRows, error: ipReadError } = await supabase
+        .from('anti_farming_ips')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('ip_address', clientIp)
+        .eq('action_type', 'diamond_gift_sent')
+        .eq('amount', amount)
+        .gte('created_at', creditTime)
+        .limit(1);
+    if (ipReadError) {
+        console.warn('[DiamondTransfer] Could not reconcile replay IP audit:', ipReadError.message);
+    } else if (!ipRows?.length) {
+        const { error: ipInsertError } = await supabase.from('anti_farming_ips').insert({
+            user_id: userId,
+            ip_address: clientIp,
+            action_type: 'diamond_gift_sent',
+            amount,
+        });
+        if (ipInsertError) {
+            console.warn('[DiamondTransfer] Could not restore replay IP audit:', ipInsertError.message);
+        }
+    }
+
+    const { data: notificationRows, error: notificationReadError } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', recipientId)
+        .eq('actor_id', userId)
+        .eq('type', 'diamond_received')
+        .contains('data', { transfer_id: transferId })
+        .limit(1);
+    if (notificationReadError) {
+        console.warn('[DiamondTransfer] Could not reconcile replay notification:', notificationReadError.message);
+    } else if (!notificationRows?.length) {
+        const { error: notificationInsertError } = await supabase.from('notifications').insert({
+            user_id: recipientId,
+            actor_id: userId,
+            type: 'diamond_received',
+            title: 'Diamond Gift Received',
+            message: `${transferDisplayName(senderName)} Sent You ${amount} Diamonds`,
+            link: '/hub/store',
+            read: false,
+            is_read: false,
+            data: {
+                transfer_id: transferId,
+                sender_id: userId,
+                sender_name: senderName,
+                amount,
+            },
+        });
+        if (notificationInsertError) {
+            console.warn('[DiamondTransfer] Could not restore replay notification:', notificationInsertError.message);
+        }
+    }
+}
 
 // Phase 1: Account age tiers (days)
 const NEW_USER_BLOCK_DAYS = 30;        // Hard block — no outbound diamonds until day 31
@@ -196,17 +299,18 @@ async function checkVelocity(supabase, userId, clientIp) {
 }
 
 export default async function handler(req, res) {
-    // Compensating-refund hook. Declared at FUNCTION scope (not inside the try)
-    // so the catch block below can actually see it — a try-scoped `let` would be
-    // unresolvable in the catch and the refund would silently never run.
-    let refundSender = null;
     try {
+        setPrivateCommerceResponse(res);
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
-
-        // Rate limit (financial tier — 20/min)
-        if (!applyRateLimit(req, res, LIMITS.financial || LIMITS.write)) return;
+        // Bound authentication and replay-receipt work as well as new money
+        // movement. The second, stricter bucket below has a separate scope so
+        // safe receipt retries do not consume the financial-attempt budget.
+        if (!applyRateLimit(req, res, {
+            ...(LIMITS.read || LIMITS.write),
+            scope: ':transfer-receipt',
+        })) return;
 
         // ── Auth ──
         const { user: localUser } = await getServerUserWithFallback(req, getSupabase());
@@ -229,20 +333,277 @@ export default async function handler(req, res) {
         }
 
         // ── Parse body ──
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({ success: false, error: 'A Valid Transfer Request Is Required' });
+        }
+        if (Buffer.byteLength(JSON.stringify(req.body), 'utf8') > MAX_TRANSFER_BODY_BYTES) {
+            return res.status(413).json({ success: false, error: 'Transfer Request Is Too Large' });
+        }
+        const unknownFields = Object.keys(req.body).filter(key => !['recipientId', 'amount'].includes(key));
+        if (unknownFields.length > 0) {
+            return res.status(400).json({ success: false, error: 'Transfer Request Contains Unsupported Fields' });
+        }
         const { recipientId, amount: rawAmount } = req.body || {};
-        const amount = parseInt(rawAmount, 10);
+        const amount = Number(rawAmount);
 
         if (!recipientId || typeof recipientId !== 'string' || !UUID_RE.test(recipientId)) {
             return res.status(400).json({ success: false, error: 'Valid recipient is required' });
         }
-        if (isNaN(amount) || amount < MIN_TRANSFER) {
+        if (!Number.isInteger(amount) || amount < MIN_TRANSFER) {
             return res.status(400).json({ success: false, error: `Minimum transfer is ${MIN_TRANSFER} diamonds` });
+        }
+
+        const rawIdempotencyKey = req.headers['x-idempotency-key'];
+        const idempotencyKey = Array.isArray(rawIdempotencyKey)
+            ? rawIdempotencyKey[0]
+            : rawIdempotencyKey;
+        if (typeof idempotencyKey !== 'string' || !IDEMPOTENCY_KEY_RE.test(idempotencyKey)) {
+            return res.status(400).json({
+                success: false,
+                error: 'A Valid Transfer Request Key Is Required',
+                code: 'INVALID_IDEMPOTENCY_KEY',
+            });
         }
 
         // ── Guard 7: Self-transfer block ──
         if (userId === recipientId) {
             return res.status(400).json({ success: false, error: 'Cannot transfer diamonds to yourself' });
         }
+
+        // A browser keeps this key for the complete transfer intent until the
+        // result is authoritative. Unlike the old minute bucket, a retry after
+        // a lost response therefore resolves to the exact same ledger refs.
+        const transferId = transferIdFor(userId, recipientId, amount, idempotencyKey);
+        const debitReference = `transfer_deduct_${transferId}`;
+        const creditReference = `transfer_${transferId}`;
+        const refundReference = `transfer_refund_${transferId}`;
+        const { data: replayRows, error: replayError } = await getSupabase()
+            .from('diamond_transactions')
+            .select('reference_id, created_at')
+            .in('reference_id', [debitReference, creditReference, refundReference]);
+
+        // Replay state is financial state. Never continue to a debit when it
+        // cannot be established reliably.
+        if (replayError) {
+            console.warn('[DiamondTransfer] Replay lookup failed:', replayError.message);
+            return res.status(503).json({
+                success: false,
+                error: 'Transfer Status Is Temporarily Unavailable. Please Retry.',
+                code: 'TRANSFER_STATUS_UNAVAILABLE',
+            });
+        }
+
+        const completedReplay = replayRows?.find(row => row.reference_id === creditReference);
+        const refundedReplay = replayRows?.find(row => row.reference_id === refundReference);
+        const debitReplay = replayRows?.find(row => row.reference_id === debitReference);
+
+        // Completed and compensated replays are returned before friendship,
+        // cooldown, velocity, or balance guards. A retry is a receipt lookup,
+        // not a new transfer attempt.
+        if (refundedReplay) {
+            return res.status(409).json({
+                success: false,
+                error: 'The Previous Transfer Attempt Was Refunded. Start A New Transfer.',
+                code: 'TRANSFER_REFUNDED',
+                refunded: true,
+                idempotencyTerminal: true,
+            });
+        }
+
+        if (completedReplay) {
+            const { data: replaySender, error: replaySenderError } = await getSupabase()
+                .from('profiles')
+                .select('diamonds, display_name, username')
+                .eq('id', userId)
+                .maybeSingle();
+            if (replaySenderError || !replaySender) {
+                return res.status(503).json({
+                    success: false,
+                    error: 'Transfer Completed, But The Current Balance Is Temporarily Unavailable',
+                    code: 'TRANSFER_RECEIPT_UNAVAILABLE',
+                });
+            }
+            await reconcileCompletedTransferSideEffects({
+                userId,
+                recipientId,
+                amount,
+                clientIp,
+                senderName: replaySender.display_name || replaySender.username || 'friend',
+                transferId,
+                creditCreatedAt: completedReplay.created_at,
+            });
+            return res.status(200).json({
+                success: true,
+                idempotent: true,
+                transferred: amount,
+                newBalance: replaySender.diamonds ?? 0,
+            });
+        }
+
+        if (debitReplay) {
+            const debitAt = Date.parse(debitReplay.created_at || '');
+            if (!Number.isFinite(debitAt) || Date.now() - debitAt < ORPHAN_RECOVERY_DELAY_MS) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Transfer Recovery Is Still In Progress. Please Retry Shortly.',
+                    code: 'TRANSFER_RECOVERY_PENDING',
+                    idempotencyTerminal: false,
+                });
+            }
+
+            // The debit ledger entry proves that this exact intent already
+            // passed the guards. Recover its missing credit directly; running
+            // it through cooldown and rolling-limit guards again would strand
+            // the debit forever.
+            const { data: recoveryProfiles, error: recoveryProfilesError } = await getSupabase()
+                .from('profiles')
+                .select('id, diamonds, display_name, username')
+                .in('id', [userId, recipientId]);
+            const recoverySender = recoveryProfiles?.find(profile => profile.id === userId);
+            const recoveryRecipient = recoveryProfiles?.find(profile => profile.id === recipientId);
+            if (recoveryProfilesError || !recoverySender || !recoveryRecipient) {
+                return res.status(503).json({
+                    success: false,
+                    error: 'Transfer Recovery Is Temporarily Unavailable. Please Retry.',
+                    code: 'TRANSFER_RECOVERY_UNAVAILABLE',
+                });
+            }
+
+            const recoverySenderName = recoverySender.display_name || recoverySender.username || 'friend';
+            const { data: recoveryCredit, error: recoveryCreditError } = await getSupabase()
+                .rpc('add_diamonds_to_balance', {
+                    p_user_id: recipientId,
+                    p_amount: amount,
+                    p_type: 'diamond_gift_received',
+                    p_description: `Received ${amount} diamonds from ${recoverySenderName} [${userId}]`,
+                    p_reference_id: creditReference,
+                });
+
+            let recoveryCreditCommitted = recoveryCredit?.success === true
+                || recoveryCredit?.duplicate === true;
+            if (recoveryCreditError && !recoveryCreditCommitted) {
+                /* The credit may still be committing in another invocation.
+                   Refunding here could leave both wallets credited. Keep the
+                   debit pending under the same durable key and let replay
+                   resolve the authoritative ledger state. */
+                return res.status(503).json({
+                    success: false,
+                    error: 'Transfer Settlement Is Being Verified. Please Retry Shortly.',
+                    code: 'TRANSFER_SETTLEMENT_PENDING',
+                    idempotencyTerminal: false,
+                });
+            }
+            if (!recoveryCredit) {
+                return res.status(503).json({
+                    success: false,
+                    error: 'Transfer Settlement Is Being Verified. Please Retry Shortly.',
+                    code: 'TRANSFER_SETTLEMENT_PENDING',
+                    idempotencyTerminal: false,
+                });
+            }
+            if (!recoveryCreditCommitted) {
+                const { data: committedRecoveryCredit, error: committedRecoveryCreditError } = await getSupabase()
+                    .from('diamond_transactions')
+                    .select('id')
+                    .eq('reference_id', creditReference)
+                    .limit(1)
+                    .maybeSingle();
+                if (committedRecoveryCreditError) {
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Transfer Settlement Is Being Verified. Please Retry Shortly.',
+                        code: 'TRANSFER_SETTLEMENT_PENDING',
+                        idempotencyTerminal: false,
+                    });
+                }
+                recoveryCreditCommitted = Boolean(committedRecoveryCredit);
+            }
+
+            if (!recoveryCreditCommitted) {
+                const { data: recoveryRefund, error: recoveryRefundError } = await getSupabase()
+                    .rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: amount,
+                        p_type: 'diamond_gift_refund',
+                        p_description: 'Transfer refund - orphan debit recovery failed',
+                        p_reference_id: refundReference,
+                    });
+                const refunded = !recoveryRefundError && (
+                    recoveryRefund?.success === true || recoveryRefund?.duplicate === true
+                );
+                return res.status(500).json({
+                    success: false,
+                    error: refunded
+                        ? 'Transfer Failed - Your Diamonds Have Been Restored'
+                        : 'Transfer Failed And The Refund Did Not Go Through. Please Contact Support.',
+                    code: refunded ? 'TRANSFER_REFUNDED' : 'TRANSFER_RECOVERY_FAILED',
+                    refunded,
+                    idempotencyTerminal: refunded,
+                });
+            }
+
+            /* The original process ended between debit and credit, so its
+               non-financial side effects never ran. Rebuild them only after
+               the durable credit is confirmed. Failures remain observable but
+               never roll back an already completed wallet transfer. */
+            const { error: recoveryIpError } = await getSupabase()
+                .from('anti_farming_ips')
+                .insert({
+                    user_id: userId,
+                    ip_address: clientIp,
+                    action_type: 'diamond_gift_sent',
+                    amount,
+                });
+            if (recoveryIpError) {
+                console.warn('[DiamondTransfer] Failed to log recovered IP action:', recoveryIpError.message);
+            }
+            const titleRecoverySenderName = String(recoverySenderName)
+                .toLowerCase()
+                .split(' ')
+                .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+                .join(' ');
+            const { error: recoveryNotificationError } = await getSupabase()
+                .from('notifications')
+                .insert({
+                    user_id: recipientId,
+                    actor_id: userId,
+                    type: 'diamond_received',
+                    title: 'Diamond Gift Received',
+                    message: `${titleRecoverySenderName} Sent You ${amount} Diamonds`,
+                    link: '/hub/store',
+                    read: false,
+                    is_read: false,
+                    data: {
+                        transfer_id: transferId,
+                        sender_id: userId,
+                        sender_name: recoverySenderName,
+                        amount,
+                    },
+                });
+            if (recoveryNotificationError) {
+                console.warn(
+                    '[DiamondTransfer] Failed to notify recovered transfer:',
+                    recoveryNotificationError.message
+                );
+            }
+            console.info(`[DiamondTransfer] Recovered orphan transfer ${transferId}`);
+
+            return res.status(200).json({
+                success: true,
+                idempotent: true,
+                recovered: true,
+                transferred: amount,
+                newBalance: recoverySender.diamonds ?? 0,
+                recipientName: recoveryRecipient.display_name || recoveryRecipient.username || 'friend',
+            });
+        }
+
+        // Rate-limit only genuinely new transfer attempts. Receipt replays and
+        // orphan recovery above must remain available after a lost response.
+        if (!applyRateLimit(req, res, {
+            ...(LIMITS.financial || LIMITS.write),
+            scope: ':transfer-financial',
+        })) return;
 
         // ── Guard 1: Friendship verification ──
         const { data: friendshipRows } = await getSupabase()
@@ -526,36 +887,8 @@ export default async function handler(req, res) {
             });
         }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // IDEMPOTENCY KEY. This was randomUUID(), which is fresh on EVERY
-        // request — so the reference ids derived from it could never collide
-        // and the duplicate guard inside add_diamonds_to_balance was dead
-        // code. A double-submit produced two different transfer ids and
-        // therefore two real debits; only the 60-second per-recipient cooldown
-        // stood between a slipped double-click and a double charge.
-        //
-        // The key is now derived from WHO is sending, to WHOM, HOW MUCH, and a
-        // coarse time bucket. An identical transfer repeated inside the same
-        // bucket collapses onto the same reference and the RPC's guard rejects
-        // the second debit. Sending the same amount to the same friend again a
-        // minute later still works, which is the behaviour a user expects.
-        // ═══════════════════════════════════════════════════════════════════
-        const TRANSFER_IDEMPOTENCY_WINDOW_MS = 60_000;
-        const transferId = createHash('sha256')
-            .update([
-                userId,
-                recipientId,
-                String(amount),
-                String(Math.floor(Date.now() / TRANSFER_IDEMPOTENCY_WINDOW_MS)),
-            ].join('|'))
-            .digest('hex')
-            .slice(0, 32);
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';
-
-        // refundSender (declared at function scope above) is assigned after the
-        // deduct commits so the catch block can invoke it if an uncaught throw
-        // occurs between deduct and credit.
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
         const { data: deductResult, error: deductErr } = await getSupabase()
@@ -565,7 +898,7 @@ export default async function handler(req, res) {
                 p_description:      `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
                 p_transaction_type: 'diamond_gift_sent',
                 p_metadata:         { recipient_id: recipientId },
-                p_reference_id:     `transfer_deduct_${transferId}`,
+                p_reference_id:     debitReference,
                 p_cooldown_seconds: COOLDOWN_SECONDS,
             });
 
@@ -626,14 +959,24 @@ export default async function handler(req, res) {
 
             return res.status(500).json({ success: false, error: cleanMessage });
         }
-        if (deductResult && !deductResult.success) {
+        const debitState = classifyTransferDebit(deductResult, null);
+        if (debitState === 'pending') {
+            return res.status(503).json({
+                success: false,
+                error: 'Transfer Debit Is Being Verified. Please Retry Shortly.',
+                code: 'TRANSFER_DEBIT_PENDING',
+                idempotencyTerminal: false,
+            });
+        }
+        if (debitState === 'rejected') {
             return res.status(400).json({ success: false, error: deductResult.error || 'Insufficient diamond balance' });
         }
         
-        const actualSenderBalance = deductResult?.balance ?? 0;
+        const actualSenderBalance = deductResult?.balance ?? senderProfile.diamonds ?? 0;
 
-        // Compensating refund helper in case the credit fails.
-        // Hoisted to outer let so the catch block can also call it.
+        // Compensating refund helper for an explicit, authoritative credit
+        // rejection. Ambiguous throws never call this helper; they retain the
+        // debit for durable replay so a late credit cannot mint currency.
         // Returns true only when the sender's diamonds genuinely came back.
         //
         // This used to `await` the RPC and throw the result away. The RPC
@@ -643,16 +986,16 @@ export default async function handler(req, res) {
         // caller then told the user "your diamonds have been restored" when
         // they had not been. A refund that silently fails is worse than one
         // that fails loudly, because nobody goes looking for it.
-        refundSender = async (reason) => {
+        const refundSender = async (reason) => {
             try {
                 const { data, error } = await getSupabase().rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: amount,
                     p_type: 'diamond_gift_refund',
                     p_description: `Transfer refund - ${reason}`,
-                    p_reference_id: `transfer_refund_${transferId}`,
+                    p_reference_id: refundReference,
                 });
-                if (error || (data && data.success === false)) {
+                if (error || !data || (data.success !== true && data.duplicate !== true)) {
                     console.error(
                         `[Diamond Transfer] REFUND FAILED for ${userId} (${amount} diamonds) after ${reason}:`,
                         error?.message || data?.error,
@@ -672,10 +1015,40 @@ export default async function handler(req, res) {
                 p_amount: amount,
                 p_type: 'diamond_gift_received',
                 p_description: `Received ${amount} diamonds from ${senderName} [${userId}]`,
-                p_reference_id: `transfer_${transferId}`,
+                p_reference_id: creditReference,
             });
 
-        if (creditErr || (creditResult && creditResult.success === false && !creditResult.duplicate)) {
+        let creditState = classifyTransferCredit(creditResult, creditErr);
+        if (creditState === 'pending') {
+            return res.status(503).json({
+                success: false,
+                error: 'Transfer Settlement Is Being Verified. Please Retry Shortly.',
+                code: 'TRANSFER_SETTLEMENT_PENDING',
+                idempotencyTerminal: false,
+            });
+        }
+        if (creditState === 'rejected') {
+            const { data: committedCredit, error: committedCreditError } = await getSupabase()
+                .from('diamond_transactions')
+                .select('id')
+                .eq('reference_id', creditReference)
+                .limit(1)
+                .maybeSingle();
+            if (committedCreditError) {
+                // An ambiguous credit must remain recoverable with the same
+                // request key. Refunding without knowing whether it committed
+                // could credit both parties.
+                return res.status(503).json({
+                    success: false,
+                    error: 'Transfer Settlement Is Being Verified. Please Retry Shortly.',
+                    code: 'TRANSFER_SETTLEMENT_PENDING',
+                    idempotencyTerminal: false,
+                });
+            }
+            creditState = classifyTransferCredit(creditResult, null, Boolean(committedCredit));
+        }
+
+        if (creditState === 'rejected') {
             // ROLLBACK: Restore sender's balance using atomic refund
             const refunded = await refundSender(creditErr?.message || creditResult?.error || 'credit failed');
             console.warn('Transfer credit error (rolled back):', creditErr || creditResult);
@@ -688,20 +1061,16 @@ export default async function handler(req, res) {
                     ? 'Transfer failed - your diamonds have been restored'
                     : 'Transfer failed and the refund did not go through. Please contact support.',
                 refunded,
+                idempotencyTerminal: refunded,
             });
         }
 
         if (creditResult && creditResult.duplicate) {
             console.info(`[DiamondTransfer] Idempotent retry detected for transfer ${transferId} - skipping refund`);
         }
-
-        // The recipient HAS been credited. Disarm the rollback: refundSender was
-        // assigned at :615 and never cleared, so any later throw (the
-        // anti_farming_ips insert below, the notification block, or the final
-        // res.json) fell into the catch at the bottom of this handler and
-        // refunded a sender whose recipient already had the money — minting the
-        // full transfer amount a second time.
-        refundSender = null;
+        if (creditErr && creditState === 'committed') {
+            console.info(`[DiamondTransfer] Verified committed credit after an ambiguous RPC error for transfer ${transferId}`);
+        }
 
         // Record the IP cluster action
         const { error: ipErr } = await getSupabase().from('anti_farming_ips').insert({
@@ -737,7 +1106,12 @@ export default async function handler(req, res) {
                 link: '/hub/store',
                 read: false,
                 is_read: false,
-                data: { sender_id: userId, sender_name: senderName, amount }
+                data: {
+                    transfer_id: transferId,
+                    sender_id: userId,
+                    sender_name: senderName,
+                    amount,
+                }
             });
             if (notifErr) {
                 console.warn('[DiamondTransfer] Failed to insert recipient notification:', notifErr.message);
@@ -761,11 +1135,14 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
-        if (typeof refundSender === 'function') {
-            await refundSender(`uncaught handler error: ${err?.message || 'unknown'}`);
-        }
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[Diamond Transfer Error]', err);
-        if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+        if (!res.headersSent) return res.status(503).json({
+            success: false,
+            error: 'Transfer State Is Being Verified. Please Retry The Same Transfer.',
+            code: 'TRANSFER_RECOVERY_PENDING',
+            refunded: false,
+            idempotencyTerminal: false,
+        });
     }
 }

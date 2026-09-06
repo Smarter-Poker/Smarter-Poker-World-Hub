@@ -190,3 +190,150 @@ jobs:
             gh issue comment "$n" --body "Fleet is recording runs again. Closing automatically."
             gh issue close "$n" || true
           done
+
+      # ── NOTHING IS SILENTLY RED ON main (2026-09-06) ────────────────────────
+      #
+      # `Global Footer E2E` failed on every run on main from 2026-09-04 and was
+      # found two days later by accident. It is not in the ruleset, so a red run
+      # blocked no merge, opened no issue and coloured nothing anybody reads;
+      # twenty-odd merges landed on top of it. Required checks cannot reach that
+      # state - a red one stops the queue - so this is for all the others, and
+      # the others are most of them.
+      #
+      # Lives here rather than in Open Claw for the reason section 11.4 already
+      # gives about this workflow: it asks GitHub about GitHub, and a detector
+      # that shares a failure domain with the thing it watches is not a
+      # detector.
+      #
+      # It reports a failing workflow as `loud` when an open issue already names
+      # it, so `Publish Watchdog` raising its own alarm is not treated as a
+      # defect. SILENT is the only thing that pages.
+      - name: Nothing is silently red on main
+        id: main-green
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          # PIPESTATUS[0], not the pipeline's code - the same trap the cron
+          # fleet step above documents. `tee` always succeeds.
+          set +e
+          node scripts/ci/check-main-is-green.mjs 2>&1 | tee /tmp/main-green.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "check-main-is-green exited ${code}"
+
+      - name: Raise the alarm for a silently red main
+        if: always() && steps.main-green.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="A workflow has been failing on main with nobody watching"
+          BODY=$(printf '%s\n' \
+            "One or more workflows have been red on \`main\` past the threshold and have no open issue naming them." \
+            "" \
+            "A check that is red and blocks nobody stops being a check: it cannot fail any louder than it already is, so the next person to break the same thing learns nothing." \
+            '```' \
+            "$(cat /tmp/main-green.log)" \
+            '```' \
+            "" \
+            "Detector: \`scripts/ci/check-main-is-green.mjs\`. Closes itself once every workflow's latest run on main is green, or once an issue exists that names it.")
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" || true
+          fi
+
+      - name: Close it when main is green again
+        if: always() && steps.main-green.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="A workflow has been failing on main with nobody watching"
+          for n in $(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[].number' || true); do
+            gh issue comment "$n" --body "Every workflow's latest run on main is green, or is now tracked by its own issue. Closing automatically."
+            gh issue close "$n" || true
+          done
+
+      # ── THE SCRAPER FLEET IS ASKED FROM OUTSIDE THE MAC (2026-09-06) ───────
+      #
+      # tournament-schedule-daemon.py sat in a connect-failure loop for four
+      # days and nineteen hours - 1,355 cycles, venues_done 0 - heartbeating the
+      # whole time. Its plist says KeepAlive: true, which never helped, because
+      # the loop never exits: a restart policy cannot restart something that
+      # refuses to stop.
+      #
+      # pnm-freshness-watchdog.py DID detect it on 2026-09-05 and exits non-zero
+      # when it does. Nothing reads that exit code - it writes a log file on the
+      # same Mac as the daemon. Section 11.4's rule about this very workflow
+      # applies: a watchdog that shares a failure domain with the thing it
+      # watches is not a watchdog.
+      #
+      # So this asks SUPABASE how long since each scraper-written table was
+      # last written. No Mac, no launchd, no log file. Exit 2 means "could not
+      # tell" and raises nothing, because an alarm that fires on its own
+      # misconfiguration gets muted.
+      - name: The scraper fleet is still writing
+        id: scrapers
+        if: always()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # PIPESTATUS[0], not the pipeline - the trap the cron-fleet step above
+          # documents. tee always succeeds.
+          set +e
+          node scripts/ci/check-scraper-freshness.mjs 2>&1 | tee /tmp/scrapers.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "check-scraper-freshness exited ${code}"
+
+      - name: Raise the alarm when the fleet stops writing
+        if: always() && steps.scrapers.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="The scraper fleet has stopped writing"
+          BODY=$(printf '%s\n' \
+            "One or more scraper-written tables are past their freshness budget." \
+            "" \
+            "Check the Mac daemons FIRST, and read \`consecutive_failures\` rather than whether the process exists - a daemon in a connect-failure loop still heartbeats and still looks KeepAlive-healthy:" \
+            "" \
+            '```' \
+            "launchctl list | grep smarter-poker" \
+            "cat data/tournament-logs/heartbeat.json" \
+            '```' \
+            "" \
+            '```' \
+            "$(cat /tmp/scrapers.log)" \
+            '```' \
+            "" \
+            "Detector: \`scripts/ci/check-scraper-freshness.mjs\`. Closes itself when every table is inside its budget.")
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" || true
+          fi
+
+      - name: Close it when the fleet is writing again
+        if: always() && steps.scrapers.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="The scraper fleet has stopped writing"
+          for n in $(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[].number' || true); do
+            gh issue comment "$n" --body "Every scraper-written table is inside its freshness budget again. Closing automatically."
+            gh issue close "$n" || true
+          done

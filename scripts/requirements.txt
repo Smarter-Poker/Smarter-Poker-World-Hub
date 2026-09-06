@@ -2,8 +2,20 @@
 # Windows Deployment Pack
 # Install with: pip install -r requirements.txt
 
-# Core Supabase client
-supabase-py==2.15.0
+# Core Supabase client.
+#
+# `supabase`, NOT `supabase-py` (fixed 2026-09-06). supabase-py is the GITHUB
+# REPOSITORY name; the package published to PyPI is plain `supabase`, and pip
+# answers a request for supabase-py with "from versions: none" - which reads
+# like a yanked version rather than a name that has never existed.
+#
+# It broke two scheduled workflows, Charity Scraper V5 and Daily Poker Series
+# Auto-Pilot, at their Install Dependencies step. Both had been failing on main
+# for 17 hours when scripts/ci/check-main-is-green.mjs found them on its first
+# run; neither is a required check, so nothing was blocked and nobody looked.
+#
+# The version pin was always right - 2.15.0 is a real release of `supabase`.
+supabase==2.15.0
 
 # Optional but recommended
 pandas==2.2.0          # For advanced CSV processing

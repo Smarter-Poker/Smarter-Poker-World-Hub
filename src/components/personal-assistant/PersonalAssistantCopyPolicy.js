@@ -41,8 +41,17 @@ export default function PersonalAssistantCopyPolicy() {
         text-transform: capitalize !important;
       }
 
+      body.${PERSONAL_ASSISTANT_COPY_CLASS} :is(pre, code, [data-pa-verbatim]),
+      body.${PERSONAL_ASSISTANT_COPY_CLASS} :is(pre, code, [data-pa-verbatim]) * {
+        text-transform: none !important;
+      }
+
       body.${PERSONAL_ASSISTANT_COPY_CLASS} :is(input, textarea)::placeholder {
         text-transform: capitalize !important;
+      }
+
+      body.${PERSONAL_ASSISTANT_COPY_CLASS} :is(input, textarea)[data-pa-verbatim]::placeholder {
+        text-transform: none !important;
       }
     `}</style>
   );

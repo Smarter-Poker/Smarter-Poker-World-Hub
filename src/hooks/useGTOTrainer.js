@@ -308,6 +308,13 @@ export default function useGTOTrainer(
   // 🚀 PRE-LOADED QUESTIONS - All 25 fetched at once
   const [preloadedQuestions, setPreloadedQuestions] = useState([]);
   const [preloadComplete, setPreloadComplete] = useState(false);
+  // A served question can become ineligible before its answer reaches the
+  // canonical recorder (stale offline pack, cache repair, or replica lag).
+  // Keep feedback visible, remember the server verdict, and replace that hand
+  // only after the player explicitly clicks Next.
+  const refreshRequiredQuestionIdsRef = useRef(new Set());
+  const pendingAnswerPersistenceRef = useRef(null);
+  const nextQuestionInFlightRef = useRef(false);
 
   // Score tracking
   const [correctCount, setCorrectCount] = useState(0);
@@ -743,7 +750,18 @@ export default function useGTOTrainer(
           if (response.ok) return true;
 
           let detail = '';
-          try { detail = (await response.json())?.error || ''; } catch (_) { /* response may be empty */ }
+          let code = '';
+          try {
+            const payload = await response.json();
+            detail = payload?.error || '';
+            code = payload?.code || '';
+          } catch (_) { /* response may be empty */ }
+          if (response.status === 409 && code === 'TRAINING_QUESTION_REFRESH_REQUIRED') {
+            refreshRequiredQuestionIdsRef.current.add(String(questionId));
+            setPreloadComplete(false);
+            console.warn('[Training] Canonical question expired; a fresh hand will load on Next.');
+            return false;
+          }
           const retryable = response.status === 429 || response.status >= 500;
           if (!retryable || attempt === 2) {
             throw new Error(detail || `Answer persistence failed (${response.status})`);
@@ -1400,7 +1418,7 @@ export default function useGTOTrainer(
       updateWeakSpotMap(heroPos, streetName, spotType, moveResult.classification);
 
       // Record to backend (async, non-blocking) — now with spot metadata
-      void recordAnswer(currentQuestion.id, selectedOptionId, isCorrect, {
+      const persistence = recordAnswer(currentQuestion.id, selectedOptionId, isCorrect, {
         heroPosition: heroPos,
         villainPosition: scenario.villainPosition || 'BB',
         street: streetName,
@@ -1408,6 +1426,7 @@ export default function useGTOTrainer(
         evLoss: moveResult.evLoss,
         spotType,
       });
+      pendingAnswerPersistenceRef.current = persistence;
     },
     [
       currentQuestion,
@@ -1713,6 +1732,30 @@ export default function useGTOTrainer(
    * If no next street → advance to next hand from pre-loaded array
    */
   const nextQuestion = useCallback(async () => {
+    if (nextQuestionInFlightRef.current) return;
+    nextQuestionInFlightRef.current = true;
+    try {
+    // Do not outrun the canonical answer recorder. A refresh-required response
+    // means this browser question is no longer trustworthy, so explicit Next
+    // replaces it at the same question number instead of consuming another
+    // possibly stale preloaded entry or auto-advancing behind the feedback.
+    const pendingPersistence = pendingAnswerPersistenceRef.current;
+    pendingAnswerPersistenceRef.current = null;
+    const answerPersisted = pendingPersistence ? await pendingPersistence : true;
+    const answeredQuestionId = String(currentQuestion?.id || '');
+    if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.delete(answeredQuestionId)) {
+      setShowFeedback(false);
+      setLastGTOFrequencies(null);
+      await fetchSingleQuestion(level);
+      return;
+    }
+    if (answerPersisted === false) {
+      // The player has already had unlimited time to read the verdict. Once
+      // they explicitly ask to continue, fail visibly instead of silently
+      // consuming a new question whose predecessor was never recorded.
+      setError('Your answer could not be saved. Check your connection, then retry.');
+      return;
+    }
     setShowFeedback(false);
     // The graded mix belongs to the decision just finished. Leaving it set
     // meant the felt served it as the NEXT spot's solver output until that one
@@ -1820,6 +1863,9 @@ export default function useGTOTrainer(
         fetchSingleQuestion();
       }
     }
+    } finally {
+      nextQuestionInFlightRef.current = false;
+    }
   }, [
     questionNumber,
     correctCount,
@@ -1832,6 +1878,8 @@ export default function useGTOTrainer(
     lastSelectedAction,
     effectiveQuestionsPerLevel,
     selectedLevel,
+    currentQuestion,
+    level,
     trainerConfig,
   ]);
 

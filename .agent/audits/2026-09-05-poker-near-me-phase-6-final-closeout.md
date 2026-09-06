@@ -94,7 +94,7 @@ destinations are included in the sitemap and two account-specific destinations
 ## Verification completed before publication
 
 - Full prebuild suite: 603 passed.
-- Poker Near Me focused suite: 109 passed.
+- Poker Near Me focused suite: 113 passed.
 - Marketplace release suite: 218 passed after synchronizing two stale tests
   with the current membership paths and removing two prohibited comment bars.
 - TypeScript no-emit check: passed.
@@ -113,7 +113,55 @@ destinations are included in the sitemap and two account-specific destinations
 - Four unreferenced Poker Near Me render assets retired, removing about 1.12 MB
   without changing any runtime reference.
 
-Production publication remains incomplete until the PR is merged, the live
-health SHA includes the merge, the Open Claw dispatcher matches the merged
-source, the authenticated refresh succeeds exactly, and representative live
-desktop and 390 by 844 browser checks pass.
+## Post-publication regression closure
+
+The first production release merged in PR 1397 and was served by the custom
+domain at revision `c9e490ea`. The production route, sitemap, desktop, 390 by
+844 mobile, Chromium, and WebKit checks passed. Open Claw was active with a
+matching dispatcher hash, and the authenticated integrity refresh completed
+with 603 source rows and 603 synchronized rows.
+
+The broader non-blocking repository E2E run then exposed stale Phase 6 through
+16 assertions plus two real timing defects. The follow-up closeout:
+
+- moves the lobby skip link ahead of the global header in keyboard order;
+- prevents a closed Report Game component from registering a modal-history
+  entry when its lazy Live panel mounts;
+- gives PNM-owned same-document history entries their own marker instead of
+  copying Next.js private router state;
+- preserves a physical 44-pixel minimum for map area actions while the mobile
+  sheet settles;
+- synchronizes historical tests and image baselines with the shipped anchor
+  navigation and rendered layouts; and
+- pins the closed-modal and PNM-history contracts in permanent unit and
+  cross-engine regression coverage.
+
+The supplemental mobile performance gate then identified the lobby cinematic
+background as the LCP candidate and measured a 1.2-second cosmetic opacity
+reveal after the image had already decoded. The closeout removes that paint
+delay without changing the rendered asset, fallback, radar, sonar, data, or
+layout. The exact production-build mobile budget passed eight consecutive
+runs, and the no-delayed-reveal behavior is now a permanent PNM contract test.
+
+A final live-data audit also exposed two transient mobile controls that could
+fall below the physical 44-pixel target: the tutorial prompt under the PNM
+world-level form reset and the global background-error dismiss control. The
+tutorial controls now retain a 45-pixel cushion even under the more-specific
+world rule, and the error dismiss control is an explicit labelled 45-pixel
+button. Twelve consecutive raw iPhone geometry audits, eight consecutive
+production-build mobile-budget runs, and the four-engine Phase 17 matrix all
+passed after the repair.
+
+The final broad two-project Playwright sweep exposed a release-test wiring gap:
+the location-header and map-signal captures were selecting the same implicit
+snapshot name for desktop and mobile despite having separate reviewed
+baselines. Both assertions now bind explicitly to their project-specific
+baseline. The shared-map marker probe also performs hit testing, activation,
+and popup-contract capture atomically so a legitimate live-data marker refresh
+cannot detach either the marker or its actions between assertions. This closes
+the last deterministic failures and the remaining retry-only PNM signal without
+weakening any visual, geometry, or interaction assertion.
+
+Final publication evidence is attached to the merge request and production
+deployment records so the repository document does not depend on a mutable
+deployment alias.

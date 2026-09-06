@@ -50,13 +50,17 @@ test('every catalog surface consumes the canonical artwork contract', () => {
 
 test('arena preserves the Club Arena table visual contract', () => {
     const table = read('src/components/training/games/UniversalDynamicTable.jsx');
+    const geometry = read('src/lib/training/clubArenaTableGeometry.mjs');
     const arena = read('pages/hub/training/arena/[gameId].js');
     const globalShell = read('src/styles/worlds/training.css');
 
     assert.match(table, /hub\/club-arena\/assets\/skin_carbon_ion/);
     assert.match(table, /hub\/club-arena\/cards\/backs\/table\/classic_red\.webp/);
-    assert.match(table, /isHero && !isMobile[\s\S]*Math\.min\(ringSeat\.y, 88\)/);
-    assert.match(table, /!isMobile && ringSeat\.y <= 6 \? 12/);
+    assert.match(table, /const seatY = ringSeat\.y/);
+    assert.doesNotMatch(table, /Math\.min\(ringSeat\.y, 88\)/);
+    assert.doesNotMatch(table, /ringSeat\.y <= 6 \? 12/);
+    assert.match(geometry, /repository: 'Smarter-Poker\/club-arena'/);
+    assert.match(geometry, /commit: '30702e1af'/);
     assert.match(arena, /GodModeArena/);
     assert.match(globalShell, /\[data-training-art\]:not\(\[data-training-route='\/hub\/training\/arena\/\[gameId\]'\]\)/);
 });

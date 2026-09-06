@@ -612,8 +612,12 @@ def sb_audit(batch_id: str, venues: int, records: int, notes: str = ""):
             data=json.dumps({
                 "table_name":"venue_daily_tournaments",
                 "action":"daily_venue_scraper_scrape","batch_id":batch_id,
-                "records_affected":records,"agent_id":"daily_venue_scraper.py",
-                "notes":f"Venues:{venues}. {notes}",
+                "agent_id":"daily_venue_scraper.py",
+                "record_id":f"batch:{batch_id}",
+                # `notes` and `records_affected` are NOT columns of this table.
+                "new_data":{"records_affected":records,
+                            "venues":venues,
+                            "notes":notes},
                 "created_at":datetime.now(timezone.utc).isoformat()
             }).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}

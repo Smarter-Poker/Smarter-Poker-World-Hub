@@ -9,6 +9,9 @@ import { acquireScrollLock } from '../../../src/lib/scrollLock';
 import supabase from '../../../src/lib/supabase';
 import styles from './fulfillment.module.css';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
+
+const FULFILLMENT_AUTH_TIMEOUT_MS = 20000;
 
 function itemLabel(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -27,25 +30,43 @@ export default function MerchandiseFulfillmentConsole() {
   const operationDialogRef = useRef(null);
   const operationTitleRef = useRef(null);
   const operationTriggerRef = useRef(null);
+  const loadAbortRef = useRef(null);
+  const transitionAbortRef = useRef(null);
+  const transitionInFlightRef = useRef(false);
+  const mountedRef = useRef(false);
 
   const loadOrders = useCallback(async ({ append = false, cursor = null } = {}) => {
     const requestId = ++requestRef.current;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    let authTimer = null;
     setState({ kind: 'loading', message: 'Refreshing protected fulfillment queue…' });
-    const user = await ensureAuthReady(supabase);
-    const token = getAccessToken();
-    if (requestId !== requestRef.current) return;
-    if (!user?.id || !token) {
-      ordersRef.current = [];
-      setOrders([]);
-      setState({ kind: 'auth', message: 'Sign in with a store-operator account.' });
-      return;
-    }
     try {
+      const authDeadline = new Promise((_resolve, reject) => {
+        authTimer = setTimeout(() => {
+          const error = new Error('Operator Session Check Timed Out. Retry The Secure Queue Read.');
+          error.name = 'CommerceTimeoutError';
+          reject(error);
+        }, FULFILLMENT_AUTH_TIMEOUT_MS);
+      });
+      const user = await Promise.race([ensureAuthReady(supabase), authDeadline]);
+      if (authTimer) clearTimeout(authTimer);
+      authTimer = null;
+      const token = getAccessToken();
+      if (requestId !== requestRef.current) return;
+      if (!user?.id || !token) {
+        ordersRef.current = [];
+        setOrders([]);
+        setState({ kind: 'auth', message: 'Sign in with a store-operator account.' });
+        return;
+      }
       const params = new URLSearchParams({ limit: '50' });
       if (cursor) params.set('cursor', cursor);
-      const response = await fetch(`/api/store/fulfillment-operations?${params}`, {
+      const response = await boundedCommerceFetch(`/api/store/fulfillment-operations?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
+        signal: controller.signal,
       });
       const body = await response.json().catch(() => null);
       if (requestId !== requestRef.current) return;
@@ -65,17 +86,31 @@ export default function MerchandiseFulfillmentConsole() {
       });
     } catch (error) {
       if (requestId !== requestRef.current) return;
+      if (error?.name === 'AbortError') return;
       if (!append) {
         ordersRef.current = [];
         setOrders([]);
       }
       setState({ kind: 'error', message: error?.message || 'Queue unavailable' });
+    } finally {
+      if (authTimer) clearTimeout(authTimer);
+      if (loadAbortRef.current === controller) loadAbortRef.current = null;
+      controller.abort();
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     void loadOrders();
-    return () => { requestRef.current += 1; };
+    return () => {
+      mountedRef.current = false;
+      requestRef.current += 1;
+      loadAbortRef.current?.abort();
+      loadAbortRef.current = null;
+      transitionAbortRef.current?.abort();
+      transitionAbortRef.current = null;
+      transitionInFlightRef.current = false;
+    };
   }, [loadOrders]);
 
   useEffect(() => {
@@ -121,9 +156,12 @@ export default function MerchandiseFulfillmentConsole() {
   };
 
   const transition = async (order, action, extraPayload = {}) => {
-    if (busyId) return;
+    if (transitionInFlightRef.current) return;
     const token = getAccessToken();
     if (!token) return setState({ kind: 'auth', message: 'Your operator session expired.' });
+    transitionInFlightRef.current = true;
+    const controller = new AbortController();
+    transitionAbortRef.current = controller;
     const payload = {
       orderId: order.id,
       expectedVersion: Number(order.fulfillment_version) || 0,
@@ -133,19 +171,25 @@ export default function MerchandiseFulfillmentConsole() {
 
     setBusyId(order.id);
     try {
-      const response = await fetch('/api/store/fulfillment-operations', {
+      const response = await boundedCommerceFetch('/api/store/fulfillment-operations', {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
       const body = await response.json().catch(() => null);
+      if (controller.signal.aborted || !mountedRef.current) return;
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Operation failed');
       setOperation(null);
       await loadOrders();
     } catch (error) {
+      if (error?.name === 'AbortError' || controller.signal.aborted || !mountedRef.current) return;
       setState({ kind: 'error', message: error?.message || 'Operation failed' });
     } finally {
-      setBusyId(null);
+      if (transitionAbortRef.current === controller) transitionAbortRef.current = null;
+      controller.abort();
+      transitionInFlightRef.current = false;
+      if (mountedRef.current) setBusyId(null);
     }
   };
 
@@ -172,7 +216,7 @@ export default function MerchandiseFulfillmentConsole() {
         </header>
 
         <div className={styles.status} role="status" aria-live="polite">{marketplaceCopy(state.message)}</div>
-        <section className={styles.grid} aria-label="Merchandise fulfillment orders">
+        <section className={styles.grid} aria-label="Merchandise Fulfillment Orders">
           {orders.map((order) => {
             const address = order.shipping_address || {};
             const busy = busyId === order.id;
@@ -267,7 +311,7 @@ export default function MerchandiseFulfillmentConsole() {
               <button
                 type="button"
                 className={styles.dialogClose}
-                aria-label="Close fulfillment operation"
+                aria-label="Close Fulfillment Operation"
                 disabled={Boolean(busyId)}
                 onClick={() => setOperation(null)}
               >

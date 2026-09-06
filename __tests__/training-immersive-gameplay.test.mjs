@@ -30,7 +30,15 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
     'data-training-seat',
     'data-training-seat-index',
     'data-training-seat-position',
+    'data-training-seat-x',
+    'data-training-seat-y',
+    'data-training-avatar-width',
+    'data-training-avatar-height',
+    'data-training-bust-scale',
+    'data-training-seat-action',
     'data-training-dealer-button',
+    'data-training-marker-x',
+    'data-training-marker-y',
     'data-training-chip-seat-index',
     'data-training-chip-amount',
     'data-training-pot',
@@ -39,6 +47,15 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
     assert.match(table, new RegExp(contract), `${contract} must remain measurable`);
   }
   assert.match(table, /className="sp-club-gto-hero-card"/);
+  assert.match(table, /CLUB_ARENA_GEOMETRY_SOURCE/);
+  assert.match(table, /CLUB_ARENA_SEAT_LAYOUTS/);
+  assert.match(table, /resolveClubArenaTableBox/);
+  assert.match(table, /clubArenaSeatPortrait/);
+  assert.match(table, /clubArenaHeroClearPx\(viewportWidth\)/);
+  assert.match(table, /Math\.max\(1, Math\.min\(actionOptionCount, 4\)\)/);
+  assert.match(table, /isTopSeat && seatX > 50/);
+  assert.doesNotMatch(table, /const DEALER_BUTTON_POSITIONS/);
+  assert.doesNotMatch(table, /const CHIP_STACK_POSITIONS/);
   assert.match(table, /question\?\.boardCards \|\| scenario\.boardCards \|\| scenario\.board/);
   assert.match(table, /COMPLETE CLUB ARENA RING/);
   assert.doesNotMatch(table, /if \(!isHero && !isActiveVillain\) return null/);
@@ -48,10 +65,12 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
   assert.match(table, /flex: 0 0 540px/);
   assert.match(table, /min-height: 540px/);
   assert.match(table, /flex: 0 0 min\(397px, 102vw\)/);
-  assert.match(table, /min-height: 88px/);
+  assert.match(table, /min-height: 72px/);
+  assert.match(table, /height: 'calc\(100dvh - var\(--sp-header-height, 56px\)\)'/);
   assert.match(table, /min-height: 64px/);
   assert.match(table, /overflow-wrap: anywhere/);
   assert.match(parityAudit, /actionTextOverflows/);
+  assert.match(parityAudit, /state\.visualState === 'action'/);
 });
 
 test('God Mode Arena exposes a stable nonvisual completion-state anchor', async () => {

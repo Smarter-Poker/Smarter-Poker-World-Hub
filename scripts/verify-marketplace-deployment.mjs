@@ -33,6 +33,7 @@ const routes = [
   { path: '/hub/smarter-rewards' },
   { path: '/hub/smarter-rewards/daily_login', marker: 'Verified Reward Telemetry' },
   { path: '/hub/club-shop' },
+  { path: '/hub/club-shop/00000000-0000-4000-8000-000000000094?clubId=00000000-0000-4000-8000-000000000093' },
 ];
 const assets = [
   '/images/store-v3/diamond-vault-hero.webp',
@@ -75,7 +76,7 @@ async function probe(path, expectedType, marker = '') {
   }
 }
 
-async function probePrivate({ path: privatePath, method = 'GET' }) {
+async function probePrivate({ path: privatePath, method = 'GET', expectedStatus = 401 }) {
   const startedAt = Date.now();
   try {
     const response = await fetch(`${baseUrl}${privatePath}`, {
@@ -83,19 +84,32 @@ async function probePrivate({ path: privatePath, method = 'GET' }) {
       headers: requestHeaders({
         Accept: 'application/json',
         Origin: baseUrl,
-        ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+        ...(method !== 'GET' ? { 'Content-Type': 'application/json' } : {}),
       }),
-      ...(method === 'POST' ? { body: '{}' } : {}),
+      ...(method !== 'GET' ? { body: '{}' } : {}),
       signal: AbortSignal.timeout(timeoutMs),
     });
+    const cacheControl = response.headers.get('cache-control') || '';
+    const vary = response.headers.get('vary') || '';
+    const privateNoStore = /(?:^|,)\s*private\b/i.test(cacheControl)
+      && /(?:^|,)\s*no-store\b/i.test(cacheControl);
+    const variesOnAuthorization = vary.split(',')
+      .some((value) => value.trim().toLowerCase() === 'authorization');
+    const okay = response.status === expectedStatus && privateNoStore && variesOnAuthorization;
     return {
       path: method === 'GET'
         ? `${privatePath} (private)`
         : `${privatePath} (${method.toLowerCase()}, private)`,
-      okay: response.status === 401,
+      okay,
       status: response.status,
       contentType: response.headers.get('content-type') || '',
-      reason: response.status === 401 ? null : `expected_401_received_${response.status}`,
+      reason: response.status !== expectedStatus
+        ? `expected_${expectedStatus}_received_${response.status}`
+        : !privateNoStore
+          ? 'missing_private_no_store'
+          : !variesOnAuthorization
+            ? 'missing_vary_authorization'
+            : null,
       latencyMs: Date.now() - startedAt,
     };
   } catch (error) {
@@ -118,12 +132,27 @@ const results = await Promise.all([
 ]);
 
 results.push(...await Promise.all([
+  probePrivate({ path: '/api/store/create-checkout-session', method: 'POST' }),
+  probePrivate({ path: '/api/store/diamond-transactions' }),
+  probePrivate({ path: '/api/store/diamond-transfer', method: 'POST' }),
+  probePrivate({ path: '/api/store/merch-order' }),
   probePrivate({ path: '/api/store/vip-membership-status' }),
+  probePrivate({ path: '/api/store/switch-vip-plan', method: 'POST' }),
+  probePrivate({ path: '/api/store/cancel-vip', method: 'POST' }),
   probePrivate({ path: '/api/store/order-ledger' }),
   probePrivate({ path: '/api/store/checkout-status?session_id=invalid' }),
   probePrivate({ path: '/api/store/purchase-with-diamonds', method: 'POST' }),
   probePrivate({ path: '/api/store/purchase-vip-with-diamonds', method: 'POST' }),
+  probePrivate({ path: '/api/store/fulfillment-operations' }),
+  probePrivate({ path: '/api/store/fulfillment-operations', method: 'POST', expectedStatus: 405 }),
+  probePrivate({ path: '/api/club-arena/manage-shop' }),
+  probePrivate({ path: '/api/club-arena/marketplace-items' }),
   probePrivate({ path: '/api/club-arena/marketplace-purchase', method: 'POST' }),
+  probePrivate({ path: '/api/club-arena/refund-purchase', method: 'POST' }),
+  probePrivate({ path: '/api/club-arena/shop-analytics' }),
+  probePrivate({ path: '/api/club-arena/shop-items', method: 'POST' }),
+  probePrivate({ path: '/api/club-arena/shop-purchases' }),
+  probePrivate({ path: '/api/rewards/progress' }),
 ]));
 
 try {

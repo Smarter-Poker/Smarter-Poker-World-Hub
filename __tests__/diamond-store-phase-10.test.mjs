@@ -58,6 +58,17 @@ test('real marketplace detail routes exist with product and breadcrumb schema', 
   assert.match(product, /['"]@type['"]:\s*['"]BreadcrumbList['"]/);
 });
 
+test('every current VIP term exposes its enabled settlement paths without duplicating Lifetime', () => {
+  assert.match(STORE, /const handleVIPSubscribe = async/);
+  for (const plan of ['monthly', 'yearly', 'lifetime']) {
+    assert.match(STORE, new RegExp(`plan=\\{VIP_MEMBERSHIP\\.${plan}\\}`));
+  }
+  assert.match(STORE, /onClick=\{handleVIPSubscribe\}/);
+  assert.match(STORE, /Lifetime VIP Is Bought With Diamonds/);
+  assert.match(STORE, /selectedVIPPlan && vipCardReady && \(/);
+  assert.match(STORE, /Pay With Diamonds Instead/);
+});
+
 test('the retired Daily Pass stays retired', () => {
   /**
    * REPLACED 2026-09-05. This used to assert the Daily Pass existed:
@@ -96,8 +107,7 @@ test('the retired Daily Pass stays retired', () => {
 
   // The reader side is deliberately unchanged: these two read history.
   assert.match(read('pages/api/admin/diamond-liability.js'), /vip_daily/);
-  assert.match(read('pages/api/store/order-ledger.js'), /vip_daily/);
-});
+  assert.match(read('pages/api/store/order-ledger.js'), /vip_daily/);});
 
 test('production readiness is observable without exposing secrets', () => {
   const endpoint = 'pages/api/store/readiness.js';

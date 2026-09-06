@@ -4,6 +4,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIONS = new Set(['mark_processing', 'mark_shipped', 'mark_delivered', 'refund']);
@@ -53,14 +54,13 @@ async function requireOperator(req, res, supabase) {
 
 export default async function handler(req, res) {
   try {
+    setPrivateCommerceResponse(res);
     if (!['GET', 'PATCH'].includes(req.method)) {
       res.setHeader('Allow', 'GET, PATCH');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
 
-    res.setHeader('Cache-Control', 'private, no-store');
-    res.setHeader('Vary', 'Authorization');
     const supabase = getSupabase();
     const operator = await requireOperator(req, res, supabase);
     if (!operator) return;
@@ -122,9 +122,10 @@ export default async function handler(req, res) {
         .update(orderId)
         .digest('hex')
         .slice(0, 24)}`;
-      ({ data: result, error } = await supabase.rpc('refund_diamond_merch_order_atomic', {
+      ({ data: result, error } = await supabase.rpc('refund_diamond_merch_order_atomic_v2', {
         p_order_id: orderId,
         p_actor_id: operator.id,
+        p_expected_version: expectedVersion,
         p_reference_id: reference,
       }));
     } else {

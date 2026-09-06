@@ -9,6 +9,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { clubArenaParticipantFilter } from '../../../src/lib/club-arena/handMembership.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -70,25 +71,19 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, hands: [], total: 0, page: pageNum, totalPages: 0 });
           }
 
-          let handResult = await getSupabase()
+          // One database result set is the global pagination boundary. The OR
+          // includes modern and legacy recorder shapes, while PostgreSQL
+          // returns a row only once when it matches both predicates. This
+          // keeps total/count/page exact instead of falling back between two
+          // independently paginated streams.
+          const handResult = await getSupabase()
               .from('hand_history')
               .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
               .in('table_id', clubTableIds)
-              .contains('players', JSON.stringify([{ userId: user.id }]))
+              .or(clubArenaParticipantFilter(user.id))
               .order('created_at', { ascending: false })
+              .order('id', { ascending: false })
               .range(offset, offset + limitNum - 1);
-
-          // Rows written before the recorder normalization used `id` inside
-          // players JSON. Fall back without mixing pagination windows.
-          if (!handResult.error && (handResult.data || []).length === 0) {
-              handResult = await getSupabase()
-                  .from('hand_history')
-                  .select('id, hand_id:hand_number, hand_number, table_id, pot_total:pot_size, created_at', { count: 'exact' })
-                  .in('table_id', clubTableIds)
-                  .contains('players', JSON.stringify([{ id: user.id }]))
-                  .order('created_at', { ascending: false })
-                  .range(offset, offset + limitNum - 1);
-          }
 
           const { data: hands, count, error } = handResult;
 

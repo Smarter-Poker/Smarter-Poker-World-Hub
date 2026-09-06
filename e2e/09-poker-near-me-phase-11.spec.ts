@@ -69,9 +69,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
       await page.evaluate(() => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
-      for (let index = 0; index < 3 && !(await skipLink.evaluate((node) => node === document.activeElement)); index += 1) {
-        await page.keyboard.press('Tab');
-      }
+      await page.keyboard.press('Tab');
       await expect(skipLink).toBeFocused();
     }
 

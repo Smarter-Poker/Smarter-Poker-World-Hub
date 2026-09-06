@@ -26,6 +26,7 @@ import {
 } from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
 
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
@@ -475,23 +476,23 @@ export default function ShoppingCart() {
       return;
     }
 
+    const commerceIntent = {
+      scope: `cart-${cardGroup}`,
+      userId: user.id,
+      paymentMethod: 'card',
+      intent: {
+        type: payload.type,
+        items: payload.items.map((item) => ({
+          id: item.catalogId || item.id || item.packageId,
+          variantId: item.variantId || item.variant_id || null,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+        })),
+      },
+    };
     setCheckingOut(true);
     try {
-      const commerceIntent = {
-        scope: `cart-${cardGroup}`,
-        userId: user.id,
-        paymentMethod: 'card',
-        intent: {
-          type: payload.type,
-          items: payload.items.map((item) => ({
-            id: item.catalogId || item.id || item.packageId,
-            variantId: item.variantId || item.variant_id || null,
-            quantity: Math.max(1, Number(item.quantity) || 1),
-          })),
-        },
-      };
       const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
-      const res = await fetch('/api/store/create-checkout-session', {
+      const res = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -502,7 +503,9 @@ export default function ShoppingCart() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(checkoutErrorMessage(data, res.status));
+        const checkoutError = new Error(checkoutErrorMessage(data, res.status));
+        checkoutError.code = data?.error?.code || null;
+        throw checkoutError;
       }
       const url = data?.data?.url || data?.url;
       if (url) {
@@ -511,6 +514,9 @@ export default function ShoppingCart() {
       }
       throw new Error('Checkout Session Missing Redirect URL');
     } catch (err) {
+      if (err?.code === 'CHECKOUT_EXPIRED') {
+        clearCommerceRequestId(commerceIntent);
+      }
       // Stay on the cart so the user can retry: the button re-enables via finally
       toast.error(err.message || 'Checkout Unavailable. Please Try Again.');
     } finally {
@@ -570,7 +576,7 @@ export default function ShoppingCart() {
 
     setCheckingOut(true);
     try {
-      const res = await fetch('/api/store/purchase-with-diamonds', {
+      const res = await boundedCommerceFetch('/api/store/purchase-with-diamonds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

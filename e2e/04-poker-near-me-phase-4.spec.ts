@@ -81,6 +81,15 @@ test.describe('Poker Near Me phase 4 public route matrix', () => {
     await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
     const map = page.getByRole('region', { name: /poker venue map/i }).first();
     await expect(map).toBeAttached({ timeout: 25_000 });
+    await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 25_000 });
+    await expect.poll(async () => {
+      const samples: string[] = [];
+      for (let sample = 0; sample < 3; sample += 1) {
+        samples.push(`${await map.getAttribute('data-map-load-ms')}:${await map.getAttribute('data-map-marker-count')}`);
+        await page.waitForTimeout(200);
+      }
+      return samples[0] !== ':0' && new Set(samples).size === 1;
+    }, { timeout: 25_000 }).toBe(true);
     await map.focus();
     await expect(map).toBeFocused();
   });

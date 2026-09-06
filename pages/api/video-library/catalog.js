@@ -1,7 +1,11 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed } from '../../../src/lib/videoLibraryAvailability';
+import {
+    BLOCKED_VIDEO_LIBRARY_IDS,
+    VIDEO_LIBRARY_ALLOWED_TYPES,
+    isVideoLibraryVideoAllowed,
+} from '../../../src/lib/videoLibraryAvailability';
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
@@ -85,6 +89,7 @@ export default async function handler(req, res) {
             .select(VIDEO_FIELDS, { count: 'exact' });
 
         query = query.not('youtube_video_id', 'in', `(${BLOCKED_VIDEO_LIBRARY_IDS.join(',')})`);
+        query = query.in('type', VIDEO_LIBRARY_ALLOWED_TYPES);
 
         if (source && source !== 'ALL') query = query.eq('source_id', source);
         if (type === 'cash' || type === 'tournament') query = query.eq('type', type);
