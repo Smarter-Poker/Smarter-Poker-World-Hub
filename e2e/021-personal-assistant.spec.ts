@@ -408,6 +408,82 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('Leak Finder coaching workspace exposes evidence, goals, timeline, and weekly reporting', async ({ page }, testInfo) => {
+    const leakId = '11111111-1111-4111-8111-111111111111';
+    await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, leaks: [{
+        id: leakId,
+        leak_type: 'river_overfold',
+        leak_name: 'River Overfold',
+        situation_class: 'River Overfold',
+        status: 'persistent',
+        confidence: 'high',
+        avg_ev_loss_bb: 0.7,
+        ev_loss_measured: true,
+        occurrence_count: 12,
+        total_samples: 40,
+      }] }),
+    }));
+    await page.route('**/api/assistant/leaks/examples?*', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, examples: [{ id: 'example-1', handId: 'hand-1', evLoss: 0.7, snapshot: { external_id: 'club-hand-1', hero_cards: ['As', 'Kh'], board: ['Qc', '7h', '2s', 'Td', '4c'], street: 'river', pot_size: 18 } }] }),
+    }));
+    await page.route('**/api/assistant/coaching', async route => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, result: {} }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          snapshot: {
+            receipt: 'pa7-test-receipt',
+            versions: { matcher: 'hand-audit-v3' },
+            summary: { active: 1, resolved: 0, due: 1, measuredEvLoss: 8.4 },
+            coverage: { decisions: 1, verified: 1, partiallyMatched: 0, unpriced: 0, rejected: 0, verifiedPercent: 100 },
+            priorities: [{ id: leakId, title: 'River Overfold', category: 'River', status: 'persistent', reason: '12 Repeated Mistakes With 0.70 BB Measured Loss Per Occurrence', confidence: { score: 96, level: 'high', reasons: ['Measured EV Evidence Is Available'] } }],
+            nextBestAction: { leakId, title: 'River Overfold', action: 'Complete The Due Corrective Review', reason: 'Highest Measured Impact' },
+            timeline: [{ at: '2026-09-06T00:00:00.000Z', leakId, type: 'detected', title: 'River Overfold Detected' }],
+            sessionDebrief: { headline: 'One Active Leak Needs Attention', strongestSignal: 'River Overfold', expensiveMistake: 'River Overfold', coverageNote: 'One Of One Decisions Is Solver Verified' },
+            weeklyReport: { verifiedCoverage: 100, reviewLoad: 1, measuredEvLoss: 8.4, focus: [{ id: leakId, rank: 1, title: 'River Overfold', targetReviews: 3 }] },
+          },
+          decisions: [{ hand_external_id: 'club-hand-1', decision_key: 'decision-1', leak_type: 'river_overfold', solver_verified: true, solver_source: 'hand-audit-v3', classification: 'mistake' }],
+          reviews: [{ leak_id: leakId, due_at: '2026-09-06T00:00:00.000Z' }],
+          goals: [],
+          feedback: [],
+          preferences: { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {} },
+        }),
+      });
+    });
+
+    await navigateStable(page, '/hub/personal-assistant/leaks');
+    await activateControl(page.getByRole('button', { name: 'Coaching' }), testInfo.project.name);
+    await expect(page.getByRole('heading', { name: 'Your Evidence-Backed Improvement Plan' })).toBeVisible();
+    await expect(page.getByText('pa7-test-receipt')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Evidence', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Source-To-Training Trace')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Exact Sandbox Spot' })).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Timeline', exact: true }), testInfo.project.name);
+    await expect(page.getByText('From Detection To Real-Play Confirmation')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Goals', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Tie Progress To Measured Evidence')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Report', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Your Next Seven Days')).toBeVisible();
+    const coachingControlSizes = await page.locator('#leak-coaching').evaluate(root => [...root.querySelectorAll('button,a[href],input,select,textarea')].filter(element => {
+      const box = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0 && (box.width < 44 || box.height < 44);
+    }).map(element => ({ text: element.textContent?.trim(), tag: element.tagName, box: element.getBoundingClientRect().toJSON() })));
+    expect(coachingControlSizes).toEqual([]);
+    await expectAccessibleMain(page);
+    await expectHealthyLayout(page);
+  });
+
   test('Leak Finder detail sheet exposes every remediation subflow and closes cleanly', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
