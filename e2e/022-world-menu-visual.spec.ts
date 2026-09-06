@@ -52,10 +52,13 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     for (const [name, value] of Object.entries(desktopContract)) {
       if (name !== 'columns') expect(value, `${world.label} has an empty ${name} token`).not.toBe('');
     }
-    await expect(page).toHaveScreenshot(`${world.id}-desktop.png`, {
+    // Capture the contract surface, not the entire host page. Training renders
+    // more than one hundred cards behind this drawer, and asking Chromium to
+    // rasterize that unrelated live page can exhaust the screenshot timeout
+    // before Playwright ever compares these stable 400px reference pixels.
+    await expect(drawer).toHaveScreenshot(`${world.id}-desktop.png`, {
       animations: 'disabled',
       caret: 'hide',
-      clip: { x: 0, y: 0, width: 400, height: 900 },
       timeout: 20_000,
       threshold: 0.3,
       // Geometry and all semantic colors are asserted independently above.
@@ -101,10 +104,9 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
       );
       expect(socialTiles.every((color) => ['rgb(255, 255, 255)', 'rgb(231, 243, 255)'].includes(color))).toBe(true);
     }
-    await expect(page).toHaveScreenshot(`${world.id}-mobile.png`, {
+    await expect(drawer).toHaveScreenshot(`${world.id}-mobile.png`, {
       animations: 'disabled',
       caret: 'hide',
-      clip: { x: 0, y: 0, width: 320, height: 568 },
       timeout: 20_000,
       threshold: 0.3,
       maxDiffPixelRatio: 0.15,
