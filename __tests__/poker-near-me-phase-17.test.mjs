@@ -17,6 +17,8 @@ test('discovery navigation distinguishes user history from filter synchronizatio
   assert.match(page, /window\.removeEventListener\('popstate', restoreDiscoveryState\)/);
   assert.match(page, /window\.addEventListener\('pagehide', markExiting\)/);
   assert.match(page, /if \(discoveryPageExitingRef\.current\) return/);
+  assert.match(page, /const addressSlug = normalizeRouteSlug\(/);
+  assert.match(page, /if \(addressSlug !== pathSlug\) return/);
   assert.doesNotMatch(page, /const currentUrl = router\.asPath/);
 });
 

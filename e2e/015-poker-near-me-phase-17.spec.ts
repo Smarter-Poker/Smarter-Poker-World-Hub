@@ -44,6 +44,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
       localStorage.setItem('pnm_lobby_tutorial_seen', '1');
+      localStorage.setItem('pnm_tutorial_seen_v1', '1');
       localStorage.setItem('pnm_location_prompt_dismissed', '1');
       localStorage.removeItem('sp-filters-poker-near-me');
     });
@@ -60,12 +61,15 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await activateDiscoverySection(page, /Map/i, browserName);
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/map(?:\?.*)?$/);
 
-    await page.evaluate(() => window.setTimeout(() => window.history.back(), 0));
+    // Call the history methods directly. WebKit may throttle a zero-delay
+    // timer while the long discovery document is settling, which leaves the
+    // test on the current entry even though native Back/Forward works.
+    await page.evaluate(() => window.history.back());
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/daily-tournaments(?:\?.*)?$/);
     await expect(discoveryButton(page, /Events/i)).toHaveAttribute('aria-current', 'true');
     await expect(page.locator('.pnm-route-announcer')).toContainText('Showing Daily Tournaments');
 
-    await page.evaluate(() => window.setTimeout(() => window.history.forward(), 0));
+    await page.evaluate(() => window.history.forward());
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/map(?:\?.*)?$/);
     await expect(discoveryButton(page, /Map/i)).toHaveAttribute('aria-current', 'true');
     await expectNoOverflow(page, 'history-restored map');

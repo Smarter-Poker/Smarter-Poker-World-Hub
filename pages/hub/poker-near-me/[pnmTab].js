@@ -2955,6 +2955,14 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         venueType: filters.venueType,
       });
 
+      // A Back followed quickly by Forward can outpace React's effect cleanup,
+      // especially in WebKit. Never let a delayed writer from the prior history
+      // entry replace the address that the browser has already restored.
+      const addressSlug = normalizeRouteSlug(
+        window.location.pathname.split('/').filter(Boolean).at(-1)
+      );
+      if (addressSlug !== pathSlug) return;
+
       // Keep the route-sync effect in agreement with UI-driven URL rewrites
       // (native history writes don't update router.query.pnmTab).
       lastRouteTabRef.current = pathSlug;
