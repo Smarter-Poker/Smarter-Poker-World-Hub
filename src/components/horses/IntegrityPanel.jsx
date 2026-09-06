@@ -97,7 +97,8 @@ function subjectIdsOf(row) {
 }
 
 function caseIdOf(row) {
-  return first(row, 'case_id', 'caseId', 'integrity_case_id', 'integrityCaseId');
+  return first(row, 'case_id', 'caseId', 'integrity_case_id', 'integrityCaseId')
+    || first(row?.case, 'id', 'case_id', 'caseId');
 }
 
 function participantName(row, side) {
@@ -124,7 +125,16 @@ function patternsOf(row) {
 }
 
 function reasonsOf(row) {
-  const values = first(row, 'rank_reasons', 'rankReasons', 'ranking_reasons', 'rankingReasons', 'reasons');
+  const values = first(
+    row,
+    'tier_reason',
+    'tierReason',
+    'rank_reasons',
+    'rankReasons',
+    'ranking_reasons',
+    'rankingReasons',
+    'reasons',
+  );
   return arrayOf(values).filter(Boolean);
 }
 
@@ -723,7 +733,10 @@ export default function IntegrityPanel({
               <KpiTile
                 key={tier}
                 label={`${tierLabel(tier)} Pairs`}
-                value={num(first(queueInfo.tierTotals, tier), 'Unknown')}
+                value={num(
+                  first(queueInfo.tierTotals, tier),
+                  queue.loaded && !queue.error ? 0 : 'Unknown',
+                )}
                 tone={tierTone(tier) === 'danger' ? 'danger' : tierTone(tier) === 'warn' ? 'warn' : undefined}
               />
             ))}

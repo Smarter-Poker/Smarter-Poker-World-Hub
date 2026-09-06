@@ -36,6 +36,11 @@ landed, so Phase 5 was not considered released.
    serialized every column of `profiles` 12,682 times. Migration
    `20260906200000` restores the exact partial-index predicate and reads only
    the three profile columns the queue needs.
+6. The published queue UI did not consume three exact fields in the ranked RPC
+   contract. It showed a missing zero-count tier as `Unknown`, ignored the
+   singular `tier_reason`, and could not open the nested active-case summary.
+   The panel now treats a successfully loaded missing tier as zero, renders
+   `tier_reason`, and reads `case.id`. A release test pins all three mappings.
 
 ## Production Database Evidence
 
