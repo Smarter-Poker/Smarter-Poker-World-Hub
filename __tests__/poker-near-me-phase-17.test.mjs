@@ -36,6 +36,18 @@ test('the lobby LCP image is not delayed by a cosmetic opacity reveal', async ()
   assert.doesNotMatch(lobbyCanvas, /transition: ['"]opacity/);
 });
 
+test('dynamic mobile notices keep a physical touch-target cushion', async () => {
+  const [tutorialCss, globalErrorCatcher] = await Promise.all([
+    source('src/styles/tutorial.css'),
+    source('src/components/ui/GlobalErrorCatcher.jsx'),
+  ]);
+  assert.match(tutorialCss, /\.sp-tutorial-prompt-start \{[^}]*min-height: 45px !important/s);
+  assert.match(tutorialCss, /\.sp-tutorial-prompt-close \{[^}]*width: 45px;[^}]*height: 45px/s);
+  assert.match(globalErrorCatcher, /aria-label="Dismiss Error Notice"/);
+  assert.match(globalErrorCatcher, /minWidth: 45/);
+  assert.match(globalErrorCatcher, /minHeight: 45/);
+});
+
 test('restored routes remain explicit to assistive technology', async () => {
   const [page, world] = await Promise.all([
     source('pages/hub/poker-near-me/[pnmTab].js'),

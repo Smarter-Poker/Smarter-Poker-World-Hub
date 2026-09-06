@@ -94,7 +94,7 @@ destinations are included in the sitemap and two account-specific destinations
 ## Verification completed before publication
 
 - Full prebuild suite: 603 passed.
-- Poker Near Me focused suite: 111 passed.
+- Poker Near Me focused suite: 112 passed.
 - Marketplace release suite: 218 passed after synchronizing two stale tests
   with the current membership paths and removing two prohibited comment bars.
 - TypeScript no-emit check: passed.
@@ -142,6 +142,15 @@ reveal after the image had already decoded. The closeout removes that paint
 delay without changing the rendered asset, fallback, radar, sonar, data, or
 layout. The exact production-build mobile budget passed eight consecutive
 runs, and the no-delayed-reveal behavior is now a permanent PNM contract test.
+
+A final live-data audit also exposed two transient mobile controls that could
+fall below the physical 44-pixel target: the tutorial prompt under the PNM
+world-level form reset and the global background-error dismiss control. The
+tutorial controls now retain a 45-pixel cushion even under the more-specific
+world rule, and the error dismiss control is an explicit labelled 45-pixel
+button. Twelve consecutive raw iPhone geometry audits, eight consecutive
+production-build mobile-budget runs, and the four-engine Phase 17 matrix all
+passed after the repair.
 
 Final publication evidence is attached to the merge request and production
 deployment records so the repository document does not depend on a mutable

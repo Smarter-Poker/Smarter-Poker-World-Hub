@@ -184,14 +184,24 @@ export default function GlobalErrorCatcher() {
             <span style={{ fontSize: 16 }}>{isError ? '⚠️' : '⚡'}</span>
             <span>{toast.message}</span>
             <button
+                type="button"
+                aria-label="Dismiss Error Notice"
                 onClick={() => setToast(null)}
                 style={{
+                    width: 45,
+                    minWidth: 45,
+                    height: 45,
+                    minHeight: 45,
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     background: 'none',
                     border: 'none',
                     color: 'inherit',
                     cursor: 'pointer',
                     fontSize: 16,
-                    padding: '0 0 0 8px',
+                    padding: 0,
                     opacity: 0.6,
                 }}
             >

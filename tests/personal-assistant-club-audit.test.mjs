@@ -723,8 +723,7 @@ await test('pages beyond 100 reconciled Club Arena hands and reaches a complete 
   assert.equal(handQueries, 4);
 });
 
-await test('retries a stale unpriced Club Arena audit after the solver refresh window', async () => {
-  let solverQueries = 0;
+await test('retries stale unpriced audits and fresh audits from an older matcher', async () => {
   const question = {
     source: 'DETERMINISTIC_SOLVER',
     solverProvenance,
@@ -733,7 +732,22 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
     correctAnswer: 'raise',
     gtoFrequencies: { raise: 100 },
   };
-  const db = {
+  for (const existingDecision of [
+    {
+      hand_external_id: 'club-arena:hand-42',
+      solver_verified: false,
+      solver_source: 'hand-audit-v3:unpriced',
+      updated_at: '2026-08-27T12:00:00.000Z',
+    },
+    {
+      hand_external_id: 'club-arena:hand-42',
+      solver_verified: false,
+      solver_source: 'hand-audit-v2:unpriced',
+      updated_at: '2026-08-29T12:30:00.000Z',
+    },
+  ]) {
+    let solverQueries = 0;
+    const db = {
     rpc: async () => ({ data: { success: true, upserted: 1, removed: 0 }, error: null }),
     from(table) {
       if (table === 'hand_history') {
@@ -753,14 +767,7 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
         const readChain = {
           eq: () => readChain,
           in: () => readChain,
-          limit: async () => ({
-            data: [{
-              hand_external_id: 'club-arena:hand-42',
-              solver_verified: false,
-              updated_at: '2026-08-27T12:00:00.000Z',
-            }],
-            error: null,
-          }),
+          limit: async () => ({ data: [existingDecision], error: null }),
         };
         return { select: () => readChain, upsert: async () => ({ error: null }) };
       }
@@ -776,15 +783,16 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
       }
       throw new Error(`Unexpected table ${table}`);
     },
-  };
-  const result = await syncClubArenaHandsForAudit(db, userId, {
-    nowMs: new Date('2026-08-29T13:00:00.000Z').getTime(),
-  });
-  assert.equal(result.handsAudited, 1);
-  assert.equal(result.handsQueuedForRetry, 1);
-  assert.equal(result.solverVerified, 1);
-  assert.equal(result.unpriced, 0);
-  assert.equal(solverQueries, 1);
+    };
+    const result = await syncClubArenaHandsForAudit(db, userId, {
+      nowMs: new Date('2026-08-29T13:00:00.000Z').getTime(),
+    });
+    assert.equal(result.handsAudited, 1);
+    assert.equal(result.handsQueuedForRetry, 1);
+    assert.equal(result.solverVerified, 1);
+    assert.equal(result.unpriced, 0);
+    assert.equal(solverQueries, 1);
+  }
 });
 
 await test('keeps healthy solver evidence when either evidence store is degraded', () => {

@@ -298,7 +298,9 @@
 
 .sp-tutorial-prompt-start {
     flex-shrink: 0;
-    min-height: 44px;
+    /* One physical-pixel cushion prevents transformed iPhone layouts from
+       reporting this nominal 44px control as 43.999px. */
+    min-height: 45px !important;
     padding: 0 14px;
     border-radius: 12px;
     border: none;
@@ -319,8 +321,8 @@
 
 .sp-tutorial-prompt-close {
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(255, 255, 255, 0.06);
