@@ -253,10 +253,11 @@ export default function ReportGameModal({
     // panel while the user is typing in the notes field.
     const onCloseRef = useRef(onClose);
     useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
-    // Mobile phase 3: the modal is only mounted while open, so it owns one
-    // history entry (back gesture closes it) and a scrim tap that merely ENDED
-    // outside the form does not throw the report away.
-    useModalHistory(true, onClose);
+    // LiveGamesFeed keeps this component mounted while closed. Only an actual
+    // open report sheet may own a history entry; registering the closed shell
+    // polluted discovery Back/Forward history as soon as the lazy Live panel
+    // mounted.
+    useModalHistory(!!isOpen, onClose);
     const scrim = useScrimDismiss(onClose);
 
     // ─── Dialog behaviour: Escape to close, body scroll lock, initial focus ───

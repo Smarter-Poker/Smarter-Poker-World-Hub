@@ -131,7 +131,7 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
   const sheets = {
     'src/components/poker-near-me/VenueReviews.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.vr-handle \{ display: block; width: 44px; height: 4px;/, /\.vr-textarea \{ font-size: 16px; \}/],
     'src/components/poker-near-me/VenueCard.js': [/useModalHistory\(checkinModal, closeCheckin\)/, /useScrimDismiss\(closeCheckin\)/, /@media \(max-width: 600px\)/, /\.vc3-checkin-handle \{ display: block; width: 44px; height: 4px;/, /\.vc3-checkin-textarea \{ font-size: 16px; \}/],
-    'src/components/poker-near-me/ReportGameModal.jsx': [/useModalHistory\(true, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.rgm-handle \{ display: block; width: 44px; height: 4px;/, /width: 44, height: 44, minWidth: 44, minHeight: 44/],
+    'src/components/poker-near-me/ReportGameModal.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.rgm-handle \{ display: block; width: 44px; height: 4px;/, /width: 44, height: 44, minWidth: 44, minHeight: 44/],
     'src/components/poker-near-me/SocialLayer.jsx': [/useModalHistory\(!!inviteModal, closeInvite\)/, /useScrimDismiss\(closeInvite\)/, /@media \(max-width: 600px\)/, /\.sl-modal-handle \{ display: block; width: 44px; height: 4px;/, /\.sl-modal-close \{[^}]*min-width: 44px; min-height: 44px;/],
     'src/components/poker-near-me/GlobalSearchOverlay.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /safe-area-inset-top/],
   };

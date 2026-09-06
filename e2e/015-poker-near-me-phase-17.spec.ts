@@ -8,9 +8,27 @@ async function expectNoOverflow(page: Page, label: string) {
 }
 
 async function waitForDiscovery(page: Page) {
+  await expect(page.locator('.pnm-page')).toHaveAttribute('data-pnm-hydrated', 'true', {
+    timeout: 30_000,
+  });
   await expect(page.getByRole('navigation', { name: 'Poker Near Me sections' })).toBeVisible({
     timeout: 30_000,
   });
+}
+
+async function traverseHistory(page: Page, direction: 'back' | 'forward') {
+  await page.evaluate((requestedDirection) => new Promise<void>((resolve) => {
+    let timer = 0;
+    const finish = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('popstate', finish);
+      resolve();
+    };
+    window.addEventListener('popstate', finish, { once: true });
+    timer = window.setTimeout(finish, 5_000);
+    if (requestedDirection === 'back') window.history.back();
+    else window.history.forward();
+  }), direction);
 }
 
 function discoveryButton(page: Page, name: RegExp) {
@@ -60,16 +78,19 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/daily-tournaments(?:\?.*)?$/);
     await activateDiscoverySection(page, /Map/i, browserName);
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/map(?:\?.*)?$/);
+    const discoveryState = await page.evaluate(() => window.history.state);
+    expect(discoveryState?.spPnmDiscovery).toBe(true);
+    expect(discoveryState?.spModal).not.toBe(true);
 
     // Call the history methods directly. WebKit may throttle a zero-delay
     // timer while the long discovery document is settling, which leaves the
     // test on the current entry even though native Back/Forward works.
-    await page.evaluate(() => window.history.back());
+    await traverseHistory(page, 'back');
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/daily-tournaments(?:\?.*)?$/);
     await expect(discoveryButton(page, /Events/i)).toHaveAttribute('aria-current', 'true');
     await expect(page.locator('.pnm-route-announcer')).toContainText('Showing Daily Tournaments');
 
-    await page.evaluate(() => window.history.forward());
+    await traverseHistory(page, 'forward');
     await expectDiscoveryUrl(page, /\/hub\/poker-near-me\/map(?:\?.*)?$/);
     await expect(discoveryButton(page, /Map/i)).toHaveAttribute('aria-current', 'true');
     await expectNoOverflow(page, 'history-restored map');
