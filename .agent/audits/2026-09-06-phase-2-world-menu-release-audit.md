@@ -43,15 +43,15 @@ Scope: The 14 World Hub hamburger menu families, route ownership, responsive com
 
 ## Frozen Candidate Evidence
 
-- Production build: passed, including 403 generated routes and all Personal Assistant performance budgets.
+- Production build: passed, including 400 generated routes and all Personal Assistant performance budgets.
 - TypeScript: `npx tsc --noEmit` passed.
-- Full lint: 3,962 source and test files passed in 106 bounded batches.
-- Registered regression guards: 1,175 passed, 0 failed, 0 skipped, 0 todo.
+- Full lint: 3,997 source and test files passed in 106 bounded batches.
+- Registered regression guards: 1,278 passed, 0 failed, 0 skipped, 0 todo.
 - Desktop Chromium functional suite: 25 of 25 passed.
 - Mobile Chromium functional suite: 25 of 25 passed.
 - Premium visual reference suite: 14 of 14 passed.
 - Mobile WebKit containment and reachability suite: 17 of 17 passed.
-- Diff whitespace validation: required after the final upstream synchronization and recorded in the pull request checks.
+- Diff whitespace validation: passed after upstream synchronization.
 
 ## Release Gates
 
