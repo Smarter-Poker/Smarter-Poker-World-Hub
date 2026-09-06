@@ -45,6 +45,8 @@ test('the queue consumes the exact ranked RPC response contract', () => {
     'an active queue row must open the nested case summary returned by the RPC');
   assert.match(panel, /queue\.loaded && !queue\.error \? 0 : 'Unknown'/,
     'an omitted zero-count tier must not be presented as an unknown count');
+  assert.match(route, /filteredTotal: Number\.isFinite\(Number\(data\.totals\.filtered_groups\)\)/,
+    'filtered queue pagination must use the filtered total returned by the RPC');
 });
 
 test('the database repeats the verdict guard under the case row lock', () => {
