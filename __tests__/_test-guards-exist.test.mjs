@@ -123,6 +123,14 @@ import './horses-phase4-migration.test.mjs';
 import './horses-phase4-players-are-players.law.test.mjs';
 import './horses-phase4-server.test.mjs';
 import './horses-an-rpc-write-has-a-where.test.mjs';
+// Phase 5, 2026-09-06. Game-integrity findings remain review evidence, never
+// automatic punishment; horses stay in every read; and detector gaps stay
+// loud until the underlying hands have really been scanned.
+import './horses-phase5-client.test.mjs';
+import './horses-phase5-migration.test.mjs';
+import './horses-phase5-server.test.mjs';
+import './horses-phase5-integrity-is-honest.law.test.mjs';
+import './horses-phase5-reverify.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';
