@@ -44,7 +44,6 @@ import toast from '../../src/stores/toastStore';
 // Mobile phase 0a / 0c foundation
 import HubPageShell from '../../src/components/ui/HubPageShell';
 import PullToRefresh from '../../src/components/ui/PullToRefresh';
-import ResponsiveTable from '../../src/components/ui/ResponsiveTable';
 import { useLoadFailsafe, useInitialLoadRef } from '../../src/hooks/useLoadFailsafe';
 import { useModalHistory } from '../../src/hooks/useModalHistory';
 import { useHaptics } from '../../src/hooks/useHaptics';
@@ -53,18 +52,16 @@ import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
+const ResponsiveTable = dynamic(() => import('../../src/components/ui/ResponsiveTable'), { ssr: false });
 import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DIAMOND ENGINE - Import Supabase-powered version
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
-import leaderboardService from '../../src/services/LeaderboardService';
 const GameCostPopup = dynamic(() => import('../../src/components/gates/GameCostPopup'), { ssr: false });
 import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult } from '../../src/games/ELOService';
-import gameSessionService from '../../src/services/GameSessionService';
-import achievementService from '../../src/services/AchievementService';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 // busEmit not needed at page level - DiamondEngine auto-emits, useTrainingBus has own import
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
@@ -78,6 +75,12 @@ const JarvisExplanationDialog = dynamic(() => import('../../src/components/memor
 const OutOfDiamondsModal = dynamic(() => import('../../src/components/gates/OutOfDiamondsModal'), { ssr: false });
 const ScenarioFilterPanel = lazyScreen(() => import('../../src/games/ScenarioFilterPanel'), 260);
 const ComboPopup = dynamic(() => import('../../src/components/memory-games/modals/ComboPopup'), { ssr: false });
+
+// Reporting workflows are requested only after a scored session or when the
+// leaderboard opens, so they stay out of the initial mobile route bundle.
+const getLeaderboardService = () => import('../../src/services/LeaderboardService').then((module) => module.default);
+const getGameSessionService = () => import('../../src/services/GameSessionService').then((module) => module.default);
+const getAchievementService = () => import('../../src/services/AchievementService').then((module) => module.default);
 
 const SpotTrainerGame = lazyScreen(() => import('../../src/games/SpotTrainerGame'), 420);
 const TournamentModeGame = lazyScreen(() => import('../../src/games/TournamentModeGame'), 420);
@@ -902,7 +905,7 @@ export default function MemoryGamesPage() {
 
             // 1. Update leaderboard (only if passed)
             if (passed) {
-                leaderboardService.updateLeaderboard(
+                getLeaderboardService().then((leaderboardService) => leaderboardService.updateLeaderboard(
                     user.id,
                     gameMode,
                     currentLevel,
@@ -910,7 +913,7 @@ export default function MemoryGamesPage() {
                     result.score, // accuracy
                     timeTaken,
                     null // sessionId
-                ).then(res => {
+                )).then(res => {
                 }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
             }
 
@@ -949,7 +952,7 @@ export default function MemoryGamesPage() {
             const newGamesPlayed = gamesPlayed + 1;
 
             // 5. Record game session for analytics
-            gameSessionService.recordSession(user.id, {
+            getGameSessionService().then((gameSessionService) => gameSessionService.recordSession(user.id, {
                 gameMode,
                 level: currentLevel,
                 scenarioId: currentScenario?.id || currentScenario?.title,
@@ -959,7 +962,7 @@ export default function MemoryGamesPage() {
                 diamondsSpent: isVIP || currentLevel <= 3 ? 0 : GAME_COST,
                 diamondsEarned: 0,
                 completed: true
-            }).then(sessionResult => {
+            })).then(sessionResult => {
                 if (sessionResult?.success) loadMemoryDashboard(true);
             }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
@@ -968,7 +971,7 @@ export default function MemoryGamesPage() {
                 ...(memoryDashboard?.per_mode_best || []).map(modeRow => modeRow.game_mode).filter(Boolean),
                 gameMode,
             ]));
-            achievementService.checkAndUnlock(user.id, {
+            getAchievementService().then((achievementService) => achievementService.checkAndUnlock(user.id, {
                 gamesPlayed: newGamesPlayed,
                 accuracy: result.score,
                 timeTaken,
@@ -978,7 +981,7 @@ export default function MemoryGamesPage() {
                 aiScenariosCompleted: useAIGeneration ? 1 : 0,
                 currentStreak: consecutivePasses,
                 modesPlayed,
-            }).then(unlocked => {
+            })).then(unlocked => {
                 if (unlocked.length > 0) {
                 }
             }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
@@ -1374,6 +1377,7 @@ export default function MemoryGamesPage() {
     const loadLeaderboard = useCallback(async () => {
         setLeaderboardLoading(true);
         try {
+            const leaderboardService = await getLeaderboardService();
             const result = await leaderboardService.getLeaderboard(leaderboardMode, null, 50);
             if (result.success) {
                 setLeaderboardData(result.leaderboard);
@@ -1621,7 +1625,7 @@ export default function MemoryGamesPage() {
     const leaderboardRows = leaderboardData.map((entry, idx) => ({ ...entry, id: entry.user_id || idx, rank: idx + 1 }));
 
     return (
-        <PageTransition>
+        <PageTransition disableInitialAnimation>
             <SEOHead
                 title="Preflop Charts - Master GTO Ranges"
                 description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
@@ -1967,23 +1971,25 @@ export default function MemoryGamesPage() {
 
                             {/* Daily Challenge Section */}
                             {gameType === 'daily' && (
-                                <div className="preflop-board-panel is-green">
+                                <div className="preflop-board-panel is-daily-casino">
+                                    <div className="preflop-board-daily-art" aria-hidden="true" />
                                     <div className="preflop-board-streaks">
                                         <div>
-                                            <Flame size={28} aria-hidden style={{ color: '#FF6B00' }} />
-                                            <strong style={{ color: '#FF6B00' }}>{userStreak.current_streak || 0}</strong>
+                                            <Flame size={28} aria-hidden />
+                                            <strong>{userStreak.current_streak || 0}</strong>
                                             <span>Current Streak</span>
                                         </div>
                                         <div>
-                                            <Trophy size={28} aria-hidden style={{ color: '#FFD700' }} />
-                                            <strong style={{ color: '#FFD700' }}>{userStreak.longest_streak || 0}</strong>
+                                            <Trophy size={28} aria-hidden />
+                                            <strong>{userStreak.longest_streak || 0}</strong>
                                             <span>Best Streak</span>
                                         </div>
                                     </div>
 
                                     <div className="preflop-board-heading">
                                         <Calendar size={40} aria-hidden />
-                                        <h2 style={{ color: '#00ff88' }}>DAILY CHALLENGE</h2>
+                                        <span className="preflop-board-kicker">Range Assignment Table</span>
+                                        <h2>Daily Challenge</h2>
                                         <p>Complete Today's Challenge To Keep Your Streak Alive!</p>
                                     </div>
 
@@ -1992,7 +1998,7 @@ export default function MemoryGamesPage() {
                                     ) : challengeCompleted ? (
                                         <div className="preflop-board-complete">
                                             <ShieldCheck size={48} aria-hidden />
-                                            <h3>CHALLENGE COMPLETE!</h3>
+                                            <h3>Challenge Complete!</h3>
                                             <p>Come Back Tomorrow For A New Challenge!</p>
                                             <strong>+{dailyChallenge?.diamond_reward || 50} Diamonds Earned!</strong>
                                         </div>
@@ -2012,17 +2018,17 @@ export default function MemoryGamesPage() {
 
                                             <div className="preflop-board-challenge-meta">
                                                 <div>
-                                                    <span>TARGET SCORE</span>
-                                                    <strong style={{ color: '#00ff88' }}>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</strong>
+                                                    <span>Target Score</span>
+                                                    <strong>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</strong>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <span>REWARD</span>
-                                                    <strong style={{ color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50} Diamonds</strong>
+                                                    <span>Reward</span>
+                                                    <strong>{dailyChallenge.diamond_reward || 50} Diamonds</strong>
                                                 </div>
                                             </div>
 
                                             <button type="button" className="preflop-board-start" onClick={startDailyChallenge}>
-                                                START DAILY CHALLENGE
+                                                Start Daily Challenge
                                             </button>
                                         </div>
                                     ) : (
@@ -2033,7 +2039,7 @@ export default function MemoryGamesPage() {
                                     )}
 
                                     <div className="preflop-board-note">
-                                        <strong>STREAK REWARDS</strong>
+                                        <strong>Streak Rewards</strong>
                                         <span>7 Days: +100 Diamonds Bonus. 30 Days: +500 Diamonds Bonus. 100 Days: +2000 Diamonds Bonus.</span>
                                     </div>
                                 </div>

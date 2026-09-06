@@ -39,8 +39,13 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { v2ToAppMatrix } from '../utils/v2Matrix';
 import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
+import {
+    hasUntrustedLegacyFoldChannel,
+    inheritSolverMatrixTrust,
+    selectTrustedLegacySolverMatrix,
+    selectTrustedSolverMatrix,
+} from '../lib/training/solverMatrixTrust';
 
 // ●● Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ●●●●
 export function toHandClass(h) {
@@ -65,8 +70,10 @@ const SANITIZED_MATRICES = new WeakSet();
 
 /** Prefer strategy_matrix_v2 (rebuilt PioSOLVER data) when present. Mutates row. */
 function preferV2(row) {
-    if (row && row.strategy_matrix_v2) {
-        const m = v2ToAppMatrix(row.strategy_matrix_v2);
+    if (row
+        && row.strategy_matrix_v2 !== null
+        && row.strategy_matrix_v2 !== undefined) {
+        const m = selectTrustedSolverMatrix(row);
         // A present v2 payload is the rebuilt pipeline's authoritative
         // export. If it fails the strict bridge, reject the row outright;
         // falling back to v1 would conceal a damaged v2 solve.
@@ -77,38 +84,27 @@ function preferV2(row) {
     return row;
 }
 
-function provenanceIsComplete(row) {
-    return Boolean(
-        row?.strategy_matrix_v2
-        && row?.quality_status === 'validated'
-        && row?.solver_version
-        && /^[0-9a-f]{64}$/i.test(String(row?.solver_binary_checksum || ''))
-        && ['M1', 'M2'].includes(String(row?.machine_id || ''))
-        && /^[0-9a-f]{40}$/i.test(String(row?.pipeline_commit || ''))
-        && row?.manifest_version
-        && /^[0-9a-f]{64}$/i.test(String(row?.manifest_checksum || ''))
-        && /^[0-9a-f]{64}$/i.test(String(row?.source_artifact_checksum || ''))
-        && row?.audited_at
-    );
-}
-
 function stampSolverProvenance(question, row) {
     if (!question || !row) return question;
-    const verified = provenanceIsComplete(row);
+    const policy = question.solverPolicy;
+    const artifact = policy?.sourceArtifact || {};
+    // Provenance alone does not make an answer exact. The canonical adapter
+    // also requires a complete decision key and an exact state match.
+    const verified = policy?.kind === 'exact' && policy?.qualitySeal === 'SOLVER_EXACT';
     question.dataQuality = verified ? 'SOLVER_EXACT' : 'LEGACY_UNVERIFIED';
     question.solverProvenance = {
         verified,
-        source: verified ? 'PioSOLVER' : 'solved_spots_gold_legacy',
-        scenarioHash: row.scenario_hash || null,
-        solverVersion: row.solver_version || null,
-        solverBinaryChecksum: row.solver_binary_checksum || null,
-        machineId: row.machine_id || null,
-        pipelineCommit: row.pipeline_commit || null,
-        manifestVersion: row.manifest_version || null,
-        manifestChecksum: row.manifest_checksum || null,
-        sourceArtifactChecksum: row.source_artifact_checksum || null,
-        qualityStatus: row.quality_status || null,
-        auditedAt: row.audited_at || null,
+        source: verified ? 'PioSOLVER' : (artifact.system || 'solved_spots_gold_legacy'),
+        scenarioHash: artifact.scenarioHash || row.scenario_hash || null,
+        solverVersion: artifact.solverVersion || null,
+        solverBinaryChecksum: artifact.solverBinaryChecksum || null,
+        machineId: artifact.machineId || null,
+        pipelineCommit: artifact.pipelineCommit || null,
+        manifestVersion: artifact.manifestVersion || null,
+        manifestChecksum: artifact.manifestChecksum || null,
+        sourceArtifactChecksum: artifact.sourceArtifactChecksum || null,
+        qualityStatus: artifact.qualityStatus || null,
+        auditedAt: artifact.auditedAt || null,
     };
     if (verified) {
         const mix = (question.options || [])
@@ -120,7 +116,7 @@ function stampSolverProvenance(question, row) {
             })
             .filter(Boolean)
             .join(', ');
-        question.explanation = `Verified ${row.solver_version} export for ${row.scenario_hash}. Recorded action frequencies: ${mix}.`;
+        question.explanation = `Verified ${artifact.solverVersion} export for ${artifact.scenarioHash}. Recorded action frequencies: ${mix}.`;
         question.evidenceDisclosure = 'Provenance-sealed PioSOLVER export; frequencies are exact for this recorded node. Per-action EV is not available.';
     }
     return enforceSolverClaimHonesty(question);
@@ -132,7 +128,21 @@ function stampSolverProvenance(question, row) {
  * probability distribution; renormalize; delete non-credible hands entirely.
  */
 export function sanitizeStrategyMatrix(matrix) {
-    if (!matrix || SANITIZED_MATRICES.has(matrix)) return matrix;
+    if (!matrix) return matrix;
+    // V1 `f` is an EV/regret channel, not a Fold probability. Quarantine the
+    // entire legacy matrix rather than renormalizing the remaining channels
+    // into a strategy the solver never exported. Check this before the
+    // idempotence shortcut so a previously sanitized legacy object cannot be
+    // mutated later to smuggle an `f` channel past the boundary. Valid V2
+    // matrices carry a process-local trust mark and pass this check.
+    if (hasUntrustedLegacyFoldChannel(matrix)
+        && !selectTrustedLegacySolverMatrix(matrix)) {
+        matrix.actions = [];
+        matrix.frequencies = {};
+        SANITIZED_MATRICES.add(matrix);
+        return matrix;
+    }
+    if (SANITIZED_MATRICES.has(matrix)) return matrix;
     const actions = matrix.actions || [];
     const frequencies = matrix.frequencies || {};
     if (actions.length === 0) { SANITIZED_MATRICES.add(matrix); return matrix; }
@@ -207,12 +217,17 @@ function pruneScenarioToHand(scenario, hand) {
         const v = frequencies[a]?.[hand];
         pruned[a] = typeof v === 'number' ? { [hand]: v } : {};
     });
+    const prunedMatrix = inheritSolverMatrixTrust(matrix, {
+        ...matrix,
+        frequencies: pruned,
+    });
     return {
         ...scenario,
-        strategy_matrix: {
-            ...matrix,
-            frequencies: pruned,
-        },
+        // The pruned application matrix already came through the V2 bridge.
+        // Remove the source payload so the core builder consumes this exact
+        // one-hand copy instead of rebuilding the unpruned matrix.
+        strategy_matrix_v2: null,
+        strategy_matrix: prunedMatrix,
     };
 }
 
@@ -223,180 +238,76 @@ export function applyDeterministicEnginePatches(engine) {
     const originalFetchSolverPool = engine.fetchSolverPool.bind(engine);
     const originalBuild = engine.buildQuestionFromScenario.bind(engine);
 
-    // ●● PATCH 1+2: street-null guard + v2 preference + matrix sanitization ●●
+    // PATCH 1+2: the base engine now obtains normalized records exclusively
+    // through SolverPolicyService. Keep this wrapper as the historical patch
+    // seam, but do not create a second warehouse query or interpreter here.
     engine.fetchSolverPool = async function patchedFetchSolverPool(
         gameConfig, level, limit = 25, targetStreet = null, routingParams = {}
     ) {
-        try {
-            const street = targetStreet || this.getStreetForLevel(level);
-            const { stackDepths, spotTypes } = routingParams || {};
-            const effectiveStackDepths = (stackDepths && stackDepths.length > 0)
-                ? stackDepths
-                : [gameConfig.pioStackDepth];
-            const fetchLimit = Math.min(limit * 4, 500);
-
-            let allData = [];
-            for (const depth of effectiveStackDepths) {
-                const run = (projection) => {
-                    let q = this.db
-                        .from('solved_spots_gold')
-                        .select(projection)
-                        .eq('game_type', gameConfig.pioGameType)
-                        .eq('stack_depth', depth);
-                    if (street) q = q.eq('street', street); // FIX: never .eq('street', null)
-                    return q.limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
-                };
-                const fullProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
-                const legacyProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
-                const initialProjection = this.__solverProvenanceColumnsAvailable === false
-                    ? legacyProjection
-                    : fullProjection;
-                let { data, error } = await run(initialProjection);
-                // Rolling deploy compatibility: before the additive migration
-                // lands, legacy rows may still be read, but stamp as unverified.
-                // Never fabricate a provenance seal from the source label.
-                if (initialProjection === fullProjection
-                    && error && (error.code === '42703' || error.code === 'PGRST204')) {
-                    this.__solverProvenanceColumnsAvailable = false;
-                    ({ data, error } = await run(legacyProjection));
-                } else if (initialProjection === fullProjection && !error) {
-                    this.__solverProvenanceColumnsAvailable = true;
-                }
-                if (!error && data && data.length > 0) allData = allData.concat(data);
-            }
-
-            if (allData.length === 0) return null;
-
-            if (spotTypes && spotTypes.length > 0) {
-                // (^|_) anchors: \b never matches inside underscore-delimited
-                // scenario hashes ('_' is a word character), so the \b versions
-                // silently matched nothing.
-                const spotTypePatterns = {
-                    'rfi': /(^|_)(rfi|open|raise_first)(_|$)/i,
-                    'vs3bet': /(^|_)(vs_?3bet|facing_?3bet|3bet_def|3b)(_|$)/i,
-                    'bb_defense': /(^|_)(bb_def|bb_vs|big_blind)(_|$)/i,
-                    'cold_call': /(^|_)(cold_call|flat|overcall)(_|$)/i,
-                    '4bet': /(^|_)(4bet|four_bet|4b)(_|$)/i,
-                    'squeeze': /(^|_)(squeeze|sqz)(_|$)/i,
-                    'cbet': /(^|_)(cbet|c_?bet|flop_bet)(_|$)/i,
-                    'turn_barrel': /(^|_)(barrel|turn_bet|double_barrel)(_|$)/i,
-                    'river_bluff': /(^|_)(river|bluff|triple_barrel)(_|$)/i,
-                    'check_raise': /(^|_)(check_?raise|xr)(_|$)/i,
-                    'turn_probe': /(^|_)(probe|turn_lead)(_|$)/i,
-                    'river_value': /(^|_)(river_value|thin_value|value_bet)(_|$)/i,
-                };
-                const patterns = spotTypes.map(st => spotTypePatterns[st]).filter(Boolean);
-                if (patterns.length > 0) {
-                    const filtered = allData.filter(row =>
-                        patterns.some(p => p.test((row.scenario_hash || '').toLowerCase()))
-                    );
-                    // A requested subject is a content contract, not a ranking
-                    // hint. Falling through to the full pool taught unrelated
-                    // spots under the requested game's title.
-                    if (filtered.length === 0) return null;
-                    allData = filtered;
-                }
-            }
-
-            // Prefer rebuilt v2 data, then sanitize; drop rows with no credible hands
-            allData.forEach(row => preferV2(row));
-            allData.forEach(row => sanitizeStrategyMatrix(row.strategy_matrix));
-            allData = allData.filter(row => {
-                const f = row.strategy_matrix?.frequencies || {};
-                return (row.strategy_matrix?.actions || []).some(
-                    a => f[a] && Object.keys(f[a]).length > 0
-                );
-            });
-            if (allData.length === 0) return null;
-
-            const shuffled = [...allData];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled.slice(0, limit);
-        } catch (err) {
-            console.warn('[EnginePatches] fetchSolverPool error:', err.message);
-            return null;
-        }
+        return originalFetchSolverPool(gameConfig, level, limit, targetStreet, routingParams);
     };
 
-    // ●● PATCH 3: sanitize + answer-class balance + forcedHand support ●●
+    // PATCH 3: sanitize, balance answer classes, support forced hands, and
+    // attach the same canonical policy envelope returned by every consumer.
     engine.buildQuestionFromScenario = function patchedBuild(
         scenario, gameConfig, level, questionIndex, forcedHand = null
     ) {
+        const finalize = (question) => {
+            if (!question) return null;
+            question.solverPolicy = this.solverPolicyService.consumerEnvelope(
+                this.solverPolicyService.answerForEngineQuestion(scenario, question),
+                'get-question',
+            );
+            return stampSolverProvenance(question, scenario);
+        };
         try {
+            preferV2(scenario);
             if (scenario?.strategy_matrix) sanitizeStrategyMatrix(scenario.strategy_matrix);
 
             if (forcedHand) {
                 const handClass = toHandClass(forcedHand);
                 if (!handClass || !matrixHasHand(scenario?.strategy_matrix, handClass)) return null;
                 const prunedScenario = pruneScenarioToHand(scenario, handClass);
-                return stampSolverProvenance(
-                    originalBuild(prunedScenario, gameConfig, level, questionIndex),
-                    scenario,
-                );
+                return finalize(originalBuild(prunedScenario, gameConfig, level, questionIndex));
             }
 
-            // Alternate the preferred answer class across questionIndex so no
-            // single action dominates the answer key (bounded retries — each
-            // offset re-seeds the internal hand pick).
             const preferAggressive = questionIndex % 2 === 1;
             let first = null;
             for (const offset of [0, 131, 263, 397]) {
                 const q = originalBuild(scenario, gameConfig, level, questionIndex + offset);
                 if (!q) continue;
                 if (!first) first = q;
-                if (isAggressiveAction(q.correctAnswer) === preferAggressive) {
-                    return stampSolverProvenance(q, scenario);
-                }
+                if (isAggressiveAction(q.correctAnswer) === preferAggressive) return finalize(q);
             }
-            return stampSolverProvenance(first, scenario);
+            return finalize(first);
         } catch (err) {
             console.warn('[EnginePatches] buildQuestionFromScenario error:', err.message);
             return null;
         }
     };
 
-    // ●● PATCH 4: multi-street with hand integrity + true-child preference ●●
+    // PATCH 4: multi-street lookup keeps exact board, position, pot, and hand
+    // integrity while using the canonical service rather than a route-local
+    // warehouse reader. Similar textures are never treated as the same node.
     engine.queryNextStreet = async function patchedQueryNextStreet(
         { gameConfig, heroHand: rawHeroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition }
     ) {
         if (!gameConfig || !boardCards || boardCards.length < 3) return null;
+        // Similar textures are never treated as the same node. The recorded
+        // scenario hash must end with the complete requested runout.
         const heroHand = toHandClass(rawHeroHand);
         try {
-            const boardStr = boardCards.map(c => c.toLowerCase()).join('');
-            const queryMatches = async (pattern, limit) => {
-                const run = (projection) => this.db
-                    .from('solved_spots_gold')
-                    .select(projection)
-                    .eq('game_type', gameConfig.pioGameType)
-                    .eq('stack_depth', gameConfig.pioStackDepth)
-                    .eq('street', street)
-                    .ilike('scenario_hash', pattern)
-                    .limit(limit);
-                const fullProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
-                const legacyProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
-                const initialProjection = this.__solverProvenanceColumnsAvailable === false
-                    ? legacyProjection
-                    : fullProjection;
-                let result = await run(initialProjection);
-                if (initialProjection === fullProjection
-                    && result.error && (result.error.code === '42703' || result.error.code === 'PGRST204')) {
-                    this.__solverProvenanceColumnsAvailable = false;
-                    result = await run(legacyProjection);
-                } else if (initialProjection === fullProjection && !result.error) {
-                    this.__solverProvenanceColumnsAvailable = true;
-                }
-                return result.data || [];
-            };
-
-            // True child node: hash ENDS WITH the full board
-            const exactMatches = await queryMatches(`%${boardStr}`, 5);
-
-            for (const scenario of exactMatches || []) {
-                preferV2(scenario);
-                const matrix = scenario.strategy_matrix || {};
+            const boardStr = boardCards.map(card => String(card).toLowerCase()).join('');
+            const { records } = await this.solverPolicyService.listSolvedRecords({
+                gameType: gameConfig.pioGameType,
+                stackDepth: gameConfig.pioStackDepth,
+                street,
+                scenarioHashLike: `%${boardStr}`,
+                limit: 25,
+            });
+            for (const record of records) {
+                if (!String(record.metadata.scenario_hash || '').toLowerCase().endsWith(boardStr)) continue;
+                const matrix = record.matrix || {};
                 const solvedHero = String(matrix.position || '').toUpperCase();
                 const solvedVillain = solvedHero === String(matrix.oop_player || '').toUpperCase()
                     ? String(matrix.ip_player || '').toUpperCase()
@@ -410,14 +321,17 @@ export function applyDeterministicEnginePatches(engine) {
                     || solvedHero !== requestedHero || solvedVillain !== requestedVillain
                     || !Number.isFinite(requestedPot)
                     || Math.abs(Number(matrix.pot_bb) - requestedPot) > 0.05) continue;
-                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
-                if (question) return question;
+                const scenario = this.solverPolicyService.asEngineScenario(record);
+                const question = this.buildQuestionFromScenario(
+                    scenario, gameConfig, 5, 0, heroHand || null
+                );
+                if (question) {
+                    this._applyNextStreetOverrides(question, {
+                        pot, heroPosition, villainPosition, stackDepth,
+                    });
+                    return question;
+                }
             }
-
-            // A similar texture is not the same decision. Transplanting
-            // frequencies onto another turn or river changes card removal,
-            // available draws, nut advantage, and legal range composition.
-            // End the hand cleanly unless the exact full-board suffix exists.
             return null;
         } catch (err) {
             console.warn('[EnginePatches] queryNextStreet error:', err.message);

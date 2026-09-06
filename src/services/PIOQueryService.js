@@ -8,8 +8,12 @@
 
 
 import { supabase } from '../lib/supabase';
+import { SolverPolicyService, normalizeSolvedPolicyRecord } from './SolverPolicyService.js';
 
 export class PIOQueryService {
+    constructor(db = supabase) {
+        this.policy = new SolverPolicyService({ db });
+    }
     /**
      * Query PIO database for training scenarios
      * @param {string} gameId - Game identifier (e.g., 'cash-018')
@@ -50,26 +54,20 @@ export class PIOQueryService {
                 street: street
             });
 
-            const { data, error } = await supabase
-                .from('solved_spots_gold')
-                .select('*')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .limit(25);
+            const { records } = await this.policy.listSolvedRecords({
+                gameType: gameConfig.pioGameType,
+                stackDepth: gameConfig.pioStackDepth,
+                street,
+                limit: 25,
+            });
 
-            if (error) {
-                console.warn('[PIO] Query error:', error);
-                return null;
-            }
-
-            if (!data || data.length === 0) {
+            if (!records || records.length === 0) {
                 console.debug('[PIO] No scenarios found for criteria');
                 return null;
             }
 
-            console.debug(`[PIO] Found ${data.length} scenarios`);
-            return this.transformPIOData(data);
+            console.debug(`[PIO] Found ${records.length} scenarios`);
+            return records.map((record) => this.transformPolicyRecord(record));
 
         } catch (error) {
             console.warn('[PIO] Exception in querySolvedSpots:', error);
@@ -84,16 +82,10 @@ export class PIOQueryService {
         try {
             console.debug(`[PIO] Querying memory_charts_gold for ${gameConfig.id}`);
 
-            const { data, error } = await supabase
-                .from('memory_charts_gold')
-                .select('*')
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .limit(5);
-
-            if (error) {
-                console.warn('[PIO] Chart query error:', error);
-                return null;
-            }
+            const data = await this.policy.readChartRows({
+                stackDepth: gameConfig.pioStackDepth,
+                limit: 5,
+            });
 
             if (!data || data.length === 0) {
                 console.debug('[PIO] No charts found');
@@ -114,23 +106,25 @@ export class PIOQueryService {
      * Now includes hand_evs for real EV loss computation
      */
     transformPIOData(rawData) {
-        return rawData.map(scenario => {
-            const board = this.parseBoardCards(scenario.scenario_hash);
-            const strategies = scenario.strategy_matrix || {};
+        return rawData
+            .map(normalizeSolvedPolicyRecord)
+            .filter((record) => record.valid)
+            .map((record) => this.transformPolicyRecord(record));
+    }
 
-            return {
-                id: scenario.id,
-                scenarioHash: scenario.scenario_hash,
-                board: board,
-                street: scenario.street,
-                stackDepth: scenario.stack_depth,
-                gameType: scenario.game_type,
-                strategies: strategies,
-                handEVs: strategies.hand_evs || {},
-                macroMetrics: scenario.macro_metrics,
-                createdAt: scenario.created_at
-            };
-        });
+    transformPolicyRecord(record) {
+        const scenario = record.metadata;
+        return {
+            id: scenario.id,
+            scenarioHash: scenario.scenario_hash,
+            board: this.parseBoardCards(scenario.scenario_hash),
+            street: scenario.street,
+            stackDepth: scenario.stack_depth,
+            gameType: scenario.game_type,
+            strategies: record.matrix,
+            handEVs: record.matrix.hand_evs || {},
+            policy: this.policy.answerFromRecord(record, record.defaultKey, { mode: 'aggregate' }),
+        };
     }
 
     /**
@@ -140,18 +134,10 @@ export class PIOQueryService {
      * @returns {Object} { actionId: frequencyPercent } (0-100 scale)
      */
     getFrequenciesForHand(strategyMatrix, hand) {
-        const actions = strategyMatrix?.actions || [];
-        const frequencies = strategyMatrix?.frequencies || {};
-        const result = {};
-
-        actions.forEach(action => {
-            const freq = frequencies[action]?.[hand];
-            if (freq !== undefined && freq >= 0 && freq <= 1) {
-                result[action] = Math.round(freq * 100);
-            }
-        });
-
-        return result;
+        const record = normalizeSolvedPolicyRecord({ strategy_matrix: strategyMatrix });
+        if (!record.valid) return {};
+        const answer = this.policy.answerFromRecord(record, null, { holdingClass: hand });
+        return Object.fromEntries(answer.actions.map((action) => [action.sourceCode, Math.round(action.frequency * 100)]));
     }
 
     /**
@@ -161,8 +147,10 @@ export class PIOQueryService {
      * @returns {number} EV in normalized units (0.0-1.0 scale from solver)
      */
     getEVForHand(strategyMatrix, hand) {
-        const handEVs = strategyMatrix?.hand_evs || {};
-        return handEVs[hand] || 0;
+        const record = normalizeSolvedPolicyRecord({ strategy_matrix: strategyMatrix });
+        if (!record.valid) return 0;
+        const answer = this.policy.answerFromRecord(record, null, { holdingClass: hand });
+        return answer.chipEv.policy || 0;
     }
 
     /**

@@ -16,7 +16,12 @@ jobs:
   footer:
     name: Chromium and WebKit footer contract
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 15
+    # A clean production build currently takes about six minutes. The serialized
+    # Chromium/WebKit route matrix plus premium and mobile gates can take another
+    # twelve when WebKit legitimately uses one retry, so 15 minutes canceled a
+    # healthy run before the final gates executed. Keep a bounded ceiling with
+    # enough room for the workflow's configured retry policy.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +38,9 @@ jobs:
       - name: Install Chromium and WebKit
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
+
+      - name: Verify Phase 3 static World menu contracts
+        run: node --test __tests__/world-menu-mobile-phase3.test.mjs
 
       - name: Build production application
         run: npm run build -- --webpack
@@ -87,15 +95,25 @@ jobs:
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify premium World menu presentation
-        run: npx playwright test e2e/022-world-menu-visual.spec.ts e2e/023-world-menu-webkit.spec.ts --project=world-menu-visual --project=world-menu-webkit
+        # Training is the heaviest World route. Running its Chromium screenshot
+        # while WebKit hydrates the same route can starve screenshot stability on
+        # the shared production server, even though both browser contracts pass
+        # independently. Keep this cross-browser visual gate deterministic.
+        run: npx playwright test e2e/022-world-menu-visual.spec.ts e2e/023-world-menu-webkit.spec.ts --project=world-menu-visual --project=world-menu-webkit --workers=1
         env:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
-      # Mobile performance budget (mobile programme item 10): the ten rollout
-      # pages at 375px against scripts/ci/mobile-budget.json. Same server,
+      - name: Verify Phase 3 mobile World menu behavior
+        run: npx playwright test e2e/024-world-menu-mobile-phase3.spec.ts --project=world-menu-phase3-chromium --project=world-menu-phase3-webkit --workers=1
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      # Mobile performance budget: all thirteen non-Social World roots at
+      # 375px against scripts/ci/mobile-budget.json. Same server,
       # same build, so it costs one more minute, not another job.
-      - name: Mobile performance budget (ten rollout pages)
+      - name: Mobile performance budget (thirteen World roots)
         run: npx playwright test e2e/mobile-budget.spec.ts --project=mobile-budget --workers=2
         env:
           CI: true

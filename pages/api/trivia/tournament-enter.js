@@ -2,6 +2,10 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { serviceClient } from './tournament-lifecycle';
+import {
+    areTriviaTournamentsReleased,
+    rejectUnavailableTriviaTournament,
+} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -13,6 +17,9 @@ export default async function handler(req, res) {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
         if (!applyRateLimit(req, res, LIMITS.write)) return;
+        if (!areTriviaTournamentsReleased(process.env)) {
+            return rejectUnavailableTriviaTournament(res);
+        }
 
         const sb = serviceClient();
         const { user, error: authErr } = await getServerUserWithFallback(req, sb);

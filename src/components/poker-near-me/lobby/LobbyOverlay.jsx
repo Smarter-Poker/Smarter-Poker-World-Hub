@@ -461,7 +461,7 @@ export default function LobbyOverlay({
           gap: 0,
         }}>
           {[
-            { value: formattedVenueCount, label: 'Venues', color: '#6ee7ef' },
+            { value: formattedVenueCount, label: 'Public Venues', color: '#6ee7ef' },
             // Label comes from /api/poker/live-tables metadata.data_mode via the
             // page: 'Est. Tables' when the published number is modelled rather
             // than observed. Never present an estimate as live data.

@@ -15,6 +15,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { SolverPolicyService } from '../../services/SolverPolicyService.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -155,17 +156,20 @@ export async function getPreflopRange(keyOrParams) {
     const sb = getSupabase();
     if (!sb) return null;
 
-    let q = sb.from('memory_charts_gold')
-        .select('hand_matrix')
-        .eq('game_type', gameType)
-        .eq('hero_position', heroPosition)
-        .eq('stack_depth', stackDepth);
-    if (villainAction) q = q.eq('villain_action', villainAction);
-
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error || !data) return null;
-
-    const matrix = data.hand_matrix || null;
+    let matrix = null;
+    try {
+        const policyService = new SolverPolicyService({ db: sb });
+        const rows = await policyService.readChartRows({
+            gameType,
+            heroPosition,
+            stackDepth,
+            villainAction,
+            limit: 1,
+        });
+        matrix = rows[0]?.hand_matrix || null;
+    } catch {
+        return null;
+    }
     cacheSet(cacheKey, matrix);
     return matrix;
 }

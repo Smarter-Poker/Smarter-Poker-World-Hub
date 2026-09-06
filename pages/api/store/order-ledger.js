@@ -26,7 +26,7 @@ const SOURCES = Object.freeze({
     table: 'diamond_purchases',
     ownerColumn: 'user_id',
     select:
-      'id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, refunded_amount_cents, refunded_diamonds, created_at, completed_at',
+      'id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, refunded_amount_cents, refunded_diamonds, metadata, created_at, completed_at',
   },
   merchandise: {
     table: 'merchandise_orders',
@@ -50,7 +50,8 @@ const SOURCES = Object.freeze({
     table: 'club_shop_purchases',
     ownerColumn: 'buyer_id',
     select:
-      'id, buyer_id, item_id, price_paid, currency, refunded_at, created_at, club_shop_items(name, category)',
+      'id, buyer_id, item_id, price_paid, currency, charge_reference, refunded_at, created_at, club_shop_items(name, category)',
+    excludeCardRedemptions: true,
   },
 });
 
@@ -86,24 +87,44 @@ function normalizeOrder(source, row) {
       (Number(row?.diamonds_amount) || 0) + (Number(row?.bonus_diamonds) || 0);
     const amount = toCents(row?.price_usd);
     const refundAmount = Math.max(0, Number(row?.refunded_amount_cents) || 0);
+    const redemptionIntent = row?.metadata?.redemption_intent || null;
+    const redemptionResult = row?.metadata?.redemption_result || null;
+    const isClubShopCardPurchase = redemptionIntent?.kind === 'club_shop';
+    const itemName = redemptionIntent?.item_name || redemptionResult?.item_name || 'Club Shop Item';
+    const itemPrice = Math.max(0, Number(redemptionIntent?.expected_price) || 0);
+    const redemptionStatus = row?.metadata?.redemption_status || null;
     return {
       key: `diamond-${row?.id}`,
       id: row?.id,
       source,
-      title: `${packageName} Diamond Package`,
+      title: isClubShopCardPurchase ? 'Club Shop Card Purchase' : `${packageName} Diamond Package`,
       created_at: row?.created_at || row?.completed_at || null,
-      status: row?.status || 'pending',
+      status: isClubShopCardPurchase && redemptionStatus === 'needs_review'
+        ? 'action_required'
+        : row?.status || 'pending',
       currency: 'usd',
       amount,
       refundAmount,
       refundedDiamonds: Math.max(0, Number(row?.refunded_diamonds) || 0),
       netAmount: Math.max(0, amount - refundAmount),
+      category: isClubShopCardPurchase ? 'club' : 'diamonds',
+      recordType: isClubShopCardPurchase ? 'card_funded_club_purchase' : 'settlement',
+      fundedDiamonds: diamonds,
+      clubItemPrice: isClubShopCardPurchase ? itemPrice : null,
+      redemptionStatus: isClubShopCardPurchase ? redemptionStatus : null,
+      redemptionError: isClubShopCardPurchase
+        ? row?.metadata?.redemption_error || null
+        : null,
       items: [
         {
-          name:
-            diamonds > 0
+          name: isClubShopCardPurchase
+            ? itemName
+            : diamonds > 0
               ? `${packageName} (${diamonds.toLocaleString()} Diamonds)`
               : packageName,
+          option: isClubShopCardPurchase
+            ? `${diamonds.toLocaleString()} Diamonds Funded, ${itemPrice.toLocaleString()} Diamonds Authorized`
+            : null,
           quantity: 1,
           amount,
           currency: 'usd',
@@ -287,10 +308,16 @@ function encodeCursor(positions) {
   return Buffer.from(JSON.stringify({ v: 1, positions }), 'utf8').toString('base64url');
 }
 
-function applyDefinitionFilters(query, definition) {
-  return definition.transactionTypes
-    ? query.in('transaction_type', definition.transactionTypes)
+function applyDefinitionFilters(query, definition, { includeCardRedemptions = false } = {}) {
+  // A Card-funded Club purchase has one Stripe/Diamond row plus one automatic
+  // Club redemption row. Hide that redemption only from the combined listing,
+  // while preserving null legacy references and old direct receipt links.
+  const scoped = definition.excludeCardRedemptions && !includeCardRedemptions
+    ? query.or('charge_reference.is.null,charge_reference.not.like.card-redemption:%')
     : query;
+  return definition.transactionTypes
+    ? scoped.in('transaction_type', definition.transactionTypes)
+    : scoped;
 }
 
 async function attachClubInventorySnapshots(rows, userId) {
@@ -324,7 +351,7 @@ async function readOne(source, orderId, userId) {
     .select(definition.select)
     .eq('id', orderId)
     .eq(definition.ownerColumn, userId);
-  query = applyDefinitionFilters(query, definition);
+  query = applyDefinitionFilters(query, definition, { includeCardRedemptions: true });
   const { data, error } = await query.maybeSingle();
 
   if (error) throw error;

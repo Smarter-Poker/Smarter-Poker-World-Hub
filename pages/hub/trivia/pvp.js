@@ -34,11 +34,20 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import { Trophy, Gem, Clock, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 // How long a finished player waits for their opponent before being offered an
 // escape from the 'waiting' screen.
 const WAITING_DEADLINE_MS = 3 * 60 * 1000;
+
+// PvP moves real diamonds and remains unavailable until the server-owned
+// matchmaking path is deployed and TRIVIA_PVP_ENABLED is explicitly `true`.
+// Keeping this in getServerSideProps means a direct URL cannot boot the legacy
+// browser matchmaking service while the release is contained.
+export function getServerSideProps() {
+    return triviaPvpPageReleaseResult(process.env);
+}
 
 /**
  * Authenticated JSON POST to the trivia API routes.
@@ -75,7 +84,7 @@ async function postJsonAuthed(url, body) {
     return json;
 }
 
-export default function PvPPage() {
+export default function PvPPage({ pvpHorsesEnabled = false }) {
     useTrainingBus('trivia-pvp');
     const router = useRouter();
     const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
@@ -326,11 +335,14 @@ export default function PvPPage() {
         // match actually begins, which also means cancelling a search refunds
         // nothing because nothing has been taken.
 
-        // Always set 5-second horse fallback as safety net
-        // This fires regardless of whether the queue join or real match succeeds
-        searchTimeout.current = setTimeout(() => {
-            handleHorseMatch(stake);
-        }, 5000);
+        // The legacy browser horse path is independently fail-closed. It is
+        // disabled in production during containment and will be replaced by
+        // the server-persisted 20-45 second eligibility timestamp in Phase 5.
+        if (pvpHorsesEnabled) {
+            searchTimeout.current = setTimeout(() => {
+                handleHorseMatch(stake);
+            }, 5000);
+        }
 
         // Try to join the matchmaking queue (best-effort for real matches)
         try {
@@ -390,6 +402,7 @@ export default function PvPPage() {
 
     // Horse Match - Select random AI horse as opponent
     async function handleHorseMatch(stake) {
+        if (!pvpHorsesEnabled) return;
         // Ref-based guards. The previous check read `gameState` from the closure
         // captured when handleFindMatch ran (frozen at 'lobby'/'searching'), so
         // it NEVER blocked: a horse match could clobber a real match that had
@@ -533,9 +546,9 @@ export default function PvPPage() {
      * Open the server-graded session for a match (real or horse) and enter
      * battle. session-start verifies participation, serves the SHARED roster
      * (drawn server-side, no answer key), and escrows the stake with an
-     * idempotent reference - so a failure here means nothing was charged (or
-     * the server already knows how to refund it) and bailing to the lobby is
-     * always money-safe.
+     * idempotent reference. A failed HTTP response is ambiguous: the atomic
+     * database transaction may already have committed, so retries resume the
+     * same binding and the recovery sweep settles or refunds abandoned play.
      */
     async function beginMatchSession(liveMatchId) {
         try {
@@ -566,7 +579,7 @@ export default function PvPPage() {
             if (e?.status === 402 || e?.message === 'insufficient_diamonds') {
                 setShowOutOfDiamonds(true);
             } else {
-                setPvpError('Could not start the match. Nothing was charged - please try again.');
+                setPvpError('Could not confirm the match start. Your stake may be pending; retry to resume the same match.');
             }
             setGameState('lobby');
             gameStateRef.current = 'lobby';

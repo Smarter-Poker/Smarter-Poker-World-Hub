@@ -136,9 +136,9 @@ World Command System
 The drawer now follows the Club Arena command-deck quality bar: black/navy
 machinery surfaces, carbon striation, gunmetal framing, compact Rajdhani
 labels, restrained per-world LED accents, three-pixel corners, and physical
-selector plates. The header and fallback trigger use a six-node chrome command
-grid. Horizontal menu bars are absent from source-owned World Hub UI and image
-assets.
+selector plates. The header and fallback trigger use the approved hamburger
+symbol. Horizontal menu bars are absent from source-owned World Hub UI and
+image assets.
 
 ## Preserved Contracts
 

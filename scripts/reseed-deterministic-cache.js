@@ -40,7 +40,8 @@ const SINGLE_GAME = args.find(a => a.startsWith('--game='))?.split('=')[1];
 const VERBOSE = args.includes('--verbose');
 let enforceTrainingQuestionContract;
 let enforceSolverClaimHonesty;
-let v2ToAppMatrix;
+let selectTrustedLegacySolverMatrix;
+let selectTrustedSolverMatrix;
 
 if (!IS_DRY_RUN && !IS_LIVE && !IS_VERIFY) {
     console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--live|--verify] [--game=cash-001]');
@@ -330,7 +331,8 @@ function getEngineType(gameId, config) {
  * mutation so repeated question generation is deterministic.
  */
 function sanitizeLegacyMatrix(matrix) {
-    if (!matrix || typeof matrix !== 'object') return null;
+    matrix = selectTrustedLegacySolverMatrix(matrix);
+    if (!matrix) return null;
     const actions = Array.isArray(matrix.actions) ? matrix.actions : [];
     const frequencies = matrix.frequencies;
     if (actions.length < 2 || !frequencies || typeof frequencies !== 'object') return null;
@@ -375,9 +377,10 @@ function sanitizeLegacyMatrix(matrix) {
 function toTrainingMatrix(scenario) {
     // Never fall back to v1 when an authoritative v2 export exists but fails
     // validation. That would conceal a damaged rebuilt solve during reseeding.
-    if (scenario?.strategy_matrix_v2) return v2ToAppMatrix(scenario.strategy_matrix_v2);
-    if (!scenario?.strategy_matrix) return null;
-    return sanitizeLegacyMatrix(structuredClone(scenario.strategy_matrix));
+    const selected = selectTrustedSolverMatrix(scenario);
+    if (!selected) return null;
+    if (scenario?.strategy_matrix_v2) return selected;
+    return sanitizeLegacyMatrix(structuredClone(selected));
 }
 
 /**
@@ -909,8 +912,11 @@ async function verifyGame(gameId) {
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────
 
 async function main() {
-    ({ v2ToAppMatrix } = await import(pathToFileURL(
-        path.join(__dirname, '../src/utils/v2Matrix.js'),
+    ({
+        selectTrustedLegacySolverMatrix,
+        selectTrustedSolverMatrix,
+    } = await import(pathToFileURL(
+        path.join(__dirname, '../src/lib/training/solverMatrixTrust.js'),
     ).href));
     const startTime = Date.now();
     ({ enforceTrainingQuestionContract } = await import('../src/lib/training/questionContract.mjs'));

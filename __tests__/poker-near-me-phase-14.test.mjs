@@ -62,7 +62,7 @@ test('shared presentation preserves primary and compact marker contracts', () =>
   const primary = createPokerVenueIcon(L, venue);
   const compact = createPokerVenueIcon(L, venue, { variant: 'compact' });
   assert.deepEqual(primary.options.iconSize, [44, 44]);
-  assert.deepEqual(compact.options.iconSize, [40, 40]);
+  assert.deepEqual(compact.options.iconSize, [44, 44]);
   assert.match(primary.options.html, /Signal/);
   assert.match(compact.options.className, /vmp-venue-marker/);
 
@@ -70,7 +70,7 @@ test('shared presentation preserves primary and compact marker contracts', () =>
   assert.equal(isPokerTourStop(tour), true);
   assert.equal(isPokerTourStop(venue), false);
   assert.deepEqual(createPokerTourIcon(L, tour).options.iconSize, [52, 52]);
-  assert.deepEqual(createPokerTourIcon(L, tour, { variant: 'compact' }).options.iconSize, [36, 60]);
+  assert.deepEqual(createPokerTourIcon(L, tour, { variant: 'compact' }).options.iconSize, [44, 74]);
   assert.deepEqual(createPokerUserLocationIcon(L).options.iconAnchor, [20, 40]);
 });
 
@@ -79,10 +79,8 @@ test('shared clusters retain density tiers on both map surfaces', () => {
   const cluster = (count) => ({ getChildCount: () => count });
   assert.deepEqual(createPokerClusterIcon(L, cluster(125)).options.iconSize, [58, 58]);
   assert.deepEqual(createPokerClusterIcon(L, cluster(125), { variant: 'compact' }).options.iconSize, [54, 54]);
-  // Mobile phase 3: the two smallest orbs grew by 2px so their digits could
-  // rise to the 12px text floor and still sit inside the ring.
-  assert.deepEqual(createPokerClusterIcon(L, cluster(4)).options.iconSize, [32, 32]);
-  assert.deepEqual(createPokerClusterIcon(L, cluster(4), { variant: 'compact' }).options.iconSize, [30, 30]);
+  assert.deepEqual(createPokerClusterIcon(L, cluster(4)).options.iconSize, [44, 44]);
+  assert.deepEqual(createPokerClusterIcon(L, cluster(4), { variant: 'compact' }).options.iconSize, [44, 44]);
 });
 
 test('popup builders escape external data and expose only same-origin detail paths', () => {

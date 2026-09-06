@@ -20,7 +20,6 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
-const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const ReportBugWidget = dynamic(() => import('../../src/components/ui/ReportBugWidget'), { ssr: false });
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -3731,21 +3730,12 @@ function MessengerPage() {
             {router.query.hideHeader !== 'true' && (
                 <UniversalHeader
                     pageDepth={1}
-                    onMenuClick={() => setMenuOpen(true)}
+                    commandMenuOpen={menuOpen}
+                    onCommandMenuOpenChange={setMenuOpen}
+                    commandMenuItems={menuConfig.menuItems}
+                    commandMenuBottomLinks={menuConfig.bottomLinks}
                 />
             )}
-
-            {/* Hamburger Menu */}
-            <HamburgerMenu
-                isOpen={menuOpen}
-                onClose={() => setMenuOpen(false)}
-                direction="left"
-                theme="dark"
-                user={user}
-                showProfile={true}
-                menuItems={menuConfig.menuItems}
-                bottomLinks={menuConfig.bottomLinks}
-            />
 
             {/* Forward Message Modal */}
             {forwardingMessage && (

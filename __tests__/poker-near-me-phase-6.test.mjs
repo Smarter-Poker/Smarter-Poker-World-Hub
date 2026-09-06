@@ -101,6 +101,15 @@ test('series and daily directories publish canonical structured result lists', (
   assert.match(read('pages/hub/daily-tournaments.js'), /buildDailyTournamentSchema/);
 });
 
+test('standalone tour and series directories are self-canonical and indexed', () => {
+  const toursPage = read('pages/hub/poker-tours.js');
+  const sitemap = read('pages/sitemap.xml.js');
+
+  assert.match(toursPage, /rel="canonical" href="https:\/\/smarter\.poker\/hub\/poker-tours"/);
+  assert.match(sitemap, /path: '\/hub\/poker-tours'/);
+  assert.match(sitemap, /path: '\/hub\/poker-series'/);
+});
+
 test('Core Web Vitals capture is limited to Poker Near Me route families', () => {
   assert.equal(isPokerNearMePerformanceRoute('/hub/poker-near-me/map'), true);
   assert.equal(isPokerNearMePerformanceRoute('/hub/venues/123'), true);

@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import { getAuthorDisplayName } from '../../utils/displayName';
 import TranscodeStatusBadge from './TranscodeStatusBadge';
 import { YouTubePosterImg } from './SharedVideoComponents';
+import PokerCardText from './PokerCardText';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 SMARTERPOKER COLOR PALETTE
@@ -555,7 +556,7 @@ export const SPPostCard = ({
 
       {/* Content */}
       <div className="sp-post-content">
-        {postContent && <p className="sp-post-text">{postContent}</p>}
+        {postContent && <p className="sp-post-text"><PokerCardText text={postContent} /></p>}
 
         {/* Hand History (Poker-specific) */}
         {post.handData && (

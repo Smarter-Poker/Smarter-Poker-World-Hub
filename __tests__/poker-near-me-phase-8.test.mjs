@@ -21,6 +21,42 @@ test('state polygons hold contradictory venue coordinates out of maps', () => {
   assert.equal(assessVenueLocation({ state: 'NV' }).status, 'missing');
 });
 
+test('foreign and traveling identities cannot masquerade as fixed US map venues', () => {
+  assert.deepEqual(assessVenueLocation({
+    name: 'Club Montmartre',
+    venue_type: 'poker_club',
+    city: 'Paris',
+    state: 'Paris',
+    country: 'US',
+    latitude: 48.88365,
+    longitude: 2.32748,
+  }), {
+    status: 'conflict', mappable: false, reason: 'state_unrecognized',
+  });
+  assert.deepEqual(assessVenueLocation({
+    name: 'National Charity Tour',
+    venue_type: 'charity',
+    city: 'National',
+    state: 'MULTI',
+    country: 'US',
+    latitude: 36.1674,
+    longitude: -115.1484,
+  }), {
+    status: 'unverified', mappable: false, reason: 'traveling_entity',
+  });
+  assert.deepEqual(assessVenueLocation({
+    name: 'Canadian Room',
+    venue_type: 'casino',
+    city: 'Windsor',
+    state: 'ON',
+    country: 'CA',
+    latitude: 42.319,
+    longitude: -83.039,
+  }), {
+    status: 'conflict', mappable: false, reason: 'country_outside_us',
+  });
+});
+
 test('duplicate resolution selects one complete record and never blends fields', () => {
   const result = applyVenueIntegrity([
     {

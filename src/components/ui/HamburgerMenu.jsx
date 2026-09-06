@@ -15,12 +15,10 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { X, Search, ChevronRight, ChevronDown, Star, Clock, WifiOff, Pencil, Menu } from 'lucide-react';
-import InviteFriendsModal from './InviteFriendsModal';
-import GeevesMenuWidget from './GeevesMenuWidget';
-import ReportBugWidget from './ReportBugWidget';
 import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAuthUser, clearAuth } from '../../lib/authUtils';
@@ -40,6 +38,10 @@ import {
   parseWorldMenuHref,
 } from '../../lib/world-menu/navigationState.mjs';
 import WorldCommandMenuBoundary from './WorldCommandMenuBoundary';
+
+const InviteFriendsModal = dynamic(() => import('./InviteFriendsModal'), { ssr: false });
+const GeevesMenuWidget = dynamic(() => import('./GeevesMenuWidget'), { ssr: false });
+const ReportBugWidget = dynamic(() => import('./ReportBugWidget'), { ssr: false });
 
 const FALLBACK_AVATAR = '/default-avatar.png';
 
@@ -147,6 +149,7 @@ function HamburgerMenuContent({
     () => resolveWorldMenu(router?.asPath || router?.pathname || ''),
     [router?.asPath, router?.pathname],
   );
+  const commandMenuId = `sp-world-command-menu-${activeWorld?.id || 'global'}`;
   const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
   const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
   const worldMenuStyle = useMemo(
@@ -183,9 +186,16 @@ function HamburgerMenuContent({
   // Latch: only mount the heavy in-drawer widgets once the menu has been opened.
   const [everOpened, setEverOpened] = useState(false);
   const [pendingHref, setPendingHref] = useState('');
+  const [childDialogOpen, setChildDialogOpen] = useState(false);
 
   useEffect(() => { setLocalUser(getAuthUser()); }, []);
   useEffect(() => { if (isOpen) setEverOpened(true); }, [isOpen]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sp:world-command-menu-state', {
+      detail: { id: commandMenuId, open: isOpen },
+    }));
+  }, [commandMenuId, isOpen]);
 
   useEffect(() => {
     navigationLockRef.current = null;
@@ -306,12 +316,22 @@ function HamburgerMenuContent({
     }
   }, []);
 
-  // ── Close on ESC ──────────────────────────────────────────────────────────
+  // ── Modal keyboard boundary ───────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return undefined;
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    const containOutsideKey = (e) => {
+      if (
+        drawerRef.current?.contains(e.target)
+        || e.target?.closest?.('[data-world-command-child-dialog="true"]')
+      ) return;
+      // Until focus lands in the dialog, no page shortcut may act underneath
+      // the modal. Escape still closes from that brief transition state.
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', containOutsideKey, true);
+    return () => window.removeEventListener('keydown', containOutsideKey, true);
   }, [isOpen, onClose]);
 
   // ── Focus management ──────────────────────────────────────────────────────
@@ -322,7 +342,9 @@ function HamburgerMenuContent({
         const activeElement = document.activeElement;
         restoreFocusRef.current = activeElement?.matches?.('[data-world-menu-trigger]')
           ? activeElement
-          : document.querySelector('[data-world-menu-trigger="approved-header"]') || activeElement;
+          : document.querySelector('[data-world-menu-trigger="approved-header"]')
+            || document.querySelector('[data-world-menu-trigger="route-fallback"]')
+            || activeElement;
       }
       const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
       return () => clearTimeout(t);
@@ -336,16 +358,31 @@ function HamburgerMenuContent({
     restoreFocusRef.current = null;
     const focusTarget = prev?.isConnected
       ? prev
-      : document.querySelector('[data-world-menu-trigger="approved-header"]');
-    if (focusTarget && typeof focusTarget.focus === 'function') {
-      try { focusTarget.focus(); } catch (_) {}
-    }
+      : document.querySelector('[data-world-menu-trigger="approved-header"]')
+        || document.querySelector('[data-world-menu-trigger="route-fallback"]');
+    // The inert-isolation effect is declared later and restores the page after
+    // this effect runs. Defer focus by one frame so browsers do not reject a
+    // focus request against a trigger that is still inert during cleanup.
+    const restoreFrame = window.requestAnimationFrame(() => {
+      if (focusTarget && typeof focusTarget.focus === 'function') {
+        try { focusTarget.focus(); } catch (_) {}
+      }
+    });
     setQuery('');
     setEditFavs(false);
-    return undefined;
+    return () => window.cancelAnimationFrame(restoreFrame);
   }, [isOpen]);
 
   const trapTab = useCallback((e) => {
+    // The dialog is a keyboard event boundary. Let controls receive their key
+    // first, then prevent window-level shortcuts on Reels, Messenger, and the
+    // Social feed from mutating the obscured page.
+    e.stopPropagation();
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose?.();
+      return;
+    }
     if (e.key !== 'Tab' || !drawerRef.current) return;
     const nodes = Array.from(drawerRef.current.querySelectorAll(FOCUSABLE))
       .filter((n) => n.offsetParent !== null || n === document.activeElement);
@@ -354,12 +391,17 @@ function HamburgerMenuContent({
     const last = nodes[nodes.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  }, []);
+  }, [onClose]);
 
   // ── Swipe-to-close (axis aware, ignores horizontal scrollers) ─────────────
   const touchStartRef = useRef(null);
   const handleTouchStart = (e) => {
-    if (e.target?.closest?.('[data-hscroll]')) { touchStartRef.current = null; return; }
+    if (e.target?.closest?.(
+      '[data-hscroll], a, button, input, textarea, select, [role="button"], [contenteditable="true"]'
+    )) {
+      touchStartRef.current = null;
+      return;
+    }
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY };
   };
@@ -373,6 +415,9 @@ function HamburgerMenuContent({
     if (Math.abs(dx) < 60 || Math.abs(dx) < dy * 1.5) return; // not a decisive horizontal swipe
     if (direction === 'left' && dx > 0) onClose?.();
     if (direction === 'right' && dx < 0) onClose?.();
+  };
+  const handleTouchCancel = () => {
+    touchStartRef.current = null;
   };
 
   // ── Body scroll lock (iOS-safe, restores the original inline values) ──────
@@ -396,6 +441,53 @@ function HamburgerMenuContent({
       body.style.width = prev.width;
       body.style.overflow = prev.overflow;
       window.scrollTo(0, y);
+    };
+  }, [isOpen]);
+
+  // A modal dialog must remove the obscured page from sequential and virtual
+  // navigation, not merely paint a backdrop over it. The drawer can live deep
+  // inside a page-owned header, so isolate sibling branches at every ancestor
+  // and restore their exact prior attributes on close. Global prompts can mount
+  // asynchronously after the drawer opens (the page-tutorial offer is one real
+  // example), so keep the branch boundary current for the lifetime of the modal.
+  useEffect(() => {
+    if (!isOpen || !drawerRef.current || typeof document === 'undefined') return undefined;
+    const changes = new Map();
+    const isolateBranches = () => {
+      let branch = drawerRef.current;
+      while (branch?.parentElement) {
+        const parent = branch.parentElement;
+        for (const sibling of parent.children) {
+          if (
+            sibling === branch
+            || sibling.classList?.contains('sp-command-backdrop')
+            || sibling.matches?.('[data-world-command-child-overlay="true"]')
+            || sibling.matches?.('[data-world-command-child-dialog="true"]')
+          ) continue;
+          if (!changes.has(sibling)) {
+            changes.set(sibling, {
+              inert: sibling.hasAttribute('inert'),
+              ariaHidden: sibling.getAttribute('aria-hidden'),
+            });
+          }
+          sibling.setAttribute('inert', '');
+          sibling.setAttribute('aria-hidden', 'true');
+        }
+        if (parent === document.body) break;
+        branch = parent;
+      }
+    };
+    isolateBranches();
+    const branchObserver = new MutationObserver(isolateBranches);
+    branchObserver.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      branchObserver.disconnect();
+      for (const [element, { inert, ariaHidden }] of changes) {
+        if (!element.isConnected) continue;
+        if (!inert) element.removeAttribute('inert');
+        if (ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', ariaHidden);
+      }
     };
   }, [isOpen]);
 
@@ -592,7 +684,7 @@ function HamburgerMenuContent({
         <span className="sp-menu-row-copy" style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>{item.label}</span>
           {item.description ? (
-            <span style={{ display: 'block', marginTop: 3, color: colors.textSec, fontSize: 11, lineHeight: 1.3 }}>
+            <span className="sp-menu-description" style={{ display: 'block', marginTop: 3, color: colors.textSec, fontSize: 11, lineHeight: 1.3 }}>
               {item.description}
             </span>
           ) : null}
@@ -826,7 +918,7 @@ function HamburgerMenuContent({
                     {gridItem.label}
                   </span>
                   {gridItem.description ? (
-                    <span style={{ display: 'block', marginTop: 4, color: colors.textSec, fontSize: 10, lineHeight: 1.25 }}>
+                    <span className="sp-grid-description" style={{ display: 'block', marginTop: 4, color: colors.textSec, fontSize: 10, lineHeight: 1.25 }}>
                       {gridItem.description}
                     </span>
                   ) : null}
@@ -992,6 +1084,7 @@ function HamburgerMenuContent({
         onClick={onClose}
         aria-hidden="true"
         className="sp-command-backdrop"
+        data-responsive-composition={isFacebookMenu ? 'preserved' : 'adaptive'}
         style={{
           position: 'fixed', inset: 0, background: 'rgba(0, 2, 5, 0.86)',
           zIndex: 10099,
@@ -1004,11 +1097,14 @@ function HamburgerMenuContent({
 
       {/* Drawer */}
       <div
+        id={commandMenuId}
         ref={drawerRef}
         className="sp-drawer"
         role="dialog"
         aria-modal="true"
         aria-label={`${activeWorld?.label || 'Smarter.Poker'} Command Menu`}
+        aria-hidden={childDialogOpen ? 'true' : undefined}
+        inert={childDialogOpen ? '' : undefined}
         aria-busy={pendingHref ? 'true' : 'false'}
         data-world-command-menu={activeWorld?.id || 'global'}
         data-world-menu-scheme={activeWorld?.menuPalette?.scheme || 'global'}
@@ -1017,6 +1113,7 @@ function HamburgerMenuContent({
         data-menu-symbol="hamburger"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
         onKeyDown={trapTab}
         style={{
           position: 'fixed',
@@ -1221,6 +1318,8 @@ function HamburgerMenuContent({
                             <img
                               src={sc.avatar_url}
                               alt=""
+                              loading="lazy"
+                              decoding="async"
                               onError={(e) => { e.currentTarget.style.display = 'none'; }}
                               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                             />
@@ -1330,6 +1429,8 @@ function HamburgerMenuContent({
                         : activeUser.avatar || FALLBACK_AVATAR
                     }
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
                     style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                   />
@@ -1348,7 +1449,7 @@ function HamburgerMenuContent({
                       onClick={() => onClose?.()}
                       className="sp-menu-row"
                       style={{
-                        display: 'inline-flex', alignItems: 'center', minHeight: 32,
+                        display: 'inline-flex', alignItems: 'center', minHeight: 44,
                         fontSize: 13, color: colors.textSec, textDecoration: 'none',
                       }}
                     >
@@ -1397,6 +1498,8 @@ function HamburgerMenuContent({
                         <img
                           src={activeUser.avatar || FALLBACK_AVATAR}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
                           style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                         />
@@ -1429,6 +1532,8 @@ function HamburgerMenuContent({
                           <img
                             src={page.avatar_url || FALLBACK_AVATAR}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
                             style={{
                               width: 32, height: 32, borderRadius: '50%', objectFit: 'cover',
@@ -1539,7 +1644,7 @@ function HamburgerMenuContent({
           <div style={{ display: searching ? 'none' : 'block' }}>
             <GeevesMenuWidget />
             <div style={{ padding: '8px 16px' }}>
-              <ReportBugWidget />
+              <ReportBugWidget onOpenChange={setChildDialogOpen} />
             </div>
           </div>
         )}
@@ -1801,6 +1906,12 @@ function HamburgerMenuContent({
         .sp-command-status { display: flex; align-items: center; gap: 7px; color: var(--world-muted, #9fb0bf); font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
         .sp-command-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--world-accent); box-shadow: 0 0 9px var(--world-accent); }
         .sp-command-search input { border-radius: 2px !important; }
+        .sp-drawer[data-responsive-composition='adaptive'] .sp-command-utility-rail {
+          top: env(safe-area-inset-top, 0px);
+        }
+        .sp-drawer[data-responsive-composition='adaptive'] .sp-command-search {
+          top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+        }
         .sp-menu-row,
         .sp-grid-tile,
         .sp-sc-tile,
@@ -1949,10 +2060,27 @@ function HamburgerMenuContent({
           .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
         }
         @media (max-width: 420px) {
+          .sp-command-backdrop[data-responsive-composition='adaptive'] {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
           .sp-command-title { max-width: 124px; font-size: 14px; }
-          .sp-command-eyebrow { font-size: 8px; }
           .sp-command-close-label { display: none; }
-          .sp-command-utility-rail .sp-icon-btn:last-child { width: 44px !important; }
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-utility-rail .sp-command-utility-button:last-child { width: 44px !important; }
+          .sp-drawer[data-responsive-composition='adaptive'] {
+            box-sizing: border-box;
+            padding-right: env(safe-area-inset-right, 0px);
+            padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+            padding-left: env(safe-area-inset-left, 0px);
+            scroll-padding-block: 64px calc(24px + env(safe-area-inset-bottom, 0px));
+          }
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-eyebrow,
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-status,
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context p,
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-menu-description,
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-grid-description {
+            font-size: 12px !important;
+          }
           .sp-drawer[data-responsive-composition='adaptive'] [data-world-primary-commands] {
             gap: 7px !important;
             padding-right: 10px !important;
@@ -1966,6 +2094,25 @@ function HamburgerMenuContent({
         @media (max-height: 620px) {
           .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context { margin-top: 6px; margin-bottom: 8px; padding-top: 8px; padding-bottom: 8px; }
           .sp-drawer[data-responsive-composition='adaptive'] .sp-command-search { padding-bottom: 8px !important; }
+        }
+        @media (max-height: 480px) and (orientation: landscape) {
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-utility-rail {
+            min-height: 56px;
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+          }
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-search {
+            top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+          }
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context p { display: none; }
+          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context {
+            margin: 4px 10px 6px;
+            padding: 6px 10px;
+          }
+          .sp-drawer[data-responsive-composition='adaptive'] [data-world-primary-commands] .sp-grid-tile {
+            min-height: 64px !important;
+            padding: 8px 10px !important;
+          }
         }
         .sp-drawer input[type='search']::-webkit-search-cancel-button { display: none; }
         @media (prefers-reduced-motion: reduce) {

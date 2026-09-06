@@ -57,6 +57,8 @@ function VenueCard({ venue }) {
   const updatedLabel = formatUtcDate(venue.updated_at);
   const cashGameLabel = cashGameCountLabel(venue.live_data);
   const modeled = isModeledCashGameData(venue.live_data);
+  const catalog = venue.live_data?.data_mode === 'catalog';
+  const unavailable = venue.live_data?.live_count_known === false && !catalog;
   return (
     <article className="pnm-location-card">
       <Link href={`/hub/venues/${venue.id}`} aria-label={`View ${venue.name}`}>
@@ -69,7 +71,7 @@ function VenueCard({ venue }) {
           <p>{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
           <div className="pnm-location-card__facts">
             {cashGameLabel && (
-              <span className="pnm-location-card__cash" data-modeled={modeled ? 'true' : 'false'}>
+              <span className="pnm-location-card__cash" data-modeled={modeled ? 'true' : 'false'} data-catalog={catalog ? 'true' : 'false'} data-unavailable={unavailable ? 'true' : 'false'}>
                 {cashGameLabel}
               </span>
             )}

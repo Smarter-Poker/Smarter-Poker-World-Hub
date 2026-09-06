@@ -20,6 +20,8 @@ import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCac
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { buildGtoAnalysisStrings } from '../../../src/lib/explanationTemplates';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import { POLICY_KIND } from '../../../src/lib/training/solverPolicyContract.js';
 
 let _supabase = null;
 function getSupabase() {
@@ -29,6 +31,12 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+let _solverPolicyService = null;
+function getSolverPolicyService() {
+    if (!_solverPolicyService) _solverPolicyService = new SolverPolicyService({ db: getSupabase() });
+    return _solverPolicyService;
 }
 
 // Action code to readable name mapping
@@ -142,8 +150,13 @@ export default async function handler(req, res) {
           // Check cache first
           const cached = await getCachedResponse('gto-analysis', cacheParams);
           if (cached) {
+              const cachedPolicy = policyForCachedAnalysis(cached, cacheParams);
               return res.status(200).json({
                   ...cached,
+                  source: cached?.solverPolicy
+                      ? cached.source
+                      : cached.source === 'PIO_SOLVER' ? 'PIO_SOLVER_NEAR' : cached.source,
+                  solverPolicy: cachedPolicy,
                   fromCache: true,
               });
           }
@@ -157,10 +170,12 @@ export default async function handler(req, res) {
           //   'GROK_FALLBACK'      → no solver match available, grok-3-mini fallback
           //                          (orange "AI Generated" badge — already in panel)
           let source = 'GROK_FALLBACK';
+          let solverPolicy = null;
 
           try {
               pioData = await queryPioSolverData(cacheParams);
               if (pioData) {
+                  solverPolicy = pioData.policy;
                   source = pioData.matchQuality === 'EXACT'
                       ? 'PIO_SOLVER'
                       : 'PIO_SOLVER_NEAR';
@@ -182,11 +197,13 @@ export default async function handler(req, res) {
               if (!analysis) {
                   source = 'GROK_FALLBACK';
                   analysis = await generateAnalysisWithGrok(cacheParams);
+                  solverPolicy = policyForGeneratedAnalysis(analysis, cacheParams, 'solver_holding_not_covered');
               }
           } else {
               // Fallback to grok-3-mini (rare — only when no solver match
               // exists at any quality tier). Tagged GROK_FALLBACK above.
               analysis = await generateAnalysisWithGrok(cacheParams);
+              solverPolicy = policyForGeneratedAnalysis(analysis, cacheParams, 'no_solver_policy_for_state');
           }
 
           // ═══ Operation Grok-Sweep (2026-05) ═══════════════════════════════
@@ -201,6 +218,7 @@ export default async function handler(req, res) {
               success: true,
               ...analysis,
               source,
+              solverPolicy,
               generatedAt: new Date().toISOString(),
           };
 
@@ -231,30 +249,7 @@ export default async function handler(req, res) {
   }
 }
 
-/**
- * Query PioSolver data from solved_spots_gold with proper board matching.
- *
- * Operation Grok-Sweep (2026-05): the prior implementation simply did
- *   .eq('game_type', X).eq('street', Y).limit(10)
- * and returned the first row regardless of the user's hand or board. That
- * meant every cash-flop request got one of the same ~10 random spots dressed
- * up by the templates as if it were the user's actual hand — a critical
- * correctness bug masking as "deterministic analysis".
- *
- * The fix: mirror the search pattern from
- * src/engines/DeterministicGTOEngine.queryNextStreet():
- *   1. Map gameType + format hint to the right pioGameType (real ones in
- *      solved_spots_gold, not the legacy 'turn_spin'/'turn_mtt_icm' tags
- *      with only 50–100 rows).
- *   2. Filter by stack_depth + scenario_hash ILIKE board for exact match.
- *   3. Fall back to flop-prefix match for turn/river requests where the
- *      exact runout isn't in the corpus yet.
- *   4. Only as last resort, accept any spot in the same game_type+street
- *      pool — but tag the result so the caller can surface "approximate"
- *      to the UI.
- *   5. Return null if every tier misses → outer handler falls through to
- *      generateAnalysisWithGrok (grok-3-mini, also tagged GROK_FALLBACK).
- */
+/** Map public format labels to the actual warehouse game type. */
 const PIO_GAME_TYPE_DISPATCH = {
     // Single-table format mapping, by gameType (lowercase) and player count.
     // Pulled from actual game_type distribution in solved_spots_gold so we
@@ -283,191 +278,99 @@ function normalizeBoardForHash(board) {
     return str.replace(/\s+/g, '').toLowerCase();
 }
 
-// 2026-08-15 CHECK 13 fix: macro_metrics is not a column on solved_spots_gold
-// — selecting it 42703'd ALL THREE lookup tiers, so this endpoint never
-// returned solver data despite an 8.3M-row solved corpus. The macro numbers
-// live inside strategy_matrix; derive them from there.
-function deriveMacroMetrics(matrix) {
-    if (!matrix || typeof matrix !== 'object') return null;
-    const out = {};
-    for (const k of ['ev', 'ev_ip', 'ev_oop', 'exploitability']) {
-        if (matrix[k] !== undefined) out[k] = matrix[k];
-    }
-    return Object.keys(out).length ? out : null;
+function boardCards(board) {
+    return normalizeBoardForHash(board).match(/[2-9TJQKA][cdhs]/gi) || [];
+}
+
+function policyKeyForParams(params) {
+    const tournament = ['mtt', 'tournament', 'icm', 'spin', 'sng'].includes(params.gameType);
+    const actionText = String(params.action || '').toLowerCase();
+    const facingAllIn = /all.?in|\bjam|\bshove|\bpush/.test(actionText);
+    const facingWager = facingAllIn || /facing|bet|raise/.test(actionText);
+    const legalActions = facingAllIn ? ['fold', 'call']
+        : facingWager ? ['fold', 'call', 'raise']
+        : params.street === 'preflop' ? ['fold', 'all_in'] : ['check', 'bet'];
+    return getSolverPolicyService().createKey({
+        variant: 'nlh',
+        bettingStructure: 'no_limit',
+        tableSize: params.players,
+        positions: { hero: params.position, villains: [params.villainPosition].filter(Boolean) },
+        stackVector: [
+            { seat: 0, position: params.position, stackBb: params.stackDepth, active: true },
+            { seat: 1, position: params.villainPosition, stackBb: params.stackDepth, active: true },
+        ],
+        blinds: { complete: false },
+        rake: { complete: false },
+        tournamentUtility: {
+            mode: tournament ? (params.gameType === 'icm' ? 'icm' : 'unknown') : 'cash',
+            complete: false,
+        },
+        payouts: [],
+        bounties: [],
+        street: params.street,
+        board: boardCards(params.board),
+        holding: [],
+        publicActionHistory: {
+            complete: false,
+            actions: facingWager ? [{
+                sequence: 0,
+                street: params.street,
+                actor: params.villainPosition,
+                action: facingAllIn ? 'all_in' : 'bet',
+                allIn: facingAllIn,
+            }] : [],
+        },
+        legalActions,
+        sidePotEligibility: { complete: false, pots: [] },
+    });
 }
 
 async function queryPioSolverData(params) {
-    const { street, stackDepth, board, gameType, players } = params;
-    const pioGameType = selectPioGameType(gameType, players);
-    const boardStr = normalizeBoardForHash(board);
-
-    // Tier 1: exact board match (full runout in scenario_hash)
-    if (boardStr.length >= 6) {
-        const tier1 = await getSupabase()
-            .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-            .eq('game_type', pioGameType)
-            .eq('street', street)
-            .ilike('scenario_hash', `%${boardStr}%`)
-            .limit(5);
-
-        if (!tier1.error && tier1.data && tier1.data.length > 0) {
-            const scenario = pickFirstWithMatrix(tier1.data);
-            if (scenario) {
-                return {
-                    scenario,
-                    strategyMatrix: scenario.strategy_matrix,
-                    macroMetrics: deriveMacroMetrics(scenario.strategy_matrix),
-                    matchQuality: 'EXACT',
-                };
-            }
-        }
-    }
-
-    // Tier 2: flop-prefix match (turn/river queries where the exact runout
-    // isn't in the corpus, but the flop portion is). Lets us return analysis
-    // for the right starting board even if the turn/river card differs.
-    if (boardStr.length >= 6) {
-        const flopStr = boardStr.slice(0, 6);
-        const tier2 = await getSupabase()
-            .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-            .eq('game_type', pioGameType)
-            .eq('street', street)
-            .ilike('scenario_hash', `%${flopStr}%`)
-            .limit(20);
-
-        if (!tier2.error && tier2.data && tier2.data.length > 0) {
-            const scenario = pickFirstWithMatrix(tier2.data);
-            if (scenario) {
-                return {
-                    scenario,
-                    strategyMatrix: scenario.strategy_matrix,
-                    macroMetrics: deriveMacroMetrics(scenario.strategy_matrix),
-                    matchQuality: 'FLOP_PREFIX',
-                };
-            }
-        }
-    }
-
-    // Tier 3: any spot in the same game_type + street + stack_depth bucket.
-    // Quality is "APPROXIMATE" — the response will be flagged so the UI can
-    // surface that this isn't an exact-board match.
-    let tier3Query = getSupabase()
-        .from('solved_spots_gold')
-        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-        .eq('game_type', pioGameType)
-        .eq('street', street)
-        .limit(10);
-
-    if (typeof stackDepth === 'number' && stackDepth > 0) {
-        tier3Query = tier3Query.eq('stack_depth', stackDepth);
-    }
-
-    const tier3 = await tier3Query;
-    if (!tier3.error && tier3.data && tier3.data.length > 0) {
-        const scenario = pickFirstWithMatrix(tier3.data);
-        if (scenario) {
-            return {
-                scenario,
-                strategyMatrix: scenario.strategy_matrix,
-                macroMetrics: deriveMacroMetrics(scenario.strategy_matrix),
-                matchQuality: 'APPROXIMATE',
-            };
-        }
-    }
-
-    return null;
-}
-
-function pickFirstWithMatrix(rows) {
-    if (!rows || rows.length === 0) return null;
-    for (const r of rows) {
-        if (r.strategy_matrix) return r;
-    }
-    return null;
-}
-
-/**
- * Extract board cards from scenario_hash
- */
-function extractBoardFromHash(hash) {
-    if (!hash) return '';
-    const parts = hash.split('_');
-    return parts[parts.length - 1] || '';
+    const service = getSolverPolicyService();
+    const pioGameType = selectPioGameType(params.gameType, params.players);
+    const key = policyKeyForParams(params);
+    const result = await service.resolve({
+        key,
+        gameTypes: [pioGameType],
+        holdingClass: params.hand,
+        allowBoardApproximation: true,
+        allowStackApproximation: true,
+        allowStateApproximation: true,
+    });
+    if (result.answer.kind === POLICY_KIND.UNAVAILABLE) return null;
+    const policy = service.consumerEnvelope(result.answer, 'gto-analysis');
+    return {
+        policy,
+        // Exact is reserved for a sealed full decision key. A hand-class or
+        // legacy row is visibly near/derived even when its board matched.
+        matchQuality: policy.kind === POLICY_KIND.EXACT ? 'EXACT' : 'APPROXIMATE',
+    };
 }
 
 /**
  * Build analysis from PioSolver data
  */
 function buildAnalysisFromPio(pioData, params) {
-    const { strategyMatrix, macroMetrics } = pioData;
+    const { policy } = pioData;
     const { hand } = params;
-
-    const actions = strategyMatrix.actions || [];
-    const frequencies = strategyMatrix.frequencies || {};
-    const handEvs = strategyMatrix.hand_evs || {};
-
-    // Normalize hand to uppercase
-    const normalizedHand = hand.toUpperCase();
-
-    // Find optimal action for this hand
-    let optimalAction = 'CHECK';
-    let optimalFreq = 0;
-    const handFrequencies = {};
-
-    actions.forEach(action => {
-        const freq = frequencies[action]?.[normalizedHand] ||
-            frequencies[action]?.[hand] ||
-            frequencies[action]?.[hand.toLowerCase()] || 0;
-
-        if (freq >= 0 && freq <= 1) {
-            handFrequencies[action] = freq;
-            if (freq > optimalFreq) {
-                optimalFreq = freq;
-                optimalAction = action;
-            }
-        }
-    });
-
-    // Operation Grok-Sweep hand-coverage guard: if the matrix has no entry for
-    // this exact hand (every action returned 0), the analysis would silently
-    // default to "CHECK 0%". Better to return null and let the outer handler
-    // fall through to the grok-3-mini fallback (clearly tagged GROK_FALLBACK
-    // for the UI badge) than to confidently render meaningless numbers.
-    const totalFreq = Object.values(handFrequencies).reduce((s, v) => s + v, 0);
-    if (totalFreq < 0.01) {
-        console.warn(`[GTO-Analysis] PIO matrix has no coverage for hand=${hand} on this node - returning null to trigger LLM fallback.`);
-        return null;
-    }
-
-    // Get EV for this hand
-    const handEv = handEvs[normalizedHand] || handEvs[hand] || handEvs[hand.toLowerCase()] || 0;
-
-    // Map to readable action
-    const readableAction = mapActionToReadable(optimalAction);
+    const actions = (policy.actions || []).filter((entry) => entry.legal && entry.frequency > 0);
+    if (actions.length === 0) return null;
+    const ordered = [...actions].sort((a, b) => b.frequency - a.frequency || a.id.localeCompare(b.id));
+    const best = ordered[0];
+    const optimalAction = best.sourceCode || best.id;
+    const optimalFreq = best.frequency;
+    const readableAction = policyActionToReadable(best);
     const actionColor = ACTION_COLORS[readableAction] || '#00ff88';
-
-    // Is this a mixed strategy?
     const isMixed = optimalFreq < 0.95;
-
-    // Build alternate lines (only for mixed strategies)
-    const alternateLines = [];
-    if (isMixed) {
-        Object.entries(handFrequencies || {})
-            .filter(([a, f]) => a !== optimalAction && f > 0.01)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 2)
-            .forEach(([action, freq]) => {
-                alternateLines.push({
-                    action: mapActionToReadable(action),
-                    actionCode: action,
-                    frequency: freq,
-                    frequencyPct: `${(freq * 100).toFixed(0)}%`,
-                    reason: `Secondary line at ${(freq * 100).toFixed(0)}% frequency`,
-                });
-            });
-    }
+    const alternateLines = isMixed ? ordered.slice(1, 3).map((entry) => ({
+        action: policyActionToReadable(entry),
+        actionCode: entry.sourceCode || entry.id,
+        frequency: entry.frequency,
+        frequencyPct: `${(entry.frequency * 100).toFixed(0)}%`,
+        reason: `Secondary line at ${(entry.frequency * 100).toFixed(0)}% frequency`,
+    })) : [];
+    const measuredHandEv = Number.isFinite(policy.chipEv?.policy) ? policy.chipEv.policy : null;
+    const handEv = measuredHandEv ?? 0;
 
     // ═══ Operation Grok-Sweep — deterministic rich strings ════════════════
     // Replaces the prior ~80-char placeholders that triggered a redundant
@@ -500,14 +403,29 @@ function buildAnalysisFromPio(pioData, params) {
         gtoApproach,
         mixedStrategy,
         evAnalysis: {
-            ev: handEv,
-            evDisplay: handEv >= 0 ? `+${handEv.toFixed(2)}bb` : `${handEv.toFixed(2)}bb`,
-            description: `Hand EV at this node: ${handEv >= 0 ? '+' : ''}${handEv.toFixed(2)}bb${
-                isMixed ? ` (${(optimalFreq * 100).toFixed(0)}% frequency on ${readableAction}).` : '.'
-            }`,
+            ev: measuredHandEv,
+            evDisplay: measuredHandEv === null
+                ? 'Not supplied by artifact'
+                : handEv >= 0 ? `+${handEv.toFixed(2)}bb` : `${handEv.toFixed(2)}bb`,
+            description: measuredHandEv === null
+                ? 'This policy artifact does not provide a measured hand EV.'
+                : `Hand EV at this node: ${handEv >= 0 ? '+' : ''}${handEv.toFixed(2)}bb${
+                    isMixed ? ` (${(optimalFreq * 100).toFixed(0)}% frequency on ${readableAction}).` : '.'
+                }`,
         },
         alternateLines,
     };
+}
+
+function policyActionToReadable(action) {
+    const family = String(action?.family || '').toLowerCase();
+    if (family === 'all_in') return 'ALL-IN';
+    if (family === 'fold') return 'FOLD';
+    if (family === 'check') return 'CHECK';
+    if (family === 'call') return 'CALL';
+    if (family === 'bet') return Number(action?.size?.potFraction) > 1 ? 'OVERBET' : 'BET';
+    if (family === 'raise') return 'RAISE';
+    return mapActionToReadable(action?.sourceCode || action?.id);
 }
 
 /**
@@ -517,6 +435,72 @@ function mapActionToReadable(action) {
     if (!action) return 'CHECK';
     const normalized = action.toLowerCase();
     return ACTION_MAP[normalized] || action.toUpperCase();
+}
+
+function readableActionId(value) {
+    const action = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    if (action === 'all_in') return 'all_in';
+    if (action === '3_bet') return 'raise_3bet';
+    if (action === '4_bet') return 'raise_4bet';
+    if (action === 'overbet') return 'bet_overbet';
+    return action || 'unknown';
+}
+
+function policyActionsForAnalysis(analysis) {
+    const entries = [
+        {
+            action: analysis?.optimalAction,
+            frequency: Number(analysis?.frequency),
+        },
+        ...(Array.isArray(analysis?.alternateLines) ? analysis.alternateLines : []),
+    ];
+    const actions = new Map();
+    for (const entry of entries) {
+        const id = readableActionId(entry?.action);
+        const frequency = Number(entry?.frequency);
+        if (!Number.isFinite(frequency) || frequency < 0) continue;
+        const family = id.startsWith('raise') ? 'raise'
+            : id.startsWith('bet') ? 'bet' : id;
+        const prior = actions.get(id) || {
+            id,
+            sourceCode: id,
+            family,
+            label: mapActionToReadable(entry?.action),
+            frequency: 0,
+            legal: true,
+            size: { unit: 'unknown', exact: false },
+        };
+        prior.frequency += frequency;
+        actions.set(id, prior);
+    }
+    return actions.size > 0
+        ? [...actions.values()]
+        : [{
+            id: 'unknown', sourceCode: null, family: 'unknown', label: 'Unknown',
+            frequency: 1, legal: true, size: { unit: 'unknown', exact: false },
+        }];
+}
+
+function policyForGeneratedAnalysis(analysis, params, reason) {
+    const service = getSolverPolicyService();
+    const answer = service.heuristicAnswer(
+        policyKeyForParams(params),
+        policyActionsForAnalysis(analysis),
+        reason,
+    );
+    return service.consumerEnvelope(answer, 'gto-analysis');
+}
+
+function policyForCachedAnalysis(cached, params) {
+    const service = getSolverPolicyService();
+    if (cached?.solverPolicy) {
+        try {
+            return service.consumerEnvelope(cached.solverPolicy, 'gto-analysis');
+        } catch (error) {
+            console.warn('[GTO-Analysis] Ignoring invalid cached solver policy:', error.message);
+        }
+    }
+    return policyForGeneratedAnalysis(cached, params, 'legacy_gto_analysis_cache_without_policy');
 }
 
 /**

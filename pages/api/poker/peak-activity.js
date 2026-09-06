@@ -7,6 +7,12 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { normalizeGameName } from '../../../src/components/poker-near-me/normalize-game';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+  PNM_TRUTH_CONTRACT_VERSION,
+  QUALIFIED_OBSERVED_SOURCES,
+  historicalCoverage,
+  tableCountFromRow,
+} from '../../../src/lib/poker-near-me/dataTruth';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -146,7 +152,7 @@ export default async function handler(req, res) {
       : null;
 
     const applyVenueFilter = (query) => {
-      if (venueNameLike) return query.ilike('venue_name', `%${venueNameLike}%`);
+      if (venueNameLike) return query.ilike('venue_name', venueNameLike);
       // Non-numeric venue_id: treat it as a literal bravo_slug, exact match only.
       if (safeVenueId) return query.eq('bravo_slug', safeVenueId);
       return query;
@@ -155,12 +161,14 @@ export default async function handler(req, res) {
     let data, error, truncated = false;
 
     // If game_type is specified, use game_live_history for per-game heatmaps
-    if (game_type) {
+    if (safeGameType) {
       const result = await fetchSnapshotPages(() => applyVenueFilter(
         supabase
           .from('game_live_history')
-          .select('venue_name, game_type, tables, snapshot_time')
+          .select('venue_name, game_type, tables, source, batch_id, snapshot_time')
           .gte('snapshot_time', twoWeeksAgo)
+          .in('source', QUALIFIED_OBSERVED_SOURCES)
+          .gt('tables', 0)
           .order('snapshot_time', { ascending: false })
       ));
       data = result.rows;
@@ -190,7 +198,9 @@ export default async function handler(req, res) {
           .filter(row => matchesWanted(row.game_type))
           .map(row => ({
             venue_name: row.venue_name,
-            total_tables: row.tables || 0,
+            total_tables: tableCountFromRow(row),
+            source: row.source,
+            batch_id: row.batch_id,
             snapshot_time: row.snapshot_time,
           }));
       }
@@ -201,8 +211,10 @@ export default async function handler(req, res) {
       const result = await fetchSnapshotPages(() => applyVenueFilter(
         supabase
           .from('venue_live_history')
-          .select('venue_name, total_tables, snapshot_time')
+          .select('venue_name, total_tables, source, batch_id, snapshot_time')
           .gte('snapshot_time', twoWeeksAgo)
+          .in('source', QUALIFIED_OBSERVED_SOURCES)
+          .gt('total_tables', 0)
           .order('snapshot_time', { ascending: false })
       ));
       data = result.rows;
@@ -219,6 +231,9 @@ export default async function handler(req, res) {
           heatmap: [],
           peak_hours: [],
           peak_days: [],
+          data_mode: 'none',
+          data_basis: 'positive_observed_tables',
+          truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
         });
       }
       console.warn('Peak activity query failed:', error.message);
@@ -227,17 +242,27 @@ export default async function handler(req, res) {
         heatmap: [],
         peak_hours: [],
         peak_days: [],
+        data_mode: 'none',
+        data_basis: 'positive_observed_tables',
+        truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       });
     }
     
-    if (!data || data.length === 0) {
+    const coverage = historicalCoverage(data);
+    if (!coverage.sufficientForPrediction) {
       return res.status(200).json({ 
-        message: 'Not enough historical data yet. Heatmap will populate within 24-48 hours.',
+        message: 'Activity patterns require positive observed tables across at least 7 distinct days.',
         heatmap: [],
         peak_hours: [],
         peak_days: [],
+        data_points: coverage.dataPoints,
+        observed_days: coverage.observedDays,
+        data_mode: 'none',
+        data_basis: 'positive_observed_tables',
+        truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       });
     }
+    data = coverage.qualifiedRows;
     
     // Build hour-of-day / day-of-week aggregation
     const hourBuckets = {}; // { hour: { totalTables, count } }
@@ -251,7 +276,7 @@ export default async function handler(req, res) {
       const parts = getLocalParts(row.snapshot_time, venueTz);
       if (!parts) return;
       const { hour, day } = parts;
-      const tables = row.total_tables || 0;
+      const tables = tableCountFromRow(row);
       
       // Hour buckets
       if (!hourBuckets[hour]) hourBuckets[hour] = { totalTables: 0, count: 0 };
@@ -313,8 +338,9 @@ export default async function handler(req, res) {
     });
     
     // Best time to visit
-    const bestSlot = peakHours[0];
-    const bestDay = peakDays[0];
+    const bestSlot = heatmapGrid
+      .filter((cell) => cell.samples > 0)
+      .sort((a, b) => b.avg_tables - a.avg_tables || b.samples - a.samples)[0] || null;
     
     res.status(200).json({
       venue_filter: resolvedVenueName || safeVenueId || 'all',
@@ -324,10 +350,14 @@ export default async function handler(req, res) {
       truncated,
       period: '14 days',
       timezone: venueTz,
+      observed_days: coverage.observedDays,
+      data_mode: 'observed_history',
+      data_basis: 'positive_observed_tables',
+      truth_contract_version: PNM_TRUTH_CONTRACT_VERSION,
       peak_hours: peakHours.slice(0, 6),
       peak_days: peakDays,
       heatmap: heatmapGrid,
-      best_time: bestSlot ? `${bestDay?.label || 'Weekend'} at ${bestSlot.label}` : null,
+      best_time: bestSlot ? `${bestSlot.day_label} at ${bestSlot.hour_label}` : null,
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {

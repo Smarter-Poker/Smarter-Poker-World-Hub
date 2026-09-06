@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
@@ -53,4 +54,29 @@ test('the webhook rejects oversized or unverifiable payloads without echoing Str
   assert.match(source, /status\(413\)\.json\(\{ error: 'Webhook payload too large' \}\)/);
   assert.match(source, /status\(400\)\.json\(\{ error: 'Invalid webhook signature' \}\)/);
   assert.doesNotMatch(source, /Webhook Error: \$\{err\.message\}/);
+});
+
+test('an oversized webhook keeps stream errors handled until the request closes', async () => {
+  const source = await read('pages/api/store/webhooks/stripe.js');
+  const start = source.indexOf('async function getRawBody(req)');
+  const end = source.indexOf('\n\nlet _supabase', start);
+  assert.ok(start > -1 && end > start, 'raw body reader must remain independently testable');
+  const getRawBody = new Function(
+    'Buffer',
+    `const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1024 * 1024;\n${source.slice(start, end)}\nreturn getRawBody;`
+  )(Buffer);
+
+  class RequestStream extends EventEmitter {
+    resume() { this.resumed = true; }
+  }
+
+  const req = new RequestStream();
+  const reading = getRawBody(req);
+  req.emit('data', Buffer.alloc((1024 * 1024) + 1));
+  await assert.rejects(reading, error => error?.code === 'BODY_TOO_LARGE');
+  assert.equal(req.resumed, true, 'the rejected body must be drained');
+  assert.ok(req.listenerCount('error') > 0, 'draining must retain an error listener');
+  assert.doesNotThrow(() => req.emit('error', new Error('client reset after overflow')));
+  req.emit('close');
+  assert.equal(req.listenerCount('error'), 0, 'stream listeners must release after close');
 });

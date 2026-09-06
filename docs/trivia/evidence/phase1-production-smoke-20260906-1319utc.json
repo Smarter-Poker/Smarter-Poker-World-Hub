@@ -1,0 +1,228 @@
+{
+  "evidence": "trivia_phase1_production_smoke",
+  "capturedAtUtc": "2026-09-06T13:19:06.337Z",
+  "baseUrl": "https://smarter.poker",
+  "databaseProjectRef": "kuklfnapbkmacvwxktbh",
+  "health": {
+    "status": 200,
+    "app": "ok",
+    "database": "ok",
+    "version": "852facdfb84b775166590aa2b8477143a3c230f7"
+  },
+  "apiProbes": [
+    {
+      "route": "/api/trivia/pvp-settle-match",
+      "caller": "anonymous",
+      "status": 503,
+      "error": "pvp_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/pvp-settle-match",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "pvp_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-enter",
+      "caller": "anonymous",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-enter",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-round-questions",
+      "caller": "anonymous",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-round-questions",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-submit-round",
+      "caller": "anonymous",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-submit-round",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/session-start",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "pvp_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/session-start",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/session-answer",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "pvp_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/session-submit",
+      "caller": "authenticated",
+      "status": 503,
+      "error": "pvp_temporarily_unavailable"
+    },
+    {
+      "route": "/api/trivia/tournament-lifecycle",
+      "caller": "cron-authorized",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/cron/trivia-tournament-tick",
+      "caller": "cron-authorized",
+      "status": 503,
+      "error": "tournaments_temporarily_unavailable"
+    },
+    {
+      "route": "/api/cron/pvp-settle",
+      "caller": "cron-authorized",
+      "status": 200,
+      "healthy": true,
+      "scanned": 0,
+      "settled": 0
+    }
+  ],
+  "pageProbes": [
+    {
+      "route": "/hub/trivia/pvp",
+      "status": 307,
+      "location": "/hub/trivia"
+    },
+    {
+      "route": "/hub/trivia/tournaments",
+      "status": 307,
+      "location": "/hub/trivia"
+    }
+  ],
+  "retiredRoutes": [
+    {
+      "route": "/api/cron/trivia-pvp-cleanup",
+      "status": 404
+    },
+    {
+      "route": "/api/cron/trivia-tournaments",
+      "status": 404
+    },
+    {
+      "route": "/api/cron/trivia-tournament-rounds",
+      "status": 404
+    }
+  ],
+  "lobby": {
+    "status": 200,
+    "dailyPreserved": true,
+    "quickStakesPreserved": true,
+    "maintenance": true,
+    "ssrVisible": true
+  },
+  "authenticatedProbe": true,
+  "temporaryFixtureRemoved": true,
+  "before": {
+    "pvpMatches": 4,
+    "pvpOpen": 0,
+    "pvpQueueWaiting": 0,
+    "pvpSessions": 3,
+    "tournaments": 5,
+    "tournamentsOpen": 0,
+    "tournamentEntries": 208,
+    "movements": {
+      "pvp_stake": {
+        "rows": 3,
+        "net": -120
+      },
+      "pvp_refund": {
+        "rows": 488,
+        "net": 14240
+      },
+      "pvp_win": {
+        "rows": 0,
+        "net": 0
+      },
+      "pvp_tie_refund": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_entry": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_entry_refund": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_cancel_refund": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_prize": {
+        "rows": 16,
+        "net": 4600
+      }
+    }
+  },
+  "after": {
+    "pvpMatches": 4,
+    "pvpOpen": 0,
+    "pvpQueueWaiting": 0,
+    "pvpSessions": 3,
+    "tournaments": 5,
+    "tournamentsOpen": 0,
+    "tournamentEntries": 208,
+    "movements": {
+      "pvp_stake": {
+        "rows": 3,
+        "net": -120
+      },
+      "pvp_refund": {
+        "rows": 488,
+        "net": 14240
+      },
+      "pvp_win": {
+        "rows": 0,
+        "net": 0
+      },
+      "pvp_tie_refund": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_entry": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_entry_refund": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_cancel_refund": {
+        "rows": 0,
+        "net": 0
+      },
+      "tournament_prize": {
+        "rows": 16,
+        "net": 4600
+      }
+    }
+  },
+  "unchanged": true
+}

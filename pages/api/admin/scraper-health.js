@@ -41,6 +41,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { classifyScraperHealth } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 
@@ -78,6 +79,7 @@ const NOT_INSTRUMENTED_REASON =
 // Daemon display metadata
 const DAEMON_META = [
   { id: 'bravo',                      label: 'Bravo Live Scraper',        type: 'live',       interval: '15 min'    },
+  { id: 'bravo-simulator',            label: 'Modeled Cash Activity',     type: 'model',      interval: '15 min'    },
   { id: 'pokeratlas',                 label: 'PokerAtlas Live Scraper',    type: 'live',       interval: '15 min'    },
   { id: 'series-scraper',             label: 'Series Scraper',             type: 'tournament', interval: 'KeepAlive' },
   { id: 'tournament-schedule-daemon', label: 'Tournament Schedule',        type: 'tournament', interval: 'KeepAlive' },
@@ -95,13 +97,30 @@ const DAEMON_META = [
  */
 async function readHeartbeat(source) {
   try {
-    const { data, error } = await getSupabase()
+    const baseColumns = 'source, cycle_start, duration_seconds, venues_scraped, venues_with_data, errors, records_saved, created_at';
+    const truthColumns = `${baseColumns}, run_status, records_attempted, records_rejected, status_reason`;
+    let result = await getSupabase()
       .from('scraper_metrics')
-      .select('source, cycle_start, duration_seconds, venues_scraped, venues_with_data, errors, records_saved, created_at')
+      .select(truthColumns)
       .eq('source', source)
       .order('cycle_start', { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    // Deployment compatibility only: code can run while the truth migration is
+    // propagating, but legacy rows are explicitly marked and cannot earn a
+    // zero-output healthy state.
+    if (result.error && ['42703', 'PGRST204'].includes(result.error.code)) {
+      result = await getSupabase()
+        .from('scraper_metrics')
+        .select(baseColumns)
+        .eq('source', source)
+        .order('cycle_start', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (result.data) result.data = { ...result.data, run_status: 'legacy' };
+    }
+    const { data, error } = result;
 
     if (error) {
       console.warn('[scraper-health] scraper_metrics read failed for', source, error.message || error);
@@ -120,6 +139,10 @@ async function readHeartbeat(source) {
         : null,
       regions_scraped: null,
       errors: data.errors,
+      run_status: data.run_status || 'legacy',
+      records_attempted: data.records_attempted ?? null,
+      records_rejected: data.records_rejected ?? null,
+      status_reason: data.status_reason || null,
       duration_seconds: data.duration_seconds,
       timestamp: data.cycle_start || data.created_at,
     };
@@ -132,10 +155,15 @@ async function readHeartbeat(source) {
 // Latest live-table write timestamp for a source (data freshness, not liveness).
 async function readLastSave(source) {
   try {
-    const { data, error } = await getSupabase()
+    let query = getSupabase()
       .from('venue_live_tables')
-      .select('scrape_timestamp')
-      .eq('source', source)
+      .select('scrape_timestamp');
+    if (source === 'bravo-simulator') {
+      query = query.eq('source', 'bravo').like('scrape_batch_id', 'sim-%');
+    } else {
+      query = query.eq('source', source);
+    }
+    const { data, error } = await query
       .order('scrape_timestamp', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -270,12 +298,15 @@ export default async function handler(req, res) {
       status = 'not_instrumented';
       statusReason = NOT_INSTRUMENTED_REASON;
     } else if (heartbeat && hbStaleMin !== null) {
-      if (hbStaleMin <= 25) status = 'healthy';
-      else if (hbStaleMin <= 45) status = 'warning';
-      else {
-        status = 'dead';
-        statusReason = `Instrumented but stale: last scraper_metrics cycle was ${hbStaleMin} minutes ago.`;
-      }
+      const classification = classifyScraperHealth({
+        heartbeat,
+        heartbeatStaleMinutes: hbStaleMin,
+        dataStaleMinutes: dbStaleMin,
+        healthyMinutes: 25,
+        deadMinutes: 45,
+      });
+      status = classification.status;
+      statusReason = classification.reason;
     } else {
       status = 'unknown';
       statusReason = 'This source appears in scraper_metrics but its latest cycle row could not be read.';
@@ -299,6 +330,10 @@ export default async function handler(req, res) {
         progress: heartbeat.progress,
         regionsScraped: heartbeat.regions_scraped,
         errors: heartbeat.errors,
+        runStatus: heartbeat.run_status,
+        recordsAttempted: heartbeat.records_attempted,
+        recordsRejected: heartbeat.records_rejected,
+        statusReason: heartbeat.status_reason,
         durationSeconds: heartbeat.duration_seconds,
         timestamp: heartbeat.timestamp,
         staleMinutes: hbStaleMin,

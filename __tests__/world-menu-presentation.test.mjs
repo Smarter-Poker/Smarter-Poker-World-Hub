@@ -97,6 +97,8 @@ test('the drawer, fallback trigger, and recovery surface consume one token set',
   assert.match(drawer, /data-world-command-menu='social-media'[\s\S]*?\.sp-grid-tile\[aria-current='page'\]/);
   assert.match(dock, /getWorldMenuStyleVariables/);
   assert.match(dock, /data-world-menu-scheme=\{world\.menuPalette\.scheme\}/);
+  assert.match(dock, /isTriggerUsable/);
+  assert.doesNotMatch(dock, /world\.id === 'social-media'/);
   assert.match(recovery, /getWorldMenuStyleVariables/);
   assert.match(recovery, /data-world-menu-scheme=\{palette\.scheme \|\| 'global'\}/);
 });

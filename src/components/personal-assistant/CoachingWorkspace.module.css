@@ -31,7 +31,7 @@
 .searchBar input { min-height: 44px; border: 0; outline: 0; background: transparent; color: #fff; width: 100%; font: inherit; min-width: 0; }
 .searchBar input::placeholder { color: #7e9aa9; }
 
-.viewNav { display: grid; grid-template-columns: repeat(5, minmax(72px, 1fr)); overflow-x: auto; scrollbar-width: thin; }
+.viewNav { display: grid; grid-template-columns: repeat(6, minmax(72px, 1fr)); overflow-x: auto; scrollbar-width: thin; }
 .viewNav button { min-height: 50px; border: 0; border-right: 1px solid rgba(115, 190, 224, .25); background: transparent; color: #9cb4c2; display: inline-flex; justify-content: center; align-items: center; gap: 7px; font: 700 12px/1 sans-serif; cursor: pointer; }
 .viewNav button:last-child { border-right: 0; }
 .viewNav button:focus-visible, .primaryButton:focus-visible, .secondaryButton:focus-visible, .priorityList button:focus-visible, .leakPicker button:focus-visible { outline: 2px solid var(--coach-accent); outline-offset: -3px; }
@@ -41,7 +41,7 @@
 .inlineNotice { margin-top: 10px; padding: 9px 11px; border-left: 3px solid var(--coach-gold); background: rgba(255, 198, 109, .07); color: #b9ced7; font-size: 12px; line-height: 1.45; }
 .inlineNotice button { min-height: 32px; margin-left: 7px; border: 1px solid rgba(115, 190, 224, .55); background: #071b27; color: #eaf8ff; cursor: pointer; }
 
-.coachGrid, .evidenceGrid, .goalsGrid { display: grid; gap: 14px; }
+.coachGrid, .evidenceGrid, .goalsGrid, .dataGrid { display: grid; gap: 14px; }
 .panel { padding: 16px; min-width: 0; }
 .nextAction { border-color: rgba(99, 231, 255, .85); background: radial-gradient(circle at 88% 18%, rgba(0, 169, 255, .22), transparent 35%), linear-gradient(150deg, #0b2839, #031019); }
 .nextAction > strong { display: block; font-size: 18px; color: #fff; margin: 8px 0; }
@@ -100,6 +100,7 @@
 .coverageList div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(115, 190, 224, .18); padding-bottom: 7px; }
 .coverageList dt { color: #8da6b3; }.coverageList dd { margin: 0; font: 700 13px monospace; color: #fff; }
 .panel select, .panel textarea, .panel input { box-sizing: border-box; width: 100%; min-height: 44px; margin-top: 7px; padding: 10px; border: 1px solid rgba(115, 190, 224, .48); border-radius: 0; background: #04121c; color: #fff; font: inherit; }
+.panel select { height: 44px; }
 .panel textarea { min-height: 96px; resize: vertical; margin-bottom: 10px; }
 .panel label { display: block; margin-top: 12px; color: #9cb4c2; font-size: 12px; font-weight: 700; }
 
@@ -113,6 +114,12 @@
 .goalActions { display: flex; flex-wrap: wrap; gap: 7px; }
 .goalList button { min-height: 44px; padding: 8px 11px; border: 1px solid rgba(77, 224, 165, .5); background: rgba(77, 224, 165, .08); color: #68efb3; cursor: pointer; }
 .goalList .removeGoal { border-color: rgba(255, 107, 122, .5); background: rgba(255, 107, 122, .08); color: #ff8290; }
+.dangerPanel { border-color: rgba(255, 107, 122, .58); background: linear-gradient(150deg, rgba(43, 15, 23, .96), rgba(10, 8, 14, .98)); }
+.removeDataButton { min-height: 44px; margin-top: 12px; padding: 10px 14px; border: 1px solid rgba(255, 107, 122, .72); border-radius: 0; background: rgba(255, 107, 122, .12); color: #ff9aa5; font: 800 12px/1.2 sans-serif; cursor: pointer; }
+.removeDataButton:disabled { opacity: .5; cursor: not-allowed; }
+.confirmDeletion { margin-top: 12px; padding: 12px; border: 1px solid rgba(255, 107, 122, .38); background: rgba(0, 0, 0, .22); }
+.mutedCopy { display: block; margin-top: 10px; color: #829ba8; }
+.titleValue { text-transform: capitalize; }
 .reportMetrics { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 15px 0; }
 .reportMetrics > div { padding: 13px; border: 1px solid rgba(115, 190, 224, .26); }
 .reportMetrics strong { display: block; margin-top: 6px; font: 700 20px monospace; }
@@ -129,7 +136,7 @@
 
 @media (max-width: 560px) {
   .workspace { margin-inline: -2px; }
-  .viewNav { grid-template-columns: repeat(5, minmax(82px, 1fr)); }
+  .viewNav { grid-template-columns: repeat(6, minmax(82px, 1fr)); }
   .viewNav button { flex-direction: column; gap: 4px; }
   .priorityList button { grid-template-columns: 30px minmax(0, 1fr) 18px; }
   .confidence { grid-column: 2; justify-self: start; }
@@ -140,7 +147,7 @@
 @media (min-width: 760px) {
   .commandHeader { flex-direction: row; align-items: center; justify-content: space-between; padding: 22px; }
   .provenanceGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .coachGrid, .goalsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .coachGrid, .goalsGrid, .dataGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .evidenceGrid { grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); }
   .metricGrid { grid-column: 1 / -1; grid-template-columns: repeat(4, 1fr); }
   .debriefGrid, .reportMetrics { grid-template-columns: repeat(3, 1fr); }

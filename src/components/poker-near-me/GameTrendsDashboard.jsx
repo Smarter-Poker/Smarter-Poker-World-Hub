@@ -61,8 +61,8 @@ export default function GameTrendsDashboard() {
   if (loading) {
     return (
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-        borderRadius: 16, padding: 24, border: '1px solid rgba(0,212,255,0.15)',
+        background: '#080b10',
+        borderRadius: 3, padding: 24, border: '1px solid rgba(170,184,196,0.28)',
       }}>
         <div style={{ color: '#64748b', textAlign: 'center', padding: 40 }}>Loading Trends...</div>
       </div>
@@ -72,8 +72,8 @@ export default function GameTrendsDashboard() {
   if (error) {
     return (
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-        borderRadius: 16, padding: 24, border: '1px solid rgba(245,158,11,0.25)',
+        background: '#080b10',
+        borderRadius: 3, padding: 24, border: '1px solid rgba(245,158,11,0.32)',
       }}>
         <h3 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16 }}>Game Type Trends</h3>
         <div style={{ color: '#f59e0b', fontSize: 13, marginBottom: 14 }}>
@@ -82,7 +82,7 @@ export default function GameTrendsDashboard() {
         <button
           onClick={() => { setError(null); setLoading(true); setReloadKey(k => k + 1); }}
           style={{
-            padding: '8px 16px', borderRadius: 8, background: 'rgba(245,158,11,0.12)',
+            minHeight: 44, padding: '8px 16px', borderRadius: 2, background: '#11151b',
             border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b',
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           }}
@@ -98,26 +98,63 @@ export default function GameTrendsDashboard() {
   // into every bar's width. Coerce once, here.
   const tableCount = (t) => Number(t?.current_tables) || 0;
   const maxTables = Math.max(...trends.map(tableCount), 1);
+  const dataMode = data?.data_mode || 'none';
+  const isEstimated = dataMode === 'estimated';
+  const isMixed = dataMode === 'mixed';
+  const isCatalog = dataMode === 'catalog';
+  const heading = isCatalog
+    ? 'Cash Game Catalog'
+    : isEstimated
+    ? 'Estimated Game Activity'
+    : isMixed
+      ? 'Observed + Estimated Activity'
+      : 'Observed Game Activity';
+  const totalLabel = isCatalog
+    ? 'Games Listed'
+    : isEstimated
+    ? 'Estimated Tables'
+    : isMixed
+      ? 'Published Tables'
+      : 'Observed Tables';
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-      borderRadius: 16, padding: 20, border: '1px solid rgba(0,212,255,0.15)',
+      background: '#080b10',
+      borderRadius: 3, padding: 20, border: '1px solid rgba(170,184,196,0.3)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 45px rgba(0,0,0,0.3)',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>Game Type Trends</h3>
-        <div style={{ color: '#64748b', fontSize: 12 }}>
-          {data?.total_games_now || 0} Tables Active
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>{heading}</h3>
+        <div style={{ color: isEstimated ? '#d8bb7d' : '#8fdcfb', fontSize: 12 }}>
+          {isCatalog ? (data?.catalog_game_count || 0) : (data?.total_games_now || 0)} {totalLabel}
         </div>
       </div>
 
-      {!data?.has_historical_data && (
+      {(isEstimated || isMixed) && (
+        <div style={{
+          background: 'rgba(216,187,125,0.08)', border: '1px solid rgba(216,187,125,0.3)',
+          borderRadius: 2, padding: '8px 12px', marginBottom: 12, fontSize: 12,
+          color: '#d8bb7d',
+        }}>
+          {isEstimated
+            ? 'Modeled From Saved Cash-Game Activity. These Are Not Live Observations.'
+            : 'Observed Tables And Modeled Coverage Are Identified Separately Below.'}
+        </div>
+      )}
+
+      {!data?.has_historical_data && dataMode !== 'none' && !isCatalog && (
         <div style={{
           background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)',
-          borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12,
+          borderRadius: 2, padding: '8px 12px', marginBottom: 12, fontSize: 12,
           color: '#fbbf24',
         }}>
-          Historical Comparison Available After 7 Days Of Data Collection.
+          Historical Comparison Is Not Yet Available Under The Verified Data Contract.
+        </div>
+      )}
+
+      {trends.length === 0 && (
+        <div role="status" style={{ color: '#94a3b8', fontSize: 13, padding: '18px 4px 8px' }}>
+          {data?.message || 'No Qualified Table Activity Is Available Right Now.'}
         </div>
       )}
 
@@ -125,8 +162,8 @@ export default function GameTrendsDashboard() {
         {trends.slice(0, 12).map((trend, idx) => (
           <div key={idx} style={{
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 12px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.03)',
+            padding: '10px 12px', borderRadius: 2,
+            background: '#0d1117', border: '1px solid rgba(170,184,196,0.12)',
             transition: 'all 0.2s ease',
           }}>
             {/* Rank */}
@@ -145,7 +182,8 @@ export default function GameTrendsDashboard() {
                 {trend.game}
               </div>
               <div style={{ color: '#64748b', fontSize: 12 }}>
-                {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''} Running
+                {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''}{' '}
+                {trend.basis === 'estimated' ? 'estimated' : trend.basis === 'mixed' ? 'observed + estimated' : 'observed'}
               </div>
             </div>
 

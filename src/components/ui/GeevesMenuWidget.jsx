@@ -5,7 +5,7 @@
    across the platform. Uses /api/geeves/chat for lightweight responses.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { useRouter } from 'next/router';
 import { busEmit } from '../../engine/EventBus';
 
@@ -34,6 +34,7 @@ export default function GeevesMenuWidget() {
     const inputRef = useRef(null);
     const abortControllerRef = useRef(null);
     const mountedRef = useRef(true);
+    const panelId = useId();
 
     useEffect(() => {
         mountedRef.current = true;
@@ -47,7 +48,9 @@ export default function GeevesMenuWidget() {
 
     // Auto-scroll messages
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const reduceMotion = typeof window !== 'undefined'
+            && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        messagesEndRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
     }, [messages, isTyping]);
 
     // Focus input on expand
@@ -215,7 +218,10 @@ export default function GeevesMenuWidget() {
         }}>
             {/* Header — Always visible */}
             <button
+                type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
+                aria-controls={panelId}
                 style={{
                     width: '100%',
                     display: 'flex',
@@ -250,14 +256,14 @@ export default function GeevesMenuWidget() {
                         Ask Geeves
                     </div>
                     <div style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'rgba(0, 212, 255, 0.7)',
                         fontFamily: 'Inter, sans-serif',
                     }}>
                         Your AI Help Assistant
                     </div>
                 </div>
-                <div style={{
+                <div aria-hidden="true" style={{
                     width: 8,
                     height: 8,
                     borderRadius: '50%',
@@ -275,7 +281,11 @@ export default function GeevesMenuWidget() {
             </button>
 
             {/* Expandable Chat Body */}
-            <div style={{
+            <div
+                id={panelId}
+                aria-hidden={!isExpanded}
+                hidden={!isExpanded}
+                style={{
                 maxHeight: isExpanded ? 320 : 0,
                 overflow: 'hidden',
                 transition: 'max-height 0.3s ease',
@@ -306,9 +316,11 @@ export default function GeevesMenuWidget() {
                             {quickQuestions.map((q, i) => (
                                 <button
                                     key={i}
+                                    type="button"
                                     onClick={() => sendQuickQuestion(q)}
                                     style={{
                                         padding: '8px 12px',
+                                        minHeight: 44,
                                         background: 'rgba(0, 212, 255, 0.08)',
                                         border: '1px solid rgba(0, 212, 255, 0.15)',
                                         borderRadius: 8,
@@ -393,22 +405,26 @@ export default function GeevesMenuWidget() {
                         placeholder="Ask anything..."
                         style={{
                             flex: 1,
+                            minWidth: 0,
+                            minHeight: 44,
                             padding: '8px 14px',
                             background: 'rgba(255,255,255,0.06)',
                             border: '1px solid rgba(255,255,255,0.1)',
                             borderRadius: 20,
                             color: '#fff',
-                            fontSize: 13,
+                            fontSize: 16,
                             outline: 'none',
                             fontFamily: 'Inter, sans-serif',
                         }}
                     />
                     <button
+                        type="button"
                         onClick={handleSend}
                         disabled={!input.trim()}
+                        aria-label="Send Message To Geeves"
                         style={{
-                            width: 36,
-                            height: 36,
+                            width: 44,
+                            height: 44,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -422,7 +438,7 @@ export default function GeevesMenuWidget() {
                             flexShrink: 0,
                         }}
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="white">
                             <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
                         </svg>
                     </button>

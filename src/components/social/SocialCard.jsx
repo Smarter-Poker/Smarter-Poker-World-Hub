@@ -9,6 +9,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { getAuthorDisplayName } from '../../utils/displayName';
 import { INTERACTION_TYPES } from '../../services/social-types';
+import PokerCardText from './PokerCardText';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎴 SOCIAL CARD COMPONENT
@@ -160,7 +161,7 @@ export const SocialCard = ({
         className="card-content"
         onClick={() => onPostClick?.(post.id)}
       >
-        <p className="post-text">{post.content}</p>
+        <p className="post-text"><PokerCardText text={post.content} /></p>
 
         {/* Media Grid */}
         {post.mediaUrls?.length > 0 && (

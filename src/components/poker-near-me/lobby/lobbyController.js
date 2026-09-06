@@ -6,10 +6,6 @@
  * from becoming the source of truth for data behavior.
  */
 
-export const VENUE_COUNT_CACHE_KEY = 'pnm_venue_count';
-export const VENUE_COUNT_CACHE_AT = 'pnm_venue_count_at';
-export const VENUE_COUNT_TTL_MS = 24 * 60 * 60 * 1000;
-
 export const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 

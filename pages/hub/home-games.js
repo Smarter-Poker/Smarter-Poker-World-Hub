@@ -1094,7 +1094,11 @@ export default function HomeGamesPage() {
                     onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
                 />
 
-                <style>{`
+                {/* Raw style text is not hydration-safe when the CSS contains
+                    apostrophes: SSR entity-escapes them inside the style raw
+                    text element while the client creates literal characters.
+                    Emit one identical text payload in both environments. */}
+                <style dangerouslySetInnerHTML={{ __html: `
                     .hg-page {
                         min-height: 100vh;
                         padding-bottom: 70px;
@@ -1943,7 +1947,7 @@ export default function HomeGamesPage() {
                             border-radius: 10px;
                         }
                     }
-                `}</style>
+                ` }} />
             </div>
         </>
     );

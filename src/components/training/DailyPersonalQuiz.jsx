@@ -1,10 +1,10 @@
 /**
- * DailyPersonalQuiz — Auto-Generated Daily Quiz Targeting Your Weaknesses
- * CRITICAL GAP CLOSER: GTO Wizard daily challenges personalized to user
- * Generates quiz hands based on detected leak areas
+ * DailyPersonalQuiz - Daily Strategy Rotation
+ * Five authored solver scenarios covering essential strategy areas.
  */
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import styles from '../../styles/training/daily-personal-quiz-casino.module.css';
 
 const QUIZ_CATEGORIES = [
   { id: 'preflop', label: 'Preflop Ranges', icon: '◇', color: '#3b82f6' },
@@ -88,33 +88,32 @@ export default function DailyPersonalQuiz() {
   }, []);
 
   return (
-    <div style={{ padding: 20, color: '#e2e8f0' }}>
-      <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        Daily Strategy Quiz
-      </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>Personalized Daily Challenges Targeting Your Weak Spots.</p>
+    <section className={styles.quiz} aria-labelledby="daily-personal-quiz-title">
+      <header className={styles.marquee}>
+        <span>Personal Strategy Table</span>
+        <h3 id="daily-personal-quiz-title">Daily Strategy Quiz</h3>
+        <p>Five Daily Solver Scenarios Across Essential Strategy Areas.</p>
+      </header>
 
       {/* Stats Bar */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+      <div className={styles.stats} aria-label="Daily Quiz Status">
         {[
-          { label: 'Score', value: `${score}/${answered}`, color: '#22c55e' },
-          { label: 'Accuracy', value: answered > 0 ? `${Math.round(score/answered*100)}%` : '-', color: '#3b82f6' },
-          { label: 'Streak', value: `${streak}▲`, color: '#f59e0b' },
-          { label: 'Question', value: `${qIdx + 1}/${DAILY_QUESTIONS.length}`, color: '#8b5cf6' },
+          { label: 'Score', value: `${score}/${answered}` },
+          { label: 'Accuracy', value: answered > 0 ? `${Math.round(score/answered*100)}%` : '-' },
+          { label: 'Streak', value: `${streak}` },
+          { label: 'Question', value: `${qIdx + 1}/${DAILY_QUESTIONS.length}` },
         ].map((s, i) => (
-          <div key={i} style={{ flex: 1, background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: s.color, fontFamily: 'monospace' }}>{s.value}</div>
-            <div style={{ fontSize: 8, color: '#64748b' }}>{s.label}</div>
+          <div key={i}>
+            <strong>{s.value}</strong>
+            <span>{s.label}</span>
           </div>
         ))}
       </div>
 
       {/* Category Tags */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+      <div className={styles.categories} aria-label="Strategy Categories">
         {QUIZ_CATEGORIES.map(c => (
-          <span key={c.id} style={{ padding: '3px 8px', borderRadius: 4, background: q.category === c.id ? `${c.color}15` : 'rgba(0,0,0,0.2)',
-            border: q.category === c.id ? `1px solid ${c.color}` : '1px solid transparent',
-            fontSize: 9, fontWeight: 700, color: q.category === c.id ? c.color : '#64748b' }}>
+          <span key={c.id} data-active={q.category === c.id || undefined}>
             {c.icon} {c.label}
           </span>
         ))}
@@ -122,41 +121,34 @@ export default function DailyPersonalQuiz() {
 
       {/* Question Card */}
       <motion.div key={qIdx} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-        style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', padding: '2px 8px', background: 'rgba(245,158,11,0.1)', borderRadius: 4 }}>{q.difficulty}</span>
-          <span style={{ fontSize: 10, color: '#64748b' }}>{q.position}</span>
+        className={styles.questionCard}>
+        <div className={styles.questionMeta}>
+          <span>{q.difficulty}</span>
+          <span>{q.position}</span>
         </div>
-        <p style={{ fontSize: 13, color: '#e2e8f0', marginBottom: 8, lineHeight: 1.5 }}>{q.scenario}</p>
+        <p className={styles.scenario}>{q.scenario}</p>
         {q.board && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, color: '#64748b' }}>Board: <strong style={{ color: '#e2e8f0', fontFamily: 'monospace' }}>{q.board}</strong></span>
-            {q.pot && <span style={{ fontSize: 11, color: '#64748b' }}>Pot: <strong style={{ color: '#22c55e', fontFamily: 'monospace' }}>{q.pot}</strong></span>}
+          <div className={styles.tableReadout}>
+            <span>Board <strong>{q.board}</strong></span>
+            {q.pot && <span>Pot <strong>{q.pot}</strong></span>}
           </div>
         )}
 
         {/* Options */}
-        <div style={{ display: 'grid', gap: 6 }}>
+        <div className={styles.options}>
           {q.options.map((opt, i) => {
             const isSelected = selected === i;
             const showResult = selected !== null;
-            const bgColor = showResult
-              ? opt.correct ? 'rgba(34,197,94,0.15)' : isSelected ? 'rgba(239,68,68,0.15)' : 'rgba(0,0,0,0.2)'
-              : 'rgba(0,0,0,0.2)';
-            const borderColor = showResult
-              ? opt.correct ? '#22c55e' : isSelected ? '#ef4444' : 'transparent'
-              : isSelected ? '#3b82f6' : 'rgba(255,255,255,0.06)';
             return (
-              <button key={i} onClick={() => handleAnswer(i)}
-                style={{ padding: 10, borderRadius: 8, border: `1px solid ${borderColor}`, background: bgColor, cursor: selected === null ? 'pointer' : 'default', textAlign: 'left' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: showResult ? (opt.correct ? '#22c55e' : isSelected ? '#ef4444' : '#64748b') : '#e2e8f0' }}>
-                    {opt.action}
-                  </span>
-                  {showResult && <span style={{ fontSize: 10, fontFamily: 'monospace', color: opt.ev >= 0 ? '#22c55e' : '#ef4444' }}>EV: {opt.ev > 0 ? '+' : ''}{opt.ev} BB</span>}
+              <button key={i} type="button" onClick={() => handleAnswer(i)} disabled={selected !== null}
+                data-correct={(showResult && opt.correct) || undefined}
+                data-incorrect={(showResult && isSelected && !opt.correct) || undefined}>
+                <div className={styles.optionHeading}>
+                  <span>{opt.action}</span>
+                  {showResult && <span>EV: {opt.ev > 0 ? '+' : ''}{opt.ev} BB</span>}
                 </div>
                 {showResult && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.explanation}>
                     {opt.explain}
                   </motion.div>
                 )}
@@ -168,14 +160,12 @@ export default function DailyPersonalQuiz() {
 
       {/* Next Button */}
       {selected !== null && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center' }}>
-          <button onClick={nextQuestion}
-            style={{ padding: '10px 30px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-            Next Question →
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.nextWrap}>
+          <button type="button" onClick={nextQuestion}>
+            Next Question <span aria-hidden="true">›</span>
           </button>
         </motion.div>
       )}
-    </div>
+    </section>
   );
 }

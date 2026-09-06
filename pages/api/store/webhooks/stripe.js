@@ -30,6 +30,7 @@ async function getRawBody(req) {
             req.off('data', onData);
             req.off('end', onEnd);
             req.off('error', onError);
+            req.off('close', onClose);
         };
         const fail = (error) => {
             if (settled) return;
@@ -43,22 +44,46 @@ async function getRawBody(req) {
             if (bytes > MAX_STRIPE_WEBHOOK_BODY_BYTES) {
                 const error = new Error('Stripe webhook payload exceeds the byte limit');
                 error.code = 'BODY_TOO_LARGE';
-                fail(error);
+                // Reject immediately, but keep the request error listener until
+                // the oversized stream ends or closes. A client can reset the
+                // connection while Node is draining it; removing the only
+                // listener first would turn that reset into an uncaught
+                // EventEmitter error in the serverless invocation.
+                settled = true;
+                chunks.length = 0;
+                req.off('data', onData);
+                reject(error);
                 req.resume?.();
                 return;
             }
             chunks.push(buffer);
         };
         const onEnd = () => {
-            if (settled) return;
+            if (settled) {
+                cleanup();
+                return;
+            }
             settled = true;
             cleanup();
             resolve(Buffer.concat(chunks, bytes));
         };
-        const onError = (error) => fail(error);
+        const onError = (error) => {
+            if (settled) return;
+            fail(error);
+        };
+        const onClose = () => {
+            if (settled) {
+                cleanup();
+                return;
+            }
+            const error = new Error('Stripe webhook request closed before the body completed');
+            error.code = 'BODY_STREAM_CLOSED';
+            fail(error);
+        };
         req.on('data', onData);
         req.on('end', onEnd);
         req.on('error', onError);
+        req.on('close', onClose);
     });
 }
 

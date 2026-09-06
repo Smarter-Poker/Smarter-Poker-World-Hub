@@ -93,8 +93,8 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /: 'Open Menu'/);
 
   for (const label of [
-    'Go back',
-    'Go to the Hub',
+    'Go Back',
+    'Go To The Hub',
     'My Profile',
     'Diamond Wallet',
     'Messages',
@@ -102,7 +102,8 @@ test('World Hub header wires all approved controls and replaces the profile icon
   ]) {
     assert.match(header, new RegExp(`aria-label="${label}"`));
   }
-  assert.match(header, /aria-label=\{isVip \? 'VIP Membership active' : 'VIP Membership inactive'\}/);
+  assert.match(header, /aria-label=\{safeIsVip \? 'VIP Membership Active' : 'VIP Membership Inactive'\}/);
+  assert.match(header, /data-vip-active=\{safeIsVip \? 'true' : 'false'\}/);
 });
 
 /*

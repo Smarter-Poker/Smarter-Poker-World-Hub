@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         city, state, zip_code, default_game_type, default_stakes,
         typical_buyin_min, typical_buyin_max, max_players,
         typical_day, typical_time, frequency, member_count, games_hosted,
-        cover_photo_url, profile_photo_url, invite_code, club_code, owner_id,
+        cover_photo_url, profile_photo_url, club_code, owner_id,
         contact_phone, website_url,
         created_at, updated_at, settings,
         profiles:owner_id (id, display_name, avatar_url)
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
       // here without confirming they exist — selecting a missing column
       // 42703's the whole query, silently emptying upcoming_games.
       .select(
-        'id, title, description, game_type, stakes, format, structure, starting_stack, buyin_min, buyin_max, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
+        'id, title, description, game_type, stakes, format, structure, starting_stack, buyin_min, buyin_max, scheduled_date, start_time, end_time, max_players, min_players, allow_guests, guest_limit, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
       )
       .eq('group_id', group.id)
       .gte('scheduled_date', today)
@@ -192,6 +192,33 @@ export default async function handler(req, res) {
     if (upcomingErr) {
       // eslint-disable-next-line no-console
       console.warn('[public/home-games/[slug]] upcoming games query failed:', upcomingErr.message);
+    }
+
+    // rsvp_yes is a legacy party-row count. Capacity is guest-aware now, so
+    // publish a privacy-safe aggregate seat count without exposing RSVP rows.
+    // The request RPC/trigger remains the authoritative placement decision.
+    let upcomingGamesOut = upcomingGames || [];
+    const upcomingGameIds = upcomingGamesOut.map((game) => game.id).filter(Boolean);
+    if (upcomingGameIds.length > 0) {
+      const { data: rsvpSeatRows, error: rsvpSeatErr } = await supabase
+        .from('commander_home_rsvps')
+        .select('game_id, bringing_guests')
+        .in('game_id', upcomingGameIds)
+        .eq('response', 'yes');
+      if (rsvpSeatErr) {
+        console.warn('[public/home-games/[slug]] RSVP seat aggregate failed:', rsvpSeatErr.message);
+      } else {
+        const seatsByGame = new Map();
+        for (const rsvp of rsvpSeatRows || []) {
+          const guests = Number(rsvp?.bringing_guests);
+          const seats = 1 + (Number.isFinite(guests) ? Math.max(0, Math.trunc(guests)) : 0);
+          seatsByGame.set(rsvp.game_id, (seatsByGame.get(rsvp.game_id) || 0) + seats);
+        }
+        upcomingGamesOut = upcomingGamesOut.map((game) => ({
+          ...game,
+          rsvp_seats: seatsByGame.get(game.id) || 0,
+        }));
+      }
     }
 
     // 4. Recent public posts on the social page
@@ -287,7 +314,7 @@ export default async function handler(req, res) {
         host: group.profiles
           ? { id: group.profiles.id, display_name: group.profiles.display_name, avatar_url: group.profiles.avatar_url }
           : null,
-        upcoming_games: upcomingGames || [],
+        upcoming_games: upcomingGamesOut,
         posts: postsOut,
       },
     });
@@ -296,7 +323,7 @@ export default async function handler(req, res) {
     // eslint-disable-next-line no-console
     console.warn('[public/home-games/[slug]]', err);
     if (!res.headersSent) {
-      return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 }

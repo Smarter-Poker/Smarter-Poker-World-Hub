@@ -37,6 +37,7 @@ import { getGrokClient } from '../../../../src/lib/grokClient';
 import { rateLimit, LIMITS, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { attachPersonalAssistantTiming } from '../../../../src/lib/personal-assistant/serverTiming.mjs';
+import { SolverPolicyService } from '../../../../src/services/SolverPolicyService.js';
 
 let _supabase = null;
 function getSupabase() {
@@ -146,29 +147,6 @@ function normalizeStack(stack) {
 }
 
 /**
- * Neighbouring solver buckets (±1, ±2 positions in the bucket list) ·
- * arithmetic ±20/±40 produces depths that are not buckets at all.
- */
-function nearbyStackBuckets(stackDepth) {
-  const idx = STACK_BUCKETS.indexOf(stackDepth);
-  if (idx === -1) return [];
-  return [idx - 1, idx + 1, idx - 2, idx + 2]
-    .filter(i => i >= 0 && i < STACK_BUCKETS.length)
-    .map(i => STACK_BUCKETS[i]);
-}
-
-/**
- * Deterministic pick from a result set · the same inputs must always produce
- * the same answer (Math.random() made identical spots return different lines).
- */
-function pickDeterministic(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  return [...rows].sort((a, b) =>
-    String(a?.scenario_hash || a?.id || '').localeCompare(String(b?.scenario_hash || b?.id || ''))
-  )[0];
-}
-
-/**
  * Determine current street from board state
  */
 function getStreet(board) {
@@ -177,46 +155,6 @@ function getStreet(board) {
   if (cards.length <= 3) return 'flop';
   if (cards.length === 4) return 'turn';
   return 'river';
-}
-
-const RANK_ORDER = 'AKQJT98765432';
-const SUIT_ORDER = 'shdc';
-
-/**
- * Canonical card ordering (rank descending, then suit) · scenario_hash values
- * are stored canonically, while the UI hands us cards in click order.
- */
-function canonicalCards(cards) {
-  return [...cards]
-    .filter(Boolean)
-    .map(c => String(c))
-    .sort((a, b) => {
-      const rd = RANK_ORDER.indexOf(a[0]?.toUpperCase()) - RANK_ORDER.indexOf(b[0]?.toUpperCase());
-      if (rd !== 0) return rd;
-      return SUIT_ORDER.indexOf(a[1]?.toLowerCase()) - SUIT_ORDER.indexOf(b[1]?.toLowerCase());
-    })
-    .map(c => c.toLowerCase())
-    .join('');
-}
-
-/**
- * Board strings to try against scenario_hash · canonical order first, then the
- * raw click order (some legacy rows were hashed in dealt order).
- */
-function boardStrVariants(cards) {
-  const list = (cards || []).filter(Boolean);
-  if (list.length === 0) return [];
-  const raw = list.map(c => String(c).toLowerCase()).join('');
-  const canonical = canonicalCards(list);
-  return canonical === raw ? [canonical] : [canonical, raw];
-}
-
-/**
- * Build board string from board object for hash matching
- */
-function buildBoardStr(board) {
-  const cards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
-  return canonicalCards(cards);
 }
 
 /**
@@ -321,8 +259,15 @@ async function querySolverData(params) {
           : match.matchTier === 1
           ? 'Training Solver · Hand And Board Approximation'
           : 'Training Solver · Flop-Matched Hand';
+        const policyService = new SolverPolicyService({ db: getSupabase() });
         return {
           trainingQuestion: match.question,
+          policy: policyService.consumerEnvelope(
+            policyService.answerFromQuestion(match.question, {
+              holding: [heroHand.card1, heroHand.card2],
+            }),
+            'post-session-analysis',
+          ),
           cacheRow: match.row,
           matchTier: match.matchTier,
           source,
@@ -333,527 +278,106 @@ async function querySolverData(params) {
     }
   }
 
-  if (street === 'preflop') {
-    return queryPreflopData(params);
-  }
-
+  const policyService = new SolverPolicyService({ db: getSupabase() });
   const pioGameType = getPioGameType(gameType, street);
   const stackDepth = normalizeStack(heroStack);
-  const fullBoardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
-  const flopCards = (board?.flop || []).filter(Boolean);
-
-  const SELECT_COLS = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix';
-
-  // ━━━ TIER 1: Full board match (canonical order, then dealt order) ━━━
-  for (const boardStr of boardStrVariants(fullBoardCards)) {
-    try {
-      const { data: exactMatches, error } = await getSupabase()
-        .from('solved_spots_gold')
-        .select(SELECT_COLS)
-        .eq('game_type', pioGameType)
-        .eq('stack_depth', stackDepth)
-        .eq('street', street)
-        .ilike('scenario_hash', `%${boardStr}%`)
-        .limit(5);
-
-      if (!error && exactMatches && exactMatches.length > 0) {
-        const scenario = pickDeterministic(exactMatches);
-        if (scenario?.strategy_matrix) {
-          // Position / pot / action line are NOT verified by this match ·
-          // only board + stack + street + game type. Label accordingly.
-          return { scenario, matchTier: 1, source: 'PIO Solver · Board Match' };
-        }
-      }
-    } catch (e) { console.warn('[Sandbox] Tier 1 query error:', e.message); }
-  }
-
-  // ━━━ TIER 2: Partial board match (flop portion) ━━━
-  if (flopCards.length >= 3) {
-    for (const flopStr of boardStrVariants(flopCards)) {
-      try {
-        const { data: partialMatches } = await getSupabase()
-          .from('solved_spots_gold')
-          .select(SELECT_COLS)
-          .eq('game_type', pioGameType)
-          .eq('stack_depth', stackDepth)
-          .eq('street', street)
-          .ilike('scenario_hash', `%${flopStr}%`)
-          .limit(5);
-
-        if (partialMatches && partialMatches.length > 0) {
-          const scenario = pickDeterministic(partialMatches);
-          if (scenario?.strategy_matrix) {
-            return { scenario, matchTier: 2, source: 'PIO Solver · Board Approximated' };
-          }
-        }
-      } catch (e) { console.warn('[Sandbox] Tier 2 query error:', e.message); }
-    }
-  }
-
-  // ━━━ TIER 3: Any scenario with same game_type/street/stack ━━━
-  try {
-    const { data: anyMatches } = await getSupabase()
-      .from('solved_spots_gold')
-      .select(SELECT_COLS)
-      .eq('game_type', pioGameType)
-      .eq('stack_depth', stackDepth)
-      .eq('street', street)
-      .limit(10);
-
-    if (anyMatches && anyMatches.length > 0) {
-      const scenario = pickDeterministic(anyMatches);
-      if (scenario?.strategy_matrix) {
-        return { scenario, matchTier: 3, source: 'PIO Solver · Similar Spot' };
-      }
-    }
-  } catch (e) { console.warn('[Sandbox] Tier 3 query error:', e.message); }
-
-  // ━━━ TIER 3b: Try nearby stack buckets ━━━
-  const nearbyStacks = nearbyStackBuckets(stackDepth);
-  if (nearbyStacks.length > 0) {
-    try {
-      const { data: nearbyMatches } = await getSupabase()
-        .from('solved_spots_gold')
-        .select(SELECT_COLS)
-        .eq('game_type', pioGameType)
-        .in('stack_depth', nearbyStacks)
-        .eq('street', street)
-        .limit(5);
-
-      if (nearbyMatches && nearbyMatches.length > 0) {
-        const scenario = pickDeterministic(nearbyMatches);
-        if (scenario?.strategy_matrix) {
-          return { scenario, matchTier: 3, source: `PIO Solver · ${scenario.stack_depth}bb Approximated` };
-        }
-      }
-    } catch (e) { console.warn('[Sandbox] Tier 3b query error:', e.message); }
-  }
-
-  return null; // No solver data · will fall back to Grok
-}
-
-/**
- * Query preflop data from memory_charts_gold
- */
-async function queryPreflopData(params) {
-  const { heroStack, heroPosition, gameType } = params;
-  const stackDepth = normalizeStack(heroStack);
-
-  // memory_charts_gold holds PUSH/FOLD Nash charts. Those are only valid for
-  // short-stack shove spots in tournament-style games · never for 100bb cash.
-  const isShoveFormat = gameType === 'tournament' || gameType === 'mtt' || gameType === 'spin' || gameType === 'sng';
-  if (!isShoveFormat || stackDepth > 25) return null; // → Grok handles the spot
-
-  try {
-    const { data: charts } = await getSupabase()
-      .from('memory_charts_gold')
-      .select('*')
-      .lte('stack_depth', stackDepth + 5)
-      .gte('stack_depth', Math.max(1, stackDepth - 5))
-      .limit(10);
-
-    if (charts && charts.length > 0) {
-      // Find a chart matching hero position if possible
-      const posMatch = charts.find(c =>
-        c.hero_position?.toUpperCase() === heroPosition?.toUpperCase()
-      );
-      const chart = posMatch || charts[0];
-      return { chart, matchTier: 1, source: 'Nash Chart · Preflop', isPreflop: true };
-    }
-  } catch (e) { console.warn('[Sandbox] Preflop query error:', e.message); }
-
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// STRATEGY MATRIX PARSER · Extracts per-hand GTO frequencies & EVs
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * PER-ACTION EV · HONESTY CONTRACT
- * ───────────────────────────────────────────────────────────────────────
- * The sandbox Coach computes its EV delta as (picked action EV − ev.hero)
- * and only trusts it when `typeof action.ev === 'number'`; otherwise it
- * shows a heuristic estimate flagged `evDeltaEstimated: true`.
- *
- * So an `ev` key on an action is a claim that the number was MEASURED, in
- * the same units as `ev.hero` (big blinds, 3dp). Consequences:
- *   • Emit `ev` only when the solver payload actually carries a per-action
- *     EV for this exact hand.
- *   • When it does not, OMIT the key. Never default to 0 · 0 is a perfectly
- *     legitimate EV, so a defaulted 0 would silently launder a guess into a
- *     measured value and turn off the "estimated" warning in the UI.
- *   • The Grok and rule-based paths therefore carry no `ev` at all: a
- *     language model's guess at a spot's EV is not a measurement.
- */
-
-/** Finite number or null · strings are accepted because some dumps quote them. */
-function toFiniteNumber(value) {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value === 'string' && value.trim() !== '') {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-function isPlainObject(value) {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-/**
- * Solver exports disagree on where per-action EVs live. Two nesting orders are
- * seen in the wild · map[action][hand] and map[hand][action] · under several
- * key names. Probe both, under each key, and return only the actions for which
- * a real finite number was found.
- *
- * A flat `hand_evs` (hand → number, the shape ev.hero is read from) yields
- * nothing here, which is correct: one number per hand is the hand's strategy
- * EV, not a per-action breakdown.
- *
- * @returns {Object|null} action id → EV, or null when nothing was derivable.
- */
-const ACTION_EV_CONTAINER_KEYS = ['action_evs', 'actionEVs', 'ev_by_action', 'evs', 'action_ev', 'hand_evs'];
-
-function extractPerActionEVs(strategyMatrix, actionIds, handVariants) {
-  if (!isPlainObject(strategyMatrix)) return null;
-
-  for (const containerKey of ACTION_EV_CONTAINER_KEYS) {
-    const container = strategyMatrix[containerKey];
-    if (!isPlainObject(container)) continue;
-
-    const found = {};
-    let hits = 0;
-
-    for (const action of actionIds) {
-      // Shape A: container[action][hand]
-      const byAction = container[action];
-      if (isPlainObject(byAction)) {
-        for (const variant of handVariants) {
-          const n = toFiniteNumber(byAction[variant]);
-          if (n !== null) { found[action] = n; hits++; break; }
-        }
-      }
-      if (found[action] !== undefined) continue;
-
-      // Shape B: container[hand][action]
-      for (const variant of handVariants) {
-        const byHand = container[variant];
-        if (!isPlainObject(byHand)) continue;
-        const n = toFiniteNumber(byHand[action]);
-        if (n !== null) { found[action] = n; hits++; break; }
-      }
-    }
-
-    if (hits > 0) return found;
-  }
-
-  return null;
-}
-
-/**
- * Parse strategy_matrix for a specific hero hand
- */
-function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingBet = false) {
-  const actions = strategyMatrix.actions || [];
-  const frequencies = strategyMatrix.frequencies || {};
-  const handEVs = strategyMatrix.hand_evs || {};
-
-  if (actions.length === 0) return null;
-
-  // Try multiple hand notation formats (solvers use various formats)
-  const handVariants = [
-    heroHandNotation,
-    heroHandNotation?.toUpperCase(),
-    heroHandNotation?.toLowerCase(),
-  ].filter(Boolean);
-
-  // Get per-action frequencies for this hand
-  const handActions = {};
-  const validActions = [];
-  let optimalAction = null;
-  let maxFreq = -1;
-
-  actions.forEach(action => {
-    let freq = 0;
-    for (const variant of handVariants) {
-      const f = frequencies[action]?.[variant];
-      if (f !== undefined && f >= 0 && f <= 1) { freq = f; break; }
-    }
-    handActions[action] = freq;
-    validActions.push(action);
-    if (freq > maxFreq) { maxFreq = freq; optimalAction = action; }
+  const villainPositions = (params.villains || []).map(villain => villain.position);
+  const stackVector = [
+    { seat: 0, position: heroPosition, stackBb: heroStack, active: true },
+    ...(params.villains || []).map((villain, index) => ({
+      seat: index + 1, position: villain.position, stackBb: villain.stack, active: true,
+    })),
+  ];
+  const key = policyService.createKey({
+    variant: 'nlh', bettingStructure: 'no_limit', tableSize: stackVector.length,
+    positions: { hero: heroPosition, villains: villainPositions }, stackVector,
+    blinds: { complete: false }, rake: { complete: false },
+    tournamentUtility: {
+      mode: cacheGameType === 'cash' ? 'cash' : 'icm', complete: false,
+      playersRemaining: null,
+    },
+    payouts: [], bounties: [], street, board: boardCards,
+    holding: [heroHand.card1, heroHand.card2],
+    publicActionHistory: { complete: true, actions: params.decisionContext?.actionHistory || [] },
+    legalActions: facingBet ? ['fold', 'call', 'raise'] : ['check', 'bet'],
+    sidePotEligibility: { complete: false, pots: [] },
   });
+  const resolved = await policyService.resolve({
+    key, gameTypes: [pioGameType], allowBoardApproximation: true,
+    allowStackApproximation: true, mode: 'holding',
+  });
+  const answer = policyService.consumerEnvelope(resolved.answer, 'post-session-analysis');
+  if (answer.kind === 'unavailable') {
+    return { policy: answer, matchTier: 4, source: 'No Policy Artifact' };
+  }
+  const approximated = answer.validDomain.approximatedDimensions;
+  const matchTier = answer.kind === 'exact' || answer.kind === 'chart' ? 1
+    : approximated.includes('turnRiverRunout') ? 2
+    : approximated.length > 0 ? 3 : 1;
+  return {
+    policy: answer, record: resolved.record, chart: resolved.chart, matchTier,
+    source: answer.kind === 'chart' ? 'Canonical Nash Chart'
+      : answer.kind === 'exact' ? 'Canonical Solver Policy'
+      : 'Canonical Solver Policy Approximation',
+  };
+}
 
-  if (!optimalAction) return null;
-
-  // The hero hand is absent from every frequency map (all freqs defaulted to 0).
-  // Returning the first action as "optimal at 0%" would present garbage under a
-  // solver badge · bail out so the caller falls through to the Grok fallback.
-  if (maxFreq <= 0) return null;
-
-  // Per-action EVs for THIS hand, when the solver row exposes them.
-  const perActionEV = extractPerActionEVs(strategyMatrix, validActions, handVariants);
-
-  // Build enriched action data
-  const actionData = validActions
-    .map(action => {
-      const label = getActionLabel(action, potSize, facingBet);
-      const entry = {
-        id: action,
-        label,
-        frequency: Math.round(handActions[action] * 100),
-        frequencyRaw: handActions[action],
-        color: getActionColor(label),
-        isOptimal: action === optimalAction,
+function policyToAnalysis(policy, heroNotation) {
+  if (!policy || policy.kind === 'unavailable' || !policy.actions?.length) return null;
+  const actions = policy.actions
+    .map((action) => {
+      const item = {
+        id: action.id, label: action.label, frequency: Math.round(action.frequency * 1000) / 10,
+        frequencyRaw: action.frequency, color: getActionColor(action.label), isOptimal: false,
       };
-      // Only attach `ev` when a real number exists · see the honesty contract
-      // above. An action the solver did not price simply has no `ev` key.
-      const actionEV = perActionEV ? perActionEV[action] : undefined;
-      if (typeof actionEV === 'number') entry.ev = parseFloat(actionEV.toFixed(3));
-      return entry;
+      if (policy.chipEv?.measuredByAction === true && Number.isFinite(action.chipEvBb)) {
+        item.ev = Number(action.chipEvBb.toFixed(3));
+      }
+      return item;
     })
-    .sort((a, b) => b.frequency - a.frequency);
-
-  // Get EV data
-  let heroEV = null;
-  for (const variant of handVariants) {
-    const n = toFiniteNumber(handEVs[variant]);
-    if (n !== null) { heroEV = n; break; }
-  }
-
-  // No flat hand EV, but the row does price individual actions: the hand's EV
-  // under the solver's own strategy is the frequency-weighted mixture of them.
-  // That is a derivation from measured numbers, not an estimate · and without
-  // it ev.hero stays 0, which makes the client discard every per-action EV
-  // (its delta requires gtoEV !== 0).
-  //
-  // Only valid when EVERY action carrying frequency is priced. Renormalising
-  // over a priced subset would quietly assume the unpriced actions are worth
-  // the same as the priced ones, which is a guess wearing a measurement's
-  // clothes · in that case ev.hero stays unset and the client keeps flagging
-  // its delta as estimated.
-  if (heroEV === null && perActionEV) {
-    let weighted = 0;
-    let pricedWeight = 0;
-    let totalWeight = 0;
-    for (const action of validActions) {
-      const freq = handActions[action];
-      if (!(freq > 0)) continue;
-      totalWeight += freq;
-      const actionEV = perActionEV[action];
-      if (typeof actionEV === 'number') {
-        weighted += actionEV * freq;
-        pricedWeight += freq;
-      }
-    }
-    if (totalWeight > 0 && pricedWeight >= totalWeight - 1e-6) {
-      heroEV = weighted / totalWeight;
-    }
-  }
-
-  if (heroEV === null) heroEV = 0;
-
-  const allEVs = Object.values(handEVs || {}).filter(v => typeof v === 'number');
-  const maxEV = allEVs.length > 0 ? Math.max(...allEVs) : heroEV;
-  const minEV = allEVs.length > 0 ? Math.min(...allEVs) : heroEV;
-  const avgEV = allEVs.length > 0 ? allEVs.reduce((s, v) => s + v, 0) / allEVs.length : 0;
-
-  const isMixed = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
-
+    .sort((a, b) => b.frequency - a.frequency || a.id.localeCompare(b.id));
+  if (!actions.length || !(actions[0].frequency > 0)) return null;
+  actions[0].isOptimal = true;
+  const policyEv = Number.isFinite(policy.chipEv?.policy) ? policy.chipEv.policy : null;
+  const measured = actions.map(action => action.ev).filter(Number.isFinite);
+  const pool = measured.length ? measured : policyEv === null ? [] : [policyEv];
+  const max = pool.length ? Math.max(...pool) : 0;
+  const min = pool.length ? Math.min(...pool) : 0;
+  const avg = pool.length ? pool.reduce((sum, value) => sum + value, 0) / pool.length : 0;
   return {
-    heroHand: heroHandNotation,
-    actions: actionData,
-    optimalAction: {
-      id: optimalAction,
-      label: getActionLabel(optimalAction, potSize, facingBet),
-      frequency: Math.round(maxFreq * 100),
-      color: getActionColor(getActionLabel(optimalAction, potSize, facingBet)),
-    },
-    isMixed,
-    ev: {
-      hero: parseFloat(heroEV.toFixed(3)),
-      heroDisplay: heroEV >= 0 ? `+${heroEV.toFixed(2)} BB` : `${heroEV.toFixed(2)} BB`,
-      max: parseFloat(maxEV.toFixed(3)),
-      min: parseFloat(minEV.toFixed(3)),
-      avg: parseFloat(avgEV.toFixed(3)),
-      evLoss: parseFloat(Math.max(0, maxEV - heroEV).toFixed(3)),
-    },
+    heroHand: heroNotation, actions, optimalAction: { ...actions[0] },
+    isMixed: actions.filter(action => action.frequency >= 5).length > 1,
+    ev: policyEv === null
+      ? { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 }
+      : {
+          hero: Number(policyEv.toFixed(3)),
+          heroDisplay: `${policyEv >= 0 ? '+' : ''}${policyEv.toFixed(2)} BB`,
+          max: Number(max.toFixed(3)), min: Number(min.toFixed(3)),
+          avg: Number(avg.toFixed(3)), evLoss: Number(Math.max(0, max - policyEv).toFixed(3)),
+        },
   };
 }
 
-/**
- * Build range heatmap data · per-hand frequencies for ALL hands in the matrix
- * Used for the 13x13 range grid visualization
- */
-function buildRangeHeatmap(strategyMatrix, facingBet = false) {
-  const actions = strategyMatrix.actions || [];
-  const frequencies = strategyMatrix.frequencies || {};
-  const handEVs = strategyMatrix.hand_evs || {};
-
-  if (actions.length === 0) return null;
-
-  // Get all hands from the first action's frequency map
-  const sampleAction = actions.find(a => frequencies[a] && Object.keys(frequencies[a]).length > 0);
-  if (!sampleAction) return null;
-
-  const allHands = Object.keys(frequencies[sampleAction]);
-  if (allHands.length === 0) return null;
-
-  // Build per-hand, per-action frequency map
-  const rangeData = {};
-  allHands.forEach(hand => {
-    rangeData[hand] = {};
-    let bestAction = null;
-    let bestFreq = -1;
-    actions.forEach(action => {
-      const freq = frequencies[action]?.[hand] || 0;
-      if (freq >= 0 && freq <= 1) {
-        rangeData[hand][action] = Math.round(freq * 100);
-        if (freq > bestFreq) { bestFreq = freq; bestAction = action; }
-      }
-    });
-    rangeData[hand]._optimal = bestAction;
-    rangeData[hand]._ev = handEVs[hand] || 0;
-  });
-
-  return {
-    hands: allHands,
-    actions: actions.map(a => ({ id: a, label: getActionLabel(a, 6, facingBet) })),
-    data: rangeData,
-    totalHands: allHands.length,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// PREFLOP CHART PARSER
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Per-action EV from a Nash push/fold chart entry, when the chart carries one.
- * Nash solvers usually publish the shove EV alongside the frequency, but the
- * key name varies by import. Returns null when the chart priced nothing · the
- * caller then omits `ev` rather than inventing a 0.
- */
-function chartActionEV(handData, action) {
-  if (!isPlainObject(handData)) return null;
-  const candidates = [
-    handData[`${action}_ev`],
-    handData[`ev_${action}`],
-    isPlainObject(handData.evs) ? handData.evs[action] : undefined,
-    isPlainObject(handData.action_evs) ? handData.action_evs[action] : undefined,
-    isPlainObject(handData.ev) ? handData.ev[action] : undefined,
-  ];
-  for (const candidate of candidates) {
-    const n = toFiniteNumber(candidate);
-    if (n !== null) return n;
-  }
-  return null;
-}
-
-function parsePreflopChart(chart, heroHandNotation) {
-  const handMatrix = chart.hand_matrix || {};
-  const handData = handMatrix[heroHandNotation] || handMatrix[heroHandNotation?.toUpperCase()];
-
-  // Hand not present in this chart · do NOT fabricate a "Fold 100%" verdict at
-  // High confidence. Returning null lets the caller fall through to Grok.
-  if (!handData) return null;
-
-  const pushFreq = Math.round((handData.push || 0) * 100);
-  const foldFreq = 100 - pushFreq;
-  const isPush = pushFreq > 50;
-
-  const pushEV = chartActionEV(handData, 'push');
-  const foldEV = chartActionEV(handData, 'fold');
-
-  const actions = [
-    { id: 'push', label: 'Push All-In', frequency: pushFreq, color: '#ec4899', isOptimal: isPush },
-    { id: 'fold', label: 'Fold', frequency: foldFreq, color: '#ef4444', isOptimal: !isPush },
-  ];
-  // Attach only what the chart actually priced. A push/fold chart that stores
-  // frequencies alone leaves both actions without an `ev` key, and the client
-  // keeps flagging its delta as estimated · which is the truth.
-  if (pushEV !== null) actions[0].ev = parseFloat(pushEV.toFixed(3));
-  if (foldEV !== null) actions[1].ev = parseFloat(foldEV.toFixed(3));
-
-  // Hero EV: an explicit scalar if the chart has one, else the frequency-
-  // weighted mixture · but only when every action that actually carries
-  // frequency is priced, for the same reason as the postflop path. When
-  // neither exists we keep the explicit "Not Available" EV block,
-  // and the client's gtoEV !== 0 guard keeps the delta flagged as estimated).
-  let heroEV = toFiniteNumber(handData.ev);
-  if (heroEV === null) heroEV = toFiniteNumber(handData.hero_ev);
-  if (heroEV === null && (pushEV !== null || foldEV !== null)) {
-    const weights = [{ w: pushFreq / 100, ev: pushEV }, { w: foldFreq / 100, ev: foldEV }];
-    let weighted = 0;
-    let pricedWeight = 0;
-    let totalWeight = 0;
-    for (const { w, ev: actionEV } of weights) {
-      if (!(w > 0)) continue;
-      totalWeight += w;
-      if (actionEV !== null) { weighted += actionEV * w; pricedWeight += w; }
+function buildPolicyHeatmap(policy) {
+  const range = policy?.rangeDistribution;
+  if (!range || typeof range !== 'object' || Object.keys(range).length === 0) return null;
+  const data = {};
+  for (const [hand, mix] of Object.entries(range)) {
+    let best = null;
+    let bestFrequency = -1;
+    data[hand] = {};
+    for (const action of policy.actions) {
+      const frequency = Number(mix[action.id]) || 0;
+      data[hand][action.id] = Math.round(frequency * 100);
+      if (frequency > bestFrequency) { best = action.id; bestFrequency = frequency; }
     }
-    if (totalWeight > 0 && pricedWeight >= totalWeight - 1e-6) {
-      heroEV = weighted / totalWeight;
-    }
+    data[hand]._optimal = best;
+    data[hand]._ev = 0;
   }
-
-  const pricedEVs = [pushEV, foldEV].filter(v => v !== null);
-  const ev = heroEV === null
-    ? { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 }
-    : (() => {
-      const pool = pricedEVs.length > 0 ? pricedEVs : [heroEV];
-      const maxEV = Math.max(...pool);
-      const minEV = Math.min(...pool);
-      const avgEV = pool.reduce((s, v) => s + v, 0) / pool.length;
-      return {
-        hero: parseFloat(heroEV.toFixed(3)),
-        heroDisplay: heroEV >= 0 ? `+${heroEV.toFixed(2)} BB` : `${heroEV.toFixed(2)} BB`,
-        max: parseFloat(maxEV.toFixed(3)),
-        min: parseFloat(minEV.toFixed(3)),
-        avg: parseFloat(avgEV.toFixed(3)),
-        evLoss: parseFloat(Math.max(0, maxEV - heroEV).toFixed(3)),
-      };
-    })();
-
   return {
-    heroHand: heroHandNotation,
-    actions,
-    optimalAction: {
-      id: isPush ? 'push' : 'fold',
-      label: isPush ? 'Push All-In' : 'Fold',
-      frequency: isPush ? pushFreq : foldFreq,
-      color: isPush ? '#ec4899' : '#ef4444',
-    },
-    isMixed: pushFreq > 10 && pushFreq < 90,
-    ev,
-  };
-}
-
-function buildPreflopHeatmap(chart) {
-  const handMatrix = chart.hand_matrix || {};
-  const allHands = Object.keys(handMatrix || {});
-  if (allHands.length === 0) return null;
-
-  const rangeData = {};
-  allHands.forEach(hand => {
-    const pushFreq = Math.round((handMatrix[hand]?.push || 0) * 100);
-    rangeData[hand] = {
-      push: pushFreq,
-      fold: 100 - pushFreq,
-      _optimal: pushFreq > 50 ? 'push' : 'fold',
-      _ev: 0,
-    };
-  });
-
-  return {
-    hands: allHands,
-    actions: [
-      { id: 'push', label: 'Push All-In' },
-      { id: 'fold', label: 'Fold' },
-    ],
-    data: rangeData,
-    totalHands: allHands.length,
+    hands: Object.keys(range),
+    actions: policy.actions.map(action => ({ id: action.id, label: action.label })),
+    data, totalHands: Object.keys(range).length,
   };
 }
 
@@ -1028,7 +552,7 @@ RULES:
  *
  * These frequencies are positional heuristics, so no action carries an `ev`
  * key: there is nothing measured to report, and a 0 would be read by the
- * client as a real EV (see the honesty contract above parseStrategyForHand).
+ * client as a real EV (see the canonical solver-policy EV contract).
  */
 function ruleBasedFallback(params) {
   const { heroHand, heroPosition, heroStack, board, potSize, facingBet } = params;
@@ -1337,6 +861,7 @@ export default async function handler(req, res) {
         heroHand, heroPosition, heroStack, gameType, board, facingBet,
         decisionContext,
       });
+      const policyService = new SolverPolicyService({ db: getSupabase() });
 
       if (solverResult) {
         matchTier = solverResult.matchTier;
@@ -1351,22 +876,14 @@ export default async function handler(req, res) {
             explanation = analysis.explanation
               || buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
           }
-        } else if (solverResult.isPreflop && solverResult.chart) {
-          // Preflop chart data (short-stack push/fold only)
-          analysis = parsePreflopChart(solverResult.chart, heroNotation);
+        } else if (solverResult.policy?.kind !== 'unavailable') {
+          analysis = policyToAnalysis(solverResult.policy, heroNotation);
           if (analysis) {
             solverBacked = true;
-            rangeHeatmap = buildPreflopHeatmap(solverResult.chart);
-            explanation = buildExplanation(analysis, matchTier, 'preflop', exploitMode, villainArchetype, bubbleFactor);
-          }
-        } else if (solverResult.scenario?.strategy_matrix) {
-          // Postflop solver data
-          analysis = parseStrategyForHand(solverResult.scenario.strategy_matrix, heroNotation, calculatedPot, facingBet);
-
-          if (analysis) {
-            solverBacked = true;
-            rangeHeatmap = buildRangeHeatmap(solverResult.scenario.strategy_matrix, facingBet);
-            explanation = buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
+            rangeHeatmap = buildPolicyHeatmap(solverResult.policy);
+            explanation = buildExplanation(
+              analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor,
+            );
           }
         }
       }
@@ -1432,6 +949,22 @@ export default async function handler(req, res) {
         const adjusted = applyNodeLockModel(responseData, nodeLocks, { facingBet });
         Object.assign(responseData, adjusted);
       }
+
+      const policyActions = responseData.actions.map(action => ({
+        id: action.id, family: action.id, label: action.label,
+        frequency: Number(action.frequency) || 0, legal: true,
+        size: { unit: 'unknown', exact: false },
+        chipEvBb: Number.isFinite(action.ev) ? action.ev : null,
+      }));
+      const responsePolicy = solverBacked && nodeLocks.length === 0
+        ? solverResult.policy
+        : policyService.heuristicAnswer(
+            solverResult?.policy?.key || {}, policyActions,
+            nodeLocks.length > 0 ? 'modeled_node_lock_adjustment' : 'analysis_fallback',
+          );
+      responseData.solverPolicy = policyService.consumerEnvelope(
+        responsePolicy, 'post-session-analysis',
+      );
 
       // ━━━ ICM-ADJUSTED EV (Tournament mode with bubble factor) ━━━
       if (nodeLocks.length === 0 && gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0 && analysis.ev) {

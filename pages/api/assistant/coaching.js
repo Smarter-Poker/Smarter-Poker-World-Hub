@@ -18,7 +18,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 const LEAK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_:.-]{0,159}$/;
 const GOAL_STATUSES = new Set(['active', 'completed', 'paused']);
 const FEEDBACK_TYPES = new Set(['confusing', 'incorrect', 'mismatched', 'helpful']);
-const SAVED_VIEWS = new Set(['coach', 'evidence', 'timeline', 'goals', 'report']);
+const SAVED_VIEWS = new Set(['coach', 'evidence', 'timeline', 'goals', 'report', 'data']);
 const DEPTHS = new Set(['guided', 'detailed', 'expert']);
 const DECISION_WINDOW_LIMIT = 5000;
 
@@ -80,7 +80,7 @@ async function readWorkspace(supabase, userId) {
     ownerRead(supabase, 'leak_review_state', 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, updated_at', userId, query => query.order('due_at', { ascending: true }).limit(500)),
     ownerRead(supabase, 'pa_coaching_goals', 'id, leak_id, title, metric, target_value, current_value, status, due_at, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(100)),
     ownerRead(supabase, 'pa_coach_feedback', 'id, leak_id, decision_key, feedback_type, note, status, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(50)),
-    supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, updated_at').eq('user_id', userId).maybeSingle(),
+    supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, updated_at').eq('user_id', userId).maybeSingle(),
     supabase.from('pa_leak_audit_jobs').select('id, status, progress, result, reconciliation, completed_at, created_at').eq('user_id', userId).eq('status', 'completed').order('completed_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
@@ -115,7 +115,7 @@ async function readWorkspace(supabase, userId) {
     reviews,
     goals,
     feedback,
-    preferences: preferenceResult.data || { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {} },
+    preferences: preferenceResult.data || { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {}, retention_days: null, last_retention_run_at: null },
     latestAudit: audit,
   };
 }

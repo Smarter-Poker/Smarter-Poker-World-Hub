@@ -5,6 +5,9 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { buildScraperMetricBucket } from '../../../src/lib/poker-near-me/scraperMetrics';
+import { authorizePokerOpsRead } from '../../../src/lib/poker-near-me/opsReadAuth';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -23,74 +26,65 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   try {
     const supabase = getSupabase();
-    const hours = parseInt(req.query.hours) || 24;
-    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const access = await authorizePokerOpsRead(req, supabase);
+    res.setHeader('Vary', 'Authorization, x-cron-secret, x-admin-secret');
+    res.setHeader('Cache-Control', 'private, no-store');
+    if (!access.authorized) {
+      return res.status(401).json({ error: 'Authorization required' });
+    }
+    const hoursParam = Array.isArray(req.query.hours) ? req.query.hours[0] : req.query.hours;
+    const parsedHours = Number.parseInt(hoursParam, 10);
+    const hours = Math.min(Math.max(Number.isFinite(parsedHours) ? parsedHours : 24, 1), 168);
+    const responseNow = Date.now();
+    const since = new Date(responseNow - hours * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date(responseNow).toISOString();
 
-    const { data, error } = await supabase
+    const fetchSourceMetrics = (source) => supabase
       .from('scraper_metrics')
       .select('*')
+      .eq('source', source)
       .gte('cycle_start', since)
-      .order('cycle_start', { ascending: true })
+      .lte('cycle_start', nowIso)
+      // Bound each source independently. A noisy catalog engine must not push
+      // the model or live engine out of one shared 500-row result window.
+      .order('cycle_start', { ascending: false })
       .limit(500);
+    const [bravoResult, simulatorResult, pokeratlasResult] = await Promise.all([
+      fetchSourceMetrics('bravo'),
+      fetchSourceMetrics('bravo-simulator'),
+      fetchSourceMetrics('pokeratlas'),
+    ]);
+    const error = bravoResult.error || simulatorResult.error || pokeratlasResult.error;
 
     if (error) {
       // Table may not exist yet
       console.warn('scraper_metrics query failed:', error.message);
-      return res.status(200).json({ metrics: [], message: 'Metrics table not available yet' });
+      return res.status(200).json({
+        period_hours: hours,
+        since,
+        contract_version: '2026-09-06.2',
+        bravo: buildScraperMetricBucket([]),
+        bravo_simulator: buildScraperMetricBucket([]),
+        pokeratlas: buildScraperMetricBucket([]),
+        message: 'Metrics table not available yet',
+      });
     }
 
-    // Group by source
-    const bravo = (data || []).filter(m => m.source === 'bravo');
-    const pokeratlas = (data || []).filter(m => m.source === 'pokeratlas');
-
-    // Calculate summaries
-    const summarize = (rows) => {
-      if (rows.length === 0) return { cycles: 0, avg_duration: 0, total_errors: 0, avg_records: 0 };
-      const totalDuration = rows.reduce((s, r) => s + (r.duration_seconds || 0), 0);
-      // Column is `errors` (see 20260329_scraper_infrastructure.sql) — reading
-      // r.error_count always yielded undefined, so totals were permanently 0.
-      const totalErrors = rows.reduce((s, r) => s + (r.errors || 0), 0);
-      const totalRecords = rows.reduce((s, r) => s + (r.records_saved || 0), 0);
-      return {
-        cycles: rows.length,
-        avg_duration: Math.round(totalDuration / rows.length),
-        total_errors: totalErrors,
-        avg_records: Math.round(totalRecords / rows.length),
-        last_cycle: rows[rows.length - 1],
-      };
-    };
-
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
     return res.status(200).json({
       period_hours: hours,
       since,
-      bravo: {
-        summary: summarize(bravo),
-        history: bravo.map(m => ({
-          time: m.cycle_start,
-          duration: m.duration_seconds,
-          records: m.records_saved,
-          venues: m.venues_scraped,
-          errors: m.errors || 0,
-        })),
-      },
-      pokeratlas: {
-        summary: summarize(pokeratlas),
-        history: pokeratlas.map(m => ({
-          time: m.cycle_start,
-          duration: m.duration_seconds,
-          records: m.records_saved,
-          venues: m.venues_scraped,
-          errors: m.errors || 0,
-        })),
-      },
+      contract_version: '2026-09-06.2',
+      bravo: buildScraperMetricBucket(bravoResult.data || []),
+      bravo_simulator: buildScraperMetricBucket(simulatorResult.data || []),
+      pokeratlas: buildScraperMetricBucket(pokeratlasResult.data || []),
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Scraper metrics error:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Metrics unavailable' });
   }
 }

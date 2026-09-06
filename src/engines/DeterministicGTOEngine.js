@@ -36,6 +36,8 @@ import {
 import { calculateActionEVs } from './EVCalculator';
 import { heroActsFirstPostflop as actsFirstPostflop, heroIsInPosition } from './positionOrder';
 import { generateCuratedPokerConceptBatch } from '../lib/training/curatedPokerConcepts';
+import { selectTrustedSolverMatrix } from '../lib/training/solverMatrixTrust';
+import { SolverPolicyService } from '../services/SolverPolicyService';
 
 // ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
 import { getPsychologyQuestions } from '../data/psychologyQuestionBank';
@@ -397,6 +399,7 @@ export class DeterministicGTOEngine {
         // Default: use the imported client-side supabase (works for SSR with anon key)
         // API routes should call setSupabaseClient() with a service-role client
         this._supabaseClient = null;
+        this._solverPolicyService = null;
     }
 
     /**
@@ -406,11 +409,20 @@ export class DeterministicGTOEngine {
      */
     setSupabaseClient(client) {
         this._supabaseClient = client;
+        this._solverPolicyService = null;
     }
 
     /** Get the active Supabase client (injected server client or default) */
     get db() {
         return this._supabaseClient || supabase;
+    }
+
+    /** The only runtime reader and interpreter for solver policy artifacts. */
+    get solverPolicyService() {
+        if (!this._solverPolicyService) {
+            this._solverPolicyService = new SolverPolicyService({ db: this.db });
+        }
+        return this._solverPolicyService;
     }
 
     /**
@@ -1247,8 +1259,8 @@ export class DeterministicGTOEngine {
 
         if (effectiveDifficulty === 'beginner' || effectiveDifficulty === 'expert') {
             sortedScenarios.sort((a, b) => {
-                const maxFreqA = getMaxFrequency(a.strategy_matrix);
-                const maxFreqB = getMaxFrequency(b.strategy_matrix);
+                const maxFreqA = getMaxFrequency(selectTrustedSolverMatrix(a));
+                const maxFreqB = getMaxFrequency(selectTrustedSolverMatrix(b));
                 if (effectiveDifficulty === 'beginner') {
                     // Higher max frequency = easier (clear best action)
                     return maxFreqB - maxFreqA;
@@ -1268,7 +1280,7 @@ export class DeterministicGTOEngine {
             const scenario = sortedScenarios[i % sortedScenarios.length];
 
             // ═══ PHASE 19 + 75: Difficulty gate ═══
-            const maxFreq = getMaxFrequency(scenario.strategy_matrix);
+            const maxFreq = getMaxFrequency(selectTrustedSolverMatrix(scenario));
             if (effectiveDifficulty !== 'standard') {
                 // Phase 75: Stretch questions override the filter
                 const stretching = shouldStretch(questions.length);
@@ -1319,114 +1331,43 @@ export class DeterministicGTOEngine {
      */
     async queryNextStreet({ gameConfig, heroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition }) {
         if (!gameConfig || !boardCards || boardCards.length < 3) return null;
-
         try {
-            // Build the board suffix for hash matching
-            const boardStr = boardCards.map(c => c.toLowerCase()).join('');
-
-            // Try exact match first — scenario_hash contains the board
-            const { data: exactMatches, error: exactErr } = await this.db
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .ilike('scenario_hash', `%${boardStr}%`)
-                .limit(5);
-
-            if (exactErr) {
-                console.warn('[DeterministicEngine] queryNextStreet exact match error:', exactErr.message);
-            }
-
-            if (exactMatches && exactMatches.length > 0) {
-                // Found an exact board match — use it
-                const scenario = exactMatches[Math.floor(Math.random() * exactMatches.length)];
-                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
-
-                if (question) {
-                    // Override generic scenario values with the actual hand state
-                    this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
-                    console.debug(`[DeterministicEngine] ✓ Multi-street: found ${street} data for board ${boardStr}`);
-                    return question;
-                }
-            }
-
-            // No exact match — try partial board match (flop portion only)
-            const flopStr = boardCards.slice(0, 3).map(c => c.toLowerCase()).join('');
-            const { data: partialMatches } = await this.db
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .ilike('scenario_hash', `%${flopStr}%`)
-                .limit(50); // Increased limit for semantic distance pool
-
-            if (partialMatches && partialMatches.length > 0) {
-                // ═══ SEMANTIC DISTANCE CALCULATOR ═══
-                // Find the closest board runout in terms of rank, suit, and texture
-                const rankToVal = r => "23456789TJQKA".indexOf(r.toUpperCase()) + 2;
-                
-                let bestScenario = partialMatches[0];
-                let minDistance = 999999;
-                
-                // Track requested texture features
-                const getTexture = (cards) => {
-                    const ranks = cards.map(c => c[0].toUpperCase());
-                    const suits = cards.map(c => c[1].toLowerCase());
-                    const hasPair = new Set(ranks).size < cards.length;
-                    const maxSuitFreq = Math.max(...Object.values(suits.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {})));
-                    const hasFlushDraw = maxSuitFreq >= 3;
-                    const hasFlush = maxSuitFreq >= 5; // flush is possible
-                    return { hasPair, hasFlushDraw, hasFlush };
-                };
-                
-                const reqTexture = getTexture(boardCards);
-
-                partialMatches.forEach(scenario => {
-                    const scenarioBoard = parseBoardFromHash(scenario.scenario_hash);
-                    let dist = 0;
-                    
-                    for (let i = 3; i < boardCards.length; i++) {
-                        if (!scenarioBoard[i]) continue;
-                        const reqCard = boardCards[i];
-                        const dbCard = scenarioBoard[i];
-                        
-                        const rankDiff = Math.abs(rankToVal(reqCard[0]) - rankToVal(dbCard[0]));
-                        const suitDiff = reqCard[1].toLowerCase() === dbCard[1].toLowerCase() ? 0 : 6;
-                        dist += (rankDiff * 2) + suitDiff;
-                    }
-                    
-                    // Texture penalty: massive penalty if board pairing/flush drawing changes
-                    const dbTexture = getTexture(scenarioBoard);
-                    if (reqTexture.hasPair !== dbTexture.hasPair) dist += 25;
-                    if (reqTexture.hasFlushDraw !== dbTexture.hasFlushDraw) dist += 15;
-                    
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        bestScenario = scenario;
-                    }
-                });
-
-                const scenario = bestScenario;
-                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
-
-                if (question) {
-                    // Override board with our actual board (partial match may have different turn/river)
-                    question.scenario.board = boardCards.join(' ');
-                    question.boardCards = boardCards;
-                    // Override generic scenario values with the actual hand state
-                    this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
-                    console.debug(`[DeterministicEngine] ✓ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
-                    return question;
-                }
-            }
-
-            // BUG-G FIX: Removed 3rd-tier 'ANY scenario' fallback.
-            // Grabbing solver data from a completely different board is misleading —
-            // the frequencies don't apply to our board texture. Instead, end the hand cleanly.
-            console.debug(`[DeterministicEngine] ✕ No ${street} solver data available for ${gameConfig.pioGameType} (no board match)`);
-            return null;
+            const key = this.solverPolicyService.createKey({
+                variant: 'nlh',
+                bettingStructure: 'no_limit',
+                tableSize: 2,
+                positions: { hero: heroPosition, villains: [villainPosition].filter(Boolean) },
+                stackVector: [
+                    { seat: 0, position: heroPosition, stackBb: stackDepth, active: true },
+                    { seat: 1, position: villainPosition, stackBb: stackDepth, active: true },
+                ],
+                blinds: { complete: false },
+                rake: { complete: false },
+                tournamentUtility: {
+                    mode: String(gameConfig.pioGameType || '').includes('icm') ? 'icm' : 'cash',
+                    complete: false,
+                },
+                street,
+                board: boardCards,
+                holding: Array.isArray(heroHand) ? heroHand : [],
+                publicActionHistory: { complete: false, actions: [] },
+                legalActions: [],
+                sidePotEligibility: { complete: false, pots: [] },
+            });
+            const { record, answer } = await this.solverPolicyService.resolve({
+                key,
+                gameTypes: [gameConfig.pioGameType],
+            });
+            if (!record || answer.kind === 'unavailable') return null;
+            const scenario = this.solverPolicyService.asEngineScenario(record);
+            const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
+            if (!question) return null;
+            this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
+            question.solverPolicy = this.solverPolicyService.consumerEnvelope(
+                this.solverPolicyService.answerForEngineQuestion(scenario, question),
+                'get-question',
+            );
+            return question;
         } catch (err) {
             console.warn('[DeterministicEngine] queryNextStreet error:', err.message);
             return null;
@@ -1434,8 +1375,8 @@ export class DeterministicGTOEngine {
     }
 
     /**
-     * Apply the actual hand state (pot, positions, stacks) to a question built
-     * from a matched solver scenario, which carries generic defaults.
+     * Apply actual table display values after an exact canonical-policy lookup.
+     * The policy envelope remains the source of truth for node semantics.
      */
     _applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth } = {}) {
         if (!question || !question.scenario) return;
@@ -1507,21 +1448,15 @@ export class DeterministicGTOEngine {
             // Query across all effective stack depths (multi-depth for MTT games)
             let allData = [];
             for (const depth of effectiveStackDepths) {
-                let query = this.db
-                    .from('solved_spots_gold')
-                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                    .eq('game_type', gameConfig.pioGameType)
-                    .eq('stack_depth', depth);
-                // Only filter by street when one is specified (null = all streets)
-                if (street) {
-                    query = query.eq('street', street);
-                }
-                const { data, error } = await query
-                    .limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
-
-                if (!error && data && data.length > 0) {
-                    allData = allData.concat(data);
-                }
+                const { records } = await this.solverPolicyService.listSolvedRecords({
+                    gameType: gameConfig.pioGameType,
+                    stackDepth: depth,
+                    street: street || undefined,
+                    limit: Math.ceil(fetchLimit / effectiveStackDepths.length),
+                });
+                allData = allData.concat(
+                    records.map(record => this.solverPolicyService.asEngineScenario(record))
+                );
             }
 
             if (allData.length === 0) {
@@ -1582,7 +1517,10 @@ export class DeterministicGTOEngine {
     }
 
     buildQuestionFromScenario(scenario, gameConfig, level, questionIndex) {
-        const strategyMatrix = scenario.strategy_matrix || {};
+        // Source-aware trust boundary: validated V2 may legitimately contain
+        // a Fold action; legacy V1 `f` is measured EV/regret data and must
+        // never be translated into Fold. Invalid V2 never falls back to V1.
+        const strategyMatrix = selectTrustedSolverMatrix(scenario) || {};
         const actions = strategyMatrix.actions || [];
         const frequencies = strategyMatrix.frequencies || {};
         const handEVs = strategyMatrix.hand_evs || {};
@@ -1931,14 +1869,13 @@ export class DeterministicGTOEngine {
 
     async generateFromCharts(gameConfig, level, seenIds) {
         try {
-            const { data: charts, error } = await this.db
-                .from('memory_charts_gold')
-                .select('*')
-                .lte('stack_depth', (gameConfig.pioStackDepth || 15) + 5)
-                .gte('stack_depth', Math.max(1, (gameConfig.pioStackDepth || 15) - 5))
-                .limit(20);
+            const charts = await this.solverPolicyService.readChartRows({
+                minStackDepth: Math.max(1, (gameConfig.pioStackDepth || 15) - 5),
+                maxStackDepth: (gameConfig.pioStackDepth || 15) + 5,
+                limit: 20,
+            });
 
-            if (error || !charts || charts.length === 0) return null;
+            if (!charts || charts.length === 0) return null;
 
             // Honor seenIds: retry up to 8 times when the built question collides
             const safeSeen = Array.isArray(seenIds) ? seenIds : [];
@@ -1948,6 +1885,12 @@ export class DeterministicGTOEngine {
                 const q = this.buildChartQuestion(chart, level);
                 if (!q) continue;
                 lastQuestion = q;
+                q.solverPolicy = this.solverPolicyService.consumerEnvelope(
+                    this.solverPolicyService.answerFromChart(chart, {
+                        holding: q.heroCards || [],
+                    }),
+                    'get-question',
+                );
                 if (!safeSeen.includes(q.id)) return q;
             }
             return lastQuestion;
@@ -2421,7 +2364,7 @@ export class DeterministicGTOEngine {
         // absolute chips in the solver's own units, which is the same unit the
         // matrix's own `pot` is written in -- so they are rebased onto the pot
         // the felt is actually showing rather than used raw.
-        const sm = scenario.strategy_matrix || {};
+        const sm = selectTrustedSolverMatrix(scenario) || {};
         const exactFacingBet = Number(sm.facing_bet_bb);
         if (Number.isFinite(exactFacingBet) && exactFacingBet > 0) return exactFacingBet;
 

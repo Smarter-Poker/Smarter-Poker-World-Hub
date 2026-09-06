@@ -2,7 +2,7 @@ import { applyVenueIntegrity } from './venueIntegrityServer.js';
 import { parsePokerMapBounds, isVenueWithinPokerMapBounds } from './mapBounds.js';
 
 export const VENUE_DIRECTORY_FIELD_LIST = [
-  'id', 'name', 'slug', 'venue_type', 'address', 'city', 'state', 'country', 'zip',
+  'id', 'name', 'slug', 'pokeratlas_slug', 'venue_type', 'address', 'city', 'state', 'country', 'zip',
   'latitude', 'longitude', 'lat', 'lng', 'phone', 'website',
   'profile_photo_url', 'cover_photo_url', 'logo_url', 'tagline', 'about',
   'games_offered', 'stakes_cash', 'poker_tables', 'trust_score', 'is_featured',
@@ -119,15 +119,20 @@ export function buildSnapshotVenueDirectory({ params = {}, venues = [], metadata
     .sort(compareDirectoryVenues);
 
   const integrity = applyVenueIntegrity(candidates);
-  const mappable = integrity.venues.filter((venue) => (
-    venue?.location_quality?.mappable !== false
-    && isVenueWithinPokerMapBounds(venue, bounds)
-  ));
+  // A location conflict is a map hold, not a search deletion. National/list
+  // discovery must retain the identity and its review status; only a viewport
+  // request is allowed to remove records that cannot be placed truthfully.
+  const visible = bounds
+    ? integrity.venues.filter((venue) => (
+      venue?.location_quality?.mappable !== false
+      && isVenueWithinPokerMapBounds(venue, bounds)
+    ))
+    : integrity.venues;
 
-  const snapshot = snapshotEnvelope(metadata, mappable.length);
+  const snapshot = snapshotEnvelope(metadata, visible.length);
   return {
-    data: mappable.slice(offset, offset + limit).map(projectDirectoryVenue),
-    total: mappable.length,
+    data: visible.slice(offset, offset + limit).map(projectDirectoryVenue),
+    total: visible.length,
     offset,
     limit,
     viewport: bounds,
@@ -195,10 +200,12 @@ export async function fetchVenueDirectory({ supabase, params = {} }) {
   if (error) throw error;
 
   const integrity = applyVenueIntegrity(data || []);
-  const filtered = integrity.venues.filter((venue) => (
-    venue?.location_quality?.mappable !== false
-    && isVenueWithinPokerMapBounds(venue, bounds)
-  ));
+  const filtered = bounds
+    ? integrity.venues.filter((venue) => (
+      venue?.location_quality?.mappable !== false
+      && isVenueWithinPokerMapBounds(venue, bounds)
+    ))
+    : integrity.venues;
   const page = bounds ? filtered.slice(offset, offset + limit) : filtered;
   const result = {
     data: page,

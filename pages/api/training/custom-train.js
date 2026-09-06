@@ -17,11 +17,13 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { analyzeBoard, FLUSH_TEXTURE, PAIR_TEXTURE, CONNECTIVITY } from '../../../src/engines/BoardTextureEngine';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -41,6 +43,7 @@ const GAME_TYPE_TO_PIO = {
     mtt: ['mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev', 'river_mtt_icm', 'turn_mtt_icm'],
     spins: ['turn_spin', 'spin_3max_chipev', 'spin_3max_icm', 'spin_hu_chipev', 'spin_hu_icm', 'spin_postflop'],
 };
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOARD TEXTURE TARGETING (GTOW parity #8)
@@ -158,128 +161,61 @@ export default async function handler(req, res) {
       try {
           console.debug(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${parsedCount} hands`);
 
-          // Build query filters
-          let query = getSupabase()
-              .from('solved_spots_gold')
-              .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-              .in('game_type', pioGameTypes)
-              .eq('stack_depth', parsedStack);
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+          const safePosition = position && position !== 'any' ? sanitizeParam(position, 10) : null;
+          const safeVillain = villainPosition && villainPosition !== 'any'
+              ? sanitizeParam(villainPosition, 10) : null;
+          const scenarioMap = { SRP: 'srp', '3BP': '3bet', '4BP': '4bet' };
+          const safeTag = actionScenario && actionScenario !== 'any'
+              ? sanitizeParam(scenarioMap[actionScenario], 10) : null;
 
-          // Filter by street if specified
-          if (street && street !== 'all') {
-              query = query.eq('street', street);
-          }
-
-          // Filter by position if specified (position is in scenario_hash)
-          if (position && position !== 'any') {
-              const safePos = sanitizeParam(position, 10);
-              if (safePos) query = query.ilike('scenario_hash', `%_${safePos}_%`);
-          }
-
-          // Filter by villain position if specified
-          if (villainPosition && villainPosition !== 'any') {
-              const safeVPos = sanitizeParam(villainPosition, 10);
-              if (safeVPos) query = query.ilike('scenario_hash', `%_${safeVPos}_%`);
-          }
-
-          // Filter by action scenario if specified (SRP, 3BP, 4BP are in scenario_hash)
-          if (actionScenario && actionScenario !== 'any') {
-              const scenarioMap = { 'SRP': 'srp', '3BP': '3bet', '4BP': '4bet' };
-              const tag = scenarioMap[actionScenario];
-              if (tag) {
-                  const safeTag = sanitizeParam(tag, 10);
-                  if (safeTag) query = query.ilike('scenario_hash', `%${safeTag}%`);
-              }
-          }
-
-          // Fetch pool.
-          // #8: a texture filter throws rows away AFTER the database has
-          // returned them, so the pre-filter pool has to be much larger or the
-          // filter starves the session. Monotone flops are roughly 5% of all
-          // flops, so a 3x pool would routinely yield one or two questions for
-          // a 25-hand request. 12x, capped at 600, keeps a monotone request
-          // viable while staying a bounded single query.
+          // Texture matching happens after the bounded metadata and policy
+          // read, so rare texture requests intentionally over-fetch.
           const poolSize = textureRequested
               ? Math.min(parsedCount * 12, 600)
               : Math.min(parsedCount * 3, 150);
-          query = query.limit(poolSize);
+          const readScenarios = async (overrides = {}) => {
+              const { records } = await policyService.listSolvedRecords({
+                  gameTypes: pioGameTypes,
+                  stackDepth: parsedStack,
+                  street: street && street !== 'all' ? street : undefined,
+                  position: safePosition || undefined,
+                  villainPosition: safeVillain || undefined,
+                  actionTag: safeTag || undefined,
+                  limit: poolSize,
+                  ...overrides,
+              });
+              const rows = records.map((record) => policyService.asEngineScenario(record));
+              return textureRequested ? filterScenariosByTexture(rows, textureId) : rows;
+          };
 
-          const { data: rawScenarios, error: dbErr } = await query;
-          // Applied here rather than inside buildAndReturnQuestions so that an
-          // empty result after filtering falls through to the SAME broader
-          // searches below that an empty database result already used.
-          const scenarios = textureRequested
-              ? filterScenariosByTexture(rawScenarios, textureId)
-              : rawScenarios;
-
-          if (dbErr) {
-              console.warn('[CustomTrain] DB error:', dbErr.message);
-              return res.status(500).json({ success: false, error: 'Database query failed' });
+          let scenarios = await readScenarios();
+          if (!scenarios.length) {
+              console.debug('[CustomTrain] Exact filters empty; dropping position filters');
+              scenarios = await readScenarios({ position: undefined, villainPosition: undefined });
+          }
+          if (!scenarios.length) {
+              console.debug('[CustomTrain] Exact stack empty; trying bounded game-family pool');
+              scenarios = await readScenarios({
+                  position: undefined, villainPosition: undefined, stackDepth: undefined, street: undefined,
+              });
+          }
+          if (!scenarios.length) {
+              return res.status(200).json({
+                  success: false,
+                  questions: [],
+                  boardTexture: textureRequested ? textureId : null,
+                  boardTextureApplied: false,
+                  message: textureRequested
+                      ? 'No solved boards of that texture are available for this configuration'
+                      : 'No trusted solver data available for this configuration',
+              });
           }
 
-          if (!scenarios || scenarios.length === 0) {
-              console.debug(`[CustomTrain] No scenarios found for config, trying broader search...`);
-
-              // Fallback: try without position filter
-              let fallbackQuery = getSupabase()
-                  .from('solved_spots_gold')
-                  .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                  .in('game_type', pioGameTypes)
-                  .eq('stack_depth', parsedStack)
-                  .limit(poolSize);
-
-              if (street && street !== 'all') {
-                  fallbackQuery = fallbackQuery.eq('street', street);
-              }
-
-              const { data: rawFallback } = await fallbackQuery;
-              // The position filter is what was dropped at this tier — the
-              // texture the player asked for is still honoured.
-              const fallbackData = textureRequested
-                  ? filterScenariosByTexture(rawFallback, textureId)
-                  : rawFallback;
-
-              if (!fallbackData || fallbackData.length === 0) {
-                  // Final fallback: any stack depth for this game type
-                  const { data: anyData } = await getSupabase()
-                      .from('solved_spots_gold')
-                      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                      .in('game_type', pioGameTypes)
-                      .limit(poolSize);
-
-                  if (!anyData || anyData.length === 0) {
-                      return res.status(200).json({
-                          success: false,
-                          questions: [],
-                          message: 'No solver data available for this configuration',
-                      });
-                  }
-
-                  // Last tier. If even the whole-game-type pool holds no board
-                  // of the requested texture, the honest answer is a session
-                  // that says so, not one that silently ignores the filter and
-                  // trains the player on the boards they explicitly excluded.
-                  const anyTextured = textureRequested
-                      ? filterScenariosByTexture(anyData, textureId)
-                      : anyData;
-                  if (textureRequested && (!anyTextured || anyTextured.length === 0)) {
-                      return res.status(200).json({
-                          success: false,
-                          questions: [],
-                          boardTexture: textureId,
-                          boardTextureApplied: false,
-                          message: 'No solved boards of that texture are available for this configuration',
-                      });
-                  }
-
-                  return buildAndReturnQuestions(res, anyTextured, parsedCount, position, parsedStack, street, handClass, textureRequested ? textureId : null);
-              }
-
-              return buildAndReturnQuestions(res, fallbackData, parsedCount, position, parsedStack, street, handClass, textureRequested ? textureId : null);
-          }
-
-          return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street, handClass, textureRequested ? textureId : null);
-
+          return buildAndReturnQuestions(
+              res, scenarios, parsedCount, position, parsedStack, street, handClass,
+              textureRequested ? textureId : null,
+          );
       } catch (err) {
           console.warn('[CustomTrain] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
@@ -297,6 +233,9 @@ export default async function handler(req, res) {
  */
 function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, street, handClass, boardTexture = null) {
     const engine = new DeterministicGTOEngine();
+    engine.setSupabaseClient(getSupabase());
+    applyDeterministicEnginePatches(engine);
+    const policyService = new SolverPolicyService({ db: getSupabase() });
     const questions = [];
     const usedIds = new Set();
 
@@ -328,7 +267,7 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
 
             const contractedQuestion = enforceTrainingQuestionContract(question);
             if (isTrainingQuestionValid(contractedQuestion)) {
-                questions.push(contractedQuestion);
+                questions.push(policyService.attachToQuestion(contractedQuestion, 'custom-trainer'));
                 usedIds.add(contractedQuestion.id);
             }
         }

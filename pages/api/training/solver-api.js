@@ -14,6 +14,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { heroIsInPosition } from '../../../src/engines/positionOrder';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -106,61 +107,6 @@ const GAME_TYPE_MAP = {
     sng: 'sng_hu',
 };
 
-function aggregateSolverActions(strategyMatrix) {
-    const actions = Array.isArray(strategyMatrix?.actions) ? strategyMatrix.actions : [];
-    const frequencies = strategyMatrix?.frequencies || {};
-    const totals = Object.fromEntries(actions.map((actionName) => [actionName, 0]));
-    let hands = 0;
-
-    const handNames = new Set();
-    actions.forEach((actionName) => {
-        Object.keys(frequencies[actionName] || {}).forEach((hand) => handNames.add(hand));
-    });
-
-    handNames.forEach((hand) => {
-        const raw = actions.map((actionName) => Number(frequencies[actionName]?.[hand]) || 0);
-        const total = raw.reduce((sum, value) => sum + Math.max(0, value), 0);
-        if (total <= 0) return;
-        actions.forEach((actionName, index) => {
-            totals[actionName] += Math.max(0, raw[index]) / total;
-        });
-        hands += 1;
-    });
-
-    if (hands === 0) return null;
-    const result = {};
-    Object.entries(totals).forEach(([actionName, total]) => {
-        result[actionName.toLowerCase()] = Math.round((total / hands) * 1000) / 10;
-    });
-    return result;
-}
-
-async function findExactSolverStrategy({ board, heroPosition, stackDepth, gameType, street }) {
-    const boardString = board.join('').toLowerCase();
-    const pioGameType = GAME_TYPE_MAP[String(gameType || 'cash').toLowerCase()] || 'hu_cash';
-    let query = getSupabase()
-        .from('solved_spots_gold')
-        .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix')
-        .eq('game_type', pioGameType)
-        .eq('street', street)
-        .ilike('scenario_hash', `%${boardString}%`)
-        .limit(25);
-    if (Number(stackDepth) > 0) query = query.eq('stack_depth', Number(stackDepth));
-    const { data, error } = await query;
-    if (error || !Array.isArray(data) || data.length === 0) return null;
-
-    const positionToken = `_${String(heroPosition || '').toUpperCase()}_`;
-    const ordered = [
-        ...data.filter((row) => String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
-        ...data.filter((row) => !String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
-    ];
-    for (const row of ordered) {
-        const actions = aggregateSolverActions(row.strategy_matrix);
-        if (actions && Object.keys(actions).length > 0) return { row, actions };
-    }
-    return null;
-}
-
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // API HANDLER
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -196,77 +142,108 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { board, heroPosition, villainPosition, stackDepth, gameType, street, action } = req.body;
+          const {
+              board, heroPosition, villainPosition, stackDepth, gameType, street, action,
+              holding, tableSize, stacks, blinds, rake, tournamentUtility, payouts, bounties,
+              publicActionHistory, legalActions, sidePotEligibility,
+          } = req.body;
 
-          // Validate required fields
           if (!board || !Array.isArray(board) || board.length < 3) {
               return res.status(400).json({
                   success: false,
                   error: 'Board must be an array of at least 3 cards (e.g., ["Ah", "Kd", "7c"])',
               });
           }
-
           if (!heroPosition) {
               return res.status(400).json({
-                  success: false,
-                  error: 'heroPosition is required (e.g., "BTN", "SB", "BB")',
+                  success: false, error: 'heroPosition is required (e.g., "BTN", "SB", "BB")',
               });
           }
 
-          const scenarioHash = hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street });
-
+          const policyService = new SolverPolicyService({ db: getSupabase() });
           const resolvedStreet = street || (board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river');
-          const exact = await findExactSolverStrategy({
-              board,
-              heroPosition,
-              stackDepth: stackDepth || 100,
-              gameType: gameType || 'cash',
+          const requestedStack = Number(stackDepth) || 100;
+          const requestedGame = String(gameType || 'cash').toLowerCase();
+          const pioGameType = GAME_TYPE_MAP[requestedGame] || 'hu_cash';
+          const stackVector = Array.isArray(stacks) && stacks.length > 0 ? stacks : [
+              { seat: 0, position: heroPosition, stackBb: requestedStack, active: true },
+              { seat: 1, position: villainPosition || 'BB', stackBb: requestedStack, active: true },
+          ];
+          const key = policyService.createKey({
+              variant: 'nlh',
+              bettingStructure: 'no_limit',
+              tableSize: tableSize || stackVector.length,
+              positions: { hero: heroPosition, villains: [villainPosition || 'BB'] },
+              stackVector,
+              blinds: blinds || { complete: false },
+              rake: rake || { complete: false },
+              tournamentUtility: tournamentUtility || {
+                  mode: ['mtt', 'tournament', 'sng'].includes(requestedGame) ? 'chip_ev' : 'cash',
+                  complete: false,
+              },
+              payouts: payouts || [],
+              bounties: bounties || [],
               street: resolvedStreet,
+              board,
+              holding: holding || [],
+              publicActionHistory: publicActionHistory || { complete: false, actions: [] },
+              legalActions: legalActions || [],
+              sidePotEligibility: sidePotEligibility || { complete: false, pots: [] },
           });
-          if (exact) {
+          const resolved = await policyService.resolve({
+              key, gameTypes: [pioGameType], mode: Array.isArray(holding) ? 'holding' : 'aggregate',
+          });
+          if (resolved.answer.kind !== 'unavailable') {
+              const answer = policyService.consumerEnvelope(resolved.answer, 'solver-api');
               return res.status(200).json({
                   success: true,
                   status: 'solved',
-                  source: 'solved_spots_gold',
-                  matchQuality: 'exact_board',
-                  scenarioHash: exact.row.scenario_hash,
-                  message: 'Aggregated frequencies from the matching solved board node.',
+                  source: answer.sourceArtifact.system,
+                  matchQuality: answer.kind,
+                  scenarioHash: answer.sourceArtifact.scenarioHash,
+                  message: answer.kind === 'exact'
+                      ? 'Exact provenance-sealed policy for the complete decision state.'
+                      : 'Canonical policy for the matching source node; consult fallbackReason for limitations.',
+                  solverPolicy: answer,
                   solution: {
-                      actions: exact.actions,
-                      board,
-                      heroPosition,
-                      villainPosition: villainPosition || 'BB',
-                      stackDepth: exact.row.stack_depth,
-                      gameType: exact.row.game_type,
-                      street: exact.row.street,
-                      isEstimate: false,
+                      actions: Object.fromEntries(answer.actions.map((entry) => [
+                          entry.id, Math.round(entry.frequency * 1000) / 10,
+                      ])),
+                      board, heroPosition, villainPosition: villainPosition || 'BB',
+                      stackDepth: requestedStack, gameType: pioGameType, street: resolvedStreet,
+                      isEstimate: answer.kind !== 'exact',
                   },
               });
           }
 
-          const baselineStrategy = generateBaselineStrategy(board, heroPosition, action, villainPosition || 'BB');
-
+          const scenarioHash = hashScenario({
+              board, heroPosition, villainPosition, stackDepth, gameType, street: resolvedStreet,
+          });
+          const baselineStrategy = generateBaselineStrategy(
+              board, heroPosition, action, villainPosition || 'BB',
+          );
+          const heuristic = policyService.heuristicAnswer(
+              key,
+              Object.entries(baselineStrategy.actions).map(([id, frequency]) => ({
+                  id, family: id, label: id[0].toUpperCase() + id.slice(1),
+                  frequency, legal: true, size: { unit: 'unknown', exact: false },
+                  chipEvBb: baselineStrategy.evByAction[id],
+              })),
+              'no_policy_artifact_for_state',
+          );
+          const answer = policyService.consumerEnvelope(heuristic, 'solver-api');
           return res.status(200).json({
-              success: true,
-              status: 'estimate',
-              source: 'modeled_baseline',
-              matchQuality: 'no_exact_board',
-              scenarioHash,
-              message: 'No exact solved board was found. Showing a clearly labelled positional baseline, not solver output.',
+              success: true, status: 'estimate', source: 'modeled_baseline',
+              matchQuality: 'no_policy_artifact', scenarioHash,
+              message: 'No matching policy artifact was found. This is a labelled heuristic, not solver output.',
+              solverPolicy: answer,
               solution: {
-                  actions: baselineStrategy.actions,
-                  frequencies: baselineStrategy.frequencies,
-                  evByAction: baselineStrategy.evByAction,
-                  board,
-                  heroPosition,
-                  villainPosition: villainPosition || 'BB',
-                  stackDepth: stackDepth || 100,
-                  gameType: gameType || 'cash',
-                  street: resolvedStreet,
-                  isEstimate: true,
+                  actions: baselineStrategy.actions, frequencies: baselineStrategy.frequencies,
+                  evByAction: baselineStrategy.evByAction, board, heroPosition,
+                  villainPosition: villainPosition || 'BB', stackDepth: requestedStack,
+                  gameType: requestedGame, street: resolvedStreet, isEstimate: true,
               },
           });
-
       } catch (err) {
           console.warn('[Solver API] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
