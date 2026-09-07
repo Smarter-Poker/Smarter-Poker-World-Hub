@@ -231,6 +231,22 @@ test('provider attribution remains visible when optional product branding is dis
   assert.doesNotMatch(controls[0].value, /Smarter\.Poker/);
 });
 
+test('mobile shared maps reserve a separate lane for mandatory provider attribution', async () => {
+  const styles = await source('src/styles/worlds/poker-near-me-machined.css');
+  assert.match(
+    styles,
+    /--pnm-map-mobile-attribution-reserve:\s*calc\(46px \+ env\(safe-area-inset-bottom, 0px\)\)/
+  );
+  assert.match(
+    styles,
+    /\.pnm-map-surface \.pnm-map-coverage--overlay\s*\{[^}]*bottom:\s*calc\(8px \+ var\(--pnm-map-mobile-attribution-reserve\)\)/s
+  );
+  assert.match(
+    styles,
+    /\.pnm-map-surface \.venue-map-legend\s*\{[^}]*bottom:\s*calc\(116px \+ var\(--pnm-map-mobile-attribution-reserve\)\)/s
+  );
+});
+
 test('tour API advertises only map artwork that ships in the public build', async () => {
   const api = await source('pages/api/poker/tours.js');
   const artworkPaths = [...api.matchAll(/:\s*'(\/images\/tours\/[^']+)'/g)].map((match) => match[1]);

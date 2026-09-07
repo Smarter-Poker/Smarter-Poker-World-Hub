@@ -1068,6 +1068,22 @@ body.world-poker-near-me :is(
 }
 
 @media (max-width: 768px) {
+  /* Leaflet's mandatory provider credit wraps to two lines on a 390px map.
+     Reserve that measured footprint for every shared mobile map so the live
+     coverage console and legend remain separate physical instruments instead
+     of stacking underneath the attribution strip. */
+  body.world-poker-near-me .pnm-map-surface {
+    --pnm-map-mobile-attribution-reserve: calc(46px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.world-poker-near-me .pnm-map-surface .leaflet-control-attribution {
+    margin-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage--overlay {
+    bottom: calc(8px + var(--pnm-map-mobile-attribution-reserve));
+  }
+
   /* Poker Tours previously compressed its search input to ~3px because two
      fixed-width selects shared the same 346px row. Give search and filters
      separate instrument rows while retaining a single continuous frame. */
@@ -1166,7 +1182,7 @@ body.world-poker-near-me :is(
 
   body.world-poker-near-me .pnm-map-surface .venue-map-legend {
     left: 8px;
-    bottom: 116px;
+    bottom: calc(116px + var(--pnm-map-mobile-attribution-reserve));
     max-width: 138px;
     padding: 8px 9px;
   }
