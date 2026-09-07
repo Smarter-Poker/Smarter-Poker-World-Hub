@@ -488,10 +488,37 @@ html.reels-lock {
   }
 }
 
-/* Safe area support for notched devices */
+/* Safe area support for notched devices.
+   ───────────────────────────────────────────────────────────────────────────
+   THE TOP INSET IS DELIBERATELY NOT HERE (2026-09-07).
+
+   `padding-top: env(safe-area-inset-top)` on <body> was added 2026-01-13. On
+   2026-08-29 `.approved-global-header` started applying the SAME inset to
+   itself (UniversalHeader.js), and it is `position: sticky; top: 0` — a sticky
+   box can never paint above its normal flow position, and its flow position is
+   already one inset down because of the rule that used to live here. So the
+   header added a second inset on top of the first, and because it is
+   `background: transparent` both bands rendered as empty page colour:
+
+       Dynamic Island (14/15/16 Pro):  59 + 59 = 118px  (59 is correct)
+       Notch (13 / X class):           47 + 47 =  94px  (47 is correct)
+
+   That is the "header sits too low" gap, and it is installed-PWA-only because
+   `apple-mobile-web-app-status-bar-style` is `black-translucent` and the
+   manifest opens `/hub` standalone — in a plain Safari tab the inset is 0, so
+   the bug is invisible exactly where most people look for it.
+
+   Every fixed and sticky chrome element on this site already owns its own top
+   inset — global-tokens.css, poker-near-me-lobby.css, tutorial.css,
+   bankroll.css, DiamondStoreShell.module.css and UniversalHeader itself — so
+   ALL of them were double-counting against the body, not just the header. One
+   owner is the fix; the owner is the element that paints under the status bar.
+
+   The other three sides stay: nothing else applies them, and a body inset is
+   the right home for a left/right/bottom gutter that ordinary page content
+   must respect. */
 @supports (padding-top: env(safe-area-inset-top)) {
   body {
-    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);

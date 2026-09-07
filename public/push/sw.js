@@ -89,6 +89,49 @@ function sweepExpiredNotifications() {
         });
 }
 
+/**
+ * TITLE CASE — the same house rule the OTHER worker applies (2026-09-07).
+ *
+ * Dan, 2026-08-30: "the first letter of every word should be capitalized
+ * inside the push notifications." That was implemented in `worker/index.js`
+ * five days after this file was forked out of it (2026-08-25, to escape a
+ * next-pwa precache hang), and it was never applied here.
+ *
+ * The consequence is not cosmetic. This origin has TWO push-capable service
+ * workers — `/sw.js` (worker/index.js) and this one at `/push/sw.js` — and a
+ * device can hold a live subscription for each. On 2026-09-07 one device
+ * received the Estate Digest twice at the same second: one banner Title Cased
+ * by the other worker, one verbatim from here. The two renderings ARE the
+ * evidence that there were two registrations. The duplicate itself is fixed in
+ * `pages/api/push/rotate.js`; a device should now hold one subscription. This
+ * half makes sure that whichever worker owns it renders the same way.
+ *
+ * The full reasoning for every rule below — the `(s)` carve-out, why there is
+ * no lookbehind, and why a word containing a digit is left alone — is in
+ * `worker/index.js`, which is the primary copy. The block is byte-identical in
+ * both files and `__tests__/push-title-case.test.mjs` fails if they diverge
+ * again.
+ */
+/* TITLE_CASE_SHARED_BEGIN — byte-identical in public/push/sw.js.
+   `__tests__/push-title-case.test.mjs` extracts this block from BOTH files and
+   fails if they differ. See the note about the fork below. */
+const TITLE_CASE_WORD_START = /(^|[\s[{"'‘“-])([a-z])(?![A-Za-z0-9]*[0-9])/g;
+const TITLE_CASE_BRACKET_WORD = /(^|\s)\(([a-z])(?![A-Za-z0-9]*[0-9])/g;
+
+function toTitleCase(text) {
+    if (typeof text !== 'string' || text === '') return text;
+    try {
+        return text
+            .replace(TITLE_CASE_WORD_START, (_m, lead, letter) => lead + letter.toUpperCase())
+            .replace(TITLE_CASE_BRACKET_WORD, (_m, lead, letter) => lead + '(' + letter.toUpperCase());
+    } catch (e) {
+        // If anything in here ever throws, the notification must still be
+        // shown. Unstyled copy beats no notification.
+        return text;
+    }
+}
+/* TITLE_CASE_SHARED_END */
+
 self.addEventListener('push', (event) => {
     let data = {};
     try {
@@ -102,11 +145,11 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const title = data.title || 'Smarter Poker';
+    const title = toTitleCase(data.title || 'Smarter Poker');
     const url = data.url || '/hub';
 
     const options = {
-        body: data.body || '',
+        body: toTitleCase(data.body || ''),
         icon: data.icon || '/icons/icon-192.png',
         badge: data.badge || '/icons/icon-192.png',
         image: data.image || undefined,

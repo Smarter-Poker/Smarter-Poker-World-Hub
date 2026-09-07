@@ -95,10 +95,47 @@ self.addEventListener('activate', (event) => {
  * the whole worker fails to install. That is precisely the outage this file
  * spent 2026-08-29 recovering from: a worker that cannot install takes web push
  * down for the entire origin, silently. Two plain regexes cost nothing and
- * cannot do that.
+ * cannot do that. (Negative LOOKAHEAD, added below, is not the same hazard —
+ * `(?!...)` has been in the language since ES3 and is supported everywhere a
+ * service worker runs at all.)
+ *
+ * ── A WORD WITH A DIGIT IN IT IS A NAME, NOT A WORD (2026-09-07) ───────────
+ * The Estate Digest of 2026-09-07 arrived as:
+ *
+ *     "Production Serves Main Exactly (A224b68ae). | Club Arena: 100+ Commits
+ *      To Main, 3270 Workflow Runs..."
+ *
+ * `a224b68ae` is a git commit. Capitalising it does not style the sentence, it
+ * CHANGES AN IDENTIFIER — the reader cannot paste it into `git show`, and the
+ * only reason it was reachable is that the `(s)` carve-out requires a space
+ * before "(", which " (a224b68ae)" happens to have.
+ *
+ * The general rule underneath it: if a run of characters contains a digit it is
+ * a name — a SHA, a version, a table id, a hand number — and names are not
+ * title cased. Ordinary copy is unaffected, because ordinary English words do
+ * not contain digits, and tokens that START with a digit (`100+`, `3270`) were
+ * already untouched since the rules only fire on `[a-z]`.
+ *
+ * ── AND IT IS APPLIED IN BOTH WORKERS ─────────────────────────────────────
+ * This origin has TWO push-capable service workers: this one, registered at
+ * `/sw.js` by Club Arena's pushClient, and `public/push/sw.js`, registered at
+ * `/push/sw.js` by the World Hub. `public/push/sw.js` was forked out on
+ * 2026-08-25 to escape a next-pwa precache hang, and this rule — added five
+ * days later — was never applied to the fork. On 2026-09-07 one device holding
+ * a live subscription for each of them received the SAME digest twice, one
+ * copy title cased and one not, and the mismatch is what proved there were two
+ * registrations rather than a double send. (The duplicate itself is fixed in
+ * `pages/api/push/rotate.js`; this half is the divergence.)
+ *
+ * The block below is byte-identical in both files and pinned that way by
+ * `__tests__/push-title-case.test.mjs`, which now reads BOTH. Two copies that
+ * a test compares are honest; two copies nothing compares is how this happened.
  */
-const TITLE_CASE_WORD_START = /(^|[\s[{"'‘“-])([a-z])/g;
-const TITLE_CASE_BRACKET_WORD = /(^|\s)\(([a-z])/g;
+/* TITLE_CASE_SHARED_BEGIN — byte-identical in public/push/sw.js.
+   `__tests__/push-title-case.test.mjs` extracts this block from BOTH files and
+   fails if they differ. See the note about the fork below. */
+const TITLE_CASE_WORD_START = /(^|[\s[{"'‘“-])([a-z])(?![A-Za-z0-9]*[0-9])/g;
+const TITLE_CASE_BRACKET_WORD = /(^|\s)\(([a-z])(?![A-Za-z0-9]*[0-9])/g;
 
 function toTitleCase(text) {
     if (typeof text !== 'string' || text === '') return text;
@@ -112,6 +149,7 @@ function toTitleCase(text) {
         return text;
     }
 }
+/* TITLE_CASE_SHARED_END */
 
 self.addEventListener('push', (event) => {
     let data = {};
