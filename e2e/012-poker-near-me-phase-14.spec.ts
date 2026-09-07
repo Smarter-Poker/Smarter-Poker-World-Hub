@@ -5,6 +5,33 @@ async function expectNoOverflow(page: Page, label: string) {
   expect(overflow, `${label} overflows horizontally by ${overflow}px`).toBeLessThanOrEqual(1);
 }
 
+async function expectVerticalGap(upper: Locator, lower: Locator, minimum: number, label: string) {
+  const [upperBox, lowerBox] = await Promise.all([upper.boundingBox(), lower.boundingBox()]);
+  if (!upperBox || !lowerBox) throw new Error(`${label} requires two visible boxes`);
+  const gap = lowerBox.y - (upperBox.y + upperBox.height);
+  expect(gap, `${label} gap was ${gap}px`).toBeGreaterThanOrEqual(minimum);
+}
+
+async function expectNoRectOverlap(first: Locator, second: Locator, label: string) {
+  const [firstBox, secondBox] = await Promise.all([first.boundingBox(), second.boundingBox()]);
+  if (!firstBox || !secondBox) throw new Error(`${label} requires two visible boxes`);
+  const overlaps = !(
+    firstBox.x + firstBox.width <= secondBox.x
+    || secondBox.x + secondBox.width <= firstBox.x
+    || firstBox.y + firstBox.height <= secondBox.y
+    || secondBox.y + secondBox.height <= firstBox.y
+  );
+  expect(overlaps, label).toBe(false);
+}
+
+const MAP_HUD_VIEWPORTS = [
+  { width: 320, height: 568 },
+  { width: 375, height: 812 },
+  { width: 390, height: 844 },
+  { width: 844, height: 390 },
+  { width: 1024, height: 600 },
+] as const;
+
 function collectMapRuntimeErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (error) => {
@@ -111,57 +138,50 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('mobile fullscreen map keeps telemetry, legend, and attribution in separate lanes', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
-    expect(response?.status()).toBe(200);
+  for (const viewport of MAP_HUD_VIEWPORTS) {
+    test(`fullscreen map HUD clears attribution and zoom controls at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
+      expect(response?.status()).toBe(200);
 
-    const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready="true"]').first();
-    await expect(map).toBeVisible({ timeout: 60_000 });
-    const surface = map.locator('xpath=ancestor::*[@data-pnm-map-surface="true"][1]');
-    await surface.locator('[data-map-fullscreen-control="true"]').click();
-    await expect(surface).toHaveAttribute('data-map-fullscreen', 'true');
+      const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready="true"]').first();
+      await expect(map).toBeVisible({ timeout: 60_000 });
+      const surface = map.locator('xpath=ancestor::*[@data-pnm-map-surface="true"][1]');
+      await surface.locator('[data-map-fullscreen-control="true"]').click();
+      await expect(surface).toHaveAttribute('data-map-fullscreen', 'true');
+      await expect.poll(
+        async () => Number(await surface.getAttribute('data-map-attribution-clearance')),
+        { message: 'expected measured provider-attribution clearance' }
+      ).toBeGreaterThan(0);
 
-    const coverage = surface.locator('[data-map-coverage="true"]');
-    const legend = surface.locator('.venue-map-legend');
-    const attribution = surface.locator('.leaflet-control-attribution');
-    await expect(coverage).toBeVisible();
-    await expect(legend).toHaveAttribute('aria-expanded', 'false');
-    await expect(attribution).toBeVisible();
+      const coverage = surface.locator('[data-map-coverage="true"]');
+      const legend = surface.locator('.venue-map-legend');
+      const attribution = surface.locator('.leaflet-control-attribution');
+      const zoom = surface.locator('.leaflet-control-zoom');
+      await expect(attribution).toBeVisible();
+      if (await legend.getAttribute('aria-expanded') === 'true') await legend.click();
+      await expect(legend).toHaveAttribute('aria-expanded', 'false');
+      await expect(coverage).toBeVisible();
+      await expectVerticalGap(legend, coverage, 7, 'collapsed legend to telemetry');
+      await expectVerticalGap(coverage, attribution, 7, 'telemetry to attribution');
+      await expectNoRectOverlap(legend, zoom, 'collapsed legend must not cover zoom controls');
+      await expectNoRectOverlap(coverage, zoom, 'telemetry must not cover zoom controls');
 
-    const collapsedCoverageBox = await coverage.boundingBox();
-    const collapsedLegendBox = await legend.boundingBox();
-    const attributionBox = await attribution.boundingBox();
-    expect(collapsedCoverageBox).not.toBeNull();
-    expect(collapsedLegendBox).not.toBeNull();
-    expect(attributionBox).not.toBeNull();
-    expect(collapsedLegendBox!.y + collapsedLegendBox!.height).toBeLessThanOrEqual(collapsedCoverageBox!.y - 4);
-    expect(collapsedCoverageBox!.y + collapsedCoverageBox!.height).toBeLessThanOrEqual(attributionBox!.y - 4);
-
-    await legend.click();
-    await expect(legend).toHaveAttribute('aria-expanded', 'true');
-    await expect(coverage).toBeHidden();
-
-    // 489px leaves approximately a 360px map viewport beneath the mobile
-    // command header and reproduces the short landscape collision boundary.
-    await page.setViewportSize({ width: 390, height: 489 });
-    await page.waitForTimeout(100);
-    const expandedLegendBox = await legend.boundingBox();
-    const resizedAttributionBox = await attribution.boundingBox();
-    const zoomBox = await surface.locator('.leaflet-control-zoom').boundingBox();
-    expect(expandedLegendBox).not.toBeNull();
-    expect(resizedAttributionBox).not.toBeNull();
-    expect(zoomBox).not.toBeNull();
-    expect(expandedLegendBox!.y + expandedLegendBox!.height).toBeLessThanOrEqual(resizedAttributionBox!.y - 4);
-    const legendOverlapsZoom = !(
-      expandedLegendBox!.x + expandedLegendBox!.width <= zoomBox!.x
-      || zoomBox!.x + zoomBox!.width <= expandedLegendBox!.x
-      || expandedLegendBox!.y + expandedLegendBox!.height <= zoomBox!.y
-      || zoomBox!.y + zoomBox!.height <= expandedLegendBox!.y
-    );
-    expect(legendOverlapsZoom).toBe(false);
-    await expectNoOverflow(page, 'mobile fullscreen map HUD');
-  });
+      await legend.click();
+      await expect(legend).toHaveAttribute('aria-expanded', 'true');
+      const constrained = viewport.width <= 768 || viewport.height <= 500;
+      if (constrained) {
+        await expect(coverage).toBeHidden();
+      } else {
+        await expect(coverage).toBeVisible();
+        await expectVerticalGap(legend, coverage, 7, 'expanded legend to telemetry');
+        await expectVerticalGap(coverage, attribution, 7, 'expanded telemetry to attribution');
+      }
+      await expectVerticalGap(legend, attribution, 7, 'expanded legend to attribution');
+      await expectNoRectOverlap(legend, zoom, 'expanded legend must not cover zoom controls');
+      await expectNoOverflow(page, `fullscreen map HUD at ${viewport.width}x${viewport.height}`);
+    });
+  }
 
   test('lobby map survives rapid pod teardown and recreation', async ({ page }) => {
     const runtimeErrors = collectMapRuntimeErrors(page);

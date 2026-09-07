@@ -354,13 +354,23 @@ export default function VenueMap({
     scheduleKeyboardTargetSync();
   }, [scheduleKeyboardTargetSync]);
 
-  // Keep the national map legible on phones. The expanded legend and the
-  // coverage readout otherwise compete for the same lower-left map area; the
-  // legend remains one tap away and desktop keeps the full key visible.
+  // Keep the national map legible whenever the available viewport is narrow
+  // or short. Re-entering a constrained orientation collapses the legend, but
+  // the user can immediately expand it again; the CSS then gives the legend
+  // temporary ownership of the shared HUD lane.
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches) {
-      setLegendCollapsed(true);
+    if (typeof window === 'undefined') return undefined;
+    const constrainedViewport = window.matchMedia('(max-width: 768px), (max-height: 500px)');
+    const collapseForConstrainedViewport = (event) => {
+      if (event.matches) setLegendCollapsed(true);
+    };
+    collapseForConstrainedViewport(constrainedViewport);
+    if (typeof constrainedViewport.addEventListener === 'function') {
+      constrainedViewport.addEventListener('change', collapseForConstrainedViewport);
+      return () => constrainedViewport.removeEventListener('change', collapseForConstrainedViewport);
     }
+    constrainedViewport.addListener?.(collapseForConstrainedViewport);
+    return () => constrainedViewport.removeListener?.(collapseForConstrainedViewport);
   }, []);
 
   // Keep the refs current without triggering re-init
@@ -981,7 +991,7 @@ export default function VenueMap({
       </p>
       <div
         className="pnm-map-overlay-stack"
-        data-legend-expanded={!legendCollapsed && !hideLegend ? 'true' : 'false'}
+        data-legend-expanded={mapReady && !legendCollapsed && !hideLegend ? 'true' : 'false'}
       >
         {/* ═══ VENUE TYPE LEGEND ═══ */}
         {mapReady && !hideLegend && (

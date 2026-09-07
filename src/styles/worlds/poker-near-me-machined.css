@@ -402,10 +402,59 @@ body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__signal {
   background-image: none !important;
 }
 
-/* On desktop the wrapper has no box, preserving the established opposing
-   corners. Mobile turns it into one layout-owned HUD stack below. */
+body.world-poker-near-me .pnm-map-surface .leaflet-control-attribution {
+  margin-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+/* Leaflet creates and reflows mandatory provider credit outside React. The
+   shared map frame measures its real bottom-edge clearance and publishes the
+   custom property below. Keep all authored HUD instruments in one physical
+   lane above that credit at every width, including short landscape screens. */
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage--overlay {
+  bottom: calc(8px + var(--pnm-map-attribution-clearance, 58px));
+}
+
 body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
-  display: contents;
+  position: absolute;
+  left: 14px;
+  bottom: calc(8px + var(--pnm-map-attribution-clearance, 58px));
+  z-index: 800;
+  display: flex;
+  width: min(520px, calc(100% - 28px));
+  max-height: calc(100% - 16px - var(--pnm-map-attribution-clearance, 58px));
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack > * {
+  pointer-events: auto;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .pnm-map-coverage--overlay {
+  position: static;
+  width: 100%;
+  max-width: none;
+  flex: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .venue-map-legend {
+  position: static;
+  max-width: 138px;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow-y: auto;
+}
+
+/* On constrained viewports an expanded key temporarily owns the HUD lane.
+   Collapsing it restores telemetry immediately, without covering attribution
+   or the 44px Leaflet zoom rail. */
+@media (max-width: 768px), (max-height: 500px) {
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack[data-legend-expanded='true'] .pnm-map-coverage {
+    display: none;
+  }
 }
 
 body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom a {
@@ -445,7 +494,7 @@ body.world-poker-near-me .pnm-map-error-state button {
 body.world-poker-near-me .pnm-map-surface__escape-hint {
   position: absolute;
   right: 18px;
-  bottom: 12px;
+  bottom: calc(12px + var(--pnm-map-attribution-clearance, 58px));
   z-index: 1300;
   margin: 0;
   padding: 5px 8px;
@@ -1074,52 +1123,10 @@ body.world-poker-near-me :is(
 }
 
 @media (max-width: 768px) {
-  /* Leaflet's mandatory provider credit wraps to two lines on a 390px map.
-     Reserve that measured footprint for every shared mobile map so the live
-     coverage console and legend remain separate physical instruments instead
-     of stacking underneath the attribution strip. */
-  body.world-poker-near-me .pnm-map-surface {
-    --pnm-map-mobile-attribution-reserve: calc(58px + env(safe-area-inset-bottom, 0px));
-  }
-
-  body.world-poker-near-me .pnm-map-surface .leaflet-control-attribution {
-    margin-bottom: env(safe-area-inset-bottom, 0px) !important;
-  }
-
-  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage--overlay {
-    bottom: calc(8px + var(--pnm-map-mobile-attribution-reserve));
-  }
-
   body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
-    position: absolute;
     right: 8px;
-    bottom: calc(8px + var(--pnm-map-mobile-attribution-reserve));
     left: 8px;
-    z-index: 800;
-    display: flex;
-    max-height: calc(100% - 16px - var(--pnm-map-mobile-attribution-reserve));
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    pointer-events: none;
-  }
-
-  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack > * {
-    pointer-events: auto;
-  }
-
-  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .pnm-map-coverage--overlay {
-    position: static;
-    width: 100%;
-    max-width: none;
-    flex: none;
-  }
-
-  /* An expanded key and the telemetry card cannot both fit beside the zoom
-     rail on a short mobile map. The key temporarily owns this same HUD lane;
-     one tap collapses it and restores the live coverage card. */
-  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack[data-legend-expanded='true'] .pnm-map-coverage {
-    display: none;
+    width: auto;
   }
 
   /* Poker Tours previously compressed its search input to ~3px because two
@@ -1219,11 +1226,6 @@ body.world-poker-near-me :is(
   }
 
   body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .venue-map-legend {
-    position: static;
-    max-width: 138px;
-    max-height: 100%;
-    flex: 0 1 auto;
-    overflow-y: auto;
     padding: 8px 9px;
   }
 
@@ -1238,6 +1240,45 @@ body.world-poker-near-me :is(
 
   body.world-poker-near-me .pnm-live-map-toggle > small {
     display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Preserve readable telemetry at the narrow-phone boundary. The radar is
+     decorative; moving actions to their own row keeps every dynamic status
+     label intact without squeezing it into one-word columns. */
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__signal {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy > span {
+    white-space: nowrap;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__integrity {
+    flex-wrap: wrap;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy p {
+    max-width: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    align-items: stretch;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button {
+    width: 100%;
+    min-width: 0;
   }
 }
 

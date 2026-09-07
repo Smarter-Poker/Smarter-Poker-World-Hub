@@ -231,30 +231,34 @@ test('provider attribution remains visible when optional product branding is dis
   assert.doesNotMatch(controls[0].value, /Smarter\.Poker/);
 });
 
-test('mobile shared maps use a layout stack above mandatory provider attribution', async () => {
-  const [styles, venueMap] = await Promise.all([
+test('shared maps measure mandatory provider attribution and keep HUD controls in one layout lane', async () => {
+  const [styles, venueMap, mapSurface] = await Promise.all([
     source('src/styles/worlds/poker-near-me-machined.css'),
     source('src/components/poker-near-me/VenueMap.jsx'),
+    source('src/components/poker-near-me/MapSurfaceFrame.jsx'),
   ]);
+  assert.match(mapSurface, /new ResizeObserverClass\(scheduleMeasurement\)/);
+  assert.match(mapSurface, /new window\.MutationObserver\(scheduleMeasurement\)/);
+  assert.match(mapSurface, /stageRect\.bottom - attributionRect\.top/);
+  assert.match(mapSurface, /--pnm-map-attribution-clearance/);
+  assert.match(mapSurface, /dataset\.mapAttributionClearance/);
   assert.match(
     styles,
-    /--pnm-map-mobile-attribution-reserve:\s*calc\(58px \+ env\(safe-area-inset-bottom, 0px\)\)/
+    /\.pnm-map-surface \.pnm-map-coverage--overlay\s*\{[^}]*bottom:\s*calc\(8px \+ var\(--pnm-map-attribution-clearance, 58px\)\)/s
   );
   assert.match(
     styles,
-    /\.pnm-map-surface \.pnm-map-coverage--overlay\s*\{[^}]*bottom:\s*calc\(8px \+ var\(--pnm-map-mobile-attribution-reserve\)\)/s
+    /\.pnm-map-overlay-stack\s*\{[^}]*bottom:\s*calc\(8px \+ var\(--pnm-map-attribution-clearance, 58px\)\);[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*8px/s
   );
-  assert.match(
-    styles,
-    /\.pnm-map-overlay-stack\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*8px/s
-  );
+  assert.doesNotMatch(styles, /--pnm-map-mobile-attribution-reserve/);
   assert.match(styles, /\.pnm-map-overlay-stack\[data-legend-expanded='true'\] \.pnm-map-coverage\s*\{[^}]*display:\s*none/s);
   assert.match(venueMap, /className="pnm-map-overlay-stack"/);
-  assert.match(venueMap, /data-legend-expanded=\{!legendCollapsed && !hideLegend \? 'true' : 'false'\}/);
+  assert.match(venueMap, /matchMedia\('\(max-width: 768px\), \(max-height: 500px\)'\)/);
+  assert.match(venueMap, /data-legend-expanded=\{mapReady && !legendCollapsed && !hideLegend \? 'true' : 'false'\}/);
   assert.ok(
     venueMap.indexOf('className="venue-map-legend venue-map-legend--coverage"')
       < venueMap.indexOf('<MapCoverageReadout'),
-    'legend and coverage remain ordered in the shared mobile stack'
+    'legend and coverage remain ordered in the shared map stack'
   );
 });
 
