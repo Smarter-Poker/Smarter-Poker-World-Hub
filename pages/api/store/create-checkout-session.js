@@ -31,6 +31,10 @@ const {
     isPrintfulReady,
     resolvePrintfulMapping,
 } = require('../../../src/lib/store/printfulFulfillment');
+const {
+    inspectStripeRuntime,
+    isProductionRuntime,
+} = require('../../../src/lib/store/stripeRuntimeMode');
 
 const MAX_CHECKOUT_BODY_BYTES = 64 * 1024;
 const VIP_SUBSCRIPTION_CHECKOUT_TTL_SECONDS = 60 * 60;
@@ -1202,32 +1206,6 @@ export default async function handler(req, res) {
               });
           }
 
-          /* Authenticate and validate the request shape before revealing payment
-             configuration state or touching a catalog/database dependency. An
-             anonymous request must always receive the same authentication
-             boundary, even during a Stripe configuration incident. */
-          const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-          const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-          if (!stripe || !stripePublishableKey) {
-              console.warn('[Checkout] Missing Stripe keys:', {
-                  hasStripe: !!stripe,
-                  hasPublishable: !!stripePublishableKey
-              });
-              return res.status(503).json({
-                  success: false,
-                  error: {
-                      code: 'PAYMENTS_NOT_CONFIGURED',
-                      message: 'Payment Processing Is Temporarily Unavailable. Please Contact Support.'
-                  }
-              });
-          }
-
-          const keyPrefix = stripeSecretKey.substring(0, 7);
-          if (process.env.NODE_ENV === 'production' && keyPrefix === 'sk_test') {
-              console.warn('[Checkout] WARNING: Stripe TEST secret key is being used in production');
-          }
-
-          let preparedCheckout;
           let redemptionIntent;
           try {
               redemptionIntent = normalizeRedemptionIntent(type, rawRedemptionIntent);
@@ -1238,6 +1216,46 @@ export default async function handler(req, res) {
                       400
                   );
               }
+          } catch (inputError) {
+              if (inputError instanceof CheckoutInputError) {
+                  return res.status(inputError.status).json({
+                      success: false,
+                      error: { code: inputError.code, message: inputError.message }
+                  });
+              }
+              throw inputError;
+          }
+
+          /* Authenticate and validate the request shape before revealing payment
+             configuration state or touching a catalog/database dependency. An
+             anonymous request must always receive the same authentication
+             boundary, even during a Stripe configuration incident. */
+          const stripeRuntime = inspectStripeRuntime(process.env, {
+              requirePublishable: true,
+              // Starting a production charge without a configured settlement
+              // webhook can take money while leaving fulfillment stranded.
+              requireWebhook: isProductionRuntime(process.env),
+          });
+          if (!stripe || !stripeRuntime.ready) {
+              console.warn('[Checkout] Stripe runtime is not safe for payment mutation:', {
+                  hasStripe: !!stripe,
+                  secretConfigured: stripeRuntime.secretConfigured,
+                  publishableConfigured: stripeRuntime.publishableConfigured,
+                  webhookConfigured: stripeRuntime.webhookConfigured,
+                  keyMode: stripeRuntime.keyMode || 'invalid',
+                  productionModeAllowed: stripeRuntime.productionModeAllowed,
+              });
+              return res.status(503).json({
+                  success: false,
+                  error: {
+                      code: 'PAYMENTS_NOT_CONFIGURED',
+                      message: 'Payment Processing Is Temporarily Unavailable. Please Contact Support.'
+                  }
+              });
+          }
+
+          let preparedCheckout;
+          try {
               preparedCheckout = await prepareCheckout(type, items, {
                   // Every Diamond payment uses one fresh database snapshot.
                   // This keeps the storefront confirmation, Stripe cents, and
