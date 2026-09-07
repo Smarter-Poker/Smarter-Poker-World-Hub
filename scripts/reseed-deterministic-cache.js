@@ -18,22 +18,15 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// ─── ENVIRONMENT SETUP ─────────────────────────────────────────────────────
-require('dotenv').config({ path: '.env' });
-require('dotenv').config({ path: '.env.local' });
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-
+// Reject the retired mutation mode before loading any dependency or
+// environment file. This guarantee must hold even in a minimal CI/runtime
+// where dotenv is unavailable: --live always reaches the explicit refusal.
 const args = process.argv.slice(2);
 const IS_DRY_RUN = args.includes('--dry-run');
 const IS_LIVE = args.includes('--live');
 const IS_VERIFY = args.includes('--verify');
 const SINGLE_GAME = args.find(a => a.startsWith('--game='))?.split('=')[1];
 const VERBOSE = args.includes('--verbose');
-let enforceTrainingQuestionContract;
-let enforceSolverClaimHonesty;
-let selectTrustedLegacySolverMatrix;
-let selectTrustedSolverMatrix;
 
 if (IS_LIVE) {
     console.error([
@@ -43,6 +36,17 @@ if (IS_LIVE) {
     ].join('\n'));
     process.exit(2);
 }
+
+// ─── ENVIRONMENT SETUP ─────────────────────────────────────────────────────
+require('dotenv').config({ path: '.env' });
+require('dotenv').config({ path: '.env.local' });
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+
+let enforceTrainingQuestionContract;
+let enforceSolverClaimHonesty;
+let selectTrustedLegacySolverMatrix;
+let selectTrustedSolverMatrix;
 
 if (!IS_DRY_RUN && !IS_VERIFY) {
     console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--verify] [--game=cash-001]');
