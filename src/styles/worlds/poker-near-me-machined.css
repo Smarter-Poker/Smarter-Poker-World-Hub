@@ -402,6 +402,61 @@ body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__signal {
   background-image: none !important;
 }
 
+body.world-poker-near-me .pnm-map-surface .leaflet-control-attribution {
+  margin-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+/* Leaflet creates and reflows mandatory provider credit outside React. The
+   shared map frame measures its real bottom-edge clearance and publishes the
+   custom property below. Keep all authored HUD instruments in one physical
+   lane above that credit at every width, including short landscape screens. */
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage--overlay {
+  bottom: calc(8px + var(--pnm-map-attribution-clearance, 58px));
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
+  position: absolute;
+  left: 14px;
+  bottom: calc(8px + var(--pnm-map-attribution-clearance, 58px));
+  z-index: 800;
+  display: flex;
+  width: min(520px, calc(100% - 28px));
+  max-height: calc(100% - 16px - var(--pnm-map-attribution-clearance, 58px));
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack > * {
+  pointer-events: auto;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .pnm-map-coverage--overlay {
+  position: static;
+  width: 100%;
+  max-width: none;
+  flex: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .venue-map-legend {
+  position: static;
+  max-width: 138px;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow-y: auto;
+}
+
+/* On constrained viewports an expanded key temporarily owns the HUD lane.
+   Collapsing it restores telemetry immediately, without covering attribution
+   or the 44px Leaflet zoom rail. */
+@media (max-width: 768px), (max-height: 500px) {
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack[data-legend-expanded='true'] .pnm-map-coverage {
+    display: none;
+  }
+}
+
 body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom a {
   width: 44px !important;
   height: 44px !important;
@@ -439,7 +494,7 @@ body.world-poker-near-me .pnm-map-error-state button {
 body.world-poker-near-me .pnm-map-surface__escape-hint {
   position: absolute;
   right: 18px;
-  bottom: 12px;
+  bottom: calc(12px + var(--pnm-map-attribution-clearance, 58px));
   z-index: 1300;
   margin: 0;
   padding: 5px 8px;
@@ -1068,6 +1123,12 @@ body.world-poker-near-me :is(
 }
 
 @media (max-width: 768px) {
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+
   /* Poker Tours previously compressed its search input to ~3px because two
      fixed-width selects shared the same 346px row. Give search and filters
      separate instrument rows while retaining a single continuous frame. */
@@ -1164,10 +1225,7 @@ body.world-poker-near-me :is(
     display: none;
   }
 
-  body.world-poker-near-me .pnm-map-surface .venue-map-legend {
-    left: 8px;
-    bottom: 116px;
-    max-width: 138px;
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .venue-map-legend {
     padding: 8px 9px;
   }
 
@@ -1182,6 +1240,45 @@ body.world-poker-near-me :is(
 
   body.world-poker-near-me .pnm-live-map-toggle > small {
     display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Preserve readable telemetry at the narrow-phone boundary. The radar is
+     decorative; moving actions to their own row keeps every dynamic status
+     label intact without squeezing it into one-word columns. */
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__signal {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy > span {
+    white-space: nowrap;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__integrity {
+    flex-wrap: wrap;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy p {
+    max-width: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    align-items: stretch;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button {
+    width: 100%;
+    min-width: 0;
   }
 }
 

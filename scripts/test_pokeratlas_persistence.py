@@ -85,6 +85,40 @@ class _Manager:
 
 
 class PokerAtlasPersistenceTests(unittest.TestCase):
+    def test_partial_saved_cycle_refreshes_liveness_but_keeps_backoff(self):
+        cycle_result = {
+            "records_saved": 319,
+            "healthy_progress": False,
+            "run_status": daemon.RUN_PARTIAL,
+        }
+
+        control = daemon.daemon_cycle_control(cycle_result)
+
+        self.assertEqual(319, control["saved_records"])
+        self.assertTrue(control["refresh_liveness"])
+        self.assertFalse(control["use_normal_interval"])
+        self.assertFalse(cycle_result["healthy_progress"])
+
+    def test_zero_write_failure_remains_stale_and_in_backoff(self):
+        control = daemon.daemon_cycle_control({
+            "records_saved": 0,
+            "healthy_progress": False,
+            "run_status": daemon.RUN_FAILED,
+        })
+
+        self.assertFalse(control["refresh_liveness"])
+        self.assertFalse(control["use_normal_interval"])
+
+    def test_healthy_zero_write_progress_refreshes_liveness(self):
+        control = daemon.daemon_cycle_control({
+            "records_saved": 0,
+            "healthy_progress": True,
+            "run_status": daemon.RUN_MAINTENANCE,
+        })
+
+        self.assertTrue(control["refresh_liveness"])
+        self.assertTrue(control["use_normal_interval"])
+
     def test_checked_in_registry_keeps_broad_us_coverage_without_border_rooms(self):
         venues = daemon.load_pa_venues()
         slugs = {venue["slug"] for venue in venues}
