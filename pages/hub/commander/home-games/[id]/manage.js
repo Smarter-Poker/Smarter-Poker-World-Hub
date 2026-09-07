@@ -29,6 +29,8 @@ import { busEmit } from '../../../../../src/engine/EventBus';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../../src/lib/clipboard';
 import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CasinoActionDialog from '../../../../../src/components/poker-near-me/CasinoActionDialog';
+import useAccessibleDialog from '../../../../../src/hooks/useAccessibleDialog';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -44,6 +46,11 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   // retries until a 2xx or 4xx settles (then rotate). Network/5xx errors
   // keep the token so a safe retry doesn't double-create the event.
   const idemKeyRef = useRef(makeIdemKey());
+  const scheduleDialog = useAccessibleDialog({
+    open: isOpen,
+    onClose,
+    dismissDisabled: submitting,
+  });
 
   async function handleSubmit() {
     if (!eventData.scheduled_date) return;
@@ -106,13 +113,27 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div
+      ref={scheduleDialog.dialogRef}
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      data-pnm-home-games="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="schedule-home-game-title"
+      tabIndex={-1}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !submitting) onClose?.();
+      }}
+    >
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
-          <h3 className="text-lg font-semibold text-white">Schedule Game</h3>
+          <h3 id="schedule-home-game-title" className="text-lg font-semibold text-white">Schedule Game</h3>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            disabled={submitting}
+            aria-label="Close schedule dialog"
           >
             <X className="w-5 h-5 text-[#64748B]" />
           </button>
@@ -121,8 +142,10 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Date</label>
+              <label htmlFor="schedule-home-game-date" className="block text-sm font-medium text-white mb-2">Date</label>
               <input
+                ref={scheduleDialog.initialFocusRef}
+                id="schedule-home-game-date"
                 type="date"
                 value={eventData.scheduled_date}
                 onChange={(e) => setEventData(prev => ({ ...prev, scheduled_date: e.target.value }))}
@@ -131,8 +154,9 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Time</label>
+              <label htmlFor="schedule-home-game-time" className="block text-sm font-medium text-white mb-2">Time</label>
               <input
+                id="schedule-home-game-time"
                 type="time"
                 value={eventData.scheduled_time}
                 onChange={(e) => setEventData(prev => ({ ...prev, scheduled_time: e.target.value }))}
@@ -142,8 +166,9 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Stakes</label>
+            <label htmlFor="schedule-home-game-stakes" className="block text-sm font-medium text-white mb-2">Stakes</label>
             <input
+              id="schedule-home-game-stakes"
               type="text"
               value={eventData.stakes}
               onChange={(e) => setEventData(prev => ({ ...prev, stakes: e.target.value }))}
@@ -172,8 +197,9 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Notes (Optional)</label>
+            <label htmlFor="schedule-home-game-notes" className="block text-sm font-medium text-white mb-2">Notes (Optional)</label>
             <textarea
+              id="schedule-home-game-notes"
               value={eventData.notes}
               onChange={(e) => setEventData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Any Special Details For This Game..."
@@ -185,6 +211,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
 
         <div className="p-4 border-t border-[#4A5E78]">
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={!eventData.scheduled_date || submitting}
             className="cmd-btn cmd-btn-primary w-full h-12 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -206,6 +233,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
 
 function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
   const isPending = member.status === 'pending';
+  const memberName = member.profiles?.display_name || 'member';
 
   return (
     <div className="flex items-center gap-3 p-4 border-b border-[#4A5E78] last:border-b-0">
@@ -235,7 +263,9 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
 
       {onMessage && (
         <button
+          type="button"
           onClick={() => onMessage(member.user_id)}
+          aria-label={`Message ${memberName}`}
           className="p-2 mr-2 bg-[#132240] rounded-lg text-[#22D3EE] hover:bg-[#1E3A5F] transition-colors"
           title="Message Player"
         >
@@ -246,13 +276,17 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
       {isPending && (
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => onApprove?.(member)}
+            aria-label={`Approve ${memberName}`}
             className="p-2 bg-[#10B981] text-white rounded-lg hover:bg-[#059669] transition-colors"
           >
             <Check className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => onRemove?.(member)}
+            aria-label={`Decline ${memberName}`}
             className="p-2 bg-[#EF4444] text-white rounded-lg hover:bg-[#DC2626] transition-colors"
           >
             <X className="w-4 h-4" />
@@ -262,7 +296,9 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
 
       {!isPending && !isHost && (
         <button
+          type="button"
           onClick={() => onRemove?.(member)}
+          aria-label={`Remove ${memberName}`}
           className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
         >
           <UserMinus className="w-4 h-4" />
@@ -299,12 +335,15 @@ export default function ManageHomeGamePage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [pageSlug, setPageSlug] = useState(null);
   const [pageUrlCopied, setPageUrlCopied] = useState(false);
+  const [actionDialog, setActionDialog] = useState(null);
+  const [actionDialogBusy, setActionDialogBusy] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcasting, setBroadcasting] = useState(false);
 
-  // Phase 41/audit-sweep-B-mgmt: in-flight guard for the broadcast action.
-  // The button uses window.prompt() then POSTs, so a host who clicks twice
-  // can send the same announcement twice (with two prompts). The ref blocks
-  // re-entry until the first request settles. Pairs with X-Idempotency-Key
-  // so a timeout-then-retry doesn't double-send to N members either.
+  // In-flight guard for the accessible broadcast dialog. This pairs with the
+  // idempotency key so local double taps and network retries cannot fan out a
+  // duplicate announcement.
   const broadcastingRef = useRef(false);
   // bug-hunt-zero/B-MGR-7: re-entry guard for the irreversible delete-group action.
   const deletingGroupRef = useRef(false);
@@ -316,6 +355,21 @@ export default function ManageHomeGamePage() {
   const [createTableState, setCreateTableState]   = useState(null);
   // shape: { gameId, defaults }
   const [seatRefreshKey, setSeatRefreshKey] = useState(0);
+
+  const requestAction = useCallback((config) => {
+    setActionDialog(config);
+  }, []);
+
+  const confirmRequestedAction = useCallback(async () => {
+    if (!actionDialog?.action || actionDialogBusy) return;
+    setActionDialogBusy(true);
+    try {
+      await actionDialog.action();
+      setActionDialog(null);
+    } finally {
+      setActionDialogBusy(false);
+    }
+  }, [actionDialog, actionDialogBusy]);
 
   // Resolve the signed-in user once - used to highlight own-seats in the grid.
   useEffect(() => {
@@ -419,6 +473,7 @@ export default function ManageHomeGamePage() {
         }
       } catch (trnErr) {
         console.warn('[home-games/manage] tournaments fetch threw:', trnErr);
+        setTournaments([]);
       }
 
       // Escrow data (may not exist yet)
@@ -443,6 +498,7 @@ export default function ManageHomeGamePage() {
 
     } catch (error) {
       console.warn('Failed to fetch data:', error);
+      toast.error(error?.message || 'Failed to load management data');
     } finally {
       setLoading(false);
     }
@@ -507,9 +563,6 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleRemoveMember(member) {
-    // 2026-07-25 audit fix: display_name is on the nested profiles row.
-    if (!confirm(`Remove ${member.profiles?.display_name || 'this member'}?`)) return;
-
     // bug-hunt-zero/B-MGR-6: same silent-failure pattern. DELETE goes
     // through, server says no (403 - not the host, 404 - already gone,
     // 409 - protected member), but fetchData() reloads the list with
@@ -591,8 +644,6 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleDeleteEvent(event) {
-    if (!confirm('Delete this scheduled game?')) return;
-
     // bug-hunt-zero/B-MGR-4: silent-failure fix. await fetch with no
     // res.ok check meant a 403/409/500 left the event in place, but
     // fetchData() reloaded the same list so the UI looked unchanged
@@ -618,8 +669,6 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleReleaseEscrow(transaction) {
-    if (!confirm(`Release $${transaction.amount} to ${transaction.player_name || 'player'}?`)) return;
-
     setProcessingEscrow(transaction.id);
     // bug-hunt-zero/B-MGR-1: idempotency on a FINANCIAL operation.
     // A timeout-then-retry on a release that actually succeeded could
@@ -656,8 +705,6 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleRefundEscrow(transaction) {
-    if (!confirm(`Refund $${transaction.amount} to ${transaction.player_name || 'player'}?`)) return;
-
     setProcessingEscrow(transaction.id);
     // bug-hunt-zero/B-MGR-2: idempotency on the matching financial op.
     // Parity with B-MGR-1. Same retry risk, same fix.
@@ -693,8 +740,6 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleDeleteGroup() {
-    if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
-
     // bug-hunt-zero/B-MGR-7: in-flight guard. The confirm dialog → fetch
     // window is long enough that a frustrated user might double-tap OK.
     // Without this, two parallel DELETE requests fire - the second 404s
@@ -728,6 +773,38 @@ export default function ManageHomeGamePage() {
       setDeleteError(error && error.message ? error.message : 'Failed to delete group');
     } finally {
       deletingGroupRef.current = false;
+    }
+  }
+
+  async function handleBroadcastAnnouncement() {
+    const message = broadcastMessage.trim();
+    if (!message || broadcastingRef.current) return;
+    broadcastingRef.current = true;
+    setBroadcasting(true);
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`/api/commander/home-games/groups/${id}/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': makeIdemKey(),
+        },
+        body: JSON.stringify({ message_text: message }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || data.error || `Broadcast failed (${res.status})`);
+      }
+      const result = data.result || {};
+      toast.success(`Sent to ${result.members_notified || 0} members, ${result.followers_notified || 0} followers`);
+      setBroadcastOpen(false);
+      setBroadcastMessage('');
+    } catch (error) {
+      toast.error(error?.message || 'Broadcast failed');
+    } finally {
+      broadcastingRef.current = false;
+      setBroadcasting(false);
     }
   }
 
@@ -778,7 +855,7 @@ export default function ManageHomeGamePage() {
 
   if (loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
+      <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
@@ -815,7 +892,7 @@ export default function ManageHomeGamePage() {
     return (
       <CommanderPageShell>
         <SEOHead title="Not Authorized" description="Smarter.Poker" noindex={true} />
-        <div className="cmd-page flex items-center justify-center px-4">
+        <div className="cmd-page flex items-center justify-center px-4" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
           <div className="max-w-md w-full text-center py-16">
             <h1 className="text-xl font-semibold text-white mb-2">You Do Not Manage This Game</h1>
             <p className="text-sm text-[#9FB3C8] mb-6">
@@ -823,7 +900,9 @@ export default function ManageHomeGamePage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
+                type="button"
                 onClick={() => router.push(`/hub/commander/home-games/${id}`)}
+                aria-label={`Back to ${group?.name || 'home game'}`}
                 className="cmd-btn cmd-btn-secondary px-4 h-11"
               >
                 View The Group
@@ -847,7 +926,7 @@ export default function ManageHomeGamePage() {
                 noindex={true}
             />
 
-      <div className="cmd-page">
+      <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -985,7 +1064,16 @@ export default function ManageHomeGamePage() {
                             {expandedEventId === event.id ? 'Hide RSVPs' : 'Manage RSVPs'}
                           </button>
                           <button
-                            onClick={() => handleDeleteEvent(event)}
+                            type="button"
+                            onClick={() => requestAction({
+                              eyebrow: 'Schedule control',
+                              title: 'Delete This Scheduled Game?',
+                              message: 'The event and its current RSVP view will be removed. This action cannot be undone.',
+                              confirmLabel: 'Delete Game',
+                              destructive: true,
+                              action: () => handleDeleteEvent(event),
+                            })}
+                            aria-label={`Delete game scheduled for ${eventDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
                             className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -1134,7 +1222,14 @@ export default function ManageHomeGamePage() {
                       member={member}
                       isHost={false}
                       onApprove={handleApproveMember}
-                      onRemove={handleRemoveMember}
+                      onRemove={(member) => requestAction({
+                        eyebrow: 'Roster control',
+                        title: `Remove ${member.profiles?.display_name || 'This Member'}?`,
+                        message: 'This player will lose access to the group until they join again.',
+                        confirmLabel: 'Remove Member',
+                        destructive: true,
+                        action: () => handleRemoveMember(member),
+                      })}
                       onMessage={handleStartDm}
                     />
                   ))}
@@ -1154,7 +1249,14 @@ export default function ManageHomeGamePage() {
                     // 2026-07-25 audit fix: commander_home_groups rows have
                     // owner_id, not host_id - host badge never rendered.
                     isHost={member.user_id === group?.owner_id}
-                    onRemove={handleRemoveMember}
+                    onRemove={(member) => requestAction({
+                      eyebrow: 'Roster control',
+                      title: `Remove ${member.profiles?.display_name || 'This Member'}?`,
+                      message: 'This player will lose access to the group until they join again.',
+                      confirmLabel: 'Remove Member',
+                      destructive: true,
+                      action: () => handleRemoveMember(member),
+                    })}
                     onMessage={member.user_id !== group?.owner_id ? handleStartDm : undefined}
                   />
                 ))}
@@ -1251,7 +1353,14 @@ export default function ManageHomeGamePage() {
                           <span className="font-semibold text-white">${transaction.amount}</span>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleReleaseEscrow(transaction)}
+                              onClick={() => requestAction({
+                                eyebrow: 'Escrow control',
+                                title: `Release $${transaction.amount}?`,
+                                message: `Release these funds to ${transaction.player_name || 'the player'}? The server will process this as an idempotent financial action.`,
+                                confirmLabel: 'Release Funds',
+                                destructive: false,
+                                action: () => handleReleaseEscrow(transaction),
+                              })}
                               disabled={processingEscrow === transaction.id}
                               className="px-3 py-1.5 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50"
                             >
@@ -1262,7 +1371,14 @@ export default function ManageHomeGamePage() {
                               )}
                             </button>
                             <button
-                              onClick={() => handleRefundEscrow(transaction)}
+                              onClick={() => requestAction({
+                                eyebrow: 'Escrow control',
+                                title: `Refund $${transaction.amount}?`,
+                                message: `Return these funds to ${transaction.player_name || 'the player'}? The server will process this as an idempotent financial action.`,
+                                confirmLabel: 'Refund Funds',
+                                destructive: true,
+                                action: () => handleRefundEscrow(transaction),
+                              })}
                               disabled={processingEscrow === transaction.id}
                               className="px-3 py-1.5 bg-[#EF4444] text-white text-sm font-medium rounded-lg hover:bg-[#DC2626] transition-colors disabled:opacity-50"
                             >
@@ -1353,42 +1469,7 @@ export default function ManageHomeGamePage() {
                   <span className="text-xs text-[#64748B]">View And Manage Full Roster</span>
                 </button>
                 <button
-                  onClick={async () => {
-                    // Phase 41/audit-sweep-B-mgmt: block re-entry so a host who
-                    // taps Broadcast twice can't fire two independent prompts +
-                    // POSTs in parallel.
-                    if (broadcastingRef.current) {
-                      toast('A broadcast is already being sent…');
-                      return;
-                    }
-                    const msg = window.prompt('Broadcast announcement to all group members:');
-                    if (!msg?.trim()) return;
-                    broadcastingRef.current = true;
-                    // Fresh token per broadcast attempt. Reused only on 5xx /
-                    // network errors (retry path) so the second attempt is
-                    // deduplicated by the server if it honors the header.
-                    const idemKey = makeIdemKey();
-                    try {
-                      const token = getAccessToken();
-                      const res = await fetch(`/api/commander/home-games/groups/${id}/broadcast`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`,
-                          'X-Idempotency-Key': idemKey,
-                        },
-                        body: JSON.stringify({ message_text: msg.trim() })
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        const r = data.result || {};
-                        toast.success(`Sent to ${r.members_notified || 0} members, ${r.followers_notified || 0} followers`);
-                      } else {
-                        toast.error(data.error?.message || data.error || 'Broadcast failed');
-                      }
-                    } catch (e) { toast.error('Broadcast failed'); }
-                    finally { broadcastingRef.current = false; }
-                  }}
+                  onClick={() => setBroadcastOpen(true)}
                   className="cmd-panel p-4 flex flex-col items-center gap-2 hover:bg-[#1A2E4A] transition-colors text-center"
                 >
                   <Megaphone className="w-6 h-6 text-[#F59E0B]" />
@@ -1655,7 +1736,14 @@ export default function ManageHomeGamePage() {
                   Once You Delete A Group, There Is No Going Back. All Scheduled Games And Member Data Will Be Permanently Removed.
                 </p>
                 <button
-                  onClick={handleDeleteGroup}
+                  onClick={() => requestAction({
+                    eyebrow: 'Danger zone',
+                    title: 'Delete This Group?',
+                    message: 'All scheduled games and member data will be permanently removed. This action cannot be undone.',
+                    confirmLabel: 'Delete Group',
+                    destructive: true,
+                    action: handleDeleteGroup,
+                  })}
                   className="px-4 py-2 bg-[#EF4444] text-white font-medium rounded-lg hover:bg-[#DC2626]"
                 >
                   Delete Group
@@ -1716,6 +1804,47 @@ export default function ManageHomeGamePage() {
           fetchData();
         }}
       />
+
+      <CasinoActionDialog
+        open={!!actionDialog}
+        eyebrow={actionDialog?.eyebrow}
+        title={actionDialog?.title || 'Confirm Action'}
+        message={actionDialog?.message}
+        confirmLabel={actionDialog?.confirmLabel || 'Confirm'}
+        destructive={actionDialog?.destructive !== false}
+        busy={actionDialogBusy}
+        onConfirm={confirmRequestedAction}
+        onClose={() => { if (!actionDialogBusy) setActionDialog(null); }}
+      />
+
+      <CasinoActionDialog
+        open={broadcastOpen}
+        eyebrow="Group communications"
+        title="Broadcast Announcement"
+        message="Send one announcement to all opted-in group members and followers."
+        confirmLabel="Send Broadcast"
+        busy={broadcasting}
+        confirmDisabled={!broadcastMessage.trim()}
+        onConfirm={handleBroadcastAnnouncement}
+        onClose={() => {
+          if (!broadcasting) {
+            setBroadcastOpen(false);
+            setBroadcastMessage('');
+          }
+        }}
+      >
+        <label htmlFor="commander-broadcast-message" className="block text-xs font-bold uppercase tracking-wider text-[#9FB3C8] mb-2">
+          Announcement
+        </label>
+        <textarea
+          id="commander-broadcast-message"
+          value={broadcastMessage}
+          onChange={(event) => setBroadcastMessage(event.target.value)}
+          maxLength={2000}
+          placeholder="Game time, table, or location update..."
+        />
+        <div className="mt-2 text-right text-xs text-[#64748B]">{broadcastMessage.length} / 2000</div>
+      </CasinoActionDialog>
     </>
     </CommanderPageShell>
   );

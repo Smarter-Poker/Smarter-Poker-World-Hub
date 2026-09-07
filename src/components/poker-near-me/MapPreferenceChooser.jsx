@@ -4,6 +4,7 @@
  * Renders as a small floating gear button + dropdown on the map
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 
 const MAP_OPTIONS = [
   { id: 'auto', label: 'Auto-Detect', desc: 'Use your device default', icon: '◆' },
@@ -53,35 +54,70 @@ function MapIcon({ type }) {
 export default function MapPreferenceChooser({ position = 'bottom-right' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState('auto');
-  const panelRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const wrapperRef = useRef(null);
   const triggerRef = useRef(null);
+  const optionRefs = useRef([]);
+
+  const selectedIndex = Math.max(0, MAP_OPTIONS.findIndex((option) => option.id === selected));
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const { dialogRef, initialFocusRef } = useAccessibleDialog({
+    open: isOpen,
+    onClose: closeMenu,
+    lockScroll: false,
+    isolateBackground: false,
+  });
 
   useEffect(() => {
-    setSelected(getStoredPreference());
+    const stored = getStoredPreference();
+    setSelected(MAP_OPTIONS.some((option) => option.id === stored) ? stored : 'auto');
   }, []);
 
-  // Close on outside click or Escape
+  // The menu owns Escape through the shared dialog stack. The only independent
+  // global listener needed here is pointer dismissal.
   useEffect(() => {
     if (!isOpen) return;
     const handleClick = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setIsOpen(false);
-        try { triggerRef.current?.focus?.(); } catch (_) { /* ignore */ }
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        closeMenu();
       }
     };
     document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
     };
-  }, [isOpen]);
+  }, [isOpen, closeMenu]);
+
+  const openMenu = useCallback((index = selectedIndex) => {
+    setActiveIndex(index);
+    setIsOpen(true);
+  }, [selectedIndex]);
+
+  const focusOption = useCallback((index) => {
+    const nextIndex = (index + MAP_OPTIONS.length) % MAP_OPTIONS.length;
+    setActiveIndex(nextIndex);
+    optionRefs.current[nextIndex]?.focus?.();
+  }, []);
+
+  const handleMenuKeyDown = useCallback((event) => {
+    let nextIndex = activeIndex;
+    if (event.key === 'ArrowDown') nextIndex = activeIndex + 1;
+    else if (event.key === 'ArrowUp') nextIndex = activeIndex - 1;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = MAP_OPTIONS.length - 1;
+    else return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    focusOption(nextIndex);
+  }, [activeIndex, focusOption]);
+
+  const handleTriggerKeyDown = useCallback((event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    event.stopPropagation();
+    openMenu(event.key === 'ArrowUp' ? MAP_OPTIONS.length - 1 : selectedIndex);
+  }, [openMenu, selectedIndex]);
 
   const handleSelect = useCallback((id) => {
     setSelected(id);
@@ -100,13 +136,18 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
   const dropDirection = position.startsWith('bottom') ? 'up' : 'down';
 
   return (
-    <div ref={panelRef} className="map-pref-wrapper" style={posStyle}>
+    <div ref={wrapperRef} className="map-pref-wrapper" style={posStyle}>
       {/* Gear trigger button */}
       <button
         ref={triggerRef}
         type="button"
         className="map-pref-trigger"
-        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isOpen) closeMenu();
+          else openMenu();
+        }}
+        onKeyDown={handleTriggerKeyDown}
         title="Map App Preference"
         aria-label="Choose preferred map app"
         aria-haspopup="menu"
@@ -121,19 +162,27 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
       {/* Dropdown panel */}
       {isOpen && (
         <div
+          ref={dialogRef}
           className={`map-pref-panel ${dropDirection}`}
           role="menu"
           aria-label="Preferred map app"
+          onKeyDown={handleMenuKeyDown}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="map-pref-title">Preferred Map App</div>
-          {MAP_OPTIONS.map((opt) => (
+          {MAP_OPTIONS.map((opt, index) => (
             <button
               key={opt.id}
+              ref={(node) => {
+                optionRefs.current[index] = node;
+                if (index === activeIndex) initialFocusRef.current = node;
+              }}
               type="button"
               role="menuitemradio"
               aria-checked={selected === opt.id}
+              tabIndex={activeIndex === index ? 0 : -1}
               className={`map-pref-option ${selected === opt.id ? 'active' : ''}`}
+              onFocus={() => setActiveIndex(index)}
               onClick={() => handleSelect(opt.id)}
             >
               <div className="map-pref-icon">

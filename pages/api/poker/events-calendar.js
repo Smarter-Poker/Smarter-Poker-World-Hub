@@ -28,10 +28,19 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
+  decodeScrapedTournamentText,
   fetchAllRows,
+  isRecurringScheduleRow,
+  isServableDailyTournamentRow,
+  isServableDailyTournamentStartTime,
   isValidIsoDate,
   isValidIsoMonth,
 } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import {
+  isServableSeriesParentEvidence,
+  toPokerSeriesRouteId,
+} from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
+import { publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
 
 // Hoisted out of getVenueInfo's inner loop — this used to run twice per
 // candidate comparison on the hot path.
@@ -61,6 +70,16 @@ const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'fri
 // of projected rows.
 const SMART_AGG_THRESHOLD = 30;
 const CALENDAR_SOURCE_MAX_ROWS = 50000;
+const SERVABLE_TOUR_EVENT_QUALITIES = [
+  'scraped_verified',
+  'scraped_inferred',
+  'manual_research',
+];
+const SERVABLE_SERIES_QUALITIES = [
+  'scraped_verified',
+  'scraped_inferred',
+  'manual_research',
+];
 
 function getCurrentDayInfo() {
   const localTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
@@ -155,41 +174,6 @@ function parseTimeMinutes(timeStr) {
     return h * 60 + m;
   }
   return 720;
-}
-
-// TIME FLOOR GUARD — mirrors daily-tournaments.js. The scraper produces
-// 12 AM / 1 AM artifact rows that are not real tournaments; that feed hides
-// them, this one used to render them as genuine morning events.
-const SUSPICIOUS_TIME_FLOOR_MINUTES = 600; // 10:00 AM
-
-/**
- * Strict start-time parser: minutes since midnight, or -1 when the value is
- * absent/TBD/unparseable. Distinct from parseTimeMinutes(), which defaults
- * unparseable values to noon and so cannot be used for the floor guard.
- */
-function parseStartTimeStrict(timeStr) {
-  if (!timeStr) return -1;
-  const t = String(timeStr).trim();
-  let m = t.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)?$/i);
-  if (m) {
-    let h = parseInt(m[1], 10);
-    const mn = parseInt(m[2], 10);
-    const p = (m[3] || '').toUpperCase();
-    if (p === 'PM' && h !== 12) h += 12;
-    if (p === 'AM' && h === 12) h = 0;
-    if (h > 23 || mn > 59) return -1;
-    return h * 60 + mn;
-  }
-  m = t.match(/^(\d{1,2})\s*([AP]M)$/i);
-  if (m) {
-    let h = parseInt(m[1], 10);
-    const p = m[2].toUpperCase();
-    if (p === 'PM' && h !== 12) h += 12;
-    if (p === 'AM' && h === 12) h = 0;
-    if (h > 23) return -1;
-    return h * 60;
-  }
-  return -1;
 }
 
 function formatMoney(amount) {
@@ -445,9 +429,9 @@ async function handler(req, res) {
       try {
         const buildDailyQuery = () => {
           let query = sb.from('venue_daily_tournaments')
-            // `is_recurring` was selected but never read; recurrence is
-            // recomputed below as `!t.event_date`.
-            .select('id, venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, scrape_timestamp')
+            // Keep `is_recurring`: expanded child rows have concrete dates but
+            // still depend on the freshness of their weekly source template.
+            .select('id, venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, source_url, scrape_source, scrape_html_hash, scrape_batch_id, scrape_timestamp, last_scraped, data_quality, human_verified, is_recurring, flags')
             .eq('is_active', true)
             .in('data_quality', ['scraped_verified', 'scraped_inferred', 'manual_research'])
             .or('is_suppressed.is.null,is_suppressed.eq.false')
@@ -470,13 +454,15 @@ async function handler(req, res) {
 
         if (dtRows) {
           for (const t of dtRows) {
-            const tName = t.tournament_name || '';
-            if (tName.startsWith('@') || tName.startsWith('{') || tName.startsWith('[')) continue;
+            if (!isServableDailyTournamentRow(t)) continue;
+            const tName = decodeScrapedTournamentText(t.tournament_name) || '';
+            const dailyVenueName = decodeScrapedTournamentText(t.venue_name) || '';
+            if (!tName || !dailyVenueName
+              || tName.startsWith('@') || tName.startsWith('{') || tName.startsWith('[')) continue;
 
-            // Drop pre-10AM scraper artifacts (keep TBD/unparseable times),
-            // matching the daily-tournaments feed.
-            const startMins = parseStartTimeStrict(t.start_time);
-            if (startMins >= 0 && startMins < SUSPICIOUS_TIME_FLOOR_MINUTES) continue;
+            // Real source-verified 8:00-9:59 AM schedules remain visible, while
+            // heuristic midnight/promotion/time-parser artifacts fail closed.
+            if (!isServableDailyTournamentStartTime(t)) continue;
 
             const venueInfo = getVenueInfo(t.venue_id, t.venue_name);
 
@@ -492,7 +478,8 @@ async function handler(req, res) {
             }
 
             let eventDates = [];
-            if (t.event_date) {
+            const storedEventDate = String(t.event_date || '').slice(0, 10);
+            if (storedEventDate && storedEventDate !== '1970-01-01') {
               if (t.event_date >= rangeStartKey && t.event_date <= rangeEndKey) {
                 eventDates.push(t.event_date);
               }
@@ -507,10 +494,11 @@ async function handler(req, res) {
                 source_event_id: t.id,
                 daily_tournament_id: t.id,
                 event_date: eDate,
-                is_recurring: !t.event_date,  // flag for display
-                recurrence_label: !t.event_date && useSmartAgg ? (t.day_of_week || 'Weekly') : null,
+                is_recurring: isRecurringScheduleRow(t),
+                recurrence_label: isRecurringScheduleRow(t) && useSmartAgg
+                  ? (t.day_of_week || 'Weekly') : null,
                 event_name: tName || (t.buy_in > 0 ? `$${t.buy_in} ${normalizeGameType(t.game_type)}` : `${normalizeGameType(t.game_type)} Tournament`),
-                venue_name: t.venue_name,
+                venue_name: dailyVenueName,
                 venue_id: t.venue_id,
                 city: venueInfo?.city || null,
                 state: venueInfo?.state || null,
@@ -556,9 +544,10 @@ async function handler(req, res) {
       try {
         const buildSeriesQuery = () => {
           let query = sb.from('poker_series')
-            .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url, scrape_timestamp')
+            .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url, source_url, scrape_url, scrape_html_hash, scrape_timestamp, scrape_batch_id, data_quality, is_suppressed')
             .not('start_date', 'is', null)
             .or('is_suppressed.is.null,is_suppressed.eq.false')
+            .in('data_quality', SERVABLE_SERIES_QUALITIES)
             .order('id', { ascending: true });
           if (safeState) query = query.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
           if (safeCity) query = query.ilike('city', `%${safeCity}%`);
@@ -578,6 +567,12 @@ async function handler(req, res) {
 
         if (seriesRows) {
           for (const s of seriesRows) {
+            if (!isServableSeriesParentEvidence(s)) continue;
+            const seriesName = decodeScrapedTournamentText(
+              s.series_name || s.short_name || '',
+            );
+            const seriesVenueName = decodeScrapedTournamentText(s.venue_name || '');
+            if (!seriesName || (s.venue_name && !seriesVenueName)) continue;
             const sStart = s.start_date || '';
             const sEnd = s.end_date || sStart;
             if (sEnd < rangeStartKey || sStart > rangeEndKey) continue;
@@ -620,10 +615,10 @@ async function handler(req, res) {
                 source_event_id: s.id,
                 event_date: dk,
                 end_date: sEnd,
-                event_name: s.series_name || s.short_name || 'Poker Series',
-                venue_name: s.venue_name || null,
+                event_name: seriesName,
+                venue_name: seriesVenueName || null,
                 venue_id: s.venue_id || null,
-                series_id: s.id,
+                series_id: toPokerSeriesRouteId(s.id),
                 city: s.city || venueInfo?.city || null,
                 state: s.state || venueInfo?.state || null,
                 buy_in: s.main_event_buyin || s.buy_in_min || null,
@@ -665,6 +660,11 @@ async function handler(req, res) {
         const buildTourQuery = () => {
           let query = sb.from('tour_stop_events')
             .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller, scrape_timestamp')
+            .in('data_quality', SERVABLE_TOUR_EVENT_QUALITIES)
+            // A calendar row must be bound to a source-owned event date.
+            // Undated stop summaries belong on the tour detail surface; if
+            // admitted here they appear in every requested calendar window.
+            .not('start_date', 'is', null)
             .order('id', { ascending: true });
           if (safeState) query = query.ilike('stop_state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
           if (minBuyin) query = query.gte('buy_in', parseInt(minBuyin));
@@ -685,6 +685,10 @@ async function handler(req, res) {
 
         if (tourRows) {
           for (const t of tourRows) {
+            const tourEventName = decodeScrapedTournamentText(t.event_name || '');
+            const tourStopName = decodeScrapedTournamentText(t.stop_name || '');
+            const tourVenueName = decodeScrapedTournamentText(t.stop_venue || '');
+            if (!tourEventName || !tourStopName || (t.stop_venue && !tourVenueName)) continue;
             if (t.start_date) {
               if (t.start_date < rangeStartKey || t.start_date > rangeEndKey) continue;
             }
@@ -706,8 +710,8 @@ async function handler(req, res) {
               source: 'tour',
               source_event_id: t.id,
               event_date: t.start_date || null,
-              event_name: t.event_name || t.stop_name || 'Tour Event',
-              venue_name: t.stop_venue || null,
+              event_name: tourEventName,
+              venue_name: tourVenueName || null,
               venue_id: null,
               tour_event_id: t.id,
               city: t.stop_city || null,
@@ -719,7 +723,7 @@ async function handler(req, res) {
               guaranteed_display: formatMoney(t.guarantee),
               start_time: t.start_time || null,
               tour_code: t.tour_code,
-              stop_name: t.stop_name,
+              stop_name: tourStopName,
               is_main_event: t.is_main_event || false,
               is_high_roller: t.is_high_roller || false,
               distance_mi: distanceMi,
@@ -741,9 +745,9 @@ async function handler(req, res) {
     // ──────────────────────────────────────────────────────────────
     // ──────────────────────────────────────────────────────────────
     // SOURCE 4: Home Games (public tournament-format games)
-    // Same visibility contract as daily-tournaments.js Phase 20: public,
-    // active groups only; 45-day activity cutoff; approximate coords only —
-    // never a host's real address.
+    // Same privacy contract as /api/public/home-games/discover: public,
+    // active groups only; 45-day activity cutoff; scheduled/confirmed games;
+    // grid-protected coordinates and whole-mile public distances.
     // ──────────────────────────────────────────────────────────────
     let homeEvents = [];
     if (eventType === 'all' || eventType === 'home_game') {
@@ -752,12 +756,12 @@ async function handler(req, res) {
         const buildHomeGameQuery = () => sb
           .from('commander_home_games')
           .select(`id, title, game_type, stakes, buyin_min, buyin_max, scheduled_date, start_time,
-                   max_players, rsvp_yes, status, format, neighborhood, approximate_lat, approximate_lng,
-                   group:commander_home_groups!inner ( id, club_code, name, city, state,
+                   max_players, rsvp_yes, status, format,
+                   group:commander_home_groups!inner ( id, club_code, name, city, state, latitude, longitude,
                      profile_photo_url, is_private, is_active, last_activity_at, created_at,
                      visibility_override_until )`)
           .eq('format', 'tournament')
-          .in('status', ['scheduled', 'in_progress'])
+          .in('status', ['scheduled', 'confirmed'])
           .gte('scheduled_date', rangeStartKey)
           .lte('scheduled_date', rangeEndKey)
           .eq('group.is_private', false)
@@ -773,6 +777,13 @@ async function handler(req, res) {
           for (const hg of hgRows || []) {
             const g = hg.group;
             if (!g || g.is_private || !g.is_active) continue;
+            const homeEventName = decodeScrapedTournamentText(
+              hg.title || 'Home Game Tournament',
+            );
+            const homeVenueName = decodeScrapedTournamentText(
+              g.name || 'Private Home Game',
+            );
+            if (!homeEventName || !homeVenueName) continue;
             const lastActive = Math.max(
               g.last_activity_at ? Date.parse(g.last_activity_at) : 0,
               g.created_at ? Date.parse(g.created_at) : 0);
@@ -782,12 +793,16 @@ async function handler(req, res) {
             if (safeState && (g.state || '').toUpperCase() !== safeState.toUpperCase()) continue;
             if (safeCity && !(g.city || '').toLowerCase().includes(safeCity.toLowerCase())) continue;
 
-            let distanceMi = null;
-            const hLat = hg.approximate_lat, hLng = hg.approximate_lng;
-            if (hasGps && hLat != null && hLng != null) {
-              distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(hLat), parseFloat(hLng)) * 10) / 10;
-              if (distanceMi > maxRadius) continue;
-            } else if (hasExplicitRadius && (hLat == null || hLng == null)) {
+            const publicGeo = publicDistanceToGroup(
+              g.id,
+              g.latitude,
+              g.longitude,
+              hasGps ? userLat : null,
+              hasGps ? userLng : null,
+            );
+            if (hasGps && publicGeo.raw != null) {
+              if (publicGeo.raw > maxRadius) continue;
+            } else if (hasExplicitRadius && (publicGeo.lat == null || publicGeo.lng == null)) {
               continue;
             }
             if (minBuyin && !(hg.buyin_min >= parseInt(minBuyin))) continue;
@@ -797,14 +812,13 @@ async function handler(req, res) {
               source: 'home_game',
               source_event_id: hg.id,
               event_date: hg.scheduled_date,
-              event_name: hg.title || 'Home Game Tournament',
-              venue_name: g.name || 'Private Home Game',
+              event_name: homeEventName,
+              venue_name: homeVenueName,
               venue_id: null,
               home_game_id: hg.id,
               club_code: g.club_code || null,
               city: g.city || null,
               state: g.state || null,
-              neighborhood: hg.neighborhood || null,
               buy_in: hg.buyin_min || null,
               buy_in_display: hg.buyin_min ? formatMoney(hg.buyin_min) : null,
               buy_in_range: hg.buyin_min && hg.buyin_max && hg.buyin_max !== hg.buyin_min
@@ -813,9 +827,12 @@ async function handler(req, res) {
               start_time: hg.start_time || null,
               max_players: hg.max_players || null,
               rsvp_yes: hg.rsvp_yes || 0,
-              distance_mi: distanceMi,
-              latitude: hLat != null ? parseFloat(hLat) : null,
-              longitude: hLng != null ? parseFloat(hLng) : null,
+              // Never expose the service-role coordinate or the raw distance.
+              // Public map coordinates are snapped/scattered by the shared
+              // Home Games privacy primitive and distance is whole-mile only.
+              distance_mi: publicGeo.miles,
+              latitude: publicGeo.lat,
+              longitude: publicGeo.lng,
               logo_url: g.profile_photo_url || null,
             });
           }
@@ -983,6 +1000,7 @@ async function handler(req, res) {
     // cache the error response (s-maxage=60) and serve it to hundreds of users.
     // Changed to 500 so CDN treats it as non-cacheable and clients can't accidentally
     // mistake a cached error body for valid data.
+    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(500).json({
       success: false,
       error: 'Internal server error',

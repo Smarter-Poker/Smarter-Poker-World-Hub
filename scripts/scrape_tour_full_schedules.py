@@ -279,6 +279,72 @@ TOUR_SOURCES = {
     },
 }
 
+# This legacy publisher predates the source-bound, confirmed-write contract in
+# tour_stealth_scraper.py. Keep it available for read-only diagnostics, but
+# make every database entry point fail closed so it cannot recreate quarantined
+# cross-tour rows. Production scheduling belongs exclusively to the stealth
+# scraper and its registry.
+LEGACY_TOUR_WRITES_DISABLED = True
+LEGACY_TOUR_WRITES_REASON = (
+    "retired legacy publisher; use scripts/tour_stealth_scraper.py"
+)
+
+TOUR_IDENTITY_NOISE = {
+    "and", "casino", "event", "events", "of", "poker", "schedule",
+    "series", "the", "tour", "tournament", "tournaments", "world",
+}
+
+
+def source_page_matches_tour(html_bytes, tour_code, source_url):
+    """Require an official origin and source-owned requested-tour identity."""
+    src = TOUR_SOURCES.get(str(tour_code or "").upper())
+    if not src or not html_bytes or not source_url:
+        return False
+
+    from urllib.parse import urlsplit
+    requested = urlsplit(str(source_url))
+    # These legacy PokerAtlas category routes produced the exact CPPT/LIPS
+    # cross-tour cohort quarantined in 20260907023000. They are aggregation
+    # pages, never authoritative tour schedules.
+    if requested.hostname and requested.hostname.lower().endswith("pokeratlas.com") \
+            and requested.path.lower().startswith("/poker-tournaments/"):
+        return False
+
+    configured_urls = [
+        src.get("primary_url"), src.get("schedule_url"),
+        *src.get("fallback_urls", []),
+    ]
+    allowed_hosts = {
+        (urlsplit(value).hostname or "").lower().removeprefix("www.")
+        for value in configured_urls if value
+    }
+    observed_host = (requested.hostname or "").lower().removeprefix("www.")
+    if not observed_host or observed_host not in allowed_hosts:
+        return False
+
+    html = html_bytes.decode("utf-8", "replace") \
+        if isinstance(html_bytes, bytes) else str(html_bytes)
+    labels = []
+    for tag_name in ("title", "h1", "h2", "h3"):
+        labels.extend(
+            re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", match.group(1))).strip()
+            for match in re.finditer(
+                rf"<{tag_name}\b[^>]*>(.*?)</{tag_name}>",
+                html, re.IGNORECASE | re.DOTALL,
+            )
+        )
+    observed = set(re.findall(r"[a-z0-9]+", " ".join(labels).lower()))
+    code = re.sub(r"[^a-z0-9]", "", str(tour_code or "").lower())
+    if code and code in observed:
+        return True
+    expected = {
+        token for token in re.findall(r"[a-z0-9]+", src["tour_name"].lower())
+        if token not in TOUR_IDENTITY_NOISE and len(token) > 2
+    }
+    if code == "wsopc":
+        expected.update(("wsop", "circuit"))
+    return bool(expected) and expected <= observed
+
 # ─── Provenance Builder ────────────────────────────────────────────────────────
 def build_provenance(url, html_bytes, script_name):
     """Build full data provenance record for every scrape.
@@ -428,6 +494,13 @@ def parse_events_from_html(html_bytes, tour_code, source_url, provenance):
     Smart multi-pattern HTML parser. Handles tables, cards, lists.
     Returns list of event dicts with full provenance.
     """
+    if not source_page_matches_tour(html_bytes, tour_code, source_url):
+        print(
+            f"  [BLOCK] {tour_code} source origin or page identity was not proven; "
+            "refusing generic event extraction"
+        )
+        return []
+
     try:
         html = html_bytes.decode('utf-8', errors='replace') if isinstance(html_bytes, bytes) else html_bytes
     except Exception:
@@ -607,6 +680,10 @@ def seed_to_supabase(events, tour_code, batch_id, dry_run=False):
         print(f"  [DRY-RUN] Would insert {len(events)} events for {tour_code}")
         for e in events[:5]:
             print(f"    → #{e.get('event_number')} {e.get('event_name','')[:60]} | ${e.get('buy_in','TBD')}")
+        return 0
+
+    if LEGACY_TOUR_WRITES_DISABLED:
+        print(f"  [BLOCK] {LEGACY_TOUR_WRITES_REASON}")
         return 0
 
     if not sb:
@@ -793,6 +870,10 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="No DB writes")
     args = parser.parse_args()
 
+    if not args.dry_run and LEGACY_TOUR_WRITES_DISABLED:
+        print(f"[FATAL] {LEGACY_TOUR_WRITES_REASON}")
+        return 2
+
     batch_id = str(uuid.uuid4())
     started_at = datetime.now(timezone.utc)
     print(f"\n🎰 POKER TOUR FULL SCHEDULE SCRAPER")
@@ -864,7 +945,7 @@ def main():
     }, indent=2))
     print(f"  Summary: {summary_file.name}")
 
-    return results
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

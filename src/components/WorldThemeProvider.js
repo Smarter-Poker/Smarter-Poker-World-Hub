@@ -29,6 +29,8 @@ const ROUTE_TO_WORLD = {
     '/hub/poker-near-me/more': 'poker-near-me',
     // Poker Near Me secondary and tertiary discovery families. These pages
     // keep independent data lifecycles but inherit one visual system.
+    '/home-game': 'poker-near-me',
+    '/hub/commander/home-games': 'poker-near-me',
     '/hub/venues': 'poker-near-me',
     '/hub/home-games': 'poker-near-me',
     '/hub/poker-tours': 'poker-near-me',

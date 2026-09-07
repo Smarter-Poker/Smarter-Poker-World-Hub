@@ -90,7 +90,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
 
-    const map = page.locator('[data-map-foundation="shared-v2"][data-map-ready]').first();
+    const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready]').first();
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
     await expect(map).toHaveAttribute('data-map-style-source', 'local');
     await expect(map).toHaveAttribute('data-map-clustering', /available|disabled/);
@@ -120,7 +120,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     expect(response?.status()).toBe(200);
 
     const sharedMap = page.getByRole('region', { name: 'Poker venues map' });
-    await expect(sharedMap).toHaveAttribute('data-map-foundation', 'shared-v2', { timeout: 30_000 });
+    await expect(sharedMap).toHaveAttribute('data-map-foundation', 'shared-v3', { timeout: 30_000 });
     await expect(sharedMap).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
 
     for (let cycle = 0; cycle < 2; cycle += 1) {
@@ -141,10 +141,10 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
 
   test('shared map shell remains usable when background tiles are unavailable', async ({ page }) => {
     const runtimeErrors = collectMapRuntimeErrors(page);
-    await page.route(/^https:\/\/[^/]*\.basemaps\.cartocdn\.com\//, (route) => route.abort());
+    await page.route(/^https:\/\/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/Canvas\//, (route) => route.abort());
     await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
 
-    const map = page.locator('[data-map-foundation="shared-v2"]').first();
+    const map = page.locator('[data-map-foundation="shared-v3"]').first();
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 60_000 });
     await expect(map.locator('.leaflet-control-zoom')).toBeVisible();
     await expect.poll(async () => Number(await map.getAttribute('data-map-marker-count')), {
@@ -171,7 +171,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     await page.getByRole('button', { name: 'Plan My Trip' }).click();
 
     const routeMap = page.getByRole('region', { name: 'Poker road trip route map' });
-    await expect(routeMap).toHaveAttribute('data-map-foundation', 'shared-v2', { timeout: 30_000 });
+    await expect(routeMap).toHaveAttribute('data-map-foundation', 'shared-v3', { timeout: 30_000 });
     await expect(page.locator('.rtp-map-overlay')).toHaveCount(0, { timeout: 30_000 });
     await expectNoOverflow(page, 'road-trip shared map');
     expect(runtimeErrors).toEqual([]);

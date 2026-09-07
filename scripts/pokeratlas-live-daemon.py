@@ -16,6 +16,7 @@ MUST be built with python3.13.
 """
 
 import hashlib
+import html as html_lib
 import fcntl
 import os
 from datetime import datetime, timezone
@@ -32,9 +33,10 @@ import urllib.request
 import uuid
 import subprocess
 import threading
-from typing import Dict, List, Optional
+from typing import Dict, List, NamedTuple, Optional
 from pathlib import Path
 from scraper_data_truth import (
+    NON_PRODUCTION_POKERATLAS_VENUE_SLUGS,
     NON_US_POKERATLAS_REGION_SLUGS,
     NON_US_POKERATLAS_VENUE_SLUGS,
     OBSERVATION_CATALOG,
@@ -47,6 +49,7 @@ from scraper_data_truth import (
     RUN_VALID_EMPTY,
     US_POKERATLAS_REGION_SLUGS,
     classify_persisted_run,
+    is_explicit_pokeratlas_cash_catalog_empty,
     is_observed_bravo_row,
     is_noise_venue_label,
     is_verified_us_location,
@@ -169,6 +172,27 @@ CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutiv
 # 15-minute interval.
 NO_CASH_PAGE = 'NO_CASH_PAGE'
 
+
+class RoomIdentityQuarantine(NamedTuple):
+    """Source-owned proof that the requested room resolved to another room."""
+
+    expected_slug: str
+    expected_name: str
+    reason: str
+    final_url: str
+
+
+# A final redirect or canonical URL is controlled by PokerAtlas and is stable
+# evidence that the response is not the requested room. Page-title/body
+# mismatches are deliberately excluded: a challenge/interstitial can cause
+# those transiently, so they must remain retryable transport/parser failures.
+SOURCE_OWNED_ROOM_IDENTITY_REASONS = frozenset({
+    'final_room_path_mismatch',
+    'canonical_room_path_mismatch',
+})
+ROOM_IDENTITY_QUARANTINE_CONTRACT_VERSION = 1
+ROOM_IDENTITY_QUARANTINE_TTL_SECONDS = 7 * 86400
+
 # If more than this fraction of the venues we actually RETRIEVED parse to zero
 # games, that is a parser break, not the entire country closing at once - so
 # their slugs must not be written into the 7-day no-cash cache. See the commit
@@ -240,6 +264,115 @@ def _venue_map_fingerprint(venues):
     ]
     encoded = json.dumps(identities, sort_keys=True, separators=(',', ':')).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _record_room_identity_quarantine(
+        path, mismatch, requested_url, batch_id, map_fingerprint):
+    """Durably record one source-owned room mismatch before advancing.
+
+    A permanent redirect must not wedge the national sweep, but advancing
+    without durable evidence would hide why a room was skipped. An unreadable
+    or unwritable quarantine therefore fails closed and leaves the cursor on
+    the same venue for retry.
+    """
+    path = Path(path)
+    payload = {
+        'version': ROOM_IDENTITY_QUARANTINE_CONTRACT_VERSION,
+        'rooms': {},
+    }
+    if path.exists():
+        try:
+            loaded = json.loads(path.read_text(encoding='utf-8'))
+        except Exception as exc:
+            log.error(f'Room identity quarantine is unreadable: {exc}')
+            return False
+        if (
+            loaded.get('version') != ROOM_IDENTITY_QUARANTINE_CONTRACT_VERSION
+            or not isinstance(loaded.get('rooms'), dict)
+        ):
+            log.error('Room identity quarantine has an unsupported contract')
+            return False
+        payload = loaded
+
+    now = datetime.now(timezone.utc).isoformat()
+    existing = payload['rooms'].get(mismatch.expected_slug) or {}
+    payload['rooms'][mismatch.expected_slug] = {
+        'expected_slug': mismatch.expected_slug,
+        'expected_name': mismatch.expected_name,
+        'requested_url': str(requested_url),
+        'final_url': mismatch.final_url,
+        'reason': mismatch.reason,
+        'first_seen': existing.get('first_seen') or now,
+        'last_seen': now,
+        'occurrences': int(existing.get('occurrences') or 0) + 1,
+        'sweep_batch_id': str(batch_id),
+        'map_fingerprint': str(map_fingerprint),
+    }
+    return _atomic_json_write(path, payload)
+
+
+def _load_proven_room_identity_tombstones(
+        path, venues, map_fingerprint, now=None):
+    """Return only fresh, source-owned tombstones bound to this exact map.
+
+    This keeps a previously proven redirect from degrading every national
+    sweep, while a renamed registry entry, map change, expired proof, malformed
+    origin/path, or body-only mismatch is fetched again and revalidated.
+    """
+    path = Path(path)
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        log.error(f'Room identity quarantine is unreadable: {exc}')
+        return {}
+    if (
+        payload.get('version') != ROOM_IDENTITY_QUARANTINE_CONTRACT_VERSION
+        or not isinstance(payload.get('rooms'), dict)
+    ):
+        log.error('Room identity quarantine has an unsupported contract')
+        return {}
+
+    now = now or datetime.now(timezone.utc)
+    venue_names = {
+        str(venue.get('slug') or ''): normalize_venue_label(venue.get('name'))
+        for venue in venues
+    }
+    proven = {}
+    for slug, record in payload['rooms'].items():
+        if not isinstance(record, dict) or slug not in venue_names:
+            continue
+        expected_path = f'/poker-room/{slug}/cash-games'
+        requested = urllib.parse.urlparse(str(record.get('requested_url') or ''))
+        final = urllib.parse.urlparse(str(record.get('final_url') or ''))
+        try:
+            last_seen = datetime.fromisoformat(
+                str(record.get('last_seen') or '').replace('Z', '+00:00')
+            )
+            if last_seen.tzinfo is None:
+                raise ValueError('timezone required')
+            age_seconds = (now - last_seen.astimezone(timezone.utc)).total_seconds()
+        except (TypeError, ValueError):
+            continue
+        if not (0 <= age_seconds <= ROOM_IDENTITY_QUARANTINE_TTL_SECONDS):
+            continue
+        if (
+            record.get('expected_slug') != slug
+            or normalize_venue_label(record.get('expected_name')) != venue_names[slug]
+            or record.get('reason') not in SOURCE_OWNED_ROOM_IDENTITY_REASONS
+            or record.get('map_fingerprint') != map_fingerprint
+            or requested.scheme != 'https'
+            or requested.netloc.lower() != 'www.pokeratlas.com'
+            or requested.path.rstrip('/') != expected_path
+            or final.scheme != 'https'
+            or final.netloc.lower() != 'www.pokeratlas.com'
+            or not re.fullmatch(r'/poker-room/[^/]+/cash-games', final.path.rstrip('/'))
+            or final.path.rstrip('/') == expected_path
+        ):
+            continue
+        proven[slug] = record
+    return proven
 
 logging.basicConfig(
     level=logging.INFO,
@@ -461,6 +594,7 @@ def load_pa_venues():
             if (
                 not re.fullmatch(r'[a-z0-9][a-z0-9-]*', slug)
                 or slug.isdigit()
+                or slug in NON_PRODUCTION_POKERATLAS_VENUE_SLUGS
                 or is_noise_venue_label(name)
             ):
                 rejected_noise += 1
@@ -876,7 +1010,94 @@ def _is_las_vegas_region_redirect(requested_url, expected_slug, html, final_url=
     return bool(title_match and 'las vegas' in title_match.group(1).strip().lower())
 
 
-def fallback_fetch_playwright(url, expected_slug=None):
+def _pokeratlas_room_response_identity(requested_url, expected_slug,
+                                        expected_name, html, final_url):
+    """Prove that a room response belongs to the exact requested room."""
+    if not expected_slug:
+        return True, 'not_a_room_identity_probe'
+    expected_slug = str(expected_slug).strip().lower()
+    requested_path = urllib.parse.urlparse(str(requested_url or '')).path.rstrip('/')
+    expected_path = f'/poker-room/{expected_slug}/cash-games'
+    if requested_path != expected_path:
+        return False, 'requested_room_path_mismatch'
+    final_path = urllib.parse.urlparse(str(final_url or '')).path.rstrip('/')
+    if final_path != expected_path:
+        return False, 'final_room_path_mismatch'
+
+    page = str(html or '')
+    canonical_urls = []
+    for tag in re.findall(r'<(?:link|meta)\b[^>]*>', page, re.I):
+        attrs = {
+            key.lower(): value
+            for key, _quote, value in re.findall(
+                r'([:\w-]+)\s*=\s*([\'\"])(.*?)\2', tag, re.I | re.DOTALL,
+            )
+        }
+        rel = attrs.get('rel', '').lower()
+        prop = attrs.get('property', '').lower()
+        if 'canonical' in rel and attrs.get('href'):
+            canonical_urls.append(attrs['href'])
+        if prop == 'og:url' and attrs.get('content'):
+            canonical_urls.append(attrs['content'])
+    for canonical in canonical_urls:
+        path = urllib.parse.urlparse(
+            urllib.parse.urljoin(requested_url, canonical)
+        ).path.rstrip('/')
+        if path not in (expected_path, f'/poker-room/{expected_slug}'):
+            return False, 'canonical_room_path_mismatch'
+
+    candidates = []
+    for tag_name in ('title', 'h1'):
+        candidates.extend(
+            re.sub(r'<[^>]+>', ' ', match.group(1))
+            for match in re.finditer(
+                rf'<{tag_name}[^>]*>(.*?)</{tag_name}>', page,
+                re.I | re.DOTALL,
+            )
+        )
+    for match in re.finditer(
+        r'<h2[^>]*class=[\'\"][^\'\"]*venue-name[^\'\"]*[\'\"][^>]*>(.*?)</h2>',
+        page, re.I | re.DOTALL,
+    ):
+        candidates.append(re.sub(r'<[^>]+>', ' ', match.group(1)))
+    for tag in re.findall(r'<meta\b[^>]*>', page, re.I):
+        attrs = {
+            key.lower(): value
+            for key, _quote, value in re.findall(
+                r'([:\w-]+)\s*=\s*([\'\"])(.*?)\2', tag, re.I | re.DOTALL,
+            )
+        }
+        if attrs.get('property', '').lower() in ('og:title', 'twitter:title'):
+            candidates.append(attrs.get('content', ''))
+
+    expected_tokens = {
+        token for token in re.sub(
+            r'[^a-z0-9 ]', ' ', str(expected_name or '').lower(),
+        ).split()
+        if len(token) >= 3 and token not in {
+            'the', 'and', 'casino', 'poker', 'room', 'hotel', 'resort', 'club',
+        }
+    }
+    if not expected_tokens:
+        expected_tokens = {
+            token for token in expected_slug.replace('-', ' ').split()
+            if len(token) >= 3 and token not in {
+                'the', 'and', 'casino', 'poker', 'room', 'hotel', 'resort', 'club',
+            }
+        }
+    required = 1 if len(expected_tokens) == 1 else max(
+        2, (len(expected_tokens) * 3 + 3) // 4,
+    )
+    for candidate in candidates:
+        candidate_tokens = set(re.sub(
+            r'[^a-z0-9 ]', ' ', normalize_venue_label(candidate).lower(),
+        ).split())
+        if len(expected_tokens & candidate_tokens) >= required:
+            return True, 'matched'
+    return False, 'page_room_identity_mismatch'
+
+
+def fallback_fetch_playwright(url, expected_slug=None, expected_name=None):
     """Tier 2 fallback: Use Scrapling's PlayWrightFetcher."""
     try:
         from scrapling.fetchers import PlayWrightFetcher
@@ -889,9 +1110,23 @@ def fallback_fetch_playwright(url, expected_slug=None):
             if not html:
                 html = resp.body.decode('utf-8', errors='ignore') if resp.body else ''
             if html:
+                final_url = str(getattr(resp, 'url', '') or '')
                 if _is_las_vegas_region_redirect(
-                        url, expected_slug, html, getattr(resp, 'url', '')):
+                        url, expected_slug, html, final_url):
                     return 'REDIRECT'
+                identity_ok, identity_reason = _pokeratlas_room_response_identity(
+                    url, expected_slug, expected_name, html, final_url,
+                )
+                if not identity_ok:
+                    log.warning(f'  Tier-2 room identity reject: {identity_reason}')
+                    if identity_reason in SOURCE_OWNED_ROOM_IDENTITY_REASONS:
+                        return RoomIdentityQuarantine(
+                            str(expected_slug or ''),
+                            str(expected_name or ''),
+                            identity_reason,
+                            final_url,
+                        )
+                    return None
                 if 'cash-games-list-item' in html:
                     log.info(f'  \U0001f504 TIER-2 (PlayWrightFetcher) success')
                     return html
@@ -900,7 +1135,7 @@ def fallback_fetch_playwright(url, expected_slug=None):
     return None
 
 
-def fallback_fetch_urllib(url, expected_slug=None):
+def fallback_fetch_urllib(url, expected_slug=None, expected_name=None):
     """Tier 3 fallback: Use raw urllib (works when CF isn't blocking)."""
     try:
         req = urllib.request.Request(url, headers={
@@ -909,8 +1144,22 @@ def fallback_fetch_urllib(url, expected_slug=None):
         })
         resp = urllib.request.urlopen(req, timeout=15)
         html = resp.read().decode('utf-8', errors='ignore')
-        if _is_las_vegas_region_redirect(url, expected_slug, html, resp.geturl()):
+        final_url = str(resp.geturl() or '')
+        if _is_las_vegas_region_redirect(url, expected_slug, html, final_url):
             return 'REDIRECT'
+        identity_ok, identity_reason = _pokeratlas_room_response_identity(
+            url, expected_slug, expected_name, html, final_url,
+        )
+        if not identity_ok:
+            log.warning(f'  Tier-3 room identity reject: {identity_reason}')
+            if identity_reason in SOURCE_OWNED_ROOM_IDENTITY_REASONS:
+                return RoomIdentityQuarantine(
+                    str(expected_slug or ''),
+                    str(expected_name or ''),
+                    identity_reason,
+                    final_url,
+                )
+            return None
         if 'cash-games-list-item' in html:
             log.info(f'  \U0001f504 TIER-3 (urllib) success')
             return html
@@ -981,20 +1230,13 @@ class PokerAtlasSessionManager:
         try:
             import asyncio
             try:
-                # Python 3.10+: use get_running_loop to check without deprecation
-                loop = asyncio.get_running_loop()
-                # If we're inside a running loop, we can't close it — just reset policy
+                asyncio.get_running_loop()
             except RuntimeError:
-                # No running loop — safe to close any existing one
-                try:
-                    loop = asyncio.get_event_loop()
-                    if not loop.is_closed():
-                        loop.close()
-                except RuntimeError:
-                    pass  # No event loop at all — perfect
-            # Wipe the loop reference — Playwright creates its own
-            asyncio.set_event_loop(None)
-            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+                asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+                asyncio.set_event_loop(None)
+            else:
+                log.error('  Cannot start sync Playwright inside a running event loop')
+                return False
         except Exception as e:
             log.debug(f'  Event loop cleanup: {e}')
 
@@ -1025,7 +1267,7 @@ class PokerAtlasSessionManager:
             self.disconnect()
             return False
 
-    def fetch_page(self, url, expected_slug=None):
+    def fetch_page(self, url, expected_slug=None, expected_name=None):
         """Fetch a page using the persistent session.
 
         Returns HTML string or None on failure.
@@ -1075,6 +1317,21 @@ class PokerAtlasSessionManager:
                     url, expected_slug, html, getattr(resp, 'url', '')):
                 return 'REDIRECT'
 
+            identity_ok, identity_reason = _pokeratlas_room_response_identity(
+                url, expected_slug, expected_name, html,
+                str(getattr(resp, 'url', '') or ''),
+            )
+            if not identity_ok:
+                log.warning(f'  Tier-1 room identity reject: {identity_reason}')
+                if identity_reason in SOURCE_OWNED_ROOM_IDENTITY_REASONS:
+                    return RoomIdentityQuarantine(
+                        str(expected_slug or ''),
+                        str(expected_name or ''),
+                        identity_reason,
+                        str(getattr(resp, 'url', '') or ''),
+                    )
+                return None
+
             # Success — reset failure counter
             self.consecutive_fetch_failures = 0
             return html
@@ -1094,7 +1351,7 @@ class PokerAtlasSessionManager:
             log.warning(f'  ❌ Fetch error: {e}')
             return None
 
-    def fetch_with_fallback(self, url, expected_slug=None):
+    def fetch_with_fallback(self, url, expected_slug=None, expected_name=None):
         """Fetch a page with multi-tier fallback.
         
         Tier 0: Pre-flight reconnect if session is dead
@@ -1111,19 +1368,25 @@ class PokerAtlasSessionManager:
 
         # === TIER 1 ===
         if self.session and not self._session_dead:
-            result = self.fetch_page(url, expected_slug=expected_slug)
+            result = self.fetch_page(
+                url, expected_slug=expected_slug, expected_name=expected_name,
+            )
             if result is not None:
                 return result
 
         # === TIER 2: PlayWrightFetcher ===
         if self.tier2_failures < 5:
-            result = fallback_fetch_playwright(url, expected_slug=expected_slug)
+            result = fallback_fetch_playwright(
+                url, expected_slug=expected_slug, expected_name=expected_name,
+            )
             if result is not None:
                 return result
             self.tier2_failures += 1
 
         # === TIER 3: Raw urllib ===
-        result = fallback_fetch_urllib(url, expected_slug=expected_slug)
+        result = fallback_fetch_urllib(
+            url, expected_slug=expected_slug, expected_name=expected_name,
+        )
         if result is not None:
             return result
 
@@ -1379,8 +1642,13 @@ def run_scrape_cycle(mgr):
         })
         return {'records_saved': 0, 'healthy_progress': False, 'run_status': RUN_FAILED}
 
-    # Fast 404 cache to skip venues without cash games
+    # Fast source-empty cache for explicit 404/410 or PokerAtlas's own
+    # "no cash-game information" state. This is catalog absence only; it must
+    # never be interpreted as an observed zero-table result.
     cache_file = BASE_DIR / 'data' / 'pokeratlas-nocash-venues.json'
+    identity_quarantine_file = (
+        BASE_DIR / 'data' / 'pokeratlas-room-identity-quarantine.json'
+    )
     import time
     now_ts = time.time()
     nocash_cache = {}
@@ -1413,6 +1681,17 @@ def run_scrape_cycle(mgr):
     # was 7.5 minutes in and still inside California.
     sweep_file = BASE_DIR / 'data' / 'pokeratlas-sweep-state.json'
     map_fingerprint = _venue_map_fingerprint(map_venues)
+    proven_identity_tombstones = _load_proven_room_identity_tombstones(
+        identity_quarantine_file,
+        map_venues,
+        map_fingerprint,
+        now=cycle_start,
+    )
+    if proven_identity_tombstones:
+        log.warning(
+            f'  Room identity quarantine: {len(proven_identity_tombstones)} '
+            'fresh source-owned tombstone(s) excluded from this exact map'
+        )
     sweep_state = {}
     if sweep_file.exists():
         try:
@@ -1542,8 +1821,11 @@ def run_scrape_cycle(mgr):
     # that ("cannot distinguish outage from empty") had been satisfied by
     # responses that never contained a venue page at all.
     fetch_ok = 0
-    no_page = 0           # definitive 404/410/redirect - an answer, not a page
+    no_page = 0           # definitive 404/410 - an answer, not a page
+    catalog_empty = 0     # explicit source copy says it has no catalog info
     parsed_empty = 0
+    identity_quarantined = 0
+    identity_tombstoned = 0
     first_failed_index = None
 
     consecutive_region_failures = 0
@@ -1588,6 +1870,15 @@ def run_scrape_cycle(mgr):
             break
             
         slug = v['slug']
+
+        if slug in proven_identity_tombstones:
+            # This exact registry identity has fresh, source-owned redirect or
+            # canonical evidence in the durable quarantine. It is not a live
+            # zero and contributes no successful-fetch evidence; it is simply
+            # excluded until the bounded proof expires or the map changes.
+            skipped += 1
+            identity_tombstoned += 1
+            continue
         
         # Check cache (expire after 7 days)
         if slug in nocash_cache:
@@ -1599,7 +1890,36 @@ def run_scrape_cycle(mgr):
                 del nocash_cache[slug]
 
         url = f'https://www.pokeratlas.com/poker-room/{slug}/cash-games'
-        html = mgr.fetch_with_fallback(url, expected_slug=slug)
+        html = mgr.fetch_with_fallback(
+            url, expected_slug=slug, expected_name=v.get('name'),
+        )
+
+        if isinstance(html, RoomIdentityQuarantine):
+            # A source-owned final/canonical path proves this is another room.
+            # Never parse or publish it under the requested venue. Record the
+            # quarantine durably, then advance so one retired alias cannot
+            # wedge all later US rooms. Transient transport/body failures still
+            # return None below and remain pinned to this cursor for retry.
+            errors += 1
+            if not _record_room_identity_quarantine(
+                    identity_quarantine_file, html, url, batch_id,
+                    map_fingerprint):
+                first_failed_index = i
+                sweep_complete = False
+                next_cursor = i
+                log.error(
+                    f'{ERROR_PARSE}: {slug} source-owned room mismatch could not '
+                    'be quarantined; retaining cursor for retry'
+                )
+                break
+            identity_quarantined += 1
+            skipped += 1
+            consecutive_region_failures = 0
+            log.error(
+                f'{ERROR_PARSE}: quarantined {slug} ({html.reason}; '
+                f'final={html.final_url or "unknown"}); advancing without publish'
+            )
+            continue
 
         if html == NO_CASH_PAGE:
             # Only an explicit 404/410 is cacheable. A 200 page that fails the
@@ -1645,6 +1965,16 @@ def run_scrape_cycle(mgr):
         
         
         if not venues:
+            if is_explicit_pokeratlas_cash_catalog_empty(html):
+                nocash_cache[slug] = now_ts
+                skipped += 1
+                catalog_empty += 1
+                consecutive_region_failures = 0
+                log.info(
+                    f'  Catalog empty: {slug} explicitly has no PokerAtlas '
+                    'cash-game information; advancing without a live-zero claim'
+                )
+                continue
             # Ambiguous 200-empty is a contract failure. Stop at this exact
             # venue so the next cycle replays it with the same sweep identity.
             parsed_empty += 1
@@ -1656,6 +1986,18 @@ def run_scrape_cycle(mgr):
                 f'{ERROR_PARSE}: {slug} returned HTTP 200 but no canonical cash-game '
                 'rows; not caching or advancing this venue'
             )
+            page_text = re.sub(
+                r'\s+', ' ', re.sub(r'<[^>]+>', ' ', html_lib.unescape(html))
+            ).strip()
+            page_low = page_text.lower()
+            marker_at = page_low.find('cash games offered')
+            if marker_at < 0:
+                marker_at = page_low.find('cash game')
+            if marker_at >= 0:
+                log.error(
+                    f'{ERROR_PARSE}: source-section diagnostic '
+                    f'{page_text[marker_at:marker_at + 500]!r}'
+                )
             break
         else:
             all_venues.extend(venues)
@@ -1868,7 +2210,7 @@ def run_scrape_cycle(mgr):
         log.info(
             f'EMPTY PAYLOAD: {len(all_venues)} venues parsed, {len(filtered_venues)} after dedup, '
             f'0 records to publish (fetch_ok={fetch_ok}, no_page={no_page}, '
-            f'parse_alerts={parsed_empty}). '
+            f'catalog_empty={catalog_empty}, parse_alerts={parsed_empty}). '
             f'Stale PokerAtlas rows will be cleared so they are not served as current '
             f'if this sweep completed; a partial pass keeps them.'
         )
@@ -1880,7 +2222,12 @@ def run_scrape_cycle(mgr):
         sweep_had_fresh_contract_page = (
             sweep_had_fresh_contract_page or (fetch_ok - parsed_empty) > 0
         )
-        sweep_had_explicit_no_page = sweep_had_explicit_no_page or no_page > 0
+        # ``had_explicit_no_page`` is the persisted v2 compatibility key. It
+        # represents either transport-level absence or the source's exact
+        # no-catalog-information copy, both safe proofs for catalog cleanup.
+        sweep_had_explicit_no_page = (
+            sweep_had_explicit_no_page or no_page > 0 or catalog_empty > 0
+        )
         sweep_had_catalog_data = sweep_had_catalog_data or bool(all_venues)
         sweep_had_persisted_rows = sweep_had_persisted_rows or saved > 0
 
@@ -2005,8 +2352,8 @@ def run_scrape_cycle(mgr):
             progress_reason = 'sweep_checkpoint_advanced_without_catalog_rows'
         elif all_venues and not filtered_venues:
             progress_reason = 'catalog_rows_covered_by_observed_bravo'
-        elif no_page > 0 and parsed_empty == 0:
-            progress_reason = 'explicit_no_cash_pages_checkpointed'
+        elif (no_page > 0 or catalog_empty > 0) and parsed_empty == 0:
+            progress_reason = 'explicit_empty_cash_catalog_pages_checkpointed'
 
     outcome = classify_persisted_run(
         attempted=attempted,
@@ -2018,31 +2365,6 @@ def run_scrape_cycle(mgr):
         maintenance=bool(maintenance_reason),
         status_reason=(valid_empty_reason or progress_reason or maintenance_reason or ''),
     )
-
-    # Save evidence
-    evidence = {
-        'batch_id': batch_id,
-        'scrape_timestamp': cycle_start.isoformat(),
-        'source': 'pokeratlas',
-        'source_urls': sorted({v.get('source_url') for v in all_venues if v.get('source_url')}),
-        'regions_scraped': len(venues_to_scrape),
-        'venues_with_data': len(all_venues),
-        'regions_skipped': skipped,
-        'fetch_ok': fetch_ok,
-        'no_page': no_page,
-        'parse_alerts': parsed_empty,
-        'total_records_saved': saved,
-        'write_blocked': write_blocked,
-        'sweep_state_write_ok': sweep_state_write_ok,
-        'stale_cleanup_ok': stale_cleanup_ok,
-        'history_insert_failures': history_failures,
-        'errors': errors,
-        **outcome,
-        'duration_seconds': (datetime.now(timezone.utc) - cycle_start).total_seconds(),
-    }
-    evidence_file = EVIDENCE_DIR / f'pokeratlas_live_{cycle_start.strftime("%Y%m%d_%H%M%S")}.json'
-    with open(evidence_file, 'w') as f:
-        json.dump(evidence, f, indent=2)
 
     # Save confirmed-output metrics to Supabase for monitoring dashboard.
     try:
@@ -2056,6 +2378,51 @@ def run_scrape_cycle(mgr):
     except Exception as e:
         metrics_failed = True
         log.warning(f'{ERROR_SUPABASE}: scraper_metrics insert threw: {e}')
+
+    # Telemetry is part of the persisted health contract. A cycle whose data
+    # rows landed but whose monitoring metric did not is partial, never healthy.
+    # A progress/maintenance/valid-empty cycle with no durable metric is failed.
+    if metrics_failed:
+        integrity_errors += 1
+        prior_reason = str(outcome.get('status_reason') or '').strip()
+        outcome = classify_persisted_run(
+            attempted=attempted,
+            persisted=saved,
+            rejected=rejected,
+            errors=integrity_errors,
+            status_reason=';'.join(filter(None, (
+                prior_reason, 'scraper_metrics_write_failed',
+            ))),
+        )
+
+    # Save the final, fail-closed outcome as evidence and snapshot metadata.
+    evidence = {
+        'batch_id': batch_id,
+        'scrape_timestamp': cycle_start.isoformat(),
+        'source': 'pokeratlas',
+        'source_urls': sorted({v.get('source_url') for v in all_venues if v.get('source_url')}),
+        'regions_scraped': len(venues_to_scrape),
+        'venues_with_data': len(all_venues),
+        'regions_skipped': skipped,
+        'fetch_ok': fetch_ok,
+        'no_page': no_page,
+        'catalog_empty': catalog_empty,
+        'parse_alerts': parsed_empty,
+        'identity_quarantined': identity_quarantined,
+        'identity_tombstoned': identity_tombstoned,
+        'total_records_saved': saved,
+        'write_blocked': write_blocked,
+        'sweep_state_write_ok': sweep_state_write_ok,
+        'stale_cleanup_ok': stale_cleanup_ok,
+        'history_insert_failures': history_failures,
+        'metrics_insert_failed': metrics_failed,
+        'errors': integrity_errors,
+        **outcome,
+        'duration_seconds': (datetime.now(timezone.utc) - cycle_start).total_seconds(),
+    }
+    evidence_file = EVIDENCE_DIR / f'pokeratlas_live_{cycle_start.strftime("%Y%m%d_%H%M%S")}.json'
+    with open(evidence_file, 'w') as f:
+        json.dump(evidence, f, indent=2)
 
     # Snapshot
     with open(BASE_DIR / 'data' / 'pokeratlas-live-snapshot.json', 'w') as f:
@@ -2095,7 +2462,7 @@ def run_scrape_cycle(mgr):
     #                   at least harmless).
     if outcome['run_status'] == RUN_FAILED:
         hb_status = 'save_failed'
-        if not write_blocked:
+        if not write_blocked and not metrics_failed:
             hb_status = 'no_output'
     elif outcome['run_status'] == RUN_PARTIAL:
         hb_status = 'degraded'
@@ -2118,8 +2485,11 @@ def run_scrape_cycle(mgr):
         'empty_cycle_streak': mgr.empty_cycle_streak,
         'parser_alert': parsed_empty > 0 or (fetch_ok > 0 and not all_venues),
         'parse_alerts': parsed_empty,
+        'identity_quarantined': identity_quarantined,
+        'identity_tombstoned': identity_tombstoned,
         'fetch_ok': fetch_ok,
         'no_page': no_page,
+        'catalog_empty': catalog_empty,
         'write_blocked': write_blocked,
         'stale_cleanup_ok': stale_cleanup_ok,
         'history_insert_failed': history_failures,
@@ -2352,8 +2722,13 @@ def main():
                 base_delays = [60, 300, 900, 1800, 3600]
                 idx = min(max(0, mgr.empty_cycle_streak - 1), len(base_delays) - 1)
                 backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
+                progress_label = (
+                    f'Incomplete cycle after persisting {saved_records} records'
+                    if saved_records
+                    else 'No records persisted'
+                )
                 log.warning(
-                    f'⏰ No records saved — retrying in {backoff}s '
+                    f'⏰ {progress_label} - retrying in {backoff}s '
                     f'(empty cycle streak #{mgr.empty_cycle_streak})...'
                 )
                 for _ in range(backoff):

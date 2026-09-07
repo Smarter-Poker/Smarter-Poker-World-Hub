@@ -19,6 +19,16 @@ const LEAFLET_STYLES = Object.freeze([
 
 let runtimePromise = null;
 
+const POKER_MAP_TILE_PROVIDER = Object.freeze({
+  // CARTO's formerly keyless raster endpoint now returns branded
+  // `API KEY REQUIRED` tiles. Keep the map useful without baking a secret
+  // into the browser by using Esri's public Dark Gray Canvas services.
+  baseUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  referenceUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+  attribution: '<a href="https://goto.arcgisonline.com/maps/World_Dark_Gray_Base">Map &copy; Esri, HERE, Garmin, OpenStreetMap + GIS contributors</a>',
+  maxNativeZoom: 16,
+});
+
 function ensureStylesheet({ id, href }) {
   if (typeof document === 'undefined') return;
   if (document.querySelector(`link[data-pnm-map-style="${id}"]`)) return;
@@ -119,19 +129,41 @@ export function createPokerMapSession({
 } = {}) {
   if (!L || !container) throw new Error('Poker map session requires Leaflet and a container');
   const map = L.map(container, { zoomControl: true, attributionControl: false, ...mapOptions });
-  const tiles = L.tileLayer(
-    `https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`,
-    { subdomains: 'abcd', maxZoom: 19, attribution: '', ...tileOptions },
-  ).addTo(map);
-  if (attribution) {
-    L.control.attribution({ prefix: false })
-      .addAttribution('Powered By <a href="https://smarter.poker">Smarter.Poker</a>')
-      .addTo(map);
+  const sharedTileOptions = {
+    maxNativeZoom: POKER_MAP_TILE_PROVIDER.maxNativeZoom,
+    maxZoom: 19,
+    attribution: '',
+    crossOrigin: true,
+    ...tileOptions,
+  };
+  const tiles = L.tileLayer(POKER_MAP_TILE_PROVIDER.baseUrl, sharedTileOptions).addTo(map);
+  let referencePane = 'overlayPane';
+  if (tileStyle === 'dark_all' && typeof map.createPane === 'function') {
+    const pane = (typeof map.getPane === 'function' && map.getPane('pnmReferencePane'))
+      || map.createPane('pnmReferencePane');
+    pane.style.zIndex = '350';
+    pane.style.pointerEvents = 'none';
+    referencePane = 'pnmReferencePane';
   }
+  const referenceTiles = tileStyle === 'dark_all'
+    ? L.tileLayer(POKER_MAP_TILE_PROVIDER.referenceUrl, {
+        ...sharedTileOptions,
+        pane: referencePane,
+      }).addTo(map)
+    : null;
+  const brandCredit = attribution
+    ? ' · Powered By <a href="https://smarter.poker">Smarter.Poker</a>'
+    : '';
+  // Provider/data attribution is mandatory on every map. The caller may hide
+  // only the optional Smarter.Poker credit, never the underlying map credit.
+  L.control.attribution({ prefix: false })
+    .addAttribution(`${POKER_MAP_TILE_PROVIDER.attribution}${brandCredit}`)
+    .addTo(map);
   let destroyed = false;
   return {
     map,
     tiles,
+    referenceTiles,
     destroy() {
       if (destroyed) return;
       destroyed = true;
@@ -169,6 +201,8 @@ export function createPokerMarkerLayer({
 export const pokerMapRuntimeContract = Object.freeze({
   executableSource: 'local-npm',
   styleSource: 'local-public',
+  tileProvider: 'esri-dark-gray-canvas',
+  keylessTileRuntime: true,
   chunkedLoading: true,
   densityAwareClustering: true,
   sharedSessionLifecycle: true,

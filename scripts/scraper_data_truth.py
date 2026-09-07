@@ -90,6 +90,30 @@ NON_US_POKERATLAS_VENUE_SLUGS = frozenset({
     "club-montmartre-paris",
 })
 
+# PokerAtlas publishes this room-shaped page to demonstrate its TableCaptain
+# management product. The page identifies itself as a "DEMO VENUE" and does
+# not represent a destination where a player can play. Keep the exact identity
+# out of discovery, ingestion, and current-feed sweeps without weakening the
+# fail-closed parser contract for genuine rooms.
+NON_PRODUCTION_POKERATLAS_VENUE_SLUGS = frozenset({
+    "patc-las-vegas",
+})
+
+
+_POKER_EVENT_PROMOTION_NOISE_RE = re.compile(
+    r"\b(?:giveaways?|drawings?|sweepstakes?|slot\s+promotion|casino\s+promotion|"
+    r"promotional\s+drawing|earn\s+(?:bonus\s+)?entries|winner(?:s)?\s+selected)\b",
+    re.I,
+)
+_POKER_EVENT_LOCAL_EVIDENCE_RE = re.compile(
+    r"\b(?:poker\s+tournaments?|tournaments?|tourneys?|nlh|no[\s-]*limit\s+"
+    r"(?:texas\s+)?hold[ '\u2019-]*em|hold[ '\u2019-]*em|plo|pot[\s-]*limit\s+omaha|"
+    r"omaha(?:\s+hi(?:/lo)?)?|freeze[\s-]*out|deep[\s-]*stack|satellites?|"
+    r"re[\s-]*entr(?:y|ies)|rebuys?|big\s+blind\s+ante|starting\s+stack|"
+    r"blind\s+levels?|buy[\s-]*in|entry\s+fee)\b",
+    re.I,
+)
+
 # Explicit PokerAtlas directory regions whose geography is within the United
 # States. This is independent evidence for legacy map rows that predate stored
 # JSON-LD address metadata. Newly discovered rooms should still persist country
@@ -160,6 +184,75 @@ def pokeratlas_slug_from_url(value: object) -> str:
 
     match = re.search(r"/poker-room/([^/?#]+)", str(value or ""), re.I)
     return match.group(1).strip().lower() if match else ""
+
+
+def is_poker_tournament_event_text(value: object) -> bool:
+    """Require candidate-local poker evidence and reject casino promotions.
+
+    HTML fallback blocks begin at the candidate dollar amount. Looking only at
+    a compact leading window prevents a page-level navigation label such as
+    ``Poker Tournament Schedule`` from legitimizing an unrelated hotel, slots,
+    drawing, or giveaway amount elsewhere on the page.
+    """
+
+    candidate = re.sub(r"\s+", " ", html.unescape(str(value or ""))).strip()
+    if not candidate:
+        return False
+    local_window = candidate[:360]
+    promotion_window = candidate[:180]
+    if _POKER_EVENT_PROMOTION_NOISE_RE.search(promotion_window):
+        return False
+    return bool(_POKER_EVENT_LOCAL_EVIDENCE_RE.search(local_window))
+
+
+def is_explicit_pokeratlas_cash_catalog_empty(value: object) -> bool:
+    """Recognize PokerAtlas's explicit "no cash-game information" state.
+
+    This means the source has no catalog rows for the room. It does not mean
+    the room is closed or that zero live tables are running. Callers may advance
+    a catalog sweep, but must never turn this state into an observed live zero.
+    """
+
+    visible_markup = re.sub(
+        r"<(?:script|style|noscript)\b[^>]*>.*?</(?:script|style|noscript)>",
+        " ",
+        html.unescape(str(value or "")),
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    page_text = re.sub(
+        r"\s+",
+        " ",
+        re.sub(r"<[^>]+>", " ", visible_markup),
+    ).strip().lower().replace("’", "'")
+    catalog_headings = (
+        "cash games offered",
+        "juegos en efectivo ofrecidos",
+    )
+    heading_positions = [
+        page_text.find(marker)
+        for marker in catalog_headings
+        if marker in page_text
+    ]
+    if not heading_positions:
+        return False
+
+    # Limit the negative-state match to the cash-catalog section. Poker room
+    # announcements elsewhere on the page can contain phrases such as "no cash
+    # games tonight"; those are not evidence that PokerAtlas has no catalog.
+    section = page_text[min(heading_positions):min(heading_positions) + 1_600]
+    explicit_empty_patterns = (
+        r"(?:currently\s+)?we\s+(?:currently\s+)?(?:do\s+not|don't)\s+"
+        r"(?:currently\s+)?have\s+"
+        r"(?:any\s+)?cash\s+games?\s+information(?:\s+for)?",
+        r"(?:currently\s+)?we\s+(?:currently\s+)?(?:do\s+not|don't)\s+"
+        r"(?:currently\s+)?have\s+"
+        r"(?:any\s+)?information\s+(?:about|on|for)\s+cash\s+games?",
+        r"(?:there\s+is\s+)?no\s+cash\s+games?\s+information\s+(?:available\s+)?for",
+        r"we\s+(?:currently\s+)?(?:do\s+not|don't)\s+know\s+(?:about\s+)?"
+        r"any\s+cash\s+games?\s+(?:at|for)",
+        r"actualmente\s+no\s+tenemos\s+información\s+sobre\s+juegos\s+en\s+efectivo\s+en",
+    )
+    return any(re.search(pattern, section) for pattern in explicit_empty_patterns)
 
 
 def stable_live_row_id(source: object, batch_id: object, venue_slug: object, game_name: object) -> int:
@@ -270,9 +363,12 @@ def classify_persisted_run(
     elif persisted <= 0:
         run_status = RUN_FAILED
         reason = status_reason or "zero_rows_persisted"
-    elif rejected > 0 or errors > 0 or (attempted > 0 and persisted < attempted):
+    elif rejected > 0 or (attempted > 0 and persisted < attempted):
         run_status = RUN_PARTIAL
         reason = status_reason or "not_all_attempted_rows_persisted"
+    elif errors > 0:
+        run_status = RUN_PARTIAL
+        reason = status_reason or "cycle_completed_with_errors"
     else:
         run_status = RUN_SUCCESS
         reason = status_reason or "all_attempted_rows_persisted"
@@ -305,6 +401,18 @@ def fully_persisted_venue_ids(
 def tour_stop_identity(row: Mapping) -> Tuple[str, str]:
     """Stable tour-stop identity: a recurring name may legitimately recur yearly."""
 
-    name = " ".join(str(row.get("stop_name") or "").lower().split())
+    name = html.unescape(str(row.get("stop_name") or "")).lower()
+    # Editorially researched rows often add a calendar qualifier such as
+    # ``(August 2026)`` while the source heading omits it.  On the same tour and
+    # start date those are the same stop, not two events.  Remove only
+    # calendar-shaped parentheticals so meaningful qualifiers remain part of
+    # the identity.
+    name = re.sub(
+        r"\s*\([^)]*(?:20\d{2}|january|february|march|april|may|june|july|"
+        r"august|september|october|november|december)[^)]*\)\s*",
+        " ",
+        name,
+    )
+    name = " ".join(re.sub(r"[^a-z0-9]+", " ", name).split())
     start = str(row.get("stop_start_date") or row.get("start_date") or "")[:10]
     return name, start

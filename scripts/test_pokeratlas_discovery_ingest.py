@@ -10,6 +10,13 @@ from unittest import mock
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPTS_DIR.parent
+DERIVED_IDENTITY_MIGRATION = (
+    PROJECT_ROOT
+    / 'supabase'
+    / 'migrations'
+    / '20260907032000_pokeratlas_derived_venue_identity_contract.sql'
+)
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import discover_pokeratlas_slugs as discovery
@@ -136,6 +143,25 @@ class DiscoveryContractTests(unittest.TestCase):
             'Casino Niagara',
             'https://www.pokeratlas.com/poker-rooms/upstate-ny',
         )))
+
+    def test_tablecaptain_demo_is_not_a_publishable_room(self):
+        demo = _room(
+            'patc-las-vegas',
+            'PokerAtlas TableCaptain',
+            'https://www.pokeratlas.com/poker-rooms/regions/nevada',
+        )
+        self.assertFalse(discovery.is_publishable_venue(demo))
+        venues, _, ok = self._scrape('''
+            <html><title>Nevada Poker Rooms</title>
+              <a href="/poker-room/patc-las-vegas">PokerAtlas TableCaptain</a>
+              <a href="/poker-room/bellagio-las-vegas">Bellagio Casino</a>
+            </html>
+        ''')
+        self.assertTrue(ok)
+        self.assertEqual(
+            [venue['slug'] for venue in venues],
+            ['bellagio-las-vegas'],
+        )
 
     def test_failed_page_never_overwrites_existing_registry(self):
         with TemporaryDirectory() as tmp:
@@ -478,9 +504,54 @@ class IngestContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('is_noise_venue_label', source)
         self.assertIn('NON_US_POKERATLAS_REGION_SLUGS', source)
         self.assertIn('NON_US_POKERATLAS_VENUE_SLUGS', source)
+        self.assertIn('NON_PRODUCTION_POKERATLAS_VENUE_SLUGS', source)
         self.assertIn('pokeratlas_slug_from_url', source)
         self.assertIn('pa_data.get("crawl_complete") is not True', source)
         self.assertIn('pa_data.get("total_venues") != len(pa_venues)', source)
+
+    def test_derived_identity_migration_is_exact_append_only_and_fail_closed(self):
+        source = DERIVED_IDENTITY_MIGRATION.read_text(encoding='utf-8')
+
+        self.assertIn('expected 151 duplicate schedules', source)
+        self.assertIn('b9e073748a2872bdbc23edee78193ad8', source)
+        self.assertIn('0d43c3e79742e71c8811b84949c88a32', source)
+        self.assertIn('634650ff75ac3d4f0242ba33556db413', source)
+        self.assertIn('(3429, 1930,', source)
+        self.assertIn('(3410, 1987,', source)
+        self.assertIn('(2954, 2305,', source)
+        self.assertIn("data_quality = 'stale'", source)
+        self.assertIn('is_active = false', source)
+        self.assertIn('is_suppressed = true', source)
+        self.assertNotRegex(source, r'(?im)^\s*delete\s+from\s+')
+
+    def test_atomic_rpc_resolves_every_pokeratlas_url_identity_under_lock(self):
+        source = DERIVED_IDENTITY_MIGRATION.read_text(encoding='utf-8')
+
+        for field in (
+            'v.pokeratlas_slug',
+            'v.pokeratlas_url',
+            'v.poker_atlas_url',
+            'v.scrape_url',
+            'v.schedule_scrape_url',
+        ):
+            self.assertIn(field, source)
+        self.assertIn("hashtextextended('pokeratlas-room:' || r.room_slug, 0)", source)
+        self.assertIn(
+            'rename to fn_pokeratlas_ingest_venues_slug_only_v2', source
+        )
+        self.assertIn(
+            'return public.fn_pokeratlas_ingest_venues_slug_only_v2', source
+        )
+        self.assertIn(
+            'revoke all on function public.fn_pokeratlas_ingest_venues(jsonb, uuid)\n'
+            '  from public, anon, authenticated;',
+            source,
+        )
+        self.assertIn(
+            'grant execute on function public.fn_pokeratlas_ingest_venues(jsonb, uuid)\n'
+            '  to service_role;',
+            source,
+        )
 
 
 if __name__ == '__main__':

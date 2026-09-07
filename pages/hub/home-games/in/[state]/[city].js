@@ -18,6 +18,11 @@ import {
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import PokerNearMeFamilyNav from '../../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import {
+  fetchAllHomeGameDirectoryRows,
+  fetchHomeGameGroupsInChunks,
+  homeGameDirectoryUnavailable,
+} from '../../../../../src/lib/home-games/geoDirectoryServer.mjs';
 
 // Phase 18 auto-hide window, mirrored from /api/public/home-games/discover
 // and from the sibling state page (in/[state]/index.js).
@@ -52,12 +57,33 @@ export async function getServerSideProps({ params, res }) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(url, key);
+  const unavailableProps = {
+    stateCode,
+    citySlug,
+    cityTitle: citySlugToTitle(citySlug),
+    stateName: stateCodeToName(stateCode),
+    stateSlug: stateCodeToSlug(stateCode),
+    games: [],
+  };
+  // Supabase validates its constructor arguments synchronously. Preserve the
+  // same crawler-safe recovery response used for a query outage when runtime
+  // credentials are missing, rather than leaking a generic framework 500.
+  if (!url || !key) {
+    console.warn(`[home-games/in/${stateCode}/${citySlug}] Supabase configuration unavailable`);
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
+  let supabase;
+  try {
+    supabase = createClient(url, key);
+  } catch (error) {
+    console.warn(`[home-games/in/${stateCode}/${citySlug}] Supabase client creation failed:`, error?.message || error);
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
 
   // Pull every public home_game in the state and match the city slug in JS.
   // (We can't use .ilike() cleanly because the DB stores 'Las Vegas' while the
   // URL has 'las-vegas' and Postgres doesn't know about our slug format.)
-  const { data: pages, error } = await supabase
+  const pageResult = await fetchAllHomeGameDirectoryRows((from, to) => supabase
     .from('social_pages')
     .select(`
       id, name, slug, description,
@@ -71,30 +97,19 @@ export async function getServerSideProps({ params, res }) {
     // publishing dead URLs inside ItemList structured data. The sibling state
     // page already had this guard; the city page did not. (audit H-4)
     .not('slug', 'is', null)
-    .eq('location_state', stateCode);
+    .eq('location_state', stateCode)
+    .order('id', { ascending: true })
+    .range(from, to));
 
-  if (error) {
-    console.warn(`[home-games/in/${stateCode}/${citySlug}] fetch failed:`, error.message);
+  if (pageResult.error || !pageResult.complete) {
+    console.warn(`[home-games/in/${stateCode}/${citySlug}] fetch failed:`, pageResult.error?.message || 'incomplete response');
     // Do NOT return notFound here. A transient Supabase error during a
     // Googlebot crawl would hard-404 the page and get it dropped from the
     // index. 503 + Retry-After tells the crawler to come back instead.
     // (audit M-3 — matches the behaviour of /hub/home-games/[slug].)
-    if (res) {
-      res.statusCode = 503;
-      res.setHeader('Retry-After', '60');
-    }
-    return {
-      props: {
-        stateCode,
-        citySlug,
-        // NOTE: the component destructures `cityTitle`, not `cityName`.
-        cityTitle: citySlugToTitle(citySlug),
-        stateName: stateCodeToName(stateCode),
-        stateSlug: stateCodeToSlug(stateCode),
-        games: [],
-      },
-    };
+    return homeGameDirectoryUnavailable(res, unavailableProps);
   }
+  const pages = pageResult.rows;
 
   const matching = (pages || []).filter(p => cityTitleToSlug(p.location_city) === citySlug);
   if (matching.length === 0) return { notFound: true };
@@ -104,17 +119,21 @@ export async function getServerSideProps({ params, res }) {
   const groupIds = matching.map(p => p.linked_entity_id).filter(Boolean);
   let groupMap = {};
   if (groupIds.length > 0) {
-    const { data: groups } = await supabase
+    const groupResult = await fetchHomeGameGroupsInChunks(groupIds, (ids) => supabase
       .from('commander_home_groups')
       // PRIVACY (audit 2026-08-12, finding C-2): latitude/longitude are
       // deliberately NOT selected. They are a host's home address, they were
       // never rendered by this page, and Next.js serialises every prop into
-      // __NEXT_DATA__ in the HTML — so selecting them published raw home
+      // __NEXT_DATA__ in the HTML, so selecting them published raw home
       // coordinates on a page built specifically to be crawled and cached.
       // Do not re-add them.
       .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, is_active, is_private, last_activity_at, created_at, visibility_override_until')
-      .in('id', groupIds);
-    groupMap = Object.fromEntries((groups || []).map(g => [String(g.id), g]));
+      .in('id', ids));
+    if (groupResult.error || !groupResult.complete) {
+      console.warn(`[home-games/in/${stateCode}/${citySlug}] group fetch failed:`, groupResult.error?.message || 'incomplete response');
+      return homeGameDirectoryUnavailable(res, unavailableProps);
+    }
+    groupMap = Object.fromEntries(groupResult.rows.map(g => [String(g.id), g]));
   }
 
   const games = matching
@@ -162,6 +181,7 @@ export async function getServerSideProps({ params, res }) {
       cityTitle,
       citySlug,
       games,
+      directoryUnavailable: false,
     },
   };
 }
@@ -190,7 +210,6 @@ function GameCard({ game }) {
       <Link href={`/hub/home-games/${game.slug}`} className="block">
         <div className="relative aspect-[16/9] bg-gradient-to-br from-[#1E293B] to-[#0D192E] overflow-hidden">
           {game.cover_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={game.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -220,10 +239,19 @@ function GameCard({ game }) {
   );
 }
 
-export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityTitle, citySlug, games }) {
+export default function HomeGamesByCity({
+  stateCode,
+  stateName,
+  stateSlug,
+  cityTitle,
+  citySlug,
+  games,
+  directoryUnavailable = false,
+}) {
   const pageTitle = `Poker Home Games in ${cityTitle}, ${stateCode} - Cash Games & Tournaments`;
-  const pageDescription =
-    `Browse ${games.length} active poker home game${games.length === 1 ? '' : 's'} in ${cityTitle}, ${stateName}. Find weekly cash games, tournaments, and friendly home games near you.`;
+  const pageDescription = directoryUnavailable
+    ? `The Poker Home Games directory for ${cityTitle}, ${stateCode} is temporarily unavailable. Please try again shortly.`
+    : `Browse ${games.length} active poker home game${games.length === 1 ? '' : 's'} in ${cityTitle}, ${stateName}. Find weekly cash games, tournaments, and friendly home games near you.`;
 
   const canonical = `https://smarter.poker/hub/home-games/in/${stateSlug}/${citySlug}`;
 
@@ -279,7 +307,11 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
       </Head>
 
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
-      <main className="min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white">
+      <main
+        className="pnm-home-geo-page min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white"
+        data-pnm-realism="machined-v2"
+        data-pnm-secondary-foundation="interaction-v1"
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-24">
           <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
@@ -298,9 +330,15 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
               Poker Home Games In <span className="text-[#C4B5FD]">{cityTitle}, {stateCode}</span>
             </h1>
             <p className="text-base text-[#94A3B8] mt-3 max-w-2xl">
-              <span className="text-white font-semibold">{games.length}</span> active{' '}
-              {games.length === 1 ? 'game' : 'games'} In {cityTitle}. Click Any Card For Schedule, Stakes, And
-              How To Request A Seat.
+              {directoryUnavailable ? (
+                <>The Home Game Directory Is Temporarily Unavailable. Please Try Again Shortly.</>
+              ) : (
+                <>
+                  <span className="text-white font-semibold">{games.length}</span> active{' '}
+                  {games.length === 1 ? 'game' : 'games'} In {cityTitle}. Click Any Card For Schedule, Stakes, And
+                  How To Request A Seat.
+                </>
+              )}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
@@ -318,14 +356,24 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
             </div>
           </header>
 
-          <section aria-label="Home games">
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {games.map(g => (
-                <li key={g.id}>
-                  <GameCard game={g} />
-                </li>
-              ))}
-            </ul>
+          <section aria-label="Home games" role={directoryUnavailable ? 'status' : undefined}>
+            {directoryUnavailable ? (
+              <div className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center">
+                <h2 className="text-white font-semibold">Directory Data Could Not Be Verified</h2>
+                <p className="text-[#94A3B8] mt-2">No Listings Have Been Removed. Please Retry In A Moment.</p>
+                <Link href={canonical.replace('https://smarter.poker', '')} className="inline-flex mt-4 text-[#C4B5FD] underline hover:text-white">
+                  Retry {cityTitle}
+                </Link>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {games.map(g => (
+                  <li key={g.id}>
+                    <GameCard game={g} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       </main>

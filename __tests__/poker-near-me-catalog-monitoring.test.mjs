@@ -427,3 +427,302 @@ test('live and monitoring APIs expose the catalog and checkpoint contracts', asy
   assert.match(liveFeed, /\.filter\(v => v\.games_offered && v\.games_offered\.length > 0\)/);
   assert.doesNotMatch(liveFeed, /games_offered\.length > 0 && v\.poker_tables > 0/);
 });
+
+test('local watchdog follows the release runtime and never restarts owner-disabled Bravo live', async () => {
+  const watchdog = await readFile(
+    new URL('../scripts/scraper-watchdog.py', import.meta.url),
+    'utf8',
+  );
+  assert.match(watchdog, /SMARTER_POKER_SCRAPER_ROOT/);
+  assert.match(watchdog, /simulator-heartbeat\.json/);
+  assert.match(watchdog, /com\.smarter-poker\.bravo-simulator/);
+  assert.doesNotMatch(watchdog, /BRAVO_PLIST\s*=\s*['"]com\.smarter-poker\.bravo-daemon/);
+  assert.doesNotMatch(watchdog, /bravo-logs['"]\s*\/\s*['"]heartbeat\.json/);
+  assert.match(watchdog, /if job_loaded\(plist_label\):/);
+  assert.match(watchdog, /respecting launchd throttle\/backoff/);
+});
+
+test('freshness invariant RPC is replayable, private, and wired to its watchdog', async () => {
+  const [migration, watchdog] = await Promise.all([
+    readFile(
+      new URL(
+        '../supabase/migrations/20260907015000_pnm_freshness_invariants_contract.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(new URL('../scripts/pnm-freshness-watchdog.py', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(
+    migration,
+    /create\s+or\s+replace\s+function\s+public\.pnm_freshness_invariants\(\)/i,
+  );
+  assert.match(migration, /security\s+definer\s+set\s+search_path\s*=\s*public/i);
+  assert.match(
+    migration,
+    /revoke\s+all\s+on\s+function\s+public\.pnm_freshness_invariants\(\)\s+from\s+public/i,
+  );
+  assert.match(
+    migration,
+    /revoke\s+all\s+on\s+function\s+public\.pnm_freshness_invariants\(\)\s+from\s+anon/i,
+  );
+  assert.match(
+    migration,
+    /revoke\s+all\s+on\s+function\s+public\.pnm_freshness_invariants\(\)\s+from\s+authenticated/i,
+  );
+  assert.match(
+    migration,
+    /grant\s+execute\s+on\s+function\s+public\.pnm_freshness_invariants\(\)\s+to\s+service_role/i,
+  );
+  assert.match(watchdog, /\/rest\/v1\/rpc\/pnm_freshness_invariants/);
+});
+
+test('series fallback rejects promotion copy and persists honest extraction quality', async () => {
+  const [seriesScraper, seriesApi, truthContract, eventMigration, seriesMigration, quarantineMigration] = await Promise.all([
+    readFile(new URL('../scripts/poker_series_scraper.py', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/api/poker/series.js', import.meta.url), 'utf8'),
+    readFile(new URL('../scripts/scraper_data_truth.py', import.meta.url), 'utf8'),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906223000_poker_events_quality_contract.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906224000_poker_series_quality_contract.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906230000_poker_series_identity_quarantine.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ]);
+
+  assert.match(seriesScraper, /from scraper_data_truth import is_poker_tournament_event_text/);
+  assert.match(seriesScraper, /PA_SERIES_LISTING_URL/);
+  assert.match(seriesScraper, /def extract_pa_series_listing/);
+  assert.match(seriesScraper, /def pa_series_page_matches/);
+  assert.match(seriesScraper, /source_identity_mismatch/);
+  assert.match(seriesScraper, /pokeratlas_live_listing/);
+  assert.match(seriesScraper, /def sb_ensure_series_parent/);
+  assert.match(seriesScraper, /parent not verified/);
+  assert.match(seriesScraper, /headers=\{\*\*SB_HDRS, "Prefer": "return=representation"\}/);
+  assert.match(seriesScraper, /if not is_poker_tournament_event_text\(txt\): return/);
+  assert.doesNotMatch(seriesScraper, /scraped_partial/);
+  assert.match(seriesScraper, /"hendonmob":\s+\("scraped_inferred", "medium"\)/);
+  assert.match(seriesScraper, /"cardplayer":\s+\("scraped_inferred", "medium"\)/);
+  assert.match(truthContract, /_POKER_EVENT_PROMOTION_NOISE_RE/);
+  assert.match(truthContract, /def is_poker_tournament_event_text/);
+  assert.match(eventMigration, /check \(data_quality in \(/i);
+  assert.match(eventMigration, /'scraped_inferred'/);
+  assert.match(eventMigration, /'manual_research'/);
+  assert.match(eventMigration, /validate constraint chk_poker_events_data_quality/i);
+  assert.match(seriesMigration, /'scraped_inferred'/);
+  assert.match(seriesMigration, /validate constraint chk_poker_series_data_quality/i);
+  assert.match(seriesApi, /SERVABLE_EVENT_QUALITIES/);
+  assert.equal((seriesApi.match(/\.in\('data_quality', SERVABLE_EVENT_QUALITIES\)/g) || []).length, 1);
+  assert.match(seriesApi, /SERVABLE_SERIES_QUALITIES/);
+  assert.equal((seriesApi.match(/\.in\('data_quality', SERVABLE_SERIES_QUALITIES\)/g) || []).length, 3);
+  assert.equal((seriesApi.match(/!isServableSeriesParentEvidence\((?:ts|ps)\)/g) || []).length, 2);
+  assert.match(seriesApi, /filter\(\s*row => isServableSeriesParentEvidence\(row\)/);
+  assert.doesNotMatch(seriesApi, /filter\(isServableSeriesParentEvidence\)/);
+  assert.match(seriesApi, /fetchPokerEventsForSeries/);
+  assert.match(seriesApi, /if \(tsErr\) \{\s*throw tsErr;\s*\}/);
+  assert.match(seriesApi, /if \(psErr\) \{\s*throw psErr;\s*\}/);
+  assert.match(seriesApi, /Series catalog is temporarily unavailable/);
+  assert.match(
+    seriesApi,
+    /source\.not\.in\.\(html_fallback,cardplayer,venue_subpage,venue_website,bravo_venue,source_url,pdf_fallback\),human_verified\.eq\.true/,
+  );
+  assert.doesNotMatch(seriesApi, /page < 5/);
+  assert.match(quarantineMigration, /Kings Poker Room Series/);
+  assert.match(quarantineMigration, /pnm_source_identity_quarantine_20260906/);
+  assert.doesNotMatch(quarantineMigration, /delete\s+from\s+public\.poker_events/i);
+});
+
+test('parser artifact follow-up quarantines the exact audited rows without deleting history', async () => {
+  const migration = await readFile(
+    new URL(
+      '../supabase/migrations/20260906235500_daily_and_series_parser_artifact_quarantine.sql',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+
+  // A clean database has none of these audited production runtime rows and
+  // must replay as an intentional no-op. Only the exact original 79-row set
+  // may be quarantined; a partial or expanded match still fails closed.
+  assert.match(migration, /not\s+in\s*\(\s*0\s*,\s*79\s*\)\s+then/i);
+  assert.doesNotMatch(migration, /artifact is missing/i);
+  assert.match(migration, /17700ed6-8713-42f7-8194-2452f3461959/);
+  assert.match(migration, /pnm_parser_artifact_quarantine_20260906_followup/);
+  assert.match(migration, /set\s+is_active\s*=\s*false,\s+data_quality\s*=\s*'stale'/i);
+  assert.doesNotMatch(migration, /delete\s+from\s+public\.(?:venue_daily_tournaments|poker_events)/i);
+});
+
+test('public event text quarantine preserves rows and covers every audited fragment', async () => {
+  const migration = await readFile(
+    new URL(
+      '../supabase/migrations/20260907022000_pnm_public_event_text_quarantine.sql',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+
+  for (const id of [
+    '04b674e4-b5b2-413b-938e-da0420ccfab9',
+    '051ea095-d9d5-4e5b-bb43-cf94cfe8d85e',
+    '061df441-5b19-43b8-b678-2c2c2925a1a4',
+    '0e25566b-f105-4c97-b03c-ed7c10fe080c',
+    '7a1b58b5-a483-4de7-9b5a-1fdc3b373a98',
+    '9ef50488-598f-40c4-a1a6-539ece5798ec',
+    '10838483-6ea5-4fdf-8b43-3e6a7a20069c',
+    '6e1b5eac-679d-43f7-9834-d1c5b0386153',
+    '72546d3c-20ad-4038-b53a-7dd8c997edd9',
+  ]) {
+    assert.match(migration, new RegExp(id));
+  }
+  assert.match(migration, /pnm_public_text_quarantine_20260907/);
+  assert.match(migration, /set data_quality = 'stale'/);
+  assert.doesNotMatch(migration, /delete\s+from\s+public\.(?:poker_events|tour_stop_events)/i);
+});
+
+test('daily schedule fallback cannot turn venue promotions into tournaments', async () => {
+  const [dailyScraper, cleanupMigration, followupMigration, moheganMigration] = await Promise.all([
+    readFile(new URL('../scripts/tournament-schedule-daemon.py', import.meta.url), 'utf8'),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906225000_daily_tournament_runtime_cleanup.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906232000_daily_tournament_identity_quarantine_followup.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906233000_daily_tournament_mohegan_identity_quarantine.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ]);
+
+  assert.match(dailyScraper, /is_poker_tournament_event_text/);
+  assert.match(dailyScraper, /def is_generic_tournament_candidate/);
+  assert.match(dailyScraper, /def pokeratlas_room_page_identity/);
+  assert.match(dailyScraper, /def bravo_room_page_identity/);
+  assert.match(dailyScraper, /room_name_identity_mismatch/);
+  assert.match(dailyScraper, /GENERIC_BUYIN_EVIDENCE_RE/);
+  assert.match(dailyScraper, /GENERIC_PROMOTION_NOISE_RE/);
+  assert.match(dailyScraper, /PATCH RETRY/);
+  assert.match(dailyScraper, /57014/);
+  assert.match(dailyScraper, /def sb_get_checked/);
+  assert.match(dailyScraper, /select=id,scrape_batch_id,last_scraped/);
+  assert.match(dailyScraper, /id=in\.\(\{ids\}\)/);
+  assert.match(dailyScraper, /def deactivate_past_events\(max_rows: int = 5000\)/);
+  assert.match(dailyScraper, /def deactivate_stale_recurring_projections/);
+  assert.match(dailyScraper, /source_errors/);
+  assert.match(dailyScraper, /not args\.venue_ids and not args\.missing and not args\.batch/);
+  assert.match(dailyScraper, /"is_recurring": bool\(day and not event_date\)/);
+  assert.doesNotMatch(dailyScraper, /re\.split\(r"\(\?=\\\$\\d\)"/);
+  assert.doesNotMatch(dailyScraper, /for line in html\.split\("\\n"\)/);
+  assert.match(dailyScraper, /"records":result\["records"\]/);
+  assert.match(cleanupMigration, /idx_vdt_active_event_date_id/);
+  assert.match(cleanupMigration, /pnm_source_identity_quarantine_20260906/);
+  assert.match(cleanupMigration, /pnm_promotion_copy_quarantine_20260906/);
+  assert.match(cleanupMigration, /America\/Los_Angeles/);
+  assert.doesNotMatch(cleanupMigration, /delete\s+from\s+public\.venue_daily_tournaments/i);
+  assert.match(followupMigration, /golden-nugget-lv-las-vegas/);
+  assert.match(followupMigration, /rivers-philadelphia/);
+  assert.match(followupMigration, /pnm_source_identity_quarantine_20260906/);
+  assert.doesNotMatch(followupMigration, /delete\s+from\s+public\.venue_daily_tournaments/i);
+  assert.match(moheganMigration, /mohegan-sun-uncasville/);
+  assert.match(moheganMigration, /34acccdc-5390-4f11-8fe2-21458733b8ab/);
+  assert.doesNotMatch(moheganMigration, /delete\s+from\s+public\.venue_daily_tournaments/i);
+});
+
+test('tour readers exclude quarantined rows and the canary cleanup is auditable', async () => {
+  const [tourApi, calendarApi, quarantineMigration, tourScraper] = await Promise.all([
+    readFile(new URL('../pages/api/poker/tour-schedule.js', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/api/poker/events-calendar.js', import.meta.url), 'utf8'),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906231000_tour_stop_quality_quarantine.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(new URL('../scripts/tour_stealth_scraper.py', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(tourApi, /SERVABLE_TOUR_EVENT_QUALITIES/);
+  assert.match(tourApi, /\.in\('data_quality', SERVABLE_TOUR_EVENT_QUALITIES\)/);
+  assert.match(calendarApi, /SERVABLE_TOUR_EVENT_QUALITIES/);
+  assert.match(calendarApi, /\.in\('data_quality', SERVABLE_TOUR_EVENT_QUALITIES\)/);
+  assert.match(tourScraper, /Date-like copy in scripts, image alt text/);
+  assert.match(tourScraper, /chip counts\?/i);
+  assert.match(quarantineMigration, /CHIP COUNTS\/REDRAWS/);
+  assert.match(quarantineMigration, /duplicate of manually researched Wynn Signature Series stop/);
+  assert.doesNotMatch(quarantineMigration, /delete\s+from\s+public\.tour_stop_events/i);
+});
+
+test('daily readers bind requested days to one date and suppress stale recurrence', async () => {
+  const [dailyApi, calendarApi, dataHelper, freshnessMigration, correctionMigration] = await Promise.all([
+    readFile(new URL('../pages/api/poker/daily-tournaments.js', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/api/poker/events-calendar.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/poker-near-me/dailyTournamentData.mjs', import.meta.url), 'utf8'),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906234000_daily_recurring_freshness_quarantine.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    readFile(
+      new URL(
+        '../supabase/migrations/20260906235000_daily_projection_flag_correction.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ]);
+
+  assert.match(dailyApi, /query = query\.eq\('event_date', targetDateStr\)/);
+  assert.match(dailyApi, /\.or\('event_date\.is\.null,event_date\.eq\.1970-01-01'\)/);
+  assert.match(dailyApi, /fetchAllDailyTournamentRows\(\(\) => buildTournamentQuery\('recurring'\)\)/);
+  assert.match(dailyApi, /projectDailyTournamentDate\(row, targetDateStr\)/);
+  assert.match(dataHelper, /event_date: targetDate, is_recurring: true/);
+  assert.doesNotMatch(dailyApi, /event_date\.eq\.\$\{cleanExactDate\},day_of_week/);
+  assert.match(dailyApi, /stale_recurring_schedules_suppressed/);
+  assert.match(calendarApi, /isServableDailyTournamentRow\(t\)/);
+  assert.match(calendarApi, /last_scraped,[^'\n]*is_recurring/);
+  assert.match(dataHelper, /DAILY_RECURRING_MAX_AGE_MS/);
+  assert.match(dataHelper, /Unknown or invalid verification timestamps therefore fail closed/);
+  assert.match(freshnessMigration, /pnm_recurring_projection/);
+  assert.match(freshnessMigration, /pnm_parser_artifact_quarantine_20260906/);
+  assert.match(correctionMigration, /parent_tournament_id is null/);
+  assert.match(freshnessMigration, /eventattendancemode/);
+  assert.match(freshnessMigration, /wixui-rich-text__text/);
+  assert.match(freshnessMigration, /em friday @ 7pm hold/);
+  assert.doesNotMatch(freshnessMigration, /delete\s+from\s+public\.venue_daily_tournaments/i);
+  assert.match(correctionMigration, /pnm_projection_classification_corrected_20260906/);
+  assert.match(correctionMigration, /parent_tournament_id is null/);
+  assert.match(correctionMigration, /- 'pnm_recurring_projection'/);
+  assert.match(correctionMigration, /- 'pnm_recurring_freshness_quarantine_20260906'/);
+  assert.doesNotMatch(correctionMigration, /set\s+is_active\s*=\s*true/i);
+  assert.doesNotMatch(correctionMigration, /data_quality\s*=\s*'(?:scraped_verified|scraped_inferred|manual_research)'/i);
+});

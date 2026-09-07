@@ -1774,9 +1774,9 @@ const pageStyles = `
 .hgs-games-list{display:flex;flex-direction:column;gap:10px}
 .hgs-game-card{display:flex;align-items:stretch;gap:14px;padding:14px;background:rgba(0,0,0,.25);border:1px solid rgba(148,163,184,.1);border-radius:10px}
 .hgs-game-date{flex-shrink:0;width:72px;padding:8px;background:linear-gradient(135deg,#0ea5e9,#0369a1);border-radius:8px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.hgs-game-mon{font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
+.hgs-game-mon{font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
 .hgs-game-day{font-size:24px;font-weight:900;line-height:1}
-.hgs-game-dow{font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
+.hgs-game-dow{font-size:12px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
 .hgs-game-body{flex:1;min-width:0}
 .hgs-game-body h3{font-size:16px;font-weight:700;margin:0 0 4px}
 .hgs-game-meta{font-size:13px;color:rgba(255,255,255,.55);display:flex;gap:6px;flex-wrap:wrap}
@@ -1798,7 +1798,7 @@ const pageStyles = `
 .hgs-seat-hint{font-size:13px;color:rgba(255,255,255,.55);margin:0 0 16px !important;line-height:1.5;padding:10px 12px;background:rgba(139,92,246,.08);border-left:3px solid rgba(139,92,246,.5);border-radius:4px}
 .hgs-seat-label{display:block;margin-bottom:14px;font-size:13px;color:rgba(255,255,255,.7);font-weight:600}
 .hgs-seat-label > span{display:block;margin-bottom:6px}
-.hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:11px;color:rgba(255,255,255,.4)}
+.hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:12px;color:rgba(255,255,255,.4)}
 .hgs-seat-textarea{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical;min-height:72px}
 .hgs-seat-request{display:flex;flex-direction:column;gap:12px;padding:4px 0 2px}
 .hgs-seat-request-lead{margin:0;font-size:15px;font-weight:700;color:#fff;line-height:1.4}
@@ -1825,7 +1825,7 @@ const pageStyles = `
 .hgs-post{background:rgba(0,0,0,.2);border:1px solid rgba(148,163,184,.08);border-radius:10px;padding:14px}
 .hgs-post header{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13px;color:rgba(255,255,255,.6)}
 .hgs-post header strong{color:#fff;font-size:14px;font-weight:700}
-.hgs-post-pin{background:rgba(14,165,233,.15);color:#38bdf8;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:auto}
+.hgs-post-pin{background:rgba(14,165,233,.15);color:#38bdf8;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;margin-left:auto}
 .hgs-post p{margin:0 !important;color:rgba(255,255,255,.8) !important}
 .hgs-post footer{margin-top:8px;font-size:12px;color:rgba(255,255,255,.4);display:flex;gap:6px}
 .hgs-kv{margin:0;padding:0}
