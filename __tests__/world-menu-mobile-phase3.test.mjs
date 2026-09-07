@@ -13,6 +13,7 @@ const reportBug = read('src/components/ui/ReportBugWidget.jsx');
 const hubPageShell = read('src/components/ui/HubPageShell.jsx');
 const universalHeader = read('src/components/ui/UniversalHeader.js');
 const commandDock = read('src/components/ui/WorldCommandDock.jsx');
+const triviaLobby = read('pages/hub/trivia/index.js');
 const documentSource = read('pages/_document.js');
 const hamburgerRegistry = read('src/config/hamburgerMenus.js');
 const footerRegistry = JSON.parse(read('src/config/world-footer-navigation.json'));
@@ -164,6 +165,13 @@ test('fallback-to-approved ownership handoff preserves an in-flight menu tap', (
   assert.match(commandDock, /window\.setInterval\(transferIfApprovedOwnerExists, 50\)/);
   assert.match(commandDock, /trigger\.getAttribute\('aria-expanded'\) === 'true' \|\| isTriggerUsable\(trigger\)/);
   assert.match(commandDock, /data-menu-symbol="hamburger"/);
+});
+
+test('Trivia keeps its approved header expansion state controlled by the page-owned drawer', () => {
+  assert.match(
+    triviaLobby,
+    /<UniversalHeader[\s\S]*?commandMenuOpen=\{menuOpen\}[\s\S]*?onCommandMenuOpenChange=\{setMenuOpen\}[\s\S]*?onMenuClick=\{\(\) => setMenuOpen\(true\)\}/,
+  );
 });
 
 test('font hydration visibility failsafe covers the nested World page wrapper', () => {
