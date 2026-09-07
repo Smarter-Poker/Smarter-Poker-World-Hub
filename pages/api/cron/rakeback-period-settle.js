@@ -160,18 +160,55 @@ async function handler(req, res) {
     let totalPayout = 0;
     const failures = [];
 
+    // settle_club_rakeback became BOUNDED on 2026-09-07: at most 40 periods and
+    // ~4 seconds per call. It had to be - the unbounded version could not finish
+    // a 1,769-period backlog inside the 8s statement_timeout service_role
+    // carries, so it was cancelled every Monday and had settled nothing since
+    // 2026-08-20 while 443,513.92 sat owed to 1,005 players.
+    //
+    // A bound puts an obligation on the caller: DRAIN IN A LOOP. One call per
+    // club, once a week, is 40 periods per club per week - and this job runs on
+    // a weekly cron, so under-draining here is a seven-day wait, not a minute.
+    // maxDuration is 300s and each RPC is its own statement well inside the 8s
+    // ceiling, so the loop is bounded by a wall-clock deadline instead.
+    const DEADLINE_MS = 240 * 1000; // leave headroom inside maxDuration 300
+    const MAX_PASSES_PER_CLUB = 60; // 60 x 40 = 2,400 periods per club per tick
+    const deferredReasons = {};
+    let deferredTotal = 0;
+    let ranOutOfTime = false;
+
     for (const clubId of clubs.slice(0, MAX_CLUBS)) {
-      const { data, error } = await admin.rpc('settle_club_rakeback', { p_club_id: clubId });
-      if (error) {
-        failures.push({ club_id: clubId, error: error.message });
-        continue;
-      }
-      if (data?.success) {
-        periodsSettled += Number(data.periods_settled || 0);
+      for (let pass = 0; pass < MAX_PASSES_PER_CLUB; pass++) {
+        if (Date.now() - started > DEADLINE_MS) {
+          ranOutOfTime = true;
+          break;
+        }
+
+        const { data, error } = await admin.rpc('settle_club_rakeback', { p_club_id: clubId });
+        if (error) {
+          failures.push({ club_id: clubId, error: error.message });
+          break;
+        }
+        if (!data?.success) {
+          failures.push({ club_id: clubId, error: data?.error || 'refused' });
+          break;
+        }
+
+        const settledThisPass = Number(data.periods_settled || 0);
+        periodsSettled += settledThisPass;
         totalPayout += Number(data.total_payout || 0);
-      } else {
-        failures.push({ club_id: clubId, error: data?.error || 'refused' });
+        deferredTotal += Number(data.deferred || 0);
+        for (const [reason, n] of Object.entries(data.deferred_reasons || {})) {
+          deferredReasons[reason] = (deferredReasons[reason] || 0) + Number(n || 0);
+        }
+
+        // Drained, or this pass could move nothing. The batch orders
+        // least-refused first, so a pass that settles zero has already looked
+        // past everything it was going to skip.
+        if (Number(data.periods_remaining || 0) === 0) break;
+        if (settledThisPass === 0) break;
       }
+      if (ranOutOfTime) break;
     }
 
     // ── 3. What is left ──────────────────────────────────────────────────
@@ -183,15 +220,32 @@ async function handler(req, res) {
 
     // A club that refuses settlement is money still owed to real players, so
     // it is an operator-visible failure, not a line in a log nobody reads.
-    const status = failures.length > 0 ? 500 : 200;
+    //
+    // AND SO IS A BACKLOG THIS TICK DID NOT FINISH. Before 2026-09-07 this
+    // returned status:'ok' with periods_remaining in the thousands, because the
+    // only thing it looked at was `failures`. A job that leaves money owed and
+    // reports success is the exact failure this whole endpoint exists to end:
+    // the next tick is a WEEK away. Anything still owed that is not merely
+    // waiting for a club to be funded is now a 500.
+    const unfinished = (remaining ?? 0) > 0;
+    const blockedOnFunding =
+      (deferredReasons.insufficient_club_treasury || 0) +
+      (deferredReasons.no_membership_at_earning_club || 0);
+    // Deferrals with a durable cause are reported, not paged on - a club with
+    // an empty treasury is not something another tick fixes.
+    const actionable = unfinished && (remaining ?? 0) > blockedOnFunding;
+    const status = failures.length > 0 || actionable ? 500 : 200;
 
     return res.status(status).json({
-      status: failures.length > 0 ? 'partial' : 'ok',
+      status: failures.length > 0 ? 'partial' : unfinished ? 'incomplete' : 'ok',
       dry_run: false,
       clubs_processed: Math.min(clubs.length, MAX_CLUBS),
       periods_settled: periodsSettled,
       total_payout: Math.round(totalPayout * 100) / 100,
       periods_remaining: remaining ?? null,
+      deferred: deferredTotal,
+      deferred_reasons: deferredReasons,
+      ran_out_of_time: ranOutOfTime,
       failures,
       duration_ms: Date.now() - started,
     });
