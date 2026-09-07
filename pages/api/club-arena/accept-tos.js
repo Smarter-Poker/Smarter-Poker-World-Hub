@@ -9,7 +9,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Body: {} (no params needed)
  * Auth: Bearer token
  */
-const { createClient } = require('../../../src/lib/supabaseServerClient');
+import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');

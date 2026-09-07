@@ -71,7 +71,7 @@ try {
         const entry = controller.lobby?.tables?.get(id);
         const clubId = entry?.config?.clubId;
         if (clubId) {
-          const { createClient } = require('../../../../src/lib/supabaseServerClient');
+          const { createClient } = await import('../../../../src/lib/supabaseServerClient');
           const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
           const { data: member } = await sb
             .from('club_members')
