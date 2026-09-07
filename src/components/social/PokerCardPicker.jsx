@@ -222,7 +222,7 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
           </div>
           <div
             aria-label="Quick rank card selector"
-            style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '2px 5px 8px', WebkitOverflowScrolling: 'touch' }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(44px, 1fr))', gap: 6, padding: '2px 5px 8px' }}
           >
             {QUICK_RANKS.map(({ rank, key }) => {
               const active = quickRank === rank;
@@ -241,8 +241,8 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
                   onContextMenu={(event) => event.preventDefault()}
                   onClick={() => openQuickRankFromClick(rank)}
                   style={{
-                    minWidth: 42,
-                    minHeight: 42,
+                    minWidth: 44,
+                    minHeight: 44,
                     padding: 0,
                     borderRadius: 10,
                     border: active ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.18)',

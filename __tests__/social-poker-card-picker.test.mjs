@@ -128,5 +128,6 @@ test('picker forbids duplicates and respects hand and board limits', () => {
   assert.match(source, /1 Means 10/);
   assert.match(source, /aria-controls="quick-rank-suits"/);
   assert.match(source, /if \(choose\(card\)\) setQuickRank\(null\)/);
+  assert.match(source, /repeat\(auto-fit, minmax\(44px, 1fr\)\)/);
   assert.doesNotMatch(source, /<span[\s\S]{0,160}role="button"/);
 });
