@@ -31,6 +31,7 @@ import {
     classifyStripeCheckoutSessionForVip,
     classifyStripeSubscriptionForVip,
 } from '../../../src/lib/store/vipPurchaseGuards.mjs';
+const { inspectStripeRuntime } = require('../../../src/lib/store/stripeRuntimeMode');
 
 let _supabase = null;
 function getSupabase() {
@@ -359,7 +360,10 @@ export default async function handler(req, res) {
               });
           }
           if (eligibilityProfile.stripe_customer_id) {
-              if (!stripe) {
+              const stripeRuntime = inspectStripeRuntime(process.env, {
+                  requirePublishable: false,
+              });
+              if (!stripe || !stripeRuntime.ready) {
                   _submissions.delete(referenceId);
                   referenceId = null;
                   return res.status(503).json({
