@@ -593,6 +593,20 @@ test('chart policies reject corrupt identity, actions, cells, and frequencies in
       ),
     /invalid_chart_policy_identity/
   );
+  assert.throws(
+    () =>
+      service.answerFromChart({ ...CHART_FIXTURE_ROW, chart_id: 42 }, {}, { mode: 'aggregate' }),
+    /invalid_chart_policy_row/
+  );
+  assert.throws(
+    () =>
+      service.answerFromChart(
+        { ...CHART_FIXTURE_ROW, created_at: 'not-an-instant' },
+        {},
+        { mode: 'aggregate' }
+      ),
+    /invalid_chart_policy_row/
+  );
 });
 
 test('chart, curated, heuristic, aggregated, and unavailable answers are explicit', () => {
@@ -603,7 +617,7 @@ test('chart, curated, heuristic, aggregated, and unavailable answers are explici
     stack_depth: 10,
     hero_position: 'BTN',
     villain_action: 'fold_to_hero',
-    created_at: '2026-09-06',
+    created_at: '2026-09-06T00:00:00.000Z',
     hand_matrix: { AKs: { push: 0.8, fold: 0.2 } },
   };
   assert.equal(service.answerFromChart(chart, { holding: ['As', 'Ks'] }).kind, POLICY_KIND.CHART);
