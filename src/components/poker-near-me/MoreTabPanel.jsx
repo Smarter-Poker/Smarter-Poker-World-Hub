@@ -181,7 +181,14 @@ export default function MoreTabPanel({
                             <button type="button" onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', minHeight: 44 }}>Dismiss</button>
                         </div>
                     )}
-                    <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={authToken} requireOnline={requireOnline} />
+                    <TournamentAlerts
+                        dailyTournaments={dailyTournaments}
+                        venues={effectiveVenues}
+                        userId={userId}
+                        authToken={authToken}
+                        userLocation={userLocation}
+                        requireOnline={requireOnline}
+                    />
                 </LazyPanel>
             </div>
 

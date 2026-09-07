@@ -14,6 +14,32 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { decodeScrapedTournamentText } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import {
+  SERVABLE_TOUR_EVENT_QUALITIES,
+  SERVABLE_TOUR_DETAIL_QUALITIES,
+  dedupeTourDetailRows,
+  isServableTourDetailRow,
+  isServableTourStopEventRow,
+  mergeTourScheduleEvents,
+} from '../../../src/lib/poker-near-me/tourScheduleData.mjs';
+
+const decodeTourEventPayload = (event) => {
+  if (!event || typeof event !== 'object') return null;
+  const eventName = decodeScrapedTournamentText(event.event_name);
+  const stopName = decodeScrapedTournamentText(event.stop_name);
+  const stopVenue = decodeScrapedTournamentText(event.stop_venue);
+  if (!eventName
+    || (event.stop_name && !stopName)
+    || (event.stop_venue && !stopVenue)) return null;
+  return {
+    ...event,
+    event_name: eventName,
+    stop_name: stopName,
+    stop_venue: stopVenue || null,
+    notes: decodeScrapedTournamentText(event.notes) || null,
+  };
+};
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -148,8 +174,8 @@ const classifyStops = (events, today) => {
 const standardizeEvent = (row) => ({
   id: row.id,
   tour_code: row.tour_code,
-  stop_name: row.stop_name,
-  stop_venue: row.stop_venue || null,
+  stop_name: decodeScrapedTournamentText(row.stop_name),
+  stop_venue: decodeScrapedTournamentText(row.stop_venue) || null,
   stop_city: row.stop_city || null,
   stop_state: row.stop_state || null,
   stop_start_date: row.stop_start_date || null,
@@ -157,7 +183,7 @@ const standardizeEvent = (row) => ({
 
   // Event identity
   event_number: row.event_number || null,
-  event_name: row.event_name,
+  event_name: decodeScrapedTournamentText(row.event_name),
   game_type: normalizeGameType(row.game_type),
   game_type_raw: row.game_type || null,
 
@@ -231,6 +257,8 @@ export default async function handler(req, res) {
       .from('tour_stop_events')
       .select('*')
       .eq('tour_code', tour_code.toUpperCase())
+      .in('data_quality', SERVABLE_TOUR_EVENT_QUALITIES)
+      .or('start_date.not.is.null,stop_start_date.not.is.null')
       .order('start_date', { ascending: true })
       .order('event_number', { ascending: true })
       .limit(limit);
@@ -246,25 +274,47 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Also query tour_event_details (PDF-extracted data) for this tour
+    // PDF-extracted details are explicit opt-in. The base endpoint must never
+    // leak historical schedule-summary placeholders from this secondary table.
     let pdfEvents = [];
-    try {
+    if (pdf_detail === 'true') {
       let pdfQuery = supabase
         .from('tour_event_details')
         .select('*')
         .eq('tour_code', tour_code.toUpperCase())
+        .eq('data_quality', SERVABLE_TOUR_DETAIL_QUALITIES[0])
         .order('start_date', { ascending: true })
         .order('event_number', { ascending: true })
-        .limit(1000);
+        .limit(limit);
 
       if (stopNameFilter) {
         pdfQuery = pdfQuery.ilike('series_name', `%${stopNameFilter.substring(0, 30)}%`);
       }
 
-      const { data: pdfRaw } = await pdfQuery;
-      pdfEvents = (pdfRaw || []).map(row => ({
+      const { data: pdfRaw, error: pdfError } = await pdfQuery;
+      if (pdfError) {
+        try { reportApiError(pdfError, req); } catch (_sentryErr) {
+          console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+        }
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.status(503).json({
+          success: false,
+          error: 'Tour detail schedule is temporarily unavailable',
+          tour_code: tour_code.toUpperCase(),
+          detail_source: 'tour_event_details',
+        });
+      }
+
+      const validPdfRows = dedupeTourDetailRows(
+        (pdfRaw || []).filter((row) => isServableTourDetailRow(
+          row,
+          tour_code.toUpperCase(),
+        )),
+      );
+      pdfEvents = validPdfRows.map(row => ({
         id: `pdf_${row.id}`,
         tour_code: row.tour_code,
+        series_name: row.series_name,
         stop_name: row.series_name || stop_name || tour_code,
         stop_venue: null,
         stop_city: null,
@@ -302,93 +352,36 @@ export default async function handler(req, res) {
         is_seniors_event: row.event_type === 'seniors',
         event_type: row.event_type || null,
         source_url: row.pdf_source_url || null,
-        scrape_timestamp: row.scraped_at || null,
-        data_quality: 'pdf_extracted',
+        scrape_timestamp: row.scrape_timestamp || row.scraped_at || null,
+        data_quality: row.data_quality,
         pdf_source_url: row.pdf_source_url || null,
       }));
-    } catch (_pdfErr) { console.warn('[App] Handled exception:', _pdfErr?.message || _pdfErr); }
+    }
 
     const today = getTodayEastern();
 
     // Standardize DB events
-    const dbEvents = (rawEvents || []).map(standardizeEvent);
+    const dbEvents = (rawEvents || [])
+      .filter((row) => isServableTourStopEventRow(row, tour_code.toUpperCase()))
+      .map(standardizeEvent);
 
-    // Merge strategy:
-    // If DB has structured stop data (tour_stop_events), use it as primary
-    // Merge in PDF events that aren't already covered
+    // Merge only exact series/event/date/name identities. The shared helper
+    // keeps primary provenance intact and adds every appended detail key to its
+    // seen set, eliminating repeated physical PDF rows.
     let events;
     if (dbEvents.length > 0) {
-      // Enrich DB events with PDF timing/chip data.
-      //
-      // This map used to be keyed on `event_number` ALONE while rawEvents covers
-      // every stop of the tour (the query filters on tour_code only unless
-      // stop_name is supplied). Circuit tours restart event numbering at each
-      // stop, so "Event #1" in Cherokee was being enriched with the start time,
-      // chips, blind levels and guarantee scraped from a different stop's PDF —
-      // and then relabelled data_quality:'enriched' to advertise it.
-      //
-      // Key on normalised stop name + event number, with date + event number as
-      // a secondary key (the PDF table stores the stop under `series_name`, so
-      // the two spellings do not always agree).
-      const normStop = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-      const stopKeyOf = (ev) => `${normStop(ev.stop_name)}#${ev.event_number}`;
-      const dateKeyOf = (ev) => {
-        const d = String(ev.start_date || ev.stop_start_date || '').slice(0, 10);
-        return d ? `${d}#${ev.event_number}` : null;
-      };
-
-      const pdfByStop = new Map();
-      const pdfByDate = new Map();
-      for (const pe of pdfEvents) {
-        if (!pe.event_number) continue;
-        const sk = stopKeyOf(pe);
-        if (!pdfByStop.has(sk)) pdfByStop.set(sk, pe);
-        const dk = dateKeyOf(pe);
-        if (dk && !pdfByDate.has(dk)) pdfByDate.set(dk, pe);
-      }
-
-      events = dbEvents.map(ev => {
-        if (!ev.event_number) return ev;
-        const dk = dateKeyOf(ev);
-        const pdfMatch = pdfByStop.get(stopKeyOf(ev)) || (dk ? pdfByDate.get(dk) : null);
-        if (!pdfMatch) return ev;
-        return {
-          ...ev,
-          start_time: ev.start_time || pdfMatch.start_time,
-          reg_open_time: pdfMatch.reg_open_time,
-          starting_chips: ev.starting_chips || pdfMatch.starting_chips,
-          starting_chips_display: ev.starting_chips_display !== 'TBD' ? ev.starting_chips_display : pdfMatch.starting_chips_display,
-          blind_levels_min: ev.blind_levels_min || pdfMatch.blind_levels_min,
-          guarantee: ev.guarantee || pdfMatch.guarantee,
-          guarantee_display: ev.guarantee ? ev.guarantee_display : pdfMatch.guarantee_display,
-          data_quality: 'enriched',
-        };
-      });
-      // Append any PDF events not in DB. Same composite key: a bare
-      // event_number set discarded genuine PDF events simply because some other
-      // stop of the same tour already used that number.
-      const dbStopKeys = new Set();
-      const dbDateKeys = new Set();
-      for (const e of dbEvents) {
-        if (!e.event_number) continue;
-        dbStopKeys.add(stopKeyOf(e));
-        const dk = dateKeyOf(e);
-        if (dk) dbDateKeys.add(dk);
-      }
-      for (const pe of pdfEvents) {
-        if (!pe.event_number) continue;
-        const dk = dateKeyOf(pe);
-        if (dbStopKeys.has(stopKeyOf(pe))) continue;
-        if (dk && dbDateKeys.has(dk)) continue;
-        events.push(pe);
-      }
+      events = mergeTourScheduleEvents(dbEvents, pdfEvents);
     } else if (pdfEvents.length > 0) {
-      // No DB events — use PDF data directly
-      events = pdfEvents;
+      events = mergeTourScheduleEvents([], pdfEvents);
     } else {
-      // Still nothing — fall back to registry
-      return returnRegistryFallback(tour_code.toUpperCase(), stop, res, all_stops);
+      // A complete empty database read is authoritative. Registry entries are
+      // source-discovery hints, not dated observations, so they must never be
+      // promoted into a public schedule when provenance filtering returns no
+      // servable rows.
+      events = [];
     }
+
+    events = events.map(decodeTourEventPayload).filter(Boolean);
 
     // Classify stops by date (current/next/future)
     const classified = classifyStops(events, today);
@@ -485,159 +478,14 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.warn('[tour-schedule] Error:', err);
-    // Fallback to registry data if DB fails
-    return returnRegistryFallback(tour_code?.toUpperCase(), stop, res, all_stops);
-  }
-}
-
-// ── Registry Fallback ─────────────────────────────────────────────────────────
-// When DB has no scraped data yet, fall back to the registry JSON
-async function returnRegistryFallback(tour_code, stop, res, all_stops) {
-  try {
-    const registry = require('../../../data/tour-source-registry.json');
-    const tour = registry?.tours?.[tour_code];
-    if (!tour) {
-      return res.status(404).json({ success: false, error: 'Tour not found', tour_code });
+    try { reportApiError(err, req); } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
     }
-
-    // Build standardized events from series_2026 registry data
-    const series = tour.series_2026 || [];
-    const today = getTodayEastern();
-
-    const events = series.map((s, idx) => {
-      const buyin = s.buyin || null;
-      return {
-        id: `registry_${tour_code}_${idx}`,
-        tour_code,
-        stop_name: (tour.stops_2026?.[0]?.name) || `${tour_code} 2026`,
-        stop_venue: tour.stops_2026?.[0]?.venue || null,
-        stop_city: tour.stops_2026?.[0]?.location?.split(',')[0]?.trim() || null,
-        stop_state: tour.stops_2026?.[0]?.location?.split(',')[1]?.trim() || null,
-        stop_start_date: null,
-        stop_end_date: null,
-        event_number: idx + 1,
-        event_name: s.name,
-        game_type: normalizeGameType(s.game),
-        game_type_raw: s.game,
-        buy_in: buyin,
-        buy_in_display: formatMoney(buyin),
-        buy_in_tier: BUY_IN_TIER(buyin),
-        entry_fee: null,
-        total_cost: buyin,
-        guarantee: null,
-        guarantee_display: 'TBD',
-        starting_chips: null,
-        starting_chips_display: 'TBD',
-        blind_levels_min: null,
-        late_reg_levels: null,
-        start_date: null,
-        start_time: null,
-        start_display: s.dates || 'TBD',
-        is_main_event: s.name?.toLowerCase().includes('main event'),
-        is_multi_day: false,
-        re_entry: false,
-        is_high_roller: (buyin || 0) >= 25000,
-        is_ladies_event: false,
-        is_seniors_event: false,
-        day_1_flights: null,
-        notes: null,
-        source_url: tour.source_urls?.primary || tour.official_website,
-        scrape_timestamp: null,
-        data_quality: 'pending',
-      };
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(503).json({
+      success: false,
+      error: 'Tour schedule is temporarily unavailable',
+      tour_code: tour_code?.toUpperCase(),
     });
-
-    // Emit the SAME envelope the database path produces.
-    //
-    // This branch used to return a bare `{ events }` regardless of `stop` or
-    // `all_stops`, so RichTourCard (which requests all_stops=true and reads
-    // `stops`) rendered an empty stop list and no next-stop banner for every
-    // tour with no rows in tour_stop_events / tour_event_details — i.e. exactly
-    // the tours this fallback exists to serve. `today` was already being
-    // computed above and thrown away, which is the tell that the classification
-    // step was dropped.
-    const classified = classifyStops(events, today);
-    const stopEnvelope = (s) => ({
-      name: s.stop_name,
-      venue: s.stop_venue,
-      city: s.stop_city,
-      state: s.stop_state,
-      start_date: s.stop_start_date,
-      end_date: s.stop_end_date,
-    });
-
-    if (all_stops === 'true') {
-      const allStops = [
-        ...(classified.current ? [{ ...classified.current, stop_type: 'current' }] : []),
-        ...(classified.next ? [{ ...classified.next, stop_type: 'next' }] : []),
-        ...classified.future.map(s => ({ ...s, stop_type: 'future' })),
-        ...classified.past.map(s => ({ ...s, stop_type: 'past' })),
-      ];
-      return res.status(200).json({
-        success: true,
-        tour_code,
-        data_source: 'registry_fallback',
-        message: 'Live schedule not yet scraped - showing registry data',
-        current_stop: classified.current?.stop_name || null,
-        next_stop: classified.next?.stop_name || null,
-        total_stops: allStops.length,
-        total_events: events.length,
-        stops: allStops,
-        events,
-      });
-    }
-
-    if (stop === 'current' || stop === 'next') {
-      // Registry stops carry no dates (the registry only has a free-text
-      // `dates` string), so classifyStops can produce neither a current nor a
-      // next stop for them. Falling back to the first undated/future stop keeps
-      // this branch returning the registry events it has always returned — the
-      // alternative is answering `?stop=current` with an empty list on exactly
-      // the tours this fallback exists to serve.
-      const stopData = stop === 'current'
-        ? (classified.current || classified.next || classified.future[0])
-        : (classified.next || classified.future[0]);
-      if (!stopData) {
-        return res.status(200).json({
-          success: true,
-          tour_code,
-          data_source: 'registry_fallback',
-          stop_type: 'none',
-          message: 'No current or upcoming stops found',
-          events: [],
-          total_events: 0,
-        });
-      }
-      return res.status(200).json({
-        success: true,
-        tour_code,
-        data_source: 'registry_fallback',
-        message: 'Live schedule not yet scraped - showing registry data',
-        stop_type: stop === 'current' && classified.current === stopData
-          ? 'current'
-          : (classified.next === stopData ? 'next' : 'future'),
-        stop: stopEnvelope(stopData),
-        next_stop: classified.next ? {
-          name: classified.next.stop_name,
-          start_date: classified.next.stop_start_date,
-        } : null,
-        events: stopData.events,
-        total_events: stopData.events.length,
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      tour_code,
-      data_source: 'registry_fallback',
-      message: 'Live schedule not yet scraped - showing registry data',
-      current_stop: classified.current?.stop_name || null,
-      next_stop: classified.next?.stop_name || null,
-      total_events: events.length,
-      events,
-    });
-  } catch (err) {
-      try { reportApiError(err, {}); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    return res.status(500).json({ success: false, error: err.message, tour_code });
   }
 }

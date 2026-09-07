@@ -319,7 +319,6 @@ export default function DailyTournaments() {
     );
 
     // [DT3 FIX] today memoized — was computed + mutated on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
     const calDays = useCallback(() => {
         const { year, month } = calendarMonth;
@@ -666,7 +665,7 @@ export default function DailyTournaments() {
                     .gps-badge.gps-denied {
                         background: rgba(255,255,255,0.05);
                         border-color: rgba(255,255,255,0.1);
-                        color: rgba(255,255,255,0.4);
+                        color: #aeb9c8;
                     }
 
                     /* Filter Bar */
@@ -798,7 +797,7 @@ export default function DailyTournaments() {
                         outline: none;
                         transition: border-color 0.2s;
                     }
-                    .dt-search-input::placeholder { color: rgba(255,255,255,0.35); }
+                    .dt-search-input::placeholder { color: #9aa8b5; }
                     .dt-search-input:focus {
                         border-color: rgba(0,212,255,0.5);
                         box-shadow: 0 0 0 2px rgba(0,212,255,0.1);
@@ -836,7 +835,7 @@ export default function DailyTournaments() {
                         gap: 7px;
                         margin-top: 4px;
                         color: rgba(205, 224, 236, 0.7);
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.055em;
                         text-transform: uppercase;
@@ -858,7 +857,7 @@ export default function DailyTournaments() {
                         box-shadow: 0 0 10px rgba(244, 185, 66, 0.62);
                     }
                     .dt-source-state time {
-                        color: rgba(148, 163, 184, 0.56);
+                        color: #aeb9c8;
                         font-weight: 600;
                         text-transform: none;
                     }
@@ -936,6 +935,33 @@ export default function DailyTournaments() {
                         background: rgba(0,212,255,0.2);
                         border-color: rgba(0,212,255,0.6);
                         box-shadow: 0 0 12px rgba(0,212,255,0.2);
+                    }
+                    @media (max-width: 768px) {
+                        .day-selector {
+                            padding: 0 10px 14px;
+                            overflow-x: visible;
+                        }
+                        .day-tabs-row {
+                            flex-direction: column;
+                            align-items: stretch;
+                        }
+                        .day-tabs {
+                            display: grid;
+                            grid-template-columns: repeat(4, minmax(0, 1fr));
+                            width: 100%;
+                            min-width: 0;
+                            overflow-x: visible;
+                        }
+                        .day-tab {
+                            min-width: 0;
+                            min-height: 44px;
+                            padding: 9px 6px;
+                        }
+                        .calendar-btn {
+                            width: 100%;
+                            min-height: 44px;
+                            justify-content: center;
+                        }
                     }
                     .selected-date-banner {
                         margin-top: 10px;
@@ -1037,9 +1063,9 @@ export default function DailyTournaments() {
                     }
                     .cal-wd {
                         text-align: center;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 600;
-                        color: rgba(255,255,255,0.4);
+                        color: #aeb9c8;
                         padding: 4px 0;
                         text-transform: uppercase;
                     }
@@ -1147,7 +1173,7 @@ export default function DailyTournaments() {
                         background: rgba(59,130,246,0.2);
                         border: 1px solid rgba(59,130,246,0.4);
                         border-radius: 4px;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
                         color: #3b82f6;
                     }
@@ -1360,7 +1386,7 @@ function TournamentCard({ tournament }) {
                     margin-bottom: 12px;
                 }
                 .tag {
-                    font-size: 11px;
+                    font-size: 12px;
                     padding: 4px 8px;
                     background: rgba(255, 255, 255, 0.08);
                     border-radius: 4px;

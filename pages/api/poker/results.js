@@ -3,6 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { fromPokerSeriesRouteId } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -67,10 +68,13 @@ async function handleGet(req, res) {
             return res.status(400).json({ success: false, error: 'series_id must be a valid positive integer' });
         }
 
+        // poker_series detail routes use a collision-free public namespace,
+        // while tournament_results stores the original source-table id.
+        const databaseSeriesId = fromPokerSeriesRouteId(seriesIdNum) || seriesIdNum;
         const { data, error } = await getSupabase()
             .from('tournament_results')
             .select('*')
-            .eq('series_id', seriesIdNum)
+            .eq('series_id', databaseSeriesId)
             .order('event_date', { ascending: true })
                 .limit(100);
 
@@ -237,7 +241,7 @@ async function handlePost(req, res) {
     }
 
     const row = {
-        series_id: seriesIdNum,
+        series_id: fromPokerSeriesRouteId(seriesIdNum) || seriesIdNum,
         tour_code: tour_code || null,
         event_name,
         event_number: event_number != null ? parseInt(event_number, 10) : null,

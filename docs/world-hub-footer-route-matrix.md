@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 203.**
+**Total applicable physical routes: 204.**
 
 ## Coverage summary
 
@@ -15,13 +15,13 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | Poker Trivia | 17 | `footer-poker-trivia-v2.png` | PASS | PASS |
 | Social Media | 18 | `footer-social-media-v2.png` | PASS | PASS |
 | Diamond Arena | 6 | `footer-diamond-arena-v2.png` | PASS | PASS |
-| My Clubs | 10 | `footer-my-clubs-v2.png` | PASS | PASS |
+| My Clubs | 2 | `footer-my-clubs-v2.png` | PASS | PASS |
 | Video Library | 1 | `footer-video-library-v2.png` | PASS | PASS |
 | Odds Calculator | 1 | `footer-odds-calculator-v2.png` | PASS | PASS |
 | Bankroll Manager | 3 | `footer-bankroll-manager-v2.png` | PASS | PASS |
 | Toke Tracker | 5 | `footer-toke-tracker-v2.png` | PASS | PASS |
 | Preflop Charts | 10 | `footer-preflop-charts-v2.png` | PASS | PASS |
-| Poker Near Me | 12 | `footer-poker-near-me-v2.png` | PASS | PASS |
+| Poker Near Me | 21 | `footer-poker-near-me-v2.png` | PASS | PASS |
 | Marketplace | 16 | `footer-marketplace-v2.png` | PASS | PASS |
 
 ## Complete route inventory
@@ -173,16 +173,8 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/diamond-arena/schedule` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
 | `/hub/diamond-arena/stats` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
 | `/hub/diamond-arena/table-settings` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
-| `/hub/home-games` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/home-games/[slug]` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/home-games/[slug]/dashboard` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/home-games/in` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/home-games/in/[state]` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/home-games/in/[state]/[city]` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/home-games/near-me` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
 | `/hub/my-clubs` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
 | `/hub/my-venues` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
-| `/hub/venues/[id]` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
 | `/hub/video-library` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/poker-tools` | Odds Calculator | App-shell legacy/generic footer | `footer-odds-calculator-v2.png` | PASS | PASS |
 | `/hub/bankroll` | Bankroll Manager | App-shell legacy/generic footer | `footer-bankroll-manager-v2.png` | PASS | PASS |
@@ -203,8 +195,16 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/preflop-charts/leaderboard` | Preflop Charts | App-shell legacy/generic footer | `footer-preflop-charts-v2.png` | PASS | PASS |
 | `/hub/preflop-charts/stats` | Preflop Charts | App-shell legacy/generic footer | `footer-preflop-charts-v2.png` | PASS | PASS |
 | `/hub/preflop-charts/tutorial` | Preflop Charts | App-shell legacy/generic footer | `footer-preflop-charts-v2.png` | PASS | PASS |
+| `/home-game/[code]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/daily-tournaments` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/events-calendar` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games/[slug]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games/[slug]/dashboard` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games/in` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games/in/[state]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games/in/[state]/[city]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/home-games/near-me` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/poker-near-me` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/poker-near-me/[pnmTab]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/poker-near-me/in` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
@@ -215,6 +215,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/poker-tours` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/series/[id]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/tours/[code]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
+| `/hub/venues/[id]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/club-shop` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/club-shop/[itemId]` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/diamond-store` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |

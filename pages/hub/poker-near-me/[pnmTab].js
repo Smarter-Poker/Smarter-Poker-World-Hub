@@ -560,9 +560,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // tooling that need to activate controls immediately after navigation.
   useEffect(() => setIsHydrated(true), []);
 
-  // Map fullscreen modal state
-  const [mapFullscreen, setMapFullscreen] = useState(false);
-
   // ─── Batch fetch review stats for venue cards (star ratings) ───
   const [pnmReviewStatsMap, setPnmReviewStatsMap] = useState({});
   const pnmReviewStatsRef = useRef(pnmReviewStatsMap);
@@ -2206,8 +2203,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const onMapVenueClick = useCallback(
     (venue) => {
       if (!venue || !venue.id) return;
-      // Close fullscreen map if it's open so the card is visible
-      setMapFullscreen(false);
+      // Keep an expanded map open while the player explores ordinary pins.
+      // The underlying card is still selected and staged for when fullscreen
+      // exits; only the popup's explicit profile action closes the map.
       // The venues section is always on the page (mobile phase 3); name it as
       // the current surface so the URL and the anchor row follow the pin.
       setShowLiveTab(false);
@@ -2445,6 +2443,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const requestGpsLocation = () => {
     haptic('light');
     if (!navigator.geolocation) {
+      window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
       setShowLocationModal(true);
       return;
     }
@@ -2469,6 +2468,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       (highAccErr) => {
         if (highAccErr.code === 1) {
           clearTimeout(gpsTimeoutId);
+          window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
           setShowLocationModal(true);
           setGpsLoading(false);
           setGpsLocationLabel(null);
@@ -2482,6 +2482,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           },
           () => {
             clearTimeout(gpsTimeoutId);
+            window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
             setShowLocationModal(true);
             setGpsLoading(false);
             setGpsLocationLabel(null);
@@ -3034,14 +3035,59 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Content above the landing section grows as the first load resolves
-  // (skeletons become cards), which pushes the target down after the first
-  // scroll. Re-align once when the initial load settles.
+  // Content above a deep-linked section keeps growing after the initial data
+  // request settles: dynamic chunks mount, images acquire dimensions and
+  // near-viewport LazyPanels exchange skeletons for their real content. A
+  // one-shot correction still leaves destinations such as /map several
+  // screens away from the viewport. Keep the requested section anchored for a
+  // short, bounded hydration window, but stop immediately when the visitor
+  // expresses scroll/navigation intent so the page never fights them.
   useEffect(() => {
-    if (loading || !landingSectionRef.current) return;
+    if (loading || !landingSectionRef.current || typeof window === 'undefined') return undefined;
     const key = landingSectionRef.current;
-    landingSectionRef.current = null;
-    scrollToSurface(key, { behavior: 'auto' });
+    let cancelled = false;
+    let resizeTimer = null;
+    let observer = null;
+    const timers = [];
+
+    const cleanup = () => {
+      if (cancelled) return;
+      cancelled = true;
+      if (landingSectionRef.current === key) landingSectionRef.current = null;
+      timers.forEach((timer) => window.clearTimeout(timer));
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+      observer?.disconnect();
+      window.removeEventListener('wheel', cleanup, true);
+      window.removeEventListener('touchstart', cleanup, true);
+      window.removeEventListener('pointerdown', cleanup, true);
+      window.removeEventListener('keydown', cleanup, true);
+    };
+
+    const realign = () => {
+      if (!cancelled && landingSectionRef.current === key) {
+        scrollToSurface(key, { behavior: 'auto' });
+      }
+    };
+
+    [0, 140, 360, 760, 1400, 2400, 3800, 5600].forEach((delay) => {
+      timers.push(window.setTimeout(realign, delay));
+    });
+    timers.push(window.setTimeout(cleanup, 6400));
+
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        if (resizeTimer) window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(realign, 72);
+      });
+      observer.observe(document.querySelector('.pnm-page-container') || document.body);
+    }
+
+    window.addEventListener('wheel', cleanup, { capture: true, passive: true });
+    window.addEventListener('touchstart', cleanup, { capture: true, passive: true });
+    window.addEventListener('pointerdown', cleanup, { capture: true, passive: true });
+    window.addEventListener('keydown', cleanup, true);
+
+    return cleanup;
   }, [loading, scrollToSurface]);
 
   // Native pushState keeps the page mounted, so Next.js does not restore our
@@ -3224,8 +3270,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       getSortedVenues={getSortedVenues}
       displayCount={displayCount}
       loadMore={loadMore}
-      mapFullscreen={mapFullscreen}
-      setMapFullscreen={setMapFullscreen}
       mapCenter={mapCenter}
       userLocation={userLocation}
       isFavorited={isFavorited}

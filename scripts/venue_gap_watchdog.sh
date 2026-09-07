@@ -32,6 +32,7 @@ import sys
 
 sys.path.insert(0, "scripts")
 from scraper_data_truth import (
+    NON_PRODUCTION_POKERATLAS_VENUE_SLUGS,
     NON_US_POKERATLAS_REGION_SLUGS,
     NON_US_POKERATLAS_VENUE_SLUGS,
     is_noise_venue_label,
@@ -78,6 +79,7 @@ for v in pa_venues:
     if (
         ROOM_SLUG_RE.fullmatch(slug)
         and not slug.isdigit()
+        and slug not in NON_PRODUCTION_POKERATLAS_VENUE_SLUGS
         and slug not in NON_US_POKERATLAS_VENUE_SLUGS
         and slug not in our_slugs
         and not is_noise_venue_label(v.get("name"))

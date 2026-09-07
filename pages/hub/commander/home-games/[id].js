@@ -15,6 +15,7 @@ import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUti
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 
 // Phase 41/bug-hunt-zero: idempotency-token generator. Used on every
 // state-changing POST in this page so a timeout-then-retry doesn't
@@ -184,6 +185,14 @@ export default function HomeGameDetailPage() {
   const reviewIdemRef = useRef(makeIdemKey());
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
+  const rsvpDialog = useAccessibleDialog({
+    open: Boolean(selectedRsvpEvent),
+    onClose: () => setSelectedRsvpEvent(null),
+  });
+  const shareDialog = useAccessibleDialog({
+    open: showShareModal,
+    onClose: () => setShowShareModal(false),
+  });
 
   // Get current user ID from token on mount
   useEffect(() => {
@@ -571,7 +580,7 @@ export default function HomeGameDetailPage() {
 
   if (loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
+      <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
@@ -579,7 +588,7 @@ export default function HomeGameDetailPage() {
 
   if (!group) {
     return (
-      <div className="cmd-page flex items-center justify-center">
+      <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <div className="text-center">
           <Home className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
           <p className="text-[#64748B]">Group Not Found</p>
@@ -613,14 +622,16 @@ export default function HomeGameDetailPage() {
                 noindex={true}
             />
 
-      <div className="cmd-page">
+      <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => router.push('/hub/commander/home-games')}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Back to Home Games"
               >
                 <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
@@ -632,24 +643,30 @@ export default function HomeGameDetailPage() {
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setShowShareModal(true)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Share home game"
               >
                 <Share2 className="w-5 h-5 text-[#64748B]" />
               </button>
               {isHost && (
                 <button
+                  type="button"
                   onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  aria-label="Manage home game"
                 >
                   <Settings className="w-5 h-5 text-[#64748B]" />
                 </button>
               )}
               {!isHost && isMember && (
                 <button
+                  type="button"
                   onClick={() => handleStartDm(group.owner_id)} // 2026-07-25 audit fix: owner_id, not host_id
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                   title="Message Host"
+                  aria-label="Message host"
                 >
                   <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
                 </button>
@@ -1012,13 +1029,27 @@ export default function HomeGameDetailPage() {
 
       {/* RSVP Modal */}
       {selectedRsvpEvent && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div
+          ref={rsvpDialog.dialogRef}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          data-pnm-home-games="true"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-game-rsvp-title"
+          tabIndex={-1}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedRsvpEvent(null);
+          }}
+        >
           <div className="cmd-panel cmd-corner-lights w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">RSVP To Game</h3>
+              <h3 id="home-game-rsvp-title" className="text-lg font-semibold text-white">RSVP To Game</h3>
               <button
+                ref={rsvpDialog.initialFocusRef}
+                type="button"
                 onClick={() => setSelectedRsvpEvent(null)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Close RSVP dialog"
               >
                 <X className="w-5 h-5 text-[#64748B]" />
               </button>
@@ -1053,19 +1084,34 @@ export default function HomeGameDetailPage() {
 
       {/* Share Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div
+          ref={shareDialog.dialogRef}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          data-pnm-home-games="true"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-game-share-title"
+          aria-describedby="home-game-share-description"
+          tabIndex={-1}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowShareModal(false);
+          }}
+        >
           <div className="cmd-panel cmd-corner-lights w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Share Home Game</h3>
+              <h3 id="home-game-share-title" className="text-lg font-semibold text-white">Share Home Game</h3>
               <button
+                ref={shareDialog.initialFocusRef}
+                type="button"
                 onClick={() => setShowShareModal(false)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Close share dialog"
               >
                 <X className="w-5 h-5 text-[#64748B]" />
               </button>
             </div>
 
-            <p className="text-sm text-[#64748B] mb-4">
+            <p id="home-game-share-description" className="text-sm text-[#64748B] mb-4">
               Share This Club Code With Players Who Want To Request Access
             </p>
 
@@ -1077,8 +1123,10 @@ export default function HomeGameDetailPage() {
                   {group.club_code}
                 </span>
                 <button
+                  type="button"
                   onClick={copyInviteCode}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  aria-label={copied ? 'Club code copied' : 'Copy club code'}
                 >
                   {copied ? (
                     <Check className="w-5 h-5 text-[#10B981]" />
@@ -1096,6 +1144,7 @@ export default function HomeGameDetailPage() {
             )}
 
             <button
+              type="button"
               onClick={() => setShowShareModal(false)}
               className="cmd-btn cmd-btn-secondary w-full h-12"
             >

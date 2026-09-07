@@ -52,7 +52,7 @@ The artwork is visual truth; the existing application routes are functional trut
 
 ## Route coverage and exclusions
 
-The generated [complete route matrix](./world-hub-footer-route-matrix.md) accounts for all 203 applicable physical routes, including nested and parameterized Pages Router entries. Counts are generated from the page tree and registry, and generation fails if the audited total drifts.
+The generated [complete route matrix](./world-hub-footer-route-matrix.md) accounts for all 204 applicable physical routes, including nested and parameterized Pages Router entries. Counts are generated from the page tree and registry, and generation fails if the audited total drifts.
 
 - `/hub` is intentionally footerless.
 - `/hub/club-arena` is intentionally footerless.

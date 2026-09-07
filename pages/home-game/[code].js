@@ -8,6 +8,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import DeepRouteSignalDeck from '../../src/components/poker-near-me/DeepRouteSignalDeck';
 import { supabase } from '../../src/lib/supabase';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import {
@@ -23,7 +26,6 @@ import {
   UserPlus,
   Loader2,
   ThumbsUp,
-  Send,
   Home,
   Repeat,
   Trophy
@@ -56,6 +58,48 @@ const FREQUENCY_LABELS = {
   monthly: 'Monthly',
   irregular: 'Irregular'
 };
+
+const PUBLIC_TABS = [
+  { id: 'upcoming', label: 'Upcoming Games' },
+  { id: 'about', label: 'About' },
+  { id: 'posts', label: 'Discussion' },
+];
+
+async function copyPublicUrl(value) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Permission-denied and non-secure contexts use the DOM fallback below.
+    }
+  }
+
+  const input = document.createElement('textarea');
+  input.value = value;
+  input.setAttribute('readonly', '');
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand('copy');
+  document.body.removeChild(input);
+  if (!copied) throw new Error('Copy is not supported in this browser');
+}
+
+async function sharePublicHomeGame({ title, text, url }) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url });
+      return 'Share sheet opened';
+    } catch (error) {
+      if (error?.name === 'AbortError') return '';
+      // Fall through to a clipboard copy if native sharing is unavailable.
+    }
+  }
+  await copyPublicUrl(url);
+  return 'Public link copied';
+}
 
 function UpcomingGameCard({ game }) {
   const gameDate = new Date(game.scheduled_date);
@@ -174,7 +218,7 @@ function UpcomingGameCard({ game }) {
   );
 }
 
-function PostCard({ post }) {
+function PostCard({ post, discussionHref, onShare }) {
   const [showComments, setShowComments] = useState(false);
 
   return (
@@ -231,18 +275,31 @@ function PostCard({ post }) {
 
       {/* Action Buttons */}
       <div className="px-4 py-2 border-t border-[#E5E7EB] flex items-center gap-2">
-        <button className="flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors">
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          title="Likes are read-only on this public page"
+          className="home-game-code-page__readonly-action flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] rounded-lg"
+        >
           <ThumbsUp className="w-5 h-5" />
-          <span className="font-medium">Like</span>
+          <span className="font-medium">Likes Read-Only</span>
         </button>
         <button
+          type="button"
           onClick={() => setShowComments(!showComments)}
+          aria-expanded={showComments}
+          aria-controls={`home-game-post-discussion-${post.id}`}
           className="flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors"
         >
           <MessageCircle className="w-5 h-5" />
           <span className="font-medium">Comment</span>
         </button>
-        <button className="flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors">
+        <button
+          type="button"
+          onClick={onShare}
+          className="flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors"
+        >
           <Share2 className="w-5 h-5" />
           <span className="font-medium">Share</span>
         </button>
@@ -250,17 +307,20 @@ function PostCard({ post }) {
 
       {/* Comments Section */}
       {showComments && (
-        <div className="px-4 py-3 border-t border-[#E5E7EB] bg-[#F9FAFB]">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Write A Comment..."
-              className="flex-1 h-10 px-4 bg-white border border-[#E5E7EB] rounded-full focus:outline-none focus:ring-2 focus:ring-[#10B981] text-sm"
-            />
-            <button className="p-2 text-[#10B981] hover:bg-[#10B981]/10 rounded-full">
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
+        <div
+          id={`home-game-post-discussion-${post.id}`}
+          className="px-4 py-3 border-t border-[#E5E7EB] bg-[#F9FAFB]"
+        >
+          <p className="home-game-code-page__discussion-note">
+            Comments Are Managed Inside The Protected Club Commander Group, Not On This Public Profile.
+          </p>
+          {discussionHref ? (
+            <Link className="home-game-code-page__discussion-link" href={discussionHref}>
+              Open Group Discussion
+            </Link>
+          ) : (
+            <span className="home-game-code-page__discussion-readonly">Join The Group To Participate.</span>
+          )}
         </div>
       )}
     </div>
@@ -279,6 +339,7 @@ export default function HomeGamePage() {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [user, setUser] = useState(null);
   const [isMember, setIsMember] = useState(false);
+  const [shareStatus, setShareStatus] = useState('');
 
   useEffect(() => {
     const authUser = getAuthUser();
@@ -313,47 +374,81 @@ export default function HomeGamePage() {
         setIsMember(ownerException || ['approved', 'active'].includes(memberRow?.status));
       } catch (e) {
         console.warn('[home-game] membership lookup failed:', e?.message || e);
+        if (!cancelled) setIsMember(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [group?.id, user?.id]);
+  }, [group?.host_id, group?.id, user?.id]);
 
   useEffect(() => {
+    if (!router.isReady || !code) return;
+    const controller = new AbortController();
+    let cancelled = false;
 
-  if (!router.isReady) return null;
-
-    if (!code) return;
-
-    async function fetchGroupData(signal) {
+    async function fetchGroupData() {
       setLoading(true);
+      setGroup(null);
+      setPosts([]);
       try {
-        const res = await fetch(`/api/public/home-game/${code}`);
+        const res = await fetch(`/api/public/home-game/${encodeURIComponent(code)}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
-        if (data.success) {
-          setGroup(data.data.group);
-          setUpcomingGames(data.data.upcoming_games || []);
-          setStats(data.data.stats);
-        }
-
-        // Fetch posts if not private or if member
-        if (data.data?.group && !data.data.group.is_private) {
-          const postsRes = await fetch(`/api/public/home-game/${code}/posts?limit=10`);
-          if (!postsRes.ok) throw new Error(`Request failed (${postsRes.status})`);
-          const postsData = await postsRes.json();
-          if (postsData.success) {
-            setPosts(postsData.data?.posts || []);
-          }
-        }
+        if (!data.success || !data.data?.group) throw new Error(data.error || 'Home game not found');
+        if (cancelled) return;
+        setGroup(data.data.group);
+        setUpcomingGames(data.data.upcoming_games || []);
+        setStats(data.data.stats);
       } catch (error) {
+        if (error?.name === 'AbortError') return;
         console.warn('Fetch group data failed:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchGroupData();
-  }, [code]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [code, router.isReady]);
+
+  // This endpoint is intentionally public-only: private discussions live in
+  // Club Commander even for verified members. Do not send a private-group
+  // request to an endpoint whose contract correctly returns 404 for it.
+  useEffect(() => {
+    if (!code || !group?.id || group.is_private) {
+      setPosts([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        const postsRes = await fetch(
+          `/api/public/home-game/${encodeURIComponent(code)}/posts?limit=10`,
+          {
+            signal: controller.signal,
+          }
+        );
+        if (!postsRes.ok) throw new Error(`Request failed (${postsRes.status})`);
+        const postsData = await postsRes.json();
+        if (!cancelled) setPosts(postsData.success ? (postsData.data?.posts || []) : []);
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.warn('[home-game] posts lookup failed:', error?.message || error);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [code, group?.id, group?.is_private]);
 
   function handleJoinRequest() {
     if (!user) {
@@ -363,23 +458,73 @@ export default function HomeGamePage() {
     router.push(`/hub/commander/home-games/join?code=${code}`);
   }
 
+  function getPublicUrl() {
+    const publicCode = group?.club_code || code;
+    return `https://smarter.poker/home-game/${encodeURIComponent(publicCode)}`;
+  }
+
+  async function handleShare() {
+    try {
+      const result = await sharePublicHomeGame({
+        title: `${group?.name || 'Home Game'} | Smarter.Poker`,
+        text: group?.tagline || group?.description || 'View this poker home game on Smarter.Poker.',
+        url: getPublicUrl(),
+      });
+      if (result) setShareStatus(result);
+    } catch (error) {
+      console.warn('[home-game] share failed:', error?.message || error);
+      setShareStatus('Unable to share this link on this device');
+    }
+  }
+
+  async function handleCopy() {
+    try {
+      await copyPublicUrl(getPublicUrl());
+      setShareStatus('Public link copied');
+    } catch (error) {
+      console.warn('[home-game] copy failed:', error?.message || error);
+      setShareStatus('Unable to copy this link on this device');
+    }
+  }
+
+  function handleTabKeyDown(event, index) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    let nextIndex = index;
+    if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = PUBLIC_TABS.length - 1;
+    else if (event.key === 'ArrowRight') nextIndex = (index + 1) % PUBLIC_TABS.length;
+    else nextIndex = (index - 1 + PUBLIC_TABS.length) % PUBLIC_TABS.length;
+    setActiveTab(PUBLIC_TABS[nextIndex].id);
+    event.currentTarget.parentElement?.querySelectorAll('[role="tab"]')?.[nextIndex]?.focus();
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#10B981]" />
+      <div className="home-game-code-page" data-pnm-realism="machined-v2">
+        <UniversalHeader pageDepth={2} />
+        <PokerNearMeFamilyNav />
+        <main className="home-game-code-page__state" data-pnm-secondary-foundation="interaction-v1">
+          <Loader2 className="w-8 h-8 animate-spin text-[#10B981]" aria-hidden="true" />
+          <p>Loading Home Game…</p>
+        </main>
       </div>
     );
   }
 
   if (!group) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <div className="text-center">
+      <div className="home-game-code-page" data-pnm-realism="machined-v2">
+        <UniversalHeader pageDepth={2} />
+        <PokerNearMeFamilyNav />
+        <main className="home-game-code-page__state" data-pnm-secondary-foundation="interaction-v1">
+          <div className="text-center">
           <p className="text-[#6B7280] mb-4">Home Game Not Found</p>
-          <Link href="/" className="text-[#10B981] font-medium">
-            Go Home
+          <Link href="/hub/home-games/near-me" className="text-[#10B981] font-medium">
+            Browse Home Games
           </Link>
-        </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -389,34 +534,67 @@ export default function HomeGamePage() {
       <SEOHead
         title={`${group.name} - Home Game`}
         description={group.description || `${group.name} - Home game group in ${group.city}, ${group.state}. Join the group on Smarter.Poker.`}
-        canonical={`/home-game/${code}`}
+        canonical={`/home-game/${group.club_code || code}`}
         ogImage={group.cover_photo_url || undefined}
       />
 
-      <div className="min-h-screen bg-[#F9FAFB]">
-        {/* Cover Photo */}
-        <div className="relative h-48 md:h-64 bg-gradient-to-r from-[#10B981] to-[#059669]">
-          {group.cover_photo_url && (
-            <img
-              src={group.cover_photo_url}
-              alt={group.name}
-              className="w-full h-full object-cover" loading="lazy" />
+      <div className="home-game-code-page min-h-screen bg-[#F9FAFB]" data-pnm-realism="machined-v2">
+        <UniversalHeader pageDepth={2} onBackClick={() => router.back()} />
+        <PokerNearMeFamilyNav />
+
+        <main data-pnm-secondary-foundation="interaction-v1">
+          <DeepRouteSignalDeck
+            kind="home_game"
+            eyebrow="Private Game Network"
+            title={group.name}
+            description={group.description || group.tagline || `A player-led poker community${group.city ? ` in ${group.city}, ${group.state}` : ''}.`}
+            image={group.cover_photo_url || group.profile_photo_url}
+            imageAlt={`${group.name} home game`}
+            breadcrumbs={[
+              { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+              { label: 'Home Games', href: '/hub/home-games/near-me' },
+              { label: group.name },
+            ]}
+            status={group.is_private ? 'Private group · membership required' : 'Public group directory record'}
+            statusTone={upcomingGames.length > 0 ? 'live' : 'neutral'}
+            freshness={{ label: 'Published community record' }}
+            metrics={[
+              { label: 'Location', value: group.city ? `${group.city}, ${group.state}` : 'Shared by host' },
+              { label: 'Members', value: group.member_count || 0 },
+              { label: 'Upcoming', value: upcomingGames.length },
+              { label: 'Cadence', value: FREQUENCY_LABELS[group.frequency] || group.frequency || 'Host scheduled' },
+            ]}
+            actions={(
+              <>
+                {isMember ? (
+                  <Link href={`/hub/commander/home-games/${group.id}`}>Open Group</Link>
+                ) : (
+                  <button type="button" onClick={handleJoinRequest}>
+                    <UserPlus className="w-4 h-4" aria-hidden="true" />
+                    {group.requires_approval ? 'Request To Join' : 'Join Group'}
+                  </button>
+                )}
+                <button type="button" onClick={handleShare}>
+                  <Share2 className="w-4 h-4" aria-hidden="true" />
+                  Share Group
+                </button>
+              </>
+            )}
+          />
+
+          {shareStatus && (
+            <p className="home-game-code-page__share-status" role="status" aria-live="polite">
+              {shareStatus}
+            </p>
           )}
-          {group.is_private && (
-            <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 text-white text-sm rounded-full flex items-center gap-1">
-              <Lock className="w-4 h-4" />
-              Private Group
-            </div>
-          )}
-        </div>
 
         {/* Profile Section */}
-        <div className="max-w-4xl mx-auto px-4 -mt-16 relative z-10">
+        <div className="max-w-4xl mx-auto px-4 mt-5 relative z-10">
           <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
             <div className="p-4 md:p-6">
               <div className="flex flex-col md:flex-row md:items-end gap-4">
                 {/* Profile Photo */}
-                <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-xl border-4 border-white shadow-lg flex items-center justify-center -mt-16 md:-mt-20">
+                <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-xl border-4 border-white shadow-lg flex items-center justify-center">
                   {group.profile_photo_url ? (
                     <img src={group.profile_photo_url} alt="" className="w-full h-full object-cover rounded-lg" loading="lazy" />
                   ) : (
@@ -429,7 +607,7 @@ export default function HomeGamePage() {
                 {/* Group Info */}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-xl md:text-2xl font-bold text-[#1F2937]">{group.name}</h1>
+                    <h2 className="text-xl md:text-2xl font-bold text-[#1F2937]">{group.name}</h2>
                     {group.is_private ? (
                       <Lock className="w-5 h-5 text-[#6B7280]" />
                     ) : (
@@ -464,6 +642,7 @@ export default function HomeGamePage() {
                     </Link>
                   ) : (
                     <button
+                      type="button"
                       onClick={handleJoinRequest}
                       className="px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors flex items-center gap-2"
                     >
@@ -471,7 +650,12 @@ export default function HomeGamePage() {
                       {group.requires_approval ? 'Request to Join' : 'Join Group'}
                     </button>
                   )}
-                  <button className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6]">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    aria-label={`Share ${group.name}`}
+                    className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6]"
+                  >
                     <Share2 className="w-5 h-5 text-[#6B7280]" />
                   </button>
                 </div>
@@ -495,15 +679,17 @@ export default function HomeGamePage() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-t border-[#E5E7EB] overflow-x-auto">
-              {[
-                { id: 'upcoming', label: 'Upcoming Games' },
-                { id: 'about', label: 'About' },
-                { id: 'posts', label: 'Discussion' }
-              ].map((tab) => (
+            <div className="flex border-t border-[#E5E7EB] overflow-x-auto" role="tablist" aria-label="Home game sections" aria-orientation="horizontal">
+              {PUBLIC_TABS.map((tab, index) => (
                 <button
                   key={tab.id}
+                  id={`home-game-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls="home-game-panel"
                   onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                     ? 'border-[#10B981] text-[#10B981]'
                     : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
@@ -617,7 +803,13 @@ export default function HomeGamePage() {
             </div>
 
             {/* Main Content Area */}
-            <div className="md:col-span-2 space-y-4">
+            <div
+              id="home-game-panel"
+              className="md:col-span-2 space-y-4"
+              role="tabpanel"
+              aria-labelledby={`home-game-tab-${activeTab}`}
+              tabIndex={0}
+            >
               {activeTab === 'upcoming' && (
                 <>
                   {group.is_private && !isMember ? (
@@ -625,6 +817,7 @@ export default function HomeGamePage() {
                       <Lock className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
                       <p className="text-[#6B7280]">Join The Group To See Upcoming Games</p>
                       <button
+                        type="button"
                         onClick={handleJoinRequest}
                         className="mt-4 px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors"
                       >
@@ -694,10 +887,11 @@ export default function HomeGamePage() {
                     <h3 className="font-semibold text-[#1F2937] mb-3">Share This Group</h3>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 px-4 py-2 bg-[#F3F4F6] rounded-lg font-mono text-sm">
-                        Smarter.Poker/Home-Game/{group.club_code}
+                        Smarter.Poker/Home-Game/{group.club_code || code}
                       </div>
                       <button
-                        onClick={() => navigator.clipboard.writeText(`https://smarter.poker/home-game/${group.club_code}`)}
+                        type="button"
+                        onClick={handleCopy}
                         className="px-4 py-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6] text-sm font-medium"
                       >
                         Copy
@@ -709,10 +903,30 @@ export default function HomeGamePage() {
 
               {activeTab === 'posts' && (
                 <>
-                  {group.is_private && !isMember ? (
+                  {group.is_private ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <MessageCircle className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">Join The Group To See Discussions</p>
+                      <p className="text-[#6B7280]">
+                        {isMember
+                          ? 'Private Discussion Is Available In Club Commander'
+                          : 'Join The Group To See Discussions'}
+                      </p>
+                      {isMember ? (
+                        <Link
+                          href={`/hub/commander/home-games/${group.id}`}
+                          className="mt-4 inline-flex items-center px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg"
+                        >
+                          Open Private Discussion
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleJoinRequest}
+                          className="mt-4 px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg"
+                        >
+                          {group.requires_approval ? 'Request To Join' : 'Join Group'}
+                        </button>
+                      )}
                     </div>
                   ) : posts.length === 0 ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
@@ -721,7 +935,12 @@ export default function HomeGamePage() {
                     </div>
                   ) : (
                     posts.map((post) => (
-                      <PostCard key={post.id} post={post} />
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        discussionHref={isMember ? `/hub/commander/home-games/${group.id}` : null}
+                        onShare={handleShare}
+                      />
                     ))
                   )}
                 </>
@@ -729,6 +948,8 @@ export default function HomeGamePage() {
             </div>
           </div>
         </div>
+
+        </main>
 
         {/* Footer */}
         <footer className="max-w-4xl mx-auto px-4 py-6 text-center text-sm text-[#6B7280]">

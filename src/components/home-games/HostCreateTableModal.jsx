@@ -18,6 +18,7 @@ import { useCallback, useState } from 'react';
 import { X, Plus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getAccessToken } from '../../lib/authUtils';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 
 const GAME_TYPES = [
   { value: 'NLH',    label: "No-Limit Hold'em" },
@@ -89,6 +90,11 @@ export default function HostCreateTableModal({
     defaults.buyinMax != null ? String(defaults.buyinMax) : ''
   );
   const [saving, setSaving]       = useState(false);
+  const createTableDialog = useAccessibleDialog({
+    open: true,
+    onClose,
+    dismissDisabled: saving,
+  });
 
   const submit = useCallback(async (e) => {
     e?.preventDefault?.();
@@ -139,11 +145,14 @@ export default function HostCreateTableModal({
 
   return (
     <div
+      ref={createTableDialog.dialogRef}
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[210] flex items-center justify-center p-4"
+      data-pnm-home-games="true"
       role="dialog"
       aria-modal="true"
       aria-labelledby="hct-title"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+      tabIndex={-1}
+      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose?.(); }}
     >
       <form
         onSubmit={submit}
@@ -162,7 +171,8 @@ export default function HostCreateTableModal({
             type="button"
             className="text-white/60 hover:text-white rounded-full p-1 -m-1"
             onClick={onClose}
-            aria-label="Close"
+            disabled={saving}
+            aria-label="Close add table dialog"
           >
             <X className="w-5 h-5" />
           </button>
@@ -175,6 +185,7 @@ export default function HostCreateTableModal({
               Table Name (Optional)
             </label>
             <input
+              ref={createTableDialog.initialFocusRef}
               id="hct-name"
               type="text"
               value={name}

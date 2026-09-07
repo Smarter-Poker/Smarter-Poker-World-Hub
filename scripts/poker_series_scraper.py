@@ -6,8 +6,8 @@ poker_series_scraper.py — Poker Series Tournament Event Scraper
 ================================================================
 Cloned from daily_venue_scraper.py, adapted for Poker Series context.
 
-Iterates through all 177 poker series from master_poker_series_list.json,
-scrapes each series' PokerAtlas page for tournament events using Scrapling
+Merges the checked-in poker-series catalog with the current PokerAtlas listing,
+then scrapes each series page for tournament events using Scrapling
 StealthySession + camoufox (Cloudflare bypass), and upserts to the
 poker_events + poker_series Supabase tables.
 
@@ -28,12 +28,14 @@ Usage:
     .venv/bin/python3 scripts/poker_series_scraper.py --min-score 40        # enrich threshold
 """
 
-import argparse, hashlib, io, json, os, re, sys, time, uuid, urllib.request, urllib.parse
+import argparse, hashlib, html as html_lib, io, json, os, re, sys, time, uuid, urllib.request, urllib.parse
 from datetime import datetime, timezone, timedelta, date as date_cls
 from pathlib import Path
 
 import os as _bh_os, sys as _bh_sys
 _bh_sys.path.insert(0, _bh_os.path.dirname(_bh_os.path.abspath(__file__)))
+from scraper_data_truth import is_poker_tournament_event_text
+
 # Browser self-heal — launchd runs this daemon directly, so shell-level healing
 # in the launchers never fires. See scripts/browser_heal.py for the 2026-07-26
 # incident where a missing chromium revision kept this daemon down for days.
@@ -106,8 +108,8 @@ RUN_ERRORS = {"upsert_failed": 0, "rows_lost": 0, "patch_failed": 0, "series_err
 # never be stamped 'scraped_verified'/'high' alongside it.
 SOURCE_QUALITY = {
     "pokeratlas":      ("scraped_verified", "high"),
-    "hendonmob":       ("scraped_partial",  "medium"),
-    "cardplayer":      ("scraped_partial",  "medium"),
+    "hendonmob":       ("scraped_inferred", "medium"),
+    "cardplayer":      ("scraped_inferred", "medium"),
     "pokeratlas_html": ("scraped_inferred", "low"),
     "html_fallback":   ("scraped_inferred", "low"),
     "source_url":      ("scraped_inferred", "low"),
@@ -143,6 +145,339 @@ SESSION_MAX   = 21600
 CIRCUIT_MAX   = 5
 ENRICH_FAIL_MAX = 5  # after 5 fails, flag as permanently_ungettable
 REFRESH_AFTER_HOURS = 24   # re-scrape a series whose last_scraped is older than this
+PA_SERIES_LISTING_URL = "https://www.pokeratlas.com/poker-tournament-series"
+
+# Words that describe almost every series page and therefore cannot prove that
+# a fetched page belongs to the requested series.  Identity is established from
+# the remaining name/slug tokens or from an exact canonical series URL.
+SERIES_IDENTITY_NOISE = {
+    "and", "at", "casino", "club", "event", "events", "hotel", "in",
+    "of", "open", "poker", "resort", "series", "the", "tournament",
+}
+
+
+def _visible_text(value: str) -> str:
+    return re.sub(
+        r"\s+", " ", re.sub(r"<[^>]+>", " ", html_lib.unescape(value or ""))
+    ).strip()
+
+
+def sanitize_series_event_name(value: object) -> Optional[str]:
+    """Return decoded visible event text, or None for parser/DOM artifacts."""
+
+    raw = str(value or "").strip()
+    if not raw or "<" in raw or ">" in raw:
+        return None
+    name = re.sub(r"[\u2012-\u2015]", " - ", html_lib.unescape(raw))
+    name = re.sub(r"\s+", " ", name).strip()
+    if "<" in name or ">" in name:
+        return None
+    lowered = name.lower()
+    if lowered in {
+        "script", "id=", "content", "true", "false", "null", "undefined",
+    }:
+        return None
+    if re.fullmatch(r"https?://\S+", name, re.I):
+        return None
+    if any(marker in lowered for marker in (
+        "charset=", "class=", "href=", "src=", "style=", "wixui-",
+        "addthis_tool", "eventattendancemode",
+    )):
+        return None
+    return name[:150]
+
+
+def _series_identity_tokens(value: str) -> set[str]:
+    tokens = set(re.findall(r"[a-z0-9]+", html_lib.unescape(value or "").lower()))
+    return {
+        token for token in tokens
+        if token not in SERIES_IDENTITY_NOISE
+        and not re.fullmatch(r"20\d{2}", token)
+        and len(token) > 1
+    }
+
+
+def source_series_identity_matches(series_name: str, candidate: str) -> bool:
+    """Require a source-owned label to preserve the series identity."""
+
+    expected = _series_identity_tokens(series_name)
+    observed = _series_identity_tokens(candidate)
+    if not expected or not observed:
+        return False
+    overlap = expected & observed
+    required = len(expected) if len(expected) <= 2 else max(2, (len(expected) + 1) // 2)
+    return len(overlap) >= required
+
+
+def select_physical_series_venue(series_name: str, series_state: str,
+                                 venues: list[dict]) -> Optional[dict]:
+    """Find one unambiguous physical venue referenced by a series name."""
+
+    expected = _series_identity_tokens(series_name)
+    if not expected:
+        return None
+    effective_state = str(series_state or "").upper()
+    if not effective_state:
+        # Legacy poker_series rows often lack state, while the historical venue
+        # catalog still carries an exact non-physical series identity. Use that
+        # state only as a matching constraint; never scrape the series row itself.
+        normalized_name = _visible_text(series_name).casefold()
+        catalog_states = {
+            str(venue.get("state") or "").upper()
+            for venue in venues
+            if str(venue.get("venue_type") or "").lower() not in {
+                "casino", "charity", "poker_club",
+            }
+            and _visible_text(str(venue.get("name") or "")).casefold() == normalized_name
+            and venue.get("state")
+        }
+        if len(catalog_states) == 1:
+            effective_state = next(iter(catalog_states))
+    ranked = []
+    for venue in venues:
+        if str(venue.get("venue_type") or "").lower() not in {
+            "casino", "charity", "poker_club",
+        }:
+            continue
+        venue_state = str(venue.get("state") or "").upper()
+        if effective_state and venue_state != effective_state:
+            continue
+        venue_tokens = _series_identity_tokens(str(venue.get("name") or ""))
+        overlap = expected & venue_tokens
+        minimum_overlap = 1 if effective_state or len(expected) == 1 else 2
+        if len(overlap) < minimum_overlap:
+            continue
+        expected_coverage = len(overlap) / len(expected)
+        venue_coverage = len(overlap) / len(venue_tokens) if venue_tokens else 0
+        if max(expected_coverage, venue_coverage) < 0.5:
+            continue
+        first = next(iter(re.findall(r"[a-z0-9]+", str(venue.get("name") or "").lower())), "")
+        ranked.append(((len(overlap), expected_coverage, venue_coverage, int(first in expected)), venue))
+    if not ranked:
+        return None
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    if len(ranked) > 1 and ranked[0][0] == ranked[1][0]:
+        return None
+    return ranked[0][1]
+
+
+def venue_page_confirms_series(series_name: str, venue_name: str, page_html: str) -> bool:
+    """Require source-owned, phrase-level series identity on a venue page.
+
+    Arbitrary body token overlap is not identity. A Wynn page mentioning
+    ``signature cocktails`` or a Choctaw page containing unrelated ``daily``
+    and ``classic`` words must not become a named poker series. Accept the
+    series phrase only in title/heading/canonical surfaces or beside a concrete
+    schedule date in one bounded event container.
+    """
+
+    def words(value: str) -> list[str]:
+        return [
+            token for token in re.findall(
+                r"[a-z0-9]+", html_lib.unescape(str(value or "")).lower(),
+            )
+            if not re.fullmatch(r"20\d{2}", token)
+        ]
+
+    series_words = words(series_name)
+    venue_words = set(words(venue_name))
+    specific_words = [
+        word for word in series_words
+        if word not in venue_words and word not in {"at", "of", "the", "in"}
+    ]
+    phrases = []
+    if len(specific_words) >= 2:
+        phrases.append(" ".join(specific_words))
+    if len(series_words) >= 2:
+        phrases.append(" ".join(series_words))
+    phrases = list(dict.fromkeys(phrase for phrase in phrases if phrase))
+    if not phrases:
+        return False
+
+    def phrase_matches(value: str) -> bool:
+        candidate = " ".join(words(value))
+        return any(
+            re.search(rf"(?:^| ){re.escape(phrase)}(?: |$)", candidate)
+            for phrase in phrases
+        )
+
+    source_owned = []
+    for tag_name in ("title", "h1", "h2", "h3", "h4", "caption"):
+        source_owned.extend(
+            _visible_text(match.group(1))
+            for match in re.finditer(
+                rf"<{tag_name}\b[^>]*>(.*?)</{tag_name}>",
+                page_html or "", re.I | re.DOTALL,
+            )
+        )
+    for tag in re.findall(r"<(?:meta|link)\b[^>]*>", page_html or "", re.I):
+        attrs = {
+            key.lower(): value
+            for key, _quote, value in re.findall(
+                r"([:\w-]+)\s*=\s*(['\"])(.*?)\2", tag, re.I | re.DOTALL,
+            )
+        }
+        prop = attrs.get("property", "").lower()
+        name = attrs.get("name", "").lower()
+        rel = attrs.get("rel", "").lower()
+        if prop in ("og:title", "twitter:title") or name in (
+            "og:title", "twitter:title",
+        ):
+            source_owned.append(attrs.get("content", ""))
+        if "canonical" in rel and attrs.get("href"):
+            source_owned.append(
+                urllib.parse.urlsplit(attrs["href"]).path.replace("-", " ")
+            )
+    if any(phrase_matches(candidate) for candidate in source_owned):
+        return True
+
+    date_pattern = re.compile(
+        r"\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|"
+        r"jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|"
+        r"nov(?:ember)?|dec(?:ember)?)\.?\s+\d{1,2}\b|"
+        r"\b20\d{2}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/20\d{2}\b",
+        re.I,
+    )
+    for match in re.finditer(
+        r"<(?:article|li|tr|section|div)\b[^>]*>(.*?)</(?:article|li|tr|section|div)>",
+        page_html or "", re.I | re.DOTALL,
+    ):
+        candidate = _visible_text(match.group(1))
+        if len(candidate) <= 600 and date_pattern.search(candidate) \
+                and phrase_matches(candidate):
+            return True
+    return False
+
+
+def extract_pa_series_listing(page_html: str) -> list[dict]:
+    """Return canonical series entries from the live PokerAtlas listing.
+
+    The listing is a discovery source only.  Event facts are still accepted
+    solely from each individual series page, with their own hash/timestamp.
+    """
+    entries: list[dict] = []
+    seen: set[str] = set()
+    anchor_re = re.compile(
+        r'<a\b[^>]*href=["\'](?:https?://(?:www\.)?pokeratlas\.com)?'
+        r'/poker-tournament-series/([a-z0-9][a-z0-9-]{5,})'
+        r'(?:[?#][^"\']*)?["\'][^>]*>(.*?)</a>',
+        re.I | re.S,
+    )
+    for match in anchor_re.finditer(page_html or ""):
+        slug = match.group(1).strip("-").lower()
+        if slug in seen or "-" not in slug:
+            continue
+        # Navigation/filter artifacts have little or no identity-bearing text.
+        slug_tokens = _series_identity_tokens(slug.replace("-", " "))
+        if len(slug_tokens) < 2:
+            continue
+        seen.add(slug)
+        label = _visible_text(match.group(2))
+        if len(_series_identity_tokens(label)) < 1:
+            label = " ".join(part.capitalize() for part in slug.split("-"))
+        entries.append({
+            "id": f"pa_{slug}",
+            "name": label,
+            "source_url": f"{PA_SERIES_LISTING_URL}/{slug}",
+            "schedule_status": "published",
+            "scrape_source": "pokeratlas_live_listing",
+        })
+    return entries
+
+
+def merge_series_catalog(master: list[dict], discovered: list[dict]) -> list[dict]:
+    """Put live discoveries first, then retain unique legacy/master entries."""
+    master_by_id = {str(row.get("id", "")): row for row in master}
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for live in discovered:
+        sid = str(live.get("id", ""))
+        if not sid or sid in seen:
+            continue
+        # Retain curated metadata while making the current canonical URL/name
+        # authoritative for this run.
+        row = {**master_by_id.get(sid, {}), **live}
+        merged.append(row)
+        seen.add(sid)
+    for row in master:
+        sid = str(row.get("id", ""))
+        if sid and sid not in seen:
+            merged.append(row)
+            seen.add(sid)
+    return merged
+
+
+def pa_series_page_matches(series: dict, page_html: str, requested_url: str) -> bool:
+    """Reject generic redirects and stale URLs that resolve to another series."""
+    if not page_html:
+        return False
+    expected_uid = str(series.get("id") or "")
+    expected_slug = expected_uid[3:] if expected_uid.startswith("pa_") else ""
+
+    canonical_match = re.search(
+        r'<link\b[^>]*rel=["\'][^"\']*canonical[^"\']*["\'][^>]*'
+        r'href=["\']([^"\']+)["\']|'
+        r'<link\b[^>]*href=["\']([^"\']+)["\'][^>]*'
+        r'rel=["\'][^"\']*canonical[^"\']*["\']',
+        page_html,
+        re.I,
+    )
+    canonical_url = next((g for g in canonical_match.groups() if g), "") if canonical_match else ""
+    canonical_slug_match = re.search(
+        r"^/poker-tournament-series/([a-z0-9-]+)/?$",
+        urllib.parse.urlsplit(urllib.parse.urljoin(requested_url, canonical_url)).path,
+        re.I,
+    ) if canonical_url else None
+    canonical_slug = canonical_slug_match.group(1).lower() if canonical_slug_match else ""
+    # A PokerAtlas room, directory, or generic tournaments canonical is
+    # explicit evidence that the response is not a series detail page. Never
+    # let generic title overlap override that source-owned route identity.
+    if canonical_url and not canonical_slug_match:
+        return False
+    if expected_slug and canonical_slug:
+        return canonical_slug == expected_slug.lower()
+
+    headings = []
+    for pattern in (
+        r'<h1\b[^>]*>(.*?)</h1>',
+        r'<meta\b[^>]*property=["\']og:title["\'][^>]*content=["\']([^"\']+)',
+        r'<title\b[^>]*>(.*?)</title>',
+    ):
+        found = re.search(pattern, page_html, re.I | re.S)
+        if found:
+            headings.append(_visible_text(found.group(1)))
+    # Without an exact canonical slug, accept only a complete, multi-token
+    # identity in one source-owned title/heading. One generic token (for
+    # example "Classic") or venue-only overlap ("Wynn") is not a series
+    # identity and must not authorize event writes.
+    expected_identities = []
+    for value in (series.get("name") or "", expected_slug.replace("-", " ")):
+        tokens = _series_identity_tokens(value)
+        if len(tokens) >= 2 and tokens not in expected_identities:
+            expected_identities.append(tokens)
+    if not expected_identities:
+        return False
+    for heading in headings:
+        observed = _series_identity_tokens(heading)
+        if any(expected <= observed for expected in expected_identities):
+            return True
+    return False
+
+
+def extract_pa_series_page_name(page_html: str, fallback: str) -> str:
+    """Extract a concise source-owned series name after identity validation."""
+    for pattern in (
+        r'<h1\b[^>]*>(.*?)</h1>',
+        r'<meta\b[^>]*property=["\']og:title["\'][^>]*content=["\']([^"\']+)',
+        r'<title\b[^>]*>(.*?)</title>',
+    ):
+        found = re.search(pattern, page_html or "", re.I | re.S)
+        if not found:
+            continue
+        candidate = re.sub(r"\s*[|:-]\s*PokerAtlas\s*$", "", _visible_text(found.group(1)), flags=re.I)
+        if candidate and _series_identity_tokens(candidate):
+            return candidate[:180]
+    return _visible_text(fallback)[:180] or "Poker tournament series"
 
 # State → timezone map
 STATE_TZ = {
@@ -204,8 +539,7 @@ def stable_event_uid(series_uid: str, event_name, start_date, buy_in,
 
 # ── Scrapling Fetcher for non-Cloudflare sites (MANDATORY per Data Integrity) ──
 def scrapling_fetch(url: str, timeout: int = 15) -> tuple:
-    """Fetch a URL using Scrapling Fetcher (non-CF). Returns (html_str, status, raw_bytes, sha256_hash).
-    Falls back to urllib only if Scrapling import fails."""
+    """Fetch non-Cloudflare source data with Scrapling, or fail closed."""
     try:
         from scrapling.fetchers import Fetcher
         page = Fetcher.get(url, stealthy_headers=True, timeout=timeout)
@@ -213,20 +547,16 @@ def scrapling_fetch(url: str, timeout: int = 15) -> tuple:
         html_str = body.decode('utf-8', errors='replace') if isinstance(body, bytes) else str(body)
         h = sha256h(body if isinstance(body, bytes) else html_str.encode('utf-8'))
         return html_str, page.status, body, h
-    except ImportError:
-        # Fetcher not available in this env — fall back but log warning
-        log("      ⚠️  Scrapling Fetcher unavailable — using urllib (NOT RECOMMENDED)")
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.google.com/',
-        })
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
-            html_str = body.decode('utf-8', errors='replace')
-            h = sha256h(body)
-            return html_str, resp.status, body, h
+    except ImportError as exc:
+        RUN_ERRORS["series_errors"] += 1
+        log(
+            "      [SOURCE ERR] Scrapling Fetcher unavailable; refusing "
+            f"unsanctioned urllib source fallback: {exc}"
+        )
+        return "", 0, b"", ""
     except Exception as e:
+        RUN_ERRORS["series_errors"] += 1
+        log(f"      [SOURCE ERR] Scrapling Fetcher failed: {type(e).__name__}: {str(e)[:160]}")
         return "", 0, b"", ""
 
 # ── Network pre-check (MANDATORY per Scrapling skill) ─────────────────────────
@@ -465,7 +795,8 @@ def anti_hallucination_ok(records: list) -> bool:
     return True
 
 # ── Supabase REST helpers (via PostgREST — triggers fire) ──────────────────────
-def sb_get_paged(path: str, base_params: str, limit: int = 1000) -> list:
+def sb_get_paged(path: str, base_params: str, limit: int = 1000) -> Optional[list]:
+    """Return all pages, or ``None`` when any page cannot be verified."""
     all_rows, offset = [], 0
     while True:
         params = f"{base_params}&limit={limit}&offset={offset}"
@@ -477,20 +808,33 @@ def sb_get_paged(path: str, base_params: str, limit: int = 1000) -> list:
             with urllib.request.urlopen(req, timeout=30) as r:
                 rows = json.loads(r.read()) or []
         except Exception as e:
-            log(f"  [SB_GET ERR] {e}"); break
+            RUN_ERRORS["series_errors"] += 1
+            log(f"  [SB_GET ERR] {path} offset {offset}: {e}")
+            return None
+        if not isinstance(rows, list):
+            RUN_ERRORS["series_errors"] += 1
+            log(f"  [SB_GET ERR] {path} offset {offset}: expected row array")
+            return None
         all_rows.extend(rows)
         if len(rows) < limit: break
         offset += limit
     return all_rows
 
-def sb_upsert_events(records: list) -> int:
-    """Upsert event records to poker_events via PostgREST (triggers fire).
+def sb_upsert_events_confirmed(records: list) -> set[str]:
+    """Upsert events and return the exact ``event_uid`` values confirmed.
 
-    Returns the number of rows the DB actually CONFIRMED writing (from the
-    representation payload) — not the number we optimistically sent. A batch
-    rejected for an unknown column used to be reported as a success.
+    Reconciliation is destructive metadata work: a count alone cannot prove
+    which rows survived a partial/malformed response.  Keep the exact identities
+    from PostgREST's representation payload so callers can prove that every
+    current event for one series landed before retiring anything older.
     """
-    if not records: return 0
+    if not records:
+        return set()
+    expected = {
+        str(record.get("event_uid") or "")
+        for record in records
+        if record.get("event_uid")
+    }
     try:
         url = f"{SUPABASE_URL}/rest/v1/poker_events?on_conflict={EVENT_ON_CONFLICT}"
         req = urllib.request.Request(
@@ -501,29 +845,164 @@ def sb_upsert_events(records: list) -> int:
                 log(f"  [UPSERT ERR] unexpected HTTP {r.status}")
                 RUN_ERRORS["upsert_failed"] += 1
                 RUN_ERRORS["rows_lost"] += len(records)
-                return 0
+                return set()
             try:
                 returned = json.loads(r.read() or b"[]")
             except Exception:
                 returned = []
-            written = len(returned) if isinstance(returned, list) else 0
-            if written != len(records):
-                lost = len(records) - written
-                log(f"  [UPSERT WARN] sent {len(records)} rows, DB confirmed {written} "
-                    f"— {lost} row(s) NOT written")
+            confirmed = {
+                str(row.get("event_uid") or "")
+                for row in returned
+                if isinstance(row, dict) and row.get("event_uid") in expected
+            } if isinstance(returned, list) else set()
+            missing = expected - confirmed
+            if missing or len(confirmed) != len(records):
+                lost = max(len(missing), len(records) - len(confirmed))
+                log(f"  [UPSERT WARN] sent {len(records)} rows, DB confirmed "
+                    f"{len(confirmed)} exact event_uid value(s); {lost} row(s) "
+                    "are persistence-unverified")
                 RUN_ERRORS["rows_lost"] += max(0, lost)
-            return written
+            return confirmed
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8","ignore")[:400]
         log(f"  [UPSERT ERR] HTTP {e.code}: {body}")
         RUN_ERRORS["upsert_failed"] += 1
         RUN_ERRORS["rows_lost"] += len(records)
-        return 0
+        return set()
     except Exception as e:
         log(f"  [UPSERT ERR] {e}")
         RUN_ERRORS["upsert_failed"] += 1
         RUN_ERRORS["rows_lost"] += len(records)
-        return 0
+        return set()
+
+
+def sb_upsert_events(records: list) -> int:
+    """Backward-compatible count wrapper for non-reconciling callers/tests."""
+    return len(sb_upsert_events_confirmed(records))
+
+
+def build_series_parent_record(series_result: dict, batch_id: str) -> Optional[dict]:
+    """Build the minimum provenance-complete parent required by event FKs."""
+    events = series_result.get("events") or []
+    if not series_result.get("found") or not events:
+        return None
+    hashes = [str(event.get("scrape_html_hash") or "") for event in events]
+    source_hash = next((value for value in hashes if re.fullmatch(r"[0-9a-f]{64}", value)), "")
+    timestamps = [str(event.get("scrape_timestamp") or "") for event in events]
+    source_timestamp = next((value for value in timestamps if value), "")
+    if not source_hash or not source_timestamp:
+        return None
+    source = str(series_result.get("source") or events[0].get("source") or "source_url")
+    data_quality, confidence = quality_for(source)
+    buyins = [event["buy_in"] for event in events if event.get("buy_in")]
+    dates = [event["start_date"] for event in events if event.get("start_date")]
+    resolved_url = str(series_result.get("resolved_url") or "")
+    record = {
+        "series_uid": str(series_result.get("series_uid") or ""),
+        "series_name": str(
+            series_result.get("canonical_series_name")
+            or series_result.get("series_name")
+            or "Poker tournament series"
+        )[:180],
+        "source": source,
+        "source_url": resolved_url or None,
+        "scrape_url": resolved_url or None,
+        "events_scraped": True,
+        "events_count": len(events),
+        "event_count": len(events),
+        "last_scraped": source_timestamp,
+        "scrape_status": "events_scraped",
+        "data_quality": data_quality,
+        "scrape_html_hash": source_hash,
+        "scrape_timestamp": source_timestamp,
+        "scrape_confidence": confidence,
+        "scrape_batch_id": batch_id,
+        "start_date": min(dates) if dates else None,
+        "end_date": max(dates) if dates else None,
+        "buy_in_min": min(buyins) if buyins else None,
+        "buy_in_max": max(buyins) if buyins else None,
+    }
+    if not record["series_uid"]:
+        return None
+    return record
+
+
+def build_series_parent_refresh_patch(series_result: dict, batch_id: str,
+                                      preserve_manual: bool = False) -> Optional[dict]:
+    """Build a provenance-coherent refresh patch for an existing parent."""
+    parent = build_series_parent_record(series_result, batch_id)
+    if not parent:
+        return None
+    if not preserve_manual:
+        return {
+            key: value for key, value in parent.items()
+            if key != "series_uid"
+        }
+
+    # A manually researched parent owns its own evidence. Refresh operational
+    # event coverage without replacing that curator's source, URL, hash,
+    # timestamp, confidence, series label, or scrape batch provenance.
+    manual_safe = {
+        "events_scraped", "events_count", "event_count", "last_scraped",
+        "scrape_status", "start_date", "end_date", "buy_in_min", "buy_in_max",
+    }
+    return {key: parent[key] for key in manual_safe if key in parent}
+
+
+def sb_ensure_series_parent(series_result: dict, batch_id: str) -> bool:
+    """Verify or create a provenance-complete poker_series parent row."""
+    parent = build_series_parent_record(series_result, batch_id)
+    if not parent:
+        log(f"  [PARENT ERR] incomplete provenance for {series_result.get('series_uid', '?')}")
+        RUN_ERRORS["upsert_failed"] += 1
+        return False
+    encoded_uid = urllib.parse.quote(parent["series_uid"], safe="")
+    try:
+        check_req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/poker_series?series_uid=eq.{encoded_uid}"
+            "&select=series_uid,is_suppressed,data_quality&limit=2",
+            headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"},
+        )
+        with urllib.request.urlopen(check_req, timeout=20) as response:
+            existing = json.loads(response.read() or b"[]")
+        if not isinstance(existing, list) or len(existing) > 1:
+            raise RuntimeError(f"unexpected parent lookup result: {existing!r}")
+        if len(existing) == 1:
+            if existing[0].get("is_suppressed") is True:
+                log(
+                    f"  [PARENT ERR] {parent['series_uid']} is explicitly "
+                    "suppressed; refusing child writes"
+                )
+                return False
+            series_result["_preserve_manual_parent"] = (
+                existing[0].get("data_quality") == "manual_research"
+            )
+            return existing[0].get("series_uid") == parent["series_uid"]
+
+        create_req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/poker_series?on_conflict=series_uid",
+            data=json.dumps(parent).encode(),
+            method="POST",
+            headers=SB_UPSERT_HDRS,
+        )
+        with urllib.request.urlopen(create_req, timeout=30) as response:
+            created = json.loads(response.read() or b"[]")
+        verified = (
+            isinstance(created, list)
+            and len(created) == 1
+            and created[0].get("series_uid") == parent["series_uid"]
+        )
+        if not verified:
+            raise RuntimeError(f"parent write not confirmed: {created!r}")
+        log(f"  [PARENT] Created {parent['series_uid']}")
+        return True
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "ignore")[:400]
+        log(f"  [PARENT ERR] HTTP {exc.code} for {parent['series_uid']}: {body}")
+    except Exception as exc:
+        log(f"  [PARENT ERR] {parent['series_uid']}: {exc}")
+    RUN_ERRORS["upsert_failed"] += 1
+    return False
 
 def sb_patch_series(series_uid: str, patch: dict) -> bool:
     """Update poker_series metadata after scraping events. Returns True on success.
@@ -535,11 +1014,21 @@ def sb_patch_series(series_uid: str, patch: dict) -> bool:
         encoded_uid = urllib.parse.quote(series_uid, safe='')
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/poker_series?series_uid=eq.{encoded_uid}",
-            data=json.dumps(patch).encode(), method="PATCH", headers=SB_HDRS
+            data=json.dumps(patch).encode(), method="PATCH",
+            headers={**SB_HDRS, "Prefer": "return=representation"},
         )
         with urllib.request.urlopen(req, timeout=20) as r:
             if r.status not in (200, 201, 204):
                 log(f"  [PATCH ERR] poker_series {series_uid[:40]}: HTTP {r.status}")
+                RUN_ERRORS["patch_failed"] += 1
+                return False
+            returned = json.loads(r.read() or b"[]")
+            if not (
+                isinstance(returned, list)
+                and len(returned) == 1
+                and returned[0].get("series_uid") == series_uid
+            ):
+                log(f"  [PATCH ERR] poker_series {series_uid[:40]} matched no exact row")
                 RUN_ERRORS["patch_failed"] += 1
                 return False
         return True
@@ -553,8 +1042,178 @@ def sb_patch_series(series_uid: str, patch: dict) -> bool:
         RUN_ERRORS["patch_failed"] += 1
         return False
 
+
+# Only scraper-owned rows carrying the exact authoritative PokerAtlas page in
+# their provenance may be reconciled.  Curated/manual rows and aggregator rows
+# have independent evidence and must never be invalidated by this source.
+RECONCILABLE_SERIES_EVENT_SOURCES = {
+    "pokeratlas", "pokeratlas_html", "html_fallback",
+}
+RECONCILABLE_SERIES_EVENT_QUALITIES = {
+    "scraped_verified", "scraped_inferred",
+}
+
+
+def _event_provenance_source_url(notes: object) -> str:
+    """Read the machine-labelled event URL without guessing from free text."""
+    for part in str(notes or "").split("|"):
+        part = part.strip()
+        if part.startswith(PROV_SOURCE_LABEL):
+            return part[len(PROV_SOURCE_LABEL):].strip().rstrip("/")
+    return ""
+
+
+def retirable_series_event_ids(existing_rows: list[dict],
+                               current_event_uids: set[str],
+                               series_uid: str, source_url: str,
+                               today: date_cls | None = None) -> list[str]:
+    """Return exact auto-scraped row IDs disproved by a complete source page.
+
+    Keep historical rows (older than a 14-day grace window), curated rows,
+    other sources, and rows without machine-readable provenance.  An empty
+    current set is never authoritative enough to retire anything: it may mean a
+    parser regression rather than a truly empty schedule.
+    """
+    current = {str(uid) for uid in current_event_uids if uid}
+    expected_series = str(series_uid or "")
+    expected_source = str(source_url or "").strip().rstrip("/")
+    if not current or not expected_series or not expected_source:
+        return []
+
+    cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+    retirable: list[str] = []
+    for row in existing_rows or []:
+        if str(row.get("series_uid") or "") != expected_series:
+            continue
+        if row.get("event_uid") in current:
+            continue
+        if row.get("data_quality") not in RECONCILABLE_SERIES_EVENT_QUALITIES:
+            continue
+        if row.get("source") not in RECONCILABLE_SERIES_EVENT_SOURCES:
+            continue
+        if _event_provenance_source_url(row.get("notes")) != expected_source:
+            continue
+
+        # Source pages often remove completed events as the series advances.
+        # Preserve those as valid history rather than treating absence as a
+        # cancellation.  Missing current/future rows are the actionable set.
+        raw_last_date = str(row.get("end_date") or row.get("start_date") or "")[:10]
+        try:
+            last_date = datetime.strptime(raw_last_date, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            continue
+        if last_date < cutoff:
+            continue
+        if row.get("id"):
+            retirable.append(str(row["id"]))
+    return retirable
+
+
+def sb_get_series_events_for_reconciliation(series_uid: str) -> Optional[list[dict]]:
+    """Read a complete series event set, distinguishing empty from failed."""
+    encoded_uid = urllib.parse.quote(str(series_uid or ""), safe="")
+    if not encoded_uid:
+        return None
+    rows: list[dict] = []
+    page_size = 1000
+    offset = 0
+    while True:
+        params = (
+            f"?series_uid=eq.{encoded_uid}"
+            "&select=id,event_uid,series_uid,source,notes,data_quality,start_date,end_date"
+            "&order=id.asc"
+            f"&limit={page_size}&offset={offset}"
+        )
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/poker_events{params}",
+            headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as response:
+                page = json.loads(response.read() or b"[]")
+        except Exception as exc:
+            log(f"  [RECONCILE READ ERR] {series_uid}: {str(exc)[:160]}")
+            return None
+        if not isinstance(page, list):
+            log(f"  [RECONCILE READ ERR] {series_uid}: expected a row array")
+            return None
+        rows.extend(page)
+        if len(page) < page_size:
+            return rows
+        offset += page_size
+
+
+def sb_mark_series_events_stale(event_ids: list[str]) -> bool:
+    """Patch only pre-read exact event IDs and verify every returned identity."""
+    ids = list(dict.fromkeys(str(row_id) for row_id in event_ids if row_id))
+    for index in range(0, len(ids), 50):
+        chunk = ids[index:index + 50]
+        encoded_ids = ",".join(urllib.parse.quote(row_id, safe="-") for row_id in chunk)
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/poker_events?id=in.({encoded_ids})",
+            data=json.dumps({"data_quality": "stale"}).encode(),
+            method="PATCH",
+            headers={**SB_HDRS, "Prefer": "return=representation"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as response:
+                returned = json.loads(response.read() or b"[]")
+            confirmed = {
+                str(row.get("id")) for row in returned
+                if isinstance(row, dict) and row.get("id")
+            } if isinstance(returned, list) else set()
+            if confirmed != set(chunk):
+                raise RuntimeError(
+                    f"expected {len(chunk)} exact IDs, confirmed {len(confirmed)}"
+                )
+        except Exception as exc:
+            RUN_ERRORS["patch_failed"] += 1
+            log(f"  [RECONCILE PATCH ERR] poker_events: {str(exc)[:180]}")
+            return False
+    return True
+
+
+def reconcile_authoritative_series_events(series_result: dict) -> bool:
+    """Retire missing events only inside a proven-complete source snapshot."""
+    if not series_result.get("reconcile_complete"):
+        return True
+    series_uid = str(series_result.get("series_uid") or "")
+    source_url = str(series_result.get("reconcile_source_url") or "")
+    current_uids = {
+        str(uid) for uid in series_result.get("reconcile_event_uids") or [] if uid
+    }
+    evidence = str(series_result.get("reconcile_evidence") or "")
+    expected_count = series_result.get("reconcile_expected_event_count")
+    valid_evidence = (
+        evidence.startswith("complete_next_data_collection:")
+        or evidence == "complete_pokeratlas_html_contract"
+    )
+    if (
+        not series_uid or not source_url or not current_uids
+        or not valid_evidence or expected_count != len(current_uids)
+    ):
+        # A caller claiming completeness without its evidence boundary is a code
+        # defect, not permission to perform a broad destructive update.
+        RUN_ERRORS["patch_failed"] += 1
+        log(f"  [RECONCILE ERR] {series_uid or '?'} has an incomplete evidence scope")
+        return False
+    existing = sb_get_series_events_for_reconciliation(series_uid)
+    if existing is None:
+        RUN_ERRORS["patch_failed"] += 1
+        return False
+    retire_ids = retirable_series_event_ids(
+        existing, current_uids, series_uid, source_url,
+    )
+    if not retire_ids:
+        return True
+    if not sb_mark_series_events_stale(retire_ids):
+        return False
+    log(f"  [RECONCILE] {series_uid}: retired {len(retire_ids)} missing event row(s)")
+    return True
+
+
 def sb_audit(batch_id: str, series_count: int, records: int, notes: str = ""):
-    """Layer 6: Audit trail — every batch gets a log entry."""
+    """Layer 6: write the immutable audit row and report whether it landed."""
     try:
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/data_audit_log",
@@ -572,8 +1231,12 @@ def sb_audit(batch_id: str, series_count: int, records: int, notes: str = ""):
             }).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}
         )
-        urllib.request.urlopen(req, timeout=15)
-    except: pass
+        with urllib.request.urlopen(req, timeout=15) as response:
+            response.read()
+        return True
+    except Exception as exc:
+        log(f"  [AUDIT ERR] data_audit_log write failed: {str(exc)[:160]}")
+        return False
 
 # ── Evidence file (Layer 3: full provenance) ──────────────────────────────────
 def save_evidence(series_uid: str, data: dict):
@@ -589,6 +1252,7 @@ def save_evidence(series_uid: str, data: dict):
 # a dead session mid-retry, so callers can resynchronise instead of holding a
 # closed handle.
 CURRENT_SESSION = None
+STOP_REQUESTED = False
 
 def create_session():
     """Create a new StealthySession with network pre-check."""
@@ -606,22 +1270,14 @@ def create_session():
     #   [26/55] ... Recycle at #25 -> Daemon cycle crashed: Playwright Sync API
     #   inside the asyncio loop -> sleeping 6 hours
     # This is the same guard pokeratlas-live-daemon.connect() already uses.
+    import asyncio
     try:
-        import asyncio
-        try:
-            asyncio.get_running_loop()
-            # Inside a running loop we must not close it; just reset the policy.
-        except RuntimeError:
-            try:
-                loop = asyncio.get_event_loop()
-                if not loop.is_closed():
-                    loop.close()
-            except RuntimeError:
-                pass  # no loop at all, which is what we want
-        asyncio.set_event_loop(None)
+        asyncio.get_running_loop()
+    except RuntimeError:
         asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-    except Exception as _loop_err:
-        log(f"  [SESSION] event loop cleanup skipped: {_loop_err}")
+        asyncio.set_event_loop(None)
+    else:
+        raise RuntimeError("cannot start sync Playwright inside a running event loop")
 
     from scrapling.fetchers import StealthySession
     session = StealthySession(headless=True, solve_cloudflare=True)
@@ -636,6 +1292,15 @@ def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:
     """
     resp = None
     global CURRENT_SESSION
+    # A failed fetch can replace the browser session. Callers intentionally pass
+    # the session they started the series with, so all later source fallbacks in
+    # that same series must follow the replacement published here. Previously,
+    # CardPlayer could replace a dead context and HendonMob would immediately
+    # reuse the closed object. Its next recovery then attempted to start a second
+    # sync Playwright driver while the replacement was alive, poisoning every
+    # remaining source in the cycle.
+    if CURRENT_SESSION is not None and CURRENT_SESSION is not session:
+        session = CURRENT_SESSION
     for attempt in range(retries):
         try:
             # google_search=True routes via Google referrer — matches daily_venue_scraper approach
@@ -753,6 +1418,19 @@ def add_provenance_notes(notes, source_url=None, tz_name=None) -> Optional[str]:
         parts.append(f"{PROV_TZ_LABEL}{tz_name}")
     return " | ".join(parts) if parts else None
 
+
+def source_url_from_records(records: list[dict]) -> str:
+    """Recover the exact successful source URL from provenance-stamped rows."""
+
+    for record in records:
+        for part in str(record.get("notes") or "").split("|"):
+            part = part.strip()
+            if part.startswith(PROV_SOURCE_LABEL):
+                value = part[len(PROV_SOURCE_LABEL):].strip()
+                if value.startswith(("https://", "http://")):
+                    return value[:300]
+    return ""
+
 def tz_for_state(*states) -> Optional[str]:
     """First IANA zone resolvable from the given state codes (STATE_TZ)."""
     for s in states:
@@ -769,7 +1447,7 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
                    re_entry, re_entry_limit, unlimited_re_entry,
                    venue_name, city, state, source, source_url,
                    html_hash, notes=None, event_type=None,
-                   tz_state=None) -> dict:
+                   tz_state=None) -> Optional[dict]:
     """Build a record matching the poker_events DB schema exactly.
 
     data_quality / scrape_confidence are DERIVED from `source` (the extraction
@@ -783,6 +1461,9 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
     extractors that have no per-event state, and is used ONLY for the timezone
     lookup so the `state` column keeps its existing value.
     """
+    clean_event_name = sanitize_series_event_name(event_name)
+    if not clean_event_name:
+        return None
     ts = datetime.now(timezone.utc).isoformat()
     dq, conf = quality_for(source)
     notes = add_provenance_notes(notes, source_url=source_url,
@@ -790,7 +1471,7 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
     return {
         "event_uid":          event_uid,
         "series_uid":         series_uid,
-        "event_name":         event_name,
+        "event_name":         clean_event_name,
         "event_number":       event_number,
         "event_type":         event_type or fmt,
         "buy_in":             buy_in,
@@ -823,7 +1504,187 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
         "scrape_batch_id":    batch_id,
     }
 
+
+def series_events_fit_parent_window(series: dict, events: list[dict]) -> tuple[bool, str]:
+    """Require every dated event to fit the catalog parent's inclusive dates."""
+    raw_start = str(series.get("start_date") or "")[:10]
+    raw_end = str(series.get("end_date") or "")[:10]
+    try:
+        parent_start = date_cls.fromisoformat(raw_start)
+        parent_end = date_cls.fromisoformat(raw_end)
+    except ValueError:
+        return True, "parent_window_unavailable"
+    if parent_end < parent_start:
+        return False, "parent_window_invalid"
+
+    for event in events:
+        for field in ("start_date", "end_date"):
+            raw_value = str(event.get(field) or "")[:10]
+            if not raw_value:
+                continue
+            try:
+                value = date_cls.fromisoformat(raw_value)
+            except ValueError:
+                return False, f"event_{field}_invalid"
+            if value < parent_start or value > parent_end:
+                return False, f"event_{field}_outside_parent_window"
+    return True, "matched"
+
 # ── PokerAtlas __NEXT_DATA__ extractor for Series pages ────────────────────────
+NEXT_DATA_RECONCILE_MIN_EVENTS = 2
+NEXT_DATA_EVENT_COLLECTION_KEYS = {
+    "events", "tournaments", "tournamentevents", "seriesevents",
+    "eventschedule", "scheduleevents", "upcomingevents",
+}
+
+
+def _load_pa_next_data(html: str) -> Optional[dict]:
+    match = re.search(
+        r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL,
+    )
+    if not match:
+        match = re.search(
+            r'__NEXT_DATA__\s*=\s*(\{.*?\})\s*;?\s*</script>', html, re.DOTALL,
+        )
+    if not match:
+        return None
+    try:
+        payload = json.loads(match.group(1))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _is_pa_next_event_node(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    has_buyin = any(value.get(key) not in (None, "", 0) for key in (
+        "buyIn", "buyin", "buy_in",
+    ))
+    has_identity = any(value.get(key) for key in (
+        "startTime", "time", "start_time", "startDate", "date",
+        "eventDate", "start_date", "name", "title", "eventName",
+    ))
+    return has_buyin and has_identity
+
+
+def pa_next_data_reconciliation_evidence(html: str, events: list[dict]) -> dict:
+    """Prove a complete explicit schedule collection before any retirement."""
+
+    payload = _load_pa_next_data(html)
+    extracted_count = len({
+        str(event.get("event_uid")) for event in events or []
+        if event.get("event_uid")
+    })
+    candidates: list[tuple[int, Optional[int], Optional[bool], str]] = []
+
+    def declared_event_count(value: dict) -> Optional[int]:
+        containers = [value]
+        page_info = value.get("pageInfo")
+        if isinstance(page_info, dict):
+            containers.append(page_info)
+        for container in containers:
+            for count_key in ("eventCount", "totalEvents", "totalCount"):
+                raw_count = container.get(count_key)
+                if type(raw_count) is int and raw_count >= 0:
+                    return raw_count
+        return None
+
+    def terminal_pagination_state(value: dict) -> Optional[bool]:
+        containers = [value]
+        for context_key in ("pageInfo", "pagination"):
+            context = value.get(context_key)
+            if isinstance(context, dict):
+                containers.append(context)
+
+        states: list[bool] = []
+        for container in containers:
+            has_next = container.get("hasNextPage")
+            if isinstance(has_next, bool):
+                states.append(not has_next)
+
+            current_page = container.get("currentPage")
+            total_pages = container.get("totalPages")
+            if (
+                type(current_page) is int
+                and type(total_pages) is int
+                and current_page >= 0
+                and total_pages >= 0
+            ):
+                states.append(current_page >= total_pages)
+
+        if False in states:
+            return False
+        if True in states:
+            return True
+        return None
+
+    def walk(
+        value: object,
+        inherited_count: Optional[int] = None,
+        inherited_terminal: Optional[bool] = None,
+    ):
+        if isinstance(value, dict):
+            local_count = declared_event_count(value)
+            declared = local_count if local_count is not None else inherited_count
+            local_terminal = terminal_pagination_state(value)
+            terminal = (
+                local_terminal
+                if local_terminal is not None
+                else inherited_terminal
+            )
+            for key, child in value.items():
+                normalized_key = re.sub(r"[^a-z]", "", str(key).lower())
+                if normalized_key in NEXT_DATA_EVENT_COLLECTION_KEYS and isinstance(child, list):
+                    event_nodes = [item for item in child if _is_pa_next_event_node(item)]
+                    if event_nodes and len(event_nodes) == len(child):
+                        candidates.append(
+                            (len(event_nodes), declared, terminal, str(key))
+                        )
+                walk(child, declared, terminal)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child, inherited_count, inherited_terminal)
+
+    if payload:
+        walk(payload)
+    if not candidates:
+        return {
+            "complete": False,
+            "expected_event_count": 0,
+            "reason": "no_explicit_event_collection",
+        }
+
+    count_matched = [row for row in candidates if row[0] == extracted_count]
+    source_count, declared_count, pagination_terminal, collection_key = max(
+        count_matched or candidates,
+        key=lambda row: row[0],
+    )
+    if source_count < NEXT_DATA_RECONCILE_MIN_EVENTS:
+        reason = "event_collection_below_reconcile_threshold"
+    elif declared_count is None:
+        reason = "declared_event_count_missing"
+    elif declared_count != source_count:
+        reason = "declared_event_count_mismatch"
+    elif pagination_terminal is False:
+        reason = "pagination_not_terminal"
+    elif pagination_terminal is None:
+        reason = "pagination_terminal_state_missing"
+    elif extracted_count != source_count:
+        reason = "parsed_event_count_mismatch"
+    else:
+        return {
+            "complete": True,
+            "expected_event_count": source_count,
+            "reason": f"complete_next_data_collection:{collection_key}",
+        }
+    return {
+        "complete": False,
+        "expected_event_count": source_count,
+        "reason": reason,
+    }
+
+
 def extract_pa_next_data(html: str, series_uid: str, series_name: str,
                          batch_id: str, url: str, html_hash: str,
                          series_state: str = "") -> list:
@@ -832,12 +1693,9 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
     Walks the full JSON tree with parent-context propagation for rich fields.
     Returns list of records ready for poker_events table.
     """
-    m = re.search(r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
-    if not m:
-        m = re.search(r'__NEXT_DATA__\s*=\s*(\{.*?\})\s*;?\s*</script>', html, re.DOTALL)
-    if not m: return []
-    try: nd = json.loads(m.group(1))
-    except: return []
+    nd = _load_pa_next_data(html)
+    if not nd:
+        return []
 
     results, seen = [], set()
 
@@ -906,7 +1764,12 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
                         for v in obj.values(): walk(v, cur)
                         return
 
-                    event_name = str(cur.get("name") or has_name or "")[:150]
+                    event_name = sanitize_series_event_name(
+                        str(cur.get("name") or has_name or "")[:150]
+                    )
+                    if not event_name:
+                        for v in obj.values(): walk(v, cur)
+                        return
                     st_raw     = str(has_time or "")
                     start_time = normalize_time_to_24h(st_raw) or normalize_time_to_24h(normalize_time(st_raw))
 
@@ -1000,7 +1863,8 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
                         html_hash=html_hash, notes=notes,
                         tz_state=series_state,
                     )
-                    results.append(rec)
+                    if rec:
+                        results.append(rec)
 
                 except Exception:
                     pass
@@ -1014,10 +1878,147 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
 TIME_RE = re.compile(r"((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a|p)?|\b[1-9]\d?\s*(?:AM|PM|am|pm|a\.m\.|p\.m\.))\b")
 BUY_RE  = re.compile(r"\$(\d{1,3}(?:,\d{3})*)")
 
+
+def extract_pokeratlas_html_events(html: str, series_uid: str, series_name: str,
+                                   batch_id: str, source_url: str,
+                                   html_hash: str, series_state: str = "") -> Optional[list]:
+    """Parse PokerAtlas' canonical series-event containers.
+
+    ``None`` means the page did not expose this contract and the generic HTML
+    fallback may run.  A list (including an empty one) means the contract was
+    present and is authoritative; generic dollar-amount scanning must not run.
+    """
+    blocks = re.split(
+        r'<li\b(?=[^>]*\btournament-item\b)[^>]*>',
+        html or "",
+        flags=re.I,
+    )
+    if len(blocks) <= 1:
+        return None
+
+    results: list[dict] = []
+    seen: set[str] = set()
+    series_year = extract_series_year(series_uid) or datetime.now(timezone.utc).year
+
+    def class_text(block: str, class_name: str) -> str:
+        match = re.search(
+            rf'class=["\'][^"\']*(?<![-\w]){re.escape(class_name)}(?![-\w])'
+            r'[^"\']*["\'][^>]*>'
+            r'(.*?)</(?:span|div)>',
+            block,
+            re.I | re.S,
+        )
+        return _visible_text(match.group(1)) if match else ""
+
+    for block in blocks[1:501]:
+        buyin_match = re.search(
+            r'class=["\'][^"\']*\bbuy-in\b[^"\']*["\'][^>]*>\s*\$([\d,]+)',
+            block,
+            re.I,
+        )
+        month = class_text(block, "month")
+        day = class_text(block, "day")
+        hour = class_text(block, "hour")
+        if not buyin_match or not month or not day:
+            continue
+        buyin = int(buyin_match.group(1).replace(",", ""))
+        if not 10 <= buyin <= 250000:
+            continue
+        start_date = parse_date_series(f"{month} {day} {series_year}", series_year)
+        if not start_date:
+            continue
+        start_time = normalize_time_to_24h(normalize_time(hour)) if hour else None
+
+        flight_name = class_text(block, "starting-time-name").strip(" -:|")
+        event_name = class_text(block, "name")
+        event_name = " ".join(part for part in (flight_name, event_name) if part).strip(" -:|")
+        if not event_name:
+            continue
+        source_text = _visible_text(block)
+        if not is_poker_tournament_event_text(f"{event_name} ${buyin} {source_text}"):
+            continue
+
+        event_number_text = class_text(block, "event-number")
+        number_match = re.search(r"#?\s*(\d+)", event_number_text)
+        event_number = int(number_match.group(1)) if number_match else None
+        game_type_text = class_text(block, "type")
+        game_type = game_from_pa(game_type_text) if game_type_text else game_from(event_name)
+
+        # Some legacy PokerAtlas cards render an empty value as `, chips`.
+        # Requiring the capture to begin with a digit keeps that placeholder
+        # from reaching int(), while the defensive parser preserves the event
+        # with an unknown stack instead of aborting the whole source page.
+        stack = safe_int_text(source_text, r"(\d[\d,]*)\s*chips\b")
+        level_match = re.search(r"(\d+)\s*min(?:ute)?s?\s*(?:levels?|blinds?)", source_text, re.I)
+        blind_levels = int(level_match.group(1)) if level_match else None
+        guarantee_match = re.search(
+            r'title=["\']\$([\d,]+)\s+Guaranteed["\']', block, re.I
+        )
+        guarantee = int(guarantee_match.group(1).replace(",", "")) if guarantee_match else None
+        re_entry = bool(re.search(r"re-?entry", source_text, re.I))
+        unlimited_re_entry = bool(re.search(r"unlimited\s+re-?entry", source_text, re.I))
+        day_match = re.search(r"\bDay\s+(\d+)\b", flight_name, re.I)
+        day_number = int(day_match.group(1)) if day_match else None
+
+        identity = f"{start_date}|{start_time}|{buyin}|{event_name.lower()}"
+        if identity in seen:
+            continue
+        seen.add(identity)
+        event_uid = stable_event_uid(
+            series_uid,
+            event_name,
+            start_date,
+            buyin,
+            prefix="pahtml",
+            start_time=start_time,
+        )
+        rec = make_event_rec(
+            series_uid=series_uid,
+            series_name=series_name,
+            batch_id=batch_id,
+            event_uid=event_uid,
+            event_name=event_name,
+            event_number=event_number,
+            buy_in=buyin,
+            game_type=game_type,
+            fmt=fmt_from(source_text),
+            guarantee=guarantee,
+            start_date=start_date,
+            start_time=start_time,
+            end_date=None,
+            starting_stack=stack,
+            blind_levels=blind_levels,
+            fee=None,
+            entries=None,
+            prize_pool=None,
+            day_number=day_number,
+            flight=flight_name or None,
+            late_reg_levels=None,
+            re_entry=re_entry,
+            re_entry_limit=None,
+            unlimited_re_entry=unlimited_re_entry,
+            venue_name="",
+            city="",
+            state="",
+            source="pokeratlas_html",
+            source_url=source_url,
+            html_hash=html_hash,
+            tz_state=series_state,
+        )
+        if rec:
+            results.append(rec)
+    return results
+
 def extract_html_events(html: str, series_uid: str, series_name: str,
                         batch_id: str, source_url: str, html_hash: str,
                         series_state: str = "") -> list:
     """Fallback: Extract events from raw HTML when __NEXT_DATA__ is missing."""
+    pokeratlas_events = extract_pokeratlas_html_events(
+        html, series_uid, series_name, batch_id, source_url, html_hash, series_state
+    )
+    if pokeratlas_events is not None:
+        return pokeratlas_events
+
     text = re.sub(r"\s+"," ", re.sub(r"<[^>]+>"," ",html))
     seen, results = set(), []
     event_counter = 0
@@ -1027,6 +2028,7 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         nonlocal event_counter
         bi = BUY_RE.search(txt); tm = TIME_RE.search(txt)
         if not bi: return
+        if not is_poker_tournament_event_text(txt): return
         buyin = int(bi.group(1).replace(",",""))
         if not 10<=buyin<=250000: return
         st = normalize_time_to_24h(normalize_time(tm.group(1))) if tm else None
@@ -1085,7 +2087,7 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         notes_parts = []
         if bounty: notes_parts.append(f"Bounty: ${bounty}")
 
-        results.append(make_event_rec(
+        rec = make_event_rec(
             series_uid=series_uid, series_name=series_name,
             batch_id=batch_id, event_uid=event_uid,
             event_name=tname or f"{series_name} - ${buyin} Event", event_number=event_counter if event_counter > 0 else None,
@@ -1101,7 +2103,9 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
             html_hash=html_hash,
             notes=" | ".join(notes_parts) if notes_parts else None,
             tz_state=series_state,
-        ))
+        )
+        if rec:
+            results.append(rec)
 
     for block in re.split(r"(?=\$\d)", text):
         if 8 < len(block) < 900: try_block(block)
@@ -1135,42 +2139,18 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session, series_state=""
 
     # Try to match series name to a venue
     # Series names often contain venue names like "Graton Poker Series" -> "Graton"
-    series_lower = series_name.lower()
-    # Strip common poker words from series name for matching
-    noise_words = {'poker', 'series', 'tournament', 'classic', 'championship', 'open', 'cup',
-                   'spring', 'summer', 'fall', 'winter', 'bounty', 'mystery', 'deepstack',
-                   'the', 'at', 'of', 'in', '&', 'and', "'26", "'25", '2026', '2025'}
-    series_words = set(re.split(r'[\s\-\']+', series_lower)) - noise_words
-    
-    best_venue = None
-    best_score = 0
-    for v in venues:
-        vname = (v.get('name') or '').lower()
-        if not vname:
-            continue
-        # Strip common suffixes for matching
-        vname_clean = re.sub(r'\s*(&amp;|&)\s*', ' ', vname)
-        vname_clean = re.sub(r'\s*(casino|resort|hotel|poker room|poker|room|entertainment|gaming)\s*', ' ', vname_clean)
-        venue_words = set(re.split(r'[\s\-\']+', vname_clean.strip())) - noise_words - {''}
-        
-        # Score by word overlap — more matching words = better
-        overlap = series_words & venue_words
-        if overlap and len(overlap) >= 1:
-            # Prioritize venues where distinctive words match
-            score = len(overlap)
-            # Bonus for matching the first word of the venue name
-            first_word = vname_clean.strip().split()[0] if vname_clean.strip() else ''
-            if first_word and first_word in series_words:
-                score += 2
-            if score > best_score:
-                best_score = score
-                best_venue = v
+    best_venue = select_physical_series_venue(series_name, series_state, venues)
 
     if not best_venue:
-        log(f"      [Src 4: Bravo] No venue match for '{series_name[:30]}'")
+        log(f"      [Src 4: Bravo] No unambiguous physical venue match for '{series_name[:30]}'")
         return []
 
-    log(f"      [Src 4: Bravo] Matched venue: {best_venue.get('name', '?')[:40]} (score:{best_score})")
+    venue_name = str(best_venue.get("name") or "")
+    if not (_series_identity_tokens(series_name) - _series_identity_tokens(venue_name)):
+        log("      [Src 4: Bravo] Venue identity alone cannot prove this series; skipping")
+        return []
+
+    log(f"      [Src 4: Bravo] Matched physical venue: {venue_name[:40]}")
 
     bravo_slug = best_venue.get('bravo_slug') or ''
     venue_slug = best_venue.get('slug') or ''
@@ -1188,7 +2168,8 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session, series_state=""
         log(f"      [Src 4a: Bravo] Trying {bravo_url[:70]}")
         try:
             b_html, b_status, b_raw, b_hash = scrapling_fetch(bravo_url)
-            if b_status == 200 and b_html and has_tourn(b_html):
+            if (b_status == 200 and b_html and has_tourn(b_html)
+                    and venue_page_confirms_series(series_name, venue_name, b_html)):
                 events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash, series_state)
                 if events:
                     stamp_source(events, 'bravo_venue')
@@ -1202,7 +2183,9 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session, series_state=""
         try:
             v_html, v_status, v_raw, v_hash = scrapling_fetch(website)
             if v_status == 200 and v_html:
-                if has_tourn(v_html):
+                if has_tourn(v_html) and venue_page_confirms_series(
+                    series_name, venue_name, v_html
+                ):
                     events = extract_html_events(v_html, series_uid, series_name, batch_id, website, v_hash, series_state)
                     if events:
                         stamp_source(events, 'venue_website')
@@ -1218,7 +2201,10 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session, series_state=""
                             continue
                         try:
                             s_html, s_status, s_raw, s_hash = scrapling_fetch(sub_url, timeout=10)
-                            if s_status == 200 and s_html and has_tourn(s_html):
+                            if (s_status == 200 and s_html and has_tourn(s_html)
+                                    and venue_page_confirms_series(
+                                        series_name, venue_name, s_html
+                                    )):
                                 events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash, series_state)
                                 if events:
                                     stamp_source(events, 'venue_subpage')
@@ -1228,21 +2214,6 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session, series_state=""
                             pass
         except Exception as ex:
             log(f"        [Venue Web] Error: {str(ex)[:60]}")
-
-    # Source 4c: CardPlayer tournament search (event-level, not just enrichment)
-    if not events:
-        try:
-            cp_search = urllib.parse.quote(series_name.replace("'", "")[:40])
-            cp_url = f"https://www.cardplayer.com/poker-tournaments?search={cp_search}"
-            log(f"      [Src 4c: CardPlayer] Searching: {series_name[:35]}")
-            cp_html, cp_status, cp_raw, cp_hash = scrapling_fetch(cp_url)
-            if cp_status == 200 and cp_html and has_tourn(cp_html):
-                events = extract_html_events(cp_html, series_uid, series_name, batch_id, cp_url, cp_hash, series_state)
-                if events:
-                    stamp_source(events, 'cardplayer')
-                    log(f"        [CardPlayer] {len(events)} events extracted")
-        except Exception as ex:
-            log(f"        [CardPlayer] Error: {str(ex)[:60]}")
 
     return events
 
@@ -1260,19 +2231,21 @@ def _try_cardplayer(series_uid, series_name, batch_id, session, series_state="")
         
         target_path = None
         if cp_status == 200 and cp_html:
-            best_score = 0
-            search_words = set(re.findall(r'[a-z]+', series_name.lower()[:50])) - {'poker','series','classic','the','of'}
+            best_score = (-1, -1)
             for match in re.finditer(r'href="(https://www.cardplayer.com/poker-tournaments/\d+-?([^"]*))"', cp_html, re.I):
                 path = match.group(1)
                 slug_part = match.group(2).lower()
                 if 'monthly' in path or 'daily' in path or slug_part == '': continue
-                path_words = set(re.findall(r'[a-z]+', slug_part))
-                overlap = len(search_words.intersection(path_words))
-                if overlap > best_score:
-                    best_score = overlap
+                if not source_series_identity_matches(series_name, slug_part.replace("-", " ")):
+                    continue
+                expected = _series_identity_tokens(series_name)
+                overlap = len(expected & _series_identity_tokens(slug_part))
+                score = (overlap, -len(_series_identity_tokens(slug_part) - expected))
+                if score > best_score:
+                    best_score = score
                     target_path = path
 
-            if best_score == 0 and target_path is None:
+            if target_path is None:
                 log(f"      [Src 3: CardPlayer] No relevant matching link found")
                     
         if target_path:
@@ -1280,45 +2253,17 @@ def _try_cardplayer(series_uid, series_name, batch_id, session, series_state="")
             log(f"      [Src 3: CardPlayer] Found series page: {series_url}")
             s_html, s_status, _, s_hash = fetch_with_retry(session, series_url)
             if s_status == 200 and s_html and has_tourn(s_html):
+                identity_markup = " ".join(re.findall(
+                    r'<(?:title|h1)\b[^>]*>(.*?)</(?:title|h1)>',
+                    s_html,
+                    re.I | re.S,
+                ))
+                if not source_series_identity_matches(
+                    series_name, f"{identity_markup} {series_url.rsplit('/', 1)[-1]}"
+                ):
+                    log("        [CardPlayer] Source identity mismatch; rejecting page")
+                    return []
                 events = extract_html_events(s_html, series_uid, series_name, batch_id, series_url, s_hash, series_state)
-                
-                # --- NEW DEEP SCRAPE LOGIC ---
-                # We attempt to find the deep /event/ links and match them to our extracted events
-                event_links_raw = re.findall(r'href="(https://www.cardplayer.com/poker-tournaments/\d+[^/]+/event/\d+[^"]*)"', s_html)
-                # Deduplicate while preserving order
-                unique_links = []
-                for l in event_links_raw:
-                    if l not in unique_links: unique_links.append(l)
-
-                if unique_links and events:
-                    log(f"        [CardPlayer] Found {len(unique_links)} event detail links. Deep scraping up to 10...")
-                    # We will align them by index (assuming chronological order matches)
-                    max_deep = min(len(events), len(unique_links), 10)
-                    for i in range(max_deep):
-                        e_url = unique_links[i]
-                        e_html, e_stat, _, _ = fetch_with_retry(session, e_url)
-                        if e_stat == 200 and e_html:
-                            # Search for fee in Buy-In format like $400 + $50 or Buy-in: $1,100 ($1,000 + $100)
-                            fee_m = re.search(r"Buy-In.*?\$?[\d,]+\s*(?:\(|-\s*)?\$?[\d,]+\s*\+\s*\$?([\d,]+)", e_html, re.I | re.DOTALL)
-                            if fee_m:
-                                events[i]['fee'] = int(re.sub(r'[^\d]', '', fee_m.group(1)))
-                            
-                            # Search for Starting Stack
-                            stk_m = re.search(r"Starting Stack.*?([\d,]+)", e_html, re.I | re.DOTALL)
-                            if stk_m:
-                                v = int(re.sub(r'[^\d]', '', stk_m.group(1)))
-                                if v >= 1000: events[i]['starting_stack'] = v
-                                
-                            # Search for Blind Levels
-                            lvl_m = re.search(r"Blind Levels.*?(\d+)\s*min", e_html, re.I | re.DOTALL)
-                            if lvl_m:
-                                events[i]['blind_levels'] = int(lvl_m.group(1))
-                                
-                            # Search for Guarantee
-                            gtd_m = re.search(r"Guaranteed.*?\$([\d,]+)", e_html, re.I | re.DOTALL)
-                            if gtd_m:
-                                events[i]['guarantee'] = int(re.sub(r'[^\d]', '', gtd_m.group(1)))
-
                 stamp_source(events, 'cardplayer')
                 log(f"        [CardPlayer] {len(events)} events extracted")
     except CODE_DEFECTS:
@@ -1364,6 +2309,8 @@ def _try_hendonmob(series_uid, series_name, batch_id, session, series_state=""):
 
                 # Strip HTML tags from cells
                 clean_cells = [re.sub(r'<[^>]+>', '', c).strip() for c in cells]
+                if not source_series_identity_matches(series_name, " ".join(clean_cells)):
+                    continue
 
                 # Try to extract: date, event name, buy-in
                 date_str = ''
@@ -1421,6 +2368,9 @@ def _try_hendonmob(series_uid, series_name, batch_id, session, series_state=""):
                             event_name = cell.strip()
 
                 if date_str and event_name:
+                    event_name = sanitize_series_event_name(event_name)
+                    if not event_name:
+                        continue
                     event_counter += 1
                     # Deterministic, content-derived uid (the old
                     # generate_consistent_id() was never defined anywhere, so this
@@ -1499,19 +2449,32 @@ def scrape_series(series: dict, session, batch_id: str,
     # event carries no state of its own (the HTML/PDF/aggregator paths never do).
     series_state = str(series.get("_db_state") or series.get("state") or "")
 
+    db_source_url = str(series.get("source_url") or series.get("scrape_url") or "")
+
     # Build PA slug and URL — SOURCE OF TRUTH for re-scraping
     # Handle numeric IDs (some series don't have PA slugs)
     if series_uid.startswith("pa_"):
         slug = series_uid.replace("pa_", "")
         pa_url = f"https://www.pokeratlas.com/poker-tournament-series/{slug}"
     elif series_uid.isdigit():
-        # Numeric ID — use source_url from DB if available
-        pa_url = series.get("source_url") or series.get("scrape_url") or ""
-        if not pa_url:
+        # A numeric legacy ID may point to an official casino/tour page.  It is
+        # not a PokerAtlas source merely because the old code stored it in the
+        # ``pa_url`` variable; doing so let an identity-rejected page be fetched
+        # a second time by Source 2 and accepted on generic poker words alone.
+        pa_url = (
+            db_source_url
+            if re.search(r"(?:^|\.)pokeratlas\.com/poker-tournament-series/", db_source_url, re.I)
+            else ""
+        )
+        if not pa_url and not db_source_url:
             log(f"      [NOTE] No PA URL — will try Bravo + HendonMob fallback sources")
-            pa_url = ""  # Skip Source 1, fall through to Source 4/5
-        else:
+        elif pa_url:
             log(f"      [NOTE] Numeric ID {series_uid} — using URL: {pa_url[:80]}")
+        else:
+            log(
+                f"      [NOTE] Numeric ID {series_uid}: official/source URL "
+                "will be identity-checked by Source 2"
+            )
     else:
         slug = series_uid
         pa_url = f"https://www.pokeratlas.com/poker-tournament-series/{slug}"
@@ -1523,7 +2486,13 @@ def scrape_series(series: dict, session, batch_id: str,
         # primary_url is only the PokerAtlas guess and is "" for numeric-ID series,
         # so writing it to poker_series.source_url wiped working URLs.
         resolved_url="", skipped=False,
+        canonical_series_name=series_name,
         scrape_fail_count=0, flags=[],
+        # Populated only by a complete, identity-checked PokerAtlas contract.
+        # Flush/reconciliation additionally requires exact persistence proof.
+        reconcile_complete=False, reconcile_source_url="",
+        reconcile_event_uids=[], reconcile_expected_event_count=0,
+        reconcile_evidence="",
     )
 
     # ── SOURCE 1: PokerAtlas series page (Scrapling StealthySession) ────────
@@ -1533,6 +2502,18 @@ def scrape_series(series: dict, session, batch_id: str,
     else:
         html, status, raw_body, html_hash = "", 0, b"", ""
         log(f"      [Src 1: PokerAtlas] SKIPPED (no URL)")
+
+    if status == 200 and html and not pa_series_page_matches(series, html, pa_url):
+        log(
+            "        IDENTITY MISMATCH - fetched page does not match requested "
+            f"series {series_uid}; quarantining {pa_url}"
+        )
+        result["scrape_fail_count"] += 1
+        result["flags"].append("source_identity_mismatch")
+        html = ""
+
+    if status == 200 and html:
+        result["canonical_series_name"] = extract_pa_series_page_name(html, series_name)
 
     if status == 200 and html:
         byte_count = len(raw_body)
@@ -1547,17 +2528,47 @@ def scrape_series(series: dict, session, batch_id: str,
             result["found"] = True
             result["source"] = "pokeratlas"
             result["resolved_url"] = pa_url
+            reconciliation = pa_next_data_reconciliation_evidence(html, events)
+            if reconciliation["complete"]:
+                result["reconcile_complete"] = True
+                result["reconcile_source_url"] = pa_url
+                result["reconcile_event_uids"] = [e["event_uid"] for e in events]
+                result["reconcile_expected_event_count"] = reconciliation["expected_event_count"]
+                result["reconcile_evidence"] = reconciliation["reason"]
+            else:
+                log(
+                    "        [PA:NEXT_DATA] additive-only snapshot; refusing "
+                    f"retirement ({reconciliation['reason']})"
+                )
 
         # Fallback: HTML parsing
         if not events:
-            events = extract_html_events(html, series_uid, series_name, batch_id, pa_url, html_hash,
-                                         series_state)
+            # The PokerAtlas tournament-item container is a bounded schedule
+            # contract; generic regex output is not. Keep that distinction so a
+            # partial fallback can add facts but can never retire prior rows.
+            contract_events = extract_pokeratlas_html_events(
+                html, series_uid, series_name, batch_id, pa_url, html_hash,
+                series_state,
+            )
+            if contract_events is None:
+                events = extract_html_events(
+                    html, series_uid, series_name, batch_id, pa_url, html_hash,
+                    series_state,
+                )
+            else:
+                events = contract_events
             if events:
                 log(f"        [PA:HTML] {len(events)} events (fallback)")
                 result["events"] = events
                 result["found"] = True
                 result["source"] = "pokeratlas_html"
                 result["resolved_url"] = pa_url
+                if contract_events is not None:
+                    result["reconcile_complete"] = True
+                    result["reconcile_source_url"] = pa_url
+                    result["reconcile_event_uids"] = [e["event_uid"] for e in events]
+                    result["reconcile_expected_event_count"] = len(events)
+                    result["reconcile_evidence"] = "complete_pokeratlas_html_contract"
 
         # PDF discovery on the page
         for pdf_url in find_pdfs(html, pa_url):
@@ -1580,11 +2591,22 @@ def scrape_series(series: dict, session, batch_id: str,
         if status == 403: result["flags"].append("cf_blocked")
 
     # ── SOURCE 2: Series source_url from DB (if different from PA) ──────────
-    db_source_url = series.get("source_url") or series.get("scrape_url") or ""
     if db_source_url and "pokeratlas.com" not in db_source_url and not result["found"]:
         log(f"      [Src 2: Source URL] {db_source_url[:80]}")
         html2, status2, raw2, hash2 = fetch_with_retry(session, db_source_url)
-        if status2 == 200 and html2 and has_tourn(html2):
+        source_venue_name = str(
+            series.get("venue_name") or series.get("venue") or ""
+        )
+        if status2 == 200 and html2 and not venue_page_confirms_series(
+            series_name, source_venue_name, html2,
+        ):
+            log(
+                "        IDENTITY MISMATCH - official/source page does not "
+                f"name series-specific identity for {series_uid}; refusing fallback"
+            )
+            result["scrape_fail_count"] += 1
+            result["flags"].append("source_identity_mismatch")
+        elif status2 == 200 and html2 and has_tourn(html2):
             events2 = extract_html_events(html2, series_uid, series_name, batch_id, db_source_url,
                                           hash2, series_state)
             if events2:
@@ -1603,7 +2625,7 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = cp_events
             result["found"] = True
             result["source"] = "cardplayer"
-            result["resolved_url"] = db_source_url or pa_url
+            result["resolved_url"] = source_url_from_records(cp_events) or db_source_url or pa_url
             
     # ── SOURCE 4: HendonMob / SummerInVegas ─────────────────────────────────
     if not result["found"]:
@@ -1612,7 +2634,7 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = hm_events
             result["found"] = True
             result["source"] = "hendonmob"
-            result["resolved_url"] = db_source_url or pa_url
+            result["resolved_url"] = source_url_from_records(hm_events) or db_source_url or pa_url
 
     # ── SOURCE 5: Venue Web / Bravo ─────────────────────────────────────────
     if not result["found"]:
@@ -1621,7 +2643,7 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = v_events
             result["found"] = True
             result["source"] = v_events[0].get("source", "venue")
-            result["resolved_url"] = db_source_url or pa_url
+            result["resolved_url"] = source_url_from_records(v_events) or db_source_url or pa_url
 
     # ── Series-level completeness log ───────────────────────────────────────
     # REMOVED: the "multi-source enrichment" block that used to live here.
@@ -1651,6 +2673,23 @@ def scrape_series(series: dict, session, batch_id: str,
         result["skipped"] = True
         result["flags"].append("no_source_url")
 
+    # Parent dates are part of source identity. A response whose events fall
+    # outside that window is commonly a different series page or an unrelated
+    # fallback schedule, so reject the entire response instead of publishing a
+    # plausible-looking partial subset.
+    window_ok, window_reason = series_events_fit_parent_window(
+        series, result["events"],
+    )
+    if result["events"] and not window_ok:
+        log(
+            f"      IDENTITY MISMATCH - {window_reason}; dropping "
+            f"{len(result['events'])} event(s) for {series_name}"
+        )
+        result["events"] = []
+        result["found"] = False
+        result["scrape_fail_count"] += 1
+        result["flags"].append("event_date_outside_parent_window")
+
     # ── Anti-hallucination guard ────────────────────────────────────────────
     if result["events"] and not anti_hallucination_ok(result["events"]):
         log(f"      ⛔ Anti-hallucination FAIL — dropping {series_name}")
@@ -1678,10 +2717,12 @@ def scrape_series(series: dict, session, batch_id: str,
         "body_preview":       html[:200] if html else "",
         "series_uid":         series_uid,
         "series_name":        series_name,
+        "canonical_series_name": result["canonical_series_name"],
         "found":              result["found"],
         "records_extracted":  len(result["events"]),
         "source":             result["source"],
         "primary_url":        result["primary_url"],
+        "resolved_url":       result["resolved_url"],
         "avg_completeness":   avg_score,
         "enrich_mode":        enrich_mode,
         "missing_fields":     missing_fields,
@@ -1737,45 +2778,70 @@ def flush_chunk(chunk_results: list, batch_id: str, dry_run: bool) -> int:
         log(f"  [DRY RUN] Would upsert {len(all_events)} events from {len(chunk_results)} series")
         return len(all_events)
 
-    # Upsert events in batches of 100 via PostgREST (triggers fire)
-    total = 0
+    # Events carry a foreign key to poker_series.  Newly discovered live
+    # listing entries are not in the checked-in master or DB yet, so the parent
+    # must be verified/created before any child upsert is attempted.
+    eligible_results = []
+    eligible_uids = set()
+    for sr in chunk_results:
+        if not sr.get("found") or not sr.get("events"):
+            continue
+        if sb_ensure_series_parent(sr, batch_id):
+            eligible_results.append(sr)
+            eligible_uids.add(sr["series_uid"])
+        else:
+            lost = len(sr.get("events") or [])
+            RUN_ERRORS["rows_lost"] += lost
+            log(f"  [FLUSH] blocked {lost} event row(s): parent not verified")
+    all_events = [event for event in all_events if event.get("series_uid") in eligible_uids]
+    if not all_events:
+        log("  [FLUSH] 0 events have a verified parent; refusing child upsert")
+        return 0
+
+    # Upsert events in batches of 100 via PostgREST (triggers fire), retaining
+    # exact returned identities. A series is metadata-fresh/reconcilable only if
+    # every one of its current event_uids is present in this confirmed set.
+    confirmed_event_uids: set[str] = set()
     for i in range(0, len(all_events), 100):
-        total += sb_upsert_events(all_events[i:i+100])
+        confirmed_event_uids.update(sb_upsert_events_confirmed(all_events[i:i+100]))
+    total = len(confirmed_event_uids)
 
     # Patch series metadata
-    for sr in chunk_results:
+    for sr in eligible_results:
         if not sr.get("found") or not sr.get("events"): continue
         events = sr["events"]
-        buyins = [e["buy_in"] for e in events if e.get("buy_in")]
-        dates  = [e["start_date"] for e in events if e.get("start_date")]
-        patch = {
-            "events_scraped":   True,
-            "events_count":     len(events),
-            "event_count":      len(events),
-            "last_scraped":     datetime.now(timezone.utc).isoformat(),
-            "scrape_status":    "events_scraped",
-            "scrape_batch_id":  batch_id,
-            "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
+        expected_event_uids = {
+            str(event.get("event_uid") or "") for event in events
+            if event.get("event_uid")
         }
-        # Only record a URL when one actually produced these events, and record
-        # the URL of the source that SUCCEEDED. Unconditionally writing
-        # primary_url overwrote working CardPlayer/HendonMob/Bravo URLs with the
-        # empty PokerAtlas guess, which then disabled both downstream enrichers.
-        resolved = sr.get("resolved_url") or ""
-        if resolved:
-            patch["scrape_url"] = resolved
-            patch["source_url"] = resolved
-        if buyins:
-            patch["buy_in_min"] = min(buyins)
-            patch["buy_in_max"] = max(buyins)
-        if dates:
-            patch["start_date"] = min(dates)
-            patch["end_date"]   = max(dates)
+        if (not expected_event_uids
+                or not expected_event_uids.issubset(confirmed_event_uids)):
+            missing = expected_event_uids - confirmed_event_uids
+            log(
+                f"  [FLUSH] {sr['series_uid'][:50]} remains freshness-unverified; "
+                f"{len(missing) or len(events)} current event row(s) were not confirmed"
+            )
+            continue
+        patch = build_series_parent_refresh_patch(
+            sr, batch_id,
+            preserve_manual=bool(sr.get("_preserve_manual_parent")),
+        )
+        if not patch:
+            RUN_ERRORS["patch_failed"] += 1
+            log(f"  [FLUSH] parent refresh provenance missing for {sr['series_uid'][:50]}")
+            continue
 
         if not sb_patch_series(sr["series_uid"], patch):
             log(f"  [FLUSH] series patch FAILED for {sr['series_uid'][:50]}")
+            continue
 
-    found_count = sum(1 for sr in chunk_results if sr.get("found"))
+        # This is deliberately last. Current events, the parent metadata, and
+        # the authoritative source boundary must all be confirmed before an
+        # older row is made unservable.
+        if sr.get("reconcile_complete"):
+            reconcile_authoritative_series_events(sr)
+
+    found_count = len(eligible_results)
     avg_score = 0
     if all_events:
         avg_score = int(sum(compute_completeness(r) for r in all_events) / len(all_events))
@@ -1787,15 +2853,20 @@ def flush_chunk(chunk_results: list, batch_id: str, dry_run: bool) -> int:
 
 # ── Load series list (missing mode vs enrich mode) ─────────────────────────────
 def load_missing_series(filter_state: str = "", filter_slug: str = "",
-                        force: bool = False, limit: int = 0) -> list:
+                        force: bool = False, limit: int = 0,
+                        discovered_series: Optional[list[dict]] = None) -> Optional[list]:
     """Load series that have NOT been scraped yet (or all if --force)."""
     if not MASTER_LIST.exists():
         log(f"❌ Master list not found: {MASTER_LIST}"); sys.exit(1)
 
     with open(MASTER_LIST) as f:
         data = json.load(f)
-    all_series = data.get("master_list", [])
-    log(f"  Master list: {len(all_series)} total entries")
+    master_series = data.get("master_list", [])
+    all_series = merge_series_catalog(master_series, discovered_series or [])
+    log(
+        f"  Series catalog: {len(discovered_series or [])} live discoveries + "
+        f"{len(master_series)} master entries -> {len(all_series)} unique"
+    )
 
     # ── Exclude poker TOURS (these are NOT series) ──────────────────────
     TOUR_KEYWORDS = [
@@ -1819,23 +2890,25 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
     if excluded:
         log(f"  Excluded {excluded} poker TOURS → {len(all_series)} series remaining")
 
-    # Filter by specific slug (searches ID and name, case-insensitive)
-    if filter_slug:
-        slug_lower = filter_slug.lower()
-        matched = [s for s in all_series
-                   if slug_lower in str(s.get("id", "")).lower()
-                   or slug_lower in str(s.get("name", "")).lower()]
-        if not matched:
-            log(f"  ⚠️  No series matching '{filter_slug}' in ID or name")
-        else:
-            log(f"  Matched {len(matched)} series for '{filter_slug}'")
-        return matched[:1]
-
     # Get DB state for filtering
     db_series = sb_get_paged("poker_series",
         "?select=series_uid,state,events_scraped,events_count,scrape_url,source_url,"
-        "last_scraped,start_date,end_date")
+        "last_scraped,start_date,end_date,is_suppressed")
+    if db_series is None:
+        log("  [SERIES LOAD ERR] poker_series cohort could not be verified")
+        return None
     db_map = {r["series_uid"]: r for r in db_series}
+
+    before_suppressed = len(all_series)
+    all_series = [
+        series for series in all_series
+        if not db_map.get(str(series.get("id", "")), {}).get("is_suppressed")
+    ]
+    if before_suppressed != len(all_series):
+        log(
+            f"  Skipping {before_suppressed - len(all_series)} explicitly "
+            "suppressed series pending manual source repair"
+        )
 
     # Enrich master list with DB data (state, source_url, scrape_url)
     for s in all_series:
@@ -1845,6 +2918,19 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
         # Prefer master list source_url, fallback to DB
         if not s.get("source_url"):
             s["source_url"] = db_row.get("source_url") or db_row.get("scrape_url") or ""
+
+    # Filter explicit targets only after applying the authoritative suppression
+    # map.  The former early return let ``--series`` bypass quarantine rows.
+    if filter_slug:
+        slug_lower = filter_slug.lower()
+        matched = [s for s in all_series
+                   if slug_lower in str(s.get("id", "")).lower()
+                   or slug_lower in str(s.get("name", "")).lower()]
+        if not matched:
+            log(f"  ⚠️  No unsuppressed series matching '{filter_slug}' in ID or name")
+        else:
+            log(f"  Matched {len(matched)} unsuppressed series for '{filter_slug}'")
+        return matched[:1]
 
     # Filter by state
     if filter_state:
@@ -1893,7 +2979,7 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
     return all_series
 
 def load_enrich_series(filter_state: str = "", min_score: int = 60,
-                       limit: int = 0) -> list:
+                       limit: int = 0) -> Optional[list]:
     """
     Load series that already have events but with low completeness scores.
     Re-scrape to fill missing fields every 72h cycle.
@@ -1906,6 +2992,9 @@ def load_enrich_series(filter_state: str = "", min_score: int = 60,
         "?select=series_uid,event_name,starting_stack,blind_levels,"
         "guarantee,format,late_reg_levels,re_entry,fee,prize_pool,entries,"
         "buy_in,start_time,start_date,game_type,source,notes")
+    if events is None:
+        log("  [ENRICH READ ERR] poker_events cohort could not be verified")
+        return None
     if not events:
         log("  [ENRICH] No events in DB!"); return []
 
@@ -1939,13 +3028,18 @@ def load_enrich_series(filter_state: str = "", min_score: int = 60,
 
     # Get DB metadata
     db_series = sb_get_paged("poker_series",
-        "?select=series_uid,state,scrape_url,source_url")
+        "?select=series_uid,state,scrape_url,source_url,is_suppressed")
+    if db_series is None:
+        log("  [ENRICH READ ERR] poker_series metadata cohort could not be verified")
+        return None
     db_map = {r["series_uid"]: r for r in db_series}
     master_map = {str(s.get("id","")): s for s in master}
 
     result = []
     for uid, avg_score, missing in low_score_uids:
         db_row = db_map.get(uid, {})
+        if db_row.get("is_suppressed") is True:
+            continue
         fail_count = 0  # scrape_fail_count column not in poker_series schema
 
         # Skip permanently ungettable
@@ -1969,9 +3063,19 @@ def load_enrich_series(filter_state: str = "", min_score: int = 60,
     log(f"  [ENRICH] {len(result)} series qualify for enrichment pass")
     return result
 
+
+def record_unresolved_series_attempt(series_result: dict) -> bool:
+    """Record a fetched-but-unresolved series as a run-level error."""
+    if series_result.get("found") or series_result.get("skipped"):
+        return False
+    RUN_ERRORS["series_errors"] += 1
+    return True
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main():
-    global CURRENT_SESSION
+    global CURRENT_SESSION, STOP_REQUESTED
+    for counter in RUN_ERRORS:
+        RUN_ERRORS[counter] = 0
     p = argparse.ArgumentParser(description="Poker Series Event Scraper (Scrapling + Camoufox)")
     p.add_argument("--state",      default="",  help="Filter to single state (e.g. NV)")
     p.add_argument("--series",     default="",  help="Scrape a single series by slug")
@@ -1999,7 +3103,7 @@ def main():
     mode = "ENRICH" if args.enrich else "MISSING"
     log("="*70)
     log(f"POKER SERIES SCRAPER — Mode: {mode}")
-    log(f"  Source: master_poker_series_list.json (177 series)")
+    log("  Source: live PokerAtlas listing + checked-in catalog fallback")
     log(f"  Fetcher: Scrapling StealthySession + camoufox")
     log(f"  Primary: PokerAtlas __NEXT_DATA__ extraction")
     log(f"  Target DB: poker_events (upsert on event_uid)")
@@ -2018,28 +3122,79 @@ def main():
     total_events = 0
 
     while pass_num < args.pass_limit:
+        if STOP_REQUESTED:
+            log("Shutdown requested before the next pass")
+            break
         pass_num += 1
         batch_id = str(uuid.uuid4())
+        session = None
+        discovered_series: list[dict] = []
 
         if args.enrich:
             series_list = load_enrich_series(args.state, args.min_score, args.limit)
+            if series_list is None:
+                log("Enrichment cohort read failed; aborting this run")
+                break
             if not series_list:
                 log("✅ All series at full completeness!"); break
         else:
+            # Refresh the current PokerAtlas listing every run.  The checked-in
+            # master file is a fallback/catalog history, not a current schedule.
+            session = create_session()
+            CURRENT_SESSION = session
+            listing_html, listing_status, _, listing_hash = fetch_with_retry(
+                session, PA_SERIES_LISTING_URL
+            )
+            if CURRENT_SESSION is not None and CURRENT_SESSION is not session:
+                session = CURRENT_SESSION
+            if listing_status == 200 and listing_html:
+                discovered_series = extract_pa_series_listing(listing_html)
+                if discovered_series:
+                    log(
+                        f"  Live PokerAtlas listing: {len(discovered_series)} series "
+                        f"(hash {listing_hash[:16]}...)"
+                    )
+                else:
+                    log("  Live PokerAtlas listing returned no canonical series links")
+                    RUN_ERRORS["series_errors"] += 1
+            else:
+                log(
+                    f"  Live PokerAtlas listing unavailable (HTTP {listing_status}); "
+                    "using master fallback and marking the run degraded"
+                )
+                RUN_ERRORS["series_errors"] += 1
             series_list = load_missing_series(
                 filter_state=args.state,
                 filter_slug=args.series,
                 force=args.force,
                 limit=args.limit,
+                discovered_series=discovered_series,
             )
+            if series_list is None:
+                try:
+                    if session is not None:
+                        session.close()
+                except Exception:
+                    pass
+                CURRENT_SESSION = None
+                log("Series cohort read failed; aborting this run")
+                break
             if not series_list:
+                try:
+                    if session is not None:
+                        session.close()
+                except Exception:
+                    pass
+                CURRENT_SESSION = None
                 log("🎉 No series to scrape — all done!"); break
 
         log(f"\n{'='*70}")
         log(f"PASS {pass_num}/{args.pass_limit} — {len(series_list)} series — Batch {batch_id[:8]}")
         log(f"{'='*70}\n")
 
-        session = create_session()
+        if session is None:
+            session = create_session()
+            CURRENT_SESSION = session
         session_start = time.time()
         consecutive_fails = 0
         chunk_buf: list = []
@@ -2048,6 +3203,13 @@ def main():
 
         budget_exhausted = False
         for i, series in enumerate(series_list):
+            if STOP_REQUESTED:
+                log(
+                    f"  Shutdown requested at series {i + 1}/{len(series_list)}; "
+                    "flushing confirmed work before exit"
+                )
+                budget_exhausted = True
+                break
             # Wall-clock budget — flush what we have and stop cleanly rather than
             # letting the CI runner kill the job mid-chunk and lose chunk_buf.
             if deadline and time.time() >= deadline:
@@ -2113,14 +3275,18 @@ def main():
                     consecutive_fails = 0
                     log(f"      ⏭  Skipped — no source URL")
                 else:
+                    # A fetched/attempted series that produced no identity-bound
+                    # events is unresolved, not a successful no-op.
+                    record_unresolved_series_attempt(sr)
                     consecutive_fails += 1
                     log(f"      ❌ No events found")
                     # Update status in DB
                     if not args.dry_run:
-                        sb_patch_series(series_uid, {
+                        if not sb_patch_series(series_uid, {
                             "scrape_status": "failed",
                             "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
-                        })
+                        }):
+                            log(f"      failed to persist unresolved status for {series_uid}")
             except CODE_DEFECTS as e:
                 # A bug in the scraper is NOT "this series had no events".
                 # Log loudly with a traceback, count it, and keep the run's exit
@@ -2139,6 +3305,12 @@ def main():
                 chunk_buf.append({"series_uid":series_uid,"series_name":series_name,
                                   "found":False,"events":[]})
                 consecutive_fails += 1
+
+            # fetch_with_retry can replace a dead browser mid-series. Adopt that
+            # session immediately so the final item in a pass is also closed and
+            # so timeout/circuit-breaker handling never operates on the old one.
+            if CURRENT_SESSION is not None and CURRENT_SESSION is not session:
+                session = CURRENT_SESSION
 
             elapsed = time.time() - series_started
             if args.series_timeout and elapsed > args.series_timeout:
@@ -2177,13 +3349,19 @@ def main():
 
         try: session.close()
         except: pass
+        CURRENT_SESSION = None
 
         total_found += pass_found
 
         # Layer 6: Audit trail
         if not args.dry_run:
-            sb_audit(batch_id, len(series_list), total_events,
-                     f"Pass={pass_num},Mode={mode},Found={pass_found}/{len(series_list)}")
+            if not sb_audit(
+                batch_id,
+                len(series_list),
+                total_events,
+                f"Pass={pass_num},Mode={mode},Found={pass_found}/{len(series_list)}",
+            ):
+                RUN_ERRORS["patch_failed"] += 1
 
         log(f"\n{'='*70}")
         log(f"PASS {pass_num} DONE — {pass_found}/{len(series_list)} resolved, {total_events} events total")
@@ -2195,7 +3373,14 @@ def main():
         # For missing mode: check if there are still unscraped series
         if not args.enrich:
             if args.series: break  # single series mode, one pass
-            remaining = load_missing_series(args.state, force=False)
+            remaining = load_missing_series(
+                args.state,
+                force=False,
+                discovered_series=discovered_series,
+            )
+            if remaining is None:
+                log("Remaining-series cohort read failed; aborting this run")
+                break
             log(f"Remaining: {len(remaining)}")
             if not remaining: log("🎉 100% COMPLETE!"); break
             if len(remaining) == len(series_list):
@@ -2222,9 +3407,10 @@ if __name__ == "__main__":
         
         running = True
         def signal_handler(sig, frame):
-            global running
+            global running, STOP_REQUESTED
             log("⛔ Shutdown signal received, stopping...")
             running = False
+            STOP_REQUESTED = True
             
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
@@ -2239,6 +3425,12 @@ if __name__ == "__main__":
                 os._exit(1)
             try:
                 rows_written = main()
+                if any(RUN_ERRORS.values()):
+                    log(
+                        f"Run completed with integrity errors {RUN_ERRORS}; "
+                        "exiting so launchd can restart instead of reporting healthy"
+                    )
+                    os._exit(1)
                 # Only reset the staleness clock when the cycle ACTUALLY wrote
                 # rows. Resetting on every return meant a daemon producing zero
                 # rows for weeks still looked healthy and the watchdog never
@@ -2253,6 +3445,13 @@ if __name__ == "__main__":
                 log(f"\n❌ Daemon cycle crashed: {e}")
                 import traceback
                 traceback.print_exc()
+                # An unhandled cycle defect is not a valid idle state. Exit so
+                # launchd records the failure and starts a clean process rather
+                # than leaving the daemon asleep and stale for six hours.
+                sys.exit(1)
+
+            if not running or STOP_REQUESTED:
+                break
             
             sleep_hours = 6
             log(f"\n💤 Daemon sleeping for {sleep_hours} hours...")

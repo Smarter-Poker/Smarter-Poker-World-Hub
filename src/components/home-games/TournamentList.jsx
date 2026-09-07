@@ -31,6 +31,7 @@
  */
 import { useState } from 'react';
 import { Trophy, Calendar, Clock, Coins, Users, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import CasinoActionDialog from '../poker-near-me/CasinoActionDialog';
 
 // ─── Normalize either shape into a single internal record ───────────────
 function normalizeTournament(t) {
@@ -152,6 +153,7 @@ function StatusBadge({ status }) {
 function TournamentCard({ tournament, mode, onEdit, onCancel, onView, hostHref }) {
   const t = tournament;
   const [busy, setBusy] = useState(false);
+  const [cancelPromptOpen, setCancelPromptOpen] = useState(false);
   const isHost = mode === 'host';
   const isCancelled = t.status === 'cancelled';
   const capDisplay = t.entries_cap ? `${t.rsvp_yes} / ${t.entries_cap}` : `${t.rsvp_yes} registered`;
@@ -222,12 +224,7 @@ function TournamentCard({ tournament, mode, onEdit, onCancel, onView, hostHref }
           {!isCancelled && onCancel && (
             <button
               type="button"
-              onClick={async () => {
-                if (busy) return;
-                if (!confirm(`Cancel "${t.name}"? This will notify any RSVPs.`)) return;
-                setBusy(true);
-                try { await onCancel(t); } finally { setBusy(false); }
-              }}
+              onClick={() => { if (!busy) setCancelPromptOpen(true); }}
               className="cmd-btn h-9 text-sm flex items-center justify-center gap-1.5 px-3"
               style={{ background: '#EF444422', color: '#EF4444' }}
               disabled={busy}
@@ -263,6 +260,27 @@ function TournamentCard({ tournament, mode, onEdit, onCancel, onView, hostHref }
           </div>
         )
       )}
+
+      <CasinoActionDialog
+        open={cancelPromptOpen}
+        eyebrow="Tournament control"
+        title={`Cancel ${t.name}?`}
+        message="This will cancel the tournament and notify any players who RSVP'd."
+        confirmLabel="Cancel Tournament"
+        destructive
+        busy={busy}
+        onClose={() => setCancelPromptOpen(false)}
+        onConfirm={async () => {
+          if (busy) return;
+          setBusy(true);
+          try {
+            await onCancel(t);
+            setCancelPromptOpen(false);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
     </div>
   );
 }
