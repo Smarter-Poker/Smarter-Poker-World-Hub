@@ -1525,8 +1525,14 @@ async function correlateDiamondPurchase(paymentIntent) {
     if (purchase) return purchase.id;
 
     const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 10 });
-    const checkoutSession = sessions.data.find((entry) => entry.metadata?.purchase_id);
-    if (checkoutSession?.metadata?.type === 'diamonds' && checkoutSession.metadata.purchase_id) {
+    // Review R2-08 (2026-09-07): the type test belongs in the predicate. Picking the first
+    // session that merely carries a purchase_id and then testing its type returned null when
+    // a merchandise or VIP session sat first, and both completed diamond purchases in
+    // production have a NULL payment intent, so this fallback is the only path to them.
+    const checkoutSession = sessions.data.find((entry) => (
+        entry.metadata?.type === 'diamonds' && entry.metadata?.purchase_id
+    ));
+    if (checkoutSession?.metadata?.purchase_id) {
         const { data: recovered, error: recoveredError } = await getSupabase()
             .from('diamond_purchases')
             .select('id')
@@ -1568,17 +1574,47 @@ async function handleDispute(dispute, eventType) {
     const rawAmount = Number(dispute?.amount);
     const amountCents = Number.isSafeInteger(rawAmount) && rawAmount >= 0 ? rawAmount : null;
 
+    // Review R2-09 (2026-09-07): Stripe sends the evidence deadline as evidence_details.due_by
+    // (unix seconds). It is the one field that decides whether the dispute is lost by silence,
+    // so it travels with the event instead of being recorded as unknown.
+    const rawDueBy = Number(dispute?.evidence_details?.due_by);
+    const evidenceDueBy = Number.isFinite(rawDueBy) && rawDueBy > 0
+        ? new Date(rawDueBy * 1000).toISOString()
+        : null;
+
     const { data: result, error: disputeError } = await getSupabase()
         .rpc('fn_diamond_purchase_dispute', {
             p_purchase_id: purchaseId,
             p_dispute_id: disputeId,
             p_event: eventName,
             p_amount_cents: amountCents,
+            p_evidence_due_by: evidenceDueBy,
         });
     if (disputeError) throw disputeError;
     if (!result?.success) {
         throw new Error(`Diamond dispute handling failed: ${result?.error || 'unknown_error'}`);
     }
+}
+
+// The live Stripe refund handler is `fn_diamond_purchase_refund` (renamed 2026-09-07 from
+// `reconcile_diamond_purchase_refund`: it is not a reconciler, CLAUDE.md 10.12). The old name is
+// still callable until the drop migration lands; fall back to it only when PostgREST says the
+// new one does not exist, never on a business error.
+async function applyDiamondRefund(purchaseId, chargeAmount, cumulativeRefund) {
+    const args = {
+        p_purchase_id: purchaseId,
+        p_charge_amount_cents: chargeAmount,
+        p_refunded_amount_cents: cumulativeRefund,
+    };
+    let { data: result, error: refundError } = await getSupabase().rpc('fn_diamond_purchase_refund', args);
+    if (refundError && (refundError.code === 'PGRST202' || refundError.code === '42883')) {
+        ({ data: result, error: refundError } = await getSupabase().rpc('reconcile_diamond_purchase_refund', args));
+    }
+    if (refundError) throw refundError;
+    if (!result?.success) {
+        throw new Error(`Diamond refund failed: ${result?.error || 'unknown_error'}`);
+    }
+    return result;
 }
 
 async function handleRefund(charge) {
@@ -1598,16 +1634,7 @@ async function handleRefund(charge) {
     if (purchaseReadError) throw purchaseReadError;
 
     if (purchase) {
-        const { data: result, error: reconcileError } = await getSupabase()
-            .rpc('reconcile_diamond_purchase_refund', {
-                p_purchase_id: purchase.id,
-                p_charge_amount_cents: chargeAmount,
-                p_refunded_amount_cents: cumulativeRefund,
-            });
-        if (reconcileError) throw reconcileError;
-        if (!result?.success) {
-            throw new Error(`Diamond refund reconciliation failed: ${result?.error || 'unknown_error'}`);
-        }
+        await applyDiamondRefund(purchase.id, chargeAmount, cumulativeRefund);
         return;
     }
 
@@ -1626,8 +1653,13 @@ async function handleRefund(charge) {
 
     if (!order) {
         const sessions = await stripe.checkout.sessions.list({ payment_intent, limit: 10 });
+        // Prefer the typed match (review R2-08): a diamond session with a purchase_id, else a
+        // merchandise session with an order_id. The first session that carries any id is not
+        // necessarily the one this refund belongs to.
         const checkoutSession = sessions.data.find((entry) => (
-            entry.metadata?.purchase_id || entry.metadata?.order_id
+            entry.metadata?.type === 'diamonds' && entry.metadata?.purchase_id
+        )) || sessions.data.find((entry) => (
+            entry.metadata?.type === 'merchandise' && entry.metadata?.order_id
         ));
         if (checkoutSession?.metadata?.type === 'diamonds' && checkoutSession.metadata.purchase_id) {
             const { data: pendingPurchase, error: pendingReadError } = await getSupabase()
@@ -1638,15 +1670,7 @@ async function handleRefund(charge) {
             if (pendingReadError || !pendingPurchase) {
                 throw pendingReadError || new Error('Refunded Diamond checkout could not be correlated');
             }
-            const { data: result, error: reconcileError } = await getSupabase()
-                .rpc('reconcile_diamond_purchase_refund', {
-                    p_purchase_id: pendingPurchase.id,
-                    p_charge_amount_cents: chargeAmount,
-                    p_refunded_amount_cents: cumulativeRefund,
-                });
-            if (reconcileError || !result?.success) {
-                throw reconcileError || new Error(`Diamond refund reconciliation failed: ${result?.error || 'unknown_error'}`);
-            }
+            await applyDiamondRefund(pendingPurchase.id, chargeAmount, cumulativeRefund);
             return;
         }
         if (checkoutSession?.metadata?.type === 'merchandise' && checkoutSession.metadata.order_id) {
