@@ -1336,7 +1336,7 @@ const styles = `
     padding: 0 6px;
     border-radius: 10px;
     background: rgba(0, 212, 255, 0.2);
-    font-size: 11px;
+    font-size:12px;
     font-weight: 700;
     color: #00D4FF;
   }
@@ -1526,7 +1526,7 @@ const styles = `
 
   .events-table thead th {
     text-align: left;
-    font-size: 11px;
+    font-size:12px;
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
@@ -1578,7 +1578,7 @@ const styles = `
   .event-time-sub {
     display: block;
     color: #60a5fa;
-    font-size: 11px;
+    font-size:12px;
     font-weight: 600;
     margin-top: 2px;
     white-space: nowrap;
@@ -1618,7 +1618,7 @@ const styles = `
   }
   .expand-indicator {
     margin-left: 8px;
-    font-size: 10px;
+    font-size:12px;
     color: #64748b;
     vertical-align: middle;
   }
@@ -1646,7 +1646,7 @@ const styles = `
     grid-column: 1 / -1;
   }
   .detail-label {
-    font-size: 10px;
+    font-size:12px;
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
@@ -1720,7 +1720,7 @@ const styles = `
 
   .leaderboard-table thead th {
     text-align: left;
-    font-size: 11px;
+    font-size:12px;
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
@@ -1829,7 +1829,7 @@ const styles = `
   }
 
   .ind-result-label {
-    font-size: 11px;
+    font-size:12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -1888,7 +1888,7 @@ const styles = `
     padding: 3px 10px;
     border-radius: 20px;
     border: 1px solid;
-    font-size: 11px;
+    font-size:12px;
     font-weight: 600;
     text-transform: capitalize;
   }
@@ -2074,7 +2074,7 @@ const styles = `
     }
     .event-gtd::before {
       content: 'GTD ';
-      font-size: 10px;
+      font-size:12px;
       color: #64748b;
     }
     .event-game, .event-stack, .event-format {

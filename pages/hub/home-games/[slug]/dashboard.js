@@ -83,17 +83,17 @@ function OnboardingChecklist({ group }) {
   const pct = Math.round((checks.filter(c => c.done).length / checks.length) * 100);
 
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.tealBorder}`, borderRadius: 14, padding: 20, marginBottom: 20 }}>
+    <div style={{ background: C.card, border: `1px solid ${C.tealBorder}`, borderRadius: 3, padding: 20, marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Setup Progress</span>
         <span style={{ fontWeight: 800, fontSize: 18, color: C.teal }}>{pct}%</span>
       </div>
-      <div style={{ height: 6, borderRadius: 4, background: 'rgba(255,255,255,.07)', marginBottom: 16 }}>
-        <div style={{ height: '100%', borderRadius: 4, background: `linear-gradient(90deg,${C.teal},${C.cyan})`, width: `${pct}%`, transition: 'width .4s' }} />
+      <div style={{ height: 6, borderRadius: 2, background: 'rgba(255,255,255,.07)', marginBottom: 16 }}>
+        <div style={{ height: '100%', borderRadius: 2, background: `linear-gradient(90deg,${C.teal},${C.cyan})`, width: `${pct}%`, transition: 'width .4s' }} />
       </div>
       {checks.map((c, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: c.done ? C.tealDim : 'rgba(255,255,255,.04)', border: `1px solid ${c.done ? C.teal : 'rgba(255,255,255,.1)'}`, color: c.done ? C.teal : C.textMuted }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: c.done ? C.tealDim : 'rgba(255,255,255,.04)', border: `1px solid ${c.done ? C.teal : 'rgba(255,255,255,.1)'}`, color: c.done ? C.teal : C.textMuted }}>
             {c.done ? '✓' : '·'}
           </div>
           <span style={{ fontSize: 13, color: c.done ? C.text : C.textMuted }}>{c.label}</span>
@@ -157,7 +157,7 @@ function OverviewTab({ group, token, slug }) {
       {/* Quick Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${statTiles.length}, 1fr)`, gap: 12, marginBottom: 20 }}>
         {statTiles.map(s => (
-          <div key={s.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, textAlign: 'center' }}>
+          <div key={s.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 26, fontWeight: 800, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{s.label}</div>
           </div>
@@ -165,15 +165,15 @@ function OverviewTab({ group, token, slug }) {
       </div>
 
       {/* Upcoming Events */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 16 }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 18, marginBottom: 16 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 14 }}>Upcoming Events</div>
         {events.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>No Upcoming Events. Schedule Your First Game!</div>
         ) : (
           events.map(ev => (
             <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: C.tealDim, border: `1px solid ${C.tealBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.teal }}>{ev.scheduled_date ? new Date(ev.scheduled_date).toLocaleDateString('en-US', { month: 'short' }) : '-'}</div>
+              <div style={{ width: 44, height: 44, borderRadius: 3, background: C.tealDim, border: `1px solid ${C.tealBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.teal }}>{ev.scheduled_date ? new Date(ev.scheduled_date).toLocaleDateString('en-US', { month: 'short' }) : '-'}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1 }}>{ev.scheduled_date ? new Date(ev.scheduled_date).getDate() : '-'}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -187,13 +187,13 @@ function OverviewTab({ group, token, slug }) {
 
       {/* Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Link href={`/hub/commander/home-games/${group?.id}/manage`} style={{ background: C.tealDim, border: `1px solid ${C.tealBorder}`, borderRadius: 12, padding: 14, textAlign: 'center', color: C.teal, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+        <Link href={`/hub/commander/home-games/${group?.id}/manage`} style={{ background: C.tealDim, border: `1px solid ${C.tealBorder}`, borderRadius: 3, padding: 14, textAlign: 'center', color: C.teal, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
           Schedule Game
         </Link>
         {/* audit F-30: `slug` lives on social_pages, not commander_home_groups, so
             group?.slug was undefined and this fell back to the group UUID, which
             /hub/home-games/[slug] 404s. The route param IS the slug. */}
-        <Link href={`/hub/home-games/${slug}`} style={{ background: 'rgba(255,255,255,.04)', border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, textAlign: 'center', color: C.textSec, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+        <Link href={`/hub/home-games/${slug}`} style={{ background: 'rgba(255,255,255,.04)', border: `1px solid ${C.border}`, borderRadius: 3, padding: 14, textAlign: 'center', color: C.textSec, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
           View Public Page
         </Link>
       </div>
@@ -234,7 +234,7 @@ function MembersTab({ group, token }) {
             <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{m.display_name || m.username}</div>
             <div style={{ fontSize: 12, color: C.textSec }}>@{m.username}</div>
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 8, background: HOST_ROLES.includes(m.role) ? C.tealDim : 'rgba(255,255,255,.04)', border: `1px solid ${HOST_ROLES.includes(m.role) ? C.tealBorder : C.border}`, color: HOST_ROLES.includes(m.role) ? C.teal : C.textSec }}>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 2, background: HOST_ROLES.includes(m.role) ? C.tealDim : 'rgba(255,255,255,.04)', border: `1px solid ${HOST_ROLES.includes(m.role) ? C.tealBorder : C.border}`, color: HOST_ROLES.includes(m.role) ? C.teal : C.textSec }}>
             {m.role}
           </span>
         </div>
@@ -249,6 +249,7 @@ function ModerationTab({ group, token }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [acting, setActing] = useState(null);
+  const [actionNotice, setActionNotice] = useState('');
 
   const load = useCallback(async () => {
     if (!token || !group?.id) return;
@@ -264,6 +265,7 @@ function ModerationTab({ group, token }) {
 
   const handleHide = async (postId) => {
     setActing(postId);
+    setActionNotice('');
     try {
       await apiFetch(`/api/commander/home-games/groups/${group.id}/posts`, token, {
         method: 'PATCH',
@@ -274,9 +276,9 @@ function ModerationTab({ group, token }) {
       // REPORT_ALREADY_RESOLVED: another moderator already actioned this report (409)
       const msg = e.message || '';
       if (msg.includes('ESCALATION_REQUIRED') || msg.includes('409') || msg.includes('already')) {
-        alert('This report has already been actioned by another moderator.');
+        setActionNotice('This report has already been actioned by another moderator. The queue has been refreshed.');
       } else {
-        alert(msg || 'Failed to hide post. Please try again.');
+        setActionNotice(msg || 'Failed to hide post. Please try again.');
       }
       // Refresh the list to reflect current server state
       load();
@@ -289,19 +291,44 @@ function ModerationTab({ group, token }) {
   return (
     <div>
       {err && <div style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{err}</div>}
-      <div style={{ background: 'rgba(6,182,212,.07)', border: '1px solid rgba(6,182,212,.2)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: '#67e8f9' }}>
+      {actionNotice && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            minHeight: 46, marginBottom: 12, padding: '8px 10px 8px 14px',
+            border: '1px solid #526071', borderRadius: 3, background: '#090e16',
+            boxShadow: 'inset 2px 0 0 #38bdf8, inset 0 0 0 1px rgba(255,255,255,.035)',
+            color: '#cbd5e1', fontSize: 13, lineHeight: 1.45,
+          }}
+        >
+          <span>{actionNotice}</span>
+          <button
+            type="button"
+            onClick={() => setActionNotice('')}
+            style={{
+              minHeight: 40, flex: '0 0 auto', padding: '0 12px', border: '1px solid #526071',
+              borderRadius: 2, background: '#0d131c', color: '#bae6fd', fontSize: 12,
+              fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer',
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      <div style={{ background: 'rgba(6,182,212,.07)', border: '1px solid rgba(6,182,212,.2)', borderRadius: 3, padding: 12, marginBottom: 16, fontSize: 12, color: '#67e8f9' }}>
         Host Moderation - Hide Or Remove Content Within Your Group. High-Severity Reports (Illegal, Self-Harm, Doxxing) Are Automatically Escalated To Platform Staff.
       </div>
       {reports.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>No Pending Moderation Items.</div>
       ) : (
         reports.map(r => (
-          <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+          <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 16, marginBottom: 10 }}>
             <div style={{ fontSize: 13, color: C.text, marginBottom: 8 }}>{r.content || r.text || '(no text)'}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, color: C.textMuted }}>{r.author_display || r.author_name}</span>
+              <span style={{ fontSize: 12, color: C.textMuted }}>{r.author_display || r.author_name}</span>
               <span style={{ flex: 1 }} />
-              <button onClick={() => handleHide(r.id)} disabled={acting === r.id} style={{ padding: '5px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={() => handleHide(r.id)} disabled={acting === r.id} style={{ minHeight: 44, padding: '5px 14px', borderRadius: 2, border: `1px solid ${C.border}`, background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: acting === r.id ? 'wait' : 'pointer' }}>
                 {acting === r.id ? '…' : 'Hide'}
               </button>
             </div>
@@ -316,13 +343,13 @@ function ModerationTab({ group, token }) {
 function SettingsTab({ group }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Link href={`/hub/commander/home-games/${group?.id}/manage`} style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, color: C.text, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+      <Link href={`/hub/commander/home-games/${group?.id}/manage`} style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 16, color: C.text, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
         Edit Group Details →
       </Link>
-      <Link href={`/hub/commander/home-games/${group?.id}/roster`} style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, color: C.text, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+      <Link href={`/hub/commander/home-games/${group?.id}/roster`} style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 16, color: C.text, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
         Manage Roster →
       </Link>
-      <Link href={`/hub/commander/home-games/${group?.id}`} style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, color: C.text, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+      <Link href={`/hub/commander/home-games/${group?.id}`} style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 16, color: C.text, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
         Full Commander View →
       </Link>
     </div>
@@ -487,13 +514,17 @@ export default function HomeGameDashboard() {
           actions={<Link href={`/hub/home-games/${slug}`}>View Public Profile</Link>}
         />
 
-        <main className="hgd-main">
+        <main
+          className="hgd-main"
+          data-pnm-realism="machined-v2"
+          data-pnm-secondary-foundation="interaction-v1"
+        >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
             {group?.profile_photo_url ? (
-              <img src={group.profile_photo_url} alt="" style={{ width: 56, height: 56, borderRadius: 14, objectFit: 'cover', border: `2px solid ${C.tealBorder}` }} />
+              <img src={group.profile_photo_url} alt="" style={{ width: 56, height: 56, borderRadius: 3, objectFit: 'cover', border: `2px solid ${C.tealBorder}` }} />
             ) : (
-              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg,#0d9488,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24, fontWeight: 700, border: `2px solid ${C.tealBorder}` }}>
+              <div style={{ width: 56, height: 56, borderRadius: 3, background: '#0b2630', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24, fontWeight: 700, border: `2px solid ${C.tealBorder}` }}>
                 {(group?.name || 'H')[0].toUpperCase()}
               </div>
             )}

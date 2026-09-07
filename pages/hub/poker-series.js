@@ -294,7 +294,6 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
             undefined, 
             { shallow: true }
         );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, dateRange, selectedTour, distanceFilter, sortBy, isInitialized, router.isReady]);
 
     // ─── Keyboard shortcut ─── (stable ref: no re-register on every searchQuery change)
@@ -469,7 +468,6 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
         return () => clearTimeout(timer);
     }, []);
     const dateRangeCutoff = useMemo(() => {
-        // eslint-disable-next-line no-unused-vars
         void nowTick; // dependency: recompute when midnight tick fires
         if (dateRange === 'all') return null;
         const now = new Date();
@@ -484,7 +482,6 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
         cutoff.setDate(cutoff.getDate() + days);
         return { start: now, end: cutoff };
     // BUG FIX: nowTick was missing here — midnight refresh never fired
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateRange, nowTick]);
 
     // ─── Deferred Filter States for 120hz Unblocked Input ───
@@ -696,11 +693,20 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
             try {
                 const stored = localStorage.getItem('pnm_series_favorites');
                 if (stored) current = JSON.parse(stored);
-            } catch (e) { console.warn('[App] Handled exception:', e); }
+            } catch (error) {
+                const storageError = error instanceof Error ? error.message : String(error);
+                console.warn('[PokerSeries] Invalid saved favorites were ignored:', storageError);
+                current = {};
+            }
             const next = { ...current };
             if (next[seriesId]) delete next[seriesId];
             else next[seriesId] = Date.now();
-            try { localStorage.setItem('pnm_series_favorites', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
+            try {
+                localStorage.setItem('pnm_series_favorites', JSON.stringify(next));
+            } catch (error) {
+                const storageError = error instanceof Error ? error.message : String(error);
+                console.warn('[PokerSeries] Favorites remain in memory because persistence failed:', storageError);
+            }
             return next;
         });
     }, []);
@@ -867,6 +873,9 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                             hideLegend={true}
                             uniformColor="#ffffff"
                             clusterTourStops={true}
+                            mapEyebrow="Series circuit map"
+                            mapTitle="Poker series destinations"
+                            mapDetail={`${seriesVenuesForMap.length} series locations · select a marker for schedules`}
                             onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                         />
                     </MapErrorBoundary>
@@ -995,7 +1004,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                                                             className="tour-code-badge"
                                                             style={{ background: colors.bg, border: '1px solid ' + colors.border, alignSelf: 'flex-start' }}
                                                         >
-                                                            <span style={{ color: colors.text, fontSize: isKnownTour ? 14 : 11, fontWeight: 800, letterSpacing: isKnownTour ? '0.5px' : '0.3px', textTransform: 'uppercase' }}>
+                                                            <span style={{ color: colors.text, fontSize: isKnownTour ? 14 : 12, fontWeight: 800, letterSpacing: isKnownTour ? '0.5px' : '0.3px', textTransform: 'uppercase' }}>
                                                                 {badgeLabel}
                                                             </span>
                                                         </div>
@@ -1018,17 +1027,17 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                                                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
                                                     </svg>
                                                     {live && (
-                                                        <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                                                        <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
                                                             LIVE NOW
                                                         </span>
                                                     )}
                                                     {upcoming && !live && (
-                                                        <span style={{ color: '#60a5fa', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                                                        <span style={{ color: '#60a5fa', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
                                                             UPCOMING
                                                         </span>
                                                     )}
                                                     {!live && !upcoming && (
-                                                        <span style={{ color: 'rgba(148,163,184,0.6)', fontWeight: 600, fontSize: 11 }}>
+                                                        <span style={{ color: '#9aa8b5', fontWeight: 600, fontSize: 12 }}>
                                                             SCHEDULED
                                                         </span>
                                                     )}
@@ -1152,6 +1161,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     /* ═══ TOP FILTERS BAR ═══ */
                     .pnm-top-filters {
                         width: 100%;
+                        box-sizing: border-box;
                         padding: 8px 20px 10px;
                         background: rgba(6, 14, 26, 0.6);
                         border-top: 1px solid rgba(255,255,255,0.1);
@@ -1234,7 +1244,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     .pnm-subtitle {
                         margin: clamp(3px, 0.5vh, 6px) 0 0;
                         font-size: clamp(11px, 1.2vw, 14px);
-                        color: rgba(148,163,184,0.6);
+                        color: #9aa8b5;
                         letter-spacing: 1px;
                         font-weight: 500;
                     }
@@ -1290,7 +1300,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         border: none !important;
                     }
                     .tours-search-bar-input::placeholder {
-                        color: rgba(148,163,184,0.4);
+                        color: #9aa8b5;
                         font-weight: 400;
                     }
                     .tours-search-clear {
@@ -1428,13 +1438,13 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     }
                     .sidebar-tab-count {
                         margin-left: auto;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
-                        color: rgba(148,163,184,0.4);
+                        color: #9aa8b5;
                         min-width: 18px;
                         text-align: center;
                     }
-                    .sidebar-tab.active .sidebar-tab-count { color: rgba(255,255,255,0.6); }
+                    .sidebar-tab.active .sidebar-tab-count { color: #d4dde6; }
 
                     /* ═══ SIDEBAR FILTERS ═══ */
                     .sidebar-filters {
@@ -1446,7 +1456,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     .sidebar-filter-group { margin-bottom: 10px; }
                     .sidebar-filter-group label {
                         display: block;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
                         color: rgba(255,255,255,0.5);
                         margin-bottom: 4px;
@@ -1479,15 +1489,15 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        font-size: 11px;
+                        font-size: 12px;
                         color: rgba(255,255,255,0.7);
                         font-weight: 600;
                     }
                     .sidebar-clear-btn {
                         background: none;
                         border: 1px solid rgba(239,68,68,0.25);
-                        color: rgba(239,68,68,0.7);
-                        font-size: 10px;
+                        color: #ff8a8f;
+                        font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
@@ -1497,7 +1507,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     }
                     .sidebar-clear-btn:hover {
                         background: rgba(239,68,68,0.1);
-                        color: #ef4444;
+                        color: #ff8a8f;
                     }
 
                     /* ═══ MAIN CONTENT ═══ */
@@ -1542,7 +1552,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         flex-wrap: wrap;
                         gap: 7px;
                         color: rgba(210, 225, 237, 0.72);
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.035em;
                         text-transform: uppercase;
@@ -1565,7 +1575,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         box-shadow: 0 0 10px rgba(244, 185, 66, 0.62);
                     }
                     .pnm-source-state time {
-                        color: rgba(148, 163, 184, 0.58);
+                        color: #aeb9c8;
                         font-weight: 600;
                         text-transform: none;
                     }
@@ -1584,7 +1594,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         opacity: 0.62;
                     }
                     .tours-stops-count {
-                        color: rgba(34,197,94,0.7);
+                        color: #67d58a;
                         font-weight: 600;
                         font-size: 13px;
                     }
@@ -1603,7 +1613,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         border-radius: 6px;
                         border: 1px solid rgba(239,68,68,0.25);
                         background: rgba(239,68,68,0.08);
-                        color: rgba(239,68,68,0.8);
+                        color: #ff8a8f;
                         font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1614,14 +1624,14 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     .tours-clear-all-btn:hover {
                         background: rgba(239,68,68,0.15);
                         border-color: rgba(239,68,68,0.4);
-                        color: #ef4444;
+                        color: #ff8a8f;
                     }
                     .tours-results-sort {
                         display: flex;
                         align-items: center;
                         gap: 8px;
                         font-size: 13px;
-                        color: rgba(148,163,184,0.5);
+                        color: #9aa8b5;
                     }
                     .tours-results-sort select {
                         padding: 6px 10px;
@@ -1692,7 +1702,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         min-width: 60px;
                     }
                     .tour-type-pill {
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 600;
                         padding: 3px 10px;
                         border-radius: 20px;
@@ -1726,8 +1736,8 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         padding-left: 20px;
                     }
                     .tour-stop-location {
-                        font-size: 11px;
-                        color: rgba(148,163,184,0.6);
+                        font-size: 12px;
+                        color: #9aa8b5;
                         padding-left: 20px;
                     }
 
@@ -1752,8 +1762,8 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         border-radius: 6px;
                         background: rgba(59,130,246,0.1);
                         border: 1px solid rgba(59,130,246,0.2);
-                        color: rgba(59,130,246,0.8);
-                        font-size: 11px;
+                        color: #76a9ff;
+                        font-size: 12px;
                         font-weight: 600;
                     }
 
@@ -1768,9 +1778,9 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
-                        color: rgba(148,163,184,0.5);
+                        color: #9aa8b5;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                         margin-bottom: 8px;
@@ -1793,14 +1803,14 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         max-width: 60%;
                     }
                     .tour-series-dates {
-                        font-size: 11px;
-                        color: rgba(34,197,94,0.7);
+                        font-size: 12px;
+                        color: #67d58a;
                         font-weight: 600;
                         white-space: nowrap;
                     }
                     .tour-series-more {
-                        font-size: 11px;
-                        color: rgba(148,163,184,0.4);
+                        font-size: 12px;
+                        color: #9aa8b5;
                         text-align: center;
                         padding-top: 6px;
                         border-top: 1px solid rgba(148,163,184,0.06);
@@ -1817,8 +1827,8 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         border-top: 1px solid rgba(148,163,184,0.08);
                     }
                     .tour-card-established {
-                        font-size: 11px;
-                        color: rgba(148,163,184,0.4);
+                        font-size: 12px;
+                        color: #9aa8b5;
                         font-weight: 500;
                     }
                     .tour-card-actions {
@@ -1915,7 +1925,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     }
                     .tours-empty p {
                         font-size: 13px;
-                        color: rgba(148,163,184,0.5);
+                        color: #9aa8b5;
                         margin: 0;
                         max-width: 400px;
                     }
@@ -1981,6 +1991,24 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
 
                     /* ═══ MOBILE ═══ */
                     @media (max-width: 768px) {
+                        .pnm-top-filters { padding: 8px 10px 10px; }
+                        .pnm-top-filters-inner {
+                            width: 100%;
+                            min-width: 0;
+                            flex-wrap: wrap;
+                            overflow-x: visible;
+                        }
+                        .pnm-filter-select {
+                            flex: 1 1 calc(50% - 4px);
+                            min-width: 120px;
+                            max-width: none;
+                            height: 44px;
+                        }
+                        .pnm-filter-clear-btn {
+                            flex: 1 1 100%;
+                            width: 100%;
+                            height: 44px;
+                        }
                         .pnm-title-bar {
                             padding: clamp(6px, 1.5vh, 14px) 14px clamp(4px, 1vh, 10px);
                         }
@@ -2029,7 +2057,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                         .sidebar-tab.active {
                             box-shadow: inset 0 -2px 0 #ffffff, inset 0 0 8px rgba(255,255,255,0.08);
                         }
-                        .sidebar-tab-label { font-size: 10px; }
+                        .sidebar-tab-label { font-size: 12px; }
                         .sidebar-tab-icon { width: 20px; height: 20px; }
                         .sidebar-tab-count { display: none; }
                         .sidebar-filters {
@@ -2072,6 +2100,11 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
 // ON-DEMAND STATIC DATA (ISR)
 // ═══════════════════════════════════════════════
 import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
+import {
+    isServableSeriesParentEvidence,
+    reconcileTournamentSeriesEvidence,
+    toPokerSeriesRouteId,
+} from '../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 
 
 // ─── Build-time safety valve ────────────────────────────────────────────────
@@ -2084,7 +2117,6 @@ import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
 // request, which is the same path a cache miss already takes.
 const BUILD_FETCH_TIMEOUT_MS = 15000;
 const SSR_SERIES_PREVIEW_LIMIT = 160;
-const SSR_POKER_SERIES_ID_OFFSET = 5000000;
 function withBuildTimeout(promise, label) {
     let timer;
     const timeout = new Promise((resolve) => {
@@ -2108,7 +2140,7 @@ function buildSeriesPreview(rows, generatedAt) {
         const allowed = [
             'id', 'name', 'series_name', 'short_name', 'series_uid', 'tour', 'tour_code',
             'venue', 'venue_name', 'venue_id', 'city', 'state', 'start_date', 'end_date',
-            'logo_url', 'events_count', 'event_count', 'total_events', 'main_event_buyin',
+            'logo_url', 'main_event_buyin',
             'main_event_guaranteed', 'total_guaranteed', 'is_featured', 'series_type', 'source_table',
         ];
         return Object.fromEntries(allowed
@@ -2133,12 +2165,14 @@ export async function getStaticProps() {
         // NOTE: poker_series uses 'series_name' (not 'name'), and lacks venue/latitude/longitude/country/logo_url
         // tournament_series uses 'name' (not 'series_name'), and lacks venue_id/logo_url/latitude/longitude/country
         // Each table gets its own column list to avoid "column does not exist" ISR errors.
-        const psColumns = 'id, series_name, start_date, end_date, city, state, logo_url, series_uid, is_suppressed, venue_id, created_at, updated_at, tour_code, main_event_buyin, total_guaranteed, events_count, is_featured, short_name';
-        const tsColumns = 'id, name, start_date, end_date, venue, city, state, series_uid, is_suppressed, tour_code, main_event_buyin, main_event_guaranteed, events_count, is_featured, short_name';
+        const evidenceColumns = 'data_quality, source_url, scrape_url, scrape_html_hash, scrape_timestamp, scrape_batch_id';
+        const psColumns = `id, series_name, start_date, end_date, city, state, logo_url, series_uid, is_suppressed, venue_id, created_at, updated_at, tour_code, main_event_buyin, total_guaranteed, events_count, is_featured, short_name, ${evidenceColumns}`;
+        const tsColumns = `id, name, start_date, end_date, venue, venue_name, city, state, series_uid, is_suppressed, tour_code, main_event_buyin, main_event_guaranteed, events_count, is_featured, short_name, ${evidenceColumns}`;
+        const servableQualities = ['scraped_verified', 'scraped_inferred', 'manual_research'];
 
         const raced = await withBuildTimeout(Promise.all([
-            supabaseAdmin.from('poker_series').select(psColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
-            supabaseAdmin.from('tournament_series').select(tsColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
+            supabaseAdmin.from('poker_series').select(psColumns).or('is_suppressed.is.null,is_suppressed.eq.false').in('data_quality', servableQualities).order('start_date', { ascending: true }).range(0, 999),
+            supabaseAdmin.from('tournament_series').select(tsColumns).or('is_suppressed.is.null,is_suppressed.eq.false').in('data_quality', servableQualities).order('start_date', { ascending: true }).range(0, 499)
         ]), 'poker-series supabase queries');
         if (!raced) return {
             props: {
@@ -2153,20 +2187,38 @@ export async function getStaticProps() {
         if (tsRes.error) throw tsRes.error;
 
         // Normalize poker_series rows: map series_name -> name so downstream code is unified
-        const normalizedPs = (psRes.data || []).map(ps => ({
+        const rawPokerSeries = (psRes.data || []).filter(
+            row => isServableSeriesParentEvidence(row),
+        );
+        const normalizedPs = rawPokerSeries.map(ps => ({
             ...ps,
-            id: ps.id + SSR_POKER_SERIES_ID_OFFSET,
+            id: toPokerSeriesRouteId(ps.id),
             name: ps.series_name,
             series_name: ps.series_name,
             tour: ps.tour_code,
             source_table: 'poker_series',
         }));
 
-        let allData = [];
-        if (tsRes.data) allData = tsRes.data.map(ts => ({ ...ts, source_table: 'tournament_series' }));
-        for (const ps of normalizedPs) {
+        const allData = (tsRes.data || [])
+            .filter(row => isServableSeriesParentEvidence(row))
+            .map(ts => ({ ...ts, source_table: 'tournament_series' }));
+        const seriesByUid = new Map(
+            allData.filter(series => series.series_uid).map(series => [series.series_uid, series]),
+        );
+        for (let index = 0; index < normalizedPs.length; index += 1) {
+            const ps = normalizedPs[index];
+            const rawPs = rawPokerSeries[index];
             const uid = ps.series_uid;
-            if (!uid || !allData.some(t => t.series_uid === uid)) allData.push(ps);
+            const existing = uid ? seriesByUid.get(uid) : null;
+            if (existing) {
+                const reconciled = reconcileTournamentSeriesEvidence(existing, rawPs);
+                if (reconciled !== existing) {
+                    Object.assign(existing, reconciled);
+                    continue;
+                }
+            }
+            allData.push(ps);
+            if (uid && !seriesByUid.has(uid)) seriesByUid.set(uid, ps);
         }
 
         const initialSeries = buildSeriesPreview(allData, generatedAt);

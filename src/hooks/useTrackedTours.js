@@ -16,6 +16,7 @@ const emitChange = () => {
 export default function useTrackedTours() {
     const [trackedTours, setTrackedTours] = useState(globalTrackedTours || []);
     const [loading, setLoading] = useState(true);
+    const [actionNotice, setActionNotice] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -27,11 +28,12 @@ export default function useTrackedTours() {
             }
             if (globalTrackedTours === null) {
                 try {
-                    const { data } = await supabase
+                    const { data, error } = await supabase
                         .from('user_notification_preferences')
                         .select('tracked_tours')
                         .eq('user_id', user.id)
                         .maybeSingle();
+                    if (error) throw error;
 
                     if (isMounted) {
                         globalTrackedTours = data?.tracked_tours || [];
@@ -40,6 +42,7 @@ export default function useTrackedTours() {
                     }
                 } catch (e) {
                     console.warn('Failed to fetch tracked tours:', e);
+                    if (isMounted) setTrackedTours(globalTrackedTours || []);
                 }
             } else {
                 setTrackedTours(globalTrackedTours);
@@ -77,7 +80,11 @@ export default function useTrackedTours() {
         const token = getAccessToken();
         if (!user || !token) {
             toggleLockRef.current = false;
-            alert('Please sign in to track tours.');
+            setActionNotice({
+                kind: 'auth',
+                title: 'Sign In To Track Tours',
+                message: 'Tour alerts are saved to your Smarter.Poker account so they stay available across devices.',
+            });
             return;
         }
 
@@ -109,20 +116,36 @@ export default function useTrackedTours() {
                 globalTrackedTours = trackedTours;
                 setTrackedTours(trackedTours);
                 emitChange();
-                alert('We had trouble saving your preference. Please try again.');
+                setActionNotice({
+                    kind: 'error',
+                    title: 'Tracking Could Not Be Saved',
+                    message: 'Your previous setting was restored. Check your connection and try again.',
+                });
             }
         } catch (e) {
             console.warn(e);
             globalTrackedTours = trackedTours;
             setTrackedTours(trackedTours);
             emitChange();
-            alert('A network error occurred.');
+            setActionNotice({
+                kind: 'error',
+                title: 'Network Connection Interrupted',
+                message: 'Your previous setting was restored. Reconnect, then try tracking this tour again.',
+            });
         } finally {
             toggleLockRef.current = false;
         }
     }, [trackedTours]);
 
     const isTracking = useCallback((tourCode) => trackedTours.includes(tourCode), [trackedTours]);
+    const clearActionNotice = useCallback(() => setActionNotice(null), []);
 
-    return { trackedTours, toggleTrackTour, isTracking, loading };
+    return {
+        trackedTours,
+        toggleTrackTour,
+        isTracking,
+        loading,
+        actionNotice,
+        clearActionNotice,
+    };
 }

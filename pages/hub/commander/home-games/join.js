@@ -64,6 +64,7 @@ export default function JoinHomeGame() {
         if (g?.slug || rawSlug) setSlug(g?.slug || rawSlug);
       } catch (err) {
         console.warn('[join] slug resolution failed:', err);
+        codeToUse = '';
       }
     }
 
@@ -113,7 +114,7 @@ export default function JoinHomeGame() {
   return (
     <CommanderPageShell>
       <SEOHead title="Join Home Game" description="Smarter.Poker" noindex={true} />
-      <div className="cmd-page flex items-center justify-center px-4">
+      <div className="cmd-page flex items-center justify-center px-4" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <div className="max-w-md w-full text-center py-16">
           {(authChecking || state === 'idle' || state === 'joining') && (
             <>

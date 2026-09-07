@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import { fuzzyMatchScore } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { acquireScrollLock } from '../../lib/scrollLock';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -282,6 +283,10 @@ function TimeWindowLabel({ timeWindow }) {
 // DETAIL MODAL
 // ═══════════════════════════════════════════════════════════
 function DetailModal({ item, type, onClose, onNavigate }) {
+  const { dialogRef, initialFocusRef } = useAccessibleDialog({
+    open: Boolean(item),
+    onClose,
+  });
   if (!item) return null;
   const isVenue = type === 'venue';
   const isTour = type === 'tour';
@@ -312,13 +317,20 @@ function DetailModal({ item, type, onClose, onNavigate }) {
   const accentColor = isVenue ? typeStyle.color : isTour ? tourColor : '#34d399';
 
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 10010, background: 'rgba(4,10,20,0.99)', display: 'flex', flexDirection: 'column', animation: 'gso-modal-in 0.22s ease' }}>
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gso-detail-title"
+      tabIndex={-1}
+      style={{ position: 'absolute', inset: 0, zIndex: 10010, background: 'rgba(4,10,20,0.99)', display: 'flex', flexDirection: 'column', animation: 'gso-modal-in 0.22s ease' }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
-        <button onClick={onClose} className="sp-icon-btn" style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close">
+        <button ref={initialFocusRef} onClick={onClose} className="sp-icon-btn" style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close details">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
         </button>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(200,214,229,0.8)' }}>
+        <span id="gso-detail-title" style={{ fontSize: 14, fontWeight: 700, color: 'rgba(200,214,229,0.8)' }}>
           {isVenue ? 'Venue Details' : isTour ? 'Tour Details' : 'Series Details'}
         </span>
       </div>
@@ -613,7 +625,10 @@ export default function GlobalSearchOverlay({
   // ESC key
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') {
+      // Nested dialogs such as the fullscreen map own the first Escape. Their
+      // capture-phase handler prevents the event; do not also dismiss the
+      // entire search overlay on that same keypress.
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         if (detailItem) setDetailItem(null);
         else onClose?.();
       }
@@ -887,7 +902,15 @@ export default function GlobalSearchOverlay({
     setLocalQuery(q); onSearchChange?.(q); handleSubmit(null, q); onHistorySelect?.(q);
   }, [onSearchChange, handleSubmit, onHistorySelect]);
 
-  const openDetail = useCallback((item, type) => setDetailItem({ item, type }), []);
+  const openDetail = useCallback((item, type) => {
+    // A search-result map can be fullscreen. Close that nested surface before
+    // mounting the detail layer so the detail dialog is never trapped behind
+    // the map's fixed stacking context and only one focus trap owns the page.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
+    }
+    setDetailItem({ item, type });
+  }, []);
 
   const getSelectableItems = useCallback(() => {
     if (phase === 'results') return [];
@@ -997,6 +1020,13 @@ export default function GlobalSearchOverlay({
         role="dialog" aria-modal="true" aria-label="Search Poker Venues, Tours, and Series"
       >
 
+        <div
+          className="gso-search-surface"
+          aria-hidden={detailItem ? 'true' : undefined}
+          inert={detailItem ? '' : undefined}
+          style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}
+        >
+
         {/* ───── HEADER ───── */}
         {/* Header sits below the status bar so the close control is reachable on a phone (mobile phase 0b). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
@@ -1038,7 +1068,7 @@ export default function GlobalSearchOverlay({
 
         {/* ───── MAP — between header and scrollable body, OUTSIDE scroll ───── */}
         {phase === 'results' && !isLoading && venueResults.length > 0 && (
-          <div style={{ height: 260, flexShrink: 0, position: 'relative', borderBottom: '1px solid rgba(110,231,239,0.08)' }}>
+          <div className="pnm-global-search-map" style={{ flexShrink: 0, position: 'relative', borderBottom: '1px solid rgba(110,231,239,0.08)' }}>
             <VenueMap
               // WIRING FIX: `disableClustering` is only read inside VenueMap's
               // initialise-map effect (deps: [mapReady]), so the value in force on the
@@ -1050,6 +1080,9 @@ export default function GlobalSearchOverlay({
               // the venue API — passing null here suppressed the "you are here" pin AND
               // VenueMap's distance map, so no result popup could show its distance.
               userLocation={userLocation}
+              mapEyebrow="Search result map"
+              mapTitle="Matching poker rooms"
+              mapDetail={`${venueResults.length} locations from this search`}
               onVenueClick={v => openDetail(v, 'venue')}
               onOpenIframeModal={(url, title) => {
                 const match = url.match(/\/hub\/venues\/([^?#]+)/);
@@ -1278,6 +1311,8 @@ export default function GlobalSearchOverlay({
               )}
             </div>
           )}
+        </div>
+
         </div>
 
         {/* ───── DETAIL MODAL — inside overlay at z:10010 ───── */}

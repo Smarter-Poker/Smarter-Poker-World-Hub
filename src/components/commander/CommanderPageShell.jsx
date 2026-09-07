@@ -24,6 +24,7 @@ export default function CommanderPageShell({ children }) {
         <>
             {/* Fixed hamburger icon - always visible on Commander subpages */}
             <button
+                className="commander-page-shell__menu-trigger"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open Menu"
                 style={{

@@ -3476,12 +3476,17 @@
     border-color: rgba(255,255,255,0.15) !important;
 }
 .leaflet-control-attribution {
-    background: rgba(15,23,42,0.8) !important;
-    color: rgba(255,255,255,0.3) !important;
+    max-width: calc(100vw - 16px);
+    padding: 3px 7px !important;
+    background: rgba(7,16,25,0.96) !important;
+    color: #aebdca !important;
     font-size: 12px !important;
+    line-height: 1.35 !important;
+    text-align: right;
+    white-space: normal;
 }
 .leaflet-control-attribution a {
-    color: rgba(255,255,255,0.4) !important;
+    color: #d8e2eb !important;
 }
 
 /* Map Tab — one fixed-height map inside the stacked page (mobile phase 3).

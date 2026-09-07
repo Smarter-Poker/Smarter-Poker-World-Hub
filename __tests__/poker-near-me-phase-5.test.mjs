@@ -14,7 +14,7 @@ test('series ISR payload is ranked, compact, and capped below the Next page-data
   assert.match(source, /initialSeriesMeta/);
   assert.match(source, /previewCount/);
   assert.match(source, /totalCount/);
-  assert.match(source, /SSR_POKER_SERIES_ID_OFFSET/);
+  assert.match(source, /toPokerSeriesRouteId\(ps\.id\)/);
   assert.doesNotMatch(source, /supabase\.from\('poker_series'\)\.select\('\*'\)/);
 });
 
@@ -32,9 +32,10 @@ test('daily schedules use complete paged queries, state-first filtering, and tru
   const api = read('pages/api/poker/daily-tournaments.js');
   assert.match(api, /from\('poker_venues'\)/);
   assert.match(api, /query\.in\('venue_id', stateVenueIds\)/);
-  assert.match(api, /fetchAllDailyTournamentRows\(buildTournamentQuery\)/);
+  assert.match(api, /fetchAllDailyTournamentRows\(\(\) => buildTournamentQuery\('dated'\)\)/);
+  assert.match(api, /fetchAllDailyTournamentRows\(\(\) => buildTournamentQuery\('recurring'\)\)/);
   assert.match(api, /order\('id', \{ ascending: true \}\)/);
-  assert.match(api, /rowsScanned: dbTournaments\.length/);
+  assert.match(api, /rowsScanned: scheduleResult\.rows\.length/);
   assert.doesNotMatch(api, /fetchCeiling/);
   assert.match(api, /schedule_query_timeout/);
   assert.match(api, /degraded: sourceWarnings\.length > 0/);

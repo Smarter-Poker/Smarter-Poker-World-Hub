@@ -355,6 +355,14 @@ export default function PokerNearMeLobby() {
   const [locationCity, setLocationCity] = useState('');
   const [locationState, setLocationState] = useState('');
   const locationToastTimeoutRef = useRef(null);
+  const openManualLocation = useCallback(() => {
+    window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
+    setShowManualLocation(true);
+  }, []);
+  const openEnableLocation = useCallback(() => {
+    window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
+    setShowEnablePopup(true);
+  }, []);
   // ─── Menu config ───
   // Built further down the component (see "Hamburger menu config"), after
   // handleGpsClick is declared, so the 'Location Services' toggle can drive the
@@ -1332,7 +1340,7 @@ export default function PokerNearMeLobby() {
       setGpsError('GPS not supported on this device');
       setGpsLoading(false);
       gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
-      if (!fromModal) setShowManualLocation(true);
+      if (!fromModal) openManualLocation();
       return;
     }
 
@@ -1355,7 +1363,7 @@ export default function PokerNearMeLobby() {
           setGpsActive(false);
           setGpsLoading(false);
           setPermissionState('denied');
-          setShowEnablePopup(true);
+          openEnableLocation();
           setShowManualLocation(false); // Don't show manual — show smart popup instead
           if (userId) {
             updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -1378,12 +1386,12 @@ export default function PokerNearMeLobby() {
             setGpsLoading(false);
             if (lowAccErr.code === 1) {
               setPermissionState('denied');
-              setShowEnablePopup(true);
+              openEnableLocation();
               setShowManualLocation(false);
             } else {
               setGpsError('Could not determine location - set your location manually below');
               gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
-              setShowManualLocation(true);
+              openManualLocation();
             }
             if (userId) {
               updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -1394,7 +1402,7 @@ export default function PokerNearMeLobby() {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
-  }, [gpsActive, gpsLoading, userId, onGpsSuccess, haptic]);
+  }, [gpsActive, gpsLoading, userId, onGpsSuccess, haptic, openEnableLocation, openManualLocation]);
 
   // Keep the ref used by the mount-only Permissions API listener current.
   handleGpsClickRef.current = handleGpsClick;
@@ -1593,7 +1601,7 @@ export default function PokerNearMeLobby() {
           (firstErr) => {
             if (firstErr.code === 1) {
               setPermissionState('denied');
-              setShowEnablePopup(true);
+              openEnableLocation();
               return;
             }
             navigator.geolocation.getCurrentPosition(
@@ -1721,8 +1729,8 @@ export default function PokerNearMeLobby() {
   const {
     panelRef,
     panelBackBtnRef,
+    voiceDialogRef,
     voiceCloseBtnRef,
-    handlePanelKeyDown,
   } = useLobbyDialogController({
     showPanel,
     onPanelClose: handlePanelClose,
@@ -2544,8 +2552,8 @@ export default function PokerNearMeLobby() {
             gpsError={gpsError}
             locationCity={locationCity}
             locationState={locationState}
-            onManualLocation={() => setShowManualLocation(true)}
-            onShowEnablePopup={() => setShowEnablePopup(true)}
+            onManualLocation={openManualLocation}
+            onShowEnablePopup={openEnableLocation}
             savedLocation={preferences?.lastLocation}
             savedLocationCity={preferences?.lastLocationCity}
             savedLocationState={preferences?.lastLocationState}
@@ -2583,7 +2591,6 @@ export default function PokerNearMeLobby() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="pnm-panel-title"
-              onKeyDown={handlePanelKeyDown}
               style={{
                 // The panel is an aria-modal dialog and must sit above the
                 // fixed global header (z-index 10050). At 51 its Back/Close
@@ -2788,10 +2795,10 @@ export default function PokerNearMeLobby() {
           <div
             className="pnm-sheet-scrim"
             role="presentation"
-            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setShowVoiceSearch(false); } }}
             {...voiceScrim}
           >
             <div
+              ref={voiceDialogRef}
               className="pnm-sheet"
               role="dialog"
               aria-modal="true"

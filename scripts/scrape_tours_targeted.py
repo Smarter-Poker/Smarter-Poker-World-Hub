@@ -31,6 +31,14 @@ PROJECT_ROOT = Path(__file__).parent.parent
 EVIDENCE_DIR = PROJECT_ROOT / "data" / "scrape-evidence"
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Retired writer. The source-bound tour_stealth_scraper.py is the sole
+# production owner of tour_stop_events. This file remains available for parser
+# diagnostics but cannot publish to either legacy event store.
+LEGACY_TOUR_WRITES_DISABLED = True
+LEGACY_TOUR_WRITES_REASON = (
+    "retired legacy publisher; use scripts/tour_stealth_scraper.py"
+)
+
 # ─── Dependencies ──────────────────────────────────────────────────────────────
 try:
     from scrapling.fetchers import Fetcher, StealthySession, DynamicFetcher
@@ -170,6 +178,9 @@ def seed_to_db(events, tour_code, batch_id, dry_run):
         print(f"  [DRY-RUN] Would insert {len(events)} events:")
         for e in events[:5]:
             print(f"    #{e.get('event_number','?')} {e.get('event_name','')[:60]} | ${e.get('buy_in','?')}")
+        return 0
+    if LEGACY_TOUR_WRITES_DISABLED:
+        print(f"  [BLOCK] {LEGACY_TOUR_WRITES_REASON}")
         return 0
     if not sb:
         print("  [SKIP] No DB connection")
@@ -722,6 +733,10 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    if not args.dry_run and LEGACY_TOUR_WRITES_DISABLED:
+        print(f"[FATAL] {LEGACY_TOUR_WRITES_REASON}")
+        return 2
+
     batch_id = str(uuid.uuid4())
     started = datetime.now(timezone.utc)
     print(f"\n🎰 TOUR SCHEDULE SCRAPER — TARGETED PARSERS")
@@ -779,7 +794,8 @@ def main():
         "source_registry": {code: cfg["url"] for code, cfg in TOUR_CONFIGS.items()},
     }, indent=2, default=str))
     print(f"  Summary: {summary.name}\n")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

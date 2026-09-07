@@ -117,7 +117,7 @@ def search_google_images(page, venue_name, city, state):
             skip_domains = [
                 'google.com', 'gstatic.com', 'googleapis.com', 
                 'googleusercontent.com', 'youtube.com', 'ytimg.com',
-                'tiktok.com', 'basemaps.cartocdn',
+                'tiktok.com', 'basemaps.cartocdn', 'arcgisonline.com',
             ]
             if any(d in url.lower() for d in skip_domains):
                 continue

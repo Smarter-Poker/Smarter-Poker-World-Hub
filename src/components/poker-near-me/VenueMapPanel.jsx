@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useId, useMemo } from 'react';
+import { useState, useEffect, useRef, useId, useMemo, useCallback } from 'react';
 import { radiusToZoom } from './pnm-utils';
 import {
   addPokerMapLayers,
@@ -11,6 +11,7 @@ import { appendPokerMapBounds, isVenueWithinPokerMapBounds, pokerMapBoundsFromLe
 import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
 import MapCoverageReadout from './MapCoverageReadout';
+import MapSurfaceFrame from './MapSurfaceFrame';
 import {
   buildPokerTourPopupHtml,
   buildPokerVenuePopupHtml,
@@ -22,6 +23,7 @@ import {
   createPokerVenueGeographySignature,
   createPokerVenueIcon,
   isPokerTourStop,
+  syncPokerMapKeyboardTargets,
 } from './mapPresentation';
 
 /**
@@ -118,6 +120,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const mapSessionRef = useRef(null);
   const markersLayerRef = useRef(null);
   const userMarkerRef = useRef(null);
+  const keyboardSyncFrameRef = useRef(0);
+  const keyboardObserverRef = useRef(null);
   const mountedRef = useRef(true);
   const leafletRef = useRef(null);
   const onVenueSelectRef = useRef(onVenueSelect);
@@ -152,6 +156,19 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     .map(v => `${v.id || v.name || ''}:${v.latitude || ''},${v.longitude || ''}`)
     .sort()
     .join('|');
+
+  const scheduleKeyboardTargetSync = useCallback(() => {
+    if (typeof window === 'undefined' || keyboardSyncFrameRef.current) return;
+    keyboardSyncFrameRef.current = window.requestAnimationFrame(() => {
+      keyboardSyncFrameRef.current = 0;
+      syncPokerMapKeyboardTargets(mapRef.current);
+    });
+  }, []);
+
+  const handleMapLayoutChange = useCallback(() => {
+    mapInstanceRef.current?.invalidateSize?.({ pan: false });
+    scheduleKeyboardTargetSync();
+  }, [scheduleKeyboardTargetSync]);
 
   useEffect(() => {
     setViewportVenues(null);
@@ -209,6 +226,12 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       });
       const { map } = session;
       mapSessionRef.current = session;
+
+      map.on('moveend zoomend resize', scheduleKeyboardTargetSync);
+      keyboardObserverRef.current?.disconnect();
+      keyboardObserverRef.current = new MutationObserver(scheduleKeyboardTargetSync);
+      keyboardObserverRef.current.observe(mapRef.current, { childList: true, subtree: true });
+      scheduleKeyboardTargetSync();
 
       // Create a density-aware cluster group. The shared runtime falls back to
       // a plain layer if the optional clustering plugin cannot initialize.
@@ -273,6 +296,10 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       viewportAbortRef.current?.abort();
       const container = mapRef.current;
       if (container && popupClickHandlerRef.current) container.removeEventListener('click', popupClickHandlerRef.current);
+      keyboardObserverRef.current?.disconnect();
+      keyboardObserverRef.current = null;
+      if (keyboardSyncFrameRef.current) window.cancelAnimationFrame(keyboardSyncFrameRef.current);
+      keyboardSyncFrameRef.current = 0;
       mapSessionRef.current?.destroy();
       mapSessionRef.current = null;
       mapInstanceRef.current = null;
@@ -357,6 +384,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       venueMarkers.push(marker);
     });
     addPokerMapLayers(layer, venueMarkers);
+    scheduleKeyboardTargetSync();
     const currentBounds = map.getBounds();
     viewportBoundsRef.current = pokerMapBoundsFromLeaflet(currentBounds);
     setViewportCount(validVenues.filter((venue) => currentBounds.contains([Number(venue.latitude), Number(venue.longitude)])).length);
@@ -392,6 +420,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       })
         .addTo(map)
         .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
+      scheduleKeyboardTargetSync();
     }
 
     // Fit bounds to show ALL venue markers — auto-expands when search widens.
@@ -480,7 +509,14 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   }
 
   return (
-    <div style={{ position: 'relative', height: '100%' }}>
+    <MapSurfaceFrame
+      className="pnm-map-surface--fill pnm-map-surface--primary"
+      eyebrow="National discovery grid"
+      title="Find every poker room"
+      detail={`${mappedVenueCount} mapped locations · pan the map to search another area`}
+      onLayoutChange={handleMapLayoutChange}
+    >
+    <div className="pnm-map-stage" style={{ position: 'relative', height: '100%' }}>
       <p id={mapInstructionsId} className="sr-only">
         Interactive Poker Venue Map. Use Arrow Keys To Pan, Plus And Minus To Zoom, And Tab To Move Between Venue Markers.
       </p>
@@ -498,7 +534,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         data-map-load-ms={mapLoadMs == null ? '' : mapLoadMs}
         data-map-clustering={clusteringAvailable ? 'available' : 'fallback'}
         data-map-style-source="local"
-        data-map-foundation="shared-v2"
+        data-map-foundation="shared-v3"
         data-map-integrity-held={integritySummary.held}
         tabIndex={0}
         style={{
@@ -542,5 +578,6 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         held={integritySummary.held}
       />
     </div>
+    </MapSurfaceFrame>
   );
 }

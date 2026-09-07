@@ -20,6 +20,7 @@
  */
 import { useEffect, useState } from 'react';
 import { X, Trophy } from 'lucide-react';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 
 const STRUCTURES = [
   { value: 'standard', label: 'Standard' },
@@ -72,6 +73,11 @@ export default function TournamentEditModal({
   const [form, setForm] = useState(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const tournamentDialog = useAccessibleDialog({
+    open,
+    onClose,
+    dismissDisabled: submitting,
+  });
 
   // Sync prop → form whenever the modal opens or the target tournament changes
   useEffect(() => {
@@ -175,8 +181,12 @@ export default function TournamentEditModal({
 
   return (
     <div
+      ref={tournamentDialog.dialogRef}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="tournament-editor-title"
+      data-pnm-home-games="true"
+      tabIndex={-1}
       className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === e.currentTarget && !submitting) onClose && onClose(); }}
@@ -189,7 +199,7 @@ export default function TournamentEditModal({
              style={{ background: '#0D192E', borderColor: '#4A5E78' }}>
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5" style={{ color: '#22D3EE' }} />
-            <h2 className="text-base font-bold text-white">
+            <h2 id="tournament-editor-title" className="text-base font-bold text-white">
               {mode === 'create' ? 'Add Tournament' : 'Edit Tournament'}
             </h2>
           </div>
@@ -198,7 +208,7 @@ export default function TournamentEditModal({
             onClick={() => !submitting && onClose && onClose()}
             className="p-1 rounded-md hover:bg-[#132240] text-[#94A3B8]"
             disabled={submitting}
-            aria-label="Close"
+            aria-label="Close tournament editor"
           >
             <X className="w-5 h-5" />
           </button>
@@ -207,8 +217,10 @@ export default function TournamentEditModal({
         <div onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e); }}>
           <div className="p-4 space-y-3">
             <div>
-              <label className="block text-sm font-medium text-white mb-1">Tournament Name *</label>
+              <label htmlFor="tournament-editor-name" className="block text-sm font-medium text-white mb-1">Tournament Name *</label>
               <input
+                ref={tournamentDialog.initialFocusRef}
+                id="tournament-editor-name"
                 type="text" maxLength={120}
                 value={form.name}
                 onChange={(e) => update('name', e.target.value)}
@@ -221,8 +233,9 @@ export default function TournamentEditModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-white mb-1">Buy-In (USD) *</label>
+                <label htmlFor="tournament-editor-buyin" className="block text-sm font-medium text-white mb-1">Buy-In (USD) *</label>
                 <input
+                  id="tournament-editor-buyin"
                   type="number" min="0" step="1"
                   value={form.buy_in}
                   onChange={(e) => update('buy_in', e.target.value)}
@@ -232,8 +245,9 @@ export default function TournamentEditModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white mb-1">Starting Stack</label>
+                <label htmlFor="tournament-editor-stack" className="block text-sm font-medium text-white mb-1">Starting Stack</label>
                 <input
+                  id="tournament-editor-stack"
                   type="number" min="0" step="100"
                   value={form.starting_stack}
                   onChange={(e) => update('starting_stack', e.target.value)}
@@ -245,8 +259,9 @@ export default function TournamentEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-1">Structure</label>
+              <label htmlFor="tournament-editor-structure" className="block text-sm font-medium text-white mb-1">Structure</label>
               <select
+                id="tournament-editor-structure"
                 value={form.structure}
                 onChange={(e) => update('structure', e.target.value)}
                 className="cmd-input w-full h-11 px-3"
@@ -260,8 +275,9 @@ export default function TournamentEditModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-white mb-1">Date *</label>
+                <label htmlFor="tournament-editor-date" className="block text-sm font-medium text-white mb-1">Date *</label>
                 <input
+                  id="tournament-editor-date"
                   type="date"
                   value={form.scheduled_date}
                   onChange={(e) => update('scheduled_date', e.target.value)}
@@ -271,8 +287,9 @@ export default function TournamentEditModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white mb-1">Start Time *</label>
+                <label htmlFor="tournament-editor-time" className="block text-sm font-medium text-white mb-1">Start Time *</label>
                 <input
+                  id="tournament-editor-time"
                   type="time"
                   value={form.scheduled_time}
                   onChange={(e) => update('scheduled_time', e.target.value)}
@@ -283,10 +300,11 @@ export default function TournamentEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-1">
+              <label htmlFor="tournament-editor-cap" className="block text-sm font-medium text-white mb-1">
                 Entries Cap <span className="text-[#64748B] text-xs">(Leave Blank For Unlimited)</span>
               </label>
               <input
+                id="tournament-editor-cap"
                 type="number" min="2" step="1"
                 value={form.entries_cap}
                 onChange={(e) => update('entries_cap', e.target.value)}
@@ -297,8 +315,9 @@ export default function TournamentEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-1">Description</label>
+              <label htmlFor="tournament-editor-description" className="block text-sm font-medium text-white mb-1">Description</label>
               <textarea
+                id="tournament-editor-description"
                 rows={2}
                 value={form.description}
                 onChange={(e) => update('description', e.target.value)}

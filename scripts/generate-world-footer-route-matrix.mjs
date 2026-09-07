@@ -79,10 +79,9 @@ const lines = [
   '',
 ];
 
-if (rows.length !== 203) {
-  throw new Error(`Expected 203 applicable routes, found ${rows.length}`);
+if (rows.length !== 204) {
+  throw new Error(`Expected 204 applicable routes, found ${rows.length}`);
 }
 
 fs.writeFileSync(path.join(root, 'docs/world-hub-footer-route-matrix.md'), `${lines.join('\n')}\n`);
 console.log(`Wrote ${rows.length} routes across ${registry.worlds.length} footer families.`);
-

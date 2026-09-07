@@ -106,6 +106,7 @@ export default function PokerToursPage({ initialTours = [] }) {
     const [allVenues, setAllVenues] = useState([]);
     const [userLocation, setUserLocation] = useState(null);
     const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
+    const [geoNotice, setGeoNotice] = useState('');
 
     // ─── Filter State ───
     const [searchQuery, setSearchQuery] = useState('');
@@ -247,12 +248,18 @@ export default function PokerToursPage({ initialTours = [] }) {
             // Show the dropdown selection immediately for visual feedback
             setDistanceFilter(val);
             navigator.geolocation.getCurrentPosition(
-                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => { alert('Location access is required for distance filtering. Please enable location services.'); setDistanceFilter('all'); },
+                (pos) => {
+                    setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    setGeoNotice('');
+                },
+                () => {
+                    setGeoNotice('Location access is required for distance filtering. Enable location services, then try again.');
+                    setDistanceFilter('all');
+                },
                 { timeout: 10000, enableHighAccuracy: false }
             );
         } else {
-            alert('Geolocation is not supported by your browser.');
+            setGeoNotice('This browser does not support geolocation. You can still browse tours by date, type, region, and buy-in.');
             setDistanceFilter('all');
         }
     }, [userLocation]);
@@ -346,66 +353,23 @@ export default function PokerToursPage({ initialTours = [] }) {
         return result;
     }, [tours, parseStopDates]);
 
-    // ─── Build map markers: ONE per tour guaranteed ───
+    // Build map markers: one active published stop per tour.
+    // A tour headquarters is not a tour stop. Previous code fabricated a
+    // headquarters stop (and ultimately fell back to the geographic center of
+    // the US) so every tour appeared on the map even when no schedule-backed
+    // location existed. The map now shows at most one current-or-next stop per
+    // tour, and only when that stop's geography can be resolved.
     const tourVenuesForMap = useMemo(() => {
         if (tours.length === 0) return [];
         const markers = [];
         const seen = new Set();
-        const coordsOffsetMap = {}; // Track overlapping offsets
 
         tours.forEach(tour => {
             const stopInfo = tourCurrentStops[tour.tour_code];
-            let stop = stopInfo?.activeStop;
-            
-            // If the tour has NO active/upcoming stop, mock one for its headquarters to ensure the pin is dropped
-            if (!stop) {
-                stop = { name: `${tour.tour_code} Headquarters`, city: (tour.headquarters || '').split(',')[0]?.trim() || '', location: tour.headquarters, isMock: true };
-            }
+            const stop = stopInfo?.activeStop;
+            if (!stop) return;
 
-            let venueMatch = findVenueCoords(stop);
-
-            // Best fix: If findVenueCoords failed but the API already provided exact coordinates for the tour, use them!
-            if (!venueMatch && tour.latitude && tour.longitude) {
-                venueMatch = {
-                    latitude: tour.latitude,
-                    longitude: tour.longitude,
-                    city: stop.city || (tour.city || (tour.headquarters || '').split(',')[0]?.trim() || ''),
-                    state: stop.state || (tour.state || (tour.headquarters || '').split(',')[1]?.trim() || '')
-                };
-            }
-
-            // Ultimate fallback if findVenueCoords still failed: manually check CITY_COORDS using headquarters
-            if (!venueMatch && tour.headquarters) {
-                const hqKey = tour.headquarters.toLowerCase().trim();
-                const hqCity = tour.headquarters.split(',')[0]?.trim() || '';
-                const hqState = tour.headquarters.split(',')[1]?.trim() || '';
-                
-                // Fallback coordinates directly extracted from CITY_COORDS or safe default
-                const hardCoords = {
-                    'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
-                    'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
-                    'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
-                    'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
-                    'durant, ok': { lat: 33.9943, lng: -96.3709 },
-                    'elgin, il': { lat: 42.0354, lng: -88.2826 },
-                    'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
-                    'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
-                    'houston, tx': { lat: 29.7604, lng: -95.3698 },
-                    'fargo, nd': { lat: 46.8772, lng: -96.7898 },
-                    'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
-                    'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
-                    'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
-                    'north dakota': { lat: 47.5515, lng: -101.0020 },
-                    'various': { lat: 36.1699, lng: -115.1398 },
-                }[hqKey] || { lat: 39.8283, lng: -98.5795 };
-                
-                venueMatch = {
-                    latitude: hardCoords.lat,
-                    longitude: hardCoords.lng,
-                    city: hqCity,
-                    state: hqState
-                };
-            }
+            const venueMatch = findVenueCoords(stop);
 
             if (!venueMatch) return;
 
@@ -416,32 +380,17 @@ export default function PokerToursPage({ initialTours = [] }) {
             const stopCity = stop.location?.split(',')[0]?.trim() || stop.city || venueMatch.city || '';
             const stopState = stop.location?.split(',')[1]?.trim() || stop.state || venueMatch.state || '';
 
-            // Offset jitter logic so tours in the exact same city display side-by-side
-            let renderLat = venueMatch.latitude;
-            let renderLng = venueMatch.longitude;
-            
-            const offsetKey = `${renderLat.toFixed(1)}_${renderLng.toFixed(1)}`;
-            if (coordsOffsetMap[offsetKey] === undefined) {
-                coordsOffsetMap[offsetKey] = 0;
-            }
-            
-            const shiftIndex = coordsOffsetMap[offsetKey];
-            const shiftPattern = [0, 1, -1, 2, -2];
-            const currentShift = shiftPattern[shiftIndex % shiftPattern.length];
-            
-            // 1.2 longitude is ~60 miles in USA, spreading them visually side-by-side
-            renderLng += (currentShift * 1.2);
-            coordsOffsetMap[offsetKey]++;
-
             markers.push({
                 id: `tour-${tour.tour_code}-${stop.name || stop.venue || 'stop'}`,
                 name: `${tour.tour_code}: ${stop.name || stop.venue || 'Tour Stop'}`,
                 city: stopCity,
                 state: stopState,
-                latitude: renderLat,
-                longitude: renderLng,
+                latitude: venueMatch.latitude,
+                longitude: venueMatch.longitude,
                 venue_type: 'tour_stop',
-                trust_score: 5,
+                // Tour registry membership is not a five-star user trust
+                // rating. Leave this unset rather than inventing confidence.
+                trust_score: null,
                 tour_code: tour.tour_code,
                 tour_name: tour.tour_name || tour.tour_code,
                 logo_url: tour.logo_url || null,
@@ -483,7 +432,6 @@ export default function PokerToursPage({ initialTours = [] }) {
         const cutoff = new Date(now);
         cutoff.setUTCDate(cutoff.getUTCDate() + days);
         return { start: now, end: cutoff };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateRange, nowTick]);
 
     // ─── Filtered & sorted tours ───
@@ -777,30 +725,22 @@ export default function PokerToursPage({ initialTours = [] }) {
             try {
                 const stored = localStorage.getItem('pnm_tour_favorites');
                 if (stored) current = JSON.parse(stored);
-            } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+            } catch (error) {
+                console.warn('[App] Handled exception:', error?.message || error);
+                current = prev;
+            }
             
             const next = { ...current };
             if (next[tourCode]) delete next[tourCode];
             else next[tourCode] = Date.now();
-            try { localStorage.setItem('pnm_tour_favorites', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
+            try {
+                localStorage.setItem('pnm_tour_favorites', JSON.stringify(next));
+            } catch (error) {
+                console.warn('[App] Handled exception:', error?.message || error);
+                return next;
+            }
             return next;
         });
-    }, []);
-
-    const handleTrackTour = useCallback(async (tourCode) => {
-        try {
-            await fetch('/api/notifications/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'TOUR_ALERT',
-                    tour: tourCode
-                })
-            });
-            alert('You are now tracking ' + tourCode + '! Notifications enabled.');
-        } catch (e) {
-            alert('Tour tracking saved locally for ' + tourCode);
-        }
     }, []);
 
     // ─── Navigate to tour detail ───
@@ -930,6 +870,13 @@ export default function PokerToursPage({ initialTours = [] }) {
                     </form>
                 </div>
 
+                {geoNotice && (
+                    <div className="tours-geo-notice" role="alert">
+                        <span>{geoNotice}</span>
+                        <button type="button" onClick={() => setGeoNotice('')} aria-label="Dismiss location notice">Dismiss</button>
+                    </div>
+                )}
+
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
                 <div className="pnm-layout">
 
@@ -947,6 +894,9 @@ export default function PokerToursPage({ initialTours = [] }) {
                                 hideLegend={true}
                                 uniformColor="#ffffff"
                                 disableClustering={true}
+                                mapEyebrow="Tour circuit map"
+                                mapTitle="Traveling poker tours"
+                                mapDetail={`${tourVenuesForMap.length} upcoming destinations · select a marker for tour details`}
                                 onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                             />
                         </MapErrorBoundary>
@@ -977,8 +927,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                                     </button>
                                 )}
                                 <div className="tours-results-sort">
-                                    <span>Buy-In:</span>
-                                    <select value={buyinFilter} onChange={e => setBuyinFilter(e.target.value)}>
+                                    <label htmlFor="tour-buyin-filter">Buy-In:</label>
+                                    <select id="tour-buyin-filter" aria-label="Filter tours by buy-in" value={buyinFilter} onChange={e => setBuyinFilter(e.target.value)}>
                                         <option value="all">All</option>
                                         <option value="low">Low ($0 - $400)</option>
                                         <option value="mid">Mid ($400 - $1.5K)</option>
@@ -987,8 +937,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                                     </select>
                                 </div>
                                 <div className="tours-results-sort">
-                                    <span>Region:</span>
-                                    <select value={selectedRegion} onChange={e => setSelectedRegion(e.target.value)}>
+                                    <label htmlFor="tour-region-filter">Region:</label>
+                                    <select id="tour-region-filter" aria-label="Filter tours by region" value={selectedRegion} onChange={e => setSelectedRegion(e.target.value)}>
                                         <option value="all">All</option>
                                         {availableRegions.map(r => (
                                             <option key={r} value={r}>{r}</option>
@@ -996,8 +946,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                                     </select>
                                 </div>
                                 <div className="tours-results-sort">
-                                    <span>Sort:</span>
-                                    <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                    <label htmlFor="tour-sort-order">Sort:</label>
+                                    <select id="tour-sort-order" aria-label="Sort poker tours" value={sortBy} onChange={e => setSortBy(e.target.value)}>
                                         <option value="distance">Nearest To You</option>
                                         <option value="priority">Priority</option>
                                         <option value="date">Next Upcoming Date</option>
@@ -1042,7 +992,6 @@ export default function PokerToursPage({ initialTours = [] }) {
                                         searchQuery={searchQuery}
                                         dateRangeCutoff={dateRangeCutoff}
                                         getMatchingStops={getMatchingStops}
-                                        onTrackTour={handleTrackTour}
                                     />
                                 ))}
                             </div>
@@ -1101,6 +1050,42 @@ export default function PokerToursPage({ initialTours = [] }) {
                         letter-spacing: 1px;
                         font-weight: 500;
                     }
+                    .tours-geo-notice {
+                        width: min(calc(100% - 32px), 760px);
+                        min-height: 46px;
+                        margin: 0 auto 14px;
+                        padding: 10px 12px 10px 14px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                        border: 1px solid #526071;
+                        border-radius: 3px;
+                        background: #090e16;
+                        box-shadow: inset 2px 0 0 #38bdf8, inset 0 0 0 1px rgba(255,255,255,.035);
+                        color: #cbd5e1;
+                        font-size: 13px;
+                        line-height: 1.45;
+                    }
+                    .tours-geo-notice button {
+                        min-height: 40px;
+                        flex: 0 0 auto;
+                        border: 1px solid #526071;
+                        border-radius: 2px;
+                        padding: 0 13px;
+                        background: #0d131c;
+                        color: #bae6fd;
+                        font: inherit;
+                        font-size: 12px;
+                        font-weight: 800;
+                        letter-spacing: .08em;
+                        text-transform: uppercase;
+                        cursor: pointer;
+                    }
+                    .tours-geo-notice button:focus-visible {
+                        outline: 2px solid #e0f2fe;
+                        outline-offset: 2px;
+                    }
 
                     /* ═══ MAIN SEARCH BAR ═══ */
                     .tours-search-bar {
@@ -1148,7 +1133,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         letter-spacing: 0.02em;
                     }
                     .tours-search-bar-input::placeholder {
-                        color: rgba(148,163,184,0.4);
+                        color: #9aa8b5;
                         font-weight: 400;
                     }
                     .tours-search-clear {
@@ -1284,13 +1269,13 @@ export default function PokerToursPage({ initialTours = [] }) {
                     }
                     .sidebar-tab-count {
                         margin-left: auto;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
-                        color: rgba(148,163,184,0.4);
+                        color: #9aa8b5;
                         min-width: 18px;
                         text-align: center;
                     }
-                    .sidebar-tab.active .sidebar-tab-count { color: rgba(255,255,255,0.6); }
+                    .sidebar-tab.active .sidebar-tab-count { color: #d4dde6; }
 
                     /* ═══ SIDEBAR FILTERS ═══ */
                     .sidebar-filters {
@@ -1332,7 +1317,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                     .sidebar-filter-group { margin-bottom: 10px; }
                     .sidebar-filter-group label {
                         display: block;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
                         color: rgba(255,255,255,0.5);
                         margin-bottom: 4px;
@@ -1353,15 +1338,15 @@ export default function PokerToursPage({ initialTours = [] }) {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        font-size: 11px;
+                        font-size: 12px;
                         color: rgba(255,255,255,0.7);
                         font-weight: 600;
                     }
                     .sidebar-clear-btn {
                         background: none;
                         border: 1px solid rgba(239,68,68,0.25);
-                        color: rgba(239,68,68,0.7);
-                        font-size: 10px;
+                        color: #ff8a8f;
+                        font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
@@ -1371,7 +1356,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                     }
                     .sidebar-clear-btn:hover {
                         background: rgba(239,68,68,0.1);
-                        color: #ef4444;
+                        color: #ff8a8f;
                     }
                     .sidebar-select {
                         width: 100%;
@@ -1426,7 +1411,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         font-weight: 800;
                     }
                     .tours-stops-count {
-                        color: rgba(34,197,94,0.7);
+                        color: #67d58a;
                         font-weight: 600;
                         font-size: 13px;
                     }
@@ -1445,7 +1430,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         border-radius: 6px;
                         border: 1px solid rgba(239,68,68,0.25);
                         background: rgba(239,68,68,0.08);
-                        color: rgba(239,68,68,0.8);
+                        color: #ff8a8f;
                         font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1456,14 +1441,14 @@ export default function PokerToursPage({ initialTours = [] }) {
                     .tours-clear-all-btn:hover {
                         background: rgba(239,68,68,0.15);
                         border-color: rgba(239,68,68,0.4);
-                        color: #ef4444;
+                        color: #ff8a8f;
                     }
                     .tours-results-sort {
                         display: flex;
                         align-items: center;
                         gap: 8px;
                         font-size: 13px;
-                        color: rgba(148,163,184,0.5);
+                        color: #9aa8b5;
                     }
                     .tours-results-sort select {
                         padding: 6px 10px;
@@ -1555,7 +1540,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         padding: 2px;
                     }
                     .tour-type-pill {
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 600;
                         padding: 3px 10px;
                         border-radius: 20px;
@@ -1578,7 +1563,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         align-items: center;
                         gap: 6px;
                         font-size: 12px;
-                        color: rgba(148,163,184,0.6);
+                        color: #9aa8b5;
                         margin: 0 0 8px;
                     }
                     .tour-card-location-live {
@@ -1598,8 +1583,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         padding-left: 20px;
                     }
                     .tour-stop-location {
-                        font-size: 11px;
-                        color: rgba(148,163,184,0.6);
+                        font-size: 12px;
+                        color: #9aa8b5;
                         padding-left: 20px;
                     }
 
@@ -1626,8 +1611,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         border-radius: 6px;
                         background: rgba(59,130,246,0.1);
                         border: 1px solid rgba(59,130,246,0.2);
-                        color: rgba(59,130,246,0.8);
-                        font-size: 11px;
+                        color: #76a9ff;
+                        font-size: 12px;
                         font-weight: 600;
                     }
 
@@ -1652,9 +1637,9 @@ export default function PokerToursPage({ initialTours = [] }) {
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
-                        color: rgba(148,163,184,0.5);
+                        color: #9aa8b5;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                         margin-bottom: 8px;
@@ -1677,8 +1662,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         max-width: 60%;
                     }
                     .tour-series-dates {
-                        font-size: 11px;
-                        color: rgba(34,197,94,0.7);
+                        font-size: 12px;
+                        color: #67d58a;
                         font-weight: 600;
                         white-space: nowrap;
                     }
@@ -1696,8 +1681,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         color: rgba(255,255,255,0.8);
                     }
                     .tour-series-more {
-                        font-size: 11px;
-                        color: rgba(148,163,184,0.4);
+                        font-size: 12px;
+                        color: #9aa8b5;
                         text-align: center;
                         padding-top: 6px;
                         border-top: 1px solid rgba(148,163,184,0.06);
@@ -1715,8 +1700,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         border-top: 1px solid rgba(148,163,184,0.08);
                     }
                     .tour-card-established {
-                        font-size: 11px;
-                        color: rgba(148,163,184,0.4);
+                        font-size: 12px;
+                        color: #9aa8b5;
                         font-weight: 500;
                     }
                     .tour-card-actions {
@@ -1814,7 +1799,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                     }
                     .tours-empty p {
                         font-size: 13px;
-                        color: rgba(148,163,184,0.5);
+                        color: #9aa8b5;
                         margin: 0;
                         max-width: 400px;
                     }
@@ -1919,7 +1904,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         .sidebar-tab.active {
                             box-shadow: inset 0 -2px 0 #ffffff, inset 0 0 8px rgba(255,255,255,0.08);
                         }
-                        .sidebar-tab-label { font-size: 10px; }
+                        .sidebar-tab-label { font-size: 12px; }
                         .sidebar-tab-icon { width: 20px; height: 20px; }
                         .sidebar-tab-count { display: none; }
                         .sidebar-filters {
@@ -1938,7 +1923,26 @@ export default function PokerToursPage({ initialTours = [] }) {
                         }
                         .tour-card-name { font-size: 15px; }
                         .tours-results-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
-                        .tours-results-actions { width: 100%; justify-content: space-between; }
+                        .tours-results-actions {
+                            width: 100%;
+                            min-width: 0;
+                            flex-direction: column;
+                            align-items: stretch;
+                            justify-content: flex-start;
+                            gap: 8px;
+                        }
+                        .tours-results-sort {
+                            display: grid;
+                            grid-template-columns: minmax(56px, auto) minmax(0, 1fr);
+                            width: 100%;
+                            min-width: 0;
+                        }
+                        .tours-results-sort select {
+                            width: 100%;
+                            min-width: 0;
+                            min-height: 44px;
+                        }
+                        .tours-clear-all-btn { width: 100%; min-height: 44px; }
                     }
 
                     @media (max-width: 480px) {

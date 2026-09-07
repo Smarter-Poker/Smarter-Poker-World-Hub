@@ -650,6 +650,7 @@ const nextConfig = {
   //   fonts.googleapis.com, fonts.gstatic.com  — Google Fonts
   //   storage.googleapis.com                   — Supabase storage CDN
   //   maps.googleapis.com                      — Google Maps
+  //   server.arcgisonline.com                  — Poker Near Me dark basemap tiles
   //   *.supabase.co                            — Supabase DB + auth + storage
   //   (onesignal.com removed 2026-08-29 — vendor retired 2026-08-19)
   //   cdn.jsdelivr.net, unpkg.com              — jsQR, tessaract.js, Leaflet
@@ -671,7 +672,7 @@ const nextConfig = {
       // Fonts: Google Fonts CDN
       "font-src 'self' https://fonts.gstatic.com data:",
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
-      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://server.arcgisonline.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
       // Sentry added 2026-08-29. It was MISSING, and this policy is Report-Only,

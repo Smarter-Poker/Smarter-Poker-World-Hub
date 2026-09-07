@@ -34,6 +34,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -53,8 +54,9 @@ function makeStyle() {
 }
 
 const style = makeStyle();
+const rootStyle = makeStyle();
 globalThis.window = {};
-globalThis.document = { body: { style } };
+globalThis.document = { body: { style }, documentElement: { style: rootStyle } };
 
 const {
     acquireScrollLock,
@@ -68,11 +70,13 @@ test('a single lock locks the body and its release clears it', () => {
     const release = acquireScrollLock('A');
     assert.equal(scrollLockCount(), 1);
     assert.equal(style.overflow, 'hidden');
+    assert.equal(rootStyle.overflow, 'hidden');
     assert.equal(globalThis.window.__spScrollLocks, 1, 'legacy mirror stays truthful');
 
     release();
     assert.equal(scrollLockCount(), 0);
     assert.equal(style.overflow, '');
+    assert.equal(rootStyle.overflow, '');
     assert.equal(globalThis.window.__spScrollLocks, 0);
 });
 
@@ -84,10 +88,12 @@ test('overlapping locks: only the last release unlocks the page', () => {
     a();
     assert.equal(scrollLockCount(), 1);
     assert.equal(style.overflow, 'hidden', 'B still holds it');
+    assert.equal(rootStyle.overflow, 'hidden', 'B still owns the root scroller');
 
     b();
     assert.equal(scrollLockCount(), 0);
     assert.equal(style.overflow, '');
+    assert.equal(rootStyle.overflow, '');
 });
 
 test('releasing the same lock twice is a no-op, not a double decrement', () => {
@@ -99,8 +105,10 @@ test('releasing the same lock twice is a no-op, not a double decrement', () => {
 
     assert.equal(scrollLockCount(), 1, 'the second release must not free HELD');
     assert.equal(style.overflow, 'hidden');
+    assert.equal(rootStyle.overflow, 'hidden');
     held();
     assert.equal(style.overflow, '');
+    assert.equal(rootStyle.overflow, '');
 });
 
 test('REGRESSION #47: a leaked lock is reclaimed on the next navigation', () => {
@@ -110,6 +118,7 @@ test('REGRESSION #47: a leaked lock is reclaimed on the next navigation', () => 
     acquireScrollLock('LEAKED');
     assert.equal(scrollLockCount(), 1);
     assert.equal(style.overflow, 'hidden');
+    assert.equal(rootStyle.overflow, 'hidden');
 
     // This is the stuck state. Every safety valve in the app defers to the
     // count, so while it reads 1 the page cannot be freed by anyone.
@@ -124,6 +133,7 @@ test('REGRESSION #47: a leaked lock is reclaimed on the next navigation', () => 
 
     assert.equal(clearBodyScrollLockIfUnheld(), true, 'valve can now free the page');
     assert.equal(style.overflow, '', 'page scrolls again');
+    assert.equal(rootStyle.overflow, '', 'root scroller is released too');
 });
 
 test('a lock taken by the INCOMING page survives the sweep', () => {
@@ -136,6 +146,15 @@ test('a lock taken by the INCOMING page survives the sweep', () => {
     assert.equal(sweepStaleScrollLocks(), 0, 'sweep must not touch a current-generation lock');
     assert.equal(scrollLockCount(), 1);
     assert.equal(style.overflow, 'hidden');
+    assert.equal(rootStyle.overflow, 'hidden');
+    // Mirrors the guarded route-complete safety valve in pages/_app.js. A
+    // current-generation lock must keep both scrolling elements locked.
+    if (scrollLockCount() === 0) {
+        style.overflow = '';
+        rootStyle.overflow = '';
+    }
+    assert.equal(style.overflow, 'hidden');
+    assert.equal(rootStyle.overflow, 'hidden');
     assert.equal(
         clearBodyScrollLockIfUnheld(), false,
         'valve must never stomp a lock a live arena is deliberately holding',
@@ -143,6 +162,26 @@ test('a lock taken by the INCOMING page survives the sweep', () => {
 
     incoming();
     assert.equal(style.overflow, '');
+    assert.equal(rootStyle.overflow, '');
+});
+
+test('route completion guards both body and root cleanup behind the live-lock count', () => {
+    const appSource = fs.readFileSync(path.join(HERE, '..', 'pages', '_app.js'), 'utf8');
+    assert.match(
+        appSource,
+        /sweepStaleScrollLocks\(\);\s*clearBodyScrollLockIfUnheld\(\);/,
+    );
+    assert.match(
+        appSource,
+        /new URL\(nextUrl, window\.location\.href\)\.pathname !== window\.location\.pathname/,
+    );
+    assert.match(appSource, /if \(pathnameChanged\) advanceScrollLockGeneration\(\);/);
+    assert.equal(
+        (appSource.match(/clearBodyScrollLockIfUnheld\(\);/g) || []).length,
+        3,
+        'mount, primary route completion, and independent route failsafe all use the registry guard',
+    );
+    assert.doesNotMatch(appSource, /document\.documentElement\.style\.overflow = '';/);
 });
 
 test('a clean unmount during navigation leaves nothing for the sweep', () => {
@@ -153,10 +192,12 @@ test('a clean unmount during navigation leaves nothing for the sweep', () => {
     outgoing();                                     // cleanup ran normally
     assert.equal(sweepStaleScrollLocks(), 0, 'a released lock is already gone');
     assert.equal(scrollLockCount(), 1, 'only the new page holds one');
+    assert.equal(rootStyle.overflow, 'hidden');
 
     fresh();
     assert.equal(scrollLockCount(), 0);
     assert.equal(style.overflow, '');
+    assert.equal(rootStyle.overflow, '');
 });
 
 test('shallow navigation does not advance the generation on its own', () => {
@@ -166,7 +207,9 @@ test('shallow navigation does not advance the generation on its own', () => {
     assert.equal(sweepStaleScrollLocks(), 0);
     assert.equal(sweepStaleScrollLocks(), 0, 'repeat sweeps stay idempotent');
     assert.equal(scrollLockCount(), 1);
+    assert.equal(rootStyle.overflow, 'hidden');
 
     longLived();
     assert.equal(scrollLockCount(), 0);
+    assert.equal(rootStyle.overflow, '');
 });

@@ -299,8 +299,9 @@ function HamburgerMenuContent({
       const { supabase } = await import('../../lib/supabase');
       const { error } = (await supabase.auth.signOut()) || {};
       if (error) console.warn('[HamburgerMenu] signOut reported:', error?.message || error);
-    } catch (e) {
-      console.warn('Signout warning:', e);
+    } catch (error) {
+      const signOutError = error instanceof Error ? error.message : String(error);
+      console.warn('Signout warning:', signOutError);
     } finally {
       // Runs whether or not the server round-trip worked. Order matters:
       // clearAuth(true) first so the backup is gone before anything can read it.
@@ -1109,6 +1110,7 @@ function HamburgerMenuContent({
         data-world-command-menu={activeWorld?.id || 'global'}
         data-world-menu-scheme={activeWorld?.menuPalette?.scheme || 'global'}
         data-world-menu-texture={activeWorld?.menuPalette?.texture || 'none'}
+        data-direction={direction}
         data-responsive-composition={isFacebookMenu ? 'preserved' : 'adaptive'}
         data-menu-symbol="hamburger"
         onTouchStart={handleTouchStart}
@@ -1129,7 +1131,8 @@ function HamburgerMenuContent({
           height: '100dvh',
           maxHeight: '100dvh',
           background: colors.bg,
-          borderRight: `1px solid ${colors.border}`,
+          borderRight: direction === 'left' ? `1px solid ${colors.border}` : 0,
+          borderLeft: direction === 'right' ? `1px solid ${colors.border}` : 0,
           boxShadow:
             direction === 'left' ? '2px 0 10px rgba(0,0,0,0.2)' : '-4px 0 20px rgba(0, 0, 0, 0.5)',
           zIndex: 10100,
