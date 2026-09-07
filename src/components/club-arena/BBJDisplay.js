@@ -179,7 +179,14 @@ const WinnersTab = ({ winners }) => {
                 )}
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: METAL.text }}>{capitalizeWords(w.loserName)}</div>
-                  <div style={{ fontSize: '13px', color: METAL.textMuted }}>{capitalizeWords(w.gameVariant)} - {new Date(w.awardedAt).toLocaleDateString()}</div>
+                  <div style={{ fontSize: '13px', color: METAL.textMuted }}>
+                    {/* Which jackpot paid it (Club Arena BBJ phase 6). A mini is
+                        a flat few hundred chips out of the backup reserve; listed
+                        next to a five-figure main with nothing to separate them
+                        it reads as the big one having paid almost nothing. */}
+                    {w.kind === 'mini' ? 'Mini Jackpot - ' : ''}
+                    {capitalizeWords(w.gameVariant)} - {new Date(w.awardedAt).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -307,6 +314,34 @@ export const BBJModal = ({ clubId, onClose }) => {
     if (!clubId) return;
     const channel = supabase.channel('bbj_winners_live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bbj_winners', filter: `club_id=eq.${clubId}` }, (payload) => {
+        /* THE MINI DOES NOT BUZZ EVERY PHONE IN THE CLUB (Club Arena BBJ phase 6,
+           2026-09-07). This handler fires three heavy haptics, a two-second
+           audio fanfare and a full-screen "JACKPOT HIT!" takeover. That is right
+           for the main jackpot, which fires about once a fortnight and pays six
+           figures. Dan's second tier - a flat few hundred chips out of the backup
+           reserve for a hand that came close to the main bar - fires ABOUT FOUR
+           TIMES A DAY, and giving it the same treatment would make the real one
+           indistinguishable from background noise inside a week.
+
+           A mini is not hidden: it still lands in the winners list this page
+           renders below, badged, and it gets the full celebration at its own
+           table in Club Arena. It just does not interrupt everybody else.
+
+           A row with no `kind` is a main jackpot - every row written before
+           2026-09-07 is. */
+        if ((payload.new?.kind || 'main') !== 'main') {
+          fetch(`/api/club-arena/bbj?clubId=${clubId}`)
+            .then(r => r.json())
+            .then(d => setData(d))
+            .catch((err) => {
+              // Not fatal - the list is stale until the next load, and the mini
+              // is already paid. Swallowing it silently is how a surface goes
+              // quietly wrong for months, so it leaves a trace.
+              console.warn('[BBJDisplay] mini refresh failed; the list is stale:', err);
+            });
+          return;
+        }
+
         triggerHaptic('heavy');
         setTimeout(() => triggerHaptic('heavy'), 200);
         setTimeout(() => triggerHaptic('heavy'), 400);
@@ -355,7 +390,9 @@ export const BBJModal = ({ clubId, onClose }) => {
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
           animation: 'fadeIn 0.5s ease'
         }}>
-          <h1 style={{...STYLES.title, fontSize: '48px', color: METAL.gold, textShadow: '0 0 40px #FFD700'}}>JACKPOT HIT!</h1>
+          <h1 style={{...STYLES.title, fontSize: '48px', color: METAL.gold, textShadow: '0 0 40px #FFD700'}}>
+            {(celebration.kind || 'main') === 'mini' ? 'MINI JACKPOT HIT!' : 'JACKPOT HIT!'}
+          </h1>
           <h2 style={{color: '#fff', fontSize: '24px'}}>{formatMoney(celebration.total_payout)}</h2>
           <button 
             onClick={() => { triggerHaptic('medium'); setCelebration(null); }}

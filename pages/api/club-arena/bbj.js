@@ -215,6 +215,13 @@ export default async function handler(req, res) {
             awardedAt: w.awarded_at,
             stakesTier: w.stakes_tier,
             gameVariant: w.game_variant,
+            /* Which jackpot paid it (Club Arena BBJ phase 6, 2026-09-07).
+               'mini' is a flat few hundred chips out of the backup reserve for
+               a hand that came close to the main bar. Sent so the card can say
+               so: a mini listed beside a five-figure main with no label reads
+               as the big one having paid almost nothing. Rows written before
+               2026-09-07 carry no `kind` and are main. */
+            kind: w.kind || 'main',
           };
         }));
 
