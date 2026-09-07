@@ -60,7 +60,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
       const [profileRes, memberRes, bbjRes, agentRes, clubRes] = await Promise.allSettled([
         supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle(),
         supabase.from('club_members').select('chip_balance, promo_balance, role').eq('club_id', clubId).eq('user_id', userId).maybeSingle(),
-        supabase.from('bbj_pools').select('pool_amount').eq('club_id', clubId).maybeSingle(),
+        supabase.rpc('fn_bbj_pool_for_club', { p_club_id: clubId }),
         supabase.from('agents').select('business_balance, status').eq('club_id', clubId).eq('user_id', userId).eq('status', 'active').maybeSingle(),
         supabase.from('clubs').select('chip_treasury').eq('id', clubId).maybeSingle(),
       ]);
@@ -83,7 +83,17 @@ export default function useWalletData({ supabase, userId, clubId }) {
 
       // BBJ pool
       if (bbjRes.status === 'fulfilled' && bbjRes.value?.data) {
-        const amt = bbjRes.value.data.pool_amount || 0;
+        /* THE FIGURE IS `main_balance`, AND THE SCOPE IS THE FUNCTION'S
+           (BBJ phase 3.5, 2026-09-06). This read `bbj_pools.pool_amount`
+           filtered by `club_id`, and both halves were wrong: `pool_amount` is
+           a legacy column nothing has written since the triple-bank rework
+           (measured on production, it read 0.00 against a real 107,092.27),
+           and a UNION banks the jackpot on a row whose club_id IS NULL, so the
+           filter matched nothing at all for every club in a union. */
+        const bbjRow = Array.isArray(bbjRes.value.data)
+          ? bbjRes.value.data[0]
+          : bbjRes.value.data;
+        const amt = Number(bbjRow?.main_balance || 0);
         setBbjAmount(amt);
         bbjAmountRef.current = amt;
       }
@@ -150,23 +160,32 @@ export default function useWalletData({ supabase, userId, clubId }) {
       })
       .subscribe();
 
-    // 2. BBJ pool changes (any player sees it grow)
-    const bbjCh = supabase
-      .channel(`wallet-bbj:${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'bbj_pools',
-        filter: `club_id=eq.${clubId}`,
-      }, (payload) => {
-        const newAmount = payload.new?.pool_amount;
-        if (newAmount !== undefined && newAmount !== bbjAmountRef.current) {
-          bbjAmountRef.current = newAmount;
-          setBbjAmount(newAmount);
-          setBbjAnimating(true);
-          if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);
-          bbjTimeoutRef.current = setTimeout(() => setBbjAnimating(false), 800);
-        }
-      })
-      .subscribe();
+    /* 2. THE BBJ POOL IS POLLED, NOT SUBSCRIBED (BBJ phase 3.2/3.5).
+       This bound to `bbj_pools` and read `payload.new.pool_amount` - the dead
+       legacy column - filtered by a club_id that a union pool does not carry.
+       It could therefore only ever deliver a stale figure, and only to a club
+       that is not in a union.
+
+       That row is also updated on every raked hand: 40,219 times in
+       twenty-four hours, measured on production, decoded and pushed to every
+       open tab to keep a wallet figure current. Phase 3.2 took every Club
+       Arena surface off it; this is the last of the World Hub's three. */
+    const readBbjPool = async () => {
+      try {
+        const { data } = await supabase.rpc('fn_bbj_pool_for_club', { p_club_id: clubId });
+        const row = Array.isArray(data) ? data[0] : data;
+        const amt = Number(row?.main_balance || 0);
+        if (!Number.isFinite(amt) || amt === bbjAmountRef.current) return;
+        bbjAmountRef.current = amt;
+        setBbjAmount(amt);
+        setBbjAnimating(true);
+        if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);
+        bbjTimeoutRef.current = setTimeout(() => setBbjAnimating(false), 800);
+      } catch {
+        /* Leave the last known figure up rather than zeroing it. */
+      }
+    };
+    const bbjTimer = setInterval(readBbjPool, 30000);
 
     // 3. Agent balance changes — ROLE-GATED: only open for agents
     let agentCh = null;
@@ -204,7 +223,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
 
     return () => {
       supabase.removeChannel(memberCh);
-      supabase.removeChannel(bbjCh);
+      clearInterval(bbjTimer);
       if (agentCh) supabase.removeChannel(agentCh);
       if (clubCh) supabase.removeChannel(clubCh);
       if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);

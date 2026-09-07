@@ -35,9 +35,10 @@ function formatAmount(amount, currency) {
   return `$${((Number(amount) || 0) / 100).toFixed(2)}`;
 }
 
-export default function MarketplaceReceiptPage() {
+export default function MarketplaceReceiptPage({ routeOrderId = null }) {
   const router = useRouter();
-  const rawOrderId = Array.isArray(router.query.orderId) ? router.query.orderId[0] : router.query.orderId;
+  const routerOrderId = Array.isArray(router.query.orderId) ? router.query.orderId[0] : router.query.orderId;
+  const rawOrderId = routerOrderId || routeOrderId;
   const rawSource = Array.isArray(router.query.source) ? router.query.source[0] : router.query.source;
   const source = Object.hasOwn(ORDER_SOURCES, rawSource || '') ? rawSource : null;
   const canonical = rawOrderId
@@ -298,6 +299,15 @@ export default function MarketplaceReceiptPage() {
       )}
     </MarketplaceDetailExperience>
   );
+}
+
+export function getServerSideProps({ params }) {
+  const routeOrderId = Array.isArray(params?.orderId) ? params.orderId[0] : params?.orderId;
+  return {
+    props: {
+      routeOrderId: typeof routeOrderId === 'string' ? routeOrderId : null,
+    },
+  };
 }
 
 const receiptStyles = {

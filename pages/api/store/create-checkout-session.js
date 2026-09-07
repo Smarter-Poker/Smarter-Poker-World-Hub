@@ -10,6 +10,14 @@ import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
+import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mjs';
+import {
+    BLOCKING_RECURRING_VIP_STATUSES,
+    STRIPE_VIP_AUTHORITY,
+    classifyStripeCheckoutSessionForVip,
+    classifyStripeSubscriptionForVip,
+    hasBlockingRecurringCardSubscription,
+} from '../../../src/lib/store/vipPurchaseGuards.mjs';
 import {
     MAX_DIAMOND_QUANTITY_PER_PACKAGE,
     canCreditDiamondWallet,
@@ -25,6 +33,10 @@ const {
 } = require('../../../src/lib/store/printfulFulfillment');
 
 const MAX_CHECKOUT_BODY_BYTES = 64 * 1024;
+const VIP_SUBSCRIPTION_CHECKOUT_TTL_SECONDS = 60 * 60;
+const VIP_SUBSCRIPTION_CLAIM_GRACE_SECONDS = 5 * 60;
+const VIP_SUBSCRIPTION_INITIAL_LEASE_SECONDS =
+    VIP_SUBSCRIPTION_CHECKOUT_TTL_SECONDS + VIP_SUBSCRIPTION_CLAIM_GRACE_SECONDS;
 const CHECKOUT_BODY_FIELDS = new Set([
     'type',
     'items',
@@ -198,6 +210,14 @@ function isConcurrentStripeReplay(error) {
 function isAmbiguousStripeCreateFailure(error) {
     return isConcurrentStripeReplay(error)
         || ['StripeConnectionError', 'StripeAPIError'].includes(error?.type);
+}
+
+function vipSubscriptionClaimExpiry(expiresAtSeconds) {
+    const stripeExpiry = Number(expiresAtSeconds);
+    if (!Number.isSafeInteger(stripeExpiry) || stripeExpiry <= 0) return null;
+    return new Date(
+        (stripeExpiry + VIP_SUBSCRIPTION_CLAIM_GRACE_SECONDS) * 1000
+    ).toISOString();
 }
 
 function validateCheckoutRequestId(value) {
@@ -634,7 +654,9 @@ async function prepareCheckout(type, items, { requireCurrentDiamondCatalog = fal
                     503
                 );
             }
-            if (!stripePrice?.active || !stripePrice.recurring) {
+            const priceMismatch = vipStripePriceMismatch(stripePrice, plan);
+            if (priceMismatch) {
+                console.warn(`[Checkout] ${plan.envVar} failed VIP price verification:`, priceMismatch);
                 throw new CheckoutInputError(
                     'SUBSCRIPTIONS_NOT_CONFIGURED',
                     'VIP subscriptions are not available right now. Please contact support.',
@@ -856,6 +878,80 @@ async function inspectLinkedCheckout(type, userId, row) {
         }
         console.warn('[Checkout] Existing session lookup failed:', error?.message || error);
         return { initializing: true };
+    }
+}
+
+function classifyDurableSubscriptionClaimSession(session, claim, {
+    customerId,
+    userId,
+    requestId,
+    intentHash,
+}) {
+    const sessionCustomerId = typeof session?.customer === 'string'
+        ? session.customer
+        : session?.customer?.id;
+    const metadata = session?.metadata || {};
+    const exactClaimSession = Boolean(
+        claim?.session_id
+        && session?.id === claim.session_id
+        && sessionCustomerId === customerId
+        && session?.mode === 'subscription'
+        && metadata.type === 'subscription'
+        && metadata.user_id === userId
+        && metadata.checkout_request_id === requestId
+        && metadata.checkout_intent_hash === intentHash
+    );
+    if (!exactClaimSession) return 'unknown';
+    if (session.status === 'expired') return 'expired';
+    if (session.status === 'complete') return 'complete';
+    if (session.status === 'open' && typeof session.url === 'string' && session.url) {
+        return 'open';
+    }
+    return 'unknown';
+}
+
+async function inspectDurableSubscriptionClaim(claim, identity) {
+    if (!claim?.session_id) return { state: 'unknown', session: null };
+    try {
+        const session = await stripe.checkout.sessions.retrieve(claim.session_id);
+        return {
+            state: classifyDurableSubscriptionClaimSession(session, claim, identity),
+            session,
+        };
+    } catch (error) {
+        // A missing session, transport failure, or provider error is not proof
+        // that the payable URL is dead. Preserve the mutex until Stripe can
+        // authoritatively classify this exact session.
+        console.warn(
+            '[Checkout] Durable subscription session lookup failed:',
+            error?.message || error
+        );
+        return { state: 'unknown', session: null };
+    }
+}
+
+async function expireStripeCheckoutSessionConfirmed(sessionId) {
+    let expirationError = null;
+    try {
+        const expired = await stripe.checkout.sessions.expire(sessionId);
+        if (expired?.status === 'expired') return expired;
+        expirationError = new Error('Subscription session expiration was not confirmed');
+    } catch (error) {
+        expirationError = error;
+    }
+
+    // A connection can fail after Stripe commits the expiry. Retrieve once so
+    // that an ambiguous response does not leave an already-dead URL fenced.
+    try {
+        const recovered = await stripe.checkout.sessions.retrieve(sessionId);
+        if (recovered?.status === 'expired') return recovered;
+        throw new Error(
+            `Subscription session remains ${recovered?.status || 'unclassified'} after expiration`
+        );
+    } catch (recoveryError) {
+        const error = new Error('Subscription Checkout Expiration Could Not Be Verified.');
+        error.cause = recoveryError || expirationError;
+        throw error;
     }
 }
 
@@ -1228,12 +1324,9 @@ export default async function handler(req, res) {
                   .from('vip_subscriptions')
                   .select('stripe_subscription_id, status')
                   .eq('user_id', user.id)
-                  .in('status', ['active', 'trialing', 'past_due', 'unpaid']);
+                  .in('status', BLOCKING_RECURRING_VIP_STATUSES);
               if (activeReadError) throw activeReadError;
-              const hasCardSubscription = (activeRows || []).some((row) => (
-                  row.stripe_subscription_id
-                  && !String(row.stripe_subscription_id).startsWith('diamond_')
-              ));
+              const hasCardSubscription = hasBlockingRecurringCardSubscription(activeRows);
               if (hasCardSubscription) {
                   return res.status(409).json({
                       success: false,
@@ -1254,10 +1347,22 @@ export default async function handler(req, res) {
                       status: 'all',
                       limit: 100,
                   });
-                  if (subscriptions.data.some((entry) => (
-                      ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
-                          .includes(entry.status)
-                  ))) {
+                  if (subscriptions?.has_more) {
+                      return res.status(503).json({
+                          success: false,
+                          retryable: true,
+                          error: {
+                              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+                              message: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.'
+                          }
+                      });
+                  }
+                  const knownVipPriceIds = Object.values(VIP_SUBSCRIPTION_PLANS)
+                      .map((plan) => process.env[plan.envVar]);
+                  const subscriptionAuthorities = subscriptions.data
+                      .filter((entry) => BLOCKING_RECURRING_VIP_STATUSES.includes(entry.status))
+                      .map((entry) => classifyStripeSubscriptionForVip(entry, { knownVipPriceIds }));
+                  if (subscriptionAuthorities.includes(STRIPE_VIP_AUTHORITY.VIP)) {
                       return res.status(409).json({
                           success: false,
                           error: {
@@ -1265,6 +1370,16 @@ export default async function handler(req, res) {
                               message: type === 'vip_lifetime'
                                   ? 'Cancel your active recurring VIP plan before purchasing Lifetime VIP.'
                                   : 'You already have an active VIP subscription.'
+                          }
+                      });
+                  }
+                  if (subscriptionAuthorities.includes(STRIPE_VIP_AUTHORITY.UNKNOWN)) {
+                      return res.status(503).json({
+                          success: false,
+                          retryable: true,
+                          error: {
+                              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+                              message: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.'
                           }
                       });
                   }
@@ -1410,18 +1525,35 @@ export default async function handler(req, res) {
                   status: 'open',
                   limit: 100,
               });
-              if (openSessions.data.some((entry) => entry.mode === 'subscription')) {
-                  const matchingSession = openSessions.data.find((entry) => (
-                      entry.mode === 'subscription'
-                      && entry.metadata?.checkout_intent_hash === checkoutIntentHash
-                  ));
-                  if (matchingSession?.url) {
-                      return res.status(200).json({
-                          success: true,
-                          duplicate: true,
-                          data: { session_id: matchingSession.id, url: matchingSession.url }
-                      });
-                  }
+              if (openSessions?.has_more) {
+                  const recoveryError = new Error(
+                      'Subscription Checkout Eligibility Exceeded Its Verified Bound.'
+                  );
+                  recoveryError.checkoutRetryable = true;
+                  throw recoveryError;
+              }
+              const sessionAuthorities = (openSessions?.data || []).map((entry) => ({
+                  entry,
+                  authority: classifyStripeCheckoutSessionForVip(entry),
+              }));
+              if (sessionAuthorities.some(({ authority }) => authority === STRIPE_VIP_AUTHORITY.UNKNOWN)) {
+                  const recoveryError = new Error(
+                      'Subscription Checkout Eligibility Could Not Be Classified.'
+                  );
+                  recoveryError.checkoutRetryable = true;
+                  throw recoveryError;
+              }
+              const openSubscriptionSessions = sessionAuthorities
+                  .filter(({ authority }) => authority === STRIPE_VIP_AUTHORITY.VIP)
+                  .map(({ entry }) => entry);
+              const matchingSession = openSubscriptionSessions.find((entry) => (
+                  entry.metadata?.type === 'subscription'
+                  && entry.metadata?.user_id === user.id
+                  && entry.metadata?.checkout_request_id === checkoutRequestId
+                  && entry.metadata?.checkout_intent_hash === checkoutIntentHash
+              ));
+              if (openSubscriptionSessions.length > 1
+                  || (openSubscriptionSessions.length === 1 && !matchingSession?.url)) {
                   return res.status(409).json({
                       success: false,
                       error: {
@@ -1437,32 +1569,153 @@ export default async function handler(req, res) {
                       p_user_id: user.id,
                       p_request_id: checkoutRequestId,
                       p_intent_hash: checkoutIntentHash,
-                      p_lease_seconds: 300,
+                      // The fence must outlive the payable Stripe URL. A short
+                      // initializer lease can expire after an ambiguous create
+                      // while Checkout remains payable, reopening the Diamond
+                      // race that this claim exists to close.
+                      p_lease_seconds: VIP_SUBSCRIPTION_INITIAL_LEASE_SECONDS,
                   }
               );
               if (claimError) throw claimError;
               if (!claim?.claimed) {
-                  if (claim?.state === 'open' && claim?.session_url) {
-                      return res.status(200).json({
-                          success: true,
-                          duplicate: true,
-                          data: { session_id: claim.session_id, url: claim.session_url }
+                  if (claim?.state === 'open') {
+                      subscriptionClaim = { userId: user.id, requestId: checkoutRequestId };
+                      const inspection = await inspectDurableSubscriptionClaim(claim, {
+                          customerId,
+                          userId: user.id,
+                          requestId: checkoutRequestId,
+                          intentHash: checkoutIntentHash,
+                      });
+                      const conflictsWithListedSession = Boolean(
+                          matchingSession && matchingSession.id !== inspection.session?.id
+                      );
+                      if (inspection.state === 'open' && !conflictsWithListedSession) {
+                          return res.status(200).json({
+                              success: true,
+                              duplicate: true,
+                              data: {
+                                  session_id: inspection.session.id,
+                                  url: inspection.session.url,
+                              }
+                          });
+                      }
+                      if (inspection.state === 'expired') {
+                          let releasedRows = null;
+                          let releaseError = null;
+                          try {
+                              const releaseResult = await getSupabase()
+                                  .from('vip_subscription_checkout_claims')
+                                  .delete()
+                                  .eq('user_id', subscriptionClaim.userId)
+                                  .eq('request_id', checkoutRequestId)
+                                  .eq('intent_hash', checkoutIntentHash)
+                                  .eq('state', 'open')
+                                  .eq('session_id', inspection.session.id)
+                                  .select('session_id');
+                              releasedRows = releaseResult?.data || null;
+                              releaseError = releaseResult?.error || null;
+                          } catch (error) {
+                              releaseError = error;
+                          }
+                          if (releaseError || releasedRows?.length !== 1) {
+                              const recoveryError = releaseError instanceof Error
+                                  ? releaseError
+                                  : new Error('Expired Subscription Checkout Claim Could Not Be Released.');
+                              recoveryError.checkoutRetryable = true;
+                              recoveryError.preserveSubscriptionClaim = true;
+                              throw recoveryError;
+                          }
+                          subscriptionClaim = null;
+                          return res.status(409).json({
+                              success: false,
+                              error: {
+                                  code: 'CHECKOUT_EXPIRED',
+                                  message: 'That Checkout Expired. Start A New Checkout To Continue.'
+                              }
+                          });
+                      }
+                      const recoveryError = new Error(
+                          inspection.state === 'complete'
+                              ? 'Completed Subscription Checkout Is Awaiting Entitlement Reconciliation.'
+                              : 'Subscription Checkout State Could Not Be Verified.'
+                      );
+                      recoveryError.checkoutRetryable = true;
+                      recoveryError.preserveSubscriptionClaim = true;
+                      throw recoveryError;
+                  }
+                  if (claim?.state === 'vip_entitlement_active') {
+                      // This can only be a pre-release recovery edge: the new
+                      // mutex prevents creating an overlapping session. Close
+                      // an unpaid recovered URL so it cannot later be used.
+                      if (matchingSession?.id) {
+                          try {
+                              await expireStripeCheckoutSessionConfirmed(matchingSession.id);
+                          } catch (expirationError) {
+                              console.warn(
+                                  '[Checkout] Overlapping subscription session expiry remains uncertain:',
+                                  expirationError?.message || expirationError
+                              );
+                              expirationError.checkoutRetryable = true;
+                              expirationError.preserveSubscriptionClaim = true;
+                              throw expirationError;
+                          }
+                      }
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: 'VIP_ENTITLEMENT_ACTIVE',
+                              message: 'Your Current VIP Term Is Already Active. Card Checkout Becomes Available After It Ends.'
+                          }
                       });
                   }
-                  return res.status(409).json({
-                      success: false,
-                      retryable: claim?.state === 'initializing',
-                      error: {
-                          code: claim?.state === 'conflict'
-                              ? 'SUBSCRIPTION_CHECKOUT_EXISTS'
-                              : 'CHECKOUT_RECOVERY_PENDING',
-                          message: claim?.state === 'conflict'
-                              ? 'A VIP subscription checkout is already open for this account.'
-                              : 'Your subscription checkout is still being initialized. Retry shortly.'
-                      }
-                  });
+                  // An initializing response for the same request and intent is
+                  // ours. Continue with the same Stripe idempotency key so a
+                  // lost create response can be recovered immediately. A
+                  // different request is returned by the RPC as `conflict`.
+                  if (claim?.state !== 'initializing') {
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: claim?.state === 'conflict'
+                                  ? 'SUBSCRIPTION_CHECKOUT_EXISTS'
+                                  : 'CHECKOUT_RECOVERY_PENDING',
+                              message: claim?.state === 'conflict'
+                                  ? 'A VIP subscription checkout is already open for this account.'
+                                  : 'Your subscription checkout is still being initialized. Retry shortly.'
+                          }
+                      });
+                  }
               }
               subscriptionClaim = { userId: user.id, requestId: checkoutRequestId };
+
+              // A prior Stripe create may have succeeded after this serverless
+              // invocation lost its response. Never hand that URL back until
+              // the database mutex is re-established and finalized.
+              if (matchingSession?.url) {
+                  const { data: recovered, error: recoveryError } = await getSupabase().rpc(
+                      'complete_vip_subscription_checkout',
+                      {
+                          p_user_id: subscriptionClaim.userId,
+                          p_request_id: subscriptionClaim.requestId,
+                          p_session_id: matchingSession.id,
+                          p_session_url: matchingSession.url,
+                          p_expires_at: vipSubscriptionClaimExpiry(matchingSession.expires_at),
+                      }
+                  );
+                  if (recoveryError || recovered !== true) {
+                      const error = recoveryError
+                          || new Error('Subscription checkout claim could not be recovered');
+                      error.checkoutRetryable = true;
+                      error.preserveSubscriptionClaim = true;
+                      throw error;
+                  }
+                  subscriptionClaim = null;
+                  return res.status(200).json({
+                      success: true,
+                      duplicate: true,
+                      data: { session_id: matchingSession.id, url: matchingSession.url }
+                  });
+              }
           }
 
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
@@ -1492,6 +1745,12 @@ export default async function handler(req, res) {
                  would renew a membership that by definition never renews. */
               mode: type === 'subscription' ? 'subscription' : 'payment',
               ...(type !== 'subscription' ? { payment_method_types: ['card'] } : {}),
+              ...(type === 'subscription' ? {
+                  // Keep payable lifetime bounded and make the database fence
+                  // last slightly longer than the exact Stripe session.
+                  expires_at: Math.floor(Date.now() / 1000)
+                      + VIP_SUBSCRIPTION_CHECKOUT_TTL_SECONDS,
+              } : {}),
               success_url: safeSuccessUrl,
               cancel_url: safeCancelUrl,
               metadata: {
@@ -1612,10 +1871,10 @@ export default async function handler(req, res) {
               // SECURITY: The client sends only a plan key ('monthly' | 'yearly').
               // The Stripe price ID is resolved SERVER-SIDE from env config, so a
               // client can never pair a cheap price with a premium tier claim.
-              const { plan, stripePrice: preparedStripePrice } = preparedCheckout;
+              const { plan } = preparedCheckout;
 
               // ── Resolve the price: configured Stripe price, or inline. ──
-              let vipTier = plan.tier;
+              const vipTier = plan.tier;
 
               if (plan.priceId) {
                   // Validate the configured price against Stripe and derive the
@@ -1624,10 +1883,6 @@ export default async function handler(req, res) {
                   // papered over with the fallback, because someone deliberately
                   // pointed at a price and we should say it is wrong rather than
                   // quietly charge a different amount.
-                  const stripePrice = preparedStripePrice;
-                  vipTier = stripePrice.metadata?.vip_tier
-                      || (stripePrice.recurring.interval === 'year' ? 'yearly' : plan.tier);
-
                   sessionConfig.line_items = [{ price: plan.priceId, quantity: 1 }];
               } else {
                   // No price object configured — build the recurring price inline
@@ -1659,7 +1914,10 @@ export default async function handler(req, res) {
               sessionConfig.subscription_data = {
                   metadata: {
                       user_id: user.id,
-                      vip_tier: vipTier
+                      type: 'subscription',
+                      vip_tier: vipTier,
+                      checkout_request_id: checkoutRequestId,
+                      checkout_intent_hash: checkoutIntentHash,
                   }
               };
 
@@ -1935,6 +2193,15 @@ export default async function handler(req, res) {
                   stripeRequestOptions.idempotencyKey ? stripeRequestOptions : undefined
               );
           } catch (sessionError) {
+              if (type === 'subscription'
+                  && subscriptionClaim
+                  && isAmbiguousStripeCreateFailure(sessionError)) {
+                  // Stripe may already own an open payable session. Keep the
+                  // database claim so a Diamond purchase cannot pass the mutex
+                  // while this same idempotent request is being recovered.
+                  sessionError.checkoutRetryable = true;
+                  sessionError.preserveSubscriptionClaim = true;
+              }
               if (type === 'vip_lifetime' && sessionConfig.metadata.purchase_id) {
                   if (isAmbiguousStripeCreateFailure(sessionError)) {
                       /* Stripe may have accepted the request even though this
@@ -2012,13 +2279,23 @@ export default async function handler(req, res) {
                       p_request_id: subscriptionClaim.requestId,
                       p_session_id: session.id,
                       p_session_url: session.url,
-                      p_expires_at: session.expires_at
-                          ? new Date(session.expires_at * 1000).toISOString()
-                          : null,
+                      p_expires_at: vipSubscriptionClaimExpiry(session.expires_at),
                   }
               );
               if (completionError || completed !== true) {
-                  await stripe.checkout.sessions.expire(session.id).catch(() => {});
+                  try {
+                      await expireStripeCheckoutSessionConfirmed(session.id);
+                  } catch (expirationError) {
+                      console.warn(
+                          '[Checkout] Subscription session expiration could not be verified:',
+                          expirationError?.message || expirationError
+                      );
+                      const recoveryError = completionError
+                          || new Error('Subscription checkout claim could not be finalized');
+                      recoveryError.checkoutRetryable = true;
+                      recoveryError.preserveSubscriptionClaim = true;
+                      throw recoveryError;
+                  }
                   throw completionError || new Error('Subscription checkout claim could not be finalized');
               }
               subscriptionClaim = null;
@@ -2140,13 +2417,29 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          if (subscriptionClaim) {
-              await getSupabase().rpc('release_vip_subscription_checkout', {
-                  p_user_id: subscriptionClaim.userId,
-                  p_request_id: subscriptionClaim.requestId,
-              }).catch(() => {});
-              subscriptionClaim = null;
+          if (subscriptionClaim && !error.preserveSubscriptionClaim) {
+              try {
+                  const { error: releaseError } = await getSupabase().rpc(
+                      'release_vip_subscription_checkout',
+                      {
+                          p_user_id: subscriptionClaim.userId,
+                          p_request_id: subscriptionClaim.requestId,
+                      }
+                  );
+                  if (releaseError) {
+                      console.warn(
+                          '[Checkout] Subscription claim release was refused:',
+                          releaseError.message
+                      );
+                  }
+              } catch (releaseError) {
+                  console.warn(
+                      '[Checkout] Subscription claim release failed:',
+                      releaseError?.message || releaseError
+                  );
+              }
           }
+          subscriptionClaim = null;
           console.warn('[Checkout] FATAL ERROR:', {
               type: error.type,
               code: error.code,

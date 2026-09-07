@@ -46,6 +46,52 @@ const GENERAL_RULES = [
   'Both players must use two cards from their hole cards',
 ];
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE JACKPOT FIGURE IS `main_balance`, RESOLVED BY THE FUNCTION THAT KNOWS
+   ABOUT UNIONS. BBJ build plan phase 3.5, 2026-09-06.
+
+   MEASURED ON PRODUCTION the day this was written:
+
+     pool                     pool_amount   main_balance
+     union f9806a7f...             0.00       107,092.27
+     club  a7a65cfc...         1,000.00        23,142.58
+
+   `pool_amount` is a legacy column nothing has written to since the triple-
+   bank rework; the engine banks into `main_balance`. Every read in this file
+   used `pool_amount`, so the World Hub has been telling players the Bad Beat
+   Jackpot is empty while it held a hundred and seven thousand chips.
+
+   The `.eq('club_id', clubId)` scope was the second half of the same bug: a
+   union banks the jackpot on a row whose `club_id` IS NULL, so for every club
+   in a union the query matched nothing at all and the figure fell back to 0.
+
+   `fn_bbj_pool_for_club` is the one place that rule lives, and it is what
+   Club Arena's own surfaces use. This asks it. ═══════════════════════════ */
+async function readBbjPool(clubId) {
+  const supabase = getSupabase();
+  const { data: rows, error } = await supabase.rpc('fn_bbj_pool_for_club', { p_club_id: clubId });
+  if (error) throw error;
+  const resolved = Array.isArray(rows) ? rows[0] : rows;
+  if (!resolved?.pool_id) return null;
+
+  /* The RPC answers the two things that need the union rule; the rest of the
+     row is read by id, which cannot be mis-scoped. */
+  const { data: pool } = await supabase
+    .from('bbj_pools')
+    .select('id, hands_contributed, last_hit_at, last_hit_amount')
+    .eq('id', resolved.pool_id)
+    .maybeSingle();
+
+  return {
+    id: resolved.pool_id,
+    amount: Number(resolved.main_balance || 0),
+    handsContributed: Number(pool?.hands_contributed || 0),
+    lastHitAt: pool?.last_hit_at || null,
+    lastHitAmount: Number(pool?.last_hit_amount || 0),
+  };
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
@@ -89,12 +135,8 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Get pool
-        const { data: pool } = await getSupabase()
-          .from('bbj_pools')
-          .select('id, pool_amount, hands_contributed, last_hit_at, last_hit_amount')
-          .eq('club_id', clubId)
-          .maybeSingle();
+        // Get pool — union-aware, and reading the balance the engine banks into.
+        const pool = await readBbjPool(clubId);
 
         // Get last 10 winners
         const { data: winners } = await getSupabase()
@@ -188,10 +230,10 @@ export default async function handler(req, res) {
 
         return res.json({
           pool: {
-            amount: Number(pool?.pool_amount || 0),
-            handsContributed: Number(pool?.hands_contributed || 0),
-            lastHitAt: pool?.last_hit_at,
-            lastHitAmount: Number(pool?.last_hit_amount || 0),
+            amount: Number(pool?.amount || 0),
+            handsContributed: Number(pool?.handsContributed || 0),
+            lastHitAt: pool?.lastHitAt,
+            lastHitAmount: Number(pool?.lastHitAmount || 0),
           },
           winners: enrichedWinners,
           tiers: STAKES_TIERS,
@@ -244,18 +286,15 @@ export default async function handler(req, res) {
           .from('clubs').select('id, name, bbj_enabled').eq('id', clubId).maybeSingle();
         if (!club) return res.status(404).json({ error: 'Club not found' });
 
-        const { data: pool } = await getSupabase()
-          .from('bbj_pools')
-          .select('pool_amount, hands_contributed, last_hit_at, last_hit_amount')
-          .eq('club_id', clubId).maybeSingle();
+        const pool = await readBbjPool(clubId);
 
         return res.json({
           success: true,
           bbjEnabled: club.bbj_enabled !== false, // null or true = enabled; false = disabled
-          poolAmount: Number(pool?.pool_amount || 0),
-          handsContributed: Number(pool?.hands_contributed || 0),
-          lastHitAt: pool?.last_hit_at || null,
-          lastHitAmount: Number(pool?.last_hit_amount || 0),
+          poolAmount: Number(pool?.amount || 0),
+          handsContributed: Number(pool?.handsContributed || 0),
+          lastHitAt: pool?.lastHitAt || null,
+          lastHitAmount: Number(pool?.lastHitAmount || 0),
         });
       }
 

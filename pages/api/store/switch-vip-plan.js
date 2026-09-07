@@ -54,6 +54,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -215,6 +216,26 @@ export default async function handler(req, res) {
         //       environment, and refusing the switch over a missing env var
         //       would reproduce the outage that fallback was written to end.
         const configuredPriceId = process.env[target.envVar];
+        if (configuredPriceId) {
+            let configuredPrice;
+            try {
+                configuredPrice = await stripe.prices.retrieve(configuredPriceId);
+            } catch (priceError) {
+                console.warn('[switch-vip-plan] configured price could not be read:', priceError?.message || priceError);
+                return res.status(503).json({
+                    success: false,
+                    error: 'The Selected VIP Billing Plan Is Not Available Right Now.',
+                });
+            }
+            const priceMismatch = vipStripePriceMismatch(configuredPrice, target);
+            if (priceMismatch) {
+                console.warn('[switch-vip-plan] configured price failed verification:', priceMismatch);
+                return res.status(503).json({
+                    success: false,
+                    error: 'The Selected VIP Billing Plan Is Not Available Right Now.',
+                });
+            }
+        }
         const priceField = configuredPriceId
             ? { price: configuredPriceId }
             : {

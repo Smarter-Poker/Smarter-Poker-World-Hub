@@ -28,7 +28,7 @@ test('expired Lifetime VIP checkout marks only its pending purchase failed and k
   const source = await read('pages/api/store/webhooks/stripe.js');
   const helperStart = source.indexOf('async function closeExpiredPendingRow');
   const handlerStart = source.indexOf('async function handleCheckoutExpired(session)');
-  const handlerEnd = source.indexOf('async function handleSubscriptionUpdate', handlerStart);
+  const handlerEnd = source.indexOf('function stripeObjectId', handlerStart);
   assert.ok(helperStart > -1 && handlerStart > helperStart && handlerEnd > handlerStart,
     'session-matched expiration helper and handler must exist');
 

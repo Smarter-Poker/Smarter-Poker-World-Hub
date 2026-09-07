@@ -67,8 +67,10 @@ test('checkout shape is rejected before Stripe customer side effects', () => {
 
 test('global header remains outside the redesign and untouched by Phase 4 selectors', () => {
   const headerIndex = STORE.indexOf('<UniversalHeader pageDepth={1} />');
-  const mainIndex = STORE.indexOf('<main className={`store-redesign-content');
-  assert.ok(headerIndex > -1 && mainIndex > headerIndex);
+  const mainMatch = STORE.match(
+    /<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}/
+  );
+  assert.ok(headerIndex > -1 && mainMatch?.index > headerIndex);
   assert.doesNotMatch(SHOWCASE_CSS, /UniversalHeader/);
 });
 

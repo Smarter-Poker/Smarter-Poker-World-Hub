@@ -216,7 +216,7 @@ test('public merchandise catalog retries cold reads without serial variant laten
   assert.match(catalog, /withTransientRetry/);
   assert.match(catalog, /const MAX_VARIANTS = 1_000/);
   assert.match(catalog, /const \[itemResult, variantResult\] = await Promise\.all/);
-  assert.match(catalog, /\.limit\(MAX_VARIANTS\)/);
+  assert.match(catalog, /\.limit\(MAX_VARIANTS \+ \(strict \? 1 : 0\)\)/);
   assert.doesNotMatch(catalog, /\.in\('item_id'/);
   assert.match(readiness, /const DEFAULT_MAX_ATTEMPTS = 2/);
 });

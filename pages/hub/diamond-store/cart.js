@@ -650,7 +650,12 @@ export default function ShoppingCart() {
           canonical="/hub/diamond-store/cart"
           noindex={true}
         />
-        <main style={styles.loadingContainer} aria-busy="true" aria-label="Shopping Cart">
+        <main
+          style={styles.loadingContainer}
+          aria-busy="true"
+          aria-label="Shopping Cart"
+          data-marketplace-route="/hub/diamond-store/cart"
+        >
           <div style={styles.spinner} aria-hidden="true"></div>
           <p role="status" style={styles.loadingText}>Loading Cart...</p>
           <style>{`@keyframes dsSpin { to { transform: rotate(360deg); } }`}</style>
