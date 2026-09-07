@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PokerCardImage } from './PokerCardText';
 import { formatPokerCards, parsePokerCards } from '../../lib/pokerCardMarkup';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const QUICK_RANKS = RANKS.map((rank) => ({ rank, key: rank === 'T' ? '1' : rank }));
+const LONG_PRESS_MS = 420;
 const SUITS = [
   { id: 's', name: 'Spades' },
   { id: 'h', name: 'Hearts' },
@@ -17,25 +19,72 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
   const [zone, setZone] = useState('hand');
   const [hand, setHand] = useState(initialCards.hand);
   const [board, setBoard] = useState(initialCards.board);
+  const [quickRank, setQuickRank] = useState(null);
+  const [pressingRank, setPressingRank] = useState(null);
+  const longPressTimerRef = useRef(null);
+  const suppressClickRef = useRef(false);
+  const closeButtonRef = useRef(null);
+  const previousFocusRef = useRef(null);
   const allSelected = useMemo(() => [...hand, ...board], [hand, board]);
 
   useEffect(() => {
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+      if (quickRank) setQuickRank(null);
+      else onClose();
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [onClose]);
+  }, [onClose, quickRank]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    previousFocusRef.current = document.activeElement;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      previousFocusRef.current?.focus?.();
+    };
+  }, []);
 
   const choose = (card) => {
-    if (allSelected.some((selected) => sameCard(selected, card))) return;
+    if (allSelected.some((selected) => sameCard(selected, card))) return false;
     if (zone === 'hand') {
-      if (hand.length >= 6) return;
+      if (hand.length >= 6) return false;
       setHand((cards) => [...cards, card]);
+      return true;
+    }
+    if (board.length >= 5) return false;
+    setBoard((cards) => [...cards, card]);
+    return true;
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    setPressingRank(null);
+  };
+
+  const beginLongPress = (rank) => {
+    cancelLongPress();
+    suppressClickRef.current = false;
+    setPressingRank(rank);
+    longPressTimerRef.current = setTimeout(() => {
+      suppressClickRef.current = true;
+      setPressingRank(null);
+      setQuickRank(rank);
+      longPressTimerRef.current = null;
+    }, LONG_PRESS_MS);
+  };
+
+  const openQuickRankFromClick = (rank) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
       return;
     }
-    if (board.length >= 5) return;
-    setBoard((cards) => [...cards, card]);
+    setQuickRank((current) => current === rank ? null : rank);
   };
 
   const remove = (area, index) => {
@@ -94,6 +143,7 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
           </div>
           <button
             type="button"
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close Card Picker"
             style={{ border: 0, background: 'rgba(255,255,255,0.08)', color: '#fff', borderRadius: 999, width: 34, height: 34, fontSize: 22, cursor: 'pointer' }}
@@ -164,6 +214,100 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
               </div>
             </div>
           ))}
+        </div>
+
+        <div style={{ padding: '0 12px 10px' }}>
+          <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 800, margin: '0 6px 6px' }}>
+            Quick Rank: Hold A, K, Q, J, 1, Or 9 Through 2. 1 Means 10.
+          </div>
+          <div
+            aria-label="Quick rank card selector"
+            style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '2px 5px 8px', WebkitOverflowScrolling: 'touch' }}
+          >
+            {QUICK_RANKS.map(({ rank, key }) => {
+              const active = quickRank === rank;
+              const pressing = pressingRank === rank;
+              return (
+                <button
+                  type="button"
+                  key={rank}
+                  aria-expanded={active}
+                  aria-controls="quick-rank-suits"
+                  aria-label={`${rank === 'T' ? 'Ten' : rank}. Hold for suit choices`}
+                  onPointerDown={() => beginLongPress(rank)}
+                  onPointerUp={cancelLongPress}
+                  onPointerCancel={cancelLongPress}
+                  onPointerLeave={cancelLongPress}
+                  onContextMenu={(event) => event.preventDefault()}
+                  onClick={() => openQuickRankFromClick(rank)}
+                  style={{
+                    minWidth: 42,
+                    minHeight: 42,
+                    padding: 0,
+                    borderRadius: 10,
+                    border: active ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.18)',
+                    background: pressing ? 'rgba(245,158,11,0.28)' : active ? 'rgba(245,158,11,0.16)' : 'rgba(255,255,255,0.06)',
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    touchAction: 'manipulation',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                  }}
+                >
+                  {key}
+                </button>
+              );
+            })}
+          </div>
+          {quickRank && (
+            <div
+              id="quick-rank-suits"
+              role="group"
+              aria-label={`${quickRank === 'T' ? 'Ten' : quickRank} suit choices`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                padding: '9px 8px',
+                borderRadius: 12,
+                border: '1px solid rgba(245,158,11,0.48)',
+                background: 'rgba(2,6,23,0.82)',
+                boxShadow: '0 12px 28px rgba(0,0,0,0.34)',
+              }}
+            >
+              {SUITS.map((suit) => {
+                const card = { rank: quickRank, suit: suit.id };
+                const selected = allSelected.some((item) => sameCard(item, card));
+                const full = zone === 'hand' ? hand.length >= 6 : board.length >= 5;
+                return (
+                  <button
+                    type="button"
+                    key={`${quickRank}${suit.id}`}
+                    onClick={() => {
+                      if (choose(card)) setQuickRank(null);
+                    }}
+                    disabled={selected || full}
+                    aria-label={`Add ${quickRank === 'T' ? 'ten' : quickRank} of ${suit.name.toLowerCase()} to ${zone}`}
+                    style={{
+                      minWidth: 50,
+                      minHeight: 66,
+                      padding: 2,
+                      border: 0,
+                      borderRadius: 7,
+                      background: 'transparent',
+                      opacity: selected ? 0.22 : full ? 0.5 : 1,
+                      cursor: selected || full ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <PokerCardImage rank={quickRank} suit={suit.id} size="picker" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div style={{ padding: '2px 12px 10px' }}>

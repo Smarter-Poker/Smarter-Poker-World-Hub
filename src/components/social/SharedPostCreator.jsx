@@ -13,6 +13,7 @@ import CheckInModal from './CheckInModal';
 import { SharedAvatar as Avatar } from './SharedAvatar';
 import PokerCardPicker from './PokerCardPicker';
 import PokerCardText from './PokerCardText';
+import { normalizePokerCardMarkup } from '../../lib/pokerCardMarkup';
 import {
   MAX_MEDIA,
   compressImage,
@@ -197,7 +198,15 @@ export function SharedPostCreator({
       const draft = localStorage.getItem('sp-post-draft');
       if (draft && !content) setContent(draft);
       const cardDraft = localStorage.getItem('sp-post-card-draft');
-      if (cardDraft) setPokerCardsMarkup(cardDraft);
+      if (cardDraft) {
+        const safeCardDraft = normalizePokerCardMarkup(cardDraft);
+        if (safeCardDraft) {
+          setPokerCardsMarkup(safeCardDraft);
+          if (safeCardDraft !== cardDraft) localStorage.setItem('sp-post-card-draft', safeCardDraft);
+        } else {
+          localStorage.removeItem('sp-post-card-draft');
+        }
+      }
     } catch (e) {
       console.warn('[App] Handled exception:', e);
     }
@@ -814,11 +823,12 @@ export function SharedPostCreator({
   };
 
   const insertPokerCards = (markup) => {
-    if (!markup) return;
-    setPokerCardsMarkup(markup);
+    const safeMarkup = normalizePokerCardMarkup(markup);
+    if (!safeMarkup) return;
+    setPokerCardsMarkup(safeMarkup);
     setShowPokerCardPicker(false);
     try {
-      localStorage.setItem('sp-post-card-draft', markup);
+      localStorage.setItem('sp-post-card-draft', safeMarkup);
     } catch (e) {
       console.warn('[App] Handled exception:', e);
     }

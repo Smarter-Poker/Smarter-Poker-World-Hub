@@ -78,6 +78,8 @@ import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
+import PokerCardText from '../../../src/components/social/PokerCardText';
+import { truncatePokerText } from '../../../src/lib/pokerCardMarkup';
 import dynamic from 'next/dynamic';
 const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), {
   ssr: false,
@@ -1242,10 +1244,9 @@ const PostCard = React.memo(
 
                 // See More: truncate at 300 chars unless expanded
                 const TRUNCATE_LENGTH = 300;
-                const needsTruncation = displayText.length > TRUNCATE_LENGTH && !expanded;
-                const visibleText = needsTruncation
-                  ? displayText.slice(0, TRUNCATE_LENGTH) + '...'
-                  : displayText;
+                const truncated = truncatePokerText(displayText, TRUNCATE_LENGTH);
+                const needsTruncation = truncated.truncated && !expanded;
+                const visibleText = needsTruncation ? `${truncated.text}...` : displayText;
 
                 // Render with @mention highlighting
                 const rendered = visibleText.split(/(@\w+)/g).map((part, i) =>
@@ -1254,7 +1255,7 @@ const PostCard = React.memo(
                       {part}
                     </span>
                   ) : (
-                    part
+                    <PokerCardText key={i} text={part} />
                   )
                 );
                 return (
