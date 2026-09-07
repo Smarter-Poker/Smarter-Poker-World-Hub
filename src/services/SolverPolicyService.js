@@ -1466,8 +1466,4 @@ export class SolverPolicyService {
   }
 }
 
-export function createSolverPolicyService(db) {
-  return new SolverPolicyService({ db });
-}
-
 export default SolverPolicyService;
