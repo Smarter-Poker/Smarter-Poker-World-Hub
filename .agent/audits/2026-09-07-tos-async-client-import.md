@@ -18,3 +18,9 @@ module initialization failure. With the original require, the test returns
 
 The test runs in prebuild. It establishes the bundling correction, not a live
 acceptance write. Final production browser acceptance still needs verification.
+
+The same CommonJS client import remained in public-clubs, union-invoice,
+poker/engine/seat and the tables DELETE branch. The first three now use
+ES imports; the conditional DELETE branch awaits import in place. Companion
+wiring checks cover those four imports without claiming to test their business
+logic. These changes preserve the existing authentication and chip operations.

@@ -35,7 +35,7 @@
  * Supabase via ca_club_union_invoices; they do not come through here.
  */
 
-const { createClient } = require('../../../src/lib/supabaseServerClient');
+import { createClient } from '../../../src/lib/supabaseServerClient';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';

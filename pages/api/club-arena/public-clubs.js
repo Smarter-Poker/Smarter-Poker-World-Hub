@@ -6,7 +6,7 @@
  * 
  * Query: ?limit=20&offset=0
  */
-const { createClient } = require('../../../src/lib/supabaseServerClient');
+import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 

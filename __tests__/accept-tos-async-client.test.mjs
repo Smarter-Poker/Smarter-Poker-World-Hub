@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -77,5 +77,21 @@ test('compiled acceptance waits for the async client export before recording con
     if (oldKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     else process.env.SUPABASE_SERVICE_ROLE_KEY = oldKey;
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Companion wiring coverage: these four siblings shared the same async-module
+// misuse. Their business behavior is not exercised by the acceptance fixture.
+test('sibling client imports also wait for the asynchronous module', () => {
+  for (const file of [
+    'pages/api/club-arena/accept-tos.js',
+    'pages/api/club-arena/public-clubs.js',
+    'pages/api/club-arena/union-invoice.js',
+    'pages/api/poker/engine/seat.js',
+    'pages/api/poker/engine/tables.js',
+  ]) {
+    const source = readFileSync(file, 'utf8');
+    assert.doesNotMatch(source, /require\([^\n]*supabaseServerClient/, file);
+    assert.match(source, /(?:import[^\n]+from|await import\()[^\n]*supabaseServerClient/, file);
   }
 });
