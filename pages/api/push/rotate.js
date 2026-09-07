@@ -219,8 +219,29 @@ export default async function handler(req, res) {
            The partial unique index only covers `device_id IS NOT NULL`, so a
            row descended from a legacy NULL-device_id ancestor is exempt from it
            forever — which is why the retire has to be explicit here rather than
-           left to the constraint. */
-        if (row.device_id) {
+           left to the constraint.
+
+           ── `verified &&` IS LOAD-BEARING, AND IT WAS MISSING (2026-09-07) ──
+           This shipped as a bare `if (row.device_id)`, which reopened the exact
+           hole the block thirty lines above closes and whose comment names it:
+           "an unverified caller is a free, unauthenticated mute button for any
+           endpoint an attacker has learned."
+
+           This route is UNAUTHENTICATED by design — it is called from a service
+           worker's `pushsubscriptionchange`, where no session exists — so proof
+           of possession of the OLD subscription's auth secret is the only thing
+           standing between a caller and somebody else's notifications. Without
+           the guard: post a victim's `oldEndpoint` with an endpoint of your own
+           and no `oldKeys`, and `verified` is false, but line 178 still copies
+           the victim's `device_id` onto the new row and this update then scopes
+           to the victim's `user_id` and that `device_id` and switches off every
+           live row for that device.
+
+           That is strictly worse than the 2026-08-19 bug it echoes, which
+           silenced one row rather than a whole device. `supersedes` already
+           carries the same requirement for the single-row retire above; this
+           one needs it for the same reason and is gated on the same flag. */
+        if (verified && row.device_id) {
             const { error: retireErr } = await supabase
                 .from('push_subscriptions')
                 .update({

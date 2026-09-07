@@ -1155,17 +1155,18 @@ def main():
     inserted = 0
     if clean and not dry_run:
         log.info(f"\n💾 Inserting {len(clean)} new series…")
-        inserted = sb_upsert("poker_venues", [{
-            "name": s["name"],
-            "venue_type": "series",
-            "is_active": True,
-            "has_tournaments": True,
-            "data_quality": "scraped_verified",
-            "source": s.get("scrape_source", "discovery_v3"),
-            "scrape_source": s.get("scrape_source", "discovery_v3"),
-            "scrape_html_hash": s.get("scrape_html_hash", ""),
-            "scrape_timestamp": s.get("scrape_timestamp", STARTED),
-        } for s in clean], on_conflict="name")
+        # ── THE LIVE PATH, AND IT WAS THE ONE LEFT BROKEN (2026-09-07) ──────
+        # An earlier pass fixed `insert_new_series()` — a function NOTHING
+        # calls — and left this inline copy, which is what actually runs, still
+        # upserting `poker_venues ON CONFLICT (name)`. That constraint does not
+        # exist (the real one is `(name, city, state)`), so every run raised
+        # 42P10; and `city`/`state` are NOT NULL with no default and are absent
+        # here, so it could not have inserted even with a valid target.
+        #
+        # Fixing dead code and declaring the bug closed is worse than not
+        # fixing it, because the tests then pass over the broken path. There is
+        # ONE implementation now and this is the caller.
+        inserted = insert_new_series(clean)
         log.info(f"  ✅ Inserted: {inserted}")
     elif dry_run:
         log.info(f"\n[DRY RUN] Would insert: {len(clean)}")

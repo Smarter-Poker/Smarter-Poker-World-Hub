@@ -593,7 +593,43 @@ export default async function handler(req, res) {
                   `pass: ${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
               );
           }
-              let servedBatch = enrichedBatch;
+              /* ═══ ONLY CANONICALISED QUESTIONS ARE SERVED (2026-09-07) ══════
+               *
+               * Dropping unbuildable rows from the persistence pass was right;
+               * leaving `servedBatch = enrichedBatch` was not, and it opened a
+               * hole in the middle of a change series titled "enforce truthful
+               * cache provenance":
+               *
+               *   - `servedBatch` mapped over the FULL enriched batch while
+               *     `canonicalRows` was filtered, so `withPersistedCacheReceipt`
+               *     was handed `undefined` for any dropped question and threw -
+               *     turning "one bad row out of 25" into a 503 for all 25,
+               *     which is exactly what this was supposed to stop.
+               *   - Worse, if EVERY row was unbuildable then `canonicalRows`
+               *     was empty, the whole block was skipped, and the raw batch
+               *     went out with `success: true` and no persistence, no
+               *     receipt and no provenance at all.
+               *
+               * A question that cannot be canonicalised is not served. The
+               * batch is short, the client keeps the ones that are real, and a
+               * batch with nothing left in it is a 503 rather than a lie.
+               */
+              const canonicalIds = new Set(canonicalRows.map((row) => String(row.question_id)));
+              const servableBatch = enrichedBatch.filter((q) => {
+                  const original = originalCacheRowByQuestionId.get(String(q.id));
+                  return canonicalIds.has(String(original?.question_id || q.id));
+              });
+
+              if (servableBatch.length === 0) {
+                  console.warn(
+                      `[BatchPreload] every question in the batch failed to canonicalise ` +
+                      `(${canonicalizeFailures.length} of ${enrichedBatch.length}); refusing to ` +
+                      'serve unverified questions'
+                  );
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+
+              let servedBatch = servableBatch;
               if (canonicalRows.length > 0) {
                   try {
                     const persisted = await runTrainingPersistenceQuery(
@@ -614,8 +650,12 @@ export default async function handler(req, res) {
                     const canonicalByQuestionId = new Map(
                         canonicalRows.map((row) => [row.question_id, row.question_data]),
                     );
-                    servedBatch = enrichedBatch.map((question) => {
-                        const questionId = String(question.id);
+                    // `servableBatch`, not `enrichedBatch`: a dropped question
+                    // has no canonical row and no receipt, so mapping it here
+                    // hands `withPersistedCacheReceipt` two undefineds.
+                    servedBatch = servableBatch.map((question) => {
+                        const original = originalCacheRowByQuestionId.get(String(question.id));
+                        const questionId = String(original?.question_id || question.id);
                         return withPersistedCacheReceipt(
                             canonicalByQuestionId.get(questionId),
                             receiptByQuestionId.get(questionId),
