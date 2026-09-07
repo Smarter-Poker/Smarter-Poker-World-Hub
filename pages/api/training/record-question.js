@@ -8,9 +8,13 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { gradeSolverDecision } from '../../../src/lib/training/solverDecisionEvidence';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
+import { gradeCanonicalPolicyDecision } from '../../../src/lib/training/cacheTruthContract.mjs';
+import {
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 import {
   isTrainingPersistenceUnavailable,
   runTrainingPersistenceQuery,
@@ -34,9 +38,10 @@ async function getCanonicalQuestion(questionId, gameId) {
   const byQuestionId = await runTrainingPersistenceQuery(
     () => db
       .from('training_question_cache')
-      .select('question_id, question_data, engine_type')
+      .select('question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
       .eq('question_id', questionId)
       .eq('game_id', gameId)
+      .in('quality_status', ['active', 'active_fallback'])
       .maybeSingle(),
     { label: 'RecordQuestion:canonical-id' },
   );
@@ -48,8 +53,9 @@ async function getCanonicalQuestion(questionId, gameId) {
   const byPayloadId = await runTrainingPersistenceQuery(
     () => db
       .from('training_question_cache')
-      .select('question_id, question_data, engine_type')
+      .select('question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
       .eq('game_id', gameId)
+      .in('quality_status', ['active', 'active_fallback'])
       .contains('question_data', { id: questionId })
       .limit(1)
       .maybeSingle(),
@@ -67,14 +73,19 @@ async function getEligibleCanonicalQuestion(questionId, gameId) {
   // server-owned canonical row; never fall back to the browser's answer key.
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const canonicalRow = await getCanonicalQuestion(String(questionId), String(gameId));
-    const [eligibleCanonical] = canonicalRow
+    const hydratedRow = canonicalRow
+      ? { ...canonicalRow, question_data: cacheQuestionFromRow(canonicalRow) }
+      : null;
+    const [eligibleCanonical] = hydratedRow
       ? filterCachedRowsForGame(
-          [canonicalRow],
+          [hydratedRow],
           gameConfig,
           { allowSanitizedLegacyArchive: true },
         )
       : [];
-    if (eligibleCanonical?.question_data) return eligibleCanonical.question_data;
+    if (eligibleCanonical?.question_data && cacheRowIsServingEligible(eligibleCanonical)) {
+      return eligibleCanonical;
+    }
     if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 100 * (2 ** attempt)));
   }
   return null;
@@ -109,7 +120,10 @@ export default async function handler(req, res) {
       return res.status(413).json({ success: false, error: 'Request body too large' });
     }
 
-    const { userId, gameId, questionId, isCorrect, level } = req.body;
+    const { userId, gameId, questionId, level } = req.body;
+    const servedPolicyChecksum = typeof req.body?.policyChecksum === 'string'
+      ? req.body.policyChecksum.trim().toLowerCase()
+      : '';
 
     // BUG FIX #3 (2026-05-08, MAX-RIGOR audit): FE callers
     // (`src/hooks/useGTOTrainer.js:386`, `questionGenerator.js:212`) POST
@@ -124,14 +138,25 @@ export default async function handler(req, res) {
     }
 
     try {
-      const canonicalQuestion = await getEligibleCanonicalQuestion(questionId, gameId);
-      if (!canonicalQuestion) {
+      const canonicalRow = await getEligibleCanonicalQuestion(questionId, gameId);
+      const canonicalQuestion = canonicalRow?.question_data;
+      if (!canonicalQuestion || !canonicalRow?.canonical_policy) {
         // This includes old offline packs whose unsealed PIO rows are no longer
         // safe to grade. Do not accept the browser's answer key; make the
         // client fetch a freshly sanitized canonical question.
         return res.status(409).json({
           success: false,
           error: 'This question has expired. Refresh the training hand and try again.',
+          code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
+        });
+      }
+      if (
+        !/^[0-9a-f]{64}$/.test(servedPolicyChecksum)
+        || servedPolicyChecksum !== String(canonicalRow.policy_checksum || '').toLowerCase()
+      ) {
+        return res.status(409).json({
+          success: false,
+          error: 'This question policy changed after it was served. Refresh the training hand and try again.',
           code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
         });
       }
@@ -162,12 +187,19 @@ export default async function handler(req, res) {
         heroPosition = null,
         villainPosition = null,
         street = null,
-        classification = null,
         spotType = null,
       } = req.body || {};
-      const canonicalGrade = canonicalQuestion
-        ? gradeSolverDecision(canonicalQuestion, String(answerId))
-        : null;
+      const canonicalGrade = gradeCanonicalPolicyDecision(
+        canonicalRow.canonical_policy,
+        String(answerId),
+      );
+      if (!canonicalGrade.valid) {
+        return res.status(409).json({
+          success: false,
+          error: 'This question policy is no longer gradeable. Refresh the training hand and try again.',
+          code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
+        });
+      }
       const verified = canonicalGrade?.solverVerified === true;
       const canonicalScenario = canonicalQuestion?.scenario || {};
       const canonicalSpotType = canonicalScenario.spotType
@@ -179,9 +211,7 @@ export default async function handler(req, res) {
       // The browser's classification is useful for legacy/scenario analytics,
       // but it is never accepted as solver evidence. When a canonical cached
       // question exists the server recomputes every graded field from it.
-      const persistedClassification = canonicalGrade
-        ? canonicalGrade.classification
-        : (typeof classification === 'string' ? classification.slice(0, 32) : null);
+      const persistedClassification = canonicalGrade.classification;
       // The answer endpoint now requires a server-canonical question, so a
       // client-supplied EV number is never authoritative. Preserve exact EV
       // only when the canonical provenance seal and per-action EV contract
@@ -200,7 +230,7 @@ export default async function handler(req, res) {
         // solver evidence, but its server-side answer key still outranks a
         // browser assertion. Only the evidence fields below remain gated on
         // the complete provenance seal.
-        is_correct: canonicalGrade ? canonicalGrade.isCorrect : !!isCorrect,
+        is_correct: canonicalGrade.isCorrect,
         level: Math.min(12, Math.max(1, Number(level) || 1)),
         answered_at: new Date().toISOString(),
         hero_position: canonicalQuestion
@@ -228,30 +258,24 @@ export default async function handler(req, res) {
         ev_loss_measured: verified ? canonicalGrade.evLossMeasured : false,
         evidence_metadata: verified ? {
           optimalAction: canonicalGrade.optimalAction,
-          dataQuality: canonicalQuestion.dataQuality || null,
-        } : { reason: canonicalQuestion ? 'question_not_solver_verified' : 'canonical_question_not_found' },
+          dataQuality: canonicalRow.source_classification,
+          policyVersion: canonicalGrade.policyVersion,
+          policyChecksum: servedPolicyChecksum,
+          sourceChecksum: canonicalGrade.sourceChecksum,
+        } : {
+          reason: 'canonical_policy_is_explicit_fallback',
+          dataQuality: canonicalRow.source_classification,
+          policyVersion: canonicalGrade.policyVersion,
+          policyChecksum: servedPolicyChecksum,
+        },
       };
 
-      try {
-        await runTrainingPersistenceQuery(
-          () => submissionId
-            ? getSupabase().from('training_answers').upsert(evidenceRow, { onConflict: 'user_id,submission_id' })
-            : getSupabase().from('training_answers').insert(evidenceRow),
-          { label: 'RecordQuestion:insert' }
-        );
-      } catch (insertError) {
-        // Rolling deploy safety: the application may arrive a few seconds before
-        // the additive migration. Preserve the answer using the old shape, but it
-        // remains ineligible for solver-grade leak evidence until the columns land.
-        if (insertError?.code === '42703' || /column .* does not exist/i.test(insertError?.cause?.message || '')) {
-          await runTrainingPersistenceQuery(
-            () => getSupabase().from('training_answers').insert(baseRow),
-            { label: 'RecordQuestion:legacy-insert' }
-          );
-        } else {
-          throw insertError;
-        }
-      }
+      await runTrainingPersistenceQuery(
+        () => submissionId
+          ? getSupabase().from('training_answers').upsert(evidenceRow, { onConflict: 'user_id,submission_id' })
+          : getSupabase().from('training_answers').insert(evidenceRow),
+        { label: 'RecordQuestion:insert' }
+      );
 
       return res.status(200).json({
         success: true,

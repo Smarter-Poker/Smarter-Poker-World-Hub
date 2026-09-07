@@ -28,6 +28,7 @@ async function canonicalQuestionExists(gameId, questionId) {
     .select('id')
     .eq('game_id', gameId)
     .eq('question_id', questionId)
+    .in('quality_status', ['active', 'active_fallback'])
     .limit(1)
     .maybeSingle();
   if (!byQuestionId.error && byQuestionId.data) return true;
@@ -36,6 +37,7 @@ async function canonicalQuestionExists(gameId, questionId) {
     .from('training_question_cache')
     .select('id')
     .eq('game_id', gameId)
+    .in('quality_status', ['active', 'active_fallback'])
     .contains('question_data', { id: questionId })
     .limit(1)
     .maybeSingle();

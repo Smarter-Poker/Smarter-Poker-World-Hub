@@ -38,6 +38,10 @@ import { rateLimit, LIMITS, applyDurableRateLimit } from '../../../../src/lib/ap
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { attachPersonalAssistantTiming } from '../../../../src/lib/personal-assistant/serverTiming.mjs';
 import { SolverPolicyService } from '../../../../src/services/SolverPolicyService.js';
+import {
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+} from '../../../../src/lib/training/cacheTruthPersistence.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -202,13 +206,14 @@ async function querySolverData(params) {
     : gameType === 'spin' || gameType === 'sng' ? 'sng' : 'cash';
 
   if (heroNotation && heroPosition) {
-    const select = 'id, question_id, game_id, engine_type, game_type, level, question_data';
+    const select = 'id, question_id, game_id, engine_type, game_type, level, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum';
     const runCacheQuery = async (boardFilter) => {
       let query = getSupabase()
         .from('training_question_cache')
         .select(select)
         .eq('game_type', cacheGameType)
         .in('engine_type', ['PIO', 'CHART'])
+        .in('quality_status', ['active', 'active_fallback'])
         .ilike('question_data->scenario->>street', street)
         .ilike('question_data->scenario->>heroPosition', heroPosition)
         .ilike('question_data->scenario->>heroHand', heroNotation);
@@ -244,7 +249,11 @@ async function querySolverData(params) {
         console.warn('[Sandbox] Training cache query failed:', error.message);
         break;
       }
-      const match = chooseTrainingCacheMatch(data, {
+      const canonicalRows = (data || []).map((row) => ({
+        ...row,
+        question_data: cacheQuestionFromRow(row),
+      })).filter((row) => cacheRowIsServingEligible(row));
+      const match = chooseTrainingCacheMatch(canonicalRows, {
         heroNotation,
         heroPosition,
         heroStack,
@@ -263,9 +272,7 @@ async function querySolverData(params) {
         return {
           trainingQuestion: match.question,
           policy: policyService.consumerEnvelope(
-            policyService.answerFromQuestion(match.question, {
-              holding: [heroHand.card1, heroHand.card2],
-            }),
+            match.row.canonical_policy,
             'post-session-analysis',
           ),
           cacheRow: match.row,

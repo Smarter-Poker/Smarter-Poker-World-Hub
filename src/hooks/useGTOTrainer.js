@@ -734,6 +734,7 @@ export default function useGTOTrainer(
               userId,
               gameId,
               questionId,
+              policyChecksum: spotMeta.policyChecksum || null,
               submissionId,
               selectedAnswer,
               isCorrect,
@@ -867,6 +868,10 @@ export default function useGTOTrainer(
         frequencyDiff: moveResult.frequencyDiff,
         isRealData: moveResult.isRealData || false,
         handData: {
+          // Database completion telemetry keys off the canonical cache id.
+          // Persist it in the flat hand-history envelope so the session insert
+          // trigger can account for completed questions atomically.
+          questionId: currentQuestion.id,
           // Stable per-hand id so multi-street decisions count as ONE hand.
           //
           // roadmap #28a — this used to read `currentQuestion.id` first, which
@@ -895,6 +900,10 @@ export default function useGTOTrainer(
           gtoFrequencies: frequencies || {},
           solverVerified,
           dataQuality: currentQuestion.dataQuality || null,
+          sourceClassification: currentQuestion.sourceClassification || null,
+          policyVersion: currentQuestion.solverPolicy?.policyVersion || null,
+          policyChecksum: currentQuestion.policyChecksum || null,
+          sourceChecksum: currentQuestion.solverPolicy?.sourceArtifact?.sourceArtifactChecksum || null,
           evLossMeasured: Boolean(moveResult.isRealData),
           // ═══ PHASE 20: Raw solver matrix for RangeGrid display ═══
           rawFrequencies: currentQuestion.rawFrequencies || null,
@@ -1425,6 +1434,7 @@ export default function useGTOTrainer(
         classification: moveResult.classification,
         evLoss: moveResult.evLoss,
         spotType,
+        policyChecksum: currentQuestion.policyChecksum || null,
       });
       pendingAnswerPersistenceRef.current = persistence;
     },

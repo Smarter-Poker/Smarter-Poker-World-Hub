@@ -24,6 +24,7 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import { toast } from '../../../src/stores/toastStore';
+import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 import styles from '../../../src/styles/training/daily-challenge-casino.module.css';
 // TRAIN-WIRE-FX-4d - adoption: feedback hook for daily-challenge.fresh.js
 
@@ -243,6 +244,7 @@ export default function DailyChallengePage() {
       body: JSON.stringify({
         dailyId: dailyId || `daily-${today}`,
         selectedAction: action,
+        policyChecksum: challenge?.policyChecksum || null,
       }),
     });
     const saved = await saveResponse.json().catch(() => null);
@@ -258,7 +260,7 @@ export default function DailyChallengePage() {
     }
     setPendingSave(null);
     return true;
-  }, [dailyId]);
+  }, [challenge?.policyChecksum, dailyId]);
 
   // Handle answer
   const handleAnswer = useCallback(
@@ -342,6 +344,7 @@ export default function DailyChallengePage() {
   const position = challenge?.hero_position || challenge?.position || '';
   const street = challenge?.street || '';
   const resultIsCorrect = persistedCorrect ?? (selected === correctAnswer);
+  const sourceBadge = trainingSourcePresentation(challenge?.sourceClassification);
 
   return (
     <>
@@ -349,7 +352,7 @@ export default function DailyChallengePage() {
         <title>Daily GTO Challenge | Smarter.Poker</title>
         <meta
           name="description"
-          content="Daily solver-verified GTO spot. Test your skills, track your streak, and compete on the leaderboard."
+          content="Daily source-classified poker policy spot. Test your skills, track your streak, and compete on the leaderboard."
         />
       </Head>
 
@@ -361,7 +364,7 @@ export default function DailyChallengePage() {
               <span aria-hidden="true">‹</span> Training
             </button>
             <div className={styles.titleBlock}>
-              <span className={styles.eyebrow}>Solver Verified · One Seat · One Shot</span>
+              <span className={styles.eyebrow} title={sourceBadge.title}>{sourceBadge.label} · One Seat · One Shot</span>
               <h1>Daily Challenge</h1>
               <p>Read The Table. Lock Your Decision. Protect Your Streak.</p>
             </div>
@@ -465,9 +468,9 @@ export default function DailyChallengePage() {
                   </section>
                   <section className={styles.rulesPanel}>
                     <span>House Rules</span>
-                    <h2>One Solver Spot Every Day</h2>
-                    <p>Lock The Correct GTO Action To Extend Your Streak And Earn {DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds. The Table Resets At Midnight UTC.</p>
-                    <div><strong>Verified</strong><small>Solver Evidence</small></div>
+                    <h2>One Canonical Policy Spot Every Day</h2>
+                    <p>Lock The Best Policy Action To Extend Your Streak And Earn {DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds. The Table Resets At Midnight Central Time.</p>
+                    <div title={sourceBadge.title}><strong>{sourceBadge.label}</strong><small>Source Classification</small></div>
                     <div><strong>Worldwide</strong><small>Daily Leaderboard</small></div>
                   </section>
                 </aside>
@@ -486,17 +489,17 @@ export default function DailyChallengePage() {
                         userAction={selected || ''}
                         solverAction={correctAnswer}
                         evLoss={resultIsCorrect ? 0 : undefined}
-                        whyShort={resultIsCorrect ? "Solver-correct." : `Solver prefers ${correctAnswer}.`}
+                        whyShort={resultIsCorrect ? "Policy-correct." : `The canonical policy prefers ${correctAnswer}.`}
                         compact
                       />
                     </div>
                     <div className={styles.answerReadout}>
-                      GTO Answer: {correctAnswer}
+                      Policy Answer: {correctAnswer}
                     </div>
 
                     {frequencies && (
                       <div className={styles.frequencyBlock}>
-                        <span>GTO Frequencies</span>
+                        <span>Policy Frequencies</span>
                         <div>
                           {Object.entries(frequencies || {})
                             .sort(([, a], [, b]) => b - a)
