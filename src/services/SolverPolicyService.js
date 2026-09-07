@@ -4,7 +4,11 @@
  * directly; they ask this service for normalized records or policy answers.
  */
 
-import { parseBoardFromHash, extractPositionFromHash, getAllHands } from '../utils/trainingApiUtils.js';
+import {
+  parseBoardFromHash,
+  extractPositionFromHash,
+  getAllHands,
+} from '../utils/trainingApiUtils.js';
 import { selectTrustedSolverMatrix } from '../lib/training/solverMatrixTrust.js';
 import { V2_CHIPS_PER_BB } from '../utils/v2Matrix.js';
 import {
@@ -21,20 +25,40 @@ import {
 } from '../lib/training/solverPolicyContract.js';
 
 export const SOLVER_POLICY_ROW_PROJECTION = [
-  'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
-  'strategy_matrix', 'strategy_matrix_v2', 'solver_version',
-  'solver_binary_checksum', 'machine_id', 'pipeline_commit',
-  'manifest_version', 'manifest_checksum', 'source_artifact_checksum',
-  'quality_status', 'audited_at',
+  'id',
+  'scenario_hash',
+  'street',
+  'stack_depth',
+  'game_type',
+  'strategy_matrix',
+  'strategy_matrix_v2',
+  'solver_version',
+  'solver_binary_checksum',
+  'machine_id',
+  'pipeline_commit',
+  'manifest_version',
+  'manifest_checksum',
+  'source_artifact_checksum',
+  'quality_status',
+  'audited_at',
 ].join(', ');
 
 export const SOLVER_POLICY_METADATA_PROJECTION = [
-  'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
+  'id',
+  'scenario_hash',
+  'street',
+  'stack_depth',
+  'game_type',
 ].join(', ');
 
 export const SOLVER_POLICY_CHART_PROJECTION = [
-  'chart_id', 'game_type', 'stack_depth', 'hero_position',
-  'villain_action', 'hand_matrix', 'created_at',
+  'chart_id',
+  'game_type',
+  'stack_depth',
+  'hero_position',
+  'villain_action',
+  'hand_matrix',
+  'created_at',
 ].join(', ');
 
 export const SOLVER_POLICY_CONSUMERS = Object.freeze([
@@ -53,10 +77,16 @@ export const SOLVER_POLICY_CONSUMERS = Object.freeze([
   'god-mode',
   'gto-analysis',
   'horse-poker-gto',
+  'preflop-ranges',
 ]);
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
+const CHART_DEPTHS = new Set([
+  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25,
+]);
+const CHART_OPEN_POSITIONS = new Set(['UTG', 'MP', 'CO', 'BTN', 'SB']);
+const CHART_HAND_CLASSES = new Set(getAllHands());
 
 const finite = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -67,6 +97,76 @@ const finite = (value) => {
 const clean = (value) => String(value ?? '').trim();
 const lower = (value) => clean(value).toLowerCase();
 const upper = (value) => clean(value).toUpperCase();
+const plainRecord = (value) =>
+  Boolean(value) &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+
+/**
+ * Reject malformed or mislabeled chart rows before sparse cells can be
+ * interpreted as folds. Silent normalization here would turn corrupt input
+ * into a confident CHART_AUDITED policy.
+ */
+export function assertValidChartPolicyRow(chart) {
+  if (
+    !plainRecord(chart) ||
+    !['Cash', 'Tournament'].includes(chart.game_type) ||
+    !CHART_DEPTHS.has(chart.stack_depth) ||
+    !['fold_to_hero', 'sb_push'].includes(chart.villain_action) ||
+    (chart.chart_id !== null &&
+      chart.chart_id !== undefined &&
+      (typeof chart.chart_id !== 'string' || chart.chart_id.trim().length === 0)) ||
+    (chart.created_at !== null &&
+      chart.created_at !== undefined &&
+      (typeof chart.created_at !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}T/.test(chart.created_at) ||
+        !Number.isFinite(Date.parse(chart.created_at)))) ||
+    !plainRecord(chart.hand_matrix) ||
+    Object.keys(chart.hand_matrix).length === 0
+  ) {
+    throw new Error('invalid_chart_policy_row');
+  }
+  const expectedAction = chart.villain_action === 'sb_push' ? 'call' : 'push';
+  const expectedPosition =
+    chart.villain_action === 'sb_push'
+      ? chart.hero_position === 'BB'
+      : CHART_OPEN_POSITIONS.has(chart.hero_position);
+  if (!expectedPosition) throw new Error('invalid_chart_policy_identity');
+
+  for (const [hand, cell] of Object.entries(chart.hand_matrix)) {
+    if (!CHART_HAND_CLASSES.has(hand) || !plainRecord(cell)) {
+      throw new Error(`invalid_chart_policy_cell:${hand}`);
+    }
+    const keys = Object.keys(cell);
+    if (keys.length === 0 || keys.some((key) => key !== expectedAction && key !== 'fold')) {
+      throw new Error(`invalid_chart_policy_actions:${hand}`);
+    }
+    const values = keys.map((key) => cell[key]);
+    if (
+      values.some(
+        (value) =>
+          value !== null &&
+          (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1)
+      )
+    ) {
+      throw new Error(`invalid_chart_policy_frequency:${hand}`);
+    }
+    const actionFrequency = cell[expectedAction];
+    const foldFrequency = cell.fold;
+    if (!Number.isFinite(actionFrequency) && !Number.isFinite(foldFrequency)) {
+      throw new Error(`missing_chart_policy_frequency:${hand}`);
+    }
+    if (
+      Number.isFinite(actionFrequency) &&
+      Number.isFinite(foldFrequency) &&
+      Math.abs(actionFrequency + foldFrequency - 1) > 1e-6
+    ) {
+      throw new Error(`invalid_chart_policy_mix:${hand}`);
+    }
+  }
+  return chart;
+}
 
 function inferVariant(gameType) {
   const value = lower(gameType);
@@ -135,7 +235,10 @@ function boardStringVariants(board) {
   const raw = board.map((value) => clean(value).toLowerCase()).join('');
   const flop = board.slice(0, 3).map((value) => clean(value).toLowerCase());
   const sortedFlop = [...flop].sort();
-  const canonical = [...sortedFlop, ...board.slice(3).map((value) => clean(value).toLowerCase())].join('');
+  const canonical = [
+    ...sortedFlop,
+    ...board.slice(3).map((value) => clean(value).toLowerCase()),
+  ].join('');
   return [...new Set([canonical, raw].filter(Boolean))];
 }
 
@@ -153,10 +256,12 @@ function flopMatchesRecord(record, board) {
 
 function sourceActionEntries(record) {
   const v2Actions = Array.isArray(record?.sourceV2?.actions) ? record.sourceV2.actions : [];
-  const v2ByCode = new Map(v2Actions.map((entry) => {
-    const code = typeof entry === 'string' ? entry : entry?.code;
-    return [clean(code), typeof entry === 'string' ? { code: entry } : entry];
-  }));
+  const v2ByCode = new Map(
+    v2Actions.map((entry) => {
+      const code = typeof entry === 'string' ? entry : entry?.code;
+      return [clean(code), typeof entry === 'string' ? { code: entry } : entry];
+    })
+  );
   return (record?.matrix?.actions || []).map((code) => ({
     code: clean(code),
     metadata: v2ByCode.get(clean(code)) || null,
@@ -190,8 +295,8 @@ function actionFamily(code, semantics) {
   if (value === 'f' || value === 'fold') return 'fold';
   if (value === 'x' || value === 'k' || value === 'check') return 'check';
   if (value === 'c' || value === 'call') {
-    return semantics === NODE_SEMANTICS.FACING_WAGER
-      || semantics === NODE_SEMANTICS.PREFLOP_FACING_WAGER
+    return semantics === NODE_SEMANTICS.FACING_WAGER ||
+      semantics === NODE_SEMANTICS.PREFLOP_FACING_WAGER
       ? 'call'
       : 'check';
   }
@@ -259,16 +364,16 @@ function actionLabel(family, size) {
 
 function completeProvenance(row) {
   return Boolean(
-    row?.strategy_matrix_v2
-    && row?.quality_status === 'validated'
-    && row?.solver_version
-    && /^[0-9a-f]{64}$/i.test(clean(row?.solver_binary_checksum))
-    && ['M1', 'M2'].includes(clean(row?.machine_id))
-    && /^[0-9a-f]{40}$/i.test(clean(row?.pipeline_commit))
-    && row?.manifest_version
-    && /^[0-9a-f]{64}$/i.test(clean(row?.manifest_checksum))
-    && /^[0-9a-f]{64}$/i.test(clean(row?.source_artifact_checksum))
-    && row?.audited_at
+    row?.strategy_matrix_v2 &&
+    row?.quality_status === 'validated' &&
+    row?.solver_version &&
+    /^[0-9a-f]{64}$/i.test(clean(row?.solver_binary_checksum)) &&
+    ['M1', 'M2'].includes(clean(row?.machine_id)) &&
+    /^[0-9a-f]{40}$/i.test(clean(row?.pipeline_commit)) &&
+    row?.manifest_version &&
+    /^[0-9a-f]{64}$/i.test(clean(row?.manifest_checksum)) &&
+    /^[0-9a-f]{64}$/i.test(clean(row?.source_artifact_checksum)) &&
+    row?.audited_at
   );
 }
 
@@ -333,9 +438,8 @@ function actionsForHolding(record, key, { aggregate = false, requestedHoldingCla
       const values = [...hands]
         .map((name) => actionFrequencyFromClass(record, entry, name))
         .filter((value) => value !== null);
-      frequency = values.length > 0
-        ? values.reduce((sum, value) => sum + value, 0) / values.length
-        : null;
+      frequency =
+        values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     }
     const family = actionFamily(entry.code, semantics);
     const size = actionSize(entry, record, family);
@@ -380,8 +484,12 @@ function actionsForHolding(record, key, { aggregate = false, requestedHoldingCla
 function keyFromRow(row, overrides = {}) {
   const matrix = overrides.matrix || {};
   const hero = matrix.position || extractPositionFromHash(row.scenario_hash);
-  const villain = hero && hero === matrix.oop_player ? matrix.ip_player
-    : hero && hero === matrix.ip_player ? matrix.oop_player : null;
+  const villain =
+    hero && hero === matrix.oop_player
+      ? matrix.ip_player
+      : hero && hero === matrix.ip_player
+        ? matrix.oop_player
+        : null;
   const stack = finite(row.stack_depth);
   const tournamentMode = inferTournamentMode(row.game_type);
   return createSolverPolicyKey({
@@ -389,10 +497,13 @@ function keyFromRow(row, overrides = {}) {
     bettingStructure: 'no_limit',
     tableSize: inferTableSize(row.game_type),
     positions: { hero, villains: villain ? [villain] : [] },
-    stackVector: stack === null ? [] : [
-      { seat: 0, position: hero, stackBb: stack, active: true },
-      { seat: 1, position: villain, stackBb: stack, active: true },
-    ],
+    stackVector:
+      stack === null
+        ? []
+        : [
+            { seat: 0, position: hero, stackBb: stack, active: true },
+            { seat: 1, position: villain, stackBb: stack, active: true },
+          ],
     blinds: { complete: false },
     rake: { complete: false },
     tournamentUtility: { mode: tournamentMode, complete: tournamentMode === 'cash' },
@@ -414,10 +525,13 @@ export function normalizeSolvedPolicyRecord(row) {
   if (!matrix) {
     return {
       valid: false,
-      reason: row.strategy_matrix_v2 !== null && row.strategy_matrix_v2 !== undefined
-        ? 'invalid_v2_payload'
-        : 'untrusted_legacy_v1',
-      metadata: Object.fromEntries(Object.entries(row).filter(([key]) => !key.startsWith('strategy_matrix'))),
+      reason:
+        row.strategy_matrix_v2 !== null && row.strategy_matrix_v2 !== undefined
+          ? 'invalid_v2_payload'
+          : 'untrusted_legacy_v1',
+      metadata: Object.fromEntries(
+        Object.entries(row).filter(([key]) => !key.startsWith('strategy_matrix'))
+      ),
     };
   }
   const metadata = { ...row };
@@ -445,10 +559,13 @@ function chartKey(chart, overrides = {}) {
       hero: chart.hero_position,
       villains: facing ? ['SB'] : [],
     },
-    stackVector: stack === null ? [] : [
-      { seat: 0, position: chart.hero_position, stackBb: stack, active: true },
-      ...(facing ? [{ seat: 1, position: 'SB', stackBb: stack, active: true }] : []),
-    ],
+    stackVector:
+      stack === null
+        ? []
+        : [
+            { seat: 0, position: chart.hero_position, stackBb: stack, active: true },
+            ...(facing ? [{ seat: 1, position: 'SB', stackBb: stack, active: true }] : []),
+          ],
     blinds: { complete: false },
     rake: { complete: false },
     // The chart table says Tournament but does not carry payouts, bounties,
@@ -475,11 +592,52 @@ function chartScenarioHash(chart) {
 
 function chartVillainActionForKey(key) {
   const history = key?.publicActionHistory?.actions || [];
-  const facingAllIn = history.some((entry) => entry.allIn || entry.action === 'all_in');
-  const legal = (key?.legalActions || []).map((entry) => entry.action);
-  if (key?.positions?.hero === 'BB' && facingAllIn && legal.includes('call')) return 'sb_push';
-  if (key?.positions?.hero !== 'BB') return 'fold_to_hero';
+  if (key?.publicActionHistory?.complete !== true) return null;
+  const legal = key?.legalActions || [];
+  const hero = key?.positions?.hero;
+  const villains = (key?.positions?.villains || []).map(upper).filter(Boolean);
+  const allIns = history.filter((entry) => entry.allIn || lower(entry.action) === 'all_in');
+  const sbAllIns = allIns.filter((entry) => upper(entry.actor) === 'SB');
+  const voluntary = history.filter(
+    (entry) =>
+      !['fold', 'small_blind', 'big_blind', 'sb', 'bb', 'blind', 'ante'].includes(
+        lower(entry.action)
+      )
+  );
+  const canCall = legal.some((entry) => ['call', 'all_in'].includes(lower(entry.action)));
+  const canFold = legal.some((entry) => lower(entry.action) === 'fold');
+  if (
+    hero === 'BB' &&
+    villains.length === 1 &&
+    villains[0] === 'SB' &&
+    sbAllIns.length === 1 &&
+    allIns.length === 1 &&
+    voluntary.length === 1 &&
+    voluntary[0] === sbAllIns[0] &&
+    canCall &&
+    canFold
+  )
+    return 'sb_push';
+  if (hero === 'BB' || !CHART_OPEN_POSITIONS.has(hero)) return null;
+  const canJam = legal.some((entry) => lower(entry.action) === 'all_in' || entry.allIn === true);
+  if (voluntary.length === 0 && allIns.length === 0 && canJam && canFold) return 'fold_to_hero';
   return null;
+}
+
+function chartDepthForKey(key, chartNode, heroStack) {
+  if (chartNode !== 'sb_push') return finite(heroStack);
+  const history = key?.publicActionHistory?.actions || [];
+  const jam = history.find(
+    (entry) => upper(entry?.actor) === 'SB' && (entry?.allIn || lower(entry?.action) === 'all_in')
+  );
+  const bigBlind = finite(key?.blinds?.bigBlind);
+  const jamChips = finite(jam?.amountChips);
+  const jamBb =
+    finite(jam?.amountBb) ??
+    (jamChips !== null && bigBlind !== null && bigBlind > 0 ? jamChips / bigBlind : null);
+  const heroBb = finite(heroStack);
+  if (jamBb === null || jamBb <= 0 || heroBb === null || heroBb <= 0) return null;
+  return Math.min(heroBb, jamBb);
 }
 
 function chartActions(chart, key, { aggregate = false, requestedHoldingClass = null } = {}) {
@@ -487,8 +645,7 @@ function chartActions(chart, key, { aggregate = false, requestedHoldingClass = n
   const matrix = chart.hand_matrix || {};
   const handNames = aggregate ? getAllHands() : hand ? [hand] : [];
   if (handNames.length === 0) return { actions: [], range: {}, handClass: hand };
-  const callNode = lower(chart.villain_action) === 'sb_push'
-    || Object.values(matrix).some((value) => value && Object.prototype.hasOwnProperty.call(value, 'call'));
+  const callNode = lower(chart.villain_action) === 'sb_push';
   const yes = callNode ? 'call' : 'all_in';
   let yesTotal = 0;
   let foldTotal = 0;
@@ -496,7 +653,7 @@ function chartActions(chart, key, { aggregate = false, requestedHoldingClass = n
   const range = {};
   for (const name of handNames) {
     const value = matrix[name];
-    const yesValue = finite(value?.[callNode ? 'call' : 'push'] ?? value?.shove);
+    const yesValue = finite(value?.[callNode ? 'call' : 'push']);
     const foldValue = finite(value?.fold);
     // memory_charts_gold is sparse by design. A hand missing from a present
     // chart is a pure fold, not unavailable data.
@@ -520,13 +677,16 @@ function chartActions(chart, key, { aggregate = false, requestedHoldingClass = n
         label: callNode ? 'Call' : 'All-In',
         frequency: yesTotal / count,
         legal: true,
-        size: yes === 'all_in'
-          ? { unit: 'all_in', exact: true }
-          : { unit: 'none', exact: false },
+        size: yes === 'all_in' ? { unit: 'all_in', exact: true } : { unit: 'none', exact: false },
       },
       {
-        id: 'fold', sourceCode: 'fold', family: 'fold', label: 'Fold',
-        frequency: foldTotal / count, legal: true, size: { unit: 'none', exact: false },
+        id: 'fold',
+        sourceCode: 'fold',
+        family: 'fold',
+        label: 'Fold',
+        frequency: foldTotal / count,
+        legal: true,
+        size: { unit: 'none', exact: false },
       },
     ],
     range,
@@ -548,16 +708,23 @@ function applySolvedFilters(query, filters) {
   if (filters.idGte) query = query.gte('id', filters.idGte);
   if (filters.gameTypeLike) query = query.ilike('game_type', filters.gameTypeLike);
   if (filters.gameType) query = query.eq('game_type', filters.gameType);
-  if (Array.isArray(filters.gameTypes) && filters.gameTypes.length > 0) query = query.in('game_type', filters.gameTypes);
+  if (Array.isArray(filters.gameTypes) && filters.gameTypes.length > 0)
+    query = query.in('game_type', filters.gameTypes);
   if (filters.street) query = query.eq('street', filters.street);
-  if (finite(filters.stackDepth) !== null) query = query.eq('stack_depth', finite(filters.stackDepth));
-  if (Array.isArray(filters.stackDepths) && filters.stackDepths.length > 0) query = query.in('stack_depth', filters.stackDepths);
-  if (finite(filters.minStackDepth) !== null) query = query.gte('stack_depth', finite(filters.minStackDepth));
-  if (finite(filters.maxStackDepth) !== null) query = query.lte('stack_depth', finite(filters.maxStackDepth));
+  if (finite(filters.stackDepth) !== null)
+    query = query.eq('stack_depth', finite(filters.stackDepth));
+  if (Array.isArray(filters.stackDepths) && filters.stackDepths.length > 0)
+    query = query.in('stack_depth', filters.stackDepths);
+  if (finite(filters.minStackDepth) !== null)
+    query = query.gte('stack_depth', finite(filters.minStackDepth));
+  if (finite(filters.maxStackDepth) !== null)
+    query = query.lte('stack_depth', finite(filters.maxStackDepth));
   if (filters.position) query = query.ilike('scenario_hash', `%_${clean(filters.position)}_%`);
-  if (filters.villainPosition) query = query.ilike('scenario_hash', `%_${clean(filters.villainPosition)}_%`);
+  if (filters.villainPosition)
+    query = query.ilike('scenario_hash', `%_${clean(filters.villainPosition)}_%`);
   if (filters.actionTag) query = query.ilike('scenario_hash', `%${clean(filters.actionTag)}%`);
-  if (filters.orderBy) query = query.order(filters.orderBy, { ascending: filters.ascending !== false });
+  if (filters.orderBy)
+    query = query.order(filters.orderBy, { ascending: filters.ascending !== false });
   if (Array.isArray(filters.range) && filters.range.length === 2) {
     query = query.range(filters.range[0], filters.range[1]);
   } else {
@@ -584,11 +751,11 @@ export class SolverPolicyService {
       const result = await this.solvedRowReader(normalized, { metadataOnly, count });
       return Array.isArray(result) ? { rows: result, count: result.length } : result;
     }
-    const projection = metadataOnly ? SOLVER_POLICY_METADATA_PROJECTION : SOLVER_POLICY_ROW_PROJECTION;
+    const projection = metadataOnly
+      ? SOLVER_POLICY_METADATA_PROJECTION
+      : SOLVER_POLICY_ROW_PROJECTION;
     const table = this.requireDb().from('solved_spots_gold');
-    let query = count
-      ? table.select(projection, { count: 'exact' })
-      : table.select(projection);
+    let query = count ? table.select(projection, { count: 'exact' }) : table.select(projection);
     query = applySolvedFilters(query, normalized);
     const { data, error, count: total } = await query;
     if (error) throw new Error(`solver_policy_read_failed:${error.message}`);
@@ -620,9 +787,12 @@ export class SolverPolicyService {
     if (filters.gameType) query = query.eq('game_type', filters.gameType);
     if (filters.heroPosition) query = query.eq('hero_position', filters.heroPosition);
     if (filters.villainAction) query = query.eq('villain_action', filters.villainAction);
-    if (finite(filters.stackDepth) !== null) query = query.eq('stack_depth', finite(filters.stackDepth));
-    if (finite(filters.minStackDepth) !== null) query = query.gte('stack_depth', finite(filters.minStackDepth));
-    if (finite(filters.maxStackDepth) !== null) query = query.lte('stack_depth', finite(filters.maxStackDepth));
+    if (finite(filters.stackDepth) !== null)
+      query = query.eq('stack_depth', finite(filters.stackDepth));
+    if (finite(filters.minStackDepth) !== null)
+      query = query.gte('stack_depth', finite(filters.minStackDepth));
+    if (finite(filters.maxStackDepth) !== null)
+      query = query.lte('stack_depth', finite(filters.maxStackDepth));
     query = query.limit(Math.max(1, Math.min(500, Number(filters.limit) || 25)));
     const { data, error } = await query;
     if (error) throw new Error(`solver_policy_chart_read_failed:${error.message}`);
@@ -639,20 +809,22 @@ export class SolverPolicyService {
   }
 
   answerFromRecord(record, keyInput = null, options = {}) {
-    if (!record?.valid) return unavailableSolverPolicy(keyInput || {}, record?.reason || 'invalid_policy_record');
-    const key = keyInput?.contractVersion
-      ? keyInput
-      : this.keyForRecord(record, keyInput || {});
+    if (!record?.valid)
+      return unavailableSolverPolicy(keyInput || {}, record?.reason || 'invalid_policy_record');
+    const key = keyInput?.contractVersion ? keyInput : this.keyForRecord(record, keyInput || {});
     const mode = options.mode || 'holding';
     const extracted = actionsForHolding(record, key, {
       aggregate: mode === 'aggregate',
       requestedHoldingClass: options.holdingClass,
     });
-    if (extracted.actions.length === 0
-      || extracted.actions.every((action) => !(action.frequency > 0))) {
-      return unavailableSolverPolicy(key, extracted.handClass
-        ? 'holding_not_in_policy_artifact'
-        : 'holding_required_for_policy');
+    if (
+      extracted.actions.length === 0 ||
+      extracted.actions.every((action) => !(action.frequency > 0))
+    ) {
+      return unavailableSolverPolicy(
+        key,
+        extracted.handClass ? 'holding_not_in_policy_artifact' : 'holding_required_for_policy'
+      );
     }
 
     const exactCombo = extracted.comboIndex !== null && Boolean(record.sourceV2);
@@ -662,10 +834,18 @@ export class SolverPolicyService {
     const exactMatch = options.match === 'exact' && options.sourceKeyVerified === true;
     const completeKey = policyKeyCompleteness(key).complete;
     const canBeExact = exactCombo && exactMatch && completeKey && record.provenanceComplete;
-    let kind = mode === 'aggregate' ? POLICY_KIND.AGGREGATED
-      : canBeExact ? POLICY_KIND.EXACT : POLICY_KIND.DERIVED;
-    let qualitySeal = mode === 'aggregate' ? QUALITY_SEAL.SOLVER_AGGREGATED
-      : canBeExact ? QUALITY_SEAL.SOLVER_EXACT : QUALITY_SEAL.SOLVER_DERIVED_RESPONSE;
+    let kind =
+      mode === 'aggregate'
+        ? POLICY_KIND.AGGREGATED
+        : canBeExact
+          ? POLICY_KIND.EXACT
+          : POLICY_KIND.DERIVED;
+    let qualitySeal =
+      mode === 'aggregate'
+        ? QUALITY_SEAL.SOLVER_AGGREGATED
+        : canBeExact
+          ? QUALITY_SEAL.SOLVER_EXACT
+          : QUALITY_SEAL.SOLVER_DERIVED_RESPONSE;
     let fallbackReason = options.fallbackReason || null;
     if (!record.sourceV2) {
       kind = POLICY_KIND.DERIVED;
@@ -683,12 +863,20 @@ export class SolverPolicyService {
       fallbackReason = fallbackReason || 'state_dimensions_approximated';
     }
 
-    const policyEv = exactCombo ? comboEv(record, extracted.comboIndex) : classEv(record, extracted.handClass);
+    const policyEv = exactCombo
+      ? comboEv(record, extracted.comboIndex)
+      : classEv(record, extracted.handClass);
     const matched = Array.isArray(options.exactMatchDimensions) ? options.exactMatchDimensions : [];
-    const approximated = Array.isArray(options.approximatedDimensions) ? options.approximatedDimensions : [];
-    const confidenceScore = canBeExact ? 1
-      : record.sourceV2 && exactMatch ? 0.72
-      : record.sourceV2 ? 0.55 : 0.2;
+    const approximated = Array.isArray(options.approximatedDimensions)
+      ? options.approximatedDimensions
+      : [];
+    const confidenceScore = canBeExact
+      ? 1
+      : record.sourceV2 && exactMatch
+        ? 0.72
+        : record.sourceV2
+          ? 0.55
+          : 0.2;
 
     return createSolverPolicyAnswer({
       key,
@@ -718,12 +906,14 @@ export class SolverPolicyService {
   }
 
   answerFromChart(chart, keyInput = {}, options = {}) {
+    assertValidChartPolicyRow(chart);
     const key = keyInput?.contractVersion ? keyInput : chartKey(chart, keyInput);
     const extracted = chartActions(chart, key, {
       aggregate: options.mode === 'aggregate',
       requestedHoldingClass: options.holdingClass,
     });
-    if (extracted.actions.length === 0) return unavailableSolverPolicy(key, 'holding_required_for_audited_chart');
+    if (extracted.actions.length === 0)
+      return unavailableSolverPolicy(key, 'holding_required_for_audited_chart');
     const callNode = lower(chart.villain_action) === 'sb_push';
     return createSolverPolicyAnswer({
       key,
@@ -767,10 +957,21 @@ export class SolverPolicyService {
       variant: scenario.variant || 'nlh',
       bettingStructure: scenario.bettingStructure || 'no_limit',
       tableSize: scenario.tableSize,
-      positions: { hero: scenario.heroPosition, villains: [scenario.villainPosition].filter(Boolean) },
+      positions: {
+        hero: scenario.heroPosition,
+        villains: [scenario.villainPosition].filter(Boolean),
+      },
       stackVector: [
-        { seat: 0, position: scenario.heroPosition, stackBb: scenario.heroStack ?? scenario.stackDepth },
-        { seat: 1, position: scenario.villainPosition, stackBb: scenario.villainStack ?? scenario.stackDepth },
+        {
+          seat: 0,
+          position: scenario.heroPosition,
+          stackBb: scenario.heroStack ?? scenario.stackDepth,
+        },
+        {
+          seat: 1,
+          position: scenario.villainPosition,
+          stackBb: scenario.villainStack ?? scenario.stackDepth,
+        },
       ],
       blinds: scenario.blinds || { complete: false },
       rake: scenario.rake || { complete: false },
@@ -779,7 +980,9 @@ export class SolverPolicyService {
         complete: false,
       },
       street: scenario.street || question.street,
-      board: question.boardCards || (typeof scenario.board === 'string' ? scenario.board.split(/\s+/) : []),
+      board:
+        question.boardCards ||
+        (typeof scenario.board === 'string' ? scenario.board.split(/\s+/) : []),
       holding: keyInput.holding || question.heroCards || [],
       publicActionHistory: scenario.publicActionHistory || { complete: false, actions: [] },
       legalActions: options.map((option) => option?.id).filter(Boolean),
@@ -805,18 +1008,35 @@ export class SolverPolicyService {
       auditedAt: provenance.auditedAt,
       provenanceComplete: provenance.verified === true,
     };
-    const exact = policyKeyCompleteness(key).complete && exactSourceComplete(candidateSource);
-    const kind = isChart ? POLICY_KIND.CHART : isCurated ? POLICY_KIND.CURATED
-      : exact ? POLICY_KIND.EXACT : POLICY_KIND.DERIVED;
-    const qualitySeal = isChart ? QUALITY_SEAL.CHART_AUDITED : isCurated ? QUALITY_SEAL.CURATED
-      : exact ? QUALITY_SEAL.SOLVER_EXACT
-      : upper(question?.dataQuality) === 'LEGACY_UNVERIFIED'
-        ? QUALITY_SEAL.LEGACY_UNVERIFIED : QUALITY_SEAL.SOLVER_DERIVED_RESPONSE;
+    // Legacy cached questions do not carry canonical per-action legal sizing.
+    // Even complete provenance cannot make that partial envelope SOLVER_EXACT;
+    // exact questions must arrive through the attached solverPolicy contract.
+    const exact = false;
+    const kind = isChart
+      ? POLICY_KIND.CHART
+      : isCurated
+        ? POLICY_KIND.CURATED
+        : exact
+          ? POLICY_KIND.EXACT
+          : POLICY_KIND.DERIVED;
+    const qualitySeal = isChart
+      ? QUALITY_SEAL.CHART_AUDITED
+      : isCurated
+        ? QUALITY_SEAL.CURATED
+        : exact
+          ? QUALITY_SEAL.SOLVER_EXACT
+          : upper(question?.dataQuality) === 'LEGACY_UNVERIFIED'
+            ? QUALITY_SEAL.LEGACY_UNVERIFIED
+            : QUALITY_SEAL.SOLVER_DERIVED_RESPONSE;
     const actions = options.map((option) => ({
       id: option.id,
       sourceCode: option.id,
-      family: actionFamily(option.id, scenario.nodeType === 'hero_faces_bet'
-        ? NODE_SEMANTICS.FACING_WAGER : NODE_SEMANTICS.CHECK_OR_BET),
+      family: actionFamily(
+        option.id,
+        scenario.nodeType === 'hero_faces_bet'
+          ? NODE_SEMANTICS.FACING_WAGER
+          : NODE_SEMANTICS.CHECK_OR_BET
+      ),
       label: option.text || option.label || option.id,
       frequency: (() => {
         const raw = finite(frequencies[option.id]) ?? finite(option.frequency) ?? 0;
@@ -830,9 +1050,12 @@ export class SolverPolicyService {
       kind,
       actions,
       node: {
-        semantics: scenario.nodeType === 'hero_faces_bet'
-          ? NODE_SEMANTICS.FACING_WAGER
-          : scenario.street === 'preflop' ? NODE_SEMANTICS.PREFLOP_UNOPENED : NODE_SEMANTICS.CHECK_OR_BET,
+        semantics:
+          scenario.nodeType === 'hero_faces_bet'
+            ? NODE_SEMANTICS.FACING_WAGER
+            : scenario.street === 'preflop'
+              ? NODE_SEMANTICS.PREFLOP_UNOPENED
+              : NODE_SEMANTICS.CHECK_OR_BET,
         sourceNode: scenario.solverNode,
         actor: scenario.heroPosition,
         potBb: scenario.pot,
@@ -840,12 +1063,11 @@ export class SolverPolicyService {
       },
       chipEv: { policy: finite(question?.evData?.heroHandEV), measuredByAction: false },
       tournamentUtilityEv: { policy: null, measuredByAction: false },
-      sourceArtifact: isChart
-        ? { ...candidateSource, provenanceComplete: true }
-        : candidateSource,
+      sourceArtifact: isChart ? { ...candidateSource, provenanceComplete: true } : candidateSource,
       qualitySeal,
       confidence: isChart ? 0.92 : exact ? 1 : isCurated ? 0.65 : 0.3,
-      fallbackReason: exact || isChart ? null : 'cached_question_lacks_complete_decision_provenance',
+      fallbackReason:
+        exact || isChart ? null : 'cached_question_lacks_complete_decision_provenance',
     });
   }
 
@@ -946,18 +1168,23 @@ export class SolverPolicyService {
     const range = answer.rangeDistribution || {};
     const gridData = {};
     const sourceGridData = {};
-    const sourceById = Object.fromEntries(answer.actions.map((action) => [
-      action.id, action.sourceCode || action.id,
-    ]));
+    const sourceById = Object.fromEntries(
+      answer.actions.map((action) => [action.id, action.sourceCode || action.id])
+    );
     for (const hand of hands || []) {
       const mix = range[hand];
       gridData[hand] = mix
-        ? Object.fromEntries(Object.entries(mix).map(([id, value]) => [id, Math.round(value * 1000) / 10]))
+        ? Object.fromEntries(
+            Object.entries(mix).map(([id, value]) => [id, Math.round(value * 1000) / 10])
+          )
         : null;
       sourceGridData[hand] = mix
-        ? Object.fromEntries(Object.entries(mix).map(([id, value]) => [
-          sourceById[id], Math.round(value * 1000) / 10,
-        ]))
+        ? Object.fromEntries(
+            Object.entries(mix).map(([id, value]) => [
+              sourceById[id],
+              Math.round(value * 1000) / 10,
+            ])
+          )
         : null;
     }
     return {
@@ -967,17 +1194,23 @@ export class SolverPolicyService {
       sourceActions: answer.actions.map((action) => action.sourceCode || action.id),
       sourceGridData,
       handEvs: { ...(record?.matrix?.hand_evs || {}) },
-      rawFrequencies: Object.fromEntries(answer.actions.map((action) => [
-        action.sourceCode || action.id,
-        Object.fromEntries(Object.entries(range).map(([hand, mix]) => [hand, mix[action.id] || 0])),
-      ])),
+      rawFrequencies: Object.fromEntries(
+        answer.actions.map((action) => [
+          action.sourceCode || action.id,
+          Object.fromEntries(
+            Object.entries(range).map(([hand, mix]) => [hand, mix[action.id] || 0])
+          ),
+        ])
+      ),
       handCount: Object.values(gridData).filter(Boolean).length,
     };
   }
 
   aggregateRecords(records, keyInput = {}, options = {}) {
     const answers = (records || [])
-      .map((record) => this.answerFromRecord(record, this.keyForRecord(record, keyInput), { mode: 'aggregate' }))
+      .map((record) =>
+        this.answerFromRecord(record, this.keyForRecord(record, keyInput), { mode: 'aggregate' })
+      )
       .filter((answer) => answer.kind !== POLICY_KIND.UNAVAILABLE);
     if (answers.length === 0) return unavailableSolverPolicy(keyInput, 'no_trusted_policy_records');
     const totals = new Map();
@@ -992,7 +1225,10 @@ export class SolverPolicyService {
     return createSolverPolicyAnswer({
       key: first.key,
       kind: POLICY_KIND.AGGREGATED,
-      actions: [...totals.values()].map((action) => ({ ...action, frequency: action.frequency / answers.length })),
+      actions: [...totals.values()].map((action) => ({
+        ...action,
+        frequency: action.frequency / answers.length,
+      })),
       node: first.node,
       chipEv: { policy: null, measuredByAction: false },
       tournamentUtilityEv: { policy: null, measuredByAction: false },
@@ -1015,7 +1251,10 @@ export class SolverPolicyService {
     const answer = this.answerFromRecord(record, this.keyForRecord(record), { mode: 'aggregate' });
     if (answer.kind === POLICY_KIND.UNAVAILABLE) return null;
     const aggression = answer.actions
-      .filter((action) => action.family === 'bet' || action.family === 'raise' || action.family === 'all_in')
+      .filter(
+        (action) =>
+          action.family === 'bet' || action.family === 'raise' || action.family === 'all_in'
+      )
       .reduce((sum, action) => sum + action.frequency, 0);
     const fold = answer.actions
       .filter((action) => action.family === 'fold')
@@ -1023,39 +1262,64 @@ export class SolverPolicyService {
     return (aggression - fold) * 100;
   }
 
-  async resolve({ key: keyInput = {}, gameTypes = [], scenarioHash = null, artifactId = null,
-    allowBoardApproximation = false, allowStackApproximation = false, mode = 'holding',
-    holdingClass: requestedHoldingClass = null, allowStateApproximation = false } = {}) {
+  async resolve({
+    key: keyInput = {},
+    gameTypes = [],
+    scenarioHash = null,
+    artifactId = null,
+    allowBoardApproximation = false,
+    allowStackApproximation = false,
+    mode = 'holding',
+    holdingClass: requestedHoldingClass = null,
+    allowStateApproximation = false,
+  } = {}) {
     const key = keyInput?.contractVersion ? keyInput : createSolverPolicyKey(keyInput);
-    if (key.street === 'preflop' && (inferTournamentMode(gameTypes[0]) !== 'cash'
-      || key.tournamentUtility.mode !== 'cash')) {
-      const heroStack = key.stackVector.find((entry) => entry.position === key.positions.hero)?.stackBb
-        ?? key.stackVector[0]?.stackBb;
+    const chartNode =
+      key.street === 'preflop' && key.variant === 'nlh' ? chartVillainActionForKey(key) : null;
+    const heroStack =
+      key.stackVector.find((entry) => entry.position === key.positions.hero)?.stackBb ??
+      key.stackVector[0]?.stackBb;
+    const chartDepth = chartDepthForKey(key, chartNode, heroStack);
+    const chartDepthInScope =
+      chartNode === 'fold_to_hero'
+        ? chartDepth !== null && chartDepth > 0 && chartDepth <= 15
+        : chartNode === 'sb_push'
+          ? chartDepth !== null && chartDepth > 0 && chartDepth <= 25
+          : false;
+    if (chartNode && chartDepthInScope) {
       const charts = await this.readChartRows({
         gameType: key.tournamentUtility.mode === 'cash' ? 'Cash' : 'Tournament',
         heroPosition: key.positions.hero === 'UNKNOWN' ? undefined : key.positions.hero,
-        villainAction: chartVillainActionForKey(key) || '__unsupported_chart_node__',
-        minStackDepth: heroStack == null ? undefined : Math.max(1, heroStack - 5),
-        maxStackDepth: heroStack == null ? undefined : heroStack + 5,
+        villainAction: chartNode,
+        minStackDepth: chartDepth == null ? undefined : Math.max(1, chartDepth - 5),
+        maxStackDepth: chartDepth == null ? undefined : chartDepth + 5,
         limit: 50,
       });
-      const ordered = [...charts].sort((a, b) => Math.abs(Number(a.stack_depth) - Number(heroStack || a.stack_depth))
-        - Math.abs(Number(b.stack_depth) - Number(heroStack || b.stack_depth))
-        || clean(a.chart_id).localeCompare(clean(b.chart_id)));
+      const ordered = [...charts].sort(
+        (a, b) =>
+          Math.abs(Number(a.stack_depth) - Number(chartDepth || a.stack_depth)) -
+            Math.abs(Number(b.stack_depth) - Number(chartDepth || b.stack_depth)) ||
+          clean(a.chart_id).localeCompare(clean(b.chart_id))
+      );
       for (const chart of ordered) {
         const answer = this.answerFromChart(chart, key, {
           mode,
           holdingClass: requestedHoldingClass,
-          approximatedDimensions: Number(chart.stack_depth) === Number(heroStack) ? [] : ['stackDepth'],
-          fallbackReason: Number(chart.stack_depth) === Number(heroStack) ? null : 'nearest_chart_stack_depth',
+          approximatedDimensions:
+            Number(chart.stack_depth) === Number(chartDepth) ? [] : ['stackDepth'],
+          fallbackReason:
+            Number(chart.stack_depth) === Number(chartDepth) ? null : 'nearest_chart_stack_depth',
         });
         if (answer.kind !== POLICY_KIND.UNAVAILABLE) return { answer, chart, record: null };
       }
-      return { answer: unavailableSolverPolicy(key, 'no_audited_chart_for_state'), chart: null, record: null };
+      return {
+        answer: unavailableSolverPolicy(key, 'no_audited_chart_for_state'),
+        chart: null,
+        record: null,
+      };
     }
 
-    const stackDepth = key.stackVector.find((entry) => entry.position === key.positions.hero)?.stackBb
-      ?? key.stackVector[0]?.stackBb;
+    const stackDepth = heroStack;
     const base = {
       id: artifactId,
       scenarioHash,
@@ -1075,15 +1339,21 @@ export class SolverPolicyService {
             match: 'exact',
             exactMatchDimensions: [...exactDimensions, 'scenarioHash'],
           }),
-          record: records[0], chart: null,
+          record: records[0],
+          chart: null,
         };
       }
     }
     for (const boardString of boardStringVariants(key.board)) {
-      const { records } = await this.listSolvedRecords({ ...base, scenarioHashLike: `%${boardString}%` });
+      const { records } = await this.listSolvedRecords({
+        ...base,
+        scenarioHashLike: `%${boardString}%`,
+      });
       const ordered = records
         .filter((record) => boardMatchesRecord(record, key.board))
-        .sort((a, b) => clean(a.metadata.scenario_hash).localeCompare(clean(b.metadata.scenario_hash)));
+        .sort((a, b) =>
+          clean(a.metadata.scenario_hash).localeCompare(clean(b.metadata.scenario_hash))
+        );
       for (const record of ordered) {
         const answer = this.answerFromRecord(record, key, {
           mode,
@@ -1096,8 +1366,13 @@ export class SolverPolicyService {
     }
     if (allowBoardApproximation && key.board.length > 3) {
       for (const flopString of boardStringVariants(key.board.slice(0, 3))) {
-        const { records } = await this.listSolvedRecords({ ...base, scenarioHashLike: `%${flopString}%` });
-        for (const record of records.filter((candidate) => flopMatchesRecord(candidate, key.board))) {
+        const { records } = await this.listSolvedRecords({
+          ...base,
+          scenarioHashLike: `%${flopString}%`,
+        });
+        for (const record of records.filter((candidate) =>
+          flopMatchesRecord(candidate, key.board)
+        )) {
           const answer = this.answerFromRecord(record, key, {
             mode,
             holdingClass: requestedHoldingClass,
@@ -1121,13 +1396,13 @@ export class SolverPolicyService {
           mode,
           holdingClass: requestedHoldingClass,
           match: key.board.length === 0 ? 'recorded_node' : 'approximate',
-          fallbackReason: key.board.length === 0
-            ? 'public_action_history_not_matched'
-            : 'board_not_matched_same_game_street_stack',
+          fallbackReason:
+            key.board.length === 0
+              ? 'public_action_history_not_matched'
+              : 'board_not_matched_same_game_street_stack',
           exactMatchDimensions: [...exactDimensions, 'gameType', 'stackDepth'],
-          approximatedDimensions: key.board.length === 0
-            ? ['publicActionHistory']
-            : ['board', 'publicActionHistory'],
+          approximatedDimensions:
+            key.board.length === 0 ? ['publicActionHistory'] : ['board', 'publicActionHistory'],
         });
         if (answer.kind !== POLICY_KIND.UNAVAILABLE) return { answer, record, chart: null };
       }
@@ -1138,7 +1413,10 @@ export class SolverPolicyService {
         .filter((value) => value !== stackDepth)
         .slice(0, 2);
       const { records } = await this.listSolvedRecords({
-        gameTypes, street: key.street, stackDepths: stackBuckets, limit: 50,
+        gameTypes,
+        street: key.street,
+        stackDepths: stackBuckets,
+        limit: 50,
       });
       for (const record of records) {
         const answer = this.answerFromRecord(record, key, {
@@ -1152,7 +1430,11 @@ export class SolverPolicyService {
         if (answer.kind !== POLICY_KIND.UNAVAILABLE) return { answer, record, chart: null };
       }
     }
-    return { answer: unavailableSolverPolicy(key, 'no_policy_artifact_for_state'), record: null, chart: null };
+    return {
+      answer: unavailableSolverPolicy(key, 'no_policy_artifact_for_state'),
+      record: null,
+      chart: null,
+    };
   }
 
   async inspectWarehouse() {
