@@ -64,8 +64,66 @@ function isAllowPath(pathname: string): boolean {
   return false;
 }
 
+// ── 0. The Club Arena native app (2026-09-07) ─────────────────────────────
+// Club Arena ships as a Capacitor app whose webview origin is
+// capacitor://localhost (iOS) or https://localhost (Android). It calls the
+// same Hub API routes the web app calls, with the same Bearer session, but
+// from a different origin - so every call is cross-origin and every call
+// with an Authorization header is preflighted. Without this the app's first
+// API call is a CORS failure with no server log at all.
+//
+// Scope is deliberately narrow: ONLY the two app origins, and ONLY the API
+// prefixes Club Arena's source actually calls (the list is pinned by
+// __tests__/native-app-cors.test.mjs against the Club Arena tree). Every other
+// origin, and every other path, is exactly as it was. These prefixes were not
+// in the matcher before, so nothing else in this file ever ran on them; the
+// early return below keeps it that way.
+const NATIVE_APP_ORIGINS = new Set(['capacitor://localhost', 'https://localhost']);
+const NATIVE_APP_API_PREFIXES = [
+  '/api/club-arena/',
+  '/api/store/',
+  '/api/vip/',
+  '/api/notifications/',
+  '/api/push/',
+  '/api/rewards/',
+  '/api/poy/',
+  '/api/avatars',
+  '/api/auth/delete-account',
+];
+
+function isNativeAppApiPath(pathname: string): boolean {
+  return NATIVE_APP_API_PREFIXES.some((p) =>
+    p.endsWith('/') ? pathname.startsWith(p) : pathname === p
+  );
+}
+
+function withNativeAppCors(res: NextResponse, origin: string): NextResponse {
+  res.headers.set('Access-Control-Allow-Origin', origin);
+  res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.headers.set(
+    'Access-Control-Allow-Headers',
+    'Authorization, Content-Type, Accept, X-Idempotency-Key, X-Request-ID, X-Requested-With'
+  );
+  res.headers.set('Access-Control-Max-Age', '600');
+  res.headers.append('Vary', 'Origin');
+  return res;
+}
+
 export async function middleware(request: NextRequest) {
   const { hostname, pathname, search } = request.nextUrl;
+
+  // ── 0. Club Arena native app: CORS for its API calls ───────────────────
+  if (isNativeAppApiPath(pathname)) {
+    const origin = request.headers.get('origin') || '';
+    if (NATIVE_APP_ORIGINS.has(origin)) {
+      if (request.method === 'OPTIONS') {
+        return withNativeAppCors(new NextResponse(null, { status: 204 }), origin);
+      }
+      return withNativeAppCors(NextResponse.next(), origin);
+    }
+    // Any other caller on these paths: untouched (they were never matched).
+    return NextResponse.next();
+  }
 
   // ── 1. Redirect www → root domain ──────────────────────────────────────
   if (hostname.startsWith('www.')) {
@@ -290,6 +348,16 @@ export const config = {
   matcher: [
     // Non-API routes (www redirect + jurisdiction gate)
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Club Arena native app CORS (section 0) - nothing else runs on these
+    '/api/club-arena/:path*',
+    '/api/store/:path*',
+    '/api/vip/:path*',
+    '/api/notifications/:path*',
+    '/api/push/:path*',
+    '/api/rewards/:path*',
+    '/api/poy/:path*',
+    '/api/avatars',
+    '/api/auth/delete-account',
     // Admin guard routes
     '/api/admin/:path*',
     '/api/debug/:path*',
