@@ -88,4 +88,41 @@ assert len(sent) == 3, 'non-critical jobs must never page through this path'
 state = d._alert_persist.get(f'critical:{PROBE}')
 assert state and state.get('alert_sent') is True and state.get('consec_fail') == 2, state
 
-print('critical-jobs: OK (6 scenarios)')
+# 7. THE PAGE NAMES THE FAULT THAT MOSTLY HAPPENED, NOT THE LAST ONE.
+#
+# 2026-09-07, /api/cron/table-socket-probe. The three failures that crossed the
+# threshold were handshake_timeout, handshake_timeout, pick-table — and the SMS
+# quoted only the third. The runbook sends those two outcomes to opposite ends
+# of itself (pick-table to auth and club membership; handshake_timeout to the
+# proxy and host saturation), so the page pointed the responder at the one
+# section that had nothing to do with what was happening.
+TABLE = '/api/cron/table-socket-probe'
+assert d.CRITICAL_JOBS[TABLE] == 3, 'the table probe pages at three, not two'
+before = len(sent)
+# The real 503 body the probe returns, outcome field and all.
+HANDSHAKE = ('{"status":"failed","duration_ms":15430,"failed_step":"socket",'
+             '"outcome":"handshake_timeout","error":"socket never opened within 15000ms"}')
+d._critical_record(TABLE, False, HANDSHAKE)
+d._critical_record(TABLE, False, HANDSHAKE)
+assert len(sent) == before, 'must not page before the third failure'
+# "15000ms" contains "500". A substring test called that an HTTP 500 and put
+# the wrong word in the page; the classifier is word-bounded now.
+assert d._failure_signature(HANDSHAKE) == 'handshake_timeout', \
+    d._failure_signature(HANDSHAKE)
+assert d._failure_signature('HTTP 503 from upstream') == 'http_503'
+d._critical_record(TABLE, False,
+                   '{"status":"failed","error":"pick-table: no table this account may open '
+                   'has dealt a hand in the last 10 minutes"}')
+assert len(sent) == before + 1, sent
+page = sent[-1]
+assert 'mostly handshake_timeout' in page, f'the page must lead with the dominant outcome: {page}'
+assert 'handshake_timeout x2' in page and 'pick_table x1' in page, \
+    f'the page must carry the whole distribution: {page}'
+assert 'pick-table' in page, f'the last body is still worth having: {page}'
+# A recovery clears the distribution with the streak; the next incident must
+# not inherit the previous one's outcomes.
+d._critical_record(TABLE, True)
+st = d._critical_state[TABLE]
+assert st.get('outcomes') == [], f'recovery must clear the outcome window: {st}'
+
+print('critical-jobs: OK (7 scenarios)')
