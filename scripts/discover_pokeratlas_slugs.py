@@ -10,6 +10,7 @@ from pathlib import Path
 from scrapling.fetchers import StealthyFetcher
 from datetime import datetime, timezone
 from scraper_data_truth import (
+    NON_PRODUCTION_POKERATLAS_VENUE_SLUGS,
     NON_US_POKERATLAS_REGION_SLUGS,
     NON_US_POKERATLAS_VENUE_SLUGS,
     is_noise_venue_label,
@@ -138,6 +139,7 @@ def is_publishable_venue(venue: dict) -> bool:
     return bool(
         _ROOM_SLUG_RE.fullmatch(slug)
         and not slug.isdigit()
+        and slug not in NON_PRODUCTION_POKERATLAS_VENUE_SLUGS
         and slug not in NON_US_POKERATLAS_VENUE_SLUGS
         and not is_noise_venue_label(venue.get('name'))
         and region_slug(venue.get('discovered_from') or '')
@@ -194,6 +196,7 @@ def scrape_region_page(url: str) -> tuple[list[dict], list[str], bool]:
                 or name.lower().startswith('http')
                 or not _ROOM_SLUG_RE.fullmatch(slug)
                 or slug.isdigit()
+                or slug in NON_PRODUCTION_POKERATLAS_VENUE_SLUGS
                 or slug in NON_US_POKERATLAS_VENUE_SLUGS
                 or is_noise_venue_label(name)
             ):

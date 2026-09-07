@@ -1,6 +1,7 @@
 import React from 'react';
 import { parseCalendarDate, parseStopDates, pokerCalendarStart } from '../../utils/tourGeoUtils';
 import useTrackedTours from '../../hooks/useTrackedTours';
+import CasinoActionDialog from '../poker-near-me/CasinoActionDialog';
 
 export const TOUR_COLORS = {
     'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
@@ -62,7 +63,12 @@ export default function TourCard({
     dateRangeCutoff,
     getMatchingStops
 }) {
-    const { isTracking, toggleTrackTour } = useTrackedTours();
+    const {
+        isTracking,
+        toggleTrackTour,
+        actionNotice,
+        clearActionNotice,
+    } = useTrackedTours();
     const isTracked = isTracking(tour.tour_code);
     const colors = TOUR_COLORS[tour.tour_code] || TOUR_COLORS.default;
     const typeInfo = TOUR_TYPE_INFO[tour.tour_type] || { label: tour.tour_type || 'Tour', color: '#6b7280' };
@@ -93,7 +99,20 @@ export default function TourCard({
     // DOM Virtualization Style (Phase 2 constraint natively achieved via CSS)
     const virtualStyle = { contentVisibility: 'auto', containIntrinsicSize: '300px' };
 
+    const handleNoticeAction = () => {
+        const noticeKind = actionNotice?.kind;
+        clearActionNotice();
+        if (noticeKind === 'auth') {
+            window.location.assign(
+                `/auth/login?redirect=${encodeURIComponent('/hub/poker-tours')}`
+            );
+            return;
+        }
+        void toggleTrackTour(tour.tour_code);
+    };
+
     return (
+        <>
         <div
             className="tour-card-premium"
             onClick={() => handleTourClick(tour)}
@@ -171,7 +190,7 @@ export default function TourCard({
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stopInfo.isLive ? '#22c55e' : '#60a5fa'} strokeWidth="2" style={{ flexShrink: 0 }}>
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
                                 </svg>
-                                <span style={{ color: stopInfo.isLive ? '#22c55e' : '#60a5fa', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                                <span style={{ color: stopInfo.isLive ? '#22c55e' : '#60a5fa', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
                                     {stopInfo.isLive ? 'LIVE NOW' : 'NEXT STOP'}
                                 </span>
                             </div>
@@ -272,5 +291,16 @@ export default function TourCard({
                 </div>
             </div>
         </div>
+        <CasinoActionDialog
+            open={Boolean(actionNotice)}
+            eyebrow={actionNotice?.kind === 'auth' ? 'Account Required' : 'Tour Alert Status'}
+            title={actionNotice?.title || 'Tour Alert Status'}
+            message={actionNotice?.message || ''}
+            cancelLabel="Close"
+            confirmLabel={actionNotice?.kind === 'auth' ? 'Sign In' : 'Try Again'}
+            onClose={clearActionNotice}
+            onConfirm={handleNoticeAction}
+        />
+        </>
     );
 }

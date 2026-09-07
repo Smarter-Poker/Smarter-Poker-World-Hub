@@ -882,6 +882,13 @@ function LiveGamesFeed({
         const isModelled = v.data_mode === 'estimated';
         const isMixed = v.data_mode === 'mixed';
         const isCatalog = v.data_mode === 'catalog';
+        const detailId = resolveVenueDetailId(v.id);
+        const canNavigateToDetail = Boolean(detailId && (openVenueModal || router));
+        const openVenueDetail = () => {
+            if (!canNavigateToDetail) return;
+            if (openVenueModal) openVenueModal(`/hub/venues/${detailId}`);
+            else router.push(`/hub/venues/${detailId}`);
+        };
         const initColor = getInitialsColor(v.id || 0);
         const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const trustScore = v.trust_score || 0;
@@ -915,7 +922,7 @@ function LiveGamesFeed({
         return (
             <div 
                 key={v.bravo_slug || v.id || `venue-${index}`} 
-                style={{ 
+                style={{
                     position: 'relative',
                     height: '100%',
                     display: 'flex',
@@ -924,7 +931,12 @@ function LiveGamesFeed({
                 }}
             >
                 {/* Venue Card */}
-                <div style={{ 
+                <div
+                data-detail-state={detailId ? 'resolved' : 'unavailable'}
+                role={canNavigateToDetail ? 'link' : undefined}
+                tabIndex={canNavigateToDetail ? 0 : undefined}
+                aria-label={canNavigateToDetail ? `View ${v.name || 'venue'} details` : undefined}
+                style={{
                     position: 'relative',
                     background: 'linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%)', 
                     border: venueBorder, 
@@ -933,19 +945,18 @@ function LiveGamesFeed({
                     padding: '16px 18px 14px',
                     boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.05)`,
                     transition: 'all 0.2s ease',
-                    cursor: router ? 'pointer' : 'default',
+                    cursor: canNavigateToDetail ? 'pointer' : 'default',
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
                 }}
-                onClick={() => {
-                    // For unmatched parents, v.id falls back to bravo_slug (e.g. 'horseshoe-hammond').
-                    // Navigating to /hub/venues/horseshoe-hammond returns 404 — only navigate for real ids.
-                    const detailId = resolveVenueDetailId(v.id);
-                    if (!detailId) return; // Unmatched venue — no detail page available yet
-                    if (openVenueModal) openVenueModal(`/hub/venues/${detailId}`);
-                    else if (router) router.push(`/hub/venues/${detailId}`);
-                }}
+                onClick={canNavigateToDetail ? openVenueDetail : undefined}
+                onKeyDown={canNavigateToDetail ? (event) => {
+                    if (event.target === event.currentTarget && event.key === 'Enter') {
+                        event.preventDefault();
+                        openVenueDetail();
+                    }
+                } : undefined}
                 >
                     {/* Top accent gradient line */}
                     <div style={{
@@ -1115,8 +1126,8 @@ function LiveGamesFeed({
                     {/* === ACTION BAR === */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8 }}>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {user && (
-                                <button onClick={(e) => { e.stopPropagation(); setReportVenue({ id: v.id, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
+                            {user && detailId && (
+                                <button onClick={(e) => { e.stopPropagation(); setReportVenue({ id: detailId, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     Report
@@ -1130,7 +1141,7 @@ function LiveGamesFeed({
                                 venue_reviews.venue_id (int4) with it. Unmatched live rows
                                 fall back to a bravo_slug for v.id, which would make the
                                 panel open onto a 500 — same id test the Details button uses. */}
-                            {setSelectedVenueForReview && resolveVenueDetailId(v.id) && (
+                            {setSelectedVenueForReview && detailId && (
                                 <button onClick={(e) => { e.stopPropagation(); setSelectedVenueForReview(v); }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.18)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
@@ -1139,18 +1150,22 @@ function LiveGamesFeed({
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {(openVenueModal || router) && resolveVenueDetailId(v.id) && (
+                            {canNavigateToDetail ? (
                                 <button onClick={(e) => {
                                     e.stopPropagation();
-                                    const detailId = resolveVenueDetailId(v.id);
-                                    if (!detailId) return;
-                                    if (openVenueModal) openVenueModal(`/hub/venues/${detailId}`);
-                                    else if (router) router.push(`/hub/venues/${detailId}`);
+                                    openVenueDetail();
                                 }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                                     Details
                                 </button>
+                            ) : (
+                                <span
+                                    data-detail-unavailable="true"
+                                    style={{ alignSelf: 'center', color: 'rgba(255,255,255,0.56)', fontSize: 12, fontWeight: 650, letterSpacing: '0.04em' }}
+                                >
+                                    Directory Profile Unavailable
+                                </span>
                             )}
                         </div>
                     </div>
@@ -1355,17 +1370,27 @@ function LiveGamesFeed({
 
             {/* ─── 1. COLLAPSIBLE MAP ─── */}
             {!selectedVenue && (
-                <div style={{ background: 'rgba(13,17,23,0.95)', borderRadius: 14, overflow: 'visible', border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: 16, position: 'relative' }}>
-                    <div onClick={() => setMapExpanded(!mapExpanded)} style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '14px 14px 0 0' }}>
-                        <span style={{ color: '#ffffff', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Games Map</span>
+                <section className="pnm-live-map-module">
+                    <button type="button" className="pnm-live-map-toggle" onClick={() => setMapExpanded(!mapExpanded)} aria-expanded={mapExpanded} aria-controls="pnm-live-games-map">
+                        <span>Live Games Map</span>
+                        <small>{mapExpanded ? 'Collapse map' : 'Open map'}</small>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
-                    </div>
+                    </button>
                     {mapExpanded && (
-                        <div style={{ height: 400, borderRadius: '0 0 14px 14px', overflow: 'hidden' }}>
-                            <VenueMap venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
+                        <div id="pnm-live-games-map">
+                            <VenueMap
+                                venues={mergedVenues.filter(v => v.latitude && v.longitude)}
+                                userLocation={effectiveLocation}
+                                radiusMiles={filterRadius}
+                                mapEyebrow="Cash game signal grid"
+                                mapTitle="Where games usually run"
+                                mapDetail={globalStats.dataMode === 'live'
+                                    ? 'Current verified reports · select a room for table details'
+                                    : 'Historical estimates are labeled · select a room for source details'}
+                            />
                         </div>
                     )}
-                </div>
+                </section>
             )}
 
             {/* ─── 2. HORIZONTAL CONTROL BAR (Removed to unify with global filters) ─── */}

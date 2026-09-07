@@ -7,6 +7,7 @@ import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
 import { createPokerMapSession, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import MapSurfaceFrame from './MapSurfaceFrame';
 import {
     filterSeriesForRoute,
     interpolateRouteLeg,
@@ -150,6 +151,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const instanceId = useId().replace(/:/g, '');
     const savedTripsId = `rtp-saved-${instanceId}`;
     const mapPanelId = `rtp-map-${instanceId}`;
+    const handleMapLayoutChange = useCallback(() => {
+        mapInstanceRef.current?.invalidateSize?.({ pan: false });
+    }, []);
 
     // Load saved trips from localStorage
     useEffect(() => {
@@ -582,8 +586,11 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     const updated = saved.slice(0, 10);
                                     localStorage.setItem('pnm_saved_trips', JSON.stringify(updated));
                                     setSavedTrips(updated);
-                                    alert('Trip saved!');
-                                } catch { alert('Failed to save trip.'); }
+                                    setShareStatus({ ok: true, msg: 'Trip saved to this device.' });
+                                } catch {
+                                    setShareStatus({ ok: false, msg: 'Could not save this trip on this device.' });
+                                }
+                                setTimeout(() => setShareStatus(null), 4000);
                             }}
                             style={{ flex: 1, padding: '8px 12px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                         >
@@ -651,17 +658,27 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             </svg>
                         </button>
                         <div className="rtp-map-shell" id={mapPanelId} style={{ display: mapExpanded ? 'block' : 'none' }}>
-                            <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v2" />
-                            {mapStatus !== 'ready' && (
-                                <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
-                                    {mapStatus === 'error' ? (
-                                        <div>
-                                            <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
-                                            <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
+                            <MapSurfaceFrame
+                                className="pnm-map-surface--road-trip"
+                                eyebrow="Route intelligence"
+                                title="Poker road trip map"
+                                detail={`${routeResult?.stops?.length || 0} stops · ${routeResult?.venues?.length || 0} rooms along this route`}
+                                onLayoutChange={handleMapLayoutChange}
+                            >
+                                <div className="pnm-map-stage">
+                                    <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v3" data-map-ready={mapStatus === 'ready' ? 'true' : 'false'} />
+                                    {mapStatus !== 'ready' && (
+                                        <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
+                                            {mapStatus === 'error' ? (
+                                                <div>
+                                                    <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
+                                                    <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
+                                                </div>
+                                            ) : 'Loading route map...'}
                                         </div>
-                                    ) : 'Loading route map...'}
+                                    )}
                                 </div>
-                            )}
+                            </MapSurfaceFrame>
                         </div>
                     </div>
 

@@ -56,7 +56,15 @@ body.world-poker-near-me {
        content, and the two full-bleed `inset:0` backgrounds sizing to the whole
        scroll height. Same mechanism as the Club Arena footer bug, 2026-08-29. */
     overflow-x: hidden;
-    overflow-x: clip;
+    overflow-x: clip !important;
+}
+
+/* Shared overlay locks use the audited global registry and expose ownership
+   through body.style.overflow. In the Poker Near Me world, translate that
+   inline lock to clip so WebKit does not turn body into a fixed-position
+   containing scroll box while drawers or full-screen dialogs are open. */
+body.world-poker-near-me[style*='overflow: hidden'] {
+    overflow: clip !important;
 }
 
 body.world-poker-near-me::before {

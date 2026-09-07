@@ -22,8 +22,6 @@ export default function VenuesTabPanel({
     getSortedVenues,
     displayCount,
     loadMore,
-    mapFullscreen,
-    setMapFullscreen,
     mapCenter,
     userLocation,
     isFavorited,
@@ -140,26 +138,17 @@ export default function VenuesTabPanel({
     return (
         <>
             {/* MAP CARD */}
-            <div className={`map-preview-card${mapFullscreen ? ' map-preview-fullscreen' : ''}`}>
-                {mapFullscreen && (
-                    <div className="map-preview-expand-badge" onClick={(e) => { e.stopPropagation(); setMapFullscreen(false); }} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
-                            <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
-                        </svg>
-                        Collapse Map
-                    </div>
-                )}
+            <div className="map-preview-card">
                 <MapErrorBoundary>
                     <VenueMap
-                        key={mapFullscreen ? 'venues-fullscreen' : 'venues-preview'}
                         venues={sorted}
                         userLocation={userLocation}
                         centerLocation={mapCenter}
-                        fullHeight={mapFullscreen}
                         onVenueClick={onMapVenueClick}
                         radiusMiles={filters.radius}
                         isFavorited={isFavorited}
+                        mapTitle="Rooms in your search area"
+                        mapDetail={`${sorted.length} matching locations · select a marker for details`}
                         onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
                     />
                 </MapErrorBoundary>
@@ -199,15 +188,6 @@ export default function VenuesTabPanel({
                     {`Showing ${displayed.length} of ${sorted.length}`}
                 </span>
                 
-                {!mapFullscreen && (
-                    <button className="expand-map-inline-btn" onClick={() => setMapFullscreen(true)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
-                            <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
-                        </svg>
-                        Expand Map
-                    </button>
-                )}
             </div>
 
             {/* VENUE CARDS */}

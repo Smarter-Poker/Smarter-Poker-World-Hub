@@ -109,6 +109,13 @@ export function acquireScrollLock(label = 'anonymous') {
     registry.set(token, { label, generation });
     syncMirror(registry);
     document.body.style.overflow = 'hidden';
+    // The root element is the scrolling element in standards-mode Chromium
+    // and WebKit. Some product worlds intentionally translate the body lock
+    // to `clip` to preserve fixed-position geometry, so lock the actual root
+    // scroller as well or wheel/touch input can continue behind the dialog.
+    if (document.documentElement?.style) {
+        document.documentElement.style.overflow = 'hidden';
+    }
 
     let released = false;
     return function releaseScrollLock() {
@@ -120,6 +127,7 @@ export function acquireScrollLock(label = 'anonymous') {
         syncMirror(reg);
         if (reg.size === 0) {
             document.body.style.removeProperty('overflow');
+            document.documentElement?.style?.removeProperty('overflow');
         }
     };
 }
@@ -169,8 +177,11 @@ export function sweepStaleScrollLocks() {
 export function clearBodyScrollLockIfUnheld() {
     if (!hasWindow()) return false;
     if (scrollLockCount() > 0) return false;
-    if (document.body.style.overflow !== 'hidden') return false;
+    const bodyLocked = document.body.style.overflow === 'hidden';
+    const rootLocked = document.documentElement?.style?.overflow === 'hidden';
+    if (!bodyLocked && !rootLocked) return false;
     document.body.style.removeProperty('overflow');
-    console.debug('[ScrollLock] Cleared a stranded body scroll lock');
+    document.documentElement?.style?.removeProperty('overflow');
+    console.debug('[ScrollLock] Cleared a stranded document scroll lock');
     return true;
 }

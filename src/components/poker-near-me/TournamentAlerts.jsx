@@ -11,6 +11,7 @@ const GAME_TYPES = ['NLH', 'PLO', 'Mixed', 'Omaha Hi-Lo', 'Stud'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STORAGE_KEY = 'poker-tournament-alert-prefs';
 const SYNC_DEBOUNCE_MS = 400;
+const EMPTY_LIST = Object.freeze([]);
 
 function loadPrefs() {
     try {
@@ -121,7 +122,7 @@ function matchesTournament(prefs, tournament, userLocation, venueCoords) {
     return true;
 }
 
-export default function TournamentAlerts({ dailyTournaments = [], userId, authToken, userLocation = null, venues = [], requireOnline }) {
+export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId, authToken, userLocation = null, venues = EMPTY_LIST, requireOnline }) {
     const [prefs, setPrefs] = useState(() => {
         const saved = typeof window !== 'undefined' ? loadPrefs() : null;
         return saved || {
@@ -213,11 +214,17 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
 
     // Match tournaments against prefs
     useEffect(() => {
-        if (!prefs.enabled || dailyTournaments.length === 0) { setMatches([]); return; }
+        if (!prefs.enabled || dailyTournaments.length === 0) {
+            setMatches(previous => previous.length === 0 ? previous : EMPTY_LIST);
+            return;
+        }
         // BUG FIX: userLocation was never threaded through, so the distanceMi
         // preference (25/50/100/250 chips) had no effect on matching.
         const matched = dailyTournaments.filter(t => matchesTournament(prefs, t, userLocation, venueCoords));
-        setMatches(matched);
+        setMatches(previous => (
+            previous.length === matched.length
+            && previous.every((item, index) => item === matched[index])
+        ) ? previous : matched);
 
         // Send browser notification for first match
         if (matched.length > 0 && prefs.pushEnabled && !notificationSent) {

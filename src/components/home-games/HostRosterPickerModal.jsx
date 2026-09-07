@@ -26,6 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { X, UserPlus, Search, Loader2, Check, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getAccessToken } from '../../lib/authUtils';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 
 function authHeaders() {
   const token = getAccessToken();
@@ -81,6 +82,11 @@ export default function HostRosterPickerModal({
   const [newPhone, setNewPhone]           = useState('');
   const [saving, setSaving]               = useState(false);
   const [seatingMember, setSeatingMember] = useState(null); // member id being seated
+  const rosterDialog = useAccessibleDialog({
+    open: true,
+    onClose,
+    dismissDisabled: saving || Boolean(seatingMember),
+  });
 
   // ──────────────────────────── load roster ─────────────────────────────
   const loadRoster = useCallback(async () => {
@@ -184,11 +190,16 @@ export default function HostRosterPickerModal({
 
   return (
     <div
+      ref={rosterDialog.dialogRef}
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[210] flex items-center justify-center p-4"
+      data-pnm-home-games="true"
       role="dialog"
       aria-modal="true"
       aria-labelledby="hrp-title"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+      tabIndex={-1}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !saving && !seatingMember) onClose?.();
+      }}
     >
       <div className="bg-gradient-to-b from-[#152036] to-[#0d1626] border border-white/10 rounded-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-white">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -199,10 +210,12 @@ export default function HostRosterPickerModal({
             </p>
           </div>
           <button
+            ref={rosterDialog.initialFocusRef}
             type="button"
             className="text-white/60 hover:text-white rounded-full p-1 -m-1"
             onClick={onClose}
-            aria-label="Close"
+            disabled={saving || Boolean(seatingMember)}
+            aria-label="Close seat member dialog"
           >
             <X className="w-5 h-5" />
           </button>
@@ -255,6 +268,7 @@ export default function HostRosterPickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search roster…"
+              aria-label="Search roster"
               className="w-full pl-9 pr-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm placeholder:text-white/30 focus:outline-none focus:border-indigo-400/60"
             />
           </div>
@@ -277,10 +291,11 @@ export default function HostRosterPickerModal({
         {addingMember && (
           <div className="bg-black/30 border border-indigo-400/20 rounded-lg p-3 mb-3 space-y-2">
             <div>
-              <label className="block text-[11px] uppercase tracking-wider text-white/50 mb-1">
+              <label htmlFor="roster-new-name" className="block text-xs uppercase tracking-wider text-white/50 mb-1">
                 Name *
               </label>
               <input
+                id="roster-new-name"
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value.slice(0, 120))}
@@ -291,10 +306,11 @@ export default function HostRosterPickerModal({
               />
             </div>
             <div>
-              <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/50 mb-1">
+              <label htmlFor="roster-new-phone" className="flex items-center gap-1 text-xs uppercase tracking-wider text-white/50 mb-1">
                 <Phone className="w-3 h-3" /> Phone (Optional)
               </label>
               <input
+                id="roster-new-phone"
                 type="tel"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value.slice(0, 40))}
@@ -351,7 +367,7 @@ export default function HostRosterPickerModal({
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm truncate">{m.display_name}</span>
                       {m.is_roster_only && (
-                        <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white/70 px-1.5 py-0.5 rounded">
+                        <span className="text-xs uppercase tracking-wider bg-white/10 text-white/70 px-1.5 py-0.5 rounded">
                           Roster-Only
                         </span>
                       )}

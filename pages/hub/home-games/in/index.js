@@ -17,20 +17,15 @@ import { stateCodeToName, stateCodeToSlug, US_STATES_BY_CODE,
 } from '../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import PokerNearMeFamilyNav from '../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import {
+  fetchAllHomeGameDirectoryRows,
+  fetchHomeGameGroupsInChunks,
+  homeGameDirectoryUnavailable,
+} from '../../../../src/lib/home-games/geoDirectoryServer.mjs';
 
 // Phase 18 auto-hide window, mirrored from /api/public/home-games/discover
 // and from in/[state]/index.js.
 const HOME_GROUP_INACTIVITY_DAYS = 45;
-
-// Hard ceiling on the national page scan so the totals can never silently
-// truncate against PostgREST's implicit max-rows cap. If the directory ever
-// grows past this we want an explicit, known boundary rather than a number
-// that quietly stops growing.
-const PAGE_FETCH_CAP = 5000;
-
-// PostgREST `in.(...)` filters are URL-encoded into the query string, so the
-// id list is chunked to keep every request well under the URL length limit.
-const GROUP_ID_CHUNK = 400;
 
 // A home group is publicly listable only while it is active, not private, and
 // showing signs of life. Kept byte-identical to the copy in
@@ -48,44 +43,52 @@ export async function getServerSideProps({ res }) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(url, key);
+  const unavailableProps = { states: [], totalGames: 0 };
+  if (!url || !key) {
+    console.warn('[home-games/in] Supabase configuration unavailable');
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
+
+  let supabase;
+  try {
+    supabase = createClient(url, key);
+  } catch (error) {
+    console.warn('[home-games/in] Supabase client creation failed:', error?.message || error);
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
 
   // Aggregate: count public home_game pages per state.
   // We intentionally query social_pages (not commander_home_groups) because
   // (a) it respects is_public which is what the user ultimately sees, and
   // (b) it's already indexed by page_type.
-  const { data: pages, error } = await supabase
+  const pageResult = await fetchAllHomeGameDirectoryRows((from, to) => supabase
     .from('social_pages')
-    .select('location_state, location_city, linked_entity_id')
+    .select('id, location_state, location_city, linked_entity_id')
     .eq('page_type', 'home_game')
     .eq('is_public', true)
     .not('location_state', 'is', null)
-    .limit(PAGE_FETCH_CAP);
+    .order('id', { ascending: true })
+    .range(from, to));
 
-  if (error) {
-    console.warn('[home-games/in] fetch failed:', error.message);
-    return { props: { states: [], totalGames: 0 } };
+  if (pageResult.error || !pageResult.complete) {
+    console.warn('[home-games/in] fetch failed:', pageResult.error?.message || 'incomplete response');
+    return homeGameDirectoryUnavailable(res, unavailableProps);
   }
+  const pages = pageResult.rows;
 
   // Resolve the linked groups so the same visibility rule the state and city
   // pages apply is applied here too. Without this a state whose groups are all
   // auto-hidden still advertised a game count that its own page showed as zero.
-  const groupIds = Array.from(
-    new Set((pages || []).map(p => p.linked_entity_id).filter(Boolean).map(String))
-  );
-  const groupMap = {};
-  for (let i = 0; i < groupIds.length; i += GROUP_ID_CHUNK) {
-    const slice = groupIds.slice(i, i + GROUP_ID_CHUNK);
-    const { data: groups, error: groupErr } = await supabase
+  const groupIds = pages.map(p => p.linked_entity_id).filter(Boolean);
+  const groupResult = await fetchHomeGameGroupsInChunks(groupIds, (ids) => supabase
       .from('commander_home_groups')
       .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
-      .in('id', slice);
-    if (groupErr) {
-      console.warn('[home-games/in] group fetch failed:', groupErr.message);
-      continue;
-    }
-    for (const g of groups || []) groupMap[String(g.id)] = g;
+      .in('id', ids));
+  if (groupResult.error || !groupResult.complete) {
+    console.warn('[home-games/in] group fetch failed:', groupResult.error?.message || 'incomplete response');
+    return homeGameDirectoryUnavailable(res, unavailableProps);
   }
+  const groupMap = Object.fromEntries(groupResult.rows.map(g => [String(g.id), g]));
 
   const byState = new Map();
   let visibleTotal = 0;
@@ -116,13 +119,16 @@ export async function getServerSideProps({ res }) {
       // Only the games a visitor can actually reach — this is the number the
       // hero copy calls "active poker home games".
       totalGames: visibleTotal,
+      directoryUnavailable: false,
     },
   };
 }
 
-export default function HomeGamesByStateIndex({ states, totalGames }) {
+export default function HomeGamesByStateIndex({ states, totalGames, directoryUnavailable = false }) {
   const pageTitle = 'Poker Home Games by State - Find a Home Game Near You';
-  const pageDescription = totalGames > 0
+  const pageDescription = directoryUnavailable
+    ? 'The Poker Home Games directory is temporarily unavailable. Please try again shortly.'
+    : totalGames > 0
     ? `Browse ${totalGames} active poker home games across ${states.length} US ${states.length === 1 ? 'state' : 'states'}. Find weekly cash games, tournaments, and friendly home games in your area.`
     : 'Find poker home games across the United States. Browse by state to discover cash games, tournaments, and friendly home games near you.';
 
@@ -181,7 +187,11 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
       </Head>
 
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
-      <main className="min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white">
+      <main
+        className="pnm-home-geo-page min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white"
+        data-pnm-realism="machined-v2"
+        data-pnm-secondary-foundation="interaction-v1"
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-24">
           {/* Breadcrumbs */}
           <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
@@ -198,7 +208,9 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
               Poker Home Games <span className="text-[#C4B5FD]">By State</span>
             </h1>
             <p className="text-lg text-[#94A3B8] mt-4 max-w-2xl">
-              {totalGames > 0 ? (
+              {directoryUnavailable ? (
+                <>The Home Game Directory Is Temporarily Unavailable. Please Try Again Shortly.</>
+              ) : totalGames > 0 ? (
                 <>
                   Browse <span className="text-white font-semibold">{totalGames}</span> Active Poker Home Games across{' '}
                   <span className="text-white font-semibold">{states.length}</span> US {states.length === 1 ? 'state' : 'states'}. Find A Weekly Game, Cash Or Tournament, Near You.
@@ -252,14 +264,27 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
               </ul>
             </section>
           ) : (
-            <section className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center">
-              <p className="text-[#94A3B8]">
-                No Public Home Games Have Been Listed Yet.{' '}
-                <Link href="https://commander.smarter.poker/commander/register?tier=home_game" className="text-[#C4B5FD] underline hover:text-white">
-                  Be The First To Host One
-                </Link>
-                .
-              </p>
+            <section
+              className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center"
+              role={directoryUnavailable ? 'status' : undefined}
+            >
+              {directoryUnavailable ? (
+                <>
+                  <h2 className="text-white font-semibold">Directory Data Could Not Be Verified</h2>
+                  <p className="text-[#94A3B8] mt-2">No Listings Have Been Removed. Please Retry In A Moment.</p>
+                  <Link href="/hub/home-games/in" className="inline-flex mt-4 text-[#C4B5FD] underline hover:text-white">
+                    Retry Directory
+                  </Link>
+                </>
+              ) : (
+                <p className="text-[#94A3B8]">
+                  No Public Home Games Have Been Listed Yet.{' '}
+                  <Link href="https://commander.smarter.poker/commander/register?tier=home_game" className="text-[#C4B5FD] underline hover:text-white">
+                    Be The First To Host One
+                  </Link>
+                  .
+                </p>
+              )}
             </section>
           )}
 
