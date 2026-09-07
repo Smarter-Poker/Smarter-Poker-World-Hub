@@ -146,6 +146,38 @@ CIRCUIT_MAX   = 5
 ENRICH_FAIL_MAX = 5  # after 5 fails, flag as permanently_ungettable
 REFRESH_AFTER_HOURS = 24   # re-scrape a series whose last_scraped is older than this
 PA_SERIES_LISTING_URL = "https://www.pokeratlas.com/poker-tournament-series"
+DAEMON_NORMAL_SLEEP_SECONDS = 6 * 60 * 60
+DAEMON_ERROR_BACKOFF_SECONDS = (300, 900, 1800, 3600, 6 * 60 * 60)
+
+
+def daemon_cycle_control(rows_written: object, run_errors: dict,
+                         previous_error_streak: int) -> dict:
+    """Choose in-process daemon recovery without hiding a degraded cycle.
+
+    One-shot callers still exit non-zero from the CLI guard below. Continuous
+    mode instead keeps the same observable process alive and applies a bounded
+    producer backoff. Confirmed writes refresh watchdog liveness even when some
+    sources failed, but they do not make that cycle healthy or reset backoff.
+    """
+
+    try:
+        confirmed_rows = max(0, int(rows_written or 0))
+    except (TypeError, ValueError):
+        confirmed_rows = 0
+    degraded = any(bool(value) for value in (run_errors or {}).values())
+    if degraded:
+        error_streak = max(0, int(previous_error_streak or 0)) + 1
+        delay_index = min(error_streak - 1, len(DAEMON_ERROR_BACKOFF_SECONDS) - 1)
+        sleep_seconds = DAEMON_ERROR_BACKOFF_SECONDS[delay_index]
+    else:
+        error_streak = 0
+        sleep_seconds = DAEMON_NORMAL_SLEEP_SECONDS
+    return {
+        "degraded": degraded,
+        "refresh_liveness": confirmed_rows > 0,
+        "error_streak": error_streak,
+        "sleep_seconds": sleep_seconds,
+    }
 
 # Words that describe almost every series page and therefore cannot prove that
 # a fetched page belongs to the requested series.  Identity is established from
@@ -3417,6 +3449,7 @@ if __name__ == "__main__":
         
         last_successful_save = time.time()
         WATCHDOG_MAX_STALE_MINUTES = 8 * 60 # 8 hours
+        consecutive_error_cycles = 0
         
         while running:
             stale_minutes = (time.time() - last_successful_save) / 60
@@ -3425,19 +3458,27 @@ if __name__ == "__main__":
                 os._exit(1)
             try:
                 rows_written = main()
-                if any(RUN_ERRORS.values()):
+                cycle_control = daemon_cycle_control(
+                    rows_written,
+                    RUN_ERRORS,
+                    consecutive_error_cycles,
+                )
+                consecutive_error_cycles = cycle_control["error_streak"]
+                sleep_seconds = cycle_control["sleep_seconds"]
+                if cycle_control["refresh_liveness"]:
+                    last_successful_save = time.time()
+                if cycle_control["degraded"]:
                     log(
                         f"Run completed with integrity errors {RUN_ERRORS}; "
-                        "exiting so launchd can restart instead of reporting healthy"
+                        f"keeping daemon alive for bounded producer retry in "
+                        f"{sleep_seconds}s (degraded streak "
+                        f"#{consecutive_error_cycles})"
                     )
-                    os._exit(1)
                 # Only reset the staleness clock when the cycle ACTUALLY wrote
                 # rows. Resetting on every return meant a daemon producing zero
                 # rows for weeks still looked healthy and the watchdog never
                 # tripped.
-                if rows_written and rows_written > 0:
-                    last_successful_save = time.time()
-                else:
+                elif not cycle_control["refresh_liveness"]:
                     stale = (time.time() - last_successful_save) / 60
                     log(f"⚠️  Cycle wrote 0 rows — staleness clock NOT reset "
                         f"({stale:.0f} min since last successful save)")
@@ -3453,9 +3494,11 @@ if __name__ == "__main__":
             if not running or STOP_REQUESTED:
                 break
             
-            sleep_hours = 6
-            log(f"\n💤 Daemon sleeping for {sleep_hours} hours...")
-            for _tick in range(3600 * sleep_hours):
+            if cycle_control["degraded"]:
+                log(f"\n💤 Daemon degraded backoff for {sleep_seconds}s...")
+            else:
+                log(f"\n💤 Daemon sleeping for {sleep_seconds // 3600} hours...")
+            for _tick in range(sleep_seconds):
                 if not running:
                     break
                 time.sleep(1)
