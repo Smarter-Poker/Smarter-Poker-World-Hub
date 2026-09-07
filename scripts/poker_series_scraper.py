@@ -101,7 +101,12 @@ SB_UPSERT_HDRS = {
 EVENT_ON_CONFLICT = "event_uid"
 
 # Run-level error counters — a run that lost rows must NOT exit 0.
-RUN_ERRORS = {"upsert_failed": 0, "rows_lost": 0, "patch_failed": 0, "series_errors": 0}
+# `series_errors` counts THIRD-PARTY fetch failures; the first three count OUR
+# faults. The exit gate at the foot of this file treats them differently for
+# that reason - see the note there. `series_attempted` / `series_resolved` are
+# the denominator and numerator the productivity check needs.
+RUN_ERRORS = {"upsert_failed": 0, "rows_lost": 0, "patch_failed": 0, "series_errors": 0,
+              "series_attempted": 0, "series_resolved": 0}
 
 # Extraction-path → (data_quality, scrape_confidence).
 # Structured JSON is trustworthy; regex scraped off raw HTML/PDF is not, and must
@@ -3420,6 +3425,13 @@ def main():
 
         log("Sleeping 10s...\n"); time.sleep(10)
 
+    # The exit gate judges PRODUCTIVITY, so it needs the denominator as well as
+    # the error count: "7 source errors" means nothing without "out of how
+    # many". Recorded here, where both numbers are already in hand.
+    RUN_ERRORS["series_resolved"] = total_found
+    RUN_ERRORS["series_attempted"] = max(total_found + RUN_ERRORS["series_errors"],
+                                         total_found)
+
     log(f"\n{'='*70}")
     log(f"DONE — {pass_num} passes, {total_found} series resolved, {total_events} events")
     log(f"  Errors: upsert_failed={RUN_ERRORS['upsert_failed']} "
@@ -3515,9 +3527,60 @@ if __name__ == "__main__":
         log("🛑 Daemon strictly stopped.")
     else:
         main()
-        # Make failures visible to CI / launchd. A run that lost rows, failed a
-        # series patch, or hit a code defect must NOT exit 0.
-        if (RUN_ERRORS["upsert_failed"] or RUN_ERRORS["rows_lost"]
-                or RUN_ERRORS["patch_failed"] or RUN_ERRORS["series_errors"]):
-            log(f"❌ Run completed WITH ERRORS: {RUN_ERRORS} — exiting 1")
+        # ── FAIL ON OUR FAULTS, REPORT THE WORLD'S (2026-09-07) ──────────────
+        #
+        # This used to exit 1 if ANY of the four counters was non-zero, and
+        # `series_errors` counts third-party fetch failures — a certificate,
+        # a connection reset, an empty result from someone else's website.
+        # Poker sites are never all reachable at once, so the condition was
+        # unsatisfiable and this workflow has NEVER succeeded on main: zero
+        # green runs in its entire recorded history, roughly five months of
+        # daily red and a daily SMS to a human. An alarm that is always on is
+        # an alarm that gets muted (CLAUDE.md 10.83/10.84), and it took the
+        # `42P10` below with it — a real defect nobody could see behind the
+        # noise.
+        #
+        # OUR faults still fail immediately and unconditionally: a lost row, a
+        # failed upsert or a failed patch is a defect in this repo.
+        #
+        # Source errors are judged the way the venue-scraper gate judges its
+        # dispatches: on PRODUCTIVITY, not on the absence of any error. A run
+        # that resolved series did its job even if three sources were down; a
+        # run that resolved nothing, or lost more than half of what it tried,
+        # has not and pages.
+        ours = (RUN_ERRORS["upsert_failed"] or RUN_ERRORS["rows_lost"]
+                or RUN_ERRORS["patch_failed"])
+        attempted = RUN_ERRORS.get("series_attempted") or 0
+        resolved = RUN_ERRORS.get("series_resolved") or 0
+        src_errors = RUN_ERRORS["series_errors"]
+        # Unproductive only when we tried and got nothing back, or when the
+        # majority of attempts failed at the source.
+        barren = attempted > 0 and resolved == 0
+        mostly_failed = attempted > 0 and src_errors > (attempted / 2)
+
+        if src_errors:
+            log(f"⚠️  {src_errors} source error(s) across {attempted} attempted "
+                f"series; {resolved} resolved. Third-party sites are not this "
+                f"repo's to fix — reported, not failed.")
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            try:
+                with open(summary, "a", encoding="utf-8") as fh:
+                    fh.write(
+                        f"\n### Poker series scrape\n\n"
+                        f"- series resolved: **{resolved}** of {attempted} attempted\n"
+                        f"- source errors (third party): {src_errors}\n"
+                        f"- our faults: upsert_failed={RUN_ERRORS['upsert_failed']}, "
+                        f"rows_lost={RUN_ERRORS['rows_lost']}, "
+                        f"patch_failed={RUN_ERRORS['patch_failed']}\n"
+                    )
+            except OSError:
+                pass  # a summary we cannot write must never fail the run
+
+        if ours:
+            log(f"❌ Run completed WITH ERRORS OF OURS: {RUN_ERRORS} — exiting 1")
+            sys.exit(1)
+        if barren or mostly_failed:
+            log(f"❌ Run was unproductive ({resolved}/{attempted} resolved, "
+                f"{src_errors} source errors) — exiting 1")
             sys.exit(1)

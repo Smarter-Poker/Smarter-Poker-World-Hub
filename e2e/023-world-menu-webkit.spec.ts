@@ -148,6 +148,8 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
         minControlWidth: Math.min(...controls.map((box) => box.width)),
         minControlHeight: Math.min(...controls.map((box) => box.height)),
         bodyOverflow: getComputedStyle(document.body).overflow,
+        bodyPosition: getComputedStyle(document.body).position,
+        rootOverflow: getComputedStyle(document.documentElement).overflow,
       };
     });
     expect(Math.abs(metrics.x)).toBeLessThanOrEqual(1);
@@ -157,7 +159,20 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
     expect(metrics.horizontalOverflow).toBeLessThanOrEqual(1);
     expect(metrics.minControlWidth).toBeGreaterThanOrEqual(44);
     expect(metrics.minControlHeight).toBeGreaterThanOrEqual(44);
-    expect(metrics.bodyOverflow).toBe('hidden');
+    // The contract is "the page cannot scroll", not the literal keyword
+    // `hidden`. Poker Near Me deliberately translates the body lock to `clip`
+    // so WebKit does not turn body into a fixed-position containing scroll box
+    // (src/styles/worlds/poker-near-me.css), and scrollLock locks the root
+    // scroller alongside it. See the long note in 020-hamburger.spec.ts.
+    expect(
+      ['hidden', 'clip'],
+      `body overflow was "${metrics.bodyOverflow}" - the drawer must lock the page`
+    ).toContain(metrics.bodyOverflow);
+    expect(
+      metrics.bodyPosition === 'fixed' || ['hidden', 'clip'].includes(metrics.rootOverflow),
+      `nothing is actually holding the page: body position "${metrics.bodyPosition}", ` +
+        `root overflow "${metrics.rootOverflow}"`
+    ).toBe(true);
 
     await expect.poll(() => drawer.evaluate((element) => {
       element.scrollTop = element.scrollHeight;

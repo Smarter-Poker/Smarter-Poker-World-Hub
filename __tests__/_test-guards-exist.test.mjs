@@ -236,6 +236,11 @@ import './an-env-var-cannot-change-unseen.law.test.mjs';
 // is invisible in a browser tab, where the inset is 0, which is precisely why
 // it needs a test rather than an eye.
 import './the-status-bar-inset-has-one-owner.test.mjs';
+// 2026-09-07: two scrapers judged themselves on the absence of errors rather
+// than on what they produced, in opposite directions. One reported success
+// while every dispatch 401'd for five weeks; the other could never report
+// success at all and was red every day for five months, hiding a real 42P10.
+import './a-scraper-run-is-judged-on-what-it-produced.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
