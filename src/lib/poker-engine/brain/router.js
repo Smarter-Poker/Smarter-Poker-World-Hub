@@ -43,7 +43,8 @@ const { evaluatePLO8Low } = require('./plo8-brain');
 
 const { applyTournamentAdjustments, detectTournamentStage } = require('./tournament-brain');
 
-// Live observer is not yet extracted — stub with safe fallback
+// Live-observer dependency injection. The brain barrel installs the production
+// observer before exporting this router; direct test imports fail closed.
 let _getLiveReadFn = null;
 function setRouterLiveReadFn(fn) {
     _getLiveReadFn = fn;
