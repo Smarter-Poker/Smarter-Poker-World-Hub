@@ -282,6 +282,7 @@ export default async function handler(req, res) {
         evidence: {
           solverVerified: verified,
           classification: persistedClassification,
+          isCorrect: canonicalGrade.isCorrect,
           evLossMeasured: verified ? canonicalGrade.evLossMeasured : false,
         },
       });

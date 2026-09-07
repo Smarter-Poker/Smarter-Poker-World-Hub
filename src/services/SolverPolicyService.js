@@ -66,6 +66,7 @@ export const SOLVER_POLICY_CHART_PROJECTION = [
 export const SOLVER_POLICY_CONSUMERS = Object.freeze([
   'get-question',
   'batch-preload',
+  'next-street',
   'spot-drill',
   'custom-trainer',
   'solver-api',

@@ -488,6 +488,7 @@ export default function DailyChallengePage() {
                         verdict={resultIsCorrect ? 'correct' : 'incorrect'}
                         userAction={selected || ''}
                         solverAction={correctAnswer}
+                        referenceLabel={sourceBadge.label}
                         evLoss={resultIsCorrect ? 0 : undefined}
                         whyShort={resultIsCorrect ? "Policy-correct." : `The canonical policy prefers ${correctAnswer}.`}
                         compact

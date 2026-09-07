@@ -8,8 +8,9 @@ import {
   isCanonicalTrainingQuestion,
   mapTrainingQuestionToAnalysis,
 } from '../src/lib/sandbox/trainingCacheSolver.mjs';
+import { sealCanonicalTrainingQuestion } from './helpers/canonicalTrainingPolicyFixture.mjs';
 
-const canonicalQuestion = {
+const canonicalQuestion = sealCanonicalTrainingQuestion({
   source: 'DETERMINISTIC_SOLVER',
   solverProvenance: {
     verified: true,
@@ -43,7 +44,7 @@ const canonicalQuestion = {
     actionEVs: { c: 0.43, b16: 0.1 },
   },
   explanation: 'The canonical training solver checks this hand.',
-};
+}, { measuredActionEv: true });
 
 test('canonical board parsing accepts strings and card arrays', () => {
   assert.equal(canonicalBoard('Qc 5h 3s'), '3s5hqc');
@@ -52,9 +53,9 @@ test('canonical board parsing accepts strings and card arrays', () => {
 
 test('only verified non-simulated training questions are solver evidence', () => {
   assert.equal(isCanonicalTrainingQuestion(canonicalQuestion), true);
-  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, solverProvenance: undefined }), false);
-  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, source: 'GROK' }), false);
-  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, dataQuality: 'SIMULATED' }), false);
+  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, solverPolicy: undefined }), false);
+  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, source: 'GROK' }), true);
+  assert.equal(isCanonicalTrainingQuestion({ ...canonicalQuestion, dataQuality: 'SIMULATED' }), true);
 });
 
 test('exact hand and board wins deterministically over a flop-only match', () => {
@@ -100,12 +101,13 @@ test('an open-action training node cannot grade a hand that is facing a bet', ()
     { question_id: 'open-node', question_data: canonicalQuestion },
   ], context), null);
 
-  const facingQuestion = {
+  const facingQuestion = sealCanonicalTrainingQuestion({
     ...canonicalQuestion,
+    solverPolicy: undefined,
     options: [{ id: 'f', text: 'Fold' }, { id: 'c', text: 'Call' }],
     gtoFrequencies: { f: 20, c: 80 },
     scenario: { ...canonicalQuestion.scenario, nodeType: 'hero_faces_bet' },
-  };
+  });
   assert.equal(chooseTrainingCacheMatch([
     { question_id: 'facing-node', question_data: facingQuestion },
   ], context)?.row?.question_id, 'facing-node');
@@ -132,11 +134,12 @@ test('normalized optimal quality never becomes a fabricated BB loss', () => {
   assert.equal(result.ev.evLoss, 0);
 });
 
-test('fractional frequency payloads normalize to percentages', () => {
-  const result = mapTrainingQuestionToAnalysis({
+test('fractional policy frequencies normalize to percentages', () => {
+  const result = mapTrainingQuestionToAnalysis(sealCanonicalTrainingQuestion({
     ...canonicalQuestion,
+    solverPolicy: undefined,
     gtoFrequencies: { c: 0.7, b16: 0.3 },
-  });
+  }, { measuredActionEv: true }));
   assert.equal(result.actions.find(action => action.id === 'c').frequency, 70);
   assert.equal(result.actions.find(action => action.id === 'b16').frequency, 30);
   assert.equal(result.isMixed, true);

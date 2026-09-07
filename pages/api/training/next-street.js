@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { randomUUID } from 'node:crypto';
 /**
  * GET /api/training/next-street
  * Fetches the next street question for multi-street hand progression.
@@ -22,6 +23,13 @@ import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+    enforceTrainingQuestionContract,
+    isTrainingQuestionValid,
+} from '../../../src/lib/training/questionContract.mjs';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import { trainingPersistenceUnavailableBody } from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -185,9 +193,36 @@ export default async function handler(req, res) {
                   isMultiStreet: true,
               };
 
+              const contracted = enforceTrainingQuestionContract(question);
+              const canonical = new SolverPolicyService({ db: getSupabase() })
+                  .attachToQuestion(contracted, 'next-street');
+              if (!canonical?.id || !isTrainingQuestionValid(canonical)) {
+                  return res.status(422).json({
+                      success: false,
+                      error: 'The next-street question did not pass the training integrity audit.',
+                  });
+              }
+              let servedQuestion;
+              try {
+                  [servedQuestion] = await persistCanonicalTrainingQuestions(getSupabase(), {
+                      questions: [canonical],
+                      gameId,
+                      questionKind: 'PIO',
+                      gameType: String(gameId).startsWith('mtt-') ? 'tournament'
+                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
+                      level: Math.min(12, Math.max(1, Number(canonical.level) || 1)),
+                      userId: _authUser.id,
+                      requestId: randomUUID(),
+                      label: 'NextStreet:canonicalize',
+                  });
+              } catch (canonicalizeError) {
+                  console.warn('[NextStreet] Refusing to serve an uncanonicalized question:', canonicalizeError.message);
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+
               return res.status(200).json({
                   success: true,
-                  question,
+                  question: servedQuestion,
                   newCard,
                   boardCards: newBoardCards,
                   street,

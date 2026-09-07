@@ -143,10 +143,13 @@ test('unsealed warehouse cache rows cannot bypass live matrix and EV validation'
   );
 });
 
-test('legacy questions are canonicalized only for server grading and remain ineligible for cache serving', () => {
+test('answers are graded only from the checksum-bound canonical policy', () => {
   const record = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
   const reseeder = fs.readFileSync('scripts/reseed-deterministic-cache.js', 'utf8');
-  assert.match(record, /is_correct: canonicalGrade \? canonicalGrade\.isCorrect : !!isCorrect/);
+  assert.match(record, /gradeCanonicalPolicyDecision\(\s*canonicalRow\.canonical_policy/);
+  assert.match(record, /is_correct: canonicalGrade\.isCorrect/);
+  assert.doesNotMatch(record, /is_correct:[^\n]*\?[^\n]*isCorrect/);
+  assert.match(record, /servedPolicyChecksum !== String\(canonicalRow\.policy_checksum/);
   assert.match(record, /solver_verified: verified/);
   assert.match(record, /allowSanitizedLegacyArchive: true/);
   assert.match(record, /TRAINING_QUESTION_REFRESH_REQUIRED/);
@@ -197,18 +200,20 @@ test('declared preflop PIO games accept only the audited local-range cache', () 
 test('both cache readers select engine_type and apply the exact cache contract', () => {
   const single = fs.readFileSync(path.join(ROOT, 'pages/api/training/get-question.js'), 'utf8');
   const batch = fs.readFileSync(path.join(ROOT, 'pages/api/training/batch-preload.js'), 'utf8');
-  assert.match(single, /select\('question_data, question_id, engine_type'\)/);
+  assert.match(single, /select\('[^']*question_data[^']*question_id[^']*engine_type[^']*canonical_policy[^']*policy_checksum[^']*'\)/);
+  assert.match(single, /\.in\('quality_status', \['active', 'active_fallback'\]\)/);
   assert.match(single, /filterCachedRowsForGame/);
-  assert.match(batch, /select\('id, question_data, engine_type'\)/);
+  assert.match(batch, /select\('[^']*question_data[^']*engine_type[^']*canonical_policy[^']*policy_checksum[^']*'\)/);
+  assert.match(batch, /\.in\('quality_status', \['active', 'active_fallback'\]\)/);
   assert.match(batch, /filterCachedRowsForGame/);
   assert.doesNotMatch(single, /\.not\('question_id', 'in'/);
-  assert.match(single, /filter\(\(row\) => !seenQuestionIds\.includes\(row\.question_id\)\)/);
+  assert.match(single, /filter\(\(row\) => cacheRowIsServingEligible\(row\) && !seenQuestionIds\.includes\(row\.question_id\)\)/);
 });
 
 test('single-question canonicalization preserves mastery levels eleven and twelve', () => {
   const source = fs.readFileSync('pages/api/training/get-question.js', 'utf8');
   const migration = fs.readFileSync('supabase/migrations/20260901130000_training_levels_one_through_twelve.sql', 'utf8');
-  assert.match(source, /Math\.min\(12, Math\.max\(1, parseInt\(level, 10\) \|\| 1\)\)/);
+  assert.match(source, /Math\.min\(12, Math\.max\(1, parseInt\(rawLevel, 10\) \|\| 1\)\)/);
   assert.doesNotMatch(source, /level: Math\.min\(10,/);
   assert.match(migration, /valid_level CHECK \(level BETWEEN 1 AND 12\)/);
   assert.match(migration, /current_level BETWEEN 1 AND 12/);
@@ -219,17 +224,21 @@ test('single-question canonicalization preserves mastery levels eleven and twelv
 test('both question endpoints persist the exact post-contract envelope used for grading', () => {
   const single = fs.readFileSync('pages/api/training/get-question.js', 'utf8');
   const batch = fs.readFileSync('pages/api/training/batch-preload.js', 'utf8');
-  assert.match(single, /Existing legacy rows[\s\S]*\.upsert\(canonicalPayload/);
+  assert.match(single, /buildTrainingCacheRow\(\{/);
+  assert.match(single, /\.upsert\(canonicalPayload/);
   assert.match(single, /defaultToNull: false/);
+  assert.match(single, /withPersistedCacheReceipt\(canonicalPayload\.question_data, persisted\.data\)/);
+  assert.match(single, /recordTrainingQuestionsServed/);
   assert.match(single, /Refusing to serve an uncanonicalized question/);
   assert.match(single, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
   assert.match(batch, /const canonicalRows = Array\.from\(new Map\(enrichedBatch/);
-  assert.match(batch, /new Map\(enrichedBatch[\s\S]*String\(q\.id\)\.slice\(0, 180\)/);
-  assert.match(batch, /\.upsert\(cachedCanonicalRows, \{[\s\S]*defaultToNull: false/);
-  assert.match(batch, /\.upsert\(generatedCanonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /buildTrainingCacheRow\(\{/);
+  assert.match(batch, /\.upsert\(canonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /withPersistedCacheReceipt/);
+  assert.match(batch, /recordTrainingQuestionsServed/);
   assert.match(batch, /Refusing to serve uncanonicalized questions/);
   assert.match(batch, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
-  assert.doesNotMatch(batch, /\.upsert\((?:cached|generated)CanonicalRows, \{[^}]*ignoreDuplicates: true/);
+  assert.doesNotMatch(batch, /\.upsert\(canonicalRows, \{[^}]*ignoreDuplicates: true/);
   const recorder = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
   assert.match(recorder, /async function getEligibleCanonicalQuestion/);
   assert.match(recorder, /attempt < 4/);
@@ -327,7 +336,7 @@ test('an explicit street target filters warm cache rows before generation', () =
   assert.match(batch, /targetStreet\s*\? contractedRows\.filter\(\(row\) => streetOfCachedRow\(row\) === targetStreet\)/);
 });
 
-test('warehouse source labels are unverified without the complete export seal', () => {
+test('warehouse source labels and legacy provenance objects never certify solver evidence', () => {
   const legacy = {
     source: 'DETERMINISTIC_SOLVER',
     gtoFrequencies: { x: 40, b50: 60 },
@@ -354,7 +363,7 @@ test('warehouse source labels are unverified without the complete export seal', 
       qualityStatus: 'validated',
       auditedAt: '2026-08-31T17:00:00Z',
     },
-  }), true);
+  }), false);
 });
 
 test('both question endpoints reject solver-card fabrication and share subject routing', () => {

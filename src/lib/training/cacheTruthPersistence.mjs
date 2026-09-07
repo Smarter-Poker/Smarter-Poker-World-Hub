@@ -5,6 +5,7 @@ import {
   withTrainingSourceClassification,
 } from './cacheTruthContract.mjs';
 import { stablePolicyJson, validateSolverPolicyAnswer } from './solverPolicyContract.js';
+import { runTrainingPersistenceQuery } from './trainingPersistence.mjs';
 
 const text = (value, max = 255) => {
   const normalized = String(value ?? '').trim();
@@ -256,10 +257,74 @@ export async function recordTrainingQuestionsServed(
   return data;
 }
 
+/**
+ * Persist, read back, and receipt a complete set of questions before any API
+ * returns them. This is the shared boundary used by secondary Training
+ * surfaces (custom trainer, next street and spot drill) so none can bypass the
+ * canonical cache contract implemented by get-question and batch-preload.
+ */
+export async function persistCanonicalTrainingQuestions(db, {
+  questions,
+  gameId,
+  questionKind = 'PIO',
+  gameType = 'cash',
+  level = 1,
+  userId = null,
+  requestId,
+  label = 'TrainingCache:canonicalize',
+}) {
+  const list = Array.isArray(questions) ? questions : [];
+  if (list.length < 1 || list.length > 100) {
+    throw new Error('Canonical training persistence requires 1 to 100 questions');
+  }
+  const rows = list.map((question) => buildTrainingCacheRow({
+    question,
+    questionId: question?.id,
+    gameId,
+    questionKind: typeof questionKind === 'function' ? questionKind(question) : questionKind,
+    gameType: typeof gameType === 'function' ? gameType(question) : gameType,
+    level: typeof level === 'function' ? level(question) : level,
+  }));
+  if (new Set(rows.map((row) => row.question_id)).size !== rows.length) {
+    throw new Error('Canonical training persistence received duplicate question IDs');
+  }
+
+  const persisted = await runTrainingPersistenceQuery(
+    () => db.from('training_question_cache')
+      .upsert(rows, { onConflict: 'question_id', defaultToNull: false })
+      .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
+    { label },
+  );
+  const receipts = new Map((persisted.data || []).map((row) => [String(row.question_id), row]));
+  if (receipts.size !== rows.length) {
+    throw new Error('Database did not return one canonical receipt per question');
+  }
+  const served = rows.map((row) => withPersistedCacheReceipt(
+    row.question_data,
+    receipts.get(String(row.question_id)),
+  ));
+
+  const baseRequestId = text(requestId, 170);
+  if (!baseRequestId) throw new Error('Canonical training persistence requires a request ID');
+  for (let offset = 0; offset < rows.length; offset += 50) {
+    const slice = rows.slice(offset, offset + 50);
+    await recordTrainingQuestionsServed(db, {
+      requestId: `${baseRequestId}:${Math.floor(offset / 50)}`,
+      userId,
+      receipts: slice.map((row) => ({
+        questionId: row.question_id,
+        policyChecksum: receipts.get(String(row.question_id))?.policy_checksum,
+      })),
+    });
+  }
+  return served;
+}
+
 export default {
   buildTrainingCacheRow,
   cacheQuestionFromRow,
   cacheRowIsServingEligible,
+  persistCanonicalTrainingQuestions,
   recordTrainingQuestionsServed,
   withPersistedCacheReceipt,
 };

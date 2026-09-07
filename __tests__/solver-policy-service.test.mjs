@@ -912,6 +912,7 @@ test('all required runtime consumers invoke the service and no Training route re
     ['get-question', 'pages/api/training/get-question.js'],
     ['preflop-ranges', 'pages/api/training/preflop-ranges.js'],
     ['batch-preload', 'pages/api/training/batch-preload.js'],
+    ['next-street', 'pages/api/training/next-street.js'],
     ['spot-drill', 'pages/api/training/spot-drill.js'],
     ['custom-trainer', 'pages/api/training/custom-train.js'],
     ['solver-api', 'pages/api/training/solver-api.js'],

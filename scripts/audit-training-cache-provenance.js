@@ -10,6 +10,17 @@ const { atomicJsonWrite } = require('./audit-solved-spots-warehouse.js');
 const ROOT = path.resolve(__dirname, '..');
 require('dotenv').config({ path: path.join(ROOT, '.env.local'), quiet: true });
 
+const SOURCE_CLASSIFICATIONS = [
+  'SOLVER_EXACT',
+  'SOLVER_AGGREGATED',
+  'SOLVER_DERIVED_RESPONSE',
+  'CHART_AUDITED',
+  'MODEL_DISTILLED',
+  'CURATED',
+  'HEURISTIC',
+  'LEGACY_UNVERIFIED',
+];
+
 function databaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const password = process.env.SUPABASE_DB_PASSWORD;
@@ -56,6 +67,26 @@ async function main() {
   try {
     await client.query('SET default_transaction_read_only = on');
     await client.query("SET statement_timeout = '180s'");
+    const phaseThreeColumns = [
+      'canonical_policy', 'source_classification', 'quality_status', 'scenario_hash',
+      'exact_node', 'public_action_history', 'policy_version', 'solver_version',
+      'solver_binary_checksum', 'manifest_version', 'manifest_checksum',
+      'source_checksum', 'pipeline_commit', 'machine_id', 'source_created_at',
+      'source_audited_at', 'generator_version', 'lineage', 'content_checksum',
+      'policy_checksum', 'served_count', 'answered_count', 'correct_count',
+      'completed_count',
+    ];
+    const cacheColumns = await client.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'training_question_cache'
+        AND column_name = ANY($1::text[])
+    `, [phaseThreeColumns]);
+    const missingPhaseThreeColumns = phaseThreeColumns.filter(
+      (column) => !cacheColumns.rows.some((row) => row.column_name === column),
+    );
+    if (missingPhaseThreeColumns.length > 0) {
+      throw new Error(`Phase 3 cache contract is not installed: ${missingPhaseThreeColumns.join(', ')}`);
+    }
     const provenanceColumns = [
       'quality_status', 'solver_version', 'solver_binary_checksum', 'machine_id', 'pipeline_commit',
       'manifest_version', 'manifest_checksum', 'source_artifact_checksum', 'audited_at',
@@ -83,6 +114,7 @@ async function main() {
           nullif(question_data #>> '{scenario,scenarioHash}', '') AS scenario_hash,
           coalesce(nullif(question_data ->> 'source', ''), '<missing>') AS question_source
         FROM public.training_question_cache
+        WHERE quality_status IN ('active', 'active_fallback')
       ), cache_hashes AS (
         SELECT DISTINCT scenario_hash FROM cache WHERE scenario_hash IS NOT NULL
       ), warehouse AS (
@@ -120,6 +152,7 @@ async function main() {
         question_data #>> '{scenario,street}' AS street,
         question_data #>> '{scenario,gameType}' AS game_type
       FROM public.training_question_cache
+      WHERE quality_status IN ('active', 'active_fallback')
       ORDER BY game_id, level, question_id
       LIMIT 12
     `);
@@ -135,7 +168,87 @@ async function main() {
         question_data #>> '{scenario,heroPosition}' AS hero_position
       FROM public.training_question_cache
       WHERE engine_type = 'PIO'
+        AND quality_status IN ('active', 'active_fallback')
       ORDER BY game_id, level, question_id
+    `);
+    const truthSummary = await client.query(`
+      SELECT source_classification, quality_status,
+        count(*)::bigint AS rows,
+        count(*) FILTER (WHERE NOT public.fn_training_cache_row_is_valid(
+          source_classification, question_data, canonical_policy, scenario_hash,
+          exact_node, public_action_history, policy_version, solver_version,
+          solver_binary_checksum, manifest_checksum, source_checksum,
+          pipeline_commit, machine_id
+        ))::bigint AS invalid_rows,
+        count(*) FILTER (WHERE content_checksum <> encode(
+          extensions.digest(question_data::text, 'sha256'), 'hex'
+        ))::bigint AS content_checksum_drift,
+        count(*) FILTER (WHERE policy_checksum <> encode(
+          extensions.digest(canonical_policy::text, 'sha256'), 'hex'
+        ))::bigint AS policy_checksum_drift
+      FROM public.training_question_cache
+      GROUP BY source_classification, quality_status
+      ORDER BY source_classification, quality_status
+    `);
+    const artifactDrift = await client.query(`
+      SELECT
+        count(*) FILTER (WHERE c.source_classification IN (
+          'SOLVER_EXACT', 'SOLVER_AGGREGATED', 'SOLVER_DERIVED_RESPONSE'
+        ) AND NOT EXISTS (
+          SELECT 1 FROM public.solved_spots_gold s
+          WHERE s.scenario_hash = c.scenario_hash
+            AND s.source_artifact_checksum = c.source_checksum
+        ))::bigint AS missing_solver_artifact,
+        count(*) FILTER (WHERE c.source_classification = 'CHART_AUDITED'
+          AND NOT EXISTS (
+            SELECT 1 FROM public.memory_charts_gold m
+            WHERE m.chart_id::text = c.canonical_policy #>> '{sourceArtifact,artifactId}'
+          ))::bigint AS missing_chart_artifact
+      FROM public.training_question_cache c
+      WHERE c.quality_status IN ('active', 'active_fallback')
+    `);
+    const counterAudit = await client.query(`
+      WITH event_counts AS (
+        SELECT question_id,
+          count(*) FILTER (WHERE event_type = 'served')::bigint AS served,
+          count(*) FILTER (WHERE event_type = 'answered')::bigint AS answered,
+          count(*) FILTER (WHERE event_type = 'answered' AND is_correct)::bigint AS correct,
+          count(*) FILTER (WHERE event_type = 'completed')::bigint AS completed
+        FROM public.training_question_events
+        GROUP BY question_id
+      )
+      SELECT
+        count(*) FILTER (WHERE c.served_count <> coalesce(e.served, 0))::bigint AS served_drift,
+        count(*) FILTER (WHERE c.answered_count <> coalesce(e.answered, 0))::bigint AS answered_drift,
+        count(*) FILTER (WHERE c.correct_count <> coalesce(e.correct, 0))::bigint AS correct_drift,
+        count(*) FILTER (WHERE c.completed_count <> coalesce(e.completed, 0))::bigint AS completed_drift,
+        coalesce(sum(c.served_count), 0)::bigint AS served_count,
+        coalesce(sum(c.answered_count), 0)::bigint AS answered_count,
+        coalesce(sum(c.correct_count), 0)::bigint AS correct_count,
+        coalesce(sum(c.completed_count), 0)::bigint AS completed_count
+      FROM public.training_question_cache c
+      LEFT JOIN event_counts e ON e.question_id = c.question_id
+      WHERE c.quality_status IN ('active', 'active_fallback')
+    `);
+    const quarantineAudit = await client.query(`
+      SELECT
+        count(DISTINCT c.id) FILTER (
+          WHERE c.quality_status IN ('quarantined', 'drifted')
+        )::bigint AS cache_rows,
+        count(DISTINCT q.question_id)::bigint AS snapshot_rows,
+        count(DISTINCT c.id) FILTER (
+          WHERE c.quality_status IN ('quarantined', 'drifted')
+            AND q.question_id IS NULL
+        )::bigint AS missing_snapshots
+      FROM public.training_question_cache c
+      LEFT JOIN public.training_question_cache_quarantine q
+        ON q.question_id = c.question_id
+    `);
+    const latestDriftAudit = await client.query(`
+      SELECT run_date, status, metrics, findings, started_at, completed_at
+      FROM public.training_cache_audit_runs
+      ORDER BY run_date DESC
+      LIMIT 1
     `);
     const groups = summary.rows.map((row) => ({
       ...row,
@@ -181,7 +294,45 @@ async function main() {
       }
       reasons.forEach((reason) => { game.mismatchReasons[reason] = (game.mismatchReasons[reason] || 0) + 1; });
     }
+    const truthGroups = truthSummary.rows.map((row) => ({
+      ...row,
+      rows: Number(row.rows),
+      invalid_rows: Number(row.invalid_rows),
+      content_checksum_drift: Number(row.content_checksum_drift),
+      policy_checksum_drift: Number(row.policy_checksum_drift),
+    }));
+    const artifact = Object.fromEntries(Object.entries(artifactDrift.rows[0] || {})
+      .map(([key, value]) => [key, Number(value)]));
+    const counters = Object.fromEntries(Object.entries(counterAudit.rows[0] || {})
+      .map(([key, value]) => [key, Number(value)]));
+    const quarantine = Object.fromEntries(Object.entries(quarantineAudit.rows[0] || {})
+      .map(([key, value]) => [key, Number(value)]));
+    const activeClassCounts = Object.fromEntries(SOURCE_CLASSIFICATIONS.map((value) => [value, 0]));
+    for (const group of truthGroups) {
+      if (['active', 'active_fallback'].includes(group.quality_status)) {
+        activeClassCounts[group.source_classification] += group.rows;
+      }
+    }
+    const failures = [];
+    for (const group of truthGroups.filter((row) => (
+      ['active', 'active_fallback'].includes(row.quality_status)
+    ))) {
+      if (group.invalid_rows > 0) failures.push(`${group.invalid_rows} invalid ${group.source_classification} rows`);
+      if (group.content_checksum_drift > 0) failures.push(`${group.content_checksum_drift} content checksum drifts`);
+      if (group.policy_checksum_drift > 0) failures.push(`${group.policy_checksum_drift} policy checksum drifts`);
+    }
+    for (const [name, count] of Object.entries(artifact)) {
+      if (count > 0) failures.push(`${count} rows have ${name.replaceAll('_', ' ')}`);
+    }
+    for (const [name, count] of Object.entries(counters).filter(([name]) => name.endsWith('_drift'))) {
+      if (count > 0) failures.push(`${count} rows have ${name.replaceAll('_', ' ')}`);
+    }
+    if (quarantine.missing_snapshots > 0) {
+      failures.push(`${quarantine.missing_snapshots} quarantined rows have no recovery snapshot`);
+    }
     const result = {
+      schemaVersion: 2,
+      success: failures.length === 0,
       readOnly: true,
       checkedAt: new Date().toISOString(),
       warehouseProvenanceColumnsPresent: hasProvenanceColumns,
@@ -205,12 +356,23 @@ async function main() {
         mismatchReasons,
         games: Object.fromEntries([...byGame.entries()].sort()),
       },
+      cacheTruthAudit: {
+        taxonomy: SOURCE_CLASSIFICATIONS,
+        activeClassCounts,
+        groups: truthGroups,
+        artifacts: artifact,
+        counters,
+        quarantine,
+        latestDailyAudit: latestDriftAudit.rows[0] || null,
+        failures,
+      },
       groups,
       samples: samples.rows,
     };
     const output = arg('output');
     if (output) atomicJsonWrite(path.resolve(output), result);
     console.log(JSON.stringify(result, null, 2));
+    if (!result.success) process.exitCode = 1;
   } finally {
     await client.end();
   }

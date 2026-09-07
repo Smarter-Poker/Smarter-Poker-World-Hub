@@ -207,6 +207,599 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION public.fn_training_cache_jsonb_has_exact_keys(
+    p_value jsonb,
+    p_keys text[]
+)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public, extensions
+AS $$
+    SELECT jsonb_typeof(p_value) = 'object'
+       AND NOT EXISTS (
+            SELECT 1 FROM unnest(p_keys) AS required(key)
+            WHERE NOT p_value ? required.key
+       )
+       AND (SELECT count(*) FROM jsonb_object_keys(p_value)) = cardinality(p_keys)
+$$;
+
+CREATE FUNCTION public.fn_training_cache_policy_shape_is_valid(p_policy jsonb)
+RETURNS boolean
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = public, extensions
+AS $$
+DECLARE
+    v_item jsonb;
+    v_action jsonb;
+    v_action_ids text[] := ARRAY[]::text[];
+    v_action_id text;
+    v_distribution record;
+    v_sum numeric := 0;
+    v_previous_sequence integer := -1;
+    v_score numeric;
+    v_expected_confidence text;
+    v_mix record;
+    v_mix_sum numeric;
+    v_expected_board_count integer;
+    v_expected_holding_count integer;
+    v_key_complete boolean;
+BEGIN
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(p_policy, ARRAY[
+            'contractVersion', 'policyVersion', 'key', 'kind', 'node',
+            'actions', 'distribution', 'legalSizes', 'chipEv',
+            'tournamentUtilityEv', 'sourceArtifact', 'qualitySeal',
+            'validDomain', 'confidence', 'fallbackReason', 'rangeDistribution'
+       ])
+       OR p_policy ->> 'contractVersion' <> 'smarter-poker.solver-policy.v1'
+       OR jsonb_typeof(p_policy -> 'policyVersion') <> 'string'
+       OR nullif(p_policy ->> 'policyVersion', '') IS NULL
+       OR jsonb_typeof(p_policy -> 'kind') <> 'string'
+       OR jsonb_typeof(p_policy -> 'qualitySeal') <> 'string'
+       OR jsonb_typeof(p_policy -> 'actions') <> 'array'
+       OR jsonb_typeof(p_policy -> 'distribution') <> 'object'
+       OR jsonb_typeof(p_policy -> 'legalSizes') <> 'array'
+       OR jsonb_typeof(p_policy -> 'fallbackReason') NOT IN ('null', 'string')
+       OR jsonb_typeof(p_policy -> 'rangeDistribution') NOT IN ('null', 'object') THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(p_policy -> 'node', ARRAY[
+            'semantics', 'sourceNode', 'actor', 'potBb', 'facingBetBb'
+       ])
+       OR coalesce(p_policy #>> '{node,semantics}', '') NOT IN (
+            'check_or_bet', 'facing_wager', 'preflop_unopened',
+            'preflop_facing_wager', 'terminal', 'unknown'
+       )
+       OR jsonb_typeof(p_policy #> '{node,sourceNode}') NOT IN ('null', 'string')
+       OR jsonb_typeof(p_policy #> '{node,actor}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{node,potBb}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{node,facingBetBb}') NOT IN ('null', 'number')
+       OR (jsonb_typeof(p_policy #> '{node,potBb}') = 'number'
+           AND (p_policy #>> '{node,potBb}')::numeric < 0)
+       OR (jsonb_typeof(p_policy #> '{node,facingBetBb}') = 'number'
+           AND (p_policy #>> '{node,facingBetBb}')::numeric < 0) THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy -> 'sourceArtifact', ARRAY[
+              'system', 'artifactId', 'scenarioHash', 'solverVersion',
+              'solverBinaryChecksum', 'machineId', 'pipelineCommit',
+              'manifestVersion', 'manifestChecksum', 'sourceArtifactChecksum',
+              'qualityStatus', 'auditedAt', 'provenanceComplete'
+            ]
+       )
+       OR jsonb_typeof(p_policy #> '{sourceArtifact,system}') <> 'string'
+       OR EXISTS (
+            SELECT 1
+            FROM unnest(ARRAY[
+              'artifactId', 'scenarioHash', 'solverVersion',
+              'solverBinaryChecksum', 'machineId', 'pipelineCommit',
+              'manifestVersion', 'manifestChecksum', 'sourceArtifactChecksum',
+              'qualityStatus', 'auditedAt'
+            ]) AS field(name)
+            WHERE jsonb_typeof(p_policy -> 'sourceArtifact' -> field.name)
+                NOT IN ('null', 'string')
+       )
+       OR jsonb_typeof(p_policy #> '{sourceArtifact,provenanceComplete}') <> 'boolean' THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy -> 'validDomain', ARRAY[
+              'completeKey', 'missingKeyDimensions', 'exactMatchDimensions',
+              'approximatedDimensions', 'exclusions'
+            ]
+       )
+       OR jsonb_typeof(p_policy #> '{validDomain,completeKey}') <> 'boolean'
+       OR EXISTS (
+            SELECT 1
+            FROM unnest(ARRAY[
+              'missingKeyDimensions', 'exactMatchDimensions',
+              'approximatedDimensions', 'exclusions'
+            ]) AS field(name)
+            WHERE jsonb_typeof(p_policy -> 'validDomain' -> field.name) <> 'array'
+               OR EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(
+                        p_policy -> 'validDomain' -> field.name
+                    ) AS element(value)
+                    WHERE jsonb_typeof(element.value) <> 'string'
+               )
+       ) THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy -> 'confidence', ARRAY['score', 'level']
+       )
+       OR jsonb_typeof(p_policy #> '{confidence,score}') <> 'number'
+       OR jsonb_typeof(p_policy #> '{confidence,level}') <> 'string' THEN
+        RETURN false;
+    END IF;
+    v_score := (p_policy #>> '{confidence,score}')::numeric;
+    v_expected_confidence := CASE
+        WHEN v_score >= 0.9 THEN 'high'
+        WHEN v_score >= 0.6 THEN 'medium'
+        WHEN v_score > 0 THEN 'low'
+        ELSE 'none'
+    END;
+    IF v_score < 0 OR v_score > 1
+       OR p_policy #>> '{confidence,level}' <> v_expected_confidence THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(p_policy -> 'key', ARRAY[
+            'contractVersion', 'variant', 'bettingStructure', 'tableSize',
+            'positions', 'stackVector', 'blinds', 'rake',
+            'tournamentUtility', 'payouts', 'bounties', 'street', 'board',
+            'holding', 'publicActionHistory', 'legalActions',
+            'sidePotEligibility'
+       ])
+       OR p_policy #>> '{key,contractVersion}' <> 'smarter-poker.solver-policy.v1'
+       OR jsonb_typeof(p_policy #> '{key,variant}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{key,bettingStructure}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{key,tableSize}') NOT IN ('null', 'number')
+       OR (jsonb_typeof(p_policy #> '{key,tableSize}') = 'number' AND (
+            (p_policy #>> '{key,tableSize}')::numeric < 2
+            OR trunc((p_policy #>> '{key,tableSize}')::numeric)
+                <> (p_policy #>> '{key,tableSize}')::numeric
+       ))
+       OR coalesce(p_policy #>> '{key,street}', '') NOT IN (
+            'preflop', 'flop', 'turn', 'river'
+       )
+       OR jsonb_typeof(p_policy #> '{key,board}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,holding}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,stackVector}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,payouts}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,bounties}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,legalActions}') <> 'array' THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy #> '{key,positions}',
+            ARRAY['hero', 'villains', 'button', 'smallBlind', 'bigBlind']
+       )
+       OR jsonb_typeof(p_policy #> '{key,positions,hero}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{key,positions,villains}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,positions,button}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{key,positions,smallBlind}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{key,positions,bigBlind}') <> 'string'
+       OR EXISTS (
+            SELECT 1 FROM jsonb_array_elements(
+                p_policy #> '{key,positions,villains}'
+            ) AS element(value)
+            WHERE jsonb_typeof(element.value) <> 'string'
+       ) THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy #> '{key,blinds}', ARRAY[
+              'smallBlind', 'bigBlind', 'ante', 'bigBlindAnte', 'straddles',
+              'complete'
+            ]
+       )
+       OR jsonb_typeof(p_policy #> '{key,blinds,smallBlind}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,blinds,bigBlind}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,blinds,ante}') <> 'number'
+       OR jsonb_typeof(p_policy #> '{key,blinds,bigBlindAnte}') <> 'number'
+       OR jsonb_typeof(p_policy #> '{key,blinds,straddles}') <> 'array'
+       OR jsonb_typeof(p_policy #> '{key,blinds,complete}') <> 'boolean'
+       OR (p_policy #>> '{key,blinds,ante}')::numeric < 0
+       OR (p_policy #>> '{key,blinds,bigBlindAnte}')::numeric < 0 THEN
+        RETURN false;
+    END IF;
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_policy #> '{key,blinds,straddles}') LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(v_item, ARRAY['seat', 'amount'])
+           OR jsonb_typeof(v_item -> 'seat') <> 'number'
+           OR trunc((v_item ->> 'seat')::numeric) <> (v_item ->> 'seat')::numeric
+           OR (v_item ->> 'seat')::numeric < 0
+           OR jsonb_typeof(v_item -> 'amount') NOT IN ('null', 'number') THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy #> '{key,rake}',
+            ARRAY['percent', 'capChips', 'capBb', 'noFlopNoDrop', 'complete']
+       )
+       OR jsonb_typeof(p_policy #> '{key,rake,percent}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,rake,capChips}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,rake,capBb}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,rake,noFlopNoDrop}') <> 'boolean'
+       OR jsonb_typeof(p_policy #> '{key,rake,complete}') <> 'boolean' THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy #> '{key,tournamentUtility}', ARRAY[
+              'mode', 'model', 'playersRemaining', 'entrants', 'handForHand',
+              'complete'
+            ]
+       )
+       OR jsonb_typeof(p_policy #> '{key,tournamentUtility,mode}') <> 'string'
+       OR jsonb_typeof(p_policy #> '{key,tournamentUtility,model}') NOT IN ('null', 'string')
+       OR jsonb_typeof(p_policy #> '{key,tournamentUtility,playersRemaining}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,tournamentUtility,entrants}') NOT IN ('null', 'number')
+       OR jsonb_typeof(p_policy #> '{key,tournamentUtility,handForHand}') <> 'boolean'
+       OR jsonb_typeof(p_policy #> '{key,tournamentUtility,complete}') <> 'boolean' THEN
+        RETURN false;
+    END IF;
+
+    IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy #> '{key,publicActionHistory}', ARRAY['complete', 'actions']
+       )
+       OR jsonb_typeof(p_policy #> '{key,publicActionHistory,complete}') <> 'boolean'
+       OR jsonb_typeof(p_policy #> '{key,publicActionHistory,actions}') <> 'array'
+       OR NOT public.fn_training_cache_jsonb_has_exact_keys(
+            p_policy #> '{key,sidePotEligibility}', ARRAY['complete', 'pots']
+       )
+       OR jsonb_typeof(p_policy #> '{key,sidePotEligibility,complete}') <> 'boolean'
+       OR jsonb_typeof(p_policy #> '{key,sidePotEligibility,pots}') <> 'array' THEN
+        RETURN false;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM (
+            SELECT value FROM jsonb_array_elements(p_policy #> '{key,board}')
+            UNION ALL
+            SELECT value FROM jsonb_array_elements(p_policy #> '{key,holding}')
+        ) AS card(value)
+        WHERE jsonb_typeof(card.value) <> 'string'
+           OR card.value #>> '{}' !~ '^[2-9TJQKA][cdhs]$'
+    ) OR (
+        SELECT count(*) <> count(DISTINCT value #>> '{}')
+        FROM (
+            SELECT value FROM jsonb_array_elements(p_policy #> '{key,board}')
+            UNION ALL
+            SELECT value FROM jsonb_array_elements(p_policy #> '{key,holding}')
+        ) AS card(value)
+    ) THEN
+        RETURN false;
+    END IF;
+
+    v_expected_board_count := CASE p_policy #>> '{key,street}'
+        WHEN 'preflop' THEN 0 WHEN 'flop' THEN 3 WHEN 'turn' THEN 4
+        WHEN 'river' THEN 5 ELSE NULL END;
+    v_expected_holding_count := CASE p_policy #>> '{key,variant}'
+        WHEN 'nlh' THEN 2 WHEN 'short_deck' THEN 2 WHEN 'pineapple' THEN 3
+        WHEN 'plo4' THEN 4 WHEN 'plo5' THEN 5 WHEN 'plo6' THEN 6
+        WHEN 'plo8' THEN 4 ELSE NULL END;
+    v_key_complete :=
+        coalesce(p_policy #>> '{key,variant}', 'unknown') <> 'unknown'
+        AND coalesce(p_policy #>> '{key,bettingStructure}', 'unknown') <> 'unknown'
+        AND jsonb_typeof(p_policy #> '{key,tableSize}') = 'number'
+        AND coalesce(p_policy #>> '{key,positions,hero}', 'UNKNOWN') <> 'UNKNOWN'
+        AND coalesce(p_policy #>> '{key,positions,button}', 'UNKNOWN') <> 'UNKNOWN'
+        AND coalesce(p_policy #>> '{key,positions,smallBlind}', 'UNKNOWN') <> 'UNKNOWN'
+        AND coalesce(p_policy #>> '{key,positions,bigBlind}', 'UNKNOWN') <> 'UNKNOWN'
+        AND jsonb_array_length(p_policy #> '{key,positions,villains}') > 0
+        AND NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements_text(
+                p_policy #> '{key,positions,villains}'
+            ) AS villain(position)
+            WHERE villain.position = 'UNKNOWN'
+        )
+        AND jsonb_array_length(p_policy #> '{key,stackVector}') >= 2
+        AND jsonb_array_length(p_policy #> '{key,stackVector}')
+            = (p_policy #>> '{key,tableSize}')::integer
+        AND NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements(
+                p_policy #> '{key,stackVector}'
+            ) AS stack(value)
+            WHERE NOT (
+                (jsonb_typeof(stack.value -> 'stackChips') = 'number'
+                    AND (stack.value ->> 'stackChips')::numeric >= 0)
+                OR (jsonb_typeof(stack.value -> 'stackBb') = 'number'
+                    AND (stack.value ->> 'stackBb')::numeric >= 0)
+            )
+        )
+        AND p_policy #>> '{key,blinds,complete}' = 'true'
+        AND jsonb_typeof(p_policy #> '{key,blinds,bigBlind}') = 'number'
+        AND (p_policy #>> '{key,blinds,bigBlind}')::numeric > 0
+        AND p_policy #>> '{key,rake,complete}' = 'true'
+        AND v_expected_board_count IS NOT NULL
+        AND jsonb_array_length(p_policy #> '{key,board}') = v_expected_board_count
+        AND v_expected_holding_count IS NOT NULL
+        AND jsonb_array_length(p_policy #> '{key,holding}') = v_expected_holding_count
+        AND p_policy #>> '{key,publicActionHistory,complete}' = 'true'
+        AND (
+            p_policy #>> '{key,street}' = 'preflop'
+            OR jsonb_array_length(p_policy #> '{key,publicActionHistory,actions}') > 0
+        )
+        AND jsonb_array_length(p_policy #> '{key,legalActions}') > 0
+        AND p_policy #>> '{key,sidePotEligibility,complete}' = 'true'
+        AND p_policy #>> '{key,tournamentUtility,complete}' = 'true'
+        AND (
+            p_policy #>> '{key,tournamentUtility,mode}' = 'cash'
+            OR jsonb_array_length(p_policy #> '{key,payouts}') > 0
+        );
+    IF (p_policy #>> '{validDomain,completeKey}')::boolean IS DISTINCT FROM v_key_complete
+       OR (v_key_complete AND p_policy #> '{validDomain,missingKeyDimensions}' <> '[]'::jsonb)
+       OR (NOT v_key_complete
+           AND jsonb_array_length(p_policy #> '{validDomain,missingKeyDimensions}') = 0) THEN
+        RETURN false;
+    END IF;
+
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_policy #> '{key,stackVector}') LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(v_item, ARRAY[
+              'seat', 'position', 'stackChips', 'stackBb', 'committedChips',
+              'active', 'allIn'
+           ])
+           OR jsonb_typeof(v_item -> 'seat') <> 'number'
+           OR trunc((v_item ->> 'seat')::numeric) <> (v_item ->> 'seat')::numeric
+           OR (v_item ->> 'seat')::numeric < 0
+           OR jsonb_typeof(v_item -> 'position') <> 'string'
+           OR jsonb_typeof(v_item -> 'stackChips') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'stackBb') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'committedChips') <> 'number'
+           OR (v_item ->> 'committedChips')::numeric < 0
+           OR jsonb_typeof(v_item -> 'active') <> 'boolean'
+           OR jsonb_typeof(v_item -> 'allIn') <> 'boolean' THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_policy #> '{key,publicActionHistory,actions}') LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(v_item, ARRAY[
+              'sequence', 'street', 'actor', 'action', 'amountChips',
+              'amountBb', 'allIn'
+           ])
+           OR jsonb_typeof(v_item -> 'sequence') <> 'number'
+           OR trunc((v_item ->> 'sequence')::numeric) <> (v_item ->> 'sequence')::numeric
+           OR (v_item ->> 'sequence')::integer <= v_previous_sequence
+           OR coalesce(v_item ->> 'street', '') NOT IN ('preflop', 'flop', 'turn', 'river')
+           OR jsonb_typeof(v_item -> 'actor') <> 'string'
+           OR jsonb_typeof(v_item -> 'action') <> 'string'
+           OR jsonb_typeof(v_item -> 'amountChips') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'amountBb') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'allIn') <> 'boolean' THEN
+            RETURN false;
+        END IF;
+        v_previous_sequence := (v_item ->> 'sequence')::integer;
+    END LOOP;
+
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_policy #> '{key,legalActions}') LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(v_item, ARRAY[
+              'action', 'minChips', 'maxChips', 'exactChips', 'allIn'
+           ])
+           OR jsonb_typeof(v_item -> 'action') <> 'string'
+           OR jsonb_typeof(v_item -> 'minChips') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'maxChips') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'exactChips') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'allIn') <> 'boolean'
+           OR (jsonb_typeof(v_item -> 'minChips') = 'number'
+               AND jsonb_typeof(v_item -> 'maxChips') = 'number'
+               AND (v_item ->> 'minChips')::numeric > (v_item ->> 'maxChips')::numeric) THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+
+    FOR v_item IN
+        SELECT value FROM jsonb_array_elements(p_policy #> '{key,payouts}')
+        UNION ALL
+        SELECT value FROM jsonb_array_elements(p_policy #> '{key,bounties}')
+    LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+                v_item, ARRAY['place', 'amount', 'type']
+           )
+           OR jsonb_typeof(v_item -> 'place') <> 'number'
+           OR trunc((v_item ->> 'place')::numeric) <> (v_item ->> 'place')::numeric
+           OR (v_item ->> 'place')::numeric < 1
+           OR jsonb_typeof(v_item -> 'amount') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'type') <> 'string' THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_policy #> '{key,sidePotEligibility,pots}') LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(v_item, ARRAY[
+              'id', 'amountChips', 'eligibleSeats', 'heroEligible'
+           ])
+           OR jsonb_typeof(v_item -> 'id') <> 'string'
+           OR jsonb_typeof(v_item -> 'amountChips') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'eligibleSeats') <> 'array'
+           OR jsonb_typeof(v_item -> 'heroEligible') <> 'boolean'
+           OR EXISTS (
+              SELECT 1 FROM jsonb_array_elements(v_item -> 'eligibleSeats') AS seat(value)
+              WHERE jsonb_typeof(seat.value) <> 'number'
+                 OR trunc((seat.value #>> '{}')::numeric) <> (seat.value #>> '{}')::numeric
+                 OR (seat.value #>> '{}')::numeric < 0
+           ) THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+
+    FOR v_action IN SELECT value FROM jsonb_array_elements(p_policy -> 'actions') LOOP
+        v_action_id := nullif(btrim(v_action ->> 'id'), '');
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(v_action, ARRAY[
+              'id', 'sourceCode', 'family', 'label', 'frequency', 'legal',
+              'size', 'chipEvBb', 'tournamentUtilityEv'
+           ])
+           OR v_action_id IS NULL
+           OR v_action_id <> lower(v_action_id)
+           OR v_action_id = ANY(v_action_ids)
+           OR jsonb_typeof(v_action -> 'sourceCode') NOT IN ('null', 'string')
+           OR jsonb_typeof(v_action -> 'family') <> 'string'
+           OR nullif(v_action ->> 'family', '') IS NULL
+           OR jsonb_typeof(v_action -> 'label') <> 'string'
+           OR nullif(v_action ->> 'label', '') IS NULL
+           OR jsonb_typeof(v_action -> 'frequency') <> 'number'
+           OR jsonb_typeof(v_action -> 'legal') <> 'boolean'
+           OR jsonb_typeof(v_action -> 'chipEvBb') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_action -> 'tournamentUtilityEv') NOT IN ('null', 'number')
+           OR NOT public.fn_training_cache_jsonb_has_exact_keys(
+                v_action -> 'size',
+                ARRAY['unit', 'chips', 'bigBlinds', 'potFraction', 'exact']
+              )
+           OR coalesce(v_action #>> '{size,unit}', '') NOT IN (
+                'none', 'unknown', 'chips', 'big_blinds', 'pot_fraction', 'all_in'
+              )
+           OR jsonb_typeof(v_action #> '{size,chips}') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_action #> '{size,bigBlinds}') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_action #> '{size,potFraction}') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_action #> '{size,exact}') <> 'boolean' THEN
+            RETURN false;
+        END IF;
+        IF (v_action ->> 'frequency')::numeric < 0
+           OR (v_action ->> 'frequency')::numeric > 1 THEN RETURN false; END IF;
+        IF jsonb_typeof(p_policy -> 'distribution' -> v_action_id) <> 'number'
+           OR abs(
+              (p_policy -> 'distribution' ->> v_action_id)::numeric
+              - (v_action ->> 'frequency')::numeric
+           ) > 0.000000001 THEN
+            RETURN false;
+        END IF;
+        v_action_ids := array_append(v_action_ids, v_action_id);
+        v_sum := v_sum + (v_action ->> 'frequency')::numeric;
+    END LOOP;
+    IF array_length(v_action_ids, 1) IS NULL OR abs(v_sum - 1) > 0.000001 THEN
+        RETURN false;
+    END IF;
+    FOR v_distribution IN SELECT * FROM jsonb_each(p_policy -> 'distribution') LOOP
+        IF NOT (v_distribution.key = ANY(v_action_ids))
+           OR jsonb_typeof(v_distribution.value) <> 'number' THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+    IF (SELECT count(*) FROM jsonb_each(p_policy -> 'distribution'))
+        <> array_length(v_action_ids, 1) THEN
+        RETURN false;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_policy -> 'legalSizes') AS size_row(value)
+        WHERE NOT public.fn_training_cache_jsonb_has_exact_keys(size_row.value, ARRAY[
+                'actionId', 'unit', 'chips', 'bigBlinds', 'potFraction', 'exact'
+              ])
+           OR jsonb_typeof(size_row.value -> 'actionId') <> 'string'
+           OR NOT (size_row.value ->> 'actionId' = ANY(v_action_ids))
+           OR jsonb_typeof(size_row.value -> 'unit') <> 'string'
+           OR jsonb_typeof(size_row.value -> 'chips') NOT IN ('null', 'number')
+           OR jsonb_typeof(size_row.value -> 'bigBlinds') NOT IN ('null', 'number')
+           OR jsonb_typeof(size_row.value -> 'potFraction') NOT IN ('null', 'number')
+           OR jsonb_typeof(size_row.value -> 'exact') <> 'boolean'
+    ) OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_policy -> 'actions') AS action_row(value)
+        WHERE action_row.value ->> 'legal' = 'true'
+          AND action_row.value #>> '{size,unit}' <> 'none'
+          AND NOT EXISTS (
+              SELECT 1 FROM jsonb_array_elements(p_policy -> 'legalSizes') AS size_row(value)
+              WHERE size_row.value ->> 'actionId' = action_row.value ->> 'id'
+                AND size_row.value - 'actionId' = action_row.value -> 'size'
+          )
+    ) OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_policy -> 'legalSizes') AS size_row(value)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements(p_policy -> 'actions') AS action_row(value)
+            WHERE action_row.value ->> 'id' = size_row.value ->> 'actionId'
+              AND action_row.value ->> 'legal' = 'true'
+              AND action_row.value #>> '{size,unit}' <> 'none'
+              AND size_row.value - 'actionId' = action_row.value -> 'size'
+        )
+    ) THEN
+        RETURN false;
+    END IF;
+
+    FOR v_item IN
+        SELECT p_policy -> 'chipEv'
+        UNION ALL
+        SELECT p_policy -> 'tournamentUtilityEv'
+    LOOP
+        IF NOT public.fn_training_cache_jsonb_has_exact_keys(
+                v_item, ARRAY['unit', 'policy', 'byAction', 'measuredByAction']
+           )
+           OR jsonb_typeof(v_item -> 'unit') <> 'string'
+           OR jsonb_typeof(v_item -> 'policy') NOT IN ('null', 'number')
+           OR jsonb_typeof(v_item -> 'byAction') <> 'object'
+           OR jsonb_typeof(v_item -> 'measuredByAction') <> 'boolean'
+           OR EXISTS (
+              SELECT 1 FROM jsonb_each(v_item -> 'byAction') AS ev(key, value)
+              WHERE NOT (ev.key = ANY(v_action_ids))
+                 OR jsonb_typeof(ev.value) NOT IN ('null', 'number')
+           )
+           OR EXISTS (
+              SELECT 1 FROM unnest(v_action_ids) AS action_id(id)
+              WHERE NOT (v_item -> 'byAction' ? action_id.id)
+           ) THEN
+            RETURN false;
+        END IF;
+    END LOOP;
+
+    IF EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_policy -> 'actions') AS action_row(value)
+        WHERE p_policy #> ARRAY['chipEv', 'byAction', action_row.value ->> 'id']
+                IS DISTINCT FROM action_row.value -> 'chipEvBb'
+           OR p_policy #> ARRAY[
+                'tournamentUtilityEv', 'byAction', action_row.value ->> 'id'
+              ] IS DISTINCT FROM action_row.value -> 'tournamentUtilityEv'
+           OR (
+                p_policy #>> '{chipEv,measuredByAction}' = 'true'
+                AND jsonb_typeof(action_row.value -> 'chipEvBb') <> 'number'
+           )
+           OR (
+                p_policy #>> '{chipEv,measuredByAction}' = 'false'
+                AND jsonb_typeof(action_row.value -> 'chipEvBb') <> 'null'
+           )
+           OR (
+                p_policy #>> '{tournamentUtilityEv,measuredByAction}' = 'true'
+                AND jsonb_typeof(action_row.value -> 'tournamentUtilityEv') <> 'number'
+           )
+           OR (
+                p_policy #>> '{tournamentUtilityEv,measuredByAction}' = 'false'
+                AND jsonb_typeof(action_row.value -> 'tournamentUtilityEv') <> 'null'
+           )
+    ) THEN
+        RETURN false;
+    END IF;
+
+    IF jsonb_typeof(p_policy -> 'rangeDistribution') = 'object' THEN
+        FOR v_mix IN SELECT * FROM jsonb_each(p_policy -> 'rangeDistribution') LOOP
+            IF jsonb_typeof(v_mix.value) <> 'object' THEN RETURN false; END IF;
+            SELECT coalesce(sum((entry.value #>> '{}')::numeric), 0)
+            INTO v_mix_sum
+            FROM jsonb_each(v_mix.value) AS entry(key, value)
+            WHERE jsonb_typeof(entry.value) = 'number';
+            IF EXISTS (
+                SELECT 1 FROM jsonb_each(v_mix.value) AS entry(key, value)
+                WHERE NOT (entry.key = ANY(v_action_ids))
+                   OR jsonb_typeof(entry.value) <> 'number'
+                   OR (entry.value #>> '{}')::numeric < 0
+                   OR (entry.value #>> '{}')::numeric > 1
+            ) OR abs(v_mix_sum - 1) > 0.000001 THEN
+                RETURN false;
+            END IF;
+        END LOOP;
+    END IF;
+
+    RETURN true;
+END;
+$$;
+
 CREATE FUNCTION public.fn_training_cache_policy_seal_is_valid(p_policy jsonb)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -225,7 +818,8 @@ DECLARE
     v_expected_board_count integer;
     v_expected_holding_count integer;
 BEGIN
-    IF jsonb_typeof(p_policy) <> 'object'
+    IF NOT public.fn_training_cache_policy_shape_is_valid(p_policy)
+       OR jsonb_typeof(p_policy) <> 'object'
        OR p_policy ->> 'contractVersion' <> 'smarter-poker.solver-policy.v1'
        OR nullif(p_policy ->> 'policyVersion', '') IS NULL
        OR jsonb_typeof(p_policy -> 'key') <> 'object'
@@ -473,10 +1067,10 @@ BEGIN
        OR v_declared = 'HEURISTIC' THEN
         RETURN 'HEURISTIC';
     END IF;
-    IF public.fn_training_cache_has_distribution(p_question)
-       AND v_source IN ('CHART', 'LOCAL_SOLVER_RANGES') THEN
-        RETURN 'CHART_AUDITED';
-    END IF;
+    -- A CHART label plus percentages is not an audit receipt. CHART_AUDITED
+    -- is reachable only through a valid canonical chart policy above. Raw
+    -- LOCAL_SOLVER_RANGES rows are restored as CURATED by the backfill because
+    -- that archive has no immutable chart id to prove which source row it used.
     IF v_source ~ '(CURATED|SCENARIO|PSYCHOLOGY)'
        OR v_type = 'SCENARIO'
        OR (upper(coalesce(p_question_kind, '')) = 'SCENARIO'
@@ -557,6 +1151,9 @@ BEGIN
             FROM jsonb_array_elements(p_question -> 'options') AS option_row(value)
             WHERE lower(option_row.value ->> 'id') = lower(policy_action.action_id)
         )
+    ) OR (
+        SELECT count(*) <> count(DISTINCT lower(option_row.value ->> 'id'))
+        FROM jsonb_array_elements(p_question -> 'options') AS option_row(value)
     ) OR EXISTS (
         SELECT 1
         FROM jsonb_array_elements(p_question -> 'options') AS option_row(value)
@@ -693,6 +1290,9 @@ DECLARE
     v_classification text;
 BEGIN
     NEW.question_data := coalesce(NEW.question_data, '{}'::jsonb);
+    NEW.question_data := jsonb_set(
+        NEW.question_data, '{id}', to_jsonb(NEW.question_id), true
+    );
     NEW.question_kind := coalesce(nullif(NEW.question_kind, ''), NEW.engine_type);
     v_policy := coalesce(
         CASE WHEN jsonb_typeof(NEW.canonical_policy) = 'object' THEN NEW.canonical_policy END,
@@ -829,7 +1429,10 @@ ON public.training_question_cache
 FOR EACH ROW EXECUTE FUNCTION public.fn_training_cache_stamp_row();
 
 -- Stamp the live rows, including a truthful replacement for legacy
--- dataQuality values, then move invalid rows without discarding recovery data.
+-- dataQuality values, and snapshot invalid rows without discarding recovery
+-- data. Expansion mode deliberately leaves those rows in place, visibly
+-- quarantined, until the offline backfill restores or removes them. That keeps
+-- the pre-Phase-3 application readable during the schema-first deployment.
 UPDATE public.training_question_cache
 SET question_data = question_data,
     question_kind = engine_type,
@@ -857,8 +1460,6 @@ SET quarantine_reason = EXCLUDED.quarantine_reason,
     original_row = EXCLUDED.original_row,
     quarantined_at = EXCLUDED.quarantined_at;
 
-DELETE FROM public.training_question_cache WHERE quality_status = 'quarantined';
-
 ALTER TABLE public.training_question_cache
     ALTER COLUMN question_kind SET NOT NULL,
     ALTER COLUMN source_classification SET NOT NULL,
@@ -866,7 +1467,6 @@ ALTER TABLE public.training_question_cache
     ALTER COLUMN generator_version SET NOT NULL,
     ALTER COLUMN lineage SET NOT NULL,
     ALTER COLUMN content_checksum SET NOT NULL,
-    ALTER COLUMN policy_checksum SET NOT NULL,
     ALTER COLUMN question_kind SET DEFAULT 'PIO',
     ALTER COLUMN source_classification SET DEFAULT 'LEGACY_UNVERIFIED',
     ALTER COLUMN quality_status SET DEFAULT 'quarantined',
@@ -1159,7 +1759,9 @@ SELECT
     jsonb_build_object('backfill', true, 'legacyColumn', 'times_used'),
     coalesce(c.generated_at, now())
 FROM public.training_question_cache c
-CROSS JOIN LATERAL generate_series(1, greatest(coalesce(c.times_used, 0), 0)) AS n;
+CROSS JOIN LATERAL generate_series(1, greatest(coalesce(c.times_used, 0), 0)) AS n
+WHERE c.quality_status IN ('active', 'active_fallback')
+  AND c.policy_checksum IS NOT NULL;
 
 INSERT INTO public.training_question_events (
     event_type, event_key, question_id, user_id, is_correct, policy_checksum,
@@ -1176,6 +1778,8 @@ SELECT
     coalesce(a.answered_at, now())
 FROM public.training_answers a
 JOIN public.training_question_cache c ON c.question_id = a.question_id
+WHERE c.quality_status IN ('active', 'active_fallback')
+  AND c.policy_checksum IS NOT NULL
 ON CONFLICT (event_type, event_key) DO NOTHING;
 
 WITH expected AS (
@@ -1210,8 +1814,16 @@ SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
 BEGIN
-    IF coalesce(NEW.evidence_metadata ->> 'policyChecksum', '') !~ '^[0-9a-f]{64}$' THEN
-        RAISE EXCEPTION 'training_answer_missing_policy_checksum';
+    -- Expansion-mode compatibility: the schema lands before the application.
+    -- A pre-Phase-3 build does not send a checksum, so let that answer finish
+    -- without minting an unverifiable ledger event. The enforcement migration
+    -- replaces this function after the new application is live and backfill is
+    -- complete, at which point every new answer is checksum-required.
+    IF nullif(NEW.evidence_metadata ->> 'policyChecksum', '') IS NULL THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.evidence_metadata ->> 'policyChecksum' !~ '^[0-9a-f]{64}$' THEN
+        RAISE EXCEPTION 'training_answer_invalid_policy_checksum';
     END IF;
     PERFORM public.fn_training_cache_record_event(
         'answered',
@@ -1249,6 +1861,10 @@ DECLARE
     v_history jsonb := CASE WHEN jsonb_typeof(NEW.hand_history) = 'array'
         THEN NEW.hand_history ELSE '[]'::jsonb END;
 BEGIN
+    -- Expansion-mode compatibility mirrors the answer trigger: entries from
+    -- the old application that have no checksum are ignored, not counted and
+    -- not allowed to block the session write. The enforcement migration makes
+    -- missing receipts a hard error after all serving routes are upgraded.
     IF EXISTS (
         SELECT 1
         FROM jsonb_array_elements(v_history) AS entry(value)
@@ -1260,18 +1876,7 @@ BEGIN
           AND coalesce(
               nullif(entry.value ->> 'policyChecksum', ''),
               nullif(entry.value #>> '{handData,policyChecksum}', '')
-          ) !~ '^[0-9a-f]{64}$'
-    ) THEN
-        RAISE EXCEPTION 'training_session_question_missing_policy_checksum';
-    END IF;
-    IF EXISTS (
-        SELECT 1
-        FROM jsonb_array_elements(v_history) AS entry(value)
-        CROSS JOIN LATERAL (VALUES (coalesce(
-            nullif(entry.value ->> 'questionId', ''),
-            nullif(entry.value #>> '{handData,questionId}', '')
-        ))) AS resolved(question_id)
-        WHERE question_id IS NOT NULL
+          ) ~ '^[0-9a-f]{64}$'
         GROUP BY question_id
         HAVING count(DISTINCT nullif(coalesce(
             entry.value ->> 'policyChecksum',
@@ -1294,6 +1899,10 @@ BEGIN
             nullif(entry.value #>> '{handData,questionId}', '')
         ))) AS resolved(question_id)
         WHERE question_id IS NOT NULL
+          AND coalesce(
+              nullif(entry.value ->> 'policyChecksum', ''),
+              nullif(entry.value #>> '{handData,policyChecksum}', '')
+          ) ~ '^[0-9a-f]{64}$'
         GROUP BY question_id
     LOOP
         PERFORM public.fn_training_cache_record_event(
@@ -1768,6 +2377,10 @@ $$;
 
 REVOKE ALL ON FUNCTION public.fn_training_cache_has_distribution(jsonb)
     FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_training_cache_jsonb_has_exact_keys(jsonb, text[])
+    FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_training_cache_policy_shape_is_valid(jsonb)
+    FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.fn_training_cache_policy_seal_is_valid(jsonb)
     FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.fn_training_cache_derive_classification(text, jsonb, jsonb)
@@ -1815,6 +2428,7 @@ GRANT EXECUTE ON FUNCTION public.fn_training_cache_run_drift_audit(date)
 DO $$
 DECLARE
     v_invalid integer;
+    v_unsnapshotted integer;
     v_counter_drift integer;
     v_checksum_drift integer;
 BEGIN
@@ -1835,8 +2449,8 @@ BEGIN
 
     SELECT count(*) INTO v_invalid
     FROM public.training_question_cache c
-    WHERE c.quality_status NOT IN ('active', 'active_fallback')
-       OR NOT public.fn_training_cache_row_is_valid(
+    WHERE c.quality_status IN ('active', 'active_fallback')
+      AND NOT public.fn_training_cache_row_is_valid(
             c.source_classification, c.question_data, c.canonical_policy,
             c.scenario_hash, c.exact_node, c.public_action_history,
             c.policy_version, c.solver_version, c.solver_binary_checksum,
@@ -1846,10 +2460,22 @@ BEGIN
         RAISE EXCEPTION 'post-apply failed: % invalid rows remained active', v_invalid;
     END IF;
 
+    SELECT count(*) INTO v_unsnapshotted
+    FROM public.training_question_cache c
+    WHERE c.quality_status IN ('quarantined', 'drifted')
+      AND NOT EXISTS (
+          SELECT 1 FROM public.training_question_cache_quarantine q
+          WHERE q.original_id = c.id
+      );
+    IF v_unsnapshotted <> 0 THEN
+        RAISE EXCEPTION 'post-apply failed: % quarantined rows lack recovery snapshots', v_unsnapshotted;
+    END IF;
+
     SELECT count(*) INTO v_checksum_drift
     FROM public.training_question_cache c
-    WHERE c.content_checksum <> encode(extensions.digest(c.question_data::text, 'sha256'), 'hex')
-       OR c.policy_checksum <> encode(extensions.digest(c.canonical_policy::text, 'sha256'), 'hex');
+    WHERE c.quality_status IN ('active', 'active_fallback')
+      AND (c.content_checksum <> encode(extensions.digest(c.question_data::text, 'sha256'), 'hex')
+       OR c.policy_checksum <> encode(extensions.digest(c.canonical_policy::text, 'sha256'), 'hex'));
     IF v_checksum_drift <> 0 THEN
         RAISE EXCEPTION 'post-apply failed: % cache checksums do not reconcile', v_checksum_drift;
     END IF;
@@ -1863,12 +2489,14 @@ BEGIN
             count(e.id) FILTER (WHERE e.event_type = 'completed')::bigint AS completed
         FROM public.training_question_cache c
         LEFT JOIN public.training_question_events e ON e.question_id = c.question_id
+        WHERE c.quality_status IN ('active', 'active_fallback')
         GROUP BY c.question_id
     )
     SELECT count(*) INTO v_counter_drift
     FROM public.training_question_cache c
     JOIN expected x USING (question_id)
-    WHERE (c.served_count, c.answered_count, c.correct_count, c.completed_count)
+    WHERE c.quality_status IN ('active', 'active_fallback')
+      AND (c.served_count, c.answered_count, c.correct_count, c.completed_count)
         IS DISTINCT FROM (x.served, x.answered, x.correct, x.completed);
     IF v_counter_drift <> 0 THEN
         RAISE EXCEPTION 'post-apply failed: % counters do not reconcile', v_counter_drift;
@@ -1970,5 +2598,7 @@ COMMIT;
 -- DROP FUNCTION IF EXISTS public.fn_training_cache_try_timestamptz(text);
 -- DROP FUNCTION IF EXISTS public.fn_training_cache_derive_classification(text, jsonb, jsonb);
 -- DROP FUNCTION IF EXISTS public.fn_training_cache_policy_seal_is_valid(jsonb);
+-- DROP FUNCTION IF EXISTS public.fn_training_cache_policy_shape_is_valid(jsonb);
+-- DROP FUNCTION IF EXISTS public.fn_training_cache_jsonb_has_exact_keys(jsonb, text[]);
 -- DROP FUNCTION IF EXISTS public.fn_training_cache_has_distribution(jsonb);
 -- COMMIT;

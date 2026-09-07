@@ -8,6 +8,7 @@ import {
   normalizeClubArenaHand,
   syncClubArenaHandsForAudit,
 } from '../src/lib/training/handAuditEngine.js';
+import { canonicalCacheRowFixture } from './helpers/canonicalTrainingPolicyFixture.mjs';
 
 const require = createRequire(import.meta.url);
 const { HandHistoryRecorder } = require('../src/lib/poker-engine/HandHistory.js');
@@ -72,6 +73,14 @@ const clubRow = {
   }),
 };
 
+function cacheRow(question, questionId = 'context-q', gameId = 'cash-postflop') {
+  return canonicalCacheRowFixture(question, {
+    id: questionId,
+    questionId,
+    gameId,
+  });
+}
+
 function auditDb(question, captured = []) {
   return {
     rpc: async (_name, args) => {
@@ -83,8 +92,9 @@ function auditDb(question, captured = []) {
         const chain = {
           select: () => chain,
           like: () => chain,
+          in: () => chain,
           eq: () => chain,
-          limit: async () => ({ data: [{ question_id: 'context-q', game_id: 'cash-postflop', question_data: question }], error: null }),
+          limit: async () => ({ data: [cacheRow(question)], error: null }),
         };
         return chain;
       }
@@ -161,15 +171,13 @@ await test('uses only the authenticated hero private fact to recover a folded ha
       }
       if (table === 'training_question_cache') {
         const chain = {
-          select: () => chain, like: () => chain, eq: () => chain,
-          limit: async () => ({ data: [{
-            question_id: 'private-fact-q', game_id: 'cash-rfi', question_data: {
+          select: () => chain, like: () => chain, in: () => chain, eq: () => chain,
+          limit: async () => ({ data: [cacheRow({
               source: 'DETERMINISTIC_SOLVER',
               solverProvenance,
               scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
               options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
-            },
-          }], error: null }),
+            }, 'private-fact-q', 'cash-rfi')], error: null }),
         };
         return chain;
       }
@@ -213,8 +221,9 @@ await test('uses the shared training question and persists an exact audit decisi
         const chain = {
           select: () => chain,
           like: () => chain,
+          in: () => chain,
           eq: () => chain,
-          limit: async () => ({ data: [{ question_id: 'q-1', game_id: 'cash-rfi', question_data: question }], error: null }),
+          limit: async () => ({ data: [cacheRow(question, 'q-1', 'cash-rfi')], error: null }),
         };
         return chain;
       }
@@ -327,18 +336,14 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
     { cards: [31, 28], hand: '99' },
     { cards: [27, 24], hand: '88' },
   ];
-  const questions = pairs.map(({ hand }, index) => ({
-    question_id: `parallel-${index}`,
-    game_id: 'cash-rfi',
-    question_data: {
+  const questions = pairs.map(({ hand }, index) => cacheRow({
       source: 'DETERMINISTIC_SOLVER',
       solverProvenance,
       scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroHand: hand, nodeType: 'preflop_open', boardCards: [], potSize: 1.5, actionHistory: [] },
       options: [{ id: 'raise', text: 'Raise' }],
       correctAnswer: 'raise',
       gtoFrequencies: { raise: 100 },
-    },
-  }));
+    }, `parallel-${index}`, 'cash-rfi'));
   let active = 0;
   let maxActive = 0;
   let lookups = 0;
@@ -349,6 +354,7 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
         const chain = {
           select: () => chain,
           like: () => chain,
+          in: () => chain,
           eq: () => chain,
           limit: async () => {
             lookups++;
@@ -394,8 +400,8 @@ await test('batches atomic replacement at the database hand-id ceiling', async (
     from(table) {
       if (table !== 'training_question_cache') throw new Error(`Unexpected table ${table}`);
       const chain = {
-        select: () => chain, like: () => chain, eq: () => chain,
-        limit: async () => ({ data: [{ question_id: 'batch-q', game_id: 'cash-rfi', question_data: question }], error: null }),
+        select: () => chain, like: () => chain, in: () => chain, eq: () => chain,
+        limit: async () => ({ data: [cacheRow(question, 'batch-q', 'cash-rfi')], error: null }),
       };
       return chain;
     },
@@ -458,8 +464,9 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
         const chain = {
           select: () => chain,
           like: () => chain,
+          in: () => chain,
           eq: () => chain,
-          limit: async () => ({ data: [{ question_id: 'sync-q-1', game_id: 'cash-rfi', question_data: question }], error: null }),
+          limit: async () => ({ data: [cacheRow(question, 'sync-q-1', 'cash-rfi')], error: null }),
         };
         return chain;
       }
@@ -776,8 +783,9 @@ await test('retries stale unpriced audits and fresh audits from an older matcher
         const chain = {
           select: () => chain,
           like: () => chain,
+          in: () => chain,
           eq: () => chain,
-          limit: async () => ({ data: [{ question_id: 'retry-q-1', game_id: 'cash-rfi', question_data: question }], error: null }),
+          limit: async () => ({ data: [cacheRow(question, 'retry-q-1', 'cash-rfi')], error: null }),
         };
         return chain;
       }

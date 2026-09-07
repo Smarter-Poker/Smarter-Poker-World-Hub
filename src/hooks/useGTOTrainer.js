@@ -481,6 +481,7 @@ export default function useGTOTrainer(
       if (isCustomTrainerConfig(trainerConfig)) {
         // CUSTOM TRAINER MODE — use custom-train API with detailed config
         params = new URLSearchParams({
+          gameId,
           gameType: trainerConfig.gameType || 'cash',
           stackDepth: (trainerConfig.stackDepth || 100).toString(),
           count: (trainerConfig.questionsCount || effectiveQuestionsPerLevel).toString(),
