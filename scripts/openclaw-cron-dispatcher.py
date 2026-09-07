@@ -39,6 +39,7 @@ Auth: Authorization: Bearer <CRON_SECRET>
 """
 
 import os
+import re
 import sys
 import time
 import json
@@ -1152,6 +1153,37 @@ CRITICAL_RUNBOOKS = {
 _critical_state = {}
 
 
+def _failure_signature(detail: str) -> str:
+    """
+    A short, stable name for WHAT went wrong, from the response body.
+
+    The counter below is deliberately outcome-blind — any non-200 counts, and
+    that is right, because three different faults in fifteen minutes is still
+    an incident. The PAGE must not be outcome-blind, and it was.
+    """
+    d = (detail or '').lower()
+    # The probes describe themselves; prefer their own word for it. Every name
+    # here is a member of table-socket-probe's PROBE_OUTCOMES, which the runbook
+    # is organised by, so the page and the runbook use one vocabulary.
+    for name in ('handshake_timeout', 'no_snapshot', 'closed_before_snapshot',
+                 'auth_refused', 'table_not_found', 'rate_limited',
+                 'probe_outdated', 'construct_failed', 'refused'):
+        if name in d:
+            return name
+    if 'pick-table' in d or 'pick_table' in d:
+        return 'pick_table'
+    if 'timed out' in d or 'timeout' in d:
+        return 'timeout'
+    # WORD-BOUNDED, because these bodies are full of numbers that merely CONTAIN
+    # a status code: "socket never opened within 15000ms" holds "500" and was
+    # classified http_500 by a plain substring test — the exact
+    # confidently-wrong label this whole change exists to stop producing.
+    m = re.search(r'\b(503|502|500|504|401|403|429)\b', d)
+    if m:
+        return f'http_{m.group(1)}'
+    return 'other'
+
+
 def _critical_record(path: str, ok: bool, detail: str = ''):
     """Count consecutive failures for a CRITICAL_JOBS path; page and recover."""
     threshold = CRITICAL_JOBS.get(path)
@@ -1159,7 +1191,8 @@ def _critical_record(path: str, ok: bool, detail: str = ''):
         return
     st = _critical_state.get(path)
     if st is None:
-        st = _alert_bind(f'critical:{path}', {'consec_fail': 0, 'alert_sent': False})
+        st = _alert_bind(f'critical:{path}', {'consec_fail': 0, 'alert_sent': False,
+                                              'outcomes': []})
         _critical_state[path] = st
     if ok:
         if st.get('alert_sent'):
@@ -1168,18 +1201,52 @@ def _critical_record(path: str, ok: bool, detail: str = ''):
             if _alert(st, body, recovery=True):
                 st['alert_sent'] = False
         st['consec_fail'] = 0
+        st['outcomes'] = []
     else:
         st['consec_fail'] = int(st.get('consec_fail', 0)) + 1
         n = st['consec_fail']
+        # ── WHAT THE PAGE SAYS HAPPENED HAS TO BE WHAT MOSTLY HAPPENED ──────
+        # (2026-09-07)
+        #
+        # This paged with `detail` from the LAST failure only. On 2026-09-07 at
+        # 04:18 UTC the three consecutive failures that crossed the threshold
+        # were not one fault:
+        #
+        #     04:08:15  handshake_timeout   - socket never opened within 15s
+        #     04:13:16  handshake_timeout
+        #     04:18:00  pick-table, zero rows
+        #
+        # The SMS quoted only the third, and `tables-say-reconnecting.md` sends
+        # those two outcomes to opposite ends of the runbook: pick-table to
+        # auth and club membership, handshake_timeout to the proxy and host
+        # saturation. The dominant signature in that window was
+        # handshake_timeout — 8 of 11 runs in the hour — and the page pointed
+        # at the one section that had nothing to do with it.
+        #
+        # So the page now carries the distribution and leads with the mode. The
+        # counting rule is unchanged: three failures is three failures.
+        sig = _failure_signature(detail)
+        outcomes = list(st.get('outcomes') or [])
+        outcomes.append(sig)
+        st['outcomes'] = outcomes[-20:]
         if n >= threshold:
-            body = (f'🚨 CRITICAL {path} failed {n}x in a row: {detail[:160]}. '
+            counts = {}
+            for o in st['outcomes']:
+                counts[o] = counts.get(o, 0) + 1
+            ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+            spread = ', '.join(f'{name} x{c}' for name, c in ranked)
+            dominant = ranked[0][0] if ranked else sig
+            body = (f'🚨 CRITICAL {path} failed {n}x in a row - mostly {dominant} '
+                    f'({spread}). Last: {detail[:120]}. '
                     f'Runbook: {CRITICAL_RUNBOOKS.get(path, "see dispatcher journal")}')
             if st.get('alert_sent'):
-                log.error(f'[critical] {path} still failing ({n} consecutive); operator already paged')
+                log.error(f'[critical] {path} still failing ({n} consecutive, {spread}); '
+                          f'operator already paged')
             else:
                 st['alert_sent'] = _alert(st, body)
         else:
-            log.warning(f'[critical] {path} failure {n}/{threshold} - will page at {threshold}')
+            log.warning(f'[critical] {path} failure {n}/{threshold} ({sig}) '
+                        f'- will page at {threshold}')
     _alert_flush(st)
 
 

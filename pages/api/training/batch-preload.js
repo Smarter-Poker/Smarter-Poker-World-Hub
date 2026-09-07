@@ -434,6 +434,29 @@ export default async function handler(req, res) {
                   error: 'Duplicate canonical question identifiers were generated for this batch.',
               });
           }
+          /* ═══ ONE UNBUILDABLE QUESTION MUST NOT 500 THE WHOLE BATCH ══════
+           *
+           * (2026-09-07) `buildTrainingCacheRow` throws on six separate
+           * conditions — a mismatched answer key, an option set that disagrees
+           * with the distribution, a missing canonical identifier. This block
+           * sat OUTSIDE the try below, so a single bad row out of ~25 threw
+           * straight to the handler's outer catch and answered
+           * `500 Internal server error` for the entire request.
+           *
+           * That 500 was terminal for the player, because the client's
+           * "fallback" called this same route (see the note in
+           * `useGTOTrainer.fetchSingleQuestion`). One bad question therefore
+           * bricked the whole GTO arena until a page reload, showing
+           * `Loading Solver Data...` on a permanently disabled button.
+           *
+           * A question that cannot be canonicalised is dropped from the
+           * PERSISTENCE pass and reported, not served silently and not allowed
+           * to take the other twenty-four with it. It is still excluded from
+           * `servedBatch` below by the existing quality gate, so nothing
+           * unverified reaches a player — this only stops one bad row being
+           * an outage.
+           */
+          const canonicalizeFailures = [];
           const canonicalRows = Array.from(new Map(enrichedBatch
                   .map(q => {
                       const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
@@ -441,18 +464,35 @@ export default async function handler(req, res) {
                       const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
                           : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
                       const original = originalCacheRowByQuestionId.get(String(q.id));
-                      const row = buildTrainingCacheRow({
-                          question: q,
-                          questionId: original?.question_id || q.id,
-                          gameId,
-                          questionKind,
-                          gameType,
-                          level: gameLevel,
-                          generatedAt: original?.generated_at || new Date().toISOString(),
-                          id: original?.id || null,
-                      });
-                      return [row.question_id, row];
-                  })).values());
+                      try {
+                          const row = buildTrainingCacheRow({
+                              question: q,
+                              questionId: original?.question_id || q.id,
+                              gameId,
+                              questionKind,
+                              gameType,
+                              level: gameLevel,
+                              generatedAt: original?.generated_at || new Date().toISOString(),
+                              id: original?.id || null,
+                          });
+                          return [row.question_id, row];
+                      } catch (rowError) {
+                          canonicalizeFailures.push({
+                              questionId: String(original?.question_id || q.id),
+                              reason: String(rowError?.message || rowError).slice(0, 200),
+                          });
+                          return null;
+                      }
+                  })
+                  .filter(Boolean)).values());
+
+          if (canonicalizeFailures.length > 0) {
+              console.warn(
+                  `[BatchPreload] ${canonicalizeFailures.length} of ${enrichedBatch.length} ` +
+                  `question(s) could not be canonicalised and were dropped from the persistence ` +
+                  `pass: ${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
+              );
+          }
               let servedBatch = enrichedBatch;
               if (canonicalRows.length > 0) {
                   try {

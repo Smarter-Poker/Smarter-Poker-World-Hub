@@ -15,13 +15,25 @@
  * Retiring on that would silence a working device, and its owner would have no
  * way to find out why — strictly worse than the duplicate banner it fixes.
  *
- * THE SECOND SIGNAL that makes it safe: if the SAME USER has another active
- * endpoint that IS confirming inside the same window, delivery to that person
- * demonstrably works, so a silent endpoint beside a talking one is dead rather
- * than merely quiet.
+ * THE SECOND SIGNAL that makes it safe: if a sibling IN THE SAME DEVICE GROUP
+ * is confirming inside the same window, delivery to that device demonstrably
+ * works, so a silent endpoint beside a talking one is dead rather than quiet.
  *
- * These assertions pin the three conservative conditions. Losing any one of
- * them turns a safe cleanup back into a guess that can mute somebody's phone.
+ * ── WHY THIS TEST WAS REWRITTEN (2026-09-07) ───────────────────────────────
+ *
+ * It used to be regexes over push-health.js: `confirmingByUser`, `newestByUser`,
+ * the shape of the filter. Every one of them passed on 2026-09-07 while Dan
+ * received the Estate Digest and the engine-break alert TWICE on one phone,
+ * because the defect was not in that block at all. The query feeding it carried
+ * `.lt('created_at', zombieCutoff)`, which silently did two jobs: it withheld
+ * young rows from being branded zombies (right) and it also withheld them from
+ * the confirming set (wrong). Both of Dan's CONFIRMING rows were younger than
+ * the window, so the sweep concluded he had no working device and retired
+ * nothing.
+ *
+ * A source grep cannot tell the difference between "the code is shaped like
+ * this" and "the code does the right thing". These assertions run the real
+ * decision function against the real rows instead.
  *
  * Run: node --test __tests__/zombie-endpoint-retirement.test.mjs
  */
@@ -30,47 +42,183 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { selectRetirable, deviceGroupKey } from '../src/lib/pushDeviceGroups.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = readFileSync(join(ROOT, 'pages/api/cron/push-health.js'), 'utf8');
 
-/** The retirement block, bounded by its own braces rather than a byte count. */
-function retireBlock(src) {
-    const at = src.indexOf('const retirable = zombies.filter(');
-    assert.ok(at > -1, 'the retirement block is gone');
-    const end = src.indexOf('// ---- CHECK', at);
-    return src.slice(at, end > -1 ? end : src.length);
-}
+const NOW = Date.parse('2026-09-07T17:15:00Z');
+const CUTOFF = NOW - 3 * 86400_000; // ZOMBIE_RECEIPT_DAYS
+const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)';
+const MAC_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
+const DAN = '47965354-0e56-43ef-931c-ddaab82af765';
 
-test('a user with no confirming endpoint is never touched', () => {
-    // This is the assertion that guarantees nobody is left unreachable by this
-    // code. Without it, a user whose ONLY device is quiet loses that device.
-    const src = SRC;
-    assert.match(src, /const confirmingByUser = new Set\(/);
-    assert.match(src, /last_receipt_at\) >= zombieCutoffMs/);
-    assert.match(retireBlock(src), /confirmingByUser\.has\(z\.user_id\)/);
+/** Dan's four active rows on 2026-09-07, verbatim from production. */
+const DANS_ROWS = [
+    {
+        id: 'iphone-live',
+        user_id: DAN,
+        endpoint: 'https://web.push.apple.com/QBibSQ-c8IBWjFHyBd1tmm4iYaE5WaZEq',
+        user_agent: IPHONE_UA,
+        created_at: '2026-09-05T17:29:30Z',
+        last_receipt_at: '2026-09-07T17:12:02Z',
+    },
+    {
+        id: 'iphone-silent',
+        user_id: DAN,
+        endpoint: 'https://web.push.apple.com/QHpfhacCwFCyvLaeeJDKtgZESwdUP_-MS',
+        user_agent: IPHONE_UA,
+        created_at: '2026-08-26T12:14:48Z',
+        last_receipt_at: null,
+    },
+    {
+        id: 'mac-live',
+        user_id: DAN,
+        endpoint: 'https://fcm.googleapis.com/fcm/send/fM2D4Uk7uyc',
+        user_agent: MAC_UA,
+        created_at: '2026-09-07T03:55:22Z',
+        last_receipt_at: '2026-09-07T17:12:01Z',
+    },
+    {
+        id: 'mac-stale',
+        user_id: DAN,
+        endpoint: 'https://fcm.googleapis.com/fcm/send/dOfRzVg10No',
+        user_agent: MAC_UA,
+        created_at: '2026-09-01T01:32:54Z',
+        last_receipt_at: '2026-09-01T02:11:03Z',
+    },
+];
+
+/** The handler's own definitions, so the fixture is judged the same way. */
+const matured = (rows) => rows.filter((s) => Date.parse(s.created_at) < CUTOFF);
+const confirming = (s) => s.last_receipt_at && Date.parse(s.last_receipt_at) >= CUTOFF;
+const zombiesOf = (rows) => matured(rows).filter((s) => !confirming(s));
+
+test('THE REGRESSION: one phone with two device_ids loses the silent row', () => {
+    const retirable = selectRetirable(DANS_ROWS, zombiesOf(DANS_ROWS), CUTOFF);
+    const ids = retirable.map((r) => r.id).sort();
+    assert.deepEqual(
+        ids,
+        ['iphone-silent', 'mac-stale'],
+        'the duplicate that reached Dan twice must be retired, and only it'
+    );
 });
 
-test('the newest endpoint per user is never retired', () => {
-    // A device enrolled moments ago has not had time to confirm anything, so
-    // it looks exactly like a zombie and is not one.
-    const src = SRC;
-    assert.match(src, /const newestByUser = new Map\(\)/);
-    assert.match(retireBlock(src), /newestByUser\.get\(z\.user_id\)\?\.id !== z\.id/);
+test('the confirming sibling counts even when it is younger than the grace window', () => {
+    // The actual defect. Both of Dan's confirming rows were created inside the
+    // three-day window; when the query excluded them, nothing was retirable.
+    const proofs = DANS_ROWS.filter(confirming);
+    assert.equal(proofs.length, 2);
+    for (const p of proofs) {
+        assert.ok(
+            Date.parse(p.created_at) >= CUTOFF,
+            `${p.id} must be younger than the grace window for this test to mean anything`
+        );
+    }
+    assert.equal(selectRetirable(DANS_ROWS, zombiesOf(DANS_ROWS), CUTOFF).length, 2);
+});
+
+test('a device whose ONLY row is silent is never touched', () => {
+    // The assertion that guarantees nobody is left unreachable by this code.
+    const lonely = [
+        {
+            id: 'only-device',
+            user_id: 'u2',
+            endpoint: 'https://web.push.apple.com/x',
+            user_agent: IPHONE_UA,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: null,
+        },
+    ];
+    assert.deepEqual(selectRetirable(lonely, zombiesOf(lonely), CUTOFF), []);
+});
+
+test("another device delivering does not authorise silencing this one", () => {
+    // The old rule was per-USER: a working Mac authorised retiring a genuinely
+    // silent iPhone. Delivery to a laptop says nothing about a phone.
+    const rows = [
+        {
+            id: 'mac-live',
+            user_id: 'u3',
+            endpoint: 'https://fcm.googleapis.com/fcm/send/a',
+            user_agent: MAC_UA,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: '2026-09-07T17:00:00Z',
+        },
+        {
+            id: 'iphone-quiet',
+            user_id: 'u3',
+            endpoint: 'https://web.push.apple.com/b',
+            user_agent: IPHONE_UA,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: null,
+        },
+    ];
+    assert.deepEqual(
+        selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id),
+        [],
+        'the quiet iPhone is that device’s only row; its owner would go dark'
+    );
+});
+
+test('the newest row in a group is never retired', () => {
+    // A device enrolled moments ago has not had time to confirm anything, so it
+    // looks exactly like a zombie and is not one.
+    const rows = [
+        {
+            id: 'old-confirming',
+            user_id: 'u4',
+            endpoint: 'https://web.push.apple.com/a',
+            user_agent: IPHONE_UA,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: '2026-09-07T17:00:00Z',
+        },
+        {
+            id: 'newest-silent',
+            user_id: 'u4',
+            endpoint: 'https://web.push.apple.com/b',
+            user_agent: IPHONE_UA,
+            created_at: '2026-09-02T00:00:00Z',
+            last_receipt_at: null,
+        },
+    ];
+    assert.deepEqual(selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id), []);
+});
+
+test('two genuinely different devices are never merged by the group key', () => {
+    const iphone = { user_id: 'u', endpoint: 'https://web.push.apple.com/a', user_agent: IPHONE_UA };
+    const mac = { user_id: 'u', endpoint: 'https://fcm.googleapis.com/fcm/send/a', user_agent: MAC_UA };
+    assert.notEqual(deviceGroupKey(iphone), deviceGroupKey(mac));
+    // ...and two rows of ONE device are, whatever their endpoints.
+    const sameA = { user_id: 'u', endpoint: 'https://web.push.apple.com/aaa', user_agent: IPHONE_UA };
+    const sameB = { user_id: 'u', endpoint: 'https://web.push.apple.com/bbb', user_agent: IPHONE_UA };
+    assert.equal(deviceGroupKey(sameA), deviceGroupKey(sameB));
+    // Different people are never in one group.
+    assert.notEqual(deviceGroupKey(sameA), deviceGroupKey({ ...sameA, user_id: 'v' }));
+});
+
+test('the grace period no longer hides the evidence', () => {
+    // The query must not filter on created_at: that is what withheld the
+    // confirming siblings and made the whole sweep a no-op.
+    const query = SRC.slice(SRC.indexOf("from('push_subscriptions')"), SRC.indexOf('if (subsErr)'));
+    assert.ok(
+        !/\.lt\('created_at'/.test(query),
+        'the created_at grace filter is back in the query; it also hides confirming siblings'
+    );
+    assert.match(SRC, /const matured = all\.filter/, 'the grace period must still be applied');
 });
 
 test('the update is scoped to rows still active', () => {
-    // So a row another process already retired is not counted a second time.
-    assert.match(retireBlock(SRC), /\.eq\('is_active', true\)/);
-    assert.match(retireBlock(SRC), /is_active: false/);
-    assert.match(retireBlock(SRC), /no_receipt_while_sibling_confirmed/);
+    const at = SRC.indexOf('const retirable =');
+    const block = SRC.slice(at, SRC.indexOf('// ---- CHECK', at));
+    assert.match(block, /\.eq\('is_active', true\)/);
+    assert.match(block, /is_active: false/);
+    assert.match(block, /no_receipt_while_sibling_confirmed/);
 });
 
 test('a cleanup failure can never take down the health check', () => {
-    // The alert is the part that must survive. And the catch must not invent a
-    // `report.errors` array this report does not have — that would turn a
-    // cleanup failure into a TypeError inside the handler it is attached to.
-    const block = retireBlock(SRC);
+    const at = SRC.indexOf('const retirable =');
+    const block = SRC.slice(at, SRC.indexOf('// ---- CHECK', at));
     assert.match(block, /catch \(e\)/);
     assert.match(block, /report\.zombieRetireError/);
     assert.ok(
@@ -80,14 +228,11 @@ test('a cleanup failure can never take down the health check', () => {
 });
 
 test('the alert still fires — retirement did not replace it', () => {
-    // Retiring a dead endpoint and TELLING the person their device went quiet
-    // are different jobs. Losing the second one would make this a silent
-    // downgrade of the very signal the check exists to raise.
     assert.match(SRC, /Notifications May Not Be Reaching This Device/);
     assert.match(SRC, /report\.zombies = zombies\.length/);
 });
 
 test('the retirement count is reported, so a runaway sweep is visible', () => {
     assert.match(SRC, /report\.zombiesRetired = 0/);
-    assert.match(retireBlock(SRC), /report\.zombiesRetired = retirable\.length/);
+    assert.match(SRC, /report\.zombiesRetired = retirable\.length/);
 });
