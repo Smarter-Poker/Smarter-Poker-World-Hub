@@ -2644,6 +2644,7 @@ function GodModeArenaInner({
     retryLevel,
     retrainMistakes,
     resetGame,
+    reloadQuestions,
     // ●●● PHASE 15: Weak-spot targeting ●●●
     getWeakSpots,
     // ●●● PHASE 251-260: Enhanced training intelligence ●●●
@@ -3156,6 +3157,23 @@ function GodModeArenaInner({
       setSplashReady(true);
     }
   }, [gamePhase, currentQuestion, loading]);
+
+  /**
+   * THE LOBBY MUST BE ABLE TO SAY "THIS FAILED" (2026-09-07).
+   *
+   * `splashReady` only ever goes true, and the Start button's label was a
+   * two-way choice between it and `Loading Solver Data...`. So a failed
+   * question fetch — which sets `error` and leaves `currentQuestion` null —
+   * rendered as a permanently disabled button that claimed to still be
+   * loading. There was no retry and no timeout; the arena was dead until the
+   * page was reloaded, and the E2E suite could only report it as a 60-second
+   * timeout on `toBeEnabled()`, which reads like flakiness rather than an
+   * outage.
+   */
+  const loadFailed = !splashReady && !loading && Boolean(error);
+  const handleRetryLoad = useCallback(() => {
+    reloadQuestions?.();
+  }, [reloadQuestions]);
 
   // The setup surface is taller than the gameplay viewport. Preserve its
   // selection state, but never preserve its scroll position: doing so launched
@@ -13524,8 +13542,8 @@ function GodModeArenaInner({
                     className="sp-arena-lobby__start"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={handleStartTraining}
-                    disabled={!splashReady}
+                    onClick={loadFailed ? handleRetryLoad : handleStartTraining}
+                    disabled={!splashReady && !loadFailed}
                     style={{
                       width: '100%',
                       padding: '16px 0',
@@ -13544,13 +13562,34 @@ function GodModeArenaInner({
                     }}
                   >
                     {!splashReady
-                      ? 'Loading Solver Data...'
+                      ? loadFailed
+                        ? 'Could Not Load Solver Data. Retry'
+                        : 'Loading Solver Data...'
                       : trainingMode === 'flashcard'
                         ? 'Start Flashcards'
                         : trainingMode === 'drill'
                           ? 'Start Speed Drill'
                           : 'Start Training →'}
                   </motion.button>
+                  {/* A DEAD BUTTON MUST SAY SO (2026-09-07). When the question
+                      fetch failed, this read "Loading Solver Data..." for ever
+                      on a disabled button: the lobby could not distinguish
+                      still-loading from permanently-failed, and there was no
+                      way back except reloading the page. */}
+                  {loadFailed && (
+                    <div
+                      role="alert"
+                      style={{
+                        marginTop: 10,
+                        fontSize: 12,
+                        lineHeight: 1.4,
+                        color: '#fca5a5',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {String(error)}
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* Back button */}

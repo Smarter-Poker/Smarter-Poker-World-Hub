@@ -928,21 +928,62 @@ def scrape_pokernews(mgr: SeriesSessionManager, known_keys: set) -> list:
 # ──────────────────────────────────────────────────────────────────────────────
 # DB INSERT
 # ──────────────────────────────────────────────────────────────────────────────
+def series_uid_for(name: str) -> str:
+    """A stable id for a discovered series, reproducible across re-scrapes.
+
+    `poker_series.series_uid` is the unique key the upsert conflicts on, so it
+    must be derived from CONTENT only. Anything derived from parse ordering
+    turns every re-scrape into a duplicate INSERT instead of an UPDATE - the
+    same reasoning as `stable_event_uid` in poker_series_scraper.py.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:80]
+    return f"disc_{slug}" if slug else f"disc_{hashlib.md5((name or '').encode()).hexdigest()[:12]}"
+
+
 def insert_new_series(items: list) -> int:
+    """Record newly discovered series.
+
+    ── THIS HAS NEVER INSERTED A ROW (fixed 2026-09-07) ─────────────────────
+    It wrote to `poker_venues` with `on_conflict="name"`, and `poker_venues`
+    has no unique constraint on `name` alone - its uniqueness is
+    (name, city, state), because two venues legitimately share a name in
+    different cities. Every call therefore died with Postgres 42P10, "there is
+    no unique or exclusion constraint matching the ON CONFLICT specification",
+    four times per run.
+
+    And the 42P10 was MASKING a second, deeper problem: `poker_venues.city` and
+    `.state` are NOT NULL with no default, and this payload carries neither. So
+    even with a valid conflict target the insert could not have succeeded. The
+    77 rows in that table with `venue_type='series'` were all written by other
+    paths; not one came from here.
+
+    The real fault is that a poker series is not a venue. `poker_series` exists,
+    `poker_series_scraper.py` already upserts into it on `series_uid`, and every
+    column this discovery pass can actually fill is nullable there. Writing a
+    discovered series name into `poker_venues` would have meant inventing a city
+    and a state for something that has neither, to satisfy a constraint that is
+    correct.
+
+    Nothing is lost by the change of table: since this function has never
+    written a row, there is no history in `poker_venues` to migrate.
+    """
     if not items:
         return 0
     records = [{
-        "name": item["name"],
-        "venue_type": "series",
-        "is_active": True,
-        "has_tournaments": True,
-        "data_quality": "scraped_verified",
+        "series_uid": series_uid_for(item["name"]),
+        "series_name": item["name"],
+        # `data_quality` is the only other NOT NULL column on poker_series.
+        # "discovered" is deliberately weaker than the scraper's
+        # "scraped_verified": this pass has seen a NAME and a URL, and has
+        # confirmed nothing about dates, venue or events.
+        "data_quality": "discovered",
         "source": item.get("scrape_source", "discovery_v3"),
-        "scrape_source": item.get("scrape_source", "discovery_v3"),
-        "scrape_html_hash": item.get("scrape_html_hash", ""),
-        "scrape_timestamp": item.get("scrape_timestamp", STARTED),
+        "source_url": item.get("source_url"),
+        "scrape_url": item.get("source_url"),
+        "scrape_status": "pending",
+        "events_scraped": False,
     } for item in items]
-    return sb_upsert("poker_venues", records, on_conflict="name")
+    return sb_upsert("poker_series", records, on_conflict="series_uid")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
