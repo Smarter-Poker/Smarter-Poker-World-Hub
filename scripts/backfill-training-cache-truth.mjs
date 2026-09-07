@@ -269,4 +269,3 @@ main().catch((error) => {
   console.error('[training-cache-truth-backfill]', error?.stack || error);
   process.exitCode = 1;
 });
-
