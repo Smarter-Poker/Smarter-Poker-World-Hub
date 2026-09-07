@@ -347,7 +347,19 @@ POST body format:
             next_offset: hasMore ? nextOffset : null,
         };
         try {
-            const finalStatus = errors.length === 0 ? 'success' : 'partial';
+            /* THE RUN RECORD MUST AGREE WITH THE HTTP ANSWER (2026-09-07).
+             *
+             * The status code was fixed to 502 on a total dispatch failure, and
+             * this was left saying 'partial' - so `scraper_runs`, which is what
+             * a dashboard reads, still described five weeks of forty-out-of-
+             * forty 401s as a partially successful run. Two truths about the
+             * same event is how the failure stayed invisible in the first
+             * place. 'partial' means some work was created; none is 'failed'. */
+            const finalStatus = isTotalDispatchFailure(dispatchTasks.length, tasksCreated)
+                ? 'failed'
+                : errors.length === 0
+                  ? 'success'
+                  : 'partial';
             const supabase = getSupabase();
             const { error: err_scraper_runs_w7wdm } = runLogId
                 ? await supabase
