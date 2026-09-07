@@ -190,7 +190,10 @@ const AUDIT_TABLE_COLUMNS = {
         'manifest_version', 'manifest_checksum', 'source_artifact_checksum',
         'quality_status', 'audited_at',
     ]),
-    memory_charts_gold: new Set(['stack_depth']),
+    memory_charts_gold: new Set([
+        'chart_id', 'game_type', 'stack_depth', 'hero_position',
+        'villain_action', 'hand_matrix', 'created_at',
+    ]),
 };
 
 function assertAuditIdentifier(identifier, allowedColumns) {
@@ -201,6 +204,17 @@ function assertAuditIdentifier(identifier, allowedColumns) {
         throw new Error(`Column is not allowlisted for the live audit: ${identifier}`);
     }
     return `"${identifier}"`;
+}
+
+function normalizePostgrestValue(value) {
+    if (value instanceof Date) return value.toISOString();
+    if (Array.isArray(value)) return value.map(normalizePostgrestValue);
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, nested]) => [key, normalizePostgrestValue(nested)])
+        );
+    }
+    return value;
 }
 
 class ReadOnlyPgQuery {
@@ -288,7 +302,11 @@ class ReadOnlyPgQuery {
             if (this.rowLimit !== null) sql += ` LIMIT ${Math.floor(this.rowLimit)}`;
             if (this.rowOffset !== null) sql += ` OFFSET ${Math.floor(this.rowOffset)}`;
             const result = await this.pool.query(sql, this.params);
-            return { data: result.rows, count: null, error: null };
+            return {
+                data: result.rows.map((row) => normalizePostgrestValue(row)),
+                count: null,
+                error: null,
+            };
         } catch (error) {
             return { data: null, count: null, error };
         }

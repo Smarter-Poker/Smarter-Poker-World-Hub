@@ -219,6 +219,18 @@ test('the production backfill supports transactional Postgres transport and boun
   assert.match(backfill, /--before-id/);
 });
 
+test('the read-only 107-game audit exposes the complete audited chart projection', () => {
+  const audit = read('scripts/training-live-catalog-audit.js');
+  for (const column of [
+    'chart_id', 'game_type', 'stack_depth', 'hero_position',
+    'villain_action', 'hand_matrix', 'created_at',
+  ]) {
+    assert.match(audit, new RegExp(`memory_charts_gold[\\s\\S]{0,220}'${column}'`));
+  }
+  assert.match(audit, /value instanceof Date/);
+  assert.match(audit, /value\.toISOString\(\)/);
+});
+
 test('static solver contract audit still passes after mutation retirement', () => {
   const report = JSON.parse(execFileSync(process.execPath, ['scripts/training-solver-contract-audit.js'], {
     encoding: 'utf8',
