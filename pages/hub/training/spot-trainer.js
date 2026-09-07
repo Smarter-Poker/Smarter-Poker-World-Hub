@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import { AnimatePresence, motion } from 'framer-motion';
 import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 
 const FORMAT_OPTIONS = [
   { value: '', label: 'All' },
@@ -126,6 +127,7 @@ export default function SpotTrainerPage() {
     fetchSpot();
     return () => requestAbortRef.current?.abort();
   }, [fetchSpot]);
+  const sourceBadge = trainingSourcePresentation(spot?.sourceClassification);
 
   return (
     <>
@@ -331,6 +333,23 @@ export default function SpotTrainerPage() {
                 </div>
 
                 <div
+                  title={sourceBadge.title}
+                  style={{
+                    width: 'fit-content',
+                    margin: '0 auto 10px',
+                    padding: '4px 9px',
+                    borderRadius: 999,
+                    border: `1px solid ${sourceBadge.border}`,
+                    background: sourceBadge.bg,
+                    color: sourceBadge.fg,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: 0.8,
+                  }}
+                >
+                  {sourceBadge.label}
+                </div>
+                <div
                   style={{
                     background: 'linear-gradient(145deg, rgba(14,116,144,0.14), rgba(2,14,24,0.92))',
                     border: '1px solid rgba(103,232,249,0.28)',
@@ -355,6 +374,9 @@ export default function SpotTrainerPage() {
                       ['Machine', spot.provenance?.machineId],
                       ['Manifest', spot.provenance?.manifestVersion],
                       ['Quality', spot.provenance?.qualityStatus],
+                      ['Policy Receipt', spot.policyChecksum
+                        ? `${String(spot.policyChecksum).slice(0, 12)}…`
+                        : '—'],
                     ].map(([label, value]) => (
                       <div key={label} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
                         <div style={{ color: 'var(--sp-fg-dim)', fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>

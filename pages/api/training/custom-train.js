@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { createHash, randomUUID } from 'node:crypto';
 /**
  * GET /api/training/custom-train
  * Fetches training questions based on custom trainer configuration.
@@ -35,7 +36,6 @@ import {
     normalizeTrainingHandSelection,
 } from '../../../src/lib/training/questionSelectionContract.mjs';
 import {
-    runTrainingPersistenceQuery,
     trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
 import {
@@ -63,6 +63,7 @@ const SOLVER_ROW_PROJECTION = [
     'quality_status',
     'audited_at',
 ].join(', ');
+import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -290,7 +291,6 @@ export default async function handler(req, res) {
           }
 
           return await buildAndReturnQuestions(res, scenarios, customConfig, deliveryContext);
-
       } catch (err) {
           console.warn('[CustomTrain] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
@@ -339,8 +339,15 @@ async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryCon
             handClass: customConfig.handClass,
         };
 
-        const question = engine.buildQuestionFromScenario(scenario, gameConfig, 5, i);
-        if (question?.solverProvenance?.verified === true && !usedIds.has(question.id)) {
+        const question = engine.buildQuestionFromScenario(scenario, gameConfig, deliveryContext.level, i);
+        const sourceQuestionId = String(question?.id || '');
+        if (question?.solverProvenance?.verified === true && sourceQuestionId && !usedIds.has(sourceQuestionId)) {
+            question.id = `custom:${createHash('sha256').update(JSON.stringify({
+                gameId: deliveryContext.gameId,
+                sourceQuestionId,
+                boardTexture: customConfig.boardTexture,
+                handClass: customConfig.handClass,
+            })).digest('hex')}`;
             const contractedQuestion = enforceTrainingQuestionContract(question);
             const decisionKey = [
                 contractedQuestion?.scenario?.scenarioHash,
@@ -359,8 +366,10 @@ async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryCon
                     },
                 )
             ) {
-                questions.push(contractedQuestion);
-                usedIds.add(contractedQuestion.id);
+                const canonicalQuestion = contractedQuestion;
+                if (!isTrainingQuestionValid(canonicalQuestion)) continue;
+                questions.push(canonicalQuestion);
+                usedIds.add(sourceQuestionId);
                 usedDecisionKeys.add(decisionKey);
             }
         }
@@ -381,26 +390,19 @@ async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryCon
         });
     }
 
-    const canonicalRows = questions.map((question) => ({
-        question_id: String(question.id).slice(0, 180),
-        game_id: deliveryContext.gameId,
-        engine_type: 'PIO',
-        game_type: deliveryContext.gameType === 'mtt'
-            ? 'tournament'
-            : deliveryContext.gameType === 'spins' ? 'sng' : 'cash',
-        level: deliveryContext.level,
-        question_data: question,
-    }));
+    let servedQuestions;
     try {
-        if (canonicalRows.length > 0) {
-            await runTrainingPersistenceQuery(
-                () => getSupabase().from('training_question_cache').upsert(canonicalRows, {
-                    onConflict: 'question_id',
-                    defaultToNull: false,
-                }),
-                { label: 'CustomTrain:canonicalize' },
-            );
-        }
+        servedQuestions = await persistCanonicalTrainingQuestions(getSupabase(), {
+            questions,
+            gameId: deliveryContext.gameId,
+            questionKind: 'PIO',
+            gameType: deliveryContext.gameType === 'mtt' ? 'tournament'
+                : deliveryContext.gameType === 'spins' ? 'sng' : 'cash',
+            level: deliveryContext.level,
+            userId: deliveryContext.userId,
+            requestId: randomUUID(),
+            label: 'CustomTrain:canonicalize',
+        });
     } catch (canonicalizeError) {
         console.warn('[CustomTrain] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
         return res.status(503).json(trainingPersistenceUnavailableBody());
@@ -417,7 +419,7 @@ async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryCon
             sessionKind: 'custom',
             difficultyMode: deliveryContext.difficultyMode,
             requestedHands: count,
-            questions,
+            questions: servedQuestions,
             requireFullAttempt: true,
             config: customTrainingAttemptConfig(customConfig, deliveryContext),
         });

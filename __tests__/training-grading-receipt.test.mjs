@@ -199,6 +199,14 @@ test('blind delivery recursively removes grading hints and exposes only signed R
   const exactQuestion = {
     ...question,
     source: 'local_solver_ranges',
+    sourceClassification: 'SOLVER_EXACT',
+    policyChecksum: 'a'.repeat(64),
+    solverPolicy: {
+      distribution: { x: 65, b33: 25, b75: 9, allin: 1 },
+      chipEv: { measuredByAction: true, byAction: { x: 1, b33: 0.8, b75: 0.2, allin: -1 } },
+      tournamentUtilityEv: { measuredByAction: false },
+      rangeDistribution: { AA: { x: 1 } },
+    },
     explanation: 'Check is highest frequency.',
     structuredExplanation: { correctAction: 'x' },
     scenario: {
@@ -232,7 +240,13 @@ test('blind delivery recursively removes grading hints and exposes only signed R
     assert.equal(serialized.includes(`"${forbidden}"`), false, forbidden);
   }
   assert.equal(served.options.length, 4);
-  assert.equal(served._gradingContext.solverEvidenceAvailable, true);
+  assert.equal(Object.hasOwn(served, 'solverPolicy'), false);
+  assert.equal(served.policyChecksum, 'a'.repeat(64));
+  assert.equal(served.sourceClassification, 'SOLVER_EXACT');
+  // A claimed classification and a policy-shaped object are not solver
+  // evidence. This intentionally malformed envelope is present only to prove
+  // the recursive blind-delivery sanitizer, so it must remain unverified.
+  assert.equal(served._gradingContext.solverEvidenceAvailable, false);
   assert.deepEqual(served._gradingContext.rngRolls, { low: 97, high: 4 });
   assert.equal('rngGuidance' in served._gradingContext, false);
   assert.equal(serialized.includes('targetaction'), false);

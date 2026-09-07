@@ -12,7 +12,8 @@
  * (migration 20260806). This test pins the fixed generator so the bug class
  * cannot ship again:
  *
- *   • push-node charts grade from the push frequency;
+ *   • push-node charts read the source push frequency but expose the canonical
+ *     `all_in` action id while retaining player-facing Push/Fold copy;
  *   • call-node charts grade from the call frequency, render literal Yes/No
  *     options for "Should you call?", and never say "Push";
  *   • villain_action codes render as human text, never raw ('sb_push');
@@ -77,9 +78,19 @@ function build(buildChartQuestion, chart, hand) {
 test('push-node charts grade from the push frequency', () => {
     const b = loadChartBuilder();
     const aa = build(b, PUSH_CHART, 'AA');
-    assert.equal(aa.correctAnswer, 'push', 'AA must be a push in an open-shove chart');
+    assert.equal(aa.correctAnswer, 'all_in', 'AA must be an all-in in an open-shove chart');
+    assert.equal(aa.correctAnswerText, 'Push All-In');
     assert.match(aa.question, /Push or Fold\?$/);
     assert.match(aa.question, /Action folds to you/);
+    assert.deepEqual(aa.options.map(o => o.id), ['all_in', 'fold']);
+    assert.deepEqual(aa.options.map(o => o.text), ['Push All-In', 'Fold']);
+    assert.equal(aa.gtoFrequencies.all_in, 100);
+    assert.equal(aa.frequencies.all_in, 1);
+    assert.match(aa.explanation, /100%/);
+    assert.match(aa.explanation, /Push All-In is the chart's primary action/);
+    assert.match(aa.explanation, /No per-action EV or payout model is included/);
+    assert.doesNotMatch(aa.explanation, /\bICM:/, 'a cash chart must not invent an ICM model');
+    assert.doesNotMatch(aa.explanation, /only a 100% push/i, 'an all-in answer must not render fold coaching');
     assert.equal(build(b, PUSH_CHART, '72o').correctAnswer, 'fold');
 });
 
@@ -113,9 +124,10 @@ test('mixed-frequency hands stay answerable and self-consistent', () => {
         hand_matrix: { A5s: { push: 0.62, fold: 0.38 }, KTo: { push: 0.31, fold: 0.69 } },
     };
     const a5 = build(b, chart, 'A5s');
-    assert.equal(a5.correctAnswer, 'push');
-    assert.equal(a5.gtoFrequencies.push, 62);
-    assert.equal(a5.options.find(o => o.id === 'push').frequency, 62);
+    assert.equal(a5.correctAnswer, 'all_in');
+    assert.equal(a5.gtoFrequencies.all_in, 62);
+    assert.equal(a5.options.find(o => o.id === 'all_in').frequency, 62);
+    assert.equal(a5.options.find(o => o.id === 'all_in').text, 'Push All-In');
     assert.equal(a5.scenario.isMixedStrategy, true);
     const kt = build(b, chart, 'KTo');
     assert.equal(kt.correctAnswer, 'fold');

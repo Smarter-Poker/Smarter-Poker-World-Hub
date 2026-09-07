@@ -148,8 +148,11 @@ test('postflop level labels match the generated street sequence', () => {
   assert.match(GAME_ENGINE, /level:\s*10,[^\n]*River[^\n]*River Decisions/);
 });
 
-test('the universal table treats the explicit local heuristic source as modelled', () => {
-  assert.match(TABLE, /MODELLED_SOURCES\s*=\s*\[[^\]]*'LOCAL_POSTFLOP_HEURISTIC'/);
+test('the universal table renders the server-projected source classification without promoting local heuristics', () => {
+  assert.match(TABLE, /import\s*\{\s*trainingSourcePresentation\s*\}\s*from\s*['"]\.\.\/\.\.\/\.\.\/lib\/training\/cacheTruthContract\.mjs['"]/);
+  assert.match(TABLE, /trainingSourcePresentation\(infoPanelQuestion\?\.sourceClassification\)/);
+  assert.doesNotMatch(TABLE, /trainingSourcePresentation\(infoPanelQuestion\)/);
+  assert.doesNotMatch(TABLE, /MODELLED_SOURCES\s*=\s*\[[^\]]*'LOCAL_POSTFLOP_HEURISTIC'/);
 });
 
 test('legacy heuristic consumers cannot grade or present local weights as solved output', () => {

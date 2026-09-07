@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from 'crypto';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -7,6 +7,16 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
 import { customSolverProvenanceIsComplete } from '../../../src/lib/training/customSolverSpotContract.mjs';
 import { parseSolverScenarioHash, SOLVER_POSITIONS } from '../../../src/lib/training/solverRowIdentity.mjs';
+import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
+import {
+    enforceTrainingQuestionContract,
+    isTrainingQuestionValid,
+} from '../../../src/lib/training/questionContract.mjs';
+import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import { trainingPersistenceUnavailableBody } from '../../../src/lib/training/trainingPersistence.mjs';
+
+applyDeterministicEnginePatches(deterministicEngine);
 
 /**
  * Solver Spot Study serves answer-revealed reference material only.
@@ -179,7 +189,9 @@ function buildStudySpot(row) {
         provenance: {
             verified: true,
             source: 'PioSOLVER',
+            scenarioHash: row.scenario_hash,
             solverVersion: row.solver_version,
+            solverBinaryChecksum: row.solver_binary_checksum,
             machineId: row.machine_id,
             pipelineCommit: row.pipeline_commit,
             manifestVersion: row.manifest_version,
@@ -189,6 +201,51 @@ function buildStudySpot(row) {
             auditedAt: row.audited_at,
         },
     };
+}
+
+function buildCanonicalStudyQuestion(row, studySpot, answer) {
+    if (answer.kind === 'unavailable' || !Array.isArray(answer.actions) || answer.actions.length < 2) {
+        return null;
+    }
+    const best = answer.actions.reduce(
+        (current, action) => (!current || action.frequency > current.frequency ? action : current),
+        null,
+    );
+    const questionId = `spot:${createHash('sha256').update(JSON.stringify({
+        artifactId: answer.sourceArtifact?.artifactId || row.id,
+        scenarioHash: row.scenario_hash,
+        holding: studySpot.heroHand,
+        policyVersion: answer.policyVersion,
+    })).digest('hex')}`;
+    const question = enforceTrainingQuestionContract({
+        id: questionId,
+        type: 'PIO',
+        source: 'DETERMINISTIC_SOLVER',
+        dataQuality: answer.qualitySeal,
+        heroHand: studySpot.heroHand,
+        heroCards: answer.key?.holding || [],
+        boardCards: studySpot.board,
+        scenario: {
+            scenarioHash: studySpot.scenarioHash,
+            board: studySpot.board.join(' '),
+            street: studySpot.street,
+            heroPosition: studySpot.heroPosition,
+            stackDepth: studySpot.stackDepth,
+            heroStack: studySpot.decisionNode?.effectiveStackBb || studySpot.stackDepth,
+            pot: studySpot.decisionNode?.potBb,
+            nodeType: answer.node?.semantics,
+        },
+        options: answer.actions.map((action) => ({ id: action.id, text: action.label })),
+        correctAnswer: best.id,
+        correctAnswerText: best.label,
+        gtoFrequencies: Object.fromEntries(
+            answer.actions.map((action) => [action.id, Math.round(action.frequency * 10000) / 100]),
+        ),
+        explanation: 'This answer-revealed study spot shows the persisted canonical policy for the audited solver artifact.',
+        solverProvenance: studySpot.provenance,
+        solverPolicy: answer,
+    });
+    return isTrainingQuestionValid(question) ? { question, answer, best } : null;
 }
 
 function buildCandidateQuery({ families, position, stackDepth, pivot }) {
@@ -254,7 +311,8 @@ export default async function handler(req, res) {
             });
         }
 
-        const candidates = (data || []).map(buildStudySpot).filter(Boolean);
+        const candidates = (data || []).map((row) => ({ row, spot: buildStudySpot(row) }))
+            .filter((candidate) => candidate.spot);
         if (candidates.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -264,11 +322,70 @@ export default async function handler(req, res) {
             });
         }
 
+        const selected = candidates[randomInt(candidates.length)];
+        deterministicEngine.setSupabaseClient(getSupabase());
+        const policy = deterministicEngine.canonicalPolicyForValidatedSolvedRow(
+            selected.row,
+            selected.spot.heroHand,
+        );
+        if (!policy) {
+            return res.status(404).json({
+                success: false,
+                code: 'AUDITED_SOLVER_POLICY_NOT_GRADEABLE',
+                error: 'The audited solver artifact has no canonical policy for this holding',
+                retryable: true,
+            });
+        }
+        const canonical = buildCanonicalStudyQuestion(
+            selected.row,
+            selected.spot,
+            policy,
+        );
+        if (!canonical) {
+            return res.status(404).json({
+                success: false,
+                code: 'AUDITED_SOLVER_POLICY_NOT_GRADEABLE',
+                error: 'The audited solver artifact has no canonical policy for this holding',
+                retryable: true,
+            });
+        }
+
+        let persistedQuestion;
+        try {
+            [persistedQuestion] = await persistCanonicalTrainingQuestions(getSupabase(), {
+                questions: [canonical.question],
+                gameId: 'spot-trainer',
+                questionKind: 'PIO',
+                gameType: String(selected.spot.gameType || '').startsWith('spin_') ? 'sng'
+                    : String(selected.spot.gameType || '').startsWith('mtt_') ? 'tournament' : 'cash',
+                level: 1,
+                userId: user.id,
+                requestId: randomUUID(),
+                label: 'SpotDrill:canonicalize',
+            });
+        } catch (canonicalizeError) {
+            console.warn('[SpotDrill] Refusing to serve an uncanonicalized study spot:', canonicalizeError?.message || canonicalizeError);
+            return res.status(503).json(trainingPersistenceUnavailableBody());
+        }
+
+        const actionBreakdown = Object.fromEntries(canonical.answer.actions.map((action) => [
+            action.label,
+            Math.round(action.frequency * 1000) / 10,
+        ]));
+
         return res.status(200).json({
             success: true,
             mode: 'answer_revealed_reference',
             authoritativeTrainingProgress: false,
-            spot: candidates[randomInt(candidates.length)],
+            spot: {
+                ...selected.spot,
+                id: persistedQuestion.id,
+                gtoAction: canonical.best.label,
+                gtoFrequency: Math.round(canonical.best.frequency * 1000) / 10,
+                actionBreakdown,
+                policyChecksum: persistedQuestion.policyChecksum,
+                sourceClassification: persistedQuestion.sourceClassification,
+            },
         });
     } catch (error) {
         let reportFailure = null;

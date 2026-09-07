@@ -734,17 +734,27 @@ test('warehouse questions carry a complete provenance seal or remain unverified'
   const patches = fs.readFileSync('src/engines/deterministicEnginePatches.js', 'utf8');
   const reseeder = fs.readFileSync('scripts/reseed-deterministic-cache.js', 'utf8');
   const grader = fs.readFileSync('src/lib/training/solverDecisionEvidence.js', 'utf8');
+  const persistence = fs.readFileSync('src/lib/training/cacheTruthPersistence.mjs', 'utf8');
+  const policyContract = fs.readFileSync('src/lib/training/solverPolicyContract.js', 'utf8');
   for (const field of [
     'solverVersion', 'solverBinaryChecksum', 'machineId', 'pipelineCommit', 'manifestVersion', 'manifestChecksum',
     'sourceArtifactChecksum', 'qualityStatus', 'auditedAt',
   ]) {
     assert.match(patches, new RegExp(field));
     assert.match(reseeder, new RegExp(field));
-    assert.match(grader, new RegExp(field));
+    assert.match(policyContract, new RegExp(field));
+    if (field !== 'qualityStatus') assert.match(persistence, new RegExp(field));
   }
+  assert.match(persistence, /sourceArtifact: source/);
   assert.match(patches, /LEGACY_UNVERIFIED/);
   assert.match(reseeder, /LEGACY_UNVERIFIED/);
-  assert.match(grader, /WAREHOUSE_SOURCES\.has\(source\).*hasCompleteWarehouseProvenance/s);
+  assert.match(grader, /sourceClassificationForQuestion/);
+  assert.match(grader, /isSolverEvidenceClassification/);
+  const verifier = grader.slice(
+    grader.indexOf('export function isVerifiedSolverQuestion'),
+    grader.indexOf('const SOLVER_CLAIM_RE'),
+  );
+  assert.doesNotMatch(verifier, /solverProvenance/);
 });
 
 test('unsealed warehouse questions disclose legacy evidence and remove exact-solver claims', async () => {
@@ -885,7 +895,7 @@ test('historical chart percentages are reconstructed losslessly rather than inve
   normalizeAuditedChartQuestion(question);
   assert.deepEqual(question.gtoFrequencies, { push: 73, fold: 27 });
   assert.equal(question.source, 'CHART');
-  assert.equal(isVerifiedSolverQuestion(question), true);
+  assert.equal(isVerifiedSolverQuestion(question), false);
   const incomplete = { type: 'CHART', options: [{ id: 'push', frequency: 73 }] };
   normalizeAuditedChartQuestion(incomplete);
   assert.equal(incomplete.gtoFrequencies, undefined);

@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 import styles from '../../../src/styles/training/daily-challenge-casino.module.css';
 // TRAIN-WIRE-FX-4d - adoption: feedback hook for daily-challenge.fresh.js
 
@@ -262,7 +263,6 @@ export default function DailyChallengePage() {
       ) {
         throw new Error(completed?.error || 'Daily completion could not be verified');
       }
-
       setCompletion(completed);
       setActiveAttemptId(attemptId);
       setAlreadyCompleted(true);
@@ -325,6 +325,7 @@ export default function DailyChallengePage() {
         || !context?.snapshotKey
         || !context?.submissionId
         || !challenge.id
+        || !/^[0-9a-f]{64}$/i.test(String(challenge.policyChecksum || ''))
       ) {
         setError('This Daily Challenge is missing its secure grading receipt. Reload and try again.');
         return;
@@ -342,6 +343,7 @@ export default function DailyChallengePage() {
             gameId: 'daily-challenge',
             questionId: challenge.id,
             answerId: actionId,
+            policyChecksum: challenge.policyChecksum,
             gradingReceipt: context.receipt,
             submissionId: context.submissionId,
             sessionId: context.sessionId,
@@ -418,6 +420,7 @@ export default function DailyChallengePage() {
           : challenge?._gradingContext?.receipt
             ? 'Sealed'
             : 'Waiting';
+  const sourceBadge = trainingSourcePresentation(challenge?.sourceClassification);
 
   return (
     <>
@@ -425,7 +428,7 @@ export default function DailyChallengePage() {
         <title>Daily Training Challenge | Smarter.Poker</title>
         <meta
           name="description"
-          content="A daily audited poker spot with signed delivery, server grading, and verified streak tracking."
+          content="A daily source-classified poker spot with signed delivery, server grading, and verified streak tracking."
         />
       </Head>
 
@@ -442,7 +445,7 @@ export default function DailyChallengePage() {
               <span aria-hidden="true">‹</span> Training
             </button>
             <div className={styles.titleBlock}>
-              <span className={styles.eyebrow}>Signed Delivery · Server Graded · One Attempt</span>
+              <span className={styles.eyebrow} title={sourceBadge.title}>{sourceBadge.label} · One Seat · One Shot</span>
               <h1>Daily Challenge</h1>
               <p>Read The Table. Lock Your Decision. Review The Verified Result When You Are Ready.</p>
             </div>
@@ -568,12 +571,12 @@ export default function DailyChallengePage() {
                   </section>
                   <section className={styles.rulesPanel}>
                     <span>House Rules</span>
-                    <h2>One Audited Spot Every Day</h2>
+                    <h2>One Canonical Policy Spot Every Day</h2>
                     <p>
                       Choose Once. The Training Service Grades And Saves The Signed Decision. Any
                       Reward Or Streak Change Appears Only After The Server Confirms Completion.
                     </p>
-                    <div><strong>Sealed</strong><small>Server Grading</small></div>
+                    <div title={sourceBadge.title}><strong>{sourceBadge.label}</strong><small>Source Classification</small></div>
                     <div><strong>Manual</strong><small>Continue Control</small></div>
                   </section>
                 </aside>
@@ -591,6 +594,7 @@ export default function DailyChallengePage() {
                         verdict={resultIsCorrect ? 'correct' : 'incorrect'}
                         userAction={options.find((option) => option.id === selected)?.text || selected || ''}
                         solverAction={feedback?.solverVerified === true ? correctAnswerText : undefined}
+                        referenceLabel={sourceBadge.label}
                         evLoss={feedback?.evLossMeasured === true
                           && Number.isFinite(Number(feedback?.evLoss))
                           ? Number(feedback.evLoss)

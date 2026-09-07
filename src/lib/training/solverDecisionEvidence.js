@@ -8,7 +8,12 @@
  * BB loss unless the exact question contains per-action EVs.
  */
 
-const LOCALLY_AUDITED_SOURCES = new Set(['local_solver_ranges', 'CHART']);
+import {
+  gradeCanonicalPolicyDecision,
+  isSolverEvidenceClassification,
+  sourceClassificationForQuestion,
+} from './cacheTruthContract.mjs';
+
 const WAREHOUSE_SOURCES = new Set(['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO']);
 
 const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
@@ -27,7 +32,7 @@ export function normalizeAuditedChartQuestion(question) {
   const sum = entries.reduce((total, [, frequency]) => total + frequency, 0);
   if (!valid || Math.abs(sum - 100) > 1) return question;
   question.source = 'CHART';
-  question.dataQuality = 'CHART_EXACT';
+  question.dataQuality = 'CHART_AUDITED';
   question.gtoFrequencies = Object.fromEntries(entries);
   question.evidenceDisclosure = 'Audited local push/fold chart corpus.';
   // Push/fold charts are preflop decisions. Historical cache writers stamped
@@ -47,6 +52,8 @@ export function normalizeAuditedChartQuestion(question) {
 }
 
 export function verifiedSolverSource(question) {
+  const policySource = question?.solverPolicy?.sourceArtifact?.system;
+  if (policySource) return String(policySource).slice(0, 100);
   const source = String(question?.source || question?.solverProvenance?.source || '').trim();
   if (source) return source.slice(0, 100);
   return question?.solverProvenance?.verified === true ? 'SOLVER_PROVENANCE_VERIFIED' : null;
@@ -55,23 +62,6 @@ export function verifiedSolverSource(question) {
 function finiteNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
-}
-
-function hasCompleteWarehouseProvenance(question) {
-  const p = question?.solverProvenance;
-  return Boolean(
-    p?.verified === true
-    && p?.scenarioHash
-    && p?.solverVersion
-    && /^[0-9a-f]{64}$/i.test(String(p?.solverBinaryChecksum || ''))
-    && ['M1', 'M2'].includes(String(p?.machineId || ''))
-    && /^[0-9a-f]{40}$/i.test(String(p?.pipelineCommit || ''))
-    && p?.manifestVersion
-    && /^[0-9a-f]{64}$/i.test(String(p?.manifestChecksum || ''))
-    && /^[0-9a-f]{64}$/i.test(String(p?.sourceArtifactChecksum || ''))
-    && p?.qualityStatus === 'validated'
-    && p?.auditedAt
-  );
 }
 
 function readFrequency(frequencies, actionId) {
@@ -103,23 +93,10 @@ function readActionEV(evData, actionId) {
 
 export function isVerifiedSolverQuestion(question) {
   if (!question || typeof question !== 'object') return false;
-  const frequencies = question.gtoFrequencies;
-  const hasDistribution = frequencies && typeof frequencies === 'object'
-    && Object.values(frequencies).some(v => (finiteNumber(v) ?? 0) > 0);
-  if (!hasDistribution) return false;
-  if (String(question.dataQuality || '').toUpperCase() === 'SIMULATED') return false;
-
-  const source = String(question.source || '');
-  if (LOCALLY_AUDITED_SOURCES.has(source)) return true;
-  // Warehouse source labels were historically assigned by cache writers that
-  // did not record the solver, machine, manifest, artifact, or audit seal.
-  // They are not proof. Only the complete writer-provenance contract can turn
-  // a PIO distribution into verified solver evidence.
-  if (WAREHOUSE_SOURCES.has(source)) return hasCompleteWarehouseProvenance(question);
-  // An explicit provenance object is the only source-less compatibility path.
-  // `dataQuality=SOLVER_EXACT` alone is insufficient because legacy enrichment
-  // initialized that label before it knew whether frequencies were fabricated.
-  return !source && hasCompleteWarehouseProvenance(question);
+  // Source names, cached labels, and legacy provenance objects are not enough.
+  // Every verified decision must carry the structurally valid canonical policy
+  // envelope that the database independently checks and seals.
+  return isSolverEvidenceClassification(sourceClassificationForQuestion(question));
 }
 
 const SOLVER_CLAIM_RE = /\b(?:according to gto|gto mixes|gto solver|solver picks|nash equilibrium|solver[- ]exact|pure\s+[a-z-]+\s*\(\d+%|what is the gto play)\b/i;
@@ -211,6 +188,8 @@ export function classifyFrequencyDecision(frequencies = {}, selectedAnswer, decl
 }
 
 export function gradeSolverDecision(question, selectedAnswer) {
+  const canonicalGrade = gradeCanonicalPolicyDecision(question?.solverPolicy, selectedAnswer);
+  if (canonicalGrade.valid) return canonicalGrade;
   const frequencyGrade = classifyFrequencyDecision(
     question?.gtoFrequencies || {},
     selectedAnswer,

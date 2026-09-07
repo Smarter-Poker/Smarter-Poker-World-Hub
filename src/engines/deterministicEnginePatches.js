@@ -41,6 +41,11 @@
 
 import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
 import { isSolverRowIdentityValid } from '../lib/training/solverRowIdentity.mjs';
+import { normalizeSolvedPolicyRecord } from '../services/SolverPolicyService.js';
+import {
+    alignQuestionToCanonicalPolicy,
+    sourceClassificationForQuestion,
+} from '../lib/training/cacheTruthContract.mjs';
 import {
     hasUntrustedLegacyFoldChannel,
     inheritSolverMatrixTrust,
@@ -234,6 +239,52 @@ function stampSolverProvenance(question, row) {
     return enforceSolverClaimHonesty(question);
 }
 
+function synchronizeCanonicalPolicyQuestion(question) {
+    if (!question?.solverPolicy) return question;
+    const sourceOptions = Array.isArray(question.options) ? question.options : [];
+    const optionById = new Map(sourceOptions.map((option) => [
+        String(option?.id || '').toLowerCase(),
+        option,
+    ]));
+    // Warehouse action tokens (`b412`) are source identifiers, while the
+    // canonical policy exposes stable semantic ids (`bet_75pct`). Rebind the
+    // presentation to those canonical ids before alignment; otherwise the
+    // cache correctly rejects an option set that cannot be graded from its
+    // policy. The original token remains in action.sourceCode for exact tree
+    // continuation lookup.
+    const canonicalOptions = (question.solverPolicy.actions || []).map((action) => {
+        const source = optionById.get(String(action.id || '').toLowerCase())
+            || optionById.get(String(action.sourceCode || '').toLowerCase())
+            || {};
+        return {
+            ...source,
+            id: action.id,
+            text: action.label || source.text || action.id,
+            frequency: Math.round(Number(action.frequency || 0) * 1000000) / 10000,
+        };
+    });
+    const aligned = alignQuestionToCanonicalPolicy({
+        ...question,
+        options: canonicalOptions,
+    });
+    const classification = sourceClassificationForQuestion(aligned);
+    if (!['SOLVER_EXACT', 'SOLVER_DERIVED_RESPONSE'].includes(classification)) {
+        return aligned;
+    }
+    const source = aligned.solverPolicy.sourceArtifact || {};
+    const mix = (aligned.solverPolicy.actions || [])
+        .map((action) => `${action.label} ${Math.round(Number(action.frequency || 0) * 1000) / 10}%`)
+        .join(', ');
+    const exact = classification === 'SOLVER_EXACT';
+    return {
+        ...aligned,
+        explanation: `Audited ${source.solverVersion || 'PioSOLVER'} policy for ${source.scenarioHash || 'this recorded node'}. Recorded action frequencies for the displayed holding: ${mix}.`,
+        evidenceDisclosure: exact
+            ? 'Provenance-sealed PioSOLVER export; frequencies are exact for this recorded node. Per-action EV is not available.'
+            : 'Audited PioSOLVER artifact; this displayed response is derived from the recorded node and is not labeled solver-exact because the source lacks a complete canonical decision key.',
+    };
+}
+
 /**
  * Sanitize a strategy_matrix IN PLACE (idempotent):
  * for every hand, keep it only if its in-range action values form a credible
@@ -344,6 +395,40 @@ export function applyDeterministicEnginePatches(engine) {
     engine.__auditPatches20260719 = true;
 
     const originalBuild = engine.buildQuestionFromScenario.bind(engine);
+    const originalGenerateBatch = engine.generateBatch.bind(engine);
+
+    // Every engine-owned question family crosses the canonical policy boundary
+    // before a route can inspect or persist it. Valid row/chart policies are
+    // preserved byte-for-byte; authored and heuristic families receive the
+    // conservative classification derived by SolverPolicyService. Routes are
+    // consumers of this finished envelope and cannot mint policy from prose.
+    engine.generateBatch = async function patchedGenerateBatch(options) {
+        const questions = await originalGenerateBatch(options);
+        return (Array.isArray(questions) ? questions : [])
+            .map((question) => synchronizeCanonicalPolicyQuestion(
+                this.solverPolicyService.attachToQuestion(question, 'get-question'),
+            ));
+    };
+
+    // Strict direct readers may prove a warehouse row's identity themselves,
+    // but policy interpretation remains owned by the engine/service boundary.
+    // The caller receives a finished, conservatively classified envelope and
+    // never reaches through the engine's internal service locator.
+    engine.canonicalPolicyForValidatedSolvedRow = function canonicalPolicyForValidatedSolvedRow(
+        row,
+        holdingClass,
+    ) {
+        const record = normalizeSolvedPolicyRecord(row);
+        if (!record.valid || !record.provenanceComplete || !record.sourceV2) return null;
+        const policy = this.solverPolicyService.answerFromRecord(
+            record,
+            this.solverPolicyService.keyForRecord(record),
+            { holdingClass },
+        );
+        return policy?.kind === 'unavailable'
+            ? null
+            : this.solverPolicyService.consumerEnvelope(policy, 'get-question');
+    };
 
     // ●● PATCH 1+2: street-null guard + v2 preference + matrix sanitization ●●
     engine.fetchSolverPool = async function patchedFetchSolverPool(
@@ -443,6 +528,8 @@ export function applyDeterministicEnginePatches(engine) {
         scenario, gameConfig, level, questionIndex, forcedHand = null
     ) {
         try {
+            const policyRecord = normalizeSolvedPolicyRecord(scenario);
+            if (!policyRecord.valid) return null;
             // Callers such as Custom Training already own a bounded, exact
             // warehouse query and therefore hand rows directly to the
             // builder instead of going through fetchSolverPool().  The v2
@@ -451,14 +538,27 @@ export function applyDeterministicEnginePatches(engine) {
             prepareSolverScenarioRow(scenario);
             if (scenario?.__invalidV2) return null;
             if (scenario?.strategy_matrix) sanitizeStrategyMatrix(scenario.strategy_matrix);
+            const attachCanonicalPolicy = (question) => {
+                const stamped = stampSolverProvenance(question, scenario);
+                if (!stamped) return null;
+                const policyScenario = this.solverPolicyService.asEngineScenario(policyRecord);
+                const policy = this.solverPolicyService.answerForEngineQuestion(
+                    policyScenario,
+                    stamped,
+                );
+                if (!policy || policy.kind === 'unavailable') return null;
+                return synchronizeCanonicalPolicyQuestion(this.solverPolicyService.attachToQuestion({
+                    ...stamped,
+                    solverPolicy: policy,
+                }, 'get-question'));
+            };
 
             if (forcedHand) {
                 const handClass = toHandClass(forcedHand);
                 if (!handClass || !matrixHasHand(scenario?.strategy_matrix, handClass)) return null;
                 const prunedScenario = pruneScenarioToHand(scenario, handClass);
-                return stampSolverProvenance(
+                return attachCanonicalPolicy(
                     originalBuild(prunedScenario, gameConfig, level, questionIndex),
-                    scenario,
                 );
             }
 
@@ -472,10 +572,10 @@ export function applyDeterministicEnginePatches(engine) {
                 if (!q) continue;
                 if (!first) first = q;
                 if (isAggressiveAction(q.correctAnswer) === preferAggressive) {
-                    return stampSolverProvenance(q, scenario);
+                    return attachCanonicalPolicy(q);
                 }
             }
-            return stampSolverProvenance(first, scenario);
+            return attachCanonicalPolicy(first);
         } catch (err) {
             console.warn('[EnginePatches] buildQuestionFromScenario error:', err.message);
             return null;
@@ -622,6 +722,8 @@ export function applyDeterministicEnginePatches(engine) {
 
             const orderedCandidates = orderedExactContinuationCandidates(data, continuationLineages);
             for (const { row: scenario, lineage } of orderedCandidates) {
+                const policyRecord = normalizeSolvedPolicyRecord(scenario);
+                if (!policyRecord.valid) continue;
                 if (!prepareSolverScenarioRow(scenario)) continue;
                 const matrix = scenario.strategy_matrix || {};
                 const solvedHero = String(matrix.position || '').toUpperCase();
@@ -647,6 +749,11 @@ export function applyDeterministicEnginePatches(engine) {
                     heroHand,
                 );
                 if (!question) continue;
+                const policyScenario = this.solverPolicyService.asEngineScenario(policyRecord);
+                question.solverPolicy = this.solverPolicyService.consumerEnvelope(
+                    this.solverPolicyService.answerForEngineQuestion(policyScenario, question),
+                    'get-question',
+                );
                 question.scenario = {
                     ...(question.scenario || {}),
                     pot: childPot,
@@ -661,7 +768,7 @@ export function applyDeterministicEnginePatches(engine) {
                 question.stackDepth = childEffectiveStack;
                 question.solverStackDepth = requestedStack;
                 question.estimatedPot = childPot;
-                return question;
+                return synchronizeCanonicalPolicyQuestion(question);
             }
             return null;
         } catch (err) {

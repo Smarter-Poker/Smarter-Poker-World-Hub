@@ -1900,6 +1900,17 @@ export class DeterministicGTOEngine {
                     }),
                     'get-question',
                 );
+                const chartSource = q.solverPolicy?.sourceArtifact || {};
+                q.scenario = {
+                    ...(q.scenario || {}),
+                    // Bind the question to the identity minted by the policy
+                    // service. Its chart-id fallback and scenario hash are the
+                    // canonical contract; duplicating that formula here would
+                    // permit the UI/cache identity to drift from the grader.
+                    chartArtifactId: chartSource.artifactId || null,
+                    chartScenarioHash: chartSource.scenarioHash || null,
+                    chartSourceNode: q.solverPolicy?.node?.sourceNode || null,
+                };
                 if (!safeSeen.includes(q.id)) return q;
             }
             return lastQuestion;
@@ -1935,7 +1946,11 @@ export class DeterministicGTOEngine {
         // an unusable row. Refusing beats fabricating an answer.
         if (!Number.isFinite(yesFreq)) return null;
 
-        const yesId = isCallNode ? 'call' : 'push';
+        // The canonical chart policy normalizes an open shove to `all_in`.
+        // Use that same action id in the question envelope so persistence can
+        // prove a one-to-one option/policy action set. "Push" remains the
+        // player-facing label and the chart artifact's source code.
+        const yesId = isCallNode ? 'call' : 'all_in';
         const yesText = isCallNode ? 'Call All-In' : 'Push All-In';
         const correctAction = yesFreq > 0.5 ? yesId : 'fold';
 
@@ -1958,13 +1973,15 @@ export class DeterministicGTOEngine {
             // not mislabel it as a PioSOLVER warehouse artifact.
             source: 'CHART',
             scenario: {
+                street: 'preflop',
+                board: '',
+                boardCards: [],
                 stackDepth: chart.stack_depth,
                 heroPosition: chart.hero_position || chart.position || 'BTN',
                 heroStack: chart.stack_depth || 15,
                 villainPosition: isCallNode ? 'SB' : 'BB',
                 villainStack: chart.stack_depth || 15,
                 pot: 1.5,
-                board: '',
                 action: villainActionText,
                 heroHand,
                 isMixedStrategy: yesFreq > 0.1 && yesFreq < 0.9,
@@ -4866,47 +4883,24 @@ export class DeterministicGTOEngine {
         const pct = (yesFreq * 100).toFixed(0);
         const pos = chart.hero_position || chart.position || 'BTN';
         const stack = chart.stack_depth || 15;
+        const chartLabel = String(chart.game_type || '').toLowerCase().includes('tournament')
+            ? 'Audited tournament chart'
+            : 'Audited cash-game chart';
 
-        // Hand type reasoning
-        const r1 = heroHand[0], r2 = heroHand[1];
-        const isPair = r1 === r2;
-        const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
-        const isHighCard = ['A', 'K', 'Q'].includes(r1);
-
-        // ── Call node (BB defending vs an SB shove) — no fold equity exists,
-        // so the shove-flavoured reasons below would be nonsense here.
+        // These artifacts contain action frequencies, not per-action EV or a
+        // complete tournament payout model. Explain exactly what the chart
+        // records without inventing ICM, profitability, or equity rationale.
         if (isCallNode) {
             if (correctAction === 'call') {
-                let reason = '';
-                if (isPair) reason = 'Pocket pairs realise their full equity all-in - no reverse implied odds.';
-                else if (isHighCard) reason = 'High-card hands dominate enough of the shoving range to call profitably.';
-                else if (isSuited) reason = 'The pot odds an all-in lays make this suited hand a profitable call.';
-                else reason = 'Against a wide shoving range, the price makes this call profitable.';
-                return `ICM: ${heroHand} is a ${pct}% call from ${pos} at ${stack}BB facing the shove. ${reason}`;
+                return `${chartLabel}: ${heroHand} is called ${pct}% of the time from ${pos} at ${stack}BB facing the shove, so Call is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
             }
-            return `ICM: ${heroHand} is only a ${pct}% call from ${pos} at ${stack}BB facing the shove. `
-                + `You have no fold equity when calling - the hand must win at showdown often enough, and this one doesn't.`;
+            return `${chartLabel}: ${heroHand} is called only ${pct}% of the time from ${pos} at ${stack}BB facing the shove, so Fold is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
         }
 
-        if (correctAction === 'push') {
-            let reason = '';
-            if (isPair) reason = 'Pocket pairs have strong all-in equity against calling ranges.';
-            else if (isHighCard && isSuited) reason = 'Suited broadway hands combine card removal, equity, and playability.';
-            else if (isHighCard) reason = 'High card strength plus fold equity makes this a profitable shove.';
-            else if (isSuited) reason = 'Suitedness adds ~3% equity, pushing this hand into shoving range.';
-            else reason = 'Fold equity at this stack depth compensates for marginal hand strength.';
-
-            if (stack <= 8) reason += ` At ${stack}BB, push-or-fold is optimal - no room for post-flop play.`;
-            else if (stack <= 12) reason += ` At ${stack}BB, shoving preserves fold equity before the blinds eat further into your stack.`;
-
-            return `ICM: ${heroHand} is a ${pct}% push from ${pos} at ${stack}BB. ${reason}`;
+        if (correctAction === 'all_in') {
+            return `${chartLabel}: ${heroHand} is pushed all-in ${pct}% of the time from ${pos} at ${stack}BB, so Push All-In is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
         }
-
-        let foldReason = '';
-        if (stack > 15) foldReason = `At ${stack}BB you have enough chips to wait for a better spot.`;
-        else foldReason = `Even at ${stack}BB, this hand doesn't have enough equity against calling ranges to justify the risk.`;
-
-        return `ICM: ${heroHand} is only a ${pct}% push from ${pos} at ${stack}BB. ${foldReason}`;
+        return `${chartLabel}: ${heroHand} is pushed all-in only ${pct}% of the time from ${pos} at ${stack}BB, so Fold is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
     }
 
     /**

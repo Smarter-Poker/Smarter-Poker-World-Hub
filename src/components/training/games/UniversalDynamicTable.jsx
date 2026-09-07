@@ -34,6 +34,7 @@ import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars'
 import TrainingQuestionReport from '../TrainingQuestionReport';
 import { isVerifiedSolverQuestion } from '../../../lib/training/solverDecisionEvidence';
 import { buildRngRanges, resolveRngTarget } from '../../../lib/training/rngDecisionContract.mjs';
+import { trainingSourcePresentation } from '../../../lib/training/cacheTruthContract.mjs';
 import {
     CLUB_ARENA_GEOMETRY_SOURCE,
     CLUB_ARENA_SEAT_LAYOUTS,
@@ -2491,44 +2492,17 @@ function UniversalDynamicTable({
         return { options: opts, frequencies: freqs };
     }, [infoPanelQuestion, options, computedFrequencies, showFeedback]);
 
-    // ═══ SOLVER PROVENANCE (GTOW parity #31) ═══
-    // /api/training/batch-preload already computes a `dataQuality` flag. It
-    // starts at 'SOLVER_EXACT' and degrades to 'SIMULATED' the moment the route
-    // has to fabricate hero cards, a board, or the action mix itself, and it
-    // writes the result onto every question it returns. Nothing in the app ever
-    // read it — a repo-wide search found zero consumers. The consequence is the
-    // one thing a solver trainer cannot afford: a modelled distribution was
-    // rendered in exactly the same typeface as a real PioSOLVER one, so a player
-    // memorising "the solver bets 62% here" had no way to know whether that
-    // number came from the solver or from a hash of the question id.
-    //
-    // There are two independent routes to a modelled mix and both must be
-    // caught: the API's own flag, and the local simulateGTOFrequencies()
-    // fallback in `computedFrequencies` that fires whenever no gtoFrequencies
-    // prop arrived at all. Reading only the flag would still have let the
-    // second one through silently.
-    //
+    // The server has already validated and checksum-bound the canonical policy
+    // before stripping its answer-bearing distribution from the public payload.
+    // Render the resulting public classification string. Passing the sanitized
+    // question back through structural policy validation would necessarily
+    // downgrade every legitimate signed question because the private policy is
+    // intentionally absent before the player answers.
     // Snapshot-aware for the same reason as panelStrategy: through feedback the
-    // parent may already have swapped in the preloaded next hand, and the badge
-    // must describe the hand whose numbers are on screen.
+    // parent may already have swapped in the preloaded next hand.
     const frequencySource = useMemo(() => {
-        const q = infoPanelQuestion;
-        const solverMix = (showFeedback && q?.gtoFrequencies) ? q.gtoFrequencies : gtoFrequencies;
-        // DeterministicGTOEngine never sets dataQuality — it tags provenance with
-        // `source` instead. Both the retired POSTFLOP_ENGINE label and the
-        // explicit LOCAL_POSTFLOP_HEURISTIC source describe illustrative local
-        // weights, while hand_history_import is the player's own hand with no
-        // solve behind it. None may appear as though PioSOLVER produced it.
-        const MODELLED_SOURCES = ['LOCAL_POSTFLOP_HEURISTIC', 'POSTFLOP_ENGINE', 'hand_history_import', 'CACHED_LEGACY', 'GROK_GTO'];
-        const isModelled =
-            !isVerifiedSolverQuestion(q) ||
-            q?.dataQuality === 'SIMULATED' ||
-            MODELLED_SOURCES.includes(q?.source) ||
-            !solverMix;
-        return isModelled
-            ? { modelled: true, label: 'MODELLED', fg: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)', title: 'Modelled distribution - this spot had no exact solver output, so the action mix is estimated. Treat the shape as directional, not exact.' }
-            : { modelled: false, label: 'SOLVER', fg: '#4ade80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)', title: 'Exact PioSOLVER output for this spot.' };
-    }, [infoPanelQuestion, gtoFrequencies, showFeedback]);
+        return trainingSourcePresentation(infoPanelQuestion?.sourceClassification);
+    }, [infoPanelQuestion]);
 
     // ═══ DIFFICULTY MODE GROUPING (GTO Wizard Simple/Grouped/Standard) ═══
     // GTOW parity #21: `difficultyMode` is only ever set by TrainerConfigModal.

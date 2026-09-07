@@ -11,6 +11,7 @@ import {
   validateAndNormalizeScenario,
 } from '../src/lib/sandbox/scenarioContract.mjs';
 import { chooseTrainingCacheMatch } from '../src/lib/sandbox/trainingCacheSolver.mjs';
+import { sealCanonicalTrainingQuestion } from './helpers/canonicalTrainingPolicyFixture.mjs';
 
 const BASE = {
   heroHand: { card1: 'Ah', card2: 'Kd' },
@@ -39,7 +40,7 @@ const SOLVER_PROVENANCE = Object.freeze({
 });
 
 function canonicalQuestion(overrides = {}) {
-  return {
+  return sealCanonicalTrainingQuestion({
     source: 'PIO',
     solverProvenance: SOLVER_PROVENANCE,
     dataQuality: 'VERIFIED',
@@ -62,7 +63,7 @@ function canonicalQuestion(overrides = {}) {
       board: 'Qs 7h 2c',
       ...overrides,
     },
-  };
+  });
 }
 
 test('server scenario contract rejects missing cards instead of inventing a default hand', () => {
@@ -249,7 +250,7 @@ test('canonical question is verified only when its complete decision context mat
   });
   assert.equal(exact?.contextVerified, true);
 
-  const unsealed = chooseTrainingCacheMatch([{ ...row, question_data: { ...row.question_data, solverProvenance: undefined } }], {
+  const unsealed = chooseTrainingCacheMatch([{ ...row, question_data: { ...row.question_data, solverPolicy: undefined } }], {
     heroNotation: 'AKo', heroPosition: 'BTN', heroStack: 100,
     street: 'flop', boardCards: ['Qs', '7h', '2c'], facingBet: false,
     decisionContext: validateAndNormalizeScenario(BASE),

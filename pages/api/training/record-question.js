@@ -24,6 +24,8 @@ import {
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
+import { cacheRowIsServingEligible } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import { stablePolicyJson } from '../../../src/lib/training/solverPolicyContract.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -47,6 +49,33 @@ async function getImmutableQuestionSnapshot(snapshotKey) {
     { label: 'RecordQuestion:snapshot-read' },
   );
   return result.data || null;
+}
+
+async function getCanonicalQuestion(questionId) {
+  const result = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_question_cache')
+      .select('question_id, question_data, game_id, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+      .eq('question_id', String(questionId))
+      .in('quality_status', ['active', 'active_fallback'])
+      .maybeSingle(),
+    { label: 'RecordQuestion:canonical-policy-read' },
+  );
+  return result.data || null;
+}
+
+function canonicalPolicyReceiptMatches({ canonicalQuestion, cacheRow, submittedChecksum }) {
+  const snapshotChecksum = String(canonicalQuestion?.policyChecksum || '').trim().toLowerCase();
+  const currentChecksum = String(cacheRow?.policy_checksum || '').trim().toLowerCase();
+  const bodyChecksum = typeof submittedChecksum === 'string'
+    ? submittedChecksum.trim().toLowerCase()
+    : '';
+  return /^[0-9a-f]{64}$/.test(snapshotChecksum)
+    && snapshotChecksum === currentChecksum
+    && /^[0-9a-f]{64}$/.test(bodyChecksum)
+    && bodyChecksum === snapshotChecksum
+    && cacheRowIsServingEligible(cacheRow)
+    && stablePolicyJson(canonicalQuestion?.solverPolicy) === stablePolicyJson(cacheRow?.canonical_policy);
 }
 export default async function handler(req, res) {
   try {
@@ -139,6 +168,7 @@ export default async function handler(req, res) {
       const canonicalQuestion = snapshot.question_data;
       let answerContract;
       let servedQuestion;
+      let canonicalCacheRow;
       try {
         const verifiedReceipt = verifyTrainingGradingReceipt(
           req.body.gradingReceipt ?? req.body.receipt,
@@ -154,6 +184,18 @@ export default async function handler(req, res) {
         );
         receiptPayload = verifiedReceipt.payload;
         servedQuestion = verifiedReceipt.servedQuestion;
+        canonicalCacheRow = await getCanonicalQuestion(receiptPayload.questionId);
+        if (!canonicalPolicyReceiptMatches({
+          canonicalQuestion,
+          cacheRow: canonicalCacheRow,
+          submittedChecksum: req.body.policyChecksum,
+        })) {
+          return res.status(409).json({
+            success: false,
+            error: 'This question policy changed after it was served. Refresh the training hand and try again.',
+            code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
+          });
+        }
         if (
           req.body.gradingMode
           && normalizeTrainingDifficultyMode(req.body.gradingMode) !== receiptPayload.difficultyMode
@@ -268,6 +310,9 @@ export default async function handler(req, res) {
           canonicalSolverIsCorrect: canonicalSolverGrade.isCorrect,
           optimalAction: canonicalSolverGrade.optimalAction,
           dataQuality: canonicalQuestion.dataQuality || null,
+          sourceClassification: canonicalCacheRow.source_classification,
+          policyVersion: canonicalCacheRow.policy_version,
+          policyChecksum: canonicalCacheRow.policy_checksum,
           ...(verified ? {} : { reason: 'question_not_solver_verified' }),
         },
       };
@@ -312,12 +357,25 @@ export default async function handler(req, res) {
       // blind question hints which answer keeps the solved line alive. Reveal
       // only the canonical option id, and only after the exact answer row has
       // been durably inserted (or verified as an identical replay).
-      const continuationAction = String(
+      const continuationSourceAction = String(
         canonicalScenario.nextStreetContinuationAction || '',
       );
-      const revealedContinuationAction = servedQuestion.options?.some(
-        (option) => String(option?.id ?? option) === continuationAction,
-      ) ? continuationAction : null;
+      const continuationPolicyMatches = (servedQuestion.solverPolicy?.actions || [])
+        .filter((action) => (
+          action?.legal !== false
+          && String(action?.sourceCode || '') === continuationSourceAction
+        ));
+      const continuationPolicyAction = continuationPolicyMatches.length === 1
+        ? continuationPolicyMatches[0]
+        : null;
+      const revealedContinuationAction = continuationPolicyAction
+        && /^b[1-9]\d*$/.test(continuationSourceAction)
+        && continuationPolicyAction.family === 'bet'
+        && servedQuestion.options?.some(
+          (option) => String(option?.id ?? option) === String(continuationPolicyAction.id),
+        )
+        ? String(continuationPolicyAction.id)
+        : null;
 
       return res.status(200).json({
         success: true,
@@ -359,7 +417,14 @@ export default async function handler(req, res) {
           solverVerified: verified,
           dataQuality: servedQuestion.dataQuality || null,
           continuation: revealedContinuationAction
-            ? { actionId: revealedContinuationAction }
+            ? {
+                actionId: revealedContinuationAction,
+                // This is revealed only after durable grading. The semantic id
+                // is used by the client; the checksummed warehouse token is
+                // retained solely for exact local pot projection and is never
+                // accepted back as continuation authority.
+                sourceAction: continuationSourceAction,
+              }
             : null,
         },
       });

@@ -1,8 +1,10 @@
+import { randomUUID } from 'node:crypto';
+
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
+import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
@@ -13,6 +15,7 @@ import { toPublicTrainingQuestion } from '../../../src/lib/training/gradingRecei
 import { applyDifficultyToQuestion } from '../../../src/lib/training/difficultyQuestionContract.mjs';
 import {
   isTrainingAttemptContractError,
+  isTrainingQuestionCampaignEligible,
   prepareTrainingAttemptDelivery,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
@@ -20,6 +23,11 @@ import {
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
+import {
+  cacheRowIsServingEligible,
+  recordTrainingQuestionsServed,
+  withPersistedCacheReceipt,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 const DAILY_GAME_ID = 'daily-challenge';
 const DAILY_LEVEL = 1;
@@ -77,26 +85,28 @@ function tomorrowAtChicagoMidnight(today) {
 }
 
 function canonicalizeCandidate(row) {
-  if (!row?.question_data) return null;
+  if (!cacheRowIsServingEligible(row)) return null;
   let question;
   try {
-    question = JSON.parse(JSON.stringify(row.question_data));
+    question = withPersistedCacheReceipt(row.question_data, row);
   } catch {
     return null;
   }
-  question.id = String(question.id || row.question_id || '').slice(0, 180);
+  question.id = String(row.question_id || question.id || '').slice(0, 180);
   if (!question.id) return null;
-  reconcileAnswerKey(question);
   question = enforceTrainingQuestionContract(question);
-  return isTrainingQuestionValid(question) ? { row, question } : null;
+  return isTrainingQuestionValid(question) && isTrainingQuestionCampaignEligible(question)
+    ? { row, question }
+    : null;
 }
 
 async function readCandidateRange(start, end) {
   return runTrainingPersistenceQuery(
     () => getSupabase()
       .from('training_question_cache')
-      .select('question_data, question_id, game_id, engine_type, level')
-      .in('engine_type', DAILY_ENGINE_TYPES)
+      .select('question_data, question_id, game_id, engine_type, question_kind, level, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+      .in('question_kind', DAILY_ENGINE_TYPES)
+      .in('quality_status', ['active', 'active_fallback'])
       .order('question_id', { ascending: true })
       .range(start, end),
     { label: 'DailyChallenge:candidate-read' },
@@ -113,7 +123,8 @@ async function selectDailyCanonicalQuestion(today) {
     () => getSupabase()
       .from('training_question_cache')
       .select('question_id', { count: 'exact', head: true })
-      .in('engine_type', DAILY_ENGINE_TYPES),
+      .in('question_kind', DAILY_ENGINE_TYPES)
+      .in('quality_status', ['active', 'active_fallback']),
     { label: 'DailyChallenge:candidate-count' },
   );
   const count = Number(countResult.count || 0);
@@ -268,7 +279,10 @@ async function readCompletedAttempt(userId, row) {
     return null;
   }
   const evidence = await readAttemptEvidence(attempt);
-  if (!evidence) return null;
+  // A completion is an identity-bound historical record, not merely a set of
+  // aggregate counters. Never substitute today's candidate when any part of
+  // the completed hand's snapshot/answer/feedback chain is unavailable.
+  if (!evidence?.question || !evidence?.answer || !evidence?.feedback) return null;
   const answeredHands = Number(attempt.answered_hands);
   const correctHands = Number(attempt.correct_hands);
   const storedAccuracy = attempt.accuracy_percentage === null
@@ -358,18 +372,20 @@ export default async function handler(req, res) {
         ? await readCompletedAttempt(user.id, dailyState.row)
         : null;
 
+      if (dailyState.row && !persisted) {
+        return res.status(503).json({
+          success: false,
+          code: 'TRAINING_DAILY_COMPLETION_INTEGRITY_UNAVAILABLE',
+          error: 'The completed Daily Challenge evidence is temporarily unavailable. Please retry.',
+          retryable: true,
+        });
+      }
+
       if (persisted) {
-        let publicQuestion = persisted.question;
-        if (!publicQuestion) {
-          const fallbackCandidate = await selectDailyCanonicalQuestion(today);
-          publicQuestion = fallbackCandidate
-            ? toPublicTrainingQuestion(fallbackCandidate.question)
-            : null;
-        }
         return res.status(200).json({
           success: true,
           dailyId,
-          question: publicQuestion,
+          question: persisted.question,
           completion: persisted.completion,
           feedback: persisted.feedback,
           completionPending: false,
@@ -407,6 +423,20 @@ export default async function handler(req, res) {
           code: 'TRAINING_DAILY_QUESTION_UNAVAILABLE',
           error: 'Today\u2019s canonical Daily Challenge is temporarily unavailable.',
         });
+      }
+
+      try {
+        await recordTrainingQuestionsServed(getSupabase(), {
+          requestId: randomUUID(),
+          userId: user.id,
+          receipts: [{
+            questionId: candidate.row.question_id,
+            policyChecksum: candidate.row.policy_checksum,
+          }],
+        });
+      } catch (receiptError) {
+        console.warn('[HandOfTheDay] Refusing to serve an unreceipted question:', receiptError?.message || receiptError);
+        return res.status(503).json(trainingPersistenceUnavailableBody());
       }
 
       let delivery;

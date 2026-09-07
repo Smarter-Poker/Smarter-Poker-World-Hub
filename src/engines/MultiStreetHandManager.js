@@ -307,7 +307,8 @@ export class MultiStreetHand {
         // The supervised Pio export uses chip-denominated b/r tokens. Older
         // authored scenarios use percentages. Respect the explicit unit tag
         // so b412 means 4.12 BB here, never 412% of the pot.
-        this.pot = computePotAfterAction(this.pot, actionCode, {
+        const sourceActionCode = scenario.nextStreetContinuationSourceAction || actionCode;
+        this.pot = computePotAfterAction(this.pot, sourceActionCode, {
             actionUnits: scenario.solverActionUnits || 'percent',
             facingBet: scenario.villainBet,
         });

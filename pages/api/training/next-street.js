@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
@@ -7,6 +9,8 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import { sourceClassificationForQuestion } from '../../../src/lib/training/cacheTruthContract.mjs';
+import { normalizeBoard, normalizeHolding } from '../../../src/lib/training/solverPolicyContract.js';
 import {
   prepareTrainingQuestionForDelivery,
   TrainingGradingReceiptError,
@@ -20,6 +24,7 @@ import {
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
+import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 applyDeterministicEnginePatches(deterministicEngine);
 
@@ -162,6 +167,72 @@ function canonicalSolverScenarioHash({ street, gameType, heroPosition, stackDept
   return `${prefix}${family}_${heroPosition}_${stackDepth}bb_${boardCards.join('')}`;
 }
 
+function canonicalContinuationPolicyMatchesQuestion(question) {
+  const policy = question?.solverPolicy;
+  const provenance = question?.solverProvenance;
+  const scenario = question?.scenario || {};
+  const classification = sourceClassificationForQuestion(question);
+  const optionIds = (Array.isArray(question?.options) ? question.options : [])
+    .map((option) => String(option?.id || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  const policyIds = (Array.isArray(policy?.actions) ? policy.actions : [])
+    .filter((action) => action?.legal !== false)
+    .map((action) => String(action?.id || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  const exactAuthority = classification === 'SOLVER_EXACT'
+    && policy?.kind === 'exact'
+    && policy?.qualitySeal === 'SOLVER_EXACT'
+    && policy?.fallbackReason === null
+    && policy?.validDomain?.completeKey === true
+    && (policy?.validDomain?.approximatedDimensions || []).length === 0;
+  // The present v2 warehouse proves an exact row/node/runout identity but it
+  // does not carry a complete checksummed canonical decision key. Preserve
+  // that distinction: the continuation lookup is exact while its answer
+  // authority remains explicitly solver-derived.
+  const derivedAuthority = classification === 'SOLVER_DERIVED_RESPONSE'
+    && policy?.kind === 'derived'
+    && policy?.qualitySeal === 'SOLVER_DERIVED_RESPONSE'
+    && policy?.fallbackReason === 'decision_key_incomplete'
+    && policy?.validDomain?.completeKey === false
+    && (policy?.validDomain?.approximatedDimensions || []).length === 0;
+  const source = policy?.sourceArtifact;
+  const key = policy?.key;
+  const scenarioPot = Number(scenario.pot);
+  return Boolean(
+    (exactAuthority || derivedAuthority)
+    && question?.dataQuality === classification
+    && source?.system === 'solved_spots_gold_v2'
+    && source?.provenanceComplete === true
+    && provenance?.verified === true
+    && provenance?.source === 'PioSOLVER'
+    && source?.scenarioHash === scenario.scenarioHash
+    && source?.scenarioHash === provenance.scenarioHash
+    && source?.solverVersion === provenance.solverVersion
+    && source?.solverBinaryChecksum === provenance.solverBinaryChecksum
+    && source?.machineId === provenance.machineId
+    && source?.pipelineCommit === provenance.pipelineCommit
+    && String(source?.manifestVersion) === String(provenance.manifestVersion)
+    && source?.manifestChecksum === provenance.manifestChecksum
+    && source?.sourceArtifactChecksum === provenance.sourceArtifactChecksum
+    && source?.qualityStatus === provenance.qualityStatus
+    && String(source?.auditedAt) === String(provenance.auditedAt)
+    && String(policy?.node?.sourceNode || '') === String(scenario.solverNode || '')
+    && Number.isFinite(scenarioPot)
+    && Number(policy?.node?.potBb) === scenarioPot
+    && String(key?.street || '') === String(scenario.street || question?.street || '').toLowerCase()
+    && JSON.stringify(key?.board || []) === JSON.stringify(normalizeBoard(question?.boardCards || []))
+    && JSON.stringify(key?.holding || []) === JSON.stringify(normalizeHolding(question?.heroCards || []))
+    && String(key?.positions?.hero || '') === String(scenario.heroPosition || '').toUpperCase()
+    && Array.isArray(key?.positions?.villains)
+    && key.positions.villains.includes(String(scenario.villainPosition || '').toUpperCase())
+    && optionIds.length >= 2
+    && new Set(optionIds).size === optionIds.length
+    && JSON.stringify(optionIds) === JSON.stringify(policyIds)
+  );
+}
+
 /**
  * Verify that the durable answer is the one canonical solver action allowed
  * to continue this hand. A merely-present predecessor row is insufficient:
@@ -169,7 +240,7 @@ function canonicalSolverScenarioHash({ street, gameType, heroPosition, stackDept
  */
 export function validatePersistedContinuationDecision(parentQuestion, persistedAnswerId) {
   const scenario = parentQuestion?.scenario || {};
-  const canonicalAction = typeof scenario.nextStreetContinuationAction === 'string'
+  const sourceAction = typeof scenario.nextStreetContinuationAction === 'string'
     ? scenario.nextStreetContinuationAction.trim()
     : '';
   const optionIds = new Set(
@@ -177,15 +248,30 @@ export function validatePersistedContinuationDecision(parentQuestion, persistedA
       .map((option) => String(option?.id || ''))
       .filter(Boolean),
   );
+  const matchingPolicyActions = (Array.isArray(parentQuestion?.solverPolicy?.actions)
+    ? parentQuestion.solverPolicy.actions
+    : [])
+    .filter((action) => (
+      action?.legal !== false
+      && String(action?.sourceCode || '').trim() === sourceAction
+    ));
+  const canonicalAction = matchingPolicyActions.length === 1
+    ? String(matchingPolicyActions[0]?.id || '').trim()
+    : '';
 
   // The currently certified continuation contract is deliberately narrow:
   // hero is IP at a check/bet node, takes a chip-denominated bet branch, OOP
   // calls, the runout is dealt, then OOP checks to hero. Fold, all-in, call,
   // raise, percentages, prose labels, or an action absent from this exact
   // question are all terminal/off-tree here.
-  if (!CONTINUATION_ACTION_RE.test(canonicalAction)
+  if (!canonicalContinuationPolicyMatchesQuestion(parentQuestion)
+    || !CONTINUATION_ACTION_RE.test(sourceAction)
     || scenario.solverActionUnits !== 'chips'
     || scenario.nodeType !== 'hero_bets_or_checks'
+    || matchingPolicyActions[0]?.family !== 'bet'
+    || matchingPolicyActions[0]?.size?.exact !== true
+    || !Number.isFinite(Number(matchingPolicyActions[0]?.size?.chips))
+    || Number(matchingPolicyActions[0].size.chips) <= 0
     || !optionIds.has(canonicalAction)) {
     return {
       ok: false,
@@ -202,7 +288,7 @@ export function validatePersistedContinuationDecision(parentQuestion, persistedA
       error: 'The saved decision does not match the canonical continuation branch.',
     };
   }
-  return { ok: true, action: canonicalAction };
+  return { ok: true, action: sourceAction, answerId: canonicalAction };
 }
 
 /** Construct the one exact child row/node that may follow the signed parent. */
@@ -244,7 +330,8 @@ export function buildExactContinuationLineage({
       (card, index) => card === state.boardCards[state.boardCards.length - exposedRunout.length + index],
     );
   const exactRelease = Boolean(
-    parentQuestion?.dataQuality === 'SOLVER_EXACT'
+    canonicalContinuationPolicyMatchesQuestion(parentQuestion)
+    && SHA256_RE.test(String(parentQuestion?.policyChecksum || ''))
     && provenance.verified === true
     && provenance.source === 'PioSOLVER'
     && provenance.qualityStatus === 'validated'
@@ -333,7 +420,7 @@ export function bindExactContinuationQuestion(generated, { state, nextBoard, lin
     || String(scenario.street || '').toLowerCase() !== lineage?.childStreet
     || scenario.heroPosition !== lineage?.heroPosition
     || scenario.villainPosition !== lineage?.villainPosition
-    || generated?.dataQuality !== 'SOLVER_EXACT'
+    || !canonicalContinuationPolicyMatchesQuestion(generated)
     || provenance.verified !== true
     || provenance.source !== 'PioSOLVER'
     || provenance.qualityStatus !== 'validated'
@@ -623,8 +710,26 @@ export default async function handler(req, res) {
       });
     }
 
+    let persistedCanonicalQuestion;
+    try {
+      [persistedCanonicalQuestion] = await persistCanonicalTrainingQuestions(getSupabase(), {
+        questions: [canonicalQuestion],
+        gameId: receiptPayload.gameId,
+        questionKind: 'PIO',
+        gameType: String(receiptPayload.gameId).startsWith('mtt-') ? 'tournament'
+          : String(receiptPayload.gameId).startsWith('spins-') ? 'sng' : 'cash',
+        level: receiptPayload.level,
+        userId: user.id,
+        requestId: randomUUID(),
+        label: 'NextStreet:canonicalize',
+      });
+    } catch (canonicalizeError) {
+      console.warn('[NextStreet] Refusing to serve an uncanonicalized continuation:', canonicalizeError?.message || canonicalizeError);
+      return res.status(503).json(trainingPersistenceUnavailableBody());
+    }
+
     const candidateSnapshot = buildTrainingQuestionSnapshot({
-      canonicalQuestion,
+      canonicalQuestion: persistedCanonicalQuestion,
       gameId: receiptPayload.gameId,
       level: receiptPayload.level,
     });

@@ -272,6 +272,30 @@ test('a continuation requires exactly one matching parent decision and the same 
   );
 });
 
+test('semantic continuation identity uses the raw source token only for exact pot projection', () => {
+  const semanticQuestion = makeQuestion({
+    id: 'flop-semantic-source-action',
+    street: 'flop',
+    board: FLOP,
+    pot: 5.5,
+    nextStreetContinuationAction: 'bet_75pct',
+  });
+  semanticQuestion.scenario.solverActionUnits = 'chips';
+  semanticQuestion.scenario.nextStreetContinuationSourceAction = 'b412';
+
+  const hand = new MultiStreetHand(semanticQuestion);
+  assert.equal(hand.recordAction('bet_75pct', 'best', 0), true);
+  assert.equal(hand.currentStreet, 'flop', 'the semantic canonical option keeps the exact line alive');
+  assert.equal(hand.pot, 13.74, 'the raw b412 token projects a 4.12 BB bet and call');
+  assert.equal(hand.streetActions[0].action, 'bet_75pct');
+
+  const rawTokenIsNotAnswerIdentity = new MultiStreetHand(semanticQuestion);
+  assert.equal(rawTokenIsNotAnswerIdentity.recordAction('b412', 'best', 0), true);
+  assert.equal(rawTokenIsNotAnswerIdentity.currentStreet, 'done');
+  assert.equal(rawTokenIsNotAnswerIdentity.pot, 5.5);
+  assert.equal(rawTokenIsNotAnswerIdentity.streetActions[0].action, 'b412');
+});
+
 test('declared street and board length must describe the same initial state', () => {
   const invalid = makeQuestion({
     id: 'bad-initial-board', street: 'turn', board: FLOP, pot: 6,

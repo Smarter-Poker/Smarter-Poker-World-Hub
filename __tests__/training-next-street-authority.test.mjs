@@ -4,6 +4,20 @@ import path from 'node:path';
 import test from 'node:test';
 import { SourceTextModule, SyntheticModule } from 'node:vm';
 
+import {
+  NODE_SEMANTICS,
+  POLICY_KIND,
+  QUALITY_SEAL,
+  createSolverPolicyAnswer,
+  createSolverPolicyKey,
+  normalizeBoard,
+  normalizeHolding,
+} from '../src/lib/training/solverPolicyContract.js';
+import {
+  alignQuestionToCanonicalPolicy,
+  sourceClassificationForQuestion,
+} from '../src/lib/training/cacheTruthContract.mjs';
+
 const ROOT = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 const API_SOURCE = read('pages/api/training/next-street.js');
@@ -11,6 +25,7 @@ const API_SOURCE = read('pages/api/training/next-street.js');
 async function loadAuthorityHelpers() {
   class TrainingGradingReceiptError extends Error {}
   const dependencies = {
+    'node:crypto': { randomUUID: () => '00000000-0000-4000-8000-000000000000' },
     '../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user: null }) },
     '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
     '../../../src/engines/DeterministicGTOEngine': { deterministicEngine: {} },
@@ -26,6 +41,8 @@ async function loadAuthorityHelpers() {
       enforceTrainingQuestionContract: (question) => question,
       isTrainingQuestionValid: () => true,
     },
+    '../../../src/lib/training/cacheTruthContract.mjs': { sourceClassificationForQuestion },
+    '../../../src/lib/training/solverPolicyContract.js': { normalizeBoard, normalizeHolding },
     '../../../src/lib/training/gradingReceipt.mjs': {
       prepareTrainingQuestionForDelivery: (value) => value,
       TrainingGradingReceiptError,
@@ -40,6 +57,9 @@ async function loadAuthorityHelpers() {
       isTrainingPersistenceUnavailable: () => false,
       runTrainingPersistenceQuery: async () => ({ data: null }),
       trainingPersistenceUnavailableBody: () => ({}),
+    },
+    '../../../src/lib/training/cacheTruthPersistence.mjs': {
+      persistCanonicalTrainingQuestions: async () => [],
     },
   };
   const module = new SourceTextModule(API_SOURCE, { identifier: 'next-street.js' });
@@ -58,8 +78,8 @@ async function loadEnginePatchHelpers() {
   const source = read('src/engines/deterministicEnginePatches.js');
   const bridgeV2Matrix = (v2) => ({
     actions: ['c', 'b412'],
-    frequencies: { c: { AKo: 0.4 }, b412: { AKo: 0.6 } },
-    hand_evs: { AKo: 1.25 },
+    frequencies: { c: { '98s': 0.4 }, b412: { '98s': 0.6 } },
+    hand_evs: { '98s': 1.25 },
     node: v2.node,
     board: v2.board,
     street: v2.street,
@@ -77,6 +97,20 @@ async function loadEnginePatchHelpers() {
     },
     '../lib/training/solverDecisionEvidence': { enforceSolverClaimHonesty: (question) => question },
     '../lib/training/solverRowIdentity.mjs': { isSolverRowIdentityValid: () => true },
+    '../services/SolverPolicyService.js': {
+      normalizeSolvedPolicyRecord: (row) => ({
+        valid: Boolean(row?.strategy_matrix_v2),
+        metadata: row,
+        matrix: row?.strategy_matrix_v2 ? bridgeV2Matrix(row.strategy_matrix_v2) : null,
+        sourceV2: row?.strategy_matrix_v2 || null,
+        provenanceComplete: true,
+        defaultKey: null,
+      }),
+    },
+    '../lib/training/cacheTruthContract.mjs': {
+      alignQuestionToCanonicalPolicy,
+      sourceClassificationForQuestion,
+    },
   };
   const v2Module = new SyntheticModule(['v2ToAppMatrix'], function setV2Exports() {
     this.setExport('v2ToAppMatrix', bridgeV2Matrix);
@@ -102,56 +136,234 @@ async function loadEnginePatchHelpers() {
   return module.namespace;
 }
 
-function exactParentQuestion(overrides = {}) {
+const SOLVER_BINARY_CHECKSUM = 'a'.repeat(64);
+const PIPELINE_COMMIT = 'b'.repeat(40);
+const MANIFEST_CHECKSUM = 'c'.repeat(64);
+const SOURCE_ARTIFACT_CHECKSUM = 'd'.repeat(64);
+
+function solverProvenance({
+  scenarioHash,
+  machineId = 'M1',
+  sourceArtifactChecksum = SOURCE_ARTIFACT_CHECKSUM,
+} = {}) {
   return {
-    id: 'parent-1',
-    dataQuality: 'SOLVER_EXACT',
-    heroCards: ['9h', '8h'],
-    options: [
-      { id: 'c', text: 'Check' },
-      { id: 'b275', text: 'Bet 50%' },
-      { id: 'b412', text: 'Bet 75%' },
-      { id: 'b550', text: 'Bet 100%' },
+    verified: true,
+    source: 'PioSOLVER',
+    scenarioHash,
+    solverVersion: 'PioSOLVER-3.0',
+    solverBinaryChecksum: SOLVER_BINARY_CHECKSUM,
+    machineId,
+    pipelineCommit: PIPELINE_COMMIT,
+    manifestVersion: '5',
+    manifestChecksum: MANIFEST_CHECKSUM,
+    sourceArtifactChecksum,
+    qualityStatus: 'validated',
+    auditedAt: '2026-09-06T00:00:00.000Z',
+  };
+}
+
+function derivedCanonicalPolicy({
+  scenarioHash,
+  sourceNode,
+  street,
+  boardCards,
+  heroCards = ['9h', '8h'],
+  heroPosition = 'BTN',
+  villainPosition = 'BB',
+  potBb,
+  provenance,
+} = {}) {
+  const key = createSolverPolicyKey({
+    variant: 'nlh',
+    bettingStructure: 'no_limit',
+    tableSize: 2,
+    positions: {
+      hero: heroPosition,
+      villains: [villainPosition],
+      button: 'BTN',
+      smallBlind: 'BTN',
+      bigBlind: 'BB',
+    },
+    stackVector: [
+      { seat: 0, position: heroPosition, stackBb: 100, active: true },
+      { seat: 1, position: villainPosition, stackBb: 100, active: true },
     ],
-    scenario: {
-      board: 'As Kd Qc',
-      street: 'flop',
-      gameType: '6max_cash',
-      scenarioHash: '6max_cash_BTN_100bb_AsKdQc',
-      heroHand: 'AKo',
-      heroPosition: 'BTN',
-      villainPosition: 'BB',
-      pot: 5.5,
-      stackDepth: 100,
-      solverNode: 'r:0:c',
-      solverActionUnits: 'chips',
-      nodeType: 'hero_bets_or_checks',
-      nextStreetContinuationAction: 'b412',
-      solverLineage: {
-        rootPotBb: 5.5,
-        effectiveStackBb: 97.5,
-        rake: '0 0 0 0',
-        treeGeometry: 'srp_parameterized_v2',
-        oopPosition: 'BB',
-        ipPosition: 'BTN',
+    // These recorded v2 rows do not prove a complete canonical decision key.
+    blinds: { complete: false },
+    rake: { complete: false },
+    tournamentUtility: { mode: 'cash', complete: true },
+    payouts: [],
+    bounties: [],
+    street,
+    board: boardCards,
+    holding: heroCards,
+    publicActionHistory: { complete: false, actions: [] },
+    legalActions: [
+      { action: 'check', exactChips: 0 },
+      { action: 'bet', exactChips: 412 },
+    ],
+    sidePotEligibility: { complete: false, pots: [] },
+  });
+  return createSolverPolicyAnswer({
+    key,
+    kind: POLICY_KIND.DERIVED,
+    node: {
+      semantics: NODE_SEMANTICS.CHECK_OR_BET,
+      sourceNode,
+      actor: heroPosition,
+      potBb,
+      facingBetBb: 0,
+    },
+    actions: [
+      {
+        id: 'check',
+        sourceCode: 'c',
+        family: 'check',
+        label: 'Check',
+        frequency: 0.4,
+        legal: true,
+        size: { unit: 'none', exact: false },
       },
+      {
+        id: 'bet_75pct',
+        sourceCode: 'b412',
+        family: 'bet',
+        label: 'Bet 75% Pot',
+        frequency: 0.6,
+        legal: true,
+        size: {
+          unit: 'chips',
+          chips: 412,
+          bigBlinds: 4.12,
+          potFraction: 0.75,
+          exact: true,
+        },
+      },
+    ],
+    sourceArtifact: {
+      system: 'solved_spots_gold_v2',
+      artifactId: `solved-row:${scenarioHash}:${sourceNode}`,
+      scenarioHash,
+      solverVersion: provenance.solverVersion,
+      solverBinaryChecksum: provenance.solverBinaryChecksum,
+      machineId: provenance.machineId,
+      pipelineCommit: provenance.pipelineCommit,
+      manifestVersion: provenance.manifestVersion,
+      manifestChecksum: provenance.manifestChecksum,
+      sourceArtifactChecksum: provenance.sourceArtifactChecksum,
+      qualityStatus: provenance.qualityStatus,
+      auditedAt: provenance.auditedAt,
+      provenanceComplete: true,
     },
-    solverProvenance: {
-      verified: true,
-      source: 'PioSOLVER',
-      scenarioHash: '6max_cash_BTN_100bb_AsKdQc',
-      solverVersion: 'PioSOLVER-3.0',
-      solverBinaryChecksum: 'a'.repeat(64),
-      machineId: 'M1',
-      pipelineCommit: 'b'.repeat(40),
-      manifestVersion: '5',
-      manifestChecksum: 'c'.repeat(64),
-      sourceArtifactChecksum: 'd'.repeat(64),
-      qualityStatus: 'validated',
-      auditedAt: '2026-09-06T00:00:00.000Z',
+    qualitySeal: QUALITY_SEAL.SOLVER_DERIVED_RESPONSE,
+    validDomain: {
+      exactMatchDimensions: ['gameType', 'stackDepth', 'street', 'board', 'holdingClass'],
+      approximatedDimensions: [],
+      exclusions: [],
     },
+    confidence: 0.55,
+    fallbackReason: 'decision_key_incomplete',
+  });
+}
+
+function derivedParentQuestion(overrides = {}) {
+  const scenarioHash = '6max_cash_BTN_100bb_AsKdQc';
+  const provenance = solverProvenance({ scenarioHash });
+  const scenario = {
+    board: 'As Kd Qc',
+    boardCards: ['As', 'Kd', 'Qc'],
+    street: 'flop',
+    gameType: '6max_cash',
+    scenarioHash,
+    heroHand: '98s',
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    pot: 5.5,
+    stackDepth: 100,
+    solverNode: 'r:0:c',
+    solverActionUnits: 'chips',
+    nodeType: 'hero_bets_or_checks',
+    nextStreetContinuationAction: 'b412',
+    solverLineage: {
+      rootPotBb: 5.5,
+      effectiveStackBb: 97.5,
+      rake: '0 0 0 0',
+      treeGeometry: 'srp_parameterized_v2',
+      oopPosition: 'BB',
+      ipPosition: 'BTN',
+    },
+  };
+  const question = {
+    id: 'parent-1',
+    dataQuality: 'SOLVER_DERIVED_RESPONSE',
+    sourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    heroCards: ['9h', '8h'],
+    boardCards: ['As', 'Kd', 'Qc'],
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet_75pct', text: 'Bet 75% Pot' },
+    ],
+    correctAnswer: 'bet_75pct',
+    policyChecksum: 'e'.repeat(64),
+    scenario,
+    solverProvenance: provenance,
+    solverPolicy: derivedCanonicalPolicy({
+      scenarioHash,
+      sourceNode: scenario.solverNode,
+      street: scenario.street,
+      boardCards: ['As', 'Kd', 'Qc'],
+      potBb: scenario.pot,
+      provenance,
+    }),
+  };
+  return {
+    ...question,
     ...overrides,
   };
+}
+
+function derivedChildQuestion(lineage, nextBoard, overrides = {}) {
+  const provenance = solverProvenance({
+    scenarioHash: lineage.childScenarioHash,
+    machineId: 'M2',
+    sourceArtifactChecksum: 'f'.repeat(64),
+  });
+  const scenario = {
+    scenarioHash: lineage.childScenarioHash,
+    solverNode: lineage.childNode,
+    street: 'turn',
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    boardCards: [...nextBoard],
+    pot: 13.74,
+    stackDepth: 95.88,
+    solverStackDepth: 100,
+    solverLineage: { ...lineage.release },
+  };
+  const question = {
+    id: 'child-1',
+    dataQuality: 'SOLVER_DERIVED_RESPONSE',
+    sourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    heroCards: ['9h', '8h'],
+    boardCards: [...nextBoard],
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet_75pct', text: 'Bet 75% Pot' },
+    ],
+    correctAnswer: 'bet_75pct',
+    policyChecksum: '9'.repeat(64),
+    solverProvenance: provenance,
+    scenario,
+    solverPolicy: derivedCanonicalPolicy({
+      scenarioHash: lineage.childScenarioHash,
+      sourceNode: lineage.childNode,
+      street: 'turn',
+      boardCards: nextBoard,
+      potBb: scenario.pot,
+      provenance,
+    }),
+  };
+  return { ...question, ...overrides };
 }
 
 test('next-street accepts only an authenticated signed POST continuation', () => {
@@ -207,14 +419,19 @@ test('continuation state and delivery are reconstructed from immutable server da
 
 test('persisted predecessor answer must exactly select the canonical non-terminal branch', async () => {
   const { validatePersistedContinuationDecision } = await loadAuthorityHelpers();
-  const parent = exactParentQuestion();
+  const parent = derivedParentQuestion();
 
   assert.deepEqual(
-    { ...validatePersistedContinuationDecision(parent, 'b412') },
-    { ok: true, action: 'b412' },
+    { ...validatePersistedContinuationDecision(parent, 'bet_75pct') },
+    { ok: true, action: 'b412', answerId: 'bet_75pct' },
   );
   assert.equal(
-    validatePersistedContinuationDecision(parent, 'c').code,
+    validatePersistedContinuationDecision(parent, 'b412').code,
+    'TRAINING_CONTINUATION_ACTION_MISMATCH',
+    'the durable answer is the semantic policy id, never the warehouse path token',
+  );
+  assert.equal(
+    validatePersistedContinuationDecision(parent, 'check').code,
     'TRAINING_CONTINUATION_ACTION_MISMATCH',
   );
   assert.equal(
@@ -223,7 +440,7 @@ test('persisted predecessor answer must exactly select the canonical non-termina
   );
 
   for (const invalidAction of ['', 'fold', 'f', 'allin', 'call', 'r824', 'Bet 75%']) {
-    const invalid = exactParentQuestion({
+    const invalid = derivedParentQuestion({
       scenario: {
         ...parent.scenario,
         nextStreetContinuationAction: invalidAction,
@@ -236,19 +453,51 @@ test('persisted predecessor answer must exactly select the canonical non-termina
     );
   }
 
-  const absentFromTree = exactParentQuestion({ options: parent.options.filter(({ id }) => id !== 'b412') });
+  const absentFromTree = derivedParentQuestion({
+    options: parent.options.filter(({ id }) => id !== 'bet_75pct'),
+  });
   assert.equal(
-    validatePersistedContinuationDecision(absentFromTree, 'b412').code,
+    validatePersistedContinuationDecision(absentFromTree, 'bet_75pct').code,
     'TRAINING_CONTINUATION_ACTION_INVALID',
   );
+
+  const duplicateSourceMapping = structuredClone(parent);
+  duplicateSourceMapping.solverPolicy.actions[0].sourceCode = 'b412';
+  assert.equal(
+    validatePersistedContinuationDecision(duplicateSourceMapping, 'bet_75pct').code,
+    'TRAINING_CONTINUATION_ACTION_INVALID',
+    'one raw tree token cannot map to multiple semantic actions',
+  );
+
+  const tamperCases = [
+    ['policy/source node cross-binding', (question) => { question.solverPolicy.node.sourceNode = 'r:0:b412'; }],
+    ['scenario/policy hash cross-binding', (question) => { question.scenario.scenarioHash += '_tampered'; }],
+    ['provenance/policy hash cross-binding', (question) => { question.solverProvenance.scenarioHash += '_tampered'; }],
+    ['source-system downgrade', (question) => { question.solverPolicy.sourceArtifact.system = 'approximate_solver'; }],
+    ['declared classification escalation', (question) => { question.dataQuality = 'SOLVER_EXACT'; }],
+    ['hidden approximation', (question) => {
+      question.solverPolicy.validDomain.approximatedDimensions.push('board');
+    }],
+    ['holding cross-binding', (question) => { question.heroCards = ['7h', '6h']; }],
+    ['option/policy mismatch', (question) => { question.options[1].id = 'bet_100pct'; }],
+  ];
+  for (const [label, mutate] of tamperCases) {
+    const tampered = structuredClone(parent);
+    mutate(tampered);
+    assert.equal(
+      validatePersistedContinuationDecision(tampered, 'bet_75pct').code,
+      'TRAINING_CONTINUATION_ACTION_INVALID',
+      label,
+    );
+  }
 });
 
-test('exact parent/action lineage derives one child node and rejects mismatched release identity', async () => {
+test('derived canonical parent permits only its exact row lineage and raw source branch', async () => {
   const {
     authoritativeHandState,
     buildExactContinuationLineage,
   } = await loadAuthorityHelpers();
-  const parent = exactParentQuestion();
+  const parent = derivedParentQuestion();
   const state = authoritativeHandState(parent);
   assert.equal(state.valid, true);
 
@@ -263,11 +512,30 @@ test('exact parent/action lineage derives one child node and rejects mismatched 
   assert.equal(lineage.childScenarioHash, 'turn_6max_cash_BTN_100bb_AsKdQcJh');
   assert.equal(lineage.childNode, 'r:0:c:b412:c:Jh:c');
 
-  const wrongRelease = exactParentQuestion({
+  const wrongRelease = derivedParentQuestion({
     solverProvenance: { ...parent.solverProvenance, pipelineCommit: 'e'.repeat(39) },
   });
   assert.equal(buildExactContinuationLineage({
     parentQuestion: wrongRelease,
+    gameConfig: { pioGameType: '6max_cash', pioStackDepth: 100 },
+    state,
+    nextBoard: ['As', 'Kd', 'Qc', 'Jh'],
+    continuationAction: 'b412',
+  }), null);
+
+  const badChecksum = derivedParentQuestion({ policyChecksum: 'not-a-checksum' });
+  assert.equal(buildExactContinuationLineage({
+    parentQuestion: badChecksum,
+    gameConfig: { pioGameType: '6max_cash', pioStackDepth: 100 },
+    state,
+    nextBoard: ['As', 'Kd', 'Qc', 'Jh'],
+    continuationAction: 'b412',
+  }), null);
+
+  const wrongNodePolicy = structuredClone(parent);
+  wrongNodePolicy.solverPolicy.node.sourceNode = 'r:0:b412';
+  assert.equal(buildExactContinuationLineage({
+    parentQuestion: wrongNodePolicy,
     gameConfig: { pioGameType: '6max_cash', pioStackDepth: 100 },
     state,
     nextBoard: ['As', 'Kd', 'Qc', 'Jh'],
@@ -281,7 +549,7 @@ test('child binding preserves exact child pot and stack instead of parent pre-ac
     bindExactContinuationQuestion,
     buildExactContinuationLineage,
   } = await loadAuthorityHelpers();
-  const parent = exactParentQuestion();
+  const parent = derivedParentQuestion();
   const state = authoritativeHandState(parent);
   const nextBoard = ['As', 'Kd', 'Qc', 'Jh'];
   const lineage = buildExactContinuationLineage({
@@ -291,41 +559,38 @@ test('child binding preserves exact child pot and stack instead of parent pre-ac
     nextBoard,
     continuationAction: 'b412',
   });
-  const generated = {
-    id: 'child-1',
-    dataQuality: 'SOLVER_EXACT',
-    solverProvenance: {
-      verified: true,
-      source: 'PioSOLVER',
-      scenarioHash: lineage.childScenarioHash,
-      solverVersion: lineage.release.solverVersion,
-      solverBinaryChecksum: lineage.release.solverBinaryChecksum,
-      machineId: 'M2',
-      pipelineCommit: lineage.release.pipelineCommit,
-      manifestVersion: lineage.release.manifestVersion,
-      manifestChecksum: lineage.release.manifestChecksum,
-      sourceArtifactChecksum: 'e'.repeat(64),
-      qualityStatus: 'validated',
-      auditedAt: '2026-09-06T00:00:00.000Z',
-    },
-    scenario: {
-      scenarioHash: lineage.childScenarioHash,
-      solverNode: lineage.childNode,
-      street: 'turn',
-      heroPosition: 'BTN',
-      villainPosition: 'BB',
-      boardCards: nextBoard,
-      pot: 13.74,
-      stackDepth: 95.88,
-      solverStackDepth: 100,
-      solverLineage: { ...lineage.release },
-    },
-  };
+  const generated = derivedChildQuestion(lineage, nextBoard);
   const bound = bindExactContinuationQuestion(generated, { state, nextBoard, lineage });
+  assert.ok(bound, 'a canonical derived child bound to the exact row lineage is eligible');
+  assert.equal(bound.dataQuality, 'SOLVER_DERIVED_RESPONSE');
+  assert.equal(bound.correctAnswer, 'bet_75pct');
+  assert.equal(
+    bound.solverPolicy.actions.find(({ id }) => id === 'bet_75pct').sourceCode,
+    'b412',
+  );
   assert.equal(bound.scenario.pot, 13.74);
   assert.equal(bound.scenario.stackDepth, 95.88);
   assert.notEqual(bound.scenario.pot, state.pot);
   assert.notEqual(bound.scenario.stackDepth, state.effectiveStackDepth);
+
+  const childTamperCases = [
+    ['child policy node', (question) => { question.solverPolicy.node.sourceNode += ':c'; }],
+    ['child scenario hash', (question) => { question.scenario.scenarioHash += '_tampered'; }],
+    ['child source hash', (question) => { question.solverPolicy.sourceArtifact.scenarioHash += '_tampered'; }],
+    ['child provenance checksum', (question) => {
+      question.solverProvenance.sourceArtifactChecksum = '0'.repeat(64);
+    }],
+    ['child geometry', (question) => { question.scenario.pot = 13.75; }],
+  ];
+  for (const [label, mutate] of childTamperCases) {
+    const tampered = structuredClone(generated);
+    mutate(tampered);
+    assert.equal(
+      bindExactContinuationQuestion(tampered, { state, nextBoard, lineage }),
+      null,
+      label,
+    );
+  }
 
   assert.doesNotMatch(API_SOURCE, /pot:\s*state\.pot/);
   assert.doesNotMatch(API_SOURCE, /stackDepth:\s*state\.stackDepth,[\s\S]{0,160}isMultiStreet/);
@@ -340,7 +605,7 @@ test('a deterministic first-card miss still selects a later exact solved runout'
     applyDeterministicEnginePatches,
     orderedExactContinuationCandidates,
   } = await loadEnginePatchHelpers();
-  const parent = exactParentQuestion();
+  const parent = derivedParentQuestion();
   const state = authoritativeHandState(parent);
   const gameConfig = { pioGameType: '6max_cash', pioStackDepth: 100 };
   const first = buildExactContinuationLineage({
@@ -407,8 +672,12 @@ test('a deterministic first-card miss still selects a later exact solved runout'
   const engine = {
     db: { from: (...args) => query.from(...args) },
     getStreetForLevel: () => 'flop',
+    generateBatch: async () => [],
     buildQuestionFromScenario: (scenario) => ({
       id: 'later-child',
+      source: 'DETERMINISTIC_SOLVER',
+      heroCards: ['9h', '8h'],
+      boardCards: scenario.strategy_matrix.board.match(/.{2}/g),
       options: [{ id: 'c', text: 'Check' }, { id: 'b412', text: 'Bet' }],
       correctAnswer: 'b412',
       gtoFrequencies: { c: 40, b412: 60 },
@@ -419,13 +688,40 @@ test('a deterministic first-card miss still selects a later exact solved runout'
         heroPosition: scenario.strategy_matrix.position,
         villainPosition: scenario.strategy_matrix.oop_player,
         boardCards: scenario.strategy_matrix.board.match(/.{2}/g),
+        pot: scenario.strategy_matrix.pot_bb,
+        stackDepth: scenario.strategy_matrix.eff_stack_bb,
+        solverStackDepth: scenario.stack_depth,
+        solverActionUnits: 'chips',
+        nodeType: 'hero_bets_or_checks',
       },
     }),
+  };
+  engine.solverPolicyService = {
+    asEngineScenario: ({ metadata, matrix }) => ({ ...metadata, strategy_matrix: matrix }),
+    answerForEngineQuestion: (_scenario, question) => derivedCanonicalPolicy({
+      scenarioHash: question.scenario.scenarioHash,
+      sourceNode: question.scenario.solverNode,
+      street: question.scenario.street,
+      boardCards: question.boardCards || question.scenario.boardCards,
+      heroCards: question.heroCards,
+      heroPosition: question.scenario.heroPosition,
+      villainPosition: question.scenario.villainPosition,
+      potBb: question.scenario.pot,
+      provenance: question.solverProvenance,
+    }),
+    attachToQuestion: (question) => ({
+      ...question,
+      dataQuality: 'SOLVER_DERIVED_RESPONSE',
+      sourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    }),
+    consumerEnvelope: (policy) => structuredClone(policy),
+    answerFromRecord: () => null,
+    keyForRecord: () => null,
   };
   applyDeterministicEnginePatches(engine);
   const generated = await engine.queryNextStreet({
     gameConfig,
-    heroHand: 'AKo',
+    heroHand: ['9h', '8h'],
     street: 'turn',
     stackDepth: 100,
     heroPosition: 'BTN',
@@ -436,6 +732,13 @@ test('a deterministic first-card miss still selects a later exact solved runout'
   assert.equal(generated.scenario.solverNode, later.childNode);
   assert.equal(generated.scenario.pot, 13.74);
   assert.equal(generated.scenario.stackDepth, 95.88);
+  assert.equal(generated.dataQuality, 'SOLVER_DERIVED_RESPONSE');
+  assert.deepEqual(generated.options.map(({ id }) => id), ['check', 'bet_75pct']);
+  assert.equal(generated.correctAnswer, 'bet_75pct');
+  assert.equal(
+    generated.solverPolicy.actions.find(({ id }) => id === 'bet_75pct').sourceCode,
+    'b412',
+  );
   assert.deepEqual(
     queryCalls.find(([method, field]) => method === 'in' && field === 'scenario_hash')[2],
     [first.childScenarioHash, later.childScenarioHash],

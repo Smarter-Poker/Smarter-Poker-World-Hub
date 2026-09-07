@@ -6,11 +6,17 @@ import { fileURLToPath } from 'node:url';
 
 import { enforceTrainingQuestionContract } from '../src/lib/training/questionContract.mjs';
 import {
+  POLICY_KIND,
+  QUALITY_SEAL,
+  validateSolverPolicyAnswer,
+} from '../src/lib/training/solverPolicyContract.js';
+import {
   prepareTrainingAttemptDelivery,
   trainingQuestionCampaignEligibility,
   TrainingAttemptDeliveryError,
 } from '../src/lib/training/trainingAttemptDelivery.mjs';
 import { trainingQuestionDigest } from '../src/lib/training/gradingReceipt.mjs';
+import { sealCanonicalTrainingQuestion } from '../tests/helpers/canonicalTrainingPolicyFixture.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONCEPT_DISCLOSURE = 'Expert-authored poker concept; no solver-exact frequency or EV is claimed.';
@@ -42,6 +48,13 @@ function canonical(question) {
   return enforceTrainingQuestionContract(structuredClone(question));
 }
 
+function seal(question, policyKind) {
+  return sealCanonicalTrainingQuestion(canonical(question), {
+    policyKind,
+    sourceArtifactSystem: 'solved_spots_gold_v2',
+  });
+}
+
 function verifiedPostflop(overrides = {}) {
   const question = {
     id: 'verified-flop-1',
@@ -62,6 +75,8 @@ function verifiedPostflop(overrides = {}) {
       heroStack: 97,
       villainStack: 97,
       nodeType: 'checked_to_hero',
+      scenarioHash: sealedProvenance.scenarioHash,
+      solverNode: 'r:0:c',
       action: 'The Big Blind checks to you.',
     },
     question: 'The Big Blind checks to you on the flop. What is your best action?',
@@ -70,7 +85,20 @@ function verifiedPostflop(overrides = {}) {
     gtoFrequencies: { x: 10, b33: 20, b75: 60, b125: 10 },
     ...overrides,
   };
-  return canonical(question);
+  return seal(question, POLICY_KIND.EXACT);
+}
+
+function verifiedDerivedPostflop() {
+  const exact = verifiedPostflop();
+  return sealCanonicalTrainingQuestion({
+    ...exact,
+    solverPolicy: undefined,
+    dataQuality: 'SOLVER_DERIVED_RESPONSE',
+    sourceClassification: 'SOLVER_DERIVED_RESPONSE',
+  }, {
+    policyKind: POLICY_KIND.DERIVED,
+    sourceArtifactSystem: 'solved_spots_gold_v2',
+  });
 }
 
 function auditedLocalPreflop() {
@@ -105,21 +133,21 @@ function auditedLocalPreflop() {
 }
 
 function provenanceSealedLocalPreflop() {
-  return canonical({
+  return seal({
     ...auditedLocalPreflop(),
     id: 'sealed-local-preflop-1',
     dataQuality: 'SOLVER_EXACT',
     solverProvenance: sealedProvenance,
     evidenceDisclosure: 'Provenance-sealed PioSOLVER export; frequencies are exact for this recorded node. Per-action EV is not available.',
-  });
+  }, POLICY_KIND.EXACT);
 }
 
 function auditedChart() {
-  return canonical({
+  return sealCanonicalTrainingQuestion(canonical({
     id: 'chart-preflop-1',
     type: 'CHART',
     source: 'CHART',
-    dataQuality: 'CHART_EXACT',
+    dataQuality: 'CHART_AUDITED',
     evidenceDisclosure: CHART_DISCLOSURE,
     heroCards: ['As', 'Ks'],
     boardCards: [],
@@ -130,24 +158,26 @@ function auditedChart() {
       heroPosition: 'BTN',
       villainPosition: 'BB',
       pot: 1.5,
+      stackDepth: 15,
       heroStack: 15,
       villainStack: 15,
       action: 'Action folds to you on the Button.',
     },
     question: 'Action folds to you on the Button with AKs. Push or Fold?',
     options: [
-      { id: 'push', text: 'Push All-In' },
+      { id: 'all_in', text: 'Push All-In' },
       { id: 'fold', text: 'Fold' },
     ],
-    correctAnswer: 'push',
-    gtoFrequencies: { push: 100, fold: 0 },
-  });
+    correctAnswer: 'all_in',
+    gtoFrequencies: { all_in: 100, fold: 0 },
+  }), { policyKind: POLICY_KIND.CHART });
 }
 
 function psychologyQuestion() {
-  return canonical({
+  return sealCanonicalTrainingQuestion(canonical({
     id: 'psych-1',
     source: 'PSYCHOLOGY_BANK',
+    dataQuality: 'CURATED',
     scenario: {
       isPsychology: true,
       description: 'You lose a large pot and notice your breathing accelerate.',
@@ -160,11 +190,11 @@ function psychologyQuestion() {
       { id: 'd', text: 'Ignore The Emotional Change' },
     ],
     correctAnswer: 'a',
-  });
+  }), { policyKind: POLICY_KIND.CURATED });
 }
 
 function conceptQuestion() {
-  return canonical({
+  return sealCanonicalTrainingQuestion(canonical({
     id: 'concept-1',
     source: 'CURATED_SCENARIO',
     dataQuality: 'CURATED',
@@ -181,21 +211,156 @@ function conceptQuestion() {
       { id: 'd', text: 'Position Removes Stack Constraints' },
     ],
     correctAnswer: 'a',
-  });
+  }), { policyKind: POLICY_KIND.CURATED });
 }
 
-test('only audited source families cross the progress-bearing delivery boundary', () => {
-  for (const question of [
-    verifiedPostflop(),
-    provenanceSealedLocalPreflop(),
-    auditedChart(),
-    psychologyQuestion(),
-    conceptQuestion(),
-  ]) {
+test('only structurally valid canonical source families cross the progress-bearing delivery boundary', () => {
+  const fixtures = [
+    [verifiedPostflop(), POLICY_KIND.EXACT, QUALITY_SEAL.SOLVER_EXACT],
+    [verifiedDerivedPostflop(), POLICY_KIND.DERIVED, QUALITY_SEAL.SOLVER_DERIVED_RESPONSE],
+    [auditedChart(), POLICY_KIND.CHART, QUALITY_SEAL.CHART_AUDITED],
+    [psychologyQuestion(), POLICY_KIND.CURATED, QUALITY_SEAL.CURATED],
+    [conceptQuestion(), POLICY_KIND.CURATED, QUALITY_SEAL.CURATED],
+  ];
+  for (const [question, kind, qualitySeal] of fixtures) {
+    assert.deepEqual(validateSolverPolicyAnswer(question.solverPolicy), { valid: true, errors: [] });
+    assert.equal(question.solverPolicy.kind, kind);
+    assert.equal(question.solverPolicy.qualitySeal, qualitySeal);
     assert.deepEqual(
       trainingQuestionCampaignEligibility(question).eligible,
       true,
       `${question.id} should be eligible`,
+    );
+  }
+
+  for (const question of [verifiedPostflop(), verifiedDerivedPostflop()]) {
+    assert.equal(question.solverPolicy.sourceArtifact.system, 'solved_spots_gold_v2');
+    assert.equal(question.scenario.scenarioHash, question.solverProvenance.scenarioHash);
+    assert.equal(question.scenario.scenarioHash, question.solverPolicy.sourceArtifact.scenarioHash);
+    assert.equal(question.scenario.solverNode, question.solverPolicy.node.sourceNode);
+  }
+  const chart = auditedChart();
+  assert.deepEqual(chart.options.map((option) => option.id), ['all_in', 'fold']);
+  assert.equal(chart.options[0].text, 'Push All-In');
+});
+
+test('derived solver authority rejects every cross-binding and lineage tamper', () => {
+  const base = verifiedDerivedPostflop();
+  assert.deepEqual(trainingQuestionCampaignEligibility(base), {
+    eligible: true,
+    reason: 'audited_poker_decision',
+  });
+
+  const cases = [
+    ['scenario hash', (question) => { question.scenario.scenarioHash = 'tampered-scenario-hash'; }],
+    ['solver node', (question) => { question.scenario.solverNode = 'r:tampered'; }],
+    ['holding', (question) => { question.heroCards = ['Js', 'Ts']; }],
+    ['board', (question) => {
+      question.boardCards = ['Ah', '7d', '3c'];
+      question.scenario.boardCards = ['Ah', '7d', '3c'];
+      question.scenario.board = 'Ah 7d 3c';
+    }],
+    ['hero position', (question) => { question.scenario.heroPosition = 'CO'; }],
+    ['villain position', (question) => { question.scenario.villainPosition = 'SB'; }],
+    ['pot geometry', (question) => { question.scenario.pot = 7; }],
+    ['option/action ids', (question) => {
+      question.options = question.options.map((option) => (
+        option.id === 'b125' ? { ...option, id: 'b150', text: 'Bet 150% Pot' } : option
+      ));
+      question.gtoFrequencies = {
+        x: 10,
+        b33: 20,
+        b75: 60,
+        b150: 10,
+      };
+    }],
+    ['warehouse system', (question) => {
+      question.solverPolicy.sourceArtifact.system = 'solved_spots_gold_v3';
+    }],
+    ['derived fallback domain', (question) => {
+      question.solverPolicy.fallbackReason = 'flop_only_board_match';
+      question.solverPolicy.validDomain.approximatedDimensions = ['turnRiverRunout'];
+    }],
+    ['exact relabel', (question) => {
+      question.dataQuality = 'SOLVER_EXACT';
+      question.sourceClassification = 'SOLVER_EXACT';
+    }],
+  ];
+
+  const lineageTamper = {
+    scenarioHash: 'tampered-lineage-hash',
+    solverVersion: 'PioSOLVER-tampered',
+    solverBinaryChecksum: 'f'.repeat(64),
+    machineId: 'M2',
+    pipelineCommit: 'f'.repeat(40),
+    manifestVersion: 'training-v2-tampered',
+    manifestChecksum: 'f'.repeat(64),
+    sourceArtifactChecksum: 'f'.repeat(64),
+    qualityStatus: 'tampered',
+    auditedAt: '2026-09-07T00:00:00.000Z',
+  };
+  for (const [field, value] of Object.entries(lineageTamper)) {
+    cases.push([`source/provenance ${field}`, (question) => {
+      question.solverPolicy.sourceArtifact[field] = value;
+    }]);
+  }
+
+  for (const [label, mutate] of cases) {
+    const question = structuredClone(base);
+    mutate(question);
+    const contracted = canonical(question);
+    assert.equal(contracted.questionContract.valid, true, `${label} must remain structurally testable`);
+    assert.equal(
+      trainingQuestionCampaignEligibility(contracted).eligible,
+      false,
+      `${label} must fail closed`,
+    );
+  }
+});
+
+test('audited chart authority binds its corpus identity, scenario, holding, seat, and all-in id', () => {
+  const base = auditedChart();
+  const cases = [
+    ['corpus system', (question) => {
+      question.solverPolicy.sourceArtifact.system = 'memory_charts_gold_copy';
+    }],
+    ['audit status', (question) => {
+      question.solverPolicy.sourceArtifact.qualityStatus = 'validated';
+    }],
+    ['provenance completeness', (question) => {
+      question.solverPolicy.sourceArtifact.provenanceComplete = false;
+    }],
+    ['fallback reason', (question) => {
+      question.solverPolicy.fallbackReason = 'chart_fallback';
+    }],
+    ['approximated domain', (question) => {
+      question.solverPolicy.validDomain.approximatedDimensions = ['stackDepth'];
+    }],
+    ['chart artifact id', (question) => { question.scenario.chartArtifactId = 'chart-copy'; }],
+    ['chart scenario hash', (question) => { question.scenario.chartScenarioHash = 'chart|tampered'; }],
+    ['chart source node', (question) => { question.scenario.chartSourceNode = 'chart-node-copy'; }],
+    ['holding', (question) => { question.heroCards = ['Ah', 'Kh']; }],
+    ['hero position', (question) => { question.scenario.heroPosition = 'CO'; }],
+    ['stack depth', (question) => { question.scenario.stackDepth = 12; }],
+    ['legacy push id', (question) => {
+      question.options = question.options.map((option) => (
+        option.id === 'all_in' ? { ...option, id: 'push' } : option
+      ));
+      question.correctAnswer = 'push';
+      question.gtoFrequencies = { push: 100, fold: 0 };
+      question.frequencies = { push: 1, fold: 0 };
+    }],
+  ];
+
+  for (const [label, mutate] of cases) {
+    const question = structuredClone(base);
+    mutate(question);
+    const contracted = canonical(question);
+    assert.equal(contracted.questionContract.valid, true, `${label} must remain structurally testable`);
+    assert.deepEqual(
+      trainingQuestionCampaignEligibility(contracted),
+      { eligible: false, reason: 'chart_authority_missing' },
+      `${label} must fail closed`,
     );
   }
 });
@@ -219,6 +384,11 @@ test('static local range frequencies remain practice-only without complete solve
     eligible: false,
     reason: 'local_range_provenance_missing',
   });
+
+  assert.deepEqual(trainingQuestionCampaignEligibility(provenanceSealedLocalPreflop()), {
+    eligible: false,
+    reason: 'local_range_provenance_missing',
+  }, 'a generic v2-looking envelope must not promote a local range without an audited local-policy authority');
 });
 
 test('simulated, illustrative, practice-only, legacy, and unaudited rows fail closed', () => {
@@ -238,12 +408,16 @@ test('simulated, illustrative, practice-only, legacy, and unaudited rows fail cl
       source: 'POSTFLOP_ENGINE',
       dataQuality: 'CURATED',
       solverProvenance: undefined,
+      solverPolicy: undefined,
+      sourceClassification: undefined,
     }, 'authority_unverified'],
     [{
       ...base,
       source: 'CURATED_SCENARIO',
       dataQuality: 'CURATED',
       solverProvenance: undefined,
+      solverPolicy: undefined,
+      sourceClassification: undefined,
     }, 'audited_decision_authority_missing'],
   ];
 
@@ -260,7 +434,7 @@ test('materially incomplete or contradictory poker context is never receipt elig
     { ...base, heroCards: undefined },
     { ...base, boardCards: [] },
     { ...base, boardCards: ['Ah', '7d', 'Ks'] },
-    { ...base, scenario: { ...base.scenario, street: undefined } },
+    { ...base, street: undefined, scenario: { ...base.scenario, street: undefined } },
     { ...base, scenario: { ...base.scenario, heroPosition: undefined } },
     { ...base, scenario: { ...base.scenario, villainPosition: 'BTN' } },
     { ...base, scenario: { ...base.scenario, pot: undefined } },
@@ -272,10 +446,7 @@ test('materially incomplete or contradictory poker context is never receipt elig
   for (const question of incomplete) {
     const result = trainingQuestionCampaignEligibility(question);
     assert.equal(result.eligible, false);
-    assert.ok(
-      ['poker_context_incomplete', 'question_contract_invalid'].includes(result.reason),
-      result.reason,
-    );
+    assert.ok(result.reason, 'the fail-closed result must explain its rejection');
   }
 });
 

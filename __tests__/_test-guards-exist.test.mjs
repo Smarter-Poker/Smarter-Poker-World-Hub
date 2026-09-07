@@ -169,6 +169,10 @@ import './trivia-lifeline-spend-integrity.test.mjs';
 // grading must run in required CI, not only in a developer's targeted command.
 import './god-mode-policy-grading.test.mjs';
 import './solver-policy-service.test.mjs';
+// Horse Brain Phase 3, 2026-09-07: cache provenance, canonical regrading,
+// atomic counters, the live drift schedule, and legacy writer retirement are
+// release gates rather than an optional developer-only audit.
+import './horse-phase3-training-cache-truth.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-history-outage-honesty.test.mjs';

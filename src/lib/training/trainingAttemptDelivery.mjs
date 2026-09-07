@@ -12,7 +12,9 @@ import {
   TrainingSessionAttemptContractError,
 } from './sessionAttemptContract.mjs';
 import { isTrainingQuestionValid } from './questionContract.mjs';
+import { sourceClassificationForQuestion } from './cacheTruthContract.mjs';
 import { isVerifiedSolverQuestion } from './solverDecisionEvidence.js';
+import { normalizeBoard, normalizeHolding } from './solverPolicyContract.js';
 import { runTrainingPersistenceQuery } from './trainingPersistence.mjs';
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
@@ -35,6 +37,8 @@ const CHART_DISCLOSURES = new Set([
   'Audited local push/fold chart corpus.',
   'Audited local push/fold chart frequencies; no per-action EV is claimed.',
 ]);
+const EXACT_SOLVER_DISCLOSURE = 'Provenance-sealed PioSOLVER export; frequencies are exact for this recorded node. Per-action EV is not available.';
+const DERIVED_SOLVER_DISCLOSURE = 'Audited PioSOLVER artifact; this displayed response is derived from the recorded node and is not labeled solver-exact because the source lacks a complete canonical decision key.';
 
 export class TrainingAttemptDeliveryError extends Error {
   constructor(message, code = 'TRAINING_ATTEMPT_DELIVERY_INVALID', status = 409) {
@@ -179,6 +183,97 @@ function hasCompleteAuditedSolverProvenance(question) {
   );
 }
 
+function canonicalPolicyMatchesSolverProvenance(question) {
+  const source = question?.solverPolicy?.sourceArtifact;
+  const provenance = question?.solverProvenance;
+  if (!source || !provenance) return false;
+  return source.provenanceComplete === true
+    && source.scenarioHash === provenance.scenarioHash
+    && source.solverVersion === provenance.solverVersion
+    && source.solverBinaryChecksum === provenance.solverBinaryChecksum
+    && source.machineId === provenance.machineId
+    && source.pipelineCommit === provenance.pipelineCommit
+    && String(source.manifestVersion) === String(provenance.manifestVersion)
+    && source.manifestChecksum === provenance.manifestChecksum
+    && source.sourceArtifactChecksum === provenance.sourceArtifactChecksum
+    && source.qualityStatus === provenance.qualityStatus
+    && String(source.auditedAt) === String(provenance.auditedAt);
+}
+
+function canonicalPolicyActionSetMatchesQuestion(question) {
+  const optionIds = (Array.isArray(question?.options) ? question.options : [])
+    .map((option) => String(option?.id || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  const policyIds = (Array.isArray(question?.solverPolicy?.actions)
+    ? question.solverPolicy.actions
+    : [])
+    .filter((action) => action?.legal !== false)
+    .map((action) => String(action?.id || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  return optionIds.length >= 2
+    && new Set(optionIds).size === optionIds.length
+    && JSON.stringify(optionIds) === JSON.stringify(policyIds);
+}
+
+function canonicalSolverPolicyMatchesQuestion(question) {
+  const policy = question?.solverPolicy;
+  const key = policy?.key;
+  const scenario = question?.scenario || {};
+  const board = normalizeBoard(question?.boardCards || []);
+  const holding = normalizeHolding(question?.heroCards || []);
+  return policy?.sourceArtifact?.system === 'solved_spots_gold_v2'
+    && policy?.sourceArtifact?.provenanceComplete === true
+    && canonicalPolicyMatchesSolverProvenance(question)
+    && String(policy?.sourceArtifact?.scenarioHash || '') === String(scenario.scenarioHash || '')
+    && canonicalPolicyActionSetMatchesQuestion(question)
+    && String(policy?.node?.sourceNode || '') === String(scenario.solverNode || '')
+    && Number.isFinite(Number(policy?.node?.potBb))
+    && Number(policy.node.potBb) === Number(scenario.pot)
+    && String(key?.street || '') === String(scenario.street || question?.street || '').toLowerCase()
+    && JSON.stringify(key?.board || []) === JSON.stringify(board)
+    && JSON.stringify(key?.holding || []) === JSON.stringify(holding)
+    && String(key?.positions?.hero || '') === String(scenario.heroPosition || '').toUpperCase()
+    && Array.isArray(key?.positions?.villains)
+    && key.positions.villains.includes(String(scenario.villainPosition || '').toUpperCase());
+}
+
+function canonicalCuratedPolicyMatchesQuestion(question) {
+  const policy = question?.solverPolicy;
+  return policy?.kind === 'curated'
+    && policy?.qualitySeal === 'CURATED'
+    && policy?.sourceArtifact?.system === question?.source
+    && String(policy?.sourceArtifact?.artifactId || '') === String(question?.id || '')
+    && canonicalPolicyActionSetMatchesQuestion(question);
+}
+
+function canonicalChartPolicyMatchesQuestion(question) {
+  const policy = question?.solverPolicy;
+  const scenario = question?.scenario || {};
+  return policy?.kind === 'chart'
+    && policy?.qualitySeal === 'CHART_AUDITED'
+    && policy?.sourceArtifact?.system === 'memory_charts_gold'
+    && policy?.sourceArtifact?.provenanceComplete === true
+    && policy?.sourceArtifact?.qualityStatus === 'audited_chart'
+    && String(policy?.sourceArtifact?.artifactId || '') === String(scenario.chartArtifactId || '')
+    && String(policy?.sourceArtifact?.scenarioHash || '') === String(scenario.chartScenarioHash || '')
+    && String(policy?.node?.sourceNode || '') === String(scenario.chartSourceNode || '')
+    && policy?.fallbackReason === null
+    && (policy?.validDomain?.approximatedDimensions || []).length === 0
+    && canonicalPolicyActionSetMatchesQuestion(question)
+    && policy?.key?.street === 'preflop'
+    && Array.isArray(policy?.key?.board)
+    && policy.key.board.length === 0
+    && JSON.stringify(policy?.key?.holding || []) === JSON.stringify(normalizeHolding(question?.heroCards || []))
+    && String(policy?.key?.positions?.hero || '') === String(scenario.heroPosition || '').toUpperCase()
+    && Array.isArray(policy?.key?.stackVector)
+    && policy.key.stackVector.some((entry) => (
+      String(entry?.position || '').toUpperCase() === String(scenario.heroPosition || '').toUpperCase()
+      && Number(entry?.stackBb) === Number(scenario.stackDepth)
+    ));
+}
+
 /**
  * Decide whether one canonical question is strong enough to mint a signed,
  * progress-eligible receipt. Structural question validity is necessary but
@@ -198,6 +293,8 @@ export function trainingQuestionCampaignEligibility(question) {
   }
 
   const source = normalizeAuthorityValue(question.source);
+  const sourceClassification = normalizeAuthorityValue(sourceClassificationForQuestion(question));
+  const dataQuality = normalizeAuthorityValue(question.dataQuality);
   if (INELIGIBLE_SOURCES.has(source) || hasDisqualifyingAuthorityMarker(question)) {
     return eligibility(false, 'authority_unverified');
   }
@@ -208,6 +305,9 @@ export function trainingQuestionCampaignEligibility(question) {
   const scenario = question.scenario || {};
   if (scenario.isPsychology === true) {
     return source === 'PSYCHOLOGY_BANK'
+      && sourceClassification === 'CURATED'
+      && dataQuality === 'CURATED'
+      && canonicalCuratedPolicyMatchesQuestion(question)
       ? eligibility(true, 'curated_psychology')
       : eligibility(false, 'psychology_authority_missing');
   }
@@ -215,34 +315,49 @@ export function trainingQuestionCampaignEligibility(question) {
   if (scenario.isConceptQuestion === true) {
     return source === 'CURATED_SCENARIO'
       && normalizeAuthorityValue(question.dataQuality) === 'CURATED'
+      && sourceClassification === 'CURATED'
+      && canonicalCuratedPolicyMatchesQuestion(question)
       && String(question.evidenceDisclosure || '') === CURATED_CONCEPT_DISCLOSURE
       ? eligibility(true, 'curated_concept')
       : eligibility(false, 'concept_authority_missing');
+  }
+
+  if (source === 'LOCAL_SOLVER_RANGES') {
+    // Static local frequencies remain useful for unscored practice, but a
+    // historical label cannot promote them into progress-bearing solver data.
+    // No audited local-policy system is defined by this contract today.
+    return eligibility(false, 'local_range_provenance_missing');
   }
 
   if (!isVerifiedSolverQuestion(question)) {
     return eligibility(false, 'audited_decision_authority_missing');
   }
 
-  if (source === 'LOCAL_SOLVER_RANGES') {
-    // The static solverRanges corpus has strategy frequencies but no artifact,
-    // tree, manifest, machine, or checksum lineage. It remains useful local
-    // practice, but it cannot mint campaign progress or rewards merely because
-    // its cache writer labeled it RANGE_EXACT. A future local row may cross the
-    // boundary only after receiving the same complete audit seal as warehouse
-    // solver output.
-    if (normalizeAuthorityValue(question.dataQuality) !== 'SOLVER_EXACT'
-      || !hasCompleteAuditedSolverProvenance(question)) {
-      return eligibility(false, 'local_range_provenance_missing');
-    }
-  } else if (source === 'CHART') {
+  if (source === 'CHART') {
     if (normalizeAuthorityValue(question.type) !== 'CHART'
-      || !['', 'CHART_EXACT'].includes(normalizeAuthorityValue(question.dataQuality))
+      || sourceClassification !== 'CHART_AUDITED'
+      || dataQuality !== 'CHART_AUDITED'
+      || !canonicalChartPolicyMatchesQuestion(question)
       || !CHART_DISCLOSURES.has(String(question.evidenceDisclosure || ''))) {
       return eligibility(false, 'chart_authority_missing');
     }
-  } else if (question?.solverProvenance?.verified !== true
-    || normalizeAuthorityValue(question.dataQuality) !== 'SOLVER_EXACT') {
+  } else if (!['SOLVER_EXACT', 'SOLVER_DERIVED_RESPONSE'].includes(sourceClassification)
+    || dataQuality !== sourceClassification
+    || !hasCompleteAuditedSolverProvenance(question)
+    || !canonicalSolverPolicyMatchesQuestion(question)
+    || (sourceClassification === 'SOLVER_EXACT'
+      ? (question.solverPolicy?.kind !== 'exact'
+        || question.solverPolicy?.qualitySeal !== 'SOLVER_EXACT'
+        || question.solverPolicy?.fallbackReason !== null
+        || question.solverPolicy?.validDomain?.completeKey !== true
+        || (question.solverPolicy?.validDomain?.approximatedDimensions || []).length !== 0)
+      : (question.solverPolicy?.kind !== 'derived'
+        || question.solverPolicy?.qualitySeal !== 'SOLVER_DERIVED_RESPONSE'
+        || question.solverPolicy?.fallbackReason !== 'decision_key_incomplete'
+        || (question.solverPolicy?.validDomain?.approximatedDimensions || []).length !== 0))
+    || (sourceClassification === 'SOLVER_EXACT'
+      ? String(question.evidenceDisclosure || '') !== EXACT_SOLVER_DISCLOSURE
+      : String(question.evidenceDisclosure || '') !== DERIVED_SOLVER_DISCLOSURE)) {
     return eligibility(false, 'solver_provenance_missing');
   }
 

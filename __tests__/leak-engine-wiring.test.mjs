@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { auditParsedHands, clubArenaHandRejectionReason, normalizeClubArenaHand, syncClubArenaHandsForAudit } from '../src/lib/training/handAuditEngine.js';
+import {
+  NODE_SEMANTICS,
+  POLICY_KIND,
+  QUALITY_SEAL,
+  createSolverPolicyAnswer,
+  createSolverPolicyKey,
+} from '../src/lib/training/solverPolicyContract.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const detect = read('pages/api/assistant/leaks/detect.js');
@@ -24,6 +31,7 @@ function auditDb(questionRows = [], error = null) {
       const query = {
         select() { return query; },
         like() { return query; },
+        in() { return query; },
         eq() { return query; },
         async limit() { return { data: questionRows, error }; },
       };
@@ -63,8 +71,8 @@ function solverQuestion(overrides = {}) {
     },
     heroCards: ['Jh', 'Th'],
     boardCards: ['As', 'Ks', '2d'],
-    options: [{ id: 'x', text: 'Check' }],
-    gtoFrequencies: { x: 100 },
+    options: [{ id: 'x', text: 'Check' }, { id: 'b50', text: 'Bet 50%' }],
+    gtoFrequencies: { x: 100, b50: 0 },
     correctAnswer: 'x',
     ...overrides,
     scenario,
@@ -93,8 +101,104 @@ function parsedHand(overrides = {}) {
   };
 }
 
+function exactAuditPolicy(question) {
+  const scenario = question.scenario || {};
+  const options = question.options || [];
+  const actions = options.map((option) => {
+    const isBet = /bet/i.test(option?.text || '');
+    const potFraction = isBet
+      ? Number((String(option.text).match(/(\d+(?:\.\d+)?)%/) || [])[1]) / 100
+      : null;
+    return {
+      id: option.id,
+      family: isBet ? 'bet' : 'check',
+      label: option.text,
+      frequency: Number(question.gtoFrequencies?.[option.id]) || 0,
+      ...(isBet ? {
+        size: {
+          unit: 'big_blinds',
+          chips: 6 * potFraction,
+          bigBlinds: 6 * potFraction,
+          potFraction,
+          exact: true,
+        },
+      } : {}),
+    };
+  });
+  const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+  const key = createSolverPolicyKey({
+    variant: 'nlh',
+    bettingStructure: 'no_limit',
+    tableSize: 6,
+    positions: { hero: 'BTN', villains: ['BB'], button: 'BTN', smallBlind: 'SB', bigBlind: 'BB' },
+    stackVector: positions.map((position, seat) => ({ seat, position, stackBb: 100, active: true })),
+    blinds: { smallBlind: 0.5, bigBlind: 1, ante: 0, straddles: [], complete: true },
+    rake: { percent: 5, capBb: 2, complete: true },
+    tournamentUtility: { mode: 'cash', complete: true },
+    payouts: [],
+    bounties: [],
+    street: scenario.street,
+    board: question.boardCards,
+    holding: question.heroCards,
+    publicActionHistory: {
+      complete: true,
+      actions: [{
+        sequence: 0, street: 'preflop', actor: 'BTN', action: 'call', amountChips: 1, amountBb: 1,
+      }],
+    },
+    legalActions: actions.map((action) => ({
+      action: action.family,
+      exactChips: action.family === 'bet' ? action.size.chips : 0,
+    })),
+    sidePotEligibility: {
+      complete: true,
+      pots: [{ id: 'main', amountChips: 6, eligibleSeats: [0, 1, 2, 3, 4, 5], heroEligible: true }],
+    },
+  });
+  return createSolverPolicyAnswer({
+    key,
+    kind: POLICY_KIND.EXACT,
+    node: {
+      semantics: NODE_SEMANTICS.CHECK_OR_BET,
+      sourceNode: 'hand-audit-fixture',
+      actor: 'BTN',
+      potBb: 6,
+      facingBetBb: 0,
+    },
+    actions,
+    sourceArtifact: {
+      system: question.source,
+      artifactId: 'hand-audit-fixture',
+      scenarioHash: question.solverProvenance.scenarioHash,
+      solverVersion: question.solverProvenance.solverVersion,
+      solverBinaryChecksum: question.solverProvenance.solverBinaryChecksum,
+      machineId: question.solverProvenance.machineId,
+      pipelineCommit: question.solverProvenance.pipelineCommit,
+      manifestVersion: question.solverProvenance.manifestVersion,
+      manifestChecksum: question.solverProvenance.manifestChecksum,
+      sourceArtifactChecksum: question.solverProvenance.sourceArtifactChecksum,
+      qualityStatus: question.solverProvenance.qualityStatus,
+      auditedAt: question.solverProvenance.auditedAt,
+      provenanceComplete: true,
+    },
+    qualitySeal: QUALITY_SEAL.SOLVER_EXACT,
+    validDomain: { exactMatchDimensions: ['all'], approximatedDimensions: [], exclusions: [] },
+    confidence: 1,
+  });
+}
+
 function cachedQuestion(question, id = 'question-1') {
-  return { question_id: id, game_id: 'cash-postflop', question_data: question };
+  const canonicalPolicy = exactAuditPolicy(question);
+  return {
+    question_id: id,
+    game_id: 'cash-postflop',
+    question_data: { ...question, solverPolicy: canonicalPolicy },
+    canonical_policy: canonicalPolicy,
+    source_classification: 'SOLVER_EXACT',
+    quality_status: 'active',
+    policy_version: canonicalPolicy.policyVersion,
+    policy_checksum: 'e'.repeat(64),
+  };
 }
 
 test('Leak Finder consumes canonical training answers and hand audits', () => {
@@ -114,9 +218,14 @@ test('Leak Finder consumes canonical training answers and hand audits', () => {
 test('answer persistence regrades against a server-owned canonical question', () => {
   assert.match(record, /getImmutableQuestionSnapshot/);
   assert.match(record, /from\('training_question_snapshots'\)/);
-  assert.doesNotMatch(record, /from\('training_question_cache'\)/);
   assert.match(record, /verifyTrainingGradingReceipt/);
   assert.match(record, /gradeTrainingAnswer\(\{\s*canonicalQuestion,/);
+  assert.match(record, /getCanonicalQuestion/);
+  assert.match(record, /canonicalPolicyReceiptMatches\(\{/);
+  assert.match(record, /cacheRowIsServingEligible\(cacheRow\)/);
+  assert.match(record, /stablePolicyJson\(canonicalQuestion\?\.solverPolicy\) === stablePolicyJson\(cacheRow\?\.canonical_policy\)/);
+  assert.match(record, /submittedChecksum: req\.body\.policyChecksum/);
+  assert.match(record, /policyChecksum: canonicalCacheRow\.policy_checksum/);
   assert.match(record, /solver_verified: verified/);
   assert.match(record, /ev_loss_measured/);
   assert.match(record, /submission_id: String\(receiptPayload\.jti\)/);
@@ -135,7 +244,8 @@ test('cache-miss trainer questions are canonicalized before answers arrive', () 
 
 test('hand import uses server audit and refuses ambiguous solver sizing', () => {
   assert.match(audit, /auditParsedHands/);
-  assert.match(auditEngine, /gradeSolverDecision/);
+  assert.match(auditEngine, /gradeCanonicalPolicyDecision/);
+  assert.match(auditEngine, /cacheRowIsServingEligible/);
   assert.match(auditEngine, /matches\.length === 1/);
   assert.match(auditEngine, /point\.nodeClass/);
   assert.match(auditEngine, /fingerprint/);
@@ -301,6 +411,7 @@ test('solver lookup filters by indexed hero hand before applying its candidate c
       const query = {
         select() { return query; },
         like() { return query; },
+        in() { return query; },
         eq(column, value) { filters.push([column, value]); return query; },
         async limit() { return { data: [cachedQuestion(solverQuestion())], error: null }; },
       };
@@ -325,7 +436,7 @@ test('reauditing a corrected hand removes obsolete persisted decisions', async (
     from(table) {
       if (table === 'training_question_cache') {
         const query = {
-          select() { return query; }, like() { return query; }, eq() { return query; },
+          select() { return query; }, like() { return query; }, in() { return query; }, eq() { return query; },
           async limit() { return { data: [cachedQuestion(solverQuestion())], error: null }; },
         };
         return query;
@@ -439,8 +550,8 @@ test('postflop solver matching requires the concrete suited combo', async () => 
 
 test('recorded bets without normalized sizing remain unpriced', async () => {
   const question = solverQuestion({
-    options: [{ id: 'b150', text: 'Bet 150%' }],
-    gtoFrequencies: { b150: 100 },
+    options: [{ id: 'x', text: 'Check' }, { id: 'b150', text: 'Bet 150%' }],
+    gtoFrequencies: { x: 0, b150: 100 },
     correctAnswer: 'b150',
   });
   const hand = parsedHand({

@@ -56,23 +56,56 @@ function queryClient(mode) {
   const calls = [];
   function resolveQuery(state) {
     const single = (value) => ({ data: value, error: null });
-    if (state.table === 'training_daily_challenge') return single([]);
-    if (state.table === 'training_attempts') {
-      return single(mode === 'pending' ? {
-        id: ATTEMPT_ID,
-        user_id: USER_ID,
-        client_nonce: 'daily-2026-09-06',
-        game_id: 'daily-challenge',
-        level: 1,
-        session_kind: 'daily',
-        difficulty: 'grouped',
-        status: 'open',
-        expected_hands: 1,
-        expires_at: '2099-09-07T05:00:00.000Z',
-      } : null);
+    if (state.table === 'training_daily_challenge') {
+      return single(mode === 'completed-aggregate-only' ? [{
+        daily_id: 'daily-2026-09-06',
+        score: 100,
+        ev_loss: 0,
+        selected_action: 'raise',
+        completed_at: '2026-09-06T15:00:00.000Z',
+        attempt_id: ATTEMPT_ID,
+      }] : []);
     }
-    if (state.table === 'training_attempt_hands') return single({ snapshot_key: SNAPSHOT_KEY });
+    if (state.table === 'training_attempts') {
+      if (mode === 'pending') {
+        return single({
+          id: ATTEMPT_ID,
+          user_id: USER_ID,
+          client_nonce: 'daily-2026-09-06',
+          game_id: 'daily-challenge',
+          level: 1,
+          session_kind: 'daily',
+          difficulty: 'grouped',
+          status: 'open',
+          expected_hands: 1,
+          expires_at: '2099-09-07T05:00:00.000Z',
+        });
+      }
+      if (mode === 'completed-aggregate-only') {
+        return single({
+          id: ATTEMPT_ID,
+          user_id: USER_ID,
+          client_nonce: 'daily-2026-09-06',
+          game_id: 'daily-challenge',
+          level: 1,
+          session_kind: 'daily',
+          difficulty: 'grouped',
+          status: 'completed',
+          expected_hands: 1,
+          answered_hands: 1,
+          correct_hands: 1,
+          accuracy_percentage: 100,
+          reward_diamonds: 25,
+          completed_at: '2026-09-06T15:00:00.000Z',
+        });
+      }
+      return single(null);
+    }
+    if (state.table === 'training_attempt_hands') {
+      return single(mode === 'completed-aggregate-only' ? null : { snapshot_key: SNAPSHOT_KEY });
+    }
     if (state.table === 'training_answers') {
+      if (mode === 'completed-aggregate-only') return single(null);
       return single({
         answer_id: 'raise',
         is_correct: true,
@@ -84,7 +117,9 @@ function queryClient(mode) {
       });
     }
     if (state.table === 'training_question_snapshots') {
-      return single({ snapshot_key: SNAPSHOT_KEY, question_data: canonicalQuestion });
+      return single(mode === 'completed-aggregate-only'
+        ? null
+        : { snapshot_key: SNAPSHOT_KEY, question_data: canonicalQuestion });
     }
     if (state.table === 'training_question_cache' && state.selectOptions?.head) {
       return { data: null, error: null, count: 1 };
@@ -134,6 +169,7 @@ async function loadHandler({ mode = 'new', authenticated = true } = {}) {
   const database = queryClient(mode);
   const deliveries = [];
   const dependencies = {
+    'node:crypto': { randomUUID: () => '33333333-3333-4333-8333-333333333333' },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => authenticated
         ? { user: { id: USER_ID }, error: null }
@@ -159,6 +195,7 @@ async function loadHandler({ mode = 'new', authenticated = true } = {}) {
     },
     '../../../src/lib/training/trainingAttemptDelivery.mjs': {
       isTrainingAttemptContractError: () => false,
+      isTrainingQuestionCampaignEligible: () => true,
       prepareTrainingAttemptDelivery: async (input) => {
         deliveries.push(input);
         return {
@@ -179,6 +216,15 @@ async function loadHandler({ mode = 'new', authenticated = true } = {}) {
       isTrainingPersistenceUnavailable: () => false,
       runTrainingPersistenceQuery: async (factory) => factory().abortSignal(new AbortController().signal),
       trainingPersistenceUnavailableBody: () => ({ success: false, code: 'TRAINING_PERSISTENCE_UNAVAILABLE' }),
+    },
+    '../../../src/lib/training/cacheTruthPersistence.mjs': {
+      cacheRowIsServingEligible: () => true,
+      recordTrainingQuestionsServed: async () => ({ questionCount: 1 }),
+      withPersistedCacheReceipt: (question, row) => ({
+        ...question,
+        id: row.question_id || question?.id,
+        policyChecksum: row.policy_checksum || 'a'.repeat(64),
+      }),
     },
   };
   const module = new SourceTextModule(API_SOURCE, { identifier: 'hand-of-the-day.js' });
@@ -240,6 +286,21 @@ test('a durable answer followed by completion transport failure restores feedbac
   assert.match(PAGE_SOURCE, /Retry Completion/);
   assert.match(PAGE_SOURCE, /JSON\.stringify\(\{ attemptId \}\)/);
   assert.match(PAGE_SOURCE, /completeDailyAttempt\([\s\S]*activeAttemptId/);
+});
+
+test('a completed aggregate without its bound question, answer, and feedback fails closed', async () => {
+  const { handler, deliveries } = await loadHandler({ mode: 'completed-aggregate-only' });
+  const response = createResponse();
+  await handler({ method: 'GET', headers: { authorization: 'Bearer token' } }, response);
+
+  assert.equal(response.statusCode, 503);
+  assert.deepEqual(response.body, {
+    success: false,
+    code: 'TRAINING_DAILY_COMPLETION_INTEGRITY_UNAVAILABLE',
+    error: 'The completed Daily Challenge evidence is temporarily unavailable. Please retry.',
+    retryable: true,
+  });
+  assert.equal(deliveries.length, 0, 'aggregate counters must not mint an unrelated replacement hand');
 });
 
 test('Daily Challenge removes every browser-authored grading and completion path', () => {

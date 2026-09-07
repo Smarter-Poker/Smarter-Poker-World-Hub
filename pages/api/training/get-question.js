@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { randomUUID } from 'node:crypto';
 /**
  * GET /api/training/get-question
  * Fetches next question for a training game session
@@ -41,6 +42,13 @@ import {
   isTrainingQuestionCampaignEligible,
   prepareTrainingAttemptDelivery,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  buildTrainingCacheRow,
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+  recordTrainingQuestionsServed,
+  withPersistedCacheReceipt,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -148,6 +156,7 @@ export default async function handler(req, res) {
       // Fresh-from-solver regeneration loses all of that pedagogical work, so
       // we try cache FIRST and fall back to engines only on cache miss.
       let question = null;
+      let selectedCacheRow = null;
 
       {
         let cachedQuestions;
@@ -155,9 +164,10 @@ export default async function handler(req, res) {
           const cachedResult = await runTrainingPersistenceQuery(
             () => getSupabase()
               .from('training_question_cache')
-              .select('question_data, question_id, engine_type')
+              .select('id, question_data, question_id, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
               .eq('game_id', gameId)
               .eq('level', level)
+              .in('quality_status', ['active', 'active_fallback'])
               .limit(50),
             { label: 'GetQuestion:cache-read' },
           );
@@ -175,7 +185,9 @@ export default async function handler(req, res) {
         // one; when the filter empties the pool the engine path below runs,
         // which is the correct source for a declaration the cache predates.
         const eligibleCached = filterCachedRowsForGame(
-          (cachedQuestions || []).filter((row) => !seenQuestionIds.includes(row.question_id)),
+          (cachedQuestions || [])
+            .map((row) => ({ ...row, question_data: cacheQuestionFromRow(row) }))
+            .filter((row) => cacheRowIsServingEligible(row) && !seenQuestionIds.includes(row.question_id)),
           pioQueryService.getGameConfig(gameId),
         ).map((row) => ({
           ...row,
@@ -184,29 +196,9 @@ export default async function handler(req, res) {
 
         if (eligibleCached && eligibleCached.length > 0) {
           const randomIndex = Math.floor(Math.random() * eligibleCached.length);
-          question = eligibleCached[randomIndex].question_data;
-
-          // Increment times_used (getSupabase().raw() doesn't exist in JS SDK v2)
-          const questionId = eligibleCached[randomIndex].question_id;
-          try {
-            const { data: currentQ } = await runTrainingPersistenceQuery(
-              () => getSupabase()
-                .from('training_question_cache')
-                .select('times_used')
-                .eq('question_id', questionId)
-                .maybeSingle(),
-              { label: 'GetQuestion:usage-read' },
-            );
-            await runTrainingPersistenceQuery(
-              () => getSupabase()
-                .from('training_question_cache')
-                .update({ times_used: (currentQ?.times_used || 0) + 1 })
-                .eq('question_id', questionId),
-              { label: 'GetQuestion:usage-update' },
-            );
-          } catch (usageError) {
-            console.warn('[Training] Non-critical question usage counter unavailable:', usageError.message);
-          }
+          selectedCacheRow = eligibleCached[randomIndex];
+          question = selectedCacheRow.question_data;
+          if (question) question.id = selectedCacheRow.question_id || question.id;
         }
       }
 
@@ -285,30 +277,51 @@ export default async function handler(req, res) {
       // legacy, heuristic, simulated, and incomplete rows cannot reach here.
       if (question?.id) {
         const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
-        const canonicalPayload = {
-          question_id: String(question.id).slice(0, 180),
-          game_id: gameId,
-          engine_type: preferredEngine === 'SCENARIO' ? 'SCENARIO'
+        const canonicalPayload = buildTrainingCacheRow({
+          question,
+          questionId: question.id,
+          gameId,
+          questionKind: preferredEngine === 'SCENARIO' ? 'SCENARIO'
             : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
-          game_type: String(gameId).startsWith('mtt-') ? 'tournament'
+          gameType: String(gameId).startsWith('mtt-') ? 'tournament'
             : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
-          level: Math.min(12, Math.max(1, parseInt(level, 10) || 1)),
-          question_data: question,
-        };
+          level,
+          generatedAt: selectedCacheRow?.generated_at || new Date().toISOString(),
+          id: selectedCacheRow?.id || null,
+        });
         try {
-          await runTrainingPersistenceQuery(
+          const persisted = await runTrainingPersistenceQuery(
             () => getSupabase()
               .from('training_question_cache')
               .upsert(canonicalPayload, {
                 onConflict: 'question_id',
                 defaultToNull: false,
-              }),
+              })
+              .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+              .maybeSingle(),
             { label: 'GetQuestion:canonicalize' },
           );
+          if (!persisted.data?.question_id || !persisted.data?.policy_checksum) {
+            throw new Error('Canonical cache persistence returned no verifiable receipt');
+          }
+          question = withPersistedCacheReceipt(canonicalPayload.question_data, persisted.data);
+          await recordTrainingQuestionsServed(getSupabase(), {
+            requestId: randomUUID(),
+            userId,
+            receipts: [{
+              questionId: canonicalPayload.question_id,
+              policyChecksum: persisted.data.policy_checksum,
+            }],
+          });
         } catch (canonicalizeError) {
           console.warn('[Training] Refusing to serve an uncanonicalized question:', canonicalizeError.message);
           return res.status(503).json(trainingPersistenceUnavailableBody());
         }
+      } else {
+        return res.status(422).json({
+          success: false,
+          error: 'This question has no canonical identifier.',
+        });
       }
 
       let delivery;

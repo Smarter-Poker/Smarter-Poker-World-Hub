@@ -668,6 +668,10 @@ ALL_CRONS = [
     # fail-closed; Phase 6 will add one versioned 8 PM America/Chicago job.
     # User-facing reports / analytics aggregates
     ('/api/cron/training-daily-report',           dict(hour=8, minute=0)),
+    # Phase 3 Training cache truth contract. Runs after daily Training content
+    # generation and reports any seal, lineage, source, or counter drift as a
+    # failed OpenClaw run. The worker invokes the database-owned atomic audit.
+    ('/api/cron/training-cache-drift-audit',      dict(hour=8, minute=10)),
     ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
     ('/api/cron/freeroll-qualification-sync',     dict(hour='*/6', minute=0)),
 
@@ -1009,6 +1013,7 @@ WORKERS_PREFERRED = {
     '/api/cron/scrape-charity-schedules':      '/cron/scrape-charity-schedules',
     '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
+    '/api/cron/training-cache-drift-audit':    '/cron/training-cache-drift-audit',
     # Legacy Trivia tournament workers retired with their schedules on
     # 2026-09-06. Direct worker calls return an authenticated 410 tombstone.
     # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04

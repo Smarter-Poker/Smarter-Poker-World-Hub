@@ -1,10 +1,142 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
 
 const ROOT = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+const nodeRequire = createRequire(import.meta.url);
+
+function createApiResponse() {
+  return {
+    statusCode: 200,
+    headersSent: false,
+    body: null,
+    setHeader() {
+      return this;
+    },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      this.headersSent = true;
+      return this;
+    },
+  };
+}
+
+function loadRecordQuestionHandler({ canonicalQuestion, receiptPayload, insertGate, onInsert }) {
+  const babel = nodeRequire('@babel/core');
+  const transformModulesCommonJs = nodeRequire('@babel/plugin-transform-modules-commonjs');
+  const compiled = babel.transformSync(read('pages/api/training/record-question.js'), {
+    babelrc: false,
+    configFile: false,
+    filename: 'pages/api/training/record-question.js',
+    plugins: [transformModulesCommonJs],
+    sourceType: 'module',
+  }).code;
+
+  class TrainingAnswerContractError extends Error {}
+  class TrainingGradingReceiptError extends Error {}
+  const cacheRow = {
+    question_id: canonicalQuestion.id,
+    question_data: canonicalQuestion,
+    game_id: receiptPayload.gameId,
+    canonical_policy: canonicalQuestion.solverPolicy,
+    source_classification: 'SOLVER_DERIVED_RESPONSE',
+    quality_status: 'active',
+    policy_version: 1,
+    policy_checksum: canonicalQuestion.policyChecksum,
+  };
+  const snapshot = {
+    snapshot_key: receiptPayload.snapshotKey,
+    source_question_id: canonicalQuestion.id,
+    game_id: receiptPayload.gameId,
+    level: receiptPayload.level,
+    content_digest: 'test-digest',
+    question_data: canonicalQuestion,
+  };
+  const dependencies = {
+    '../../../src/lib/serverAuth': {
+      getServerUserWithFallback: async () => ({
+        user: { id: receiptPayload.sub },
+        error: null,
+      }),
+    },
+    '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
+    '../../../src/lib/apiRateLimit': {
+      applyRateLimit: () => true,
+      LIMITS: { write: {} },
+    },
+    '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/training/answerGradingContract.mjs': {
+      TrainingAnswerContractError,
+      gradeTrainingAnswer: ({ selectedAnswer }) => ({
+        grade: {
+          isCorrect: selectedAnswer === 'bet_75pct',
+          classification: selectedAnswer === 'bet_75pct' ? 'best' : 'mistake',
+          solverVerified: true,
+          solverSource: 'PioSOLVER',
+          selectedFrequency: selectedAnswer === 'bet_75pct' ? 0.6 : 0.4,
+          optimalFrequency: 0.6,
+          evLossMeasured: false,
+          evLoss: 0,
+        },
+        canonicalSolverGrade: {
+          classification: 'best',
+          isCorrect: selectedAnswer === 'bet_75pct',
+          optimalAction: 'bet_75pct',
+        },
+        gradeMode: 'canonical_policy',
+        difficultyMode: receiptPayload.difficultyMode,
+        difficultyMembers: ['check', 'bet_75pct'],
+        rng: null,
+      }),
+    },
+    '../../../src/lib/training/gradingReceipt.mjs': {
+      deriveReceiptRng: () => null,
+      TrainingGradingReceiptError,
+      verifyTrainingGradingReceiptEnvelope: () => ({ payload: receiptPayload }),
+      verifyTrainingGradingReceipt: () => ({
+        payload: receiptPayload,
+        servedQuestion: canonicalQuestion,
+      }),
+    },
+    '../../../src/lib/training/difficultyQuestionContract.mjs': {
+      normalizeTrainingDifficultyMode: (mode) => mode,
+    },
+    '../../../src/lib/training/trainingPersistence.mjs': {
+      isTrainingPersistenceUnavailable: () => false,
+      trainingPersistenceUnavailableBody: () => ({ success: false }),
+      runTrainingPersistenceQuery: async (_queryFactory, { label } = {}) => {
+        if (label === 'RecordQuestion:snapshot-read') return { data: snapshot };
+        if (label === 'RecordQuestion:canonical-policy-read') return { data: cacheRow };
+        if (label === 'RecordQuestion:insert') {
+          onInsert();
+          await insertGate;
+        }
+        return { data: null };
+      },
+    },
+    '../../../src/lib/training/cacheTruthPersistence.mjs': {
+      cacheRowIsServingEligible: () => true,
+    },
+    '../../../src/lib/training/solverPolicyContract.js': {
+      stablePolicyJson: (policy) => JSON.stringify(policy),
+    },
+  };
+  const routeModule = { exports: {} };
+  const evaluate = new Function('require', 'module', 'exports', compiled);
+  evaluate((specifier) => {
+    assert.ok(dependencies[specifier], `unexpected record-question dependency: ${specifier}`);
+    return dependencies[specifier];
+  }, routeModule, routeModule.exports);
+  return routeModule.exports.default;
+}
 
 test('the browser cannot grade a blind Training question locally', () => {
   const hook = read('src/hooks/useGTOTrainer.js');
@@ -26,6 +158,8 @@ test('the browser cannot grade a blind Training question locally', () => {
   assert.match(hook, /function containsPreAnswerGradingData/);
   assert.match(hook, /'rngguidance'/);
   assert.match(hook, /'targetactionid'/);
+  assert.match(hook, /'solverpolicy'/);
+  assert.match(hook, /canonical policy receipt/);
   assert.match(hook, /Training delivery exposed private grading data/);
 });
 
@@ -39,6 +173,7 @@ test('the answer request submits identity and choice, never a client verdict', (
   const body = recorder.slice(bodyStart, bodyEnd);
 
   assert.match(body, /gradingReceipt: submission\.gradingReceipt/);
+  assert.match(body, /policyChecksum: submission\.policyChecksum/);
   assert.match(body, /selectedAnswer/);
   assert.doesNotMatch(body, /isCorrect|classification|evLoss|correctAnswer/);
   assert.match(recorder, /payload\?\.evidence/);
@@ -68,6 +203,89 @@ test('record-question reveals coaching data only after canonical grading persist
   assert.match(api, /street: String\(canonicalScenario\.street/);
   assert.match(api, /spot_type: String\(canonicalSpotType\)/);
   assert.doesNotMatch(api, /const \{[\s\S]{0,240}heroPosition[\s\S]{0,240}\} = req\.body/);
+});
+
+test('record-question reveals the semantic continuation id and raw source token only after persistence', async () => {
+  const policyChecksum = 'e'.repeat(64);
+  const receiptPayload = {
+    sub: '11111111-1111-4111-8111-111111111111',
+    gameId: 'cash-001',
+    questionId: 'continuation-parent-1',
+    level: 1,
+    sessionId: 'session-1',
+    attemptId: '22222222-2222-4222-8222-222222222222',
+    snapshotKey: 'snapshot-1',
+    jti: '33333333-3333-4333-8333-333333333333',
+    handOrdinal: 1,
+    decisionOrdinal: 1,
+    countsTowardCompletion: true,
+    practiceOnly: false,
+    difficultyMode: 'standard',
+  };
+  const canonicalQuestion = {
+    id: receiptPayload.questionId,
+    question: 'Choose the exact continuation action.',
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet_75pct', text: 'Bet 75% Pot' },
+    ],
+    correctAnswer: 'bet_75pct',
+    explanation: 'The checksummed source action maps to the semantic 75% pot option.',
+    policyChecksum,
+    scenario: {
+      street: 'flop',
+      pot: 5.5,
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      nextStreetContinuationAction: 'b412',
+    },
+    solverPolicy: {
+      actions: [
+        { id: 'check', sourceCode: 'c', family: 'check', legal: true },
+        { id: 'bet_75pct', sourceCode: 'b412', family: 'bet', legal: true },
+      ],
+    },
+  };
+
+  let resolveInsert;
+  let markInsertStarted;
+  const insertGate = new Promise((resolve) => { resolveInsert = resolve; });
+  const insertStarted = new Promise((resolve) => { markInsertStarted = resolve; });
+  const handler = loadRecordQuestionHandler({
+    canonicalQuestion,
+    receiptPayload,
+    insertGate,
+    onInsert: markInsertStarted,
+  });
+  const response = createApiResponse();
+  const request = {
+    method: 'POST',
+    headers: { authorization: 'Bearer test-token' },
+    body: {
+      gameId: receiptPayload.gameId,
+      questionId: receiptPayload.questionId,
+      selectedAnswer: 'check',
+      gradingReceipt: 'signed-receipt',
+      policyChecksum,
+    },
+  };
+
+  const pendingResponse = handler(request, response);
+  await insertStarted;
+  assert.equal(response.body, null, 'continuation metadata escaped before the answer write settled');
+
+  resolveInsert();
+  await pendingResponse;
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body.feedback.continuation, {
+    actionId: 'bet_75pct',
+    sourceAction: 'b412',
+  });
+  assert.notEqual(
+    response.body.feedback.continuation.actionId,
+    response.body.feedback.continuation.sourceAction,
+    'the browser-facing answer identity must remain semantic, not the warehouse action token',
+  );
 });
 
 test('the felt never invents a pre-answer mix or fallback answer key', () => {

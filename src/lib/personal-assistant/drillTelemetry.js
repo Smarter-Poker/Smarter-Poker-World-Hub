@@ -1,5 +1,12 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { gradeSolverDecision, isVerifiedSolverQuestion, verifiedSolverSource } from '../training/solverDecisionEvidence.js';
+import {
+  gradeCanonicalPolicyDecision,
+  isSolverEvidenceClassification,
+} from '../training/cacheTruthContract.mjs';
+import {
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+} from '../training/cacheTruthPersistence.mjs';
 
 export const MIN_VERIFIED_QUESTIONS = 5;
 export const MAX_VERIFIED_QUESTIONS = 20;
@@ -31,27 +38,46 @@ function uniqueQuestionIds(values) {
   return out;
 }
 
+function canonicalReceipts(values) {
+  if (!Array.isArray(values)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const value of values) {
+    const id = normalizeId(value?.id);
+    const policyChecksum = normalizeId(value?.policyChecksum, 64).toLowerCase();
+    if (!id || seen.has(id) || !/^[0-9a-f]{64}$/.test(policyChecksum)) return [];
+    seen.add(id);
+    out.push({ id, policyChecksum });
+    if (out.length > MAX_VERIFIED_QUESTIONS) return [];
+  }
+  return out;
+}
+
 function safeEqual(a, b) {
   const left = Buffer.from(String(a || ''));
   const right = Buffer.from(String(b || ''));
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-export function sealDrillBatch({ leakId, questionIds }, userId, options = {}) {
+export function sealDrillBatch({ leakId, receipts }, userId, options = {}) {
   const secret = secretOf(options.secret);
   const normalizedLeakId = normalizeId(leakId, 64);
   const normalizedUserId = normalizeId(userId, 80);
-  const ids = uniqueQuestionIds(questionIds);
+  const canonical = canonicalReceipts(receipts);
+  const ids = canonical.map((receipt) => receipt.id);
   if (!secret || !normalizedUserId || !LEAK_ID_RE.test(normalizedLeakId)
       || ids.length < MIN_VERIFIED_QUESTIONS) return null;
 
   const now = Number.isFinite(options.now) ? options.now : Date.now();
   const payload = Buffer.from(JSON.stringify({
-    version: 2,
+    version: 3,
     batchId: randomUUID(),
     userId: normalizedUserId,
     leakId: normalizedLeakId,
     questionIds: ids,
+    policyChecksums: Object.fromEntries(
+      canonical.map((receipt) => [receipt.id, receipt.policyChecksum]),
+    ),
     issuedAt: now,
     expiresAt: now + TOKEN_TTL_MS,
   })).toString('base64url');
@@ -75,45 +101,80 @@ export function openDrillBatch(token, userId, leakId, options = {}) {
 
   const now = Number.isFinite(options.now) ? options.now : Date.now();
   const ids = uniqueQuestionIds(decoded?.questionIds);
-  if (decoded?.version !== 2
+  const policyChecksums = decoded?.policyChecksums;
+  if (decoded?.version !== 3
       || decoded?.userId !== normalizeId(userId, 80)
       || decoded?.leakId !== normalizeId(leakId, 64)
       || ids.length < MIN_VERIFIED_QUESTIONS
       || !Number.isFinite(decoded?.issuedAt) || !Number.isFinite(decoded?.expiresAt)
       || decoded.issuedAt > now + 60_000 || decoded.expiresAt < now
-      || decoded.expiresAt - decoded.issuedAt > TOKEN_TTL_MS) {
+      || decoded.expiresAt - decoded.issuedAt > TOKEN_TTL_MS
+      || !policyChecksums || typeof policyChecksums !== 'object' || Array.isArray(policyChecksums)
+      || Object.keys(policyChecksums).length !== ids.length
+      || ids.some((id) => !/^[0-9a-f]{64}$/.test(String(policyChecksums[id] || '')))) {
     throw new Error('invalid_drill_token');
   }
-  return { ...decoded, questionIds: ids };
+  return {
+    ...decoded,
+    questionIds: ids,
+    policyChecksums: Object.fromEntries(
+      ids.map((id) => [id, String(policyChecksums[id]).toLowerCase()]),
+    ),
+  };
 }
 
-export function canonicalAnswerText(questionData) {
-  const qd = questionData && typeof questionData === 'object' ? questionData : {};
+function optimalPolicyAction(policy) {
+  return Object.entries(policy?.distribution || {}).reduce((best, [id, value]) => {
+    const frequency = Number(value);
+    return Number.isFinite(frequency) && (!best || frequency > best.frequency)
+      ? { id: String(id).toLowerCase(), frequency }
+      : best;
+  }, null);
+}
+
+export function canonicalAnswerText(cacheRow) {
+  if (!cacheRowIsServingEligible(cacheRow)) return '';
+  const qd = cacheQuestionFromRow(cacheRow) || {};
   const options = Array.isArray(qd.options) ? qd.options : [];
-  const answerId = normalizeId(qd.correctAnswer, 100).toLowerCase();
+  const answerId = optimalPolicyAction(cacheRow.canonical_policy)?.id || '';
   const byId = options.find((option) => option && typeof option === 'object'
     && normalizeId(option.id, 100).toLowerCase() === answerId);
-  return normalizeId(qd.correctAnswerText || byId?.text || qd.correctAnswer, 100);
+  return normalizeId(byId?.text || byId?.id, 100);
 }
 
-export function gradeDrillAnswer(questionData, selectedAnswer, timedOut = false) {
-  const expected = canonicalAnswerText(questionData);
-  if (!expected || !isVerifiedSolverQuestion(questionData)) {
+export function gradeDrillAnswer(cacheRow, selectedAnswer, timedOut = false) {
+  const questionData = cacheQuestionFromRow(cacheRow);
+  const expected = canonicalAnswerText(cacheRow);
+  if (
+    !questionData
+    || !expected
+    || !isSolverEvidenceClassification(cacheRow?.source_classification)
+    || !cacheRowIsServingEligible(cacheRow)
+  ) {
     return { ok: false, reason: 'question_not_solver_verified' };
   }
   const selected = timedOut === true ? '' : normalizeId(selectedAnswer, 100);
   const options = Array.isArray(questionData?.options) ? questionData.options : [];
   const selectedOption = options.find((option) => {
     const text = option && typeof option === 'object' ? option.text : option;
-    return normalizeId(text, 100).toLowerCase() === selected.toLowerCase();
+    const id = option && typeof option === 'object' ? option.id : option;
+    return [text, id].some((value) => (
+      normalizeId(value, 100).toLowerCase() === selected.toLowerCase()
+    ));
   });
+  if (timedOut !== true && !selectedOption) {
+    return { ok: false, reason: 'selected_action_not_in_policy' };
+  }
   const selectedId = selectedOption && typeof selectedOption === 'object'
     ? normalizeId(selectedOption.id, 100)
     : selected;
-  const solverGrade = timedOut === true ? null : gradeSolverDecision(questionData, selectedId);
+  const solverGrade = timedOut === true
+    ? null
+    : gradeCanonicalPolicyDecision(cacheRow.canonical_policy, selectedId);
   const correct = solverGrade?.solverVerified === true && solverGrade.isCorrect === true;
+  const optimalAction = optimalPolicyAction(cacheRow.canonical_policy)?.id;
   const optimal = options.find((option) => option && typeof option === 'object'
-    && normalizeId(option.id, 100).toLowerCase() === normalizeId(solverGrade?.optimalAction, 100).toLowerCase());
+    && normalizeId(option.id, 100).toLowerCase() === normalizeId(optimalAction, 100).toLowerCase());
   return {
     ok: true,
     selectedAnswer: selected || null,
@@ -121,8 +182,9 @@ export function gradeDrillAnswer(questionData, selectedAnswer, timedOut = false)
     correct,
     timedOut: timedOut === true,
     explanation: normalizeId(questionData?.explanation, 2000) || null,
-    solverSource: solverGrade?.solverSource || verifiedSolverSource(questionData),
+    solverSource: solverGrade?.solverSource || cacheRow.canonical_policy?.sourceArtifact?.system || null,
     classification: solverGrade?.classification || 'timeout',
+    policyChecksum: String(cacheRow.policy_checksum || '').toLowerCase(),
   };
 }
 
@@ -146,7 +208,7 @@ export function gradeDrillRows(rows, questionIds, answers) {
     const row = rowById.get(questionId);
     const answer = answerById.get(questionId);
     if (!row?.question_data || !answer) return { ok: false, reason: 'incomplete_drill_evidence' };
-    const graded = gradeDrillAnswer(row.question_data, answer.selectedAnswer, answer.timedOut);
+    const graded = gradeDrillAnswer(row, answer.selectedAnswer, answer.timedOut);
     if (!graded.ok) return graded;
     if (graded.correct) correct += 1;
     evidence.push({ questionId, selectedAnswer: graded.selectedAnswer, timedOut: graded.timedOut, correct: graded.correct });

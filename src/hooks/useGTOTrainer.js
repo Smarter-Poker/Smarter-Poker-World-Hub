@@ -205,6 +205,8 @@ const PRE_ANSWER_PRIVATE_KEYS = new Set([
   'gtofrequencies', 'iscorrect', 'nextstreetcontinuation',
   'nextstreetcontinuationaction', 'optimalaction', 'preferredaction',
   'rawfrequencies', 'rngguidance', 'solution', 'solverstrategy',
+  'solverpolicy', 'distribution', 'chipev', 'tournamentutilityev',
+  'rangedistribution', 'legalsizes',
   'structuredexplanation', 'targetactionid', 'targetactiontext',
 ]);
 
@@ -249,6 +251,9 @@ function assertSignedTrainingDelivery(payload, expectedSessionId, expectedAttemp
   for (const question of questions) {
     if (containsPreAnswerGradingData(question)) {
       throw new Error('Training delivery exposed private grading data. Reload the Arena.');
+    }
+    if (!/^[0-9a-f]{64}$/i.test(String(question?.policyChecksum || ''))) {
+      throw new Error('Training delivery returned without a canonical policy receipt. Reload the Arena.');
     }
     const context = question?._gradingContext;
     if (
@@ -1233,6 +1238,7 @@ export default function useGTOTrainer(
               userId,
               gameId,
               questionId,
+              policyChecksum: submission.policyChecksum || null,
               submissionId: submission.submissionId,
               sessionId: submission.sessionId,
               attemptId: submission.attemptId,
@@ -1422,6 +1428,7 @@ export default function useGTOTrainer(
         || !Number.isInteger(Number(gradingContext?.sessionTargetHands))
         || !Number.isInteger(Number(gradingContext?.handOrdinal))
         || !Number.isInteger(Number(gradingContext?.decisionOrdinal))
+        || !/^[0-9a-f]{64}$/i.test(String(publicQuestion?.policyChecksum || ''))
       ) {
         setAnswerSaveError('This hand is missing its secure grading receipt. Reload the Arena.');
         return;
@@ -1451,6 +1458,7 @@ export default function useGTOTrainer(
         countsTowardCompletion: gradingContext.countsTowardCompletion,
         practiceOnly: gradingContext.practiceOnly,
         gradingReceipt: gradingContext.receipt,
+        policyChecksum: publicQuestion.policyChecksum || null,
         questionId: publicQuestion.id,
         selectedAnswer: selectedOptionId,
         gradingMode: gradingContext.difficultyMode || resolveDifficultyMode(),
@@ -1475,10 +1483,16 @@ export default function useGTOTrainer(
         const revealedContinuationAction = String(
           feedback?.continuation?.actionId || '',
         );
+        const revealedContinuationSourceAction = String(
+          feedback?.continuation?.sourceAction || '',
+        );
         const revealedScenario = revealedContinuationAction
           ? {
               ...(publicQuestion.scenario || {}),
               nextStreetContinuationAction: revealedContinuationAction,
+              ...(revealedContinuationSourceAction
+                ? { nextStreetContinuationSourceAction: revealedContinuationSourceAction }
+                : {}),
             }
           : { ...(publicQuestion.scenario || {}) };
         const currentQuestion = {
@@ -1587,6 +1601,10 @@ export default function useGTOTrainer(
         frequencyDiff: moveResult.frequencyDiff,
         isRealData: moveResult.isRealData || false,
         handData: {
+          // Database completion telemetry keys off the canonical cache id.
+          // Persist it in the flat hand-history envelope so the session insert
+          // trigger can account for completed questions atomically.
+          questionId: currentQuestion.id,
           // Stable per-hand id so multi-street decisions count as ONE hand.
           //
           // roadmap #28a — this used to read `currentQuestion.id` first, which
@@ -1615,6 +1633,10 @@ export default function useGTOTrainer(
           gtoFrequencies: frequencies || {},
           solverVerified,
           dataQuality: currentQuestion.dataQuality || null,
+          sourceClassification: currentQuestion.sourceClassification || null,
+          policyVersion: currentQuestion.solverPolicy?.policyVersion || null,
+          policyChecksum: currentQuestion.policyChecksum || null,
+          sourceChecksum: currentQuestion.solverPolicy?.sourceArtifact?.sourceArtifactChecksum || null,
           evLossMeasured: Boolean(moveResult.isRealData),
           // ═══ PHASE 20: Raw solver matrix for RangeGrid display ═══
           rawFrequencies: currentQuestion.rawFrequencies || null,

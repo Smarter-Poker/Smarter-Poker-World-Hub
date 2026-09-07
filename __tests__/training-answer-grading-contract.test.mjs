@@ -8,41 +8,32 @@ import {
 import { applyDifficultyToQuestion } from '../src/lib/training/difficultyQuestionContract.mjs';
 import { buildRngRanges, resolveRngTarget } from '../src/lib/training/rngDecisionContract.mjs';
 import { validateTrainingQuestion } from '../src/lib/training/questionContract.mjs';
+import { sealCanonicalTrainingQuestion } from '../tests/helpers/canonicalTrainingPolicyFixture.mjs';
 
-const sealed = {
-  verified: true,
-  scenarioHash: 'scenario-hash',
-  solverVersion: '1.0',
-  solverBinaryChecksum: 'a'.repeat(64),
-  machineId: 'M1',
-  pipelineCommit: 'b'.repeat(40),
-  manifestVersion: 'training-v1',
-  manifestChecksum: 'c'.repeat(64),
-  sourceArtifactChecksum: 'd'.repeat(64),
-  qualityStatus: 'validated',
-  auditedAt: '2026-09-06T00:00:00.000Z',
-};
-
-function checkedToHeroQuestion() {
-  return {
+function checkedToHeroQuestion({
+  correctAnswer = 'b75',
+  options = [
+    { id: 'x', text: 'Check' },
+    { id: 'b33', text: 'Bet 33% Pot' },
+    { id: 'b75', text: 'Bet 75% Pot' },
+    { id: 'b125', text: 'Bet 125% Pot' },
+  ],
+  frequencies = { x: 10, b33: 20, b75: 60, b125: 10 },
+} = {}) {
+  return sealCanonicalTrainingQuestion({
     id: 'q-check-bet',
     question: 'The Big Blind checks to you on the flop. What is your best action?',
-    correctAnswer: 'b75',
+    correctAnswer,
     source: 'PIO',
-    dataQuality: 'SOLVER_EXACT',
-    solverProvenance: sealed,
+    heroCards: ['As', 'Kd'],
+    boardCards: ['Qs', 'Jh', '2c'],
     scenario: {
       street: 'flop', heroPosition: 'BTN', villainPosition: 'BB',
-      nodeType: 'checked_to_hero', pot: 10,
+      nodeType: 'checked_to_hero', pot: 10, stackDepth: 100,
     },
-    options: [
-      { id: 'x', text: 'Check' },
-      { id: 'b33', text: 'Bet 33% Pot' },
-      { id: 'b75', text: 'Bet 75% Pot' },
-      { id: 'b125', text: 'Bet 125% Pot' },
-    ],
-    gtoFrequencies: { x: 10, b33: 20, b75: 60, b125: 10 },
-  };
+    options,
+    gtoFrequencies: frequencies,
+  }, { sourceArtifactSystem: 'solved_spots_gold_v2' });
 }
 
 test('Beginner and Grouped serve four legal non-overlapping choices; Exact is unchanged', () => {
@@ -62,10 +53,17 @@ test('Beginner and Grouped serve four legal non-overlapping choices; Exact is un
 });
 
 test('Grouped choices over four preserve the answer and rank alternatives by aggregate frequency', () => {
-  const question = checkedToHeroQuestion();
-  question.correctAnswer = 'b125';
-  question.options.push({ id: 'b95', text: 'Bet 95% Pot' });
-  question.gtoFrequencies = { x: 1, b33: 2, b75: 40, b95: 50, b125: 7 };
+  const question = checkedToHeroQuestion({
+    correctAnswer: 'b125',
+    options: [
+      { id: 'x', text: 'Check' },
+      { id: 'b33', text: 'Bet 33% Pot' },
+      { id: 'b75', text: 'Bet 75% Pot' },
+      { id: 'b95', text: 'Bet 95% Pot' },
+      { id: 'b125', text: 'Bet 125% Pot' },
+    ],
+    frequencies: { x: 1, b33: 2, b75: 7, b95: 40, b125: 50 },
+  });
   const transformed = applyDifficultyToQuestion(question, 'standard');
   assert.equal(transformed.options.length, 4);
   assert.ok(transformed.options.some((option) => option.id === 'grouped_overbet'));
@@ -76,15 +74,16 @@ test('Grouped choices over four preserve the answer and rank alternatives by agg
 });
 
 test('Sparse same-band solver actions fall back to the original solved choices', () => {
-  const question = checkedToHeroQuestion();
-  question.options = [
-    { id: 'x', text: 'Check' },
-    { id: 'b25', text: 'Bet 25% Pot' },
-    { id: 'b33', text: 'Bet 33% Pot' },
-    { id: 'b40', text: 'Bet 40% Pot' },
-  ];
-  question.correctAnswer = 'b33';
-  question.gtoFrequencies = { x: 15, b25: 20, b33: 55, b40: 10 };
+  const question = checkedToHeroQuestion({
+    correctAnswer: 'b33',
+    options: [
+      { id: 'x', text: 'Check' },
+      { id: 'b25', text: 'Bet 25% Pot' },
+      { id: 'b33', text: 'Bet 33% Pot' },
+      { id: 'b40', text: 'Bet 40% Pot' },
+    ],
+    frequencies: { x: 15, b25: 20, b33: 55, b40: 10 },
+  });
   const transformed = applyDifficultyToQuestion(question, 'standard');
   assert.equal(transformed._difficultyFallback, 'exact-solver-actions');
   assert.deepEqual(transformed.options.map((option) => option.id), ['x', 'b25', 'b33', 'b40']);
@@ -110,8 +109,10 @@ test('Randomizer ranges cover every integer exactly once in low and high modes',
 });
 
 test('Server authority grades strict RNG adherence and retains canonical solver grade', () => {
-  const canonicalQuestion = checkedToHeroQuestion();
-  canonicalQuestion.gtoFrequencies = { x: 95, b33: 4, b75: 1, b125: 0 };
+  const canonicalQuestion = checkedToHeroQuestion({
+    correctAnswer: 'x',
+    frequencies: { x: 95, b33: 4, b75: 1, b125: 0 },
+  });
   const grouped = applyDifficultyToQuestion(canonicalQuestion, 'standard');
   const rareTarget = resolveRngTarget(grouped.options, grouped.gtoFrequencies, 100, 'low');
   assert.equal(rareTarget.id, 'grouped_medium');

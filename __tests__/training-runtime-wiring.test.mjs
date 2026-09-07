@@ -9,11 +9,13 @@ import {
   filterCachedRowsForGame,
   hydrateMissingPIOScenarioContract,
 } from '../src/lib/training/cacheContract.mjs';
+import { buildTrainingCacheRow } from '../src/lib/training/cacheTruthPersistence.mjs';
 import { isCustomTrainerConfig } from '../src/lib/training/trainerConfigMode.mjs';
 import { buildQuestionConfusion } from '../src/lib/training/questionAnalytics.mjs';
 import { isVerifiedSolverQuestion } from '../src/lib/training/solverDecisionEvidence.js';
 import { handNotationToRepresentativeCards } from '../src/lib/training/representativeCards.mjs';
 import { isRetryable } from '../src/lib/supabaseRetry.js';
+import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
 import {
   isTrainingPersistenceUnavailable,
   runTrainingPersistenceQuery,
@@ -62,6 +64,7 @@ function loadTrainingDeliveryHandler(relativePath) {
       const query = {
         select() { return query; },
         eq() { return query; },
+        in() { return query; },
         limit() { return query; },
         maybeSingle() { return query; },
         update() { return query; },
@@ -81,6 +84,7 @@ function loadTrainingDeliveryHandler(relativePath) {
     engine: 'PIO',
   };
   const dependencies = {
+    'node:crypto': { randomUUID: () => '33333333-3333-4333-8333-333333333333' },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({
         user: { id: '11111111-1111-4111-8111-111111111111' },
@@ -107,7 +111,7 @@ function loadTrainingDeliveryHandler(relativePath) {
       deterministicEngine: { setSupabaseClient() {}, generateBatch: async () => [] },
     },
     '../../../src/engines/deterministicEnginePatches': {
-      applyDeterministicEnginePatches() {},
+      applyDeterministicEnginePatches: (engine) => engine,
     },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
     '../../../src/utils/trainingApiUtils': {
@@ -136,6 +140,16 @@ function loadTrainingDeliveryHandler(relativePath) {
     '../../../src/lib/training/gradingReceipt.mjs': {
       createTrainingSessionId: () => 'test-training-session',
       prepareTrainingQuestionForDelivery: ({ canonicalQuestion }) => canonicalQuestion,
+    },
+    '../../../src/lib/training/cacheTruthPersistence.mjs': {
+      buildTrainingCacheRow: ({ question, questionId }) => ({
+        question_id: questionId || question?.id,
+        question_data: question,
+      }),
+      cacheQuestionFromRow: (row) => row?.question_data || null,
+      cacheRowIsServingEligible: () => true,
+      recordTrainingQuestionsServed: async () => ({ questionCount: 1 }),
+      withPersistedCacheReceipt: (question) => question,
     },
     '../../../src/lib/training/sessionAttemptContract.mjs': {
       trainingMasteryMinimum: () => 20,
@@ -317,10 +331,16 @@ test('unsealed warehouse cache rows cannot bypass live matrix and EV validation'
   );
 });
 
-test('legacy questions are canonicalized only for server grading and remain ineligible for cache serving', () => {
+test('answers are graded only from the checksum-bound canonical policy', () => {
   const record = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
   const reseeder = fs.readFileSync('scripts/reseed-deterministic-cache.js', 'utf8');
-  assert.match(record, /is_correct: Boolean\(canonicalGrade\.isCorrect\)/);
+  assert.match(record, /canonicalCacheRow = await getCanonicalQuestion\(receiptPayload\.questionId\)/);
+  assert.match(record, /cacheRowIsServingEligible\(cacheRow\)/);
+  assert.match(record, /bodyChecksum === snapshotChecksum/);
+  assert.match(record, /stablePolicyJson\(canonicalQuestion\?\.solverPolicy\) === stablePolicyJson\(cacheRow\?\.canonical_policy\)/);
+  assert.match(record, /answerContract = gradeTrainingAnswer\(\{/);
+  assert.match(record, /is_correct:\s*(?:Boolean\()?canonicalGrade\.isCorrect\)?/);
+  assert.doesNotMatch(record, /is_correct:[^\n]*\?[^\n]*isCorrect/);
   assert.match(record, /solver_verified: verified/);
   assert.match(record, /getImmutableQuestionSnapshot/);
   assert.match(record, /verifyTrainingGradingReceipt/);
@@ -372,18 +392,20 @@ test('declared preflop PIO games accept only the audited local-range cache', () 
 test('both cache readers select engine_type and apply the exact cache contract', () => {
   const single = fs.readFileSync(path.join(ROOT, 'pages/api/training/get-question.js'), 'utf8');
   const batch = fs.readFileSync(path.join(ROOT, 'pages/api/training/batch-preload.js'), 'utf8');
-  assert.match(single, /select\('question_data, question_id, engine_type'\)/);
+  assert.match(single, /select\('[^']*question_data[^']*question_id[^']*engine_type[^']*canonical_policy[^']*policy_checksum[^']*'\)/);
+  assert.match(single, /\.in\('quality_status', \['active', 'active_fallback'\]\)/);
   assert.match(single, /filterCachedRowsForGame/);
-  assert.match(batch, /select\('id, question_data, engine_type'\)/);
+  assert.match(batch, /select\('[^']*question_data[^']*engine_type[^']*canonical_policy[^']*policy_checksum[^']*'\)/);
+  assert.match(batch, /\.in\('quality_status', \['active', 'active_fallback'\]\)/);
   assert.match(batch, /filterCachedRowsForGame/);
   assert.doesNotMatch(single, /\.not\('question_id', 'in'/);
-  assert.match(single, /filter\(\(row\) => !seenQuestionIds\.includes\(row\.question_id\)\)/);
+  assert.match(single, /filter\(\(row\) => cacheRowIsServingEligible\(row\) && !seenQuestionIds\.includes\(row\.question_id\)\)/);
 });
 
 test('single-question canonicalization preserves mastery levels eleven and twelve', () => {
   const source = fs.readFileSync('pages/api/training/get-question.js', 'utf8');
   const migration = fs.readFileSync('supabase/migrations/20260901130000_training_levels_one_through_twelve.sql', 'utf8');
-  assert.match(source, /Math\.min\(12, Math\.max\(1, parseInt\(level, 10\) \|\| 1\)\)/);
+  assert.match(source, /Math\.min\(12, Math\.max\(1, parseInt\(rawLevel, 10\) \|\| 1\)\)/);
   assert.doesNotMatch(source, /level: Math\.min\(10,/);
   assert.match(migration, /valid_level CHECK \(level BETWEEN 1 AND 12\)/);
   assert.match(migration, /current_level BETWEEN 1 AND 12/);
@@ -394,17 +416,67 @@ test('single-question canonicalization preserves mastery levels eleven and twelv
 test('both question endpoints persist the exact post-contract envelope used for grading', () => {
   const single = fs.readFileSync('pages/api/training/get-question.js', 'utf8');
   const batch = fs.readFileSync('pages/api/training/batch-preload.js', 'utf8');
-  assert.match(single, /question = normalizeCampaignQuestionWithoutFabrication\(question\);[\s\S]*const canonicalPayload = \{[\s\S]*\.upsert\(canonicalPayload/);
+
+  const rawQuestion = {
+    id: 'canonical-build-behavior',
+    type: 'SCENARIO',
+    source: 'CURATED_SCENARIO',
+    question: 'Which action best preserves the plan?',
+    scenario: { isConceptQuestion: true },
+    options: [
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'raise', text: 'Raise' },
+      { id: 'all_in', text: 'All-In' },
+    ],
+    correctAnswer: 'raise',
+  };
+  assert.throws(
+    () => buildTrainingCacheRow({
+      question: rawQuestion,
+      gameId: 'cash-001',
+      questionKind: 'SCENARIO',
+      gameType: 'cash',
+      level: 1,
+    }),
+    /invalid canonical policy|requires an available canonical policy/,
+  );
+
+  const policyService = new SolverPolicyService();
+  const canonicalQuestion = policyService.attachToQuestion(
+    structuredClone(rawQuestion),
+    'get-question',
+  );
+  const canonicalRow = buildTrainingCacheRow({
+    question: canonicalQuestion,
+    gameId: 'cash-001',
+    questionKind: 'SCENARIO',
+    gameType: 'cash',
+    level: 1,
+  });
+  assert.equal(canonicalRow.question_id, rawQuestion.id);
+  assert.equal(canonicalRow.question_data.correctAnswer, rawQuestion.correctAnswer);
+  assert.deepEqual(canonicalRow.question_data.solverPolicy, canonicalQuestion.solverPolicy);
+  assert.equal(canonicalRow.source_classification, 'CURATED');
+
+  assert.match(single, /question = normalizeCampaignQuestionWithoutFabrication\(question\)/);
+  assert.match(single, /applyDeterministicEnginePatches\(deterministicEngine\)/);
+  assert.match(batch, /applyDeterministicEnginePatches\(deterministicEngine\)/);
+  assert.match(single, /buildTrainingCacheRow\(\{/);
+  assert.match(single, /\.upsert\(canonicalPayload/);
   assert.match(single, /defaultToNull: false/);
+  assert.match(single, /withPersistedCacheReceipt\(canonicalPayload\.question_data, persisted\.data\)/);
+  assert.match(single, /recordTrainingQuestionsServed/);
   assert.match(single, /Refusing to serve an uncanonicalized question/);
   assert.match(single, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
   assert.match(batch, /const canonicalRows = Array\.from\(new Map\(enrichedBatch/);
-  assert.match(batch, /new Map\(enrichedBatch[\s\S]*String\(q\.id\)\.slice\(0, 180\)/);
-  assert.match(batch, /\.upsert\(cachedCanonicalRows, \{[\s\S]*defaultToNull: false/);
-  assert.match(batch, /\.upsert\(generatedCanonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /buildTrainingCacheRow\(\{/);
+  assert.match(batch, /\.upsert\(canonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /withPersistedCacheReceipt/);
+  assert.match(batch, /recordTrainingQuestionsServed/);
   assert.match(batch, /Refusing to serve uncanonicalized questions/);
   assert.match(batch, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
-  assert.doesNotMatch(batch, /\.upsert\((?:cached|generated)CanonicalRows, \{[^}]*ignoreDuplicates: true/);
+  assert.doesNotMatch(batch, /\.upsert\(canonicalRows, \{[^}]*ignoreDuplicates: true/);
   const recorder = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
   assert.match(single, /prepareTrainingAttemptDelivery/);
   assert.match(batch, /prepareTrainingAttemptDelivery/);
@@ -517,7 +589,7 @@ test('an explicit street target filters warm cache rows before generation', () =
   assert.match(batch, /targetStreet\s*\? authorityEligibleRows\.filter\(\(row\) => streetOfCachedRow\(row\) === targetStreet\)/);
 });
 
-test('warehouse source labels are unverified without the complete export seal', () => {
+test('warehouse source labels and legacy provenance objects never certify solver evidence', () => {
   const legacy = {
     source: 'DETERMINISTIC_SOLVER',
     gtoFrequencies: { x: 40, b50: 60 },
@@ -544,7 +616,7 @@ test('warehouse source labels are unverified without the complete export seal', 
       qualityStatus: 'validated',
       auditedAt: '2026-08-31T17:00:00Z',
     },
-  }), true);
+  }), false);
 });
 
 test('both question endpoints reject solver-card fabrication and share subject routing', () => {

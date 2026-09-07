@@ -23,7 +23,9 @@ import {
   policyKeyCompleteness,
   solverPolicyConsumerEnvelope,
   unavailableSolverPolicy,
+  validateSolverPolicyAnswer,
 } from '../lib/training/solverPolicyContract.js';
+import { withTrainingSourceClassification } from '../lib/training/cacheTruthContract.mjs';
 
 export const SOLVER_POLICY_ROW_PROJECTION = [
   'id',
@@ -123,6 +125,12 @@ export const SOLVER_POLICY_SURFACES = Object.freeze([
     'batch-preload',
     SOLVER_POLICY_INTEGRATION.DELEGATED_SERVICE,
     'pages/api/training/batch-preload.js',
+    { authority: 'delegates_to_deterministic_engine' },
+  ),
+  policySurface(
+    'next-street',
+    SOLVER_POLICY_INTEGRATION.DELEGATED_SERVICE,
+    'pages/api/training/next-street.js',
     { authority: 'delegates_to_deterministic_engine' },
   ),
   policySurface(
@@ -1114,8 +1122,31 @@ export class SolverPolicyService {
       ...keyInput,
     });
     if (options.length === 0) return unavailableSolverPolicy(key, 'question_has_no_policy_actions');
-    const isChart = upper(question?.source) === 'CHART' || upper(question?.type) === 'CHART';
-    const isCurated = /CURATED|SCENARIO|PSYCHOLOGY/.test(upper(question?.source));
+    const sourceName = upper(question?.source);
+    const qualityName = upper(question?.dataQuality);
+    const declaredClassification = upper(question?.sourceClassification);
+    const modelDistilled = sourceName === 'MODEL_DISTILLED'
+      || sourceName === 'DISTILLED_MODEL'
+      || qualityName === 'MODEL_DISTILLED'
+      || declaredClassification === 'MODEL_DISTILLED';
+    const isHeuristic = qualityName === 'SIMULATED'
+      || sourceName === 'POSTFLOP_ENGINE'
+      || sourceName === 'HEURISTIC'
+      || declaredClassification === 'HEURISTIC'
+      || modelDistilled;
+    // A CHART type/source is not an audit seal. Only answerFromChart(), which
+    // has the actual memory_charts_gold row in hand, may mint CHART_AUDITED.
+    // attachToQuestion() preserves that already-validated policy below.
+    const isChart = false;
+    const isLegacy = sourceName === 'LEGACY_STRATEGY_ARCHIVE'
+      || qualityName === 'LEGACY_UNVERIFIED'
+      || declaredClassification === 'LEGACY_UNVERIFIED'
+      || ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'CHART', 'LOCAL_SOLVER_RANGES']
+        .includes(sourceName);
+    const isCurated = !isLegacy && !isChart && !isHeuristic
+      && (/CURATED|SCENARIO|PSYCHOLOGY/.test(sourceName)
+        || upper(question?.type) === 'SCENARIO'
+        || declaredClassification === 'CURATED');
     const provenance = question?.solverProvenance || {};
     const candidateSource = {
       system: provenance.source || question.source || 'training_question_cache',
@@ -1140,6 +1171,8 @@ export class SolverPolicyService {
       ? POLICY_KIND.CHART
       : isCurated
         ? POLICY_KIND.CURATED
+        : isHeuristic
+          ? POLICY_KIND.HEURISTIC
         : exact
           ? POLICY_KIND.EXACT
           : POLICY_KIND.DERIVED;
@@ -1147,11 +1180,19 @@ export class SolverPolicyService {
       ? QUALITY_SEAL.CHART_AUDITED
       : isCurated
         ? QUALITY_SEAL.CURATED
+        : isHeuristic
+          ? QUALITY_SEAL.HEURISTIC
         : exact
           ? QUALITY_SEAL.SOLVER_EXACT
-          : upper(question?.dataQuality) === 'LEGACY_UNVERIFIED'
+          : isLegacy
             ? QUALITY_SEAL.LEGACY_UNVERIFIED
             : QUALITY_SEAL.SOLVER_DERIVED_RESPONSE;
+    const rawOptionFrequencies = options.map((option) => {
+      const raw = finite(frequencies[option.id]) ?? finite(option.frequency) ?? 0;
+      return raw > 1.000001 ? raw / 100 : raw;
+    });
+    const hasAuthoredDistribution = rawOptionFrequencies.some((frequency) => frequency > 0);
+    const declaredCorrect = lower(question?.correctAnswer);
     const actions = options.map((option) => ({
       id: option.id,
       sourceCode: option.id,
@@ -1162,10 +1203,13 @@ export class SolverPolicyService {
           : NODE_SEMANTICS.CHECK_OR_BET
       ),
       label: option.text || option.label || option.id,
-      frequency: (() => {
-        const raw = finite(frequencies[option.id]) ?? finite(option.frequency) ?? 0;
-        return raw > 1.000001 ? raw / 100 : raw;
-      })(),
+      // Curated and heuristic lessons can legitimately be authored as one
+      // correct action without a redundant frequency map. Seal that answer as
+      // a one-hot canonical policy before caching so the answer endpoint can
+      // regrade from the policy artifact, never from cached prose.
+      frequency: hasAuthoredDistribution
+        ? rawOptionFrequencies[options.indexOf(option)]
+        : (lower(option.id) === declaredCorrect ? 1 : 0),
       legal: true,
       size: { unit: 'unknown', exact: false },
     }));
@@ -1189,9 +1233,12 @@ export class SolverPolicyService {
       tournamentUtilityEv: { policy: null, measuredByAction: false },
       sourceArtifact: isChart ? { ...candidateSource, provenanceComplete: true } : candidateSource,
       qualitySeal,
-      confidence: isChart ? 0.92 : exact ? 1 : isCurated ? 0.65 : 0.3,
+      confidence: isChart ? 0.92 : exact ? 1 : isCurated ? 0.65 : isHeuristic ? 0.25 : 0.3,
       fallbackReason:
-        exact || isChart ? null : 'cached_question_lacks_complete_decision_provenance',
+        exact || isChart ? null
+          : isCurated ? 'authored_curated_policy'
+            : isHeuristic ? (modelDistilled ? 'model_distilled_policy' : 'heuristic_policy')
+              : 'cached_question_lacks_complete_decision_provenance',
     });
   }
 
@@ -1238,10 +1285,19 @@ export class SolverPolicyService {
 
   attachToQuestion(question, consumer, keyInput = {}) {
     if (!question || typeof question !== 'object') return question;
-    return {
+    const existing = validateSolverPolicyAnswer(question.solverPolicy);
+    // Cache reads and engine/chart adapters already carry the canonical policy
+    // that identified the exact artifact. Reconstructing it from display prose
+    // loses exact nodes, chart IDs, and source seals, so preserve it byte-for-
+    // byte after validation. A browser-supplied malformed envelope still falls
+    // through to the conservative adapter below.
+    const answer = existing.valid && question.solverPolicy?.kind !== POLICY_KIND.UNAVAILABLE
+      ? question.solverPolicy
+      : this.answerFromQuestion(question, keyInput);
+    return withTrainingSourceClassification({
       ...question,
-      solverPolicy: this.consumerEnvelope(this.answerFromQuestion(question, keyInput), consumer),
-    };
+      solverPolicy: this.consumerEnvelope(answer, consumer),
+    });
   }
 
   asEngineScenario(record) {

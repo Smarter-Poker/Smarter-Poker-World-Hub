@@ -180,6 +180,8 @@ function truthChecks(question, metadata) {
 const AUDIT_TABLE_COLUMNS = {
     training_question_cache: new Set([
         'id', 'question_id', 'game_id', 'level', 'engine_type', 'question_data',
+        'canonical_policy', 'source_classification', 'quality_status',
+        'policy_version', 'policy_checksum',
     ]),
     solved_spots_gold: new Set([
         'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
@@ -188,7 +190,10 @@ const AUDIT_TABLE_COLUMNS = {
         'manifest_version', 'manifest_checksum', 'source_artifact_checksum',
         'quality_status', 'audited_at',
     ]),
-    memory_charts_gold: new Set(['stack_depth']),
+    memory_charts_gold: new Set([
+        'chart_id', 'game_type', 'stack_depth', 'hero_position',
+        'villain_action', 'hand_matrix', 'created_at',
+    ]),
 };
 
 function assertAuditIdentifier(identifier, allowedColumns) {
@@ -199,6 +204,17 @@ function assertAuditIdentifier(identifier, allowedColumns) {
         throw new Error(`Column is not allowlisted for the live audit: ${identifier}`);
     }
     return `"${identifier}"`;
+}
+
+function normalizePostgrestValue(value) {
+    if (value instanceof Date) return value.toISOString();
+    if (Array.isArray(value)) return value.map(normalizePostgrestValue);
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, nested]) => [key, normalizePostgrestValue(nested)])
+        );
+    }
+    return value;
 }
 
 class ReadOnlyPgQuery {
@@ -286,7 +302,11 @@ class ReadOnlyPgQuery {
             if (this.rowLimit !== null) sql += ` LIMIT ${Math.floor(this.rowLimit)}`;
             if (this.rowOffset !== null) sql += ` OFFSET ${Math.floor(this.rowOffset)}`;
             const result = await this.pool.query(sql, this.params);
-            return { data: result.rows, count: null, error: null };
+            return {
+                data: result.rows.map((row) => normalizePostgrestValue(row)),
+                count: null,
+                error: null,
+            };
         } catch (error) {
             return { data: null, count: null, error };
         }
@@ -334,7 +354,7 @@ async function fetchCachePage(supabase, from) {
     for (let attempt = 1; attempt <= CACHE_READ_ATTEMPTS; attempt++) {
         const { data, error } = await supabase
             .from('training_question_cache')
-            .select('id, question_id, game_id, level, engine_type, question_data')
+            .select('id, question_id, game_id, level, engine_type, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
             .order('id', { ascending: true })
             .range(from, from + PAGE_SIZE - 1);
         if (!error) return data || [];
@@ -396,6 +416,15 @@ async function main() {
         getDecisionType,
         validateTrainingQuestion,
     } = await import(path.join(ROOT, 'src/lib/training/questionContract.mjs'));
+    const {
+        TRAINING_SOURCE_CLASSIFICATIONS,
+        sourceClassificationForQuestion,
+        trainingSourcePresentation,
+    } = await import(path.join(ROOT, 'src/lib/training/cacheTruthContract.mjs'));
+    const {
+        cacheQuestionFromRow,
+        cacheRowIsServingEligible,
+    } = await import(path.join(ROOT, 'src/lib/training/cacheTruthPersistence.mjs'));
 
     const database = createReadOnlyDatabaseClient();
     const supabase = database.client;
@@ -407,11 +436,23 @@ async function main() {
         const allRows = await fetchAllCacheRows(supabase);
         const canonicalIds = new Set(TRAINING_LIBRARY.map((game) => game.id));
         const grouped = new Map();
+        const sourceClassificationCounts = Object.fromEntries(
+            TRAINING_SOURCE_CLASSIFICATIONS.map((classification) => [classification, 0]),
+        );
+        let rejectedByTruthContract = 0;
         for (const row of allRows) {
             if (!canonicalIds.has(row.game_id)) continue;
+            if (!cacheRowIsServingEligible(row)) {
+                rejectedByTruthContract++;
+                continue;
+            }
+            sourceClassificationCounts[row.source_classification]++;
             const key = `${row.game_id}:${Number(row.level)}`;
             if (!grouped.has(key)) grouped.set(key, []);
-            grouped.get(key).push(row);
+            grouped.get(key).push({
+                ...row,
+                question_data: cacheQuestionFromRow(row),
+            });
         }
 
     const failures = [];
@@ -426,6 +467,7 @@ async function main() {
         cacheRowsChecked: 0,
         generatedQuestionsChecked: 0,
         incompatibleRowsRejected: 0,
+        rejectedByTruthContract,
         chronologyRepairs: 0,
         truthAssertions: 0,
     };
@@ -445,6 +487,11 @@ async function main() {
         const rawAction = String(question?.scenario?.action || '');
         const servedAction = String(contracted?.scenario?.action || '');
         const chronologyRepaired = rawAction !== servedAction;
+        const sourceClassification = sourceClassificationForQuestion(contracted);
+        const sourcePresentation = trainingSourcePresentation(contracted);
+        const persistedClassificationMatches = metadata.origin !== 'cache'
+            || metadata.sourceClassification === sourceClassification;
+        const presentationMatches = sourcePresentation.classification === sourceClassification;
         if (chronologyRepaired) totals.chronologyRepairs++;
         totals.truthAssertions += Object.keys(checks).length;
 
@@ -462,9 +509,19 @@ async function main() {
             getDecisionType(contracted),
             Array.isArray(contracted?.options) ? contracted.options.length : 0,
             contracted?.source || null,
+            sourceClassification,
+            sourcePresentation.label,
             chronologyRepaired,
-            result.valid && failedTruthChecks.length === 0,
-            [...result.issues, ...failedTruthChecks.map((name) => `Truth check failed: ${name}.`)],
+            result.valid && failedTruthChecks.length === 0
+                && persistedClassificationMatches && presentationMatches,
+            [
+                ...result.issues,
+                ...failedTruthChecks.map((name) => `Truth check failed: ${name}.`),
+                ...(!persistedClassificationMatches
+                    ? ['Persisted source classification does not match canonical policy.'] : []),
+                ...(!presentationMatches
+                    ? ['Player-facing source badge does not match canonical policy.'] : []),
+            ],
         ]);
         if (!result.valid) {
             const optionSummary = (contracted?.options || [])
@@ -475,6 +532,10 @@ async function main() {
         }
         if (failedTruthChecks.length > 0) {
             failures.push(`${label}: truth checks failed: ${failedTruthChecks.join(', ')}`);
+            return false;
+        }
+        if (!persistedClassificationMatches || !presentationMatches) {
+            failures.push(`${label}: provenance classification or presentation drift`);
             return false;
         }
         return true;
@@ -517,6 +578,7 @@ async function main() {
                         engineType: row.engine_type,
                         sourceOfTruth: pioConfig?.sourceOfTruth || gameConfig?.engine,
                         questionId: row.question_id || row.id,
+                        sourceClassification: row.source_classification,
                     });
                 }
                 continue;
@@ -562,17 +624,19 @@ async function main() {
     }
 
         const report = {
-            schemaVersion: 1,
+            schemaVersion: 2,
             generatedAt: new Date().toISOString(),
             success: failures.length === 0,
             databaseSource: database.source,
             totals,
+            sourceClassificationCounts,
             cells,
             truthCheckNames: Object.keys(truthChecks({}, {})),
             questionFields: [
                 'gameId', 'level', 'origin', 'engineType', 'sourceOfTruth',
                 'questionId', 'fingerprint', 'street', 'decisionType',
-                'answerCount', 'source', 'chronologyRepaired', 'valid', 'issues',
+                'answerCount', 'source', 'sourceClassification', 'sourceBadge',
+                'chronologyRepaired', 'valid', 'issues',
             ],
             questions,
             failures: failures.slice(0, 100),

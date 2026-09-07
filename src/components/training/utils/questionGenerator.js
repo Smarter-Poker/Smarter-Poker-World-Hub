@@ -289,6 +289,7 @@ export async function recordAnsweredQuestion(params) {
         gameId,
         question,
         questionId = question?.id,
+        policyChecksum = question?.policyChecksum,
         selectedAnswer,
         isCorrect,
         level,
@@ -317,6 +318,7 @@ export async function recordAnsweredQuestion(params) {
         || !attemptId
         || !snapshotKey
         || !sessionKind
+        || !/^[0-9a-f]{64}$/i.test(String(policyChecksum || ''))
         || !Number.isInteger(Number(sessionTargetHands))
         || !Number.isInteger(Number(handOrdinal))
         || !Number.isInteger(Number(decisionOrdinal))
@@ -331,6 +333,7 @@ export async function recordAnsweredQuestion(params) {
         ...(userId ? { userId } : {}),
         gameId,
         questionId,
+        policyChecksum,
         selectedAnswer,
         isCorrect,
         level,

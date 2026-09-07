@@ -136,8 +136,11 @@ const v2Question = engine.buildQuestionFromScenario({
   quality_status: 'validated',
 }, gameConfig, 5, 0);
 assert.ok(v2Question);
-assert.equal(v2Question.correctAnswer, 'f');
-assert.ok(v2Question.options.some((option) => option.id === 'f' && option.text === 'Fold'));
+assert.equal(v2Question.correctAnswer, 'fold');
+assert.ok(v2Question.options.some((option) => option.id === 'fold' && option.text === 'Fold'));
+assert.ok(v2Question.solverPolicy.actions.some(
+  (action) => action.id === 'fold' && action.sourceCode === 'f',
+));
 
 const v1Question = engine.buildQuestionFromScenario({
   ...baseScenario,

@@ -2519,6 +2519,31 @@ running = True
 _daemon_lock_handle = None
 
 
+def daemon_cycle_control(cycle_result):
+    """Separate watchdog liveness from healthy-cycle scheduling.
+
+    ``records_saved`` is a count of rows confirmed by the persistence layer.
+    Such progress keeps the internal stale watchdog alive, even if the cycle is
+    partial. Only ``healthy_progress`` selects the normal interval; partial and
+    failed cycles retain their existing empty-streak backoff.
+    """
+
+    try:
+        saved_records = max(0, int(cycle_result.get('records_saved') or 0))
+    except (AttributeError, TypeError, ValueError):
+        saved_records = 0
+    healthy_progress = bool(
+        cycle_result.get('healthy_progress')
+        if isinstance(cycle_result, dict)
+        else False
+    )
+    return {
+        'saved_records': saved_records,
+        'refresh_liveness': saved_records > 0 or healthy_progress,
+        'use_normal_interval': healthy_progress,
+    }
+
+
 def _acquire_daemon_lock():
     """Hold a process-lifetime lock so two writers cannot run concurrently."""
     DAEMON_LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -2710,9 +2735,11 @@ def main():
 
         try:
             cycle_result = run_scrape_cycle(mgr)
-            saved_records = int(cycle_result.get('records_saved') or 0)
-            if cycle_result.get('healthy_progress'):
+            cycle_control = daemon_cycle_control(cycle_result)
+            saved_records = cycle_control['saved_records']
+            if cycle_control['refresh_liveness']:
                 last_successful_save = time.time()
+            if cycle_control['use_normal_interval']:
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
                 # Exponential backoff keyed off the EMPTY-cycle streak (which
@@ -2727,6 +2754,11 @@ def main():
                     if saved_records
                     else 'No records persisted'
                 )
+                if saved_records:
+                    log.info(
+                        f'Watchdog liveness refreshed by {saved_records} '
+                        'confirmed writes; degraded-cycle backoff preserved'
+                    )
                 log.warning(
                     f'⏰ {progress_label} - retrying in {backoff}s '
                     f'(empty cycle streak #{mgr.empty_cycle_streak})...'

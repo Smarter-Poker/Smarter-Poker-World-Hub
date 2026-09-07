@@ -955,6 +955,7 @@ test('runtime surface registry matches the real service, strict-reader, delegate
     ['god-mode-library', 'service_consumer', 'lib/god-mode-service.ts', 'god-mode'],
     ['get-question-route', 'delegated_service', 'pages/api/training/get-question.js', null],
     ['batch-preload', 'delegated_service', 'pages/api/training/batch-preload.js', null],
+    ['next-street', 'delegated_service', 'pages/api/training/next-street.js', null],
     ['get-question-exact-reader', 'strict_direct_reader', 'src/engines/deterministicEnginePatches.js', null],
     ['spot-drill', 'strict_direct_reader', 'pages/api/training/spot-drill.js', null],
     ['custom-trainer', 'strict_direct_reader', 'pages/api/training/custom-train.js', null],
@@ -984,6 +985,14 @@ test('runtime surface registry matches the real service, strict-reader, delegate
     'service_consumer',
     'strict_direct_reader',
   ]);
+  assert.deepEqual(
+    SOLVER_POLICY_SURFACES
+      .filter(({ integration }) => integration === SOLVER_POLICY_INTEGRATION.DELEGATED_SERVICE)
+      .map(({ id }) => id)
+      .sort(),
+    ['batch-preload', 'get-question-route', 'next-street'],
+    'every API route that delegates canonical policy authority is registered',
+  );
 });
 
 test('only proved direct consumers can request a canonical service envelope', () => {
@@ -1021,6 +1030,20 @@ test('only proved direct consumers can request a canonical service envelope', ()
     );
   });
   assert.deepEqual(discovered.sort(), direct.map(({ file }) => file).sort());
+
+  const pageServiceLocators = walk('pages').filter((file) => (
+    /\.solverPolicyService\b/.test(fs.readFileSync(file, 'utf8'))
+  ));
+  assert.deepEqual(
+    pageServiceLocators,
+    [],
+    'page routes must delegate through registered engine methods, not reach through the engine service locator',
+  );
+  assert.match(
+    fs.readFileSync('src/engines/deterministicEnginePatches.js', 'utf8'),
+    /\.solverPolicyService\b/,
+    'the service-locator guard is intentionally scoped to pages and permits engine internals',
+  );
   assert.throws(
     () => new SolverPolicyService().consumerEnvelope({ kind: 'unavailable' }, 'solver-agreement'),
     /Unknown solver policy consumer/,

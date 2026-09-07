@@ -480,6 +480,50 @@ class PokerSeriesDiscoveryTests(unittest.TestCase):
         self.assertIn("suppressed series pending manual source repair", source)
         self.assertIn("sys.exit(1)", source)
 
+    def test_daemon_integrity_errors_use_bounded_backoff_without_exit(self):
+        errors = {key: 0 for key in scraper.RUN_ERRORS}
+        errors["series_errors"] = 1
+        streak = 0
+        observed_delays = []
+
+        for _ in range(7):
+            control = scraper.daemon_cycle_control(0, errors, streak)
+            self.assertTrue(control["degraded"])
+            self.assertFalse(control["refresh_liveness"])
+            streak = control["error_streak"]
+            observed_delays.append(control["sleep_seconds"])
+
+        self.assertEqual([300, 900, 1800, 3600, 21600, 21600, 21600], observed_delays)
+        source = Path(scraper.__file__).read_text()
+        self.assertNotIn(
+            "exiting so launchd can restart instead of reporting healthy",
+            source,
+        )
+        self.assertIn("keeping daemon alive for bounded producer retry", source)
+
+    def test_degraded_series_cycle_with_confirmed_rows_refreshes_only_liveness(self):
+        errors = {key: 0 for key in scraper.RUN_ERRORS}
+        errors["patch_failed"] = 1
+
+        control = scraper.daemon_cycle_control(14, errors, 2)
+
+        self.assertTrue(control["degraded"])
+        self.assertTrue(control["refresh_liveness"])
+        self.assertEqual(3, control["error_streak"])
+        self.assertEqual(1800, control["sleep_seconds"])
+
+    def test_clean_series_cycle_resets_error_backoff(self):
+        control = scraper.daemon_cycle_control(
+            0,
+            {key: 0 for key in scraper.RUN_ERRORS},
+            4,
+        )
+
+        self.assertFalse(control["degraded"])
+        self.assertFalse(control["refresh_liveness"])
+        self.assertEqual(0, control["error_streak"])
+        self.assertEqual(6 * 60 * 60, control["sleep_seconds"])
+
     def test_numeric_official_source_is_fetched_once_and_identity_checked(self):
         wrong_page = """
         <html><head><title>Casino Lisboa Poker Tournaments</title></head>
