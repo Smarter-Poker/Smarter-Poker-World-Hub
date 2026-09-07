@@ -18,6 +18,7 @@ const ACHIEVEMENTS = read('src/services/AchievementService.js');
 const ELO_SERVICE = read('src/games/ELOService.js');
 const ELO_API = read('pages/api/memory/elo.js');
 const ELO_MATH = read('src/lib/memoryElo.js');
+const SPOT_TRAINER = read('src/games/SpotTrainerGame.jsx');
 const MODES = [
     'SpeedDrillGame.js',
     'PressureCookerGame.js',
@@ -66,26 +67,32 @@ test('submission, timeout, persistence, and adaptive launch regressions stay rep
     assert.match(PAGE, /submissionLockedRef\.current/);
     assert.match(PAGE, /latestGridRef\.current/);
     assert.match(PAGE, /latestTimeRef\.current/);
-    assert.match(PAGE, /questionsCorrect: result\.correctHands \|\| 0/);
-    assert.match(PAGE, /diamondsSpent: isVIP \|\| currentLevel <= 3 \? 0 : GAME_COST/);
+    assert.doesNotMatch(PAGE, /questionsCorrect: result\.correctHands \|\| 0/);
+    assert.match(PAGE, /LOCAL PRACTICE AUTHORITY BOUNDARY/);
+    assert.doesNotMatch(PAGE, /(?:recordSession|checkAndUnlock|updateLeaderboard|completeChallenge|processGameResult)\s*\(/);
+    assert.match(PAGE, /if \(!user\?\.id && economyReady\) DiamondEngine\.award\(totalReward\)/);
     assert.match(PAGE, /setMode\('game'\)/);
     assert.doesNotMatch(PAGE, /setGameState\(/);
     assert.doesNotMatch(PAGE, /setUserId\(user\.id\)|setEloRank|setGamesPlayed|correctHands\?\.length/);
 });
 
-test('protected GTO and Jarvis calls use the authenticated fetch contract', () => {
+test('live protected GTO calls use authenticated fetch while retired analysis routes stay absent', () => {
     for (const endpoint of [
         '/api/gto/generate-scenario',
-        '/api/jarvis/training-session',
-        '/api/gto/explain-hand',
-        '/api/gto/render-analysis-card',
-        '/api/gto/analyze-game',
         '/api/gto/get-weak-spots',
         '/api/gto/generate-adaptive',
         '/api/gto/lobby-suggestions',
     ]) {
         assert.match(PAGE, new RegExp(`authedFetch\\('${endpoint.replaceAll('/', '\\/')}`));
     }
+    for (const retiredEndpoint of [
+        '/api/gto/explain-hand',
+        '/api/gto/render-analysis-card',
+        '/api/gto/analyze-game',
+    ]) {
+        assert.doesNotMatch(PAGE, new RegExp(retiredEndpoint.replaceAll('/', '\\/')));
+    }
+    assert.doesNotMatch(PAGE, /\/api\/jarvis\/training-session/);
     assert.doesNotMatch(PAGE, /\bfetch\(/);
 });
 
@@ -94,11 +101,13 @@ test('generated solver solutions omit folds that the active-range grid must leav
     assert.match(ADAPTIVE_API, /!entry\.startsWith\('fold'\)/);
 });
 
-test('power-up charges are awaited before all six game modes apply their effects', () => {
+test('power-up charges are awaited in local games while Spot Trainer delegates to verified Training', () => {
     assert.match(POWER_UPS, /export async function purchasePowerUp/);
     assert.match(POWER_UPS, /'training_entry'/);
     assert.match(POWER_UPS, /if \(!result\?\.success\) return \{ success: false/);
-    assert.equal((MODES.match(/await purchasePowerUp\(/g) || []).length, 6);
+    assert.equal((MODES.match(/await purchasePowerUp\(/g) || []).length, 4);
+    assert.doesNotMatch(SPOT_TRAINER, /purchasePowerUp|getGamePowerUps|PowerUpBar/);
+    assert.match(SPOT_TRAINER, /\/hub\/training\/spot-trainer\?source=preflop-charts/);
     assert.doesNotMatch(MODES, /onScoreUpdate\?\.\(DiamondEngine\.getBalance\(\)\)/);
     assert.doesNotMatch(MODES, /const newBalance = DiamondEngine\.award/);
 });
@@ -113,13 +122,13 @@ test('review and combo components have self-contained render contracts', () => {
     assert.doesNotMatch(REVIEW, /\bRANKS\.map|\bgetHandName\(/);
 });
 
-test('authenticated achievement and ELO persistence run through server-owned contracts', () => {
+test('authenticated achievements use server authority while unverified ELO mutation stays retired', () => {
     assert.match(ACHIEVEMENTS, /authedFetch\('\/api\/training\/achievements'/);
     assert.doesNotMatch(ACHIEVEMENTS, /supabase\.rpc\('unlock_achievement'/);
-    assert.match(ELO_SERVICE, /authedFetch\('\/api\/memory\/elo'/);
-    assert.doesNotMatch(ELO_SERVICE, /\.from\('profiles'\)/);
-    assert.match(ELO_API, /getServerUserWithFallback\(req, supabase\)/);
-    assert.match(ELO_API, /\.eq\('id', user\.id\)/);
-    assert.doesNotMatch(ELO_API, /req\.body\?\.userId|req\.body\.userId/);
+    assert.match(ELO_SERVICE, /server_authoritative_ranked_match_required/);
+    assert.doesNotMatch(ELO_SERVICE, /authedFetch|\/api\/memory\/elo|\.rpc\(|\.from\(/);
+    assert.match(ELO_API, /status\(410\)/);
+    assert.match(ELO_API, /MEMORY_ELO_MUTATION_RETIRED/);
+    assert.doesNotMatch(ELO_API, /createClient|\.rpc\(|\.from\(/);
     assert.match(ELO_MATH, /export function calculateNewELO/);
 });

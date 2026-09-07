@@ -19,138 +19,12 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-// ●● Phase 5 Engine: Auto-detect leaks against GTO benchmarks ●●●●●●●●●●●●
-import { detectLeaks, generateDrillRecommendations, LEAK_TYPES } from '../../../src/engines/LeakDetector';
-import { identifyLeaks as identifySessionLeaks } from '../../../src/engines/SessionTracker';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 // TRAIN-WIRE-EMPTY-6a — adoption: shared empty-state primitive
 
-function analyzeData(sessions) {
-  if (!sessions || sessions.length === 0) return null;
-
-  let totalHands = 0,
-    totalCorrect = 0;
-  const gameAccMap = {};
-
-  sessions.forEach((s) => {
-    // Handle varying payload structures historically used across the platform
-    const q = Number(s.total_questions || s.questions_answered || 0);
-    const c = Number(s.correct_count || s.questions_correct || 0);
-
-    // Some tools (like Focus Timer) log sessions but don't output "questions". Count them as 1 volume unit.
-    const vol = q > 0 ? q : 1;
-
-    totalHands += vol;
-    totalCorrect += c;
-
-    const gId = s.game_id || s.gameId || 'unknown';
-
-    // Exclude non-scoring tools from accuracy metrics
-    if (!['focus-timer', 'risk-analyzer', 'gto-preloader'].includes(gId) && q > 0) {
-      if (!gameAccMap[gId]) gameAccMap[gId] = { q: 0, c: 0 };
-      gameAccMap[gId].q += q;
-      gameAccMap[gId].c += c;
-    }
-  });
-
-  const overallAcc = totalHands > 0 ? (totalCorrect / totalHands) * 100 : 0;
-  const leaks = [];
-  let idCounter = 1;
-
-  for (const [gId, stats] of Object.entries(gameAccMap || {})) {
-    if (stats.q < 3) continue; // Need minimum sample size to flag a leak
-
-    const acc = (stats.c / stats.q) * 100;
-    if (acc <= 85) {
-      // Anything 85% or below is considered an active leak
-      let tip, cat, area;
-      area = gId.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-
-      if (gId.includes('preflop')) {
-        cat = 'Preflop';
-        tip = `Your accuracy in ${area} is sub-optimal (${Math.round(acc)}%). Review your opening ranges and 3-bet frequencies to plug this leak.`;
-      } else if (gId.includes('icm') || gId.includes('tournament')) {
-        cat = 'ICM / Math';
-        tip = `You are losing EV in high-pressure ${area} spots. Tighten your calling ranges near the bubble.`;
-      } else if (gId.includes('ev') || gId.includes('geometry') || gId.includes('odds')) {
-        cat = 'Postflop Math';
-        tip = `Miscalculating pot odds and SPR. Re-drill ${area} to ensure you are getting the right mathematical price.`;
-      } else if (gId.includes('short-deck')) {
-        cat = 'Variant Rules';
-        tip = `Short Deck equities differ drastically from NLHE. You are overvaluing top pair and undervaluing straight draws.`;
-      } else {
-        cat = 'General Tactics';
-        tip = `Statistical weakness detected in ${area}. Replay this specific module repeatedly until your accuracy climbs above 90%.`;
-      }
-
-      leaks.push({
-        id: idCounter++,
-        cat,
-        area,
-        acc: Math.round(acc),
-        sample: stats.q,
-        tip,
-        sev: acc < 65 ? 'High' : 'Medium',
-      });
-    }
-  }
-
-  // Default state if they are performing perfectly or playing low sample size
-  if (leaks.length === 0 && totalHands > 0) {
-    leaks.push({
-      id: 999,
-      cat: 'System Intel',
-      area: 'Sample Size Too Small',
-      acc: Math.round(overallAcc),
-      sample: totalHands,
-      tip: 'Your accuracy is solid, or we need more data. Keep drilling across different categories to uncover hidden leaks.',
-      sev: 'Low',
-    });
-  }
-
-  leaks.sort((a, b) => a.acc - b.acc);
-
-  // ●● Engine enrichment: GTO benchmark leak detection ●●●●●●●●●●●●●●●●●●
-  let engineLeaks = [];
-  let drillRecommendations = [];
-  try {
-    // Run SessionTracker's identifyLeaks for position/game-type breakdowns
-    const sessionLeakResult = identifySessionLeaks(sessions);
-    if (sessionLeakResult && sessionLeakResult.length > 0) {
-      engineLeaks = sessionLeakResult.map((l, i) => ({
-        id: 1000 + i,
-        cat: l.category || 'Engine Detection',
-        area: l.area || l.type || 'Unknown',
-        acc: Math.round((1 - (l.deviation || 0)) * 100),
-        sample: l.sampleSize || 0,
-        tip: l.recommendation || l.description || 'Review this area for GTO improvement',
-        sev: (l.severity === 'high' || (l.deviation || 0) > 0.15) ? 'High' : 'Medium',
-        _engineLeak: l,
-      }));
-    }
-
-    // Run LeakDetector for drill recommendations if we have engine-enriched leaks
-    if (engineLeaks.length > 0) {
-      drillRecommendations = generateDrillRecommendations(
-        engineLeaks.map(l => l._engineLeak).filter(Boolean)
-      );
-    }
-  } catch (e) {
-    console.warn('[Scanner] Engine leak detection failed:', e.message);
-  }
-
-  // Merge engine leaks that don't overlap with inline leaks
-  const inlineAreas = new Set(leaks.map(l => l.area.toLowerCase()));
-  engineLeaks.forEach(el => {
-    if (!inlineAreas.has(el.area.toLowerCase())) {
-      leaks.push(el);
-    }
-  });
-
-  leaks.sort((a, b) => a.acc - b.acc);
-
-  return { overallAcc, totalHands, leaks, drillRecommendations, engineLeaks };
-}
+export const analyzeData = analyzeVerifiedTrainingWeaknesses;
 
 // BUG FIX (TRAIN-WEAKNESS-A11Y-1): SVG icon components replacing the
 // weakness-scanner emojis (■ empty state, ← back). Time-filter and CTA
@@ -271,7 +145,7 @@ export default function WeaknessScannerPage() {
           <div>
             {/* TRAIN-WEAKNESS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Weakness Scanner</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>AI Leak Detection</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Verified Session Analysis</div>
           </div>
         </div>
 
@@ -340,7 +214,7 @@ export default function WeaknessScannerPage() {
                       Scan Complete
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 900 }}>
-                      {data.leaks.length} Leaks Detected
+                      {data.leaks.length} {data.leaks.length === 1 ? 'Weakness' : 'Weaknesses'} Identified
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -348,22 +222,26 @@ export default function WeaknessScannerPage() {
                       style={{
                         fontSize: 28,
                         fontWeight: 900,
-                        color: data.overallAcc >= 80 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                        color: data.overallAcc === null
+                          ? 'var(--sp-fg-muted)'
+                          : data.overallAcc >= 80
+                            ? 'var(--sp-accent-green)'
+                            : 'var(--sp-accent-amber)',
                       }}
                     >
-                      {Math.round(data.overallAcc)}%
+                      {data.overallAcc === null ? '—' : `${Math.round(data.overallAcc)}%`}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>Overall Acc</div>
                   </div>
                 </div>
                 <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
-                  Based On Analysis Of Your Last {data.totalHands} Hands, We've Identified Specific
-                  Areas Where Your Decisions Consistently Deviate From GTO Frequencies.
+                  Based On {data.totalHands} Verified Decisions. Modules Appear Below Only When They
+                  Have At Least Three Decisions And Measured Accuracy Of 85% Or Lower.
                 </div>
               </div>
 
               {/* Severity Distribution Bar */}
-              {(() => {
+              {data.leaks.length > 0 && (() => {
                 const highCount = data.leaks.filter((l) => l.sev === 'High').length;
                 const medCount = data.leaks.filter((l) => l.sev === 'Medium').length;
                 const lowCount = data.leaks.filter((l) => l.sev === 'Low').length;
@@ -442,8 +320,9 @@ export default function WeaknessScannerPage() {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     const w = data.leaks[0];
-                    const params = new URLSearchParams({ game: w.area.toLowerCase().replace(/\s+/g, '-') });
-                    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+                    router.push(buildCustomTrainingArenaHref({
+                      gameId: w.gameId || w._engineLeak?.drill?.gameId,
+                    }, 'weakness-scanner'));
                   }}
                   style={{
                     width: '100%',
@@ -464,7 +343,7 @@ export default function WeaknessScannerPage() {
               )}
 
               {/* Leaks List */}
-              <div
+              {data.leaks.length > 0 && <div
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
@@ -475,7 +354,7 @@ export default function WeaknessScannerPage() {
                 }}
               >
                 Identified Weaknesses
-              </div>
+              </div>}
               <AnimatePresence>
                 {data.leaks.map((leak, i) => (
                   <motion.div
@@ -559,7 +438,7 @@ export default function WeaknessScannerPage() {
                           marginBottom: 4,
                         }}
                       >
-                        AI Fix Recommendation
+                        Verified Training Recommendation
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
                         {leak.tip}
@@ -571,8 +450,9 @@ export default function WeaknessScannerPage() {
                         type="button"
                         aria-label={`Practice ${leak.area} leak in spot trainer`}
                         onClick={() => {
-                          const params = new URLSearchParams({ game: leak.area.toLowerCase().replace(/\s+/g, '-') });
-                          router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+                          router.push(buildCustomTrainingArenaHref({
+                            gameId: leak.gameId || leak._engineLeak?.drill?.gameId,
+                          }, 'weakness-scanner'));
                         }}
                         style={{
                           flex: 1,
@@ -618,6 +498,22 @@ export default function WeaknessScannerPage() {
                   </motion.div>
                 ))}
               </AnimatePresence>
+              {data.totalHands > 0 && data.leaks.length === 0 && (
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No Measured Weakness Yet"
+                  message="No module with at least three verified decisions is currently at 85% accuracy or lower. Keep training to expand the sample."
+                  compact
+                />
+              )}
+              {data.totalHands === 0 && (
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No Scored Decisions Available"
+                  message="Complete a scored training session before running this analysis."
+                  compact
+                />
+              )}
             </>
           )}
 

@@ -14,14 +14,23 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { heroIsInPosition } from '../../../src/engines/positionOrder';
+import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
+import {
+    CustomSolverSpotContractError,
+    customSolverRowMatchesRequest,
+    normalizeCustomSolverSpot,
+} from '../../../src/lib/training/customSolverSpotContract.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            throw new Error('Solver service is not configured');
+        }
         _supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+            process.env.SUPABASE_SERVICE_ROLE_KEY
         );
     }
     return _supabase;
@@ -61,50 +70,19 @@ function checkRateLimit(userId) {
 async function getUserFromToken(req) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) return null;
-    const token = auth.replace('Bearer ', '');
 
     try {
         // 2026-07-19 AUDIT FIX: previous code referenced an undeclared
         // `error` variable — the ReferenceError was swallowed by this catch,
         // so getUserFromToken always returned null and the endpoint 401'd
         // on every request, even with a valid token.
-        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-        const user = authData?.user;
+        const { user, error: authErr } = await getServerUserWithFallback(req, getSupabase());
         if (authErr || !user) return null;
         return user;
     } catch {
         return null;
     }
 }
-
-// ●● Scenario hash generator ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street }) {
-    const parts = [
-        gameType || 'cash',
-        stackDepth || 100,
-        heroPosition || 'BTN',
-        villainPosition || 'BB',
-        street || 'flop',
-        ...(board || []).map(c => c.toLowerCase()).sort(),
-    ];
-    // Simple hash
-    let hash = 0;
-    const str = parts.join(':');
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return `spot_${Math.abs(hash).toString(36)}`;
-}
-
-const GAME_TYPE_MAP = {
-    cash: 'hu_cash',
-    mtt: 'mtt_hu_chipev',
-    tournament: 'mtt_hu_chipev',
-    sng: 'sng_hu',
-};
 
 function aggregateSolverActions(strategyMatrix) {
     const actions = Array.isArray(strategyMatrix?.actions) ? strategyMatrix.actions : [];
@@ -135,30 +113,57 @@ function aggregateSolverActions(strategyMatrix) {
     return result;
 }
 
-async function findExactSolverStrategy({ board, heroPosition, stackDepth, gameType, street }) {
-    const boardString = board.join('').toLowerCase();
-    const pioGameType = GAME_TYPE_MAP[String(gameType || 'cash').toLowerCase()] || 'hu_cash';
-    let query = getSupabase()
-        .from('solved_spots_gold')
-        .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix')
-        .eq('game_type', pioGameType)
-        .eq('street', street)
-        .ilike('scenario_hash', `%${boardString}%`)
-        .limit(25);
-    if (Number(stackDepth) > 0) query = query.eq('stack_depth', Number(stackDepth));
-    const { data, error } = await query;
-    if (error || !Array.isArray(data) || data.length === 0) return null;
+const SOLVER_ROW_PROJECTION = [
+    'id',
+    'scenario_hash',
+    'game_type',
+    'stack_depth',
+    'street',
+    'strategy_matrix_v2',
+    'solver_version',
+    'solver_binary_checksum',
+    'machine_id',
+    'pipeline_commit',
+    'manifest_version',
+    'manifest_checksum',
+    'source_artifact_checksum',
+    'quality_status',
+    'audited_at',
+].join(', ');
 
-    const positionToken = `_${String(heroPosition || '').toUpperCase()}_`;
-    const ordered = [
-        ...data.filter((row) => String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
-        ...data.filter((row) => !String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
-    ];
-    for (const row of ordered) {
-        const actions = aggregateSolverActions(row.strategy_matrix);
-        if (actions && Object.keys(actions).length > 0) return { row, actions };
+async function findExactSolverStrategy(request) {
+    // A hero who acts second needs the first actor's action in order to
+    // identify a decision node. Custom Solve does not currently collect that
+    // history, so serving r:0:c would silently assume a check.
+    if (heroIsInPosition(request.heroPosition, request.villainPosition)) {
+        return { status: 'node_context_required' };
     }
-    return null;
+
+    const { data, error } = await getSupabase()
+        .from('solved_spots_gold')
+        .select(SOLVER_ROW_PROJECTION)
+        .eq('scenario_hash', request.scenarioHash)
+        .eq('game_type', request.pioGameType)
+        .eq('street', request.street)
+        .eq('stack_depth', request.stackDepth)
+        .not('strategy_matrix_v2', 'is', null)
+        .eq('quality_status', 'validated')
+        .limit(3);
+    if (error) return { status: 'unavailable', error };
+    if (!Array.isArray(data) || data.length === 0) return { status: 'missing' };
+
+    const exactCandidates = [];
+    for (const row of data) {
+        if (!customSolverRowMatchesRequest(row, request)) continue;
+        const matrix = v2ToAppMatrix(row.strategy_matrix_v2);
+        const actions = aggregateSolverActions(matrix);
+        if (actions && Object.keys(actions).length > 0) exactCandidates.push({ row, actions });
+    }
+    // Duplicate exact identities are an integrity failure. Never select one
+    // nondeterministically and present it as authoritative.
+    if (exactCandidates.length > 1) return { status: 'ambiguous' };
+    if (exactCandidates.length === 0) return { status: 'missing' };
+    return { status: 'exact', ...exactCandidates[0] };
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -196,73 +201,76 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { board, heroPosition, villainPosition, stackDepth, gameType, street, action } = req.body;
-
-          // Validate required fields
-          if (!board || !Array.isArray(board) || board.length < 3) {
-              return res.status(400).json({
-                  success: false,
-                  error: 'Board must be an array of at least 3 cards (e.g., ["Ah", "Kd", "7c"])',
-              });
+          const { action } = req.body;
+          let request;
+          try {
+              request = normalizeCustomSolverSpot(req.body);
+          } catch (error) {
+              if (error instanceof CustomSolverSpotContractError) {
+                  return res.status(400).json({ success: false, code: error.code, error: error.message });
+              }
+              throw error;
           }
 
-          if (!heroPosition) {
-              return res.status(400).json({
+          const exact = await findExactSolverStrategy(request);
+          if (exact.status === 'unavailable' || exact.status === 'ambiguous') {
+              return res.status(503).json({
                   success: false,
-                  error: 'heroPosition is required (e.g., "BTN", "SB", "BB")',
+                  code: exact.status === 'ambiguous'
+                      ? 'SOLVER_IDENTITY_AMBIGUOUS'
+                      : 'SOLVER_LOOKUP_UNAVAILABLE',
+                  error: 'Verified solver lookup is temporarily unavailable',
               });
           }
-
-          const scenarioHash = hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street });
-
-          const resolvedStreet = street || (board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river');
-          const exact = await findExactSolverStrategy({
-              board,
-              heroPosition,
-              stackDepth: stackDepth || 100,
-              gameType: gameType || 'cash',
-              street: resolvedStreet,
-          });
-          if (exact) {
+          if (exact.status === 'exact') {
               return res.status(200).json({
                   success: true,
                   status: 'solved',
                   source: 'solved_spots_gold',
-                  matchQuality: 'exact_board',
+                  matchQuality: 'exact_root_node',
                   scenarioHash: exact.row.scenario_hash,
-                  message: 'Aggregated frequencies from the matching solved board node.',
+                  message: 'Aggregated frequencies from one identity-validated, provenance-audited root decision.',
                   solution: {
                       actions: exact.actions,
-                      board,
-                      heroPosition,
-                      villainPosition: villainPosition || 'BB',
+                      board: request.board,
+                      heroPosition: request.heroPosition,
+                      villainPosition: request.villainPosition,
                       stackDepth: exact.row.stack_depth,
                       gameType: exact.row.game_type,
                       street: exact.row.street,
+                      decisionNode: exact.row.strategy_matrix_v2.node,
                       isEstimate: false,
                   },
               });
           }
 
-          const baselineStrategy = generateBaselineStrategy(board, heroPosition, action, villainPosition || 'BB');
+          const baselineStrategy = generateBaselineStrategy(
+              request.board,
+              request.heroPosition,
+              action,
+              request.villainPosition,
+          );
+          const missingReason = exact.status === 'node_context_required'
+              ? 'Hero acts second and no first-action history was supplied.'
+              : 'No single provenance-verified exact root decision was found.';
 
           return res.status(200).json({
               success: true,
               status: 'estimate',
               source: 'modeled_baseline',
-              matchQuality: 'no_exact_board',
-              scenarioHash,
-              message: 'No exact solved board was found. Showing a clearly labelled positional baseline, not solver output.',
+              matchQuality: exact.status,
+              scenarioHash: request.scenarioHash,
+              message: `${missingReason} Showing a clearly labelled positional baseline, not solver output.`,
               solution: {
                   actions: baselineStrategy.actions,
                   frequencies: baselineStrategy.frequencies,
                   evByAction: baselineStrategy.evByAction,
-                  board,
-                  heroPosition,
-                  villainPosition: villainPosition || 'BB',
-                  stackDepth: stackDepth || 100,
-                  gameType: gameType || 'cash',
-                  street: resolvedStreet,
+                  board: request.board,
+                  heroPosition: request.heroPosition,
+                  villainPosition: request.villainPosition,
+                  stackDepth: request.stackDepth,
+                  gameType: request.gameType,
+                  street: request.street,
                   isEstimate: true,
               },
           });

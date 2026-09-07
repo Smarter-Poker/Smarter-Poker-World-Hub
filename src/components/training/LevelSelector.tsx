@@ -22,6 +22,7 @@ import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
 import { authedFetch, getSessionToken } from '../../lib/authUtils';
 import { LEVEL_REGISTRY, MASTERY_THRESHOLD, getLevel } from '../../config/LevelRegistry';
+import { isCanonicalTrainingGameId } from '../../lib/training/customTrainingLaunchContract.mjs';
 
 // ============================================================================
 // TYPES
@@ -36,6 +37,7 @@ interface LevelData {
     isUnlocked: boolean;
     isCompleted: boolean;
     attempts: number;
+    progressAvailable: boolean;
     diamondMultiplier?: number;
     tier?: string;
     accentColor?: string;
@@ -46,7 +48,6 @@ interface GameData {
     title: string;
     slug: string;
     category: string;
-    engineType: string;
     focus?: string;
     difficulty?: number;
 }
@@ -120,7 +121,7 @@ const LevelCard: React.FC<{
     index: number;
     isLast: boolean;
 }> = ({ levelData, gameTitle, onPlay, index, isLast }) => {
-    const { level, title, description, passingGrade, highScore, isUnlocked, isCompleted, attempts, diamondMultiplier, tier } = levelData;
+    const { level, title, description, passingGrade, highScore, isUnlocked, isCompleted, attempts, progressAvailable, diamondMultiplier, tier } = levelData;
 
     // Determine card state
     const getCardStyle = () => {
@@ -219,7 +220,11 @@ const LevelCard: React.FC<{
                             </div>
                         ) : (
                             <div style={styles.notAttempted}>
-                                <span>Not Attempted</span>
+                                <span>{!progressAvailable
+                                    ? 'Progress Not Available'
+                                    : attempts > 0
+                                        ? 'Score Not Available'
+                                        : 'Not Attempted'}</span>
                             </div>
                         )}
 
@@ -237,7 +242,7 @@ const LevelCard: React.FC<{
                                 color: '#f5fdff',
                             }}
                         >
-                            {isCompleted ? '▶ Replay' : highScore !== null ? '▶ Retry' : '▶ Play'}
+                            {isCompleted ? '▶ Replay' : attempts > 0 ? '▶ Retry' : '▶ Play'}
                         </motion.button>
                     </>
                 ) : (
@@ -274,6 +279,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     const [gameData, setGameData] = useState<GameData | null>(null);
     const [levels, setLevels] = useState<LevelData[]>([]);
     const [startingLevel, setStartingLevel] = useState<number | null>(null);
+    const [launchError, setLaunchError] = useState<string | null>(null);
+    const [progressUnavailable, setProgressUnavailable] = useState<string | null>(null);
 
     // VIP Gating logic
     const { allowed: vipAllowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('gto-training');
@@ -284,8 +291,20 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
     const fetchGameAndProgress = useCallback(async () => {
         setLoading(true);
+        setLaunchError(null);
+        setProgressUnavailable(null);
 
         try {
+            const libraryGame = typeof gameId === 'string' && isCanonicalTrainingGameId(gameId)
+                ? getGameById(gameId)
+                : null;
+            if (!libraryGame) {
+                setGameData(null);
+                setLevels([]);
+                setLaunchError('This Training Game Does Not Exist In The Canonical Library.');
+                return;
+            }
+
             // Fetch game data from API, with TRAINING_LIBRARY fallback
             let gameInfo: any = null;
 
@@ -298,7 +317,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     const gameRes = await fetch(`/api/games/${gameId}`, { signal });
                     return gameRes.json();
                 });
-                if (!game.error) {
+                if (!game.error && (game.slug === gameId || game.id === gameId)) {
                     gameInfo = game;
                 }
             } catch (e) {
@@ -307,34 +326,24 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
             // Fallback: use TRAINING_LIBRARY if API fails or game not in registry
             if (!gameInfo) {
-                const libraryGame = getGameById(gameId);
-                if (libraryGame) {
-                    gameInfo = {
-                        id: libraryGame.id,
-                        title: libraryGame.name,
-                        slug: libraryGame.id,
-                        category: libraryGame.category,
-                        engine_type: libraryGame.tags?.includes('gto') ? 'PIO' :
-                            libraryGame.category === 'PSYCHOLOGY' ? 'SCENARIO' : 'PIO',
-                        focus: libraryGame.focus,
-                        difficulty: libraryGame.difficulty,
-                    };
-                    console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);
-                } else {
-                    console.warn('Game not found in registry or library:', gameId);
-                    // Still show levels with minimal game data
-                    gameInfo = { id: gameId, title: gameId, slug: gameId, category: 'CASH', engine_type: 'PIO' };
-                }
+                gameInfo = {
+                    id: libraryGame.id,
+                    title: libraryGame.name,
+                    slug: libraryGame.id,
+                    category: libraryGame.category,
+                    focus: libraryGame.focus,
+                    difficulty: libraryGame.difficulty,
+                };
+                console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);
             }
 
             setGameData({
-                id: gameInfo.id,
+                id: gameId,
                 title: gameInfo.title || gameInfo.name,
-                slug: gameInfo.slug || gameInfo.id,
-                category: gameInfo.category,
-                engineType: gameInfo.engine_type,
-                focus: gameInfo.focus || gameInfo.description,
-                difficulty: Number(gameInfo.difficulty) || undefined,
+                slug: gameId,
+                category: gameInfo.category || libraryGame.category,
+                focus: gameInfo.focus || gameInfo.description || libraryGame.focus,
+                difficulty: Number(gameInfo.difficulty || libraryGame.difficulty) || undefined,
             });
 
             // Fetch user progress for this game
@@ -343,10 +352,20 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             // the dead-table read server-side, progress never displayed.
             let levelProgress: any = {};
             let highestUnlocked = 1;
+            let progressAvailable = true;
             try {
                 const progressData = await withLevelDataDeadline(async (signal) => {
                     const progressRes = await authedFetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, { signal });
-                    return progressRes.json();
+                    let payload: any = null;
+                    try {
+                        payload = await progressRes.json();
+                    } catch (_parseError) {
+                        throw new Error(`Training Progress Returned Invalid Data (${progressRes.status}).`);
+                    }
+                    if (!progressRes.ok || payload?.success === false) {
+                        throw new Error(payload?.error || `Training Progress Is Unavailable (${progressRes.status}).`);
+                    }
+                    return payload;
                 });
                 levelProgress = progressData?.levels || {};
                 highestUnlocked = progressData?.levels?.highestUnlocked
@@ -354,7 +373,13 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     ?? progressData?.progress?.highest_level_unlocked
                     ?? 1;
             } catch (e) {
-                console.warn('[LevelSelector] Progress fetch failed, showing default levels');
+                progressAvailable = false;
+                setProgressUnavailable(
+                    e instanceof Error
+                        ? e.message
+                        : 'Saved Training Progress Is Temporarily Unavailable.'
+                );
+                console.warn('[LevelSelector] Progress fetch failed; no mastery will be inferred');
             }
 
             // Build level data with lock logic
@@ -365,11 +390,26 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 const levelKey = `level_${i}`;
                 const progress = levelProgress[levelKey] || {};
                 const prevProgress = i > 1 ? (levelProgress[`level_${i - 1}`] || {}) : null;
+                const parsedHighScore = Number(progress.highScore);
+                const highScore = progress.highScore !== null
+                    && progress.highScore !== undefined
+                    && Number.isFinite(parsedHighScore)
+                    ? parsedHighScore
+                    : null;
+                const parsedPreviousHighScore = Number(prevProgress?.highScore);
+                const previousHighScore = prevProgress?.highScore !== null
+                    && prevProgress?.highScore !== undefined
+                    && Number.isFinite(parsedPreviousHighScore)
+                    ? parsedPreviousHighScore
+                    : null;
 
                 // Lock logic: Level 1 always unlocked, others unlock via server-reported
                 // highest_level_unlocked or previous level high score ≥ passing grade
-                const isUnlocked = i === 1 || i <= highestUnlocked || (prevProgress?.highScore || 0) >= PASSING_GRADES[i - 2];
-                const isCompleted = (progress.highScore || 0) >= PASSING_GRADES[i - 1];
+                const isUnlocked = i === 1
+                    || i <= highestUnlocked
+                    || (previousHighScore !== null && previousHighScore >= PASSING_GRADES[i - 2]);
+                const isCompleted = progress.completed === true
+                    || (highScore !== null && highScore >= PASSING_GRADES[i - 1]);
 
                 const regLevel = getLevel(i);
                 levelDataList.push({
@@ -377,10 +417,11 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     title: LEVEL_TITLES[i - 1],
                     description: LEVEL_DESCRIPTIONS[i - 1],
                     passingGrade: PASSING_GRADES[i - 1],
-                    highScore: progress.highScore || null,
+                    highScore,
                     isUnlocked,
                     isCompleted,
                     attempts: progress.attempts || 0,
+                    progressAvailable,
                     diamondMultiplier: regLevel?.diamondMultiplier || 1.0,
                     tier: regLevel?.tier || 'BEGINNER',
                     accentColor: regLevel?.accentColor || LEVEL_COLORS[i - 1],
@@ -391,6 +432,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
         } catch (error) {
             console.warn('Failed to fetch game/progress:', error);
+            setLaunchError('The Training Campaign Could Not Be Loaded. Please Try Again.');
         } finally {
             setLoading(false);
         }
@@ -405,6 +447,16 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     // ========================================================================
 
     const handlePlayLevel = async (level: number) => {
+        const canonicalGame = typeof gameId === 'string' && isCanonicalTrainingGameId(gameId)
+            ? getGameById(gameId)
+            : null;
+        const registeredLevel = Number.isInteger(level) ? getLevel(level) : null;
+        if (!canonicalGame || !registeredLevel) {
+            setStartingLevel(null);
+            setLaunchError('This Training Launch Is Not Part Of The Canonical Campaign.');
+            return;
+        }
+
         // Enforce VIP wall for levels 4-10
         if (level > 3 && !vipAllowed) {
             showUpgradeModal();
@@ -412,9 +464,13 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
         }
         
         setStartingLevel(level);
+        setLaunchError(null);
 
         try {
-            // Get auth token for session start
+            // Authentication is required before entering the Arena. Its first
+            // signed question-delivery response creates the authoritative
+            // training_attempt; this selector must not mint a parallel session
+            // or claim that a failed legacy start succeeded.
             let authToken = '';
             try {
                 authToken = getSessionToken() || '';
@@ -431,37 +487,19 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 return;
             }
 
-            // Start session via API (with auth token)
-            let sessionId = `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-            try {
-                const res = await authedFetch('/api/session/start', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        user_id: userId,
-                        game_id: gameId,
-                        level: level,
-                    }),
-                });
-
-                const session = await res.json();
-                if (!res.ok) {
-                    throw new Error(session?.error || `Session start failed (${res.status})`);
-                }
-                if (session.session_id) {
-                    sessionId = session.session_id;
-                } else {
-                    console.warn('[LevelSelector] Session API returned no session_id, using client-generated ID');
-                }
-            } catch (e) {
-                console.warn('[LevelSelector] Session start failed, proceeding with client-generated session ID');
+            const navigated = await router.push({
+                pathname: '/hub/training/arena/[gameId]',
+                query: { gameId, level: String(level) },
+            });
+            if (navigated === false) {
+                throw new Error('The Training Arena Did Not Accept This Launch.');
             }
-
-            // Navigate to game arena (always proceed, even if session API fails)
-            router.push(`/hub/training/arena/${gameId}?level=${level}&session=${sessionId}`);
 
         } catch (error) {
             console.warn('Failed to start session:', error);
+            setLaunchError(error instanceof Error
+                ? error.message
+                : 'The Training Arena Could Not Be Started.');
             setStartingLevel(null);
         }
     };
@@ -480,12 +518,41 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
     // Calculate overall progress
     const completedLevels = levels.filter(l => l.isCompleted).length;
-    const totalProgress = levels.length > 0 ? (completedLevels / levels.length) * 100 : 0;
+    const totalProgress = progressUnavailable
+        ? null
+        : levels.length > 0
+            ? (completedLevels / levels.length) * 100
+            : 0;
     const categoryLabel = (gameData?.category || 'Training')
         .toLowerCase()
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+    if (!loading && launchError && !gameData) {
+        return (
+            <main className="sp-level-selector" style={{ ...styles.container, ...styles.errorShell }}>
+                <div role="alert" style={styles.errorPanel}>
+                    <h1 style={styles.errorTitle}>Training Launch Unavailable</h1>
+                    <p style={styles.errorCopy}>{launchError}</p>
+                    <button type="button" onClick={handleBack} style={styles.backButton}>
+                        Return To Training
+                    </button>
+                </div>
+            </main>
+        );
+    }
+
     return (
         <div className="sp-level-selector" style={styles.container}>
+            {launchError && (
+                <div role="alert" style={styles.inlineError}>
+                    {launchError}
+                </div>
+            )}
+            {progressUnavailable && (
+                <div role="status" aria-live="polite" style={styles.inlineError}>
+                    Saved Progress Is Temporarily Unavailable. No Mastery Or Prior Attempts Have Been Inferred.
+                </div>
+            )}
             {/* Game-specific command deck shared by all catalog games. */}
             <header className="sp-level-header" style={styles.header}>
                 <div className="sp-level-command-copy">
@@ -503,16 +570,16 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
                         <p className="sp-level-focus">{gameData?.focus || 'Build table-ready instincts through progressively harder decisions.'}</p>
                         <div className="sp-level-stats">
-                            <div><strong>{completedLevels}</strong><span>Levels Cleared</span></div>
+                            <div><strong>{totalProgress === null ? '—' : completedLevels}</strong><span>Levels Cleared</span></div>
                             <div><strong>{levels.length || 12}</strong><span>Total Levels</span></div>
-                            <div><strong>{Math.round(totalProgress)}%</strong><span>Campaign Mastery</span></div>
+                            <div><strong>{totalProgress === null ? '—' : `${Math.round(totalProgress)}%`}</strong><span>Campaign Mastery</span></div>
                         </div>
                         <div style={styles.progressSummary}>
                             <span style={styles.progressText}>Campaign Progress</span>
                             <div style={styles.progressTrack}>
                                 <motion.div
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${totalProgress}%` }}
+                                    animate={{ width: `${totalProgress ?? 0}%` }}
                                     transition={{ duration: 0.5 }}
                                     style={styles.progressFill}
                                 />
@@ -780,6 +847,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     footer: {
         display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '18px 24px',
         fontSize: 12, color: '#829cab', borderTop: '1px solid rgba(139,234,255,.18)', letterSpacing: 0.5,
+    },
+    errorShell: { display: 'grid', placeItems: 'center', padding: 24 },
+    errorPanel: {
+        width: 'min(100%, 520px)', padding: 24, textAlign: 'center' as const,
+        background: 'linear-gradient(180deg, rgba(65,24,31,.96), rgba(16,7,11,.98))',
+        border: '1px solid rgba(248,113,113,.48)', boxShadow: '0 24px 60px rgba(0,0,0,.48)',
+    },
+    errorTitle: { margin: '0 0 10px', color: '#fecaca', fontSize: 22 },
+    errorCopy: { margin: '0 0 18px', color: '#fca5a5', lineHeight: 1.55 },
+    inlineError: {
+        padding: '12px 18px', textAlign: 'center' as const, color: '#fecaca',
+        background: 'rgba(127,29,29,.35)', borderBottom: '1px solid rgba(248,113,113,.42)',
     },
     loadingOverlay: {
         position: 'fixed' as const, inset: 0,

@@ -71,7 +71,10 @@ export default function MistakePatternPanel({ mistakePatterns }) {
 
     const visiblePatterns = showAll ? mistakePatterns : mistakePatterns.slice(0, 5);
     const totalMistakes = mistakePatterns.reduce((s, p) => s + p.count, 0);
-    const totalEvLoss = mistakePatterns.reduce((s, p) => s + p.totalEvLoss, 0);
+    const measuredPatterns = mistakePatterns.filter(pattern => Number.isFinite(pattern.totalEvLoss));
+    const totalEvLoss = measuredPatterns.length > 0
+        ? measuredPatterns.reduce((sum, pattern) => sum + pattern.totalEvLoss, 0)
+        : null;
 
     return (
         <div style={styles.container}>
@@ -79,7 +82,9 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                 <div style={styles.title}>Mistake Patterns</div>
                 <div style={styles.headerStats}>
                     <span style={styles.headerStat}>{totalMistakes} Mistakes</span>
-                    <span style={{ ...styles.headerStat, color: '#ef4444' }}>-{totalEvLoss.toFixed(1)} EV</span>
+                    <span style={{ ...styles.headerStat, color: totalEvLoss === null ? '#64748b' : '#ef4444' }}>
+                        {totalEvLoss === null ? 'EV Not Measured' : `-${totalEvLoss.toFixed(1)} EV`}
+                    </span>
                 </div>
             </div>
 
@@ -94,7 +99,10 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                     <div style={styles.insightText}>
                         {generateInsight(mistakePatterns[0])}
                         <span style={styles.insightMeta}>
-                            {' '}- {mistakePatterns[0].count} Occurrences, -{mistakePatterns[0].avgEvLoss.toFixed(2)} Avg EV
+                            {' '}- {mistakePatterns[0].count} Occurrences,
+                            {Number.isFinite(mistakePatterns[0].avgEvLoss)
+                                ? ` -${mistakePatterns[0].avgEvLoss.toFixed(2)} Avg EV`
+                                : ' EV Not Measured'}
                         </span>
                     </div>
                 </motion.div>
@@ -167,7 +175,9 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                                         {pattern.count}×
                                     </span>
                                     <span style={styles.evLossValue}>
-                                        -{pattern.avgEvLoss.toFixed(2)}
+                                        {Number.isFinite(pattern.avgEvLoss)
+                                            ? `-${pattern.avgEvLoss.toFixed(2)}`
+                                            : '—'}
                                     </span>
                                 </div>
 
@@ -203,12 +213,19 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                         const spotCounts = {};
                         mistakePatterns.forEach(p => {
                             const s = p.spotType || 'general';
-                            if (!spotCounts[s]) spotCounts[s] = { count: 0, evLoss: 0 };
+                            if (!spotCounts[s]) spotCounts[s] = { count: 0, evLoss: 0, measured: 0 };
                             spotCounts[s].count += p.count;
-                            spotCounts[s].evLoss += p.totalEvLoss;
+                            if (Number.isFinite(p.totalEvLoss)) {
+                                spotCounts[s].evLoss += p.totalEvLoss;
+                                spotCounts[s].measured += 1;
+                            }
                         });
                         return Object.entries(spotCounts || {})
-                            .sort((a, b) => b[1].evLoss - a[1].evLoss)
+                            .sort((a, b) => (
+                                (b[1].measured > 0 ? b[1].evLoss : Number.NEGATIVE_INFINITY)
+                                - (a[1].measured > 0 ? a[1].evLoss : Number.NEGATIVE_INFINITY)
+                                || b[1].count - a[1].count
+                            ))
                             .slice(0, 4)
                             .map(([spot, data]) => (
                                 <div key={spot} style={styles.spotTag}>
@@ -216,7 +233,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                                         {SPOT_TYPE_LABELS[spot] || spot}
                                     </span>
                                     <span style={{ color: '#ef4444', fontSize: 9 }}>
-                                        {data.count}× / -{data.evLoss.toFixed(1)} EV
+                                        {data.count}× / {data.measured > 0 ? `-${data.evLoss.toFixed(1)} EV` : 'EV Not Measured'}
                                     </span>
                                 </div>
                             ));

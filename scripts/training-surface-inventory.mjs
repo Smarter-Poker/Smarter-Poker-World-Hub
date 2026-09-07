@@ -68,6 +68,16 @@ function importsFor(file, source) {
 
 function importBindingsFor(file, source) {
   const bindings = [];
+  const addCommonJsBindings = (clause, target) => {
+    if (!target) return;
+    if (clause.startsWith('{')) {
+      for (const entry of clause.slice(1, -1).split(',').map((value) => value.trim()).filter(Boolean)) {
+        bindings.push({ from: rel(file), to: rel(target), imported: entry.split(/\s*:\s*/)[0].trim() });
+      }
+    } else {
+      bindings.push({ from: rel(file), to: rel(target), imported: '*' });
+    }
+  };
   for (const match of source.matchAll(/\bimport\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
     const target = resolveImport(file, match[2]);
     if (!target) continue;
@@ -95,16 +105,15 @@ function importBindingsFor(file, source) {
     const target = resolveImport(file, match[1]);
     if (target) bindings.push({ from: rel(file), to: rel(target), imported: 'default' });
   }
-  for (const match of source.matchAll(/\bconst\s+(\{[\s\S]*?\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
-    const target = resolveImport(file, match[2]);
-    if (!target) continue;
-    if (match[1].startsWith('{')) {
-      for (const entry of match[1].slice(1, -1).split(',').map((value) => value.trim()).filter(Boolean)) {
-        bindings.push({ from: rel(file), to: rel(target), imported: entry.split(/\s*:\s*/)[0].trim() });
-      }
-    } else {
-      bindings.push({ from: rel(file), to: rel(target), imported: '*' });
-    }
+  for (const match of source.matchAll(/\bconst\s+(\{[^}]*\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    addCommonJsBindings(match[1], resolveImport(file, match[2]));
+  }
+  // Audit harnesses load project modules through a Babel require hook and an
+  // absolute `path.join(ROOT, 'src/...')` path. That is still a real static
+  // import binding; overlooking it made intentional test-only exports look
+  // like unreviewed production dead code.
+  for (const match of source.matchAll(/\bconst\s+(\{[^}]*\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*path\.join\(\s*ROOT\s*,\s*['"]([^'"]+)['"]\s*\)\s*\)/g)) {
+    addCommonJsBindings(match[1], resolveImport(file, match[2]));
   }
   return bindings;
 }
@@ -297,7 +306,7 @@ function classifyMarker(file, marker) {
   if (kind === 'PLACEHOLDER' && /(?:placeholder suits|dealing placeholder)/i.test(marker.excerpt)) {
     return { disposition: 'poker-normalization-or-ui-state', review: 'accepted', rationale: 'Suit normalization or visible deal-state placeholder; it does not fabricate solver output.' };
   }
-  if (commentOnly && /\b(?:former|removed|no |never |without |instead of|used to|dead-link fix)\b/i.test(marker.excerpt)) {
+  if (commentOnly && /\b(?:former|removed|no |never |without |instead of|used to|shadowed|dead-link fix)\b/i.test(marker.excerpt)) {
     return { disposition: 'historical-or-prohibition-comment', review: 'accepted', rationale: 'Comment documents removed behavior or explicitly prohibits a fallback/stub.' };
   }
   if (kind === 'SIMULATE' || kind === 'SIMULATED' || kind === 'SIMULATION') {
@@ -503,6 +512,11 @@ function main() {
       let disposition = 'unwired-local-review';
       let review = 'phase-review';
       let rationale = 'Local function has no second lexical reference in its declaring file.';
+      const isNextPageDataEntrypoint = row.file.startsWith('pages/hub/training/')
+        && ['getServerSideProps', 'getStaticProps', 'getStaticPaths'].includes(entry.name);
+      const testOrAuditReferenceFiles = externalReferenceFiles.filter((file) =>
+        /^(?:__tests__|e2e)\//.test(file)
+        || /^scripts\/(?:harness\/|.*(?:audit|check|test|verification|correctness|difficulty).*)/i.test(file));
       if (/^(?:__tests__|e2e)\//.test(row.file)) {
         disposition = 'test-helper';
         review = 'accepted';
@@ -515,6 +529,10 @@ function main() {
         disposition = 'api-entrypoint';
         review = 'accepted';
         rationale = 'Next.js API default export is invoked by the router.';
+      } else if (entry.exported && isNextPageDataEntrypoint) {
+        disposition = 'framework-entrypoint';
+        review = 'accepted';
+        rationale = 'Named Next.js Pages Router data export is invoked by the framework.';
       } else if (entry.namedFunctionExpression) {
         disposition = 'assigned-or-returned-function-expression';
         review = 'accepted';
@@ -523,6 +541,12 @@ function main() {
         disposition = 'imported-default-entrypoint';
         review = 'accepted';
         rationale = 'Default export is imported by another repository source file.';
+      } else if (entry.exported
+        && externalReferenceFiles.length
+        && testOrAuditReferenceFiles.length === externalReferenceFiles.length) {
+        disposition = 'test-or-audit-entrypoint';
+        review = 'accepted';
+        rationale = 'Named export is intentionally consumed only by an automated test or audit harness.';
       } else if (entry.exported && externalReferenceFiles.length) {
         disposition = 'imported-entrypoint';
         review = 'accepted';

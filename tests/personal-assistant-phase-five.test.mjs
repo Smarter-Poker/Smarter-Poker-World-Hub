@@ -109,9 +109,11 @@ test('corrective drills resolve hyphen and underscore aliases without weakening 
 
 test('verified answer metadata comes from the canonical solver question, not the browser', () => {
   assert.match(recordQuestionApi, /const canonicalScenario = canonicalQuestion\?\.scenario \|\| \{\}/);
-  assert.match(recordQuestionApi, /hero_position: canonicalQuestion/);
-  assert.match(recordQuestionApi, /street: canonicalQuestion/);
-  assert.match(recordQuestionApi, /spot_type: canonicalQuestion/);
+  assert.match(recordQuestionApi, /hero_position: String\(canonicalScenario\.heroPosition/);
+  assert.match(recordQuestionApi, /villain_position: String\(canonicalScenario\.villainPosition/);
+  assert.match(recordQuestionApi, /street: String\(canonicalScenario\.street/);
+  assert.match(recordQuestionApi, /spot_type: String\(canonicalSpotType\)/);
+  assert.doesNotMatch(recordQuestionApi, /hero_position: req\.body|street: req\.body|spot_type: req\.body/);
 });
 
 test('answers are immutable, private, token-bound, and revealed only after locking', () => {

@@ -66,10 +66,6 @@ export function getTutorialForPath(asPath) {
   return best ? best.tutorial : null;
 }
 
-export function listTutorialRoutes() {
-  return REGISTRY.map((r) => r.prefix);
-}
-
 // Storage helpers: try/catch because private mode throws, SSR-safe.
 function read(key) {
   if (typeof window === 'undefined') return null;

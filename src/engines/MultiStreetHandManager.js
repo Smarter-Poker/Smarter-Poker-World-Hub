@@ -6,51 +6,101 @@
  * running pot calculation, and per-street GTO feedback.
  *
  * Usage:
- *   const hand = new MultiStreetHand(flopQuestion);
+ *   const hand = new MultiStreetHand(initialQuestion);
  *   hand.recordAction('b33'); // hero bets 33%
- *   const turnQ = await hand.advanceStreet(deterministicEngine, gameConfig);
- *   if (!turnQ) { // hand complete, no turn data }
+ *   hand.applyServerContinuation(signedTurnResponse);
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 const STREET_ORDER = ['flop', 'turn', 'river'];
 const SUITS = ['s', 'h', 'd', 'c'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const CARD_RE = /^[2-9TJQKA][shdc]$/;
 
-/**
- * Generate all 52 cards
- */
-function allCards() {
-    const cards = [];
-    for (const r of RANKS) {
-        for (const s of SUITS) {
-            cards.push(r + s);
-        }
+function normalizeCard(card) {
+    const token = String(card || '').trim();
+    if (token.length !== 2) return null;
+    const normalized = `${token[0].toUpperCase()}${token[1].toLowerCase()}`;
+    return CARD_RE.test(normalized) ? normalized : null;
+}
+
+function cardsEqual(left, right) {
+    return left.length === right.length && left.every((card, index) => card === right[index]);
+}
+
+function unorderedCardsEqual(left, right) {
+    return left.length === right.length
+        && [...left].sort().every((card, index) => card === [...right].sort()[index]);
+}
+
+function parseExactCardSource(value) {
+    if (value === undefined || value === null || value === '') {
+        return { provided: false, valid: true, cards: [] };
     }
-    return cards;
+    const rawCards = Array.isArray(value)
+        ? value
+        : (() => {
+            if (typeof value !== 'string') return null;
+            const compact = value.replace(/[\s,]+/g, '');
+            if (!compact || compact.length % 2 !== 0) return null;
+            return compact.match(/.{2}/g) || [];
+        })();
+    if (!rawCards) return { provided: true, valid: false, cards: [] };
+    const normalized = rawCards.map(normalizeCard);
+    return {
+        provided: true,
+        valid: normalized.length === rawCards.length && normalized.every(Boolean),
+        cards: normalized.filter(Boolean),
+    };
 }
 
-/**
- * Deal a random card not in the dead cards set
- */
-function dealRandomCard(deadCards) {
-    const deck = allCards().filter(c => !deadCards.has(c.toLowerCase()));
-    if (deck.length === 0) return null;
-    return deck[Math.floor(Math.random() * deck.length)];
+function exactCardAliases(sources, {
+    label,
+    expectedCount,
+    unordered = false,
+    required = true,
+    code,
+}) {
+    const aliases = sources.map(parseExactCardSource).filter((source) => source.provided);
+    if ((required && aliases.length === 0)
+        || aliases.some((source) => !source.valid || source.cards.length !== expectedCount)) {
+        throw new MultiStreetContinuationError(
+            `${label} must contain exactly ${expectedCount} valid cards.`,
+            code,
+        );
+    }
+    if (aliases.length === 0) return [];
+    const [canonical, ...rest] = aliases.map((source) => source.cards);
+    const equal = unordered ? unorderedCardsEqual : cardsEqual;
+    if (rest.some((candidate) => !equal(canonical, candidate))) {
+        throw new MultiStreetContinuationError(
+            `${label} aliases disagree about the signed hand.`,
+            code,
+        );
+    }
+    return canonical;
 }
 
-/**
- * Parse two-char cards from a hero hand like "AKs" into actual cards
- */
-function heroHandToCards(heroHand) {
-    if (!heroHand || heroHand.length < 2) return [];
-    const r1 = heroHand[0];
-    const r2 = heroHand[1];
-    const suffix = heroHand.length >= 3 ? heroHand[2] : '';
+function handClassFromCards(cards) {
+    if (!Array.isArray(cards) || cards.length !== 2) return '';
+    const rankOrder = Object.fromEntries(RANKS.map((rank, index) => [rank, index]));
+    const ordered = [...cards].sort((left, right) => rankOrder[right[0]] - rankOrder[left[0]]);
+    const [first, second] = ordered;
+    if (first[0] === second[0]) return `${first[0]}${second[0]}`;
+    return `${first[0]}${second[0]}${first[1] === second[1] ? 's' : 'o'}`;
+}
 
-    if (r1 === r2) return [`${r1}h`, `${r2}s`];
-    if (suffix === 's') return [`${r1}s`, `${r2}s`];
-    return [`${r1}s`, `${r2}h`];
+function expectedBoardCount(street) {
+    const streetIndex = STREET_ORDER.indexOf(street);
+    return streetIndex === -1 ? null : streetIndex + 3;
+}
+
+export class MultiStreetContinuationError extends Error {
+    constructor(message, code = 'TRAINING_CONTINUATION_INVALID') {
+        super(message);
+        this.name = 'MultiStreetContinuationError';
+        this.code = code;
+    }
 }
 
 /**
@@ -86,30 +136,95 @@ function computePotAfterAction(currentPot, action, { actionUnits = 'percent', fa
 }
 
 export class MultiStreetHand {
-    constructor(flopQuestion) {
-        this.heroHand = flopQuestion.heroHand || flopQuestion.scenario?.heroHand || '';
-        this.heroCards = flopQuestion.heroCards || heroHandToCards(this.heroHand);
-        this.gameType = flopQuestion.scenario?.gameType || 'hu_cash';
-        this.stackDepth = flopQuestion.scenario?.stackDepth || 100;
-        this.heroPosition = flopQuestion.scenario?.heroPosition || 'BTN';
-        this.villainPosition = flopQuestion.scenario?.villainPosition || 'BB';
+    constructor(initialQuestion) {
+        const question = initialQuestion || {};
+        const scenario = question.scenario || {};
+        const heroHandAliases = [question.heroHand, scenario.heroHand]
+            .filter((value) => value !== undefined && value !== null && value !== '')
+            .map((value) => String(value));
+        if (heroHandAliases.some((value) => value !== heroHandAliases[0])) {
+            throw new MultiStreetContinuationError(
+                'Hero hand aliases disagree about the signed hand.',
+                'TRAINING_INITIAL_HERO_IDENTITY_MISMATCH',
+            );
+        }
+        this.heroCards = exactCardAliases(
+            [question.heroCards, scenario.heroCards],
+            {
+                label: 'Hero cards',
+                expectedCount: 2,
+                unordered: true,
+                code: 'TRAINING_INITIAL_HERO_CARDS_INVALID',
+            },
+        );
+        const derivedHeroHand = handClassFromCards(this.heroCards);
+        const declaredHeroHand = heroHandAliases[0] || '';
+        if (/^[2-9TJQKA]{2}[so]?$/.test(declaredHeroHand)
+            && declaredHeroHand !== derivedHeroHand) {
+            throw new MultiStreetContinuationError(
+                'Hero hand notation does not match the exact hero cards.',
+                'TRAINING_INITIAL_HERO_IDENTITY_MISMATCH',
+            );
+        }
+        this.heroHand = declaredHeroHand || derivedHeroHand;
+        this.gameType = scenario.gameType || 'hu_cash';
+        this.stackDepth = scenario.stackDepth || 100;
+        this.heroPosition = scenario.heroPosition || 'BTN';
+        this.villainPosition = scenario.villainPosition || 'BB';
 
-        // Board state — starts with flop cards
-        const flopBoard = flopQuestion.scenario?.board || '';
-        this.boardCards = this._parseBoardCards(flopBoard);
-        this.flopCards = [...this.boardCards]; // Save original flop
+        // A full-hand session can begin on either Flop or Turn. Derive the
+        // active street from the canonical question and retain exact street
+        // board slices instead of treating every starting board as a Flop.
+        const streetAliases = [scenario.street, question.street]
+            .filter((value) => value !== undefined && value !== null && value !== '')
+            .map((value) => String(value).toLowerCase());
+        if (streetAliases.length === 0
+            || streetAliases.some((street) => street !== streetAliases[0])
+            || !STREET_ORDER.includes(streetAliases[0])) {
+            throw new MultiStreetContinuationError(
+                'The initial question must declare one consistent postflop street.',
+                'TRAINING_INITIAL_STREET_MISMATCH',
+            );
+        }
+        this.currentStreet = streetAliases[0];
+        this.streetIndex = STREET_ORDER.indexOf(this.currentStreet);
+
+        const requiredBoardCount = expectedBoardCount(this.currentStreet);
+        this.boardCards = exactCardAliases(
+            [scenario.boardCards, scenario.board, question.boardCards, question.board],
+            {
+                label: `${this.currentStreet} board`,
+                expectedCount: requiredBoardCount,
+                code: 'TRAINING_INITIAL_STREET_BOARD_MISMATCH',
+            },
+        );
+        const allInitialCards = [...this.heroCards, ...this.boardCards].map((card) => card.toLowerCase());
+        if (new Set(allInitialCards).size !== allInitialCards.length) {
+            throw new MultiStreetContinuationError(
+                'Hero and board cards must be globally unique.',
+                'TRAINING_INITIAL_DUPLICATE_CARD',
+            );
+        }
+
+        this.flopCards = this.boardCards.slice(0, 3);
+        this.turnCard = this.boardCards[3] || null;
+        this.riverCard = this.boardCards[4] || null;
 
         // Dead cards (hero hand + board — can't be dealt again)
         this.deadCards = new Set();
         this.heroCards.forEach(c => this.deadCards.add(c.toLowerCase()));
         this.boardCards.forEach(c => this.deadCards.add(c.toLowerCase()));
 
-        // Street tracking
-        this.currentStreet = 'flop';
-        this.streetIndex = 0;
-
-        // Pot tracking — starts from flop question pot
-        this.pot = flopQuestion.scenario?.pot || 6;
+        // Pot geometry is part of the signed solved node. A hidden generic pot
+        // would teach different bet sizes and SPRs while keeping the old key.
+        const canonicalPot = Number(scenario.pot);
+        if (!Number.isFinite(canonicalPot) || canonicalPot <= 0) {
+            throw new MultiStreetContinuationError(
+                'A multi-street question requires an exact positive pot.',
+                'TRAINING_INITIAL_POT_MISSING',
+            );
+        }
+        this.pot = canonicalPot;
         this.initialPot = this.pot;
 
         // Action history across all streets
@@ -117,14 +232,14 @@ export class MultiStreetHand {
         this.evHistory = []; // { street, classification, evLoss }
 
         // Current question reference
-        this.currentQuestion = flopQuestion;
+        this.currentQuestion = question;
 
         // Per-street data
         this.streetData = [{
-            street: 'flop',
+            street: this.currentStreet,
             boardCards: [...this.boardCards],
             pot: this.pot,
-            question: flopQuestion,
+            question,
         }];
     }
 
@@ -132,7 +247,10 @@ export class MultiStreetHand {
      * Is the hand complete (no more streets)?
      */
     get isComplete() {
-        return this.streetIndex >= 2 || this.currentStreet === 'done';
+        // River is still an unanswered decision after it is dealt. Completion
+        // is explicit and occurs only when that River action is recorded (or
+        // an earlier action has no certified continuation).
+        return this.currentStreet === 'done';
     }
 
     /**
@@ -147,17 +265,33 @@ export class MultiStreetHand {
      * Record the hero's action at the current street
      */
     recordAction(actionCode, classification, evLoss) {
+        if (this.isComplete) return false;
+
+        const recordedStreet = this.currentStreet;
+        if (this.streetActions.some((entry) => entry.street === recordedStreet)) {
+            throw new MultiStreetContinuationError(
+                `The ${recordedStreet} decision has already been recorded.`,
+                'TRAINING_CONTINUATION_DUPLICATE_DECISION',
+            );
+        }
         this.streetActions.push({
-            street: this.currentStreet,
+            street: recordedStreet,
             action: actionCode,
             pot: this.pot,
         });
 
         this.evHistory.push({
-            street: this.currentStreet,
+            street: recordedStreet,
             classification,
             evLoss,
         });
+
+        // There is no street after River, but the River verdict must be in the
+        // history and end-of-hand summary before the hand becomes complete.
+        if (recordedStreet === 'river') {
+            this.currentStreet = 'done';
+            return true;
+        }
 
         const scenario = this.currentQuestion?.scenario || {};
         const continuationAction = scenario.nextStreetContinuationAction || null;
@@ -167,7 +301,7 @@ export class MultiStreetHand {
         // decisions and transplanting a different solve.
         if (!continuationAction || String(actionCode) !== String(continuationAction)) {
             this.currentStreet = 'done';
-            return;
+            return true;
         }
 
         // The supervised Pio export uses chip-denominated b/r tokens. Older
@@ -177,83 +311,200 @@ export class MultiStreetHand {
             actionUnits: scenario.solverActionUnits || 'percent',
             facingBet: scenario.villainBet,
         });
+        return true;
     }
 
     /**
-     * Advance to the next street.
-     * Deals a new card, queries solver for next-street data.
-     * Returns the next street's question or null if hand is complete.
-     *
-     * @param {DeterministicGTOEngine} engine - The deterministic engine
-     * @param {Object} gameConfig - PIO game config
-     * @returns {Promise<Object|null>} Next street question or null
+     * End a hand only after the server has definitively proved that the exact
+     * persisted action has no solved child runout. This is not a transport
+     * fallback and does not invent another card, action, pot, or strategy.
      */
-    async advanceStreet(engine, gameConfig) {
-        if (this.isComplete) return null;
+    finishAtSolverBoundary(code) {
+        if (this.isComplete) return false;
+        if (code !== 'TRAINING_CONTINUATION_SOLVER_MISS') {
+            throw new MultiStreetContinuationError(
+                'Only a definitive exact-solver miss can end this continuation.',
+                'TRAINING_CONTINUATION_BOUNDARY_INVALID',
+            );
+        }
+        const priorDecision = this.streetActions.at(-1);
+        if (!priorDecision || priorDecision.street !== this.currentStreet) {
+            throw new MultiStreetContinuationError(
+                'A persisted decision is required before ending at a solver boundary.',
+                'TRAINING_CONTINUATION_PARENT_DECISION_MISMATCH',
+            );
+        }
+        this.continuationBoundary = {
+            code,
+            street: this.currentStreet,
+            action: priorDecision.action,
+        };
+        this.currentStreet = 'done';
+        return true;
+    }
 
-        const nextStreet = this.nextStreetName;
-        if (!nextStreet) return null;
-
-        // Deal new card(s)
-        const newCard = dealRandomCard(this.deadCards);
-        if (!newCard) return null;
-
-        this.deadCards.add(newCard.toLowerCase());
-        this.boardCards.push(newCard);
-        this.streetIndex++;
-        this.currentStreet = nextStreet;
-
-        // Try to find solver data for the extended board
-        const nextQuestion = await engine.queryNextStreet({
-            gameConfig,
-            heroHand: this.heroHand,
-            boardCards: this.boardCards,
-            street: nextStreet,
-            pot: this.pot,
-            stackDepth: this.stackDepth,
-            heroPosition: this.heroPosition,
-            villainPosition: this.villainPosition,
-        });
-
-        if (nextQuestion) {
-            // Enrich with multi-street context
-            nextQuestion.scenario = {
-                ...nextQuestion.scenario,
-                pot: Math.round(this.pot),
-                // Stacks have to SHRINK as chips go in, or SPR is computed
-                // against the starting stack and is wrong on every street after
-                // the flop -- worst on the river, where SPR matters most. Both
-                // players put in half of the pot's growth under this bet/call
-                // model, so that is what each has left.
-                heroStack: Math.max(0, this.stackDepth - (this.pot - this.initialPot) / 2),
-                villainStack: Math.max(0, this.stackDepth - (this.pot - this.initialPot) / 2),
-                heroPosition: this.heroPosition,
-                villainPosition: this.villainPosition,
-                board: this.boardCards.join(' '),
-                heroHand: this.heroHand,
-                street: nextStreet,
-                isMultiStreet: true,
-                streetNumber: this.streetIndex + 1,
-                previousActions: this.streetActions,
-            };
-            nextQuestion.heroCards = this.heroCards;
-            nextQuestion.heroHand = this.heroHand;
-
-            this.currentQuestion = nextQuestion;
-            this.streetData.push({
-                street: nextStreet,
-                boardCards: [...this.boardCards],
-                pot: this.pot,
-                question: nextQuestion,
-                newCard: newCard,
-            });
-
-            return nextQuestion;
+    /**
+     * Atomically adopt a server-authoritative next-street question.
+     *
+     * The response is rejected before any local state changes unless its
+     * street, appended card, top-level board, and canonical question board are
+     * the one exact continuation of the current hand.
+     */
+    applyServerContinuation(continuation) {
+        if (this.isComplete) {
+            throw new MultiStreetContinuationError(
+                'A completed hand cannot accept another street.',
+                'TRAINING_CONTINUATION_HAND_COMPLETE',
+            );
         }
 
-        // No solver data for this street — hand is complete
-        this.currentStreet = 'done';
-        return null;
+        const expectedStreet = this.nextStreetName;
+        if (!expectedStreet) {
+            throw new MultiStreetContinuationError(
+                'The current street has no legal continuation.',
+                'TRAINING_CONTINUATION_STREET_UNAVAILABLE',
+            );
+        }
+
+        const priorDecision = this.streetActions.at(-1);
+        const expectedContinuationAction = this.currentQuestion?.scenario?.nextStreetContinuationAction;
+        if (
+            !priorDecision
+            || priorDecision.street !== this.currentStreet
+            || !expectedContinuationAction
+            || String(priorDecision.action) !== String(expectedContinuationAction)
+        ) {
+            throw new MultiStreetContinuationError(
+                'The prior street does not contain the exact recorded continuation action.',
+                'TRAINING_CONTINUATION_PARENT_DECISION_MISMATCH',
+            );
+        }
+
+        const question = continuation?.question;
+        if (!question || typeof question !== 'object') {
+            throw new MultiStreetContinuationError(
+                'The server continuation is missing its canonical question.',
+                'TRAINING_CONTINUATION_QUESTION_MISSING',
+            );
+        }
+
+        const responseStreet = String(continuation?.street || '').toLowerCase();
+        const canonicalStreetSources = [question.scenario?.street, question.street]
+            .filter((value) => value !== undefined && value !== null && value !== '')
+            .map((value) => String(value).toLowerCase());
+        if (responseStreet !== expectedStreet
+            || canonicalStreetSources.length === 0
+            || canonicalStreetSources.some((street) => street !== expectedStreet)) {
+            throw new MultiStreetContinuationError(
+                `Expected a ${expectedStreet} continuation.`,
+                'TRAINING_CONTINUATION_STREET_MISMATCH',
+            );
+        }
+
+        const newCard = normalizeCard(continuation?.newCard);
+        if (!newCard || this.deadCards.has(newCard.toLowerCase())) {
+            throw new MultiStreetContinuationError(
+                'The continuation card is invalid or already in the hand.',
+                'TRAINING_CONTINUATION_CARD_INVALID',
+            );
+        }
+
+        const expectedBoard = [...this.boardCards, newCard];
+        if (expectedBoard.length !== expectedBoardCount(expectedStreet)) {
+            throw new MultiStreetContinuationError(
+                'The current board cannot advance to the expected street.',
+                'TRAINING_CONTINUATION_BOARD_LENGTH_INVALID',
+            );
+        }
+
+        const responseBoard = this._parseBoardCards(continuation?.boardCards);
+        if (!cardsEqual(responseBoard, expectedBoard)) {
+            throw new MultiStreetContinuationError(
+                'The response board is not the exact continuation of the current board.',
+                'TRAINING_CONTINUATION_BOARD_MISMATCH',
+            );
+        }
+
+        const canonicalBoardSources = [
+            question.scenario?.boardCards,
+            question.scenario?.board,
+            question.boardCards,
+            question.board,
+        ].filter((value) => value !== undefined && value !== null && value !== '');
+        if (canonicalBoardSources.length === 0
+            || canonicalBoardSources.some((value) => !cardsEqual(this._parseBoardCards(value), expectedBoard))) {
+            throw new MultiStreetContinuationError(
+                'The canonical question board does not match the server continuation.',
+                'TRAINING_CONTINUATION_QUESTION_BOARD_MISMATCH',
+            );
+        }
+
+        const allCardsInHand = [...this.heroCards, ...expectedBoard].map((card) => card.toLowerCase());
+        if (new Set(allCardsInHand).size !== allCardsInHand.length) {
+            throw new MultiStreetContinuationError(
+                'The continuation contains duplicate cards.',
+                'TRAINING_CONTINUATION_DUPLICATE_CARD',
+            );
+        }
+
+        // All validation completed. Only now mutate the hand, adopting the
+        // server question's canonical state rather than reconstructing it in
+        // the browser.
+        const canonicalScenario = question.scenario || {};
+        const canonicalPot = Number(canonicalScenario.pot ?? canonicalScenario.potSize);
+        const canonicalStackDepth = Number(canonicalScenario.stackDepth ?? question.stackDepth);
+        const canonicalHeroPosition = String(canonicalScenario.heroPosition || '').toUpperCase();
+        const canonicalVillainPosition = String(canonicalScenario.villainPosition || '').toUpperCase();
+        const canonicalGameType = String(canonicalScenario.gameType || this.gameType);
+        const canonicalHeroHand = String(question.heroHand || canonicalScenario.heroHand || '');
+        const canonicalHeroCards = [question.heroCards, canonicalScenario.heroCards]
+            .map((value) => this._parseBoardCards(value))
+            .find((cards) => cards.length > 0) || [];
+        if (!Number.isFinite(canonicalPot) || canonicalPot <= 0) {
+            throw new MultiStreetContinuationError(
+                'The canonical continuation is missing exact pot geometry.',
+                'TRAINING_CONTINUATION_POT_MISSING',
+            );
+        }
+        if (!Number.isFinite(canonicalStackDepth) || canonicalStackDepth <= 0) {
+            throw new MultiStreetContinuationError(
+                'The canonical continuation is missing exact stack geometry.',
+                'TRAINING_CONTINUATION_STACK_MISSING',
+            );
+        }
+        if (
+            canonicalHeroPosition !== String(this.heroPosition).toUpperCase()
+            || canonicalVillainPosition !== String(this.villainPosition).toUpperCase()
+            || canonicalGameType !== String(this.gameType)
+            || canonicalHeroHand !== String(this.heroHand)
+            || (canonicalHeroCards.length > 0 && !cardsEqual(canonicalHeroCards, this.heroCards))
+        ) {
+            throw new MultiStreetContinuationError(
+                'The canonical continuation belongs to a different hand or seat configuration.',
+                'TRAINING_CONTINUATION_HAND_IDENTITY_MISMATCH',
+            );
+        }
+
+        this.boardCards = expectedBoard;
+        this.flopCards = expectedBoard.slice(0, 3);
+        this.turnCard = expectedBoard[3] || null;
+        this.riverCard = expectedBoard[4] || null;
+        this.deadCards.add(newCard.toLowerCase());
+        this.streetIndex = STREET_ORDER.indexOf(expectedStreet);
+        this.currentStreet = expectedStreet;
+        this.pot = canonicalPot;
+        this.stackDepth = canonicalStackDepth;
+        this.heroHand = canonicalHeroHand;
+        this.currentQuestion = question;
+        this.streetData.push({
+            street: expectedStreet,
+            boardCards: [...expectedBoard],
+            pot: this.pot,
+            question,
+            newCard,
+        });
+
+        return question;
     }
 
     /**
@@ -284,24 +535,14 @@ export class MultiStreetHand {
             streetsPlayed: this.streetData.length,
             heroPosition: this.heroPosition,
             villainPosition: this.villainPosition,
+            continuationBoundary: this.continuationBoundary || null,
         };
     }
 
     // ●●● PRIVATE UTILS ●●●
 
     _parseBoardCards(boardStr) {
-        if (Array.isArray(boardStr)) return boardStr;
-        if (typeof boardStr !== 'string' || boardStr.length < 4) return [];
-        const cleaned = boardStr.replace(/\s+/g, '');
-        const cards = [];
-        for (let i = 0; i < cleaned.length; i += 2) {
-            if (i + 1 < cleaned.length) {
-                const card = cleaned.substring(i, i + 2);
-                if (/^[2-9TJQKA][shdc]$/i.test(card)) {
-                    cards.push(card);
-                }
-            }
-        }
-        return cards;
+        const parsed = parseExactCardSource(boardStr);
+        return parsed.provided && parsed.valid ? parsed.cards : [];
     }
 }

@@ -68,6 +68,21 @@ jobs:
         id: timer
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
 
+      # CHECK 24: Training server authority is a release invariant. These
+      # dependency-free contracts must run inside this required ruleset
+      # context; package/Vercel build coverage alone cannot block a PR because
+      # the broad PR E2E job is intentionally disabled.
+      - name: Setup Node.js For Training Authority
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+
+      - name: "CHECK 24: Training server-authority contracts"
+        run: npm run test:training:phase6-authority
+
+      - name: "CHECK 24B: Lint inventory deletion contract"
+        run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
+
       # ═══════════════════════════════════════════════════════════════
       # CHECK 15: Commit author identity (Vercel BLOCKED-deploy guard)
       #

@@ -9,7 +9,8 @@ export function buildQuestionConfusion(answers, limit = 25) {
         questionId: answer.question_id,
         attempts: 0,
         correct: 0,
-        evLoss: 0,
+        measuredEvLoss: 0,
+        measuredEvDecisions: 0,
         verified: 0,
         selectedAnswers: {},
         wrongAnswers: {},
@@ -21,7 +22,17 @@ export function buildQuestionConfusion(answers, limit = 25) {
     const row = questions.get(key);
     row.attempts += 1;
     if (answer.is_correct) row.correct += 1;
-    row.evLoss += Number(answer.ev_loss) || 0;
+    const rawEvLoss = answer.ev_loss;
+    const evLoss = Number(rawEvLoss);
+    if (answer.solver_verified === true
+      && answer.ev_loss_measured === true
+      && rawEvLoss !== null
+      && rawEvLoss !== undefined
+      && rawEvLoss !== ''
+      && Number.isFinite(evLoss)) {
+      row.measuredEvLoss += evLoss;
+      row.measuredEvDecisions += 1;
+    }
     if (answer.solver_verified) row.verified += 1;
 
     const selected = String(answer.answer_id || 'unknown');
@@ -41,12 +52,19 @@ export function buildQuestionConfusion(answers, limit = 25) {
       const wrong = row.attempts - row.correct;
       const mostCommonWrong = Object.entries(row.wrongAnswers)
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] || null;
+      const avgEvLoss = row.measuredEvDecisions > 0
+        ? Number((row.measuredEvLoss / row.measuredEvDecisions).toFixed(3))
+        : null;
+      const { measuredEvLoss, ...publicRow } = row;
       return {
-        ...row,
+        ...publicRow,
+        totalEvLoss: row.measuredEvDecisions > 0
+          ? Number(measuredEvLoss.toFixed(3))
+          : null,
+        avgEvLoss,
         wrong,
         accuracy: row.attempts > 0 ? Math.round((row.correct / row.attempts) * 100) : 0,
         confusionRate: row.attempts > 0 ? Math.round((wrong / row.attempts) * 100) : 0,
-        avgEvLoss: row.attempts > 0 ? Number((row.evLoss / row.attempts).toFixed(3)) : 0,
         solverVerifiedRate: row.attempts > 0
           ? Math.round((row.verified / row.attempts) * 100)
           : 0,
@@ -58,7 +76,8 @@ export function buildQuestionConfusion(answers, limit = 25) {
     .sort((a, b) => (
       b.wrong - a.wrong
       || b.confusionRate - a.confusionRate
-      || b.avgEvLoss - a.avgEvLoss
+      || (b.avgEvLoss ?? Number.NEGATIVE_INFINITY)
+        - (a.avgEvLoss ?? Number.NEGATIVE_INFINITY)
       || b.attempts - a.attempts
     ))
     .slice(0, Math.max(1, Number(limit) || 25));

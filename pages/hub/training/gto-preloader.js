@@ -1,8 +1,9 @@
 /**
  * GTO PRELOADER — Offline Cache Manager
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Downloads real training question packs for offline use. The arena reads
- * the same IndexedDB entries whenever a network request cannot complete.
+ * Downloads signed training question packs for short-lived connection-loss
+ * recovery. The arena reads the same IndexedDB entries whenever a network
+ * request cannot complete, but Next still waits for authoritative persistence.
  *
  * Route: /hub/training/gto-preloader
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -16,48 +17,122 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import { idbSet, idbDelete, idbGet } from '../../../src/lib/idbCacheStore';
 import {
+  createOfflineQuestionCacheContract,
   deleteOfflineQuestions,
   estimateQuestionBytes,
+  getOfflineQuestionCacheTtl,
   getOfflineQuestions,
   setOfflineQuestions,
 } from '../../../src/lib/training/offlineQuestionCache';
+
+const OFFLINE_PACK_DELIVERY_CONTRACT = createOfflineQuestionCacheContract({
+  difficulty: 'standard',
+  gameMode: 'full',
+  handSelection: 'all',
+  targetStreet: null,
+});
 
 const TREES = [
   {
     id: '100bb-6max',
     gameId: 'cash-001',
     label: '100BB 6-Max Cash',
-    desc: 'All 12 Preflop Blueprint levels for standard 100BB cash play.',
+    desc: 'Your unlocked Preflop Blueprint levels for standard 100BB cash play.',
   },
   {
     id: '20bb-mtt',
     gameId: 'mtt-001',
     label: '20BB MTT Push/Fold',
-    desc: 'All 12 Push/Fold levels for short-stack tournament decisions.',
+    desc: 'Your unlocked Push/Fold levels for short-stack tournament decisions.',
   },
   {
     id: 'hu-40bb',
     gameId: 'cash-010',
     label: 'Head-Up 40BB',
-    desc: 'All 12 Short Stack levels backed by the 40BB heads-up corpus.',
+    desc: 'Your unlocked Short Stack levels backed by the 40BB heads-up corpus.',
   },
   {
     id: 'live-200bb',
     gameId: 'cash-009',
     label: 'Live 200BB Deep',
-    desc: 'All 12 Deep Stack levels for 200BB postflop study.',
+    desc: 'Your unlocked Deep Stack levels for 200BB postflop study.',
   },
 ];
 
 const LEVELS = Array.from({ length: 12 }, (_, index) => index + 1);
-const PACK_TTL = 30 * 24 * 60 * 60 * 1000;
+
+function normalizePackLevels(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value
+    .map(Number)
+    .filter((level) => Number.isInteger(level) && level >= 1 && level <= 12))]
+    .sort((a, b) => a - b);
+}
+
+async function fetchUnlockedLevels(gameId) {
+  const response = await authedFetch(
+    `/api/training/progress?gameId=${encodeURIComponent(gameId)}`,
+  );
+  const payload = await response.json().catch(() => null);
+  const highest = Number(payload?.highest_level_unlocked);
+  if (!response.ok || !Number.isInteger(highest) || highest < 1 || highest > 12) {
+    throw new Error(payload?.error || 'Unlocked Training levels could not be verified');
+  }
+  return LEVELS.slice(0, highest);
+}
+
+function createOfflinePackSessionId(gameId) {
+  const randomUUID = globalThis?.crypto?.randomUUID;
+  const suffix = typeof randomUUID === 'function'
+    ? randomUUID.call(globalThis.crypto)
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+  return `offline-${gameId}-${suffix}`;
+}
+
+function offlinePackManifestKey(id, userId) {
+  return `training_pack:${encodeURIComponent(String(userId || ''))}:${id}`;
+}
+
+function assertSignedPackPayload(payload, expectedSessionId) {
+  if (String(payload?.sessionId || '') !== String(expectedSessionId || '')) {
+    throw new Error('Downloaded questions belong to a different session');
+  }
+  if (!payload?.attemptId) {
+    throw new Error('Downloaded questions do not have an attempt identity');
+  }
+  const ttlMs = getOfflineQuestionCacheTtl(payload?.questions);
+  if (ttlMs <= 0) throw new Error('Downloaded questions do not have valid grading receipts');
+  for (const question of payload.questions) {
+    const context = question?._gradingContext;
+    if (
+      !context?.receipt
+      || !context?.submissionId
+      || !context?.attemptId
+      || !context?.snapshotKey
+      || !context?.sessionKind
+      || !Number.isInteger(Number(context?.sessionTargetHands))
+      || !Number.isInteger(Number(context?.handOrdinal))
+      || !Number.isInteger(Number(context?.decisionOrdinal))
+      || typeof context?.countsTowardCompletion !== 'boolean'
+      || typeof context?.practiceOnly !== 'boolean'
+      || String(context.sessionId || '') !== String(expectedSessionId || '')
+      || String(context.attemptId) !== String(payload.attemptId)
+    ) {
+      throw new Error('Downloaded questions do not have valid grading receipts');
+    }
+  }
+  return Math.min(
+    ...payload.questions.map((question) => Date.parse(question._gradingContext.expiresAt)),
+  ) - 60 * 1000;
+}
 
 export default function GtoPreloaderPage() {
   const router = useRouter();
   useTrainingBus('gto-preloader');
+  const userId = getAuthUser()?.id || null;
 
   const [downloads, setDownloads] = useState({});
   const [idbReady, setIdbReady] = useState(false);
@@ -67,19 +142,27 @@ export default function GtoPreloaderPage() {
     const verifyStorage = async () => {
       const init = {};
       for (const t of TREES) {
-        const manifest = await idbGet(`training_pack:${t.id}`);
+        const manifest = userId ? await idbGet(offlinePackManifestKey(t.id, userId)) : null;
+        const manifestLevels = manifest?.version === 3
+          ? normalizePackLevels(manifest.levels)
+          : [];
         let cachedLevels = 0;
         let questionCount = 0;
         let bytes = 0;
-        for (const level of LEVELS) {
-          const questions = await getOfflineQuestions(t.gameId, level);
+        for (const level of manifestLevels) {
+          const questions = await getOfflineQuestions(
+            t.gameId,
+            level,
+            userId,
+            OFFLINE_PACK_DELIVERY_CONTRACT,
+          );
           if (questions.length > 0) {
             cachedLevels += 1;
             questionCount += questions.length;
             bytes += estimateQuestionBytes(questions);
           }
         }
-        const complete = cachedLevels === LEVELS.length && manifest?.version === 1;
+        const complete = manifestLevels.length > 0 && cachedLevels === manifestLevels.length;
         init[t.id] = {
           progress: complete ? 100 : Math.round((cachedLevels / LEVELS.length) * 100),
           status: complete ? 'done' : 'idle',
@@ -87,58 +170,117 @@ export default function GtoPreloaderPage() {
           questionCount,
           bytes,
           error: null,
+          eligibleLevels: manifestLevels.length,
         };
       }
       setDownloads(init);
       setIdbReady(true);
     };
     verifyStorage();
-  }, []);
+  }, [userId]);
 
   const startDownload = async (id) => {
     const tree = TREES.find((entry) => entry.id === id);
     if (!tree) return;
+    if (!userId) {
+      setDownloads((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], status: 'error', error: 'Sign in before downloading a signed cache.' },
+      }));
+      return;
+    }
     setDownloads((prev) => ({
       ...prev,
       [id]: { progress: 0, status: 'downloading', cachedLevels: 0, questionCount: 0, bytes: 0, error: null },
     }));
 
-    let questionCount = 0;
-    let bytes = 0;
     try {
-      for (const level of LEVELS) {
-        const response = await authedFetch(
-          `/api/training/batch-preload?gameId=${encodeURIComponent(tree.gameId)}&level=${level}&count=20`,
-        );
+      const eligibleLevels = await fetchUnlockedLevels(tree.gameId);
+      setDownloads((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], eligibleLevels: eligibleLevels.length },
+      }));
+      let questionCount = 0;
+      let bytes = 0;
+      let packExpiresAt = Number.POSITIVE_INFINITY;
+      const packSessionId = createOfflinePackSessionId(tree.gameId);
+      const levelSessionIds = {};
+      for (const [index, level] of eligibleLevels.entries()) {
+        // One server-owned attempt maps to exactly one game/level/config.
+        // Keep a stable pack root for the manifest, but never reuse an attempt
+        // nonce across twelve different level contracts.
+        const levelSessionId = `${packSessionId}-level-${level}`;
+        levelSessionIds[level] = levelSessionId;
+        const params = new URLSearchParams({
+          gameId: tree.gameId,
+          level: level.toString(),
+          count: '20',
+          difficulty: 'standard',
+          sessionId: levelSessionId,
+          gameMode: 'full',
+          handSelection: 'all',
+        });
+        const response = await authedFetch(`/api/training/batch-preload?${params}`);
         let payload = null;
         try { payload = await response.json(); } catch { /* handled below */ }
         if (!response.ok || !Array.isArray(payload?.questions) || payload.questions.length === 0) {
           throw new Error(payload?.error || `Level ${level} could not be downloaded`);
         }
-        await setOfflineQuestions(tree.gameId, level, payload.questions);
+        packExpiresAt = Math.min(packExpiresAt, assertSignedPackPayload(payload, levelSessionId));
+        const cached = await setOfflineQuestions(
+          tree.gameId,
+          level,
+          payload.questions,
+          userId,
+          OFFLINE_PACK_DELIVERY_CONTRACT,
+        );
+        if (!cached) throw new Error(`Level ${level} grading receipts expire too soon to cache`);
         questionCount += payload.questions.length;
         bytes += estimateQuestionBytes(payload.questions);
         setDownloads((prev) => ({
           ...prev,
           [id]: {
-            progress: Math.round((level / LEVELS.length) * 100),
+            progress: Math.round(((index + 1) / eligibleLevels.length) * 100),
             status: 'downloading',
-            cachedLevels: level,
+            cachedLevels: index + 1,
             questionCount,
             bytes,
             error: null,
+            eligibleLevels: eligibleLevels.length,
           },
         }));
       }
 
+      const packTtlMs = packExpiresAt - Date.now();
+      if (!Number.isFinite(packTtlMs) || packTtlMs <= 0) {
+        throw new Error('The signed cache expired before the download completed');
+      }
       await idbSet(
-        `training_pack:${id}`,
-        { version: 1, gameId: tree.gameId, levels: LEVELS, questionCount, bytes, savedAt: new Date().toISOString() },
-        PACK_TTL,
+        offlinePackManifestKey(id, userId),
+        {
+          version: 3,
+          gameId: tree.gameId,
+          levels: eligibleLevels,
+          questionCount,
+          bytes,
+          sessionId: packSessionId,
+          levelSessionIds,
+          savedAt: new Date().toISOString(),
+          expiresAt: new Date(packExpiresAt).toISOString(),
+        },
+        packTtlMs,
       );
       setDownloads((prev) => ({
         ...prev,
-        [id]: { progress: 100, status: 'done', cachedLevels: 12, questionCount, bytes, error: null },
+        [id]: {
+          progress: 100,
+          status: 'done',
+          cachedLevels: eligibleLevels.length,
+          eligibleLevels: eligibleLevels.length,
+          questionCount,
+          bytes,
+          error: null,
+        },
       }));
     } catch (error) {
       setDownloads((prev) => ({
@@ -151,11 +293,16 @@ export default function GtoPreloaderPage() {
   const deleteTree = async (id) => {
     const tree = TREES.find((entry) => entry.id === id);
     if (!tree) return;
-    await Promise.all(LEVELS.map((level) => deleteOfflineQuestions(tree.gameId, level)));
-    await idbDelete(`training_pack:${id}`);
+    await Promise.all(LEVELS.map((level) => deleteOfflineQuestions(
+      tree.gameId,
+      level,
+      userId,
+      OFFLINE_PACK_DELIVERY_CONTRACT,
+    )));
+    if (userId) await idbDelete(offlinePackManifestKey(id, userId));
     setDownloads((prev) => ({
       ...prev,
-      [id]: { progress: 0, status: 'idle', cachedLevels: 0, questionCount: 0, bytes: 0, error: null },
+      [id]: { progress: 0, status: 'idle', cachedLevels: 0, eligibleLevels: 0, questionCount: 0, bytes: 0, error: null },
     }));
   };
 
@@ -212,7 +359,7 @@ export default function GtoPreloaderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 11, color: '#b9cbd4' }}>Real Offline Question Pack Sync</div>
+              <div style={{ fontSize: 11, color: '#b9cbd4' }}>Signed Question Cache Sync</div>
             </div>
           </div>
         </div>
@@ -329,7 +476,7 @@ export default function GtoPreloaderPage() {
                               borderRadius: 4,
                             }}
                           >
-                            Offline Ready
+                            Signed Cache Ready
                           </span>
                         )}
                       </div>
@@ -339,7 +486,7 @@ export default function GtoPreloaderPage() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>
-                        {state.cachedLevels || 0}/12 Levels
+                        {state.cachedLevels || 0}/{state.eligibleLevels || '—'} Unlocked Levels
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                         {state.questionCount || 0} Questions
@@ -363,7 +510,7 @@ export default function GtoPreloaderPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      ↓ Cache All 12 Levels
+                      ↓ Cache Unlocked Levels
                     </button>
                   )}
 

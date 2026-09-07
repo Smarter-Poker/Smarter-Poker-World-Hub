@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -34,6 +35,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 const FOCUS_AREAS = [
   {
     id: 'bb-defense',
+    gameId: 'cash-003',
     name: 'BB Defense',
     positions: ['BB'],
     streets: ['preflop'],
@@ -42,14 +44,16 @@ const FOCUS_AREAS = [
   },
   {
     id: 'btn-play',
+    gameId: 'cash-001',
     name: 'BTN Play',
     positions: ['BTN'],
-    streets: ['preflop', 'flop'],
+    streets: ['preflop'],
     color: 'var(--sp-accent-green)',
     icon: '',
   },
   {
     id: 'cbet-decisions',
+    gameId: 'cash-002',
     name: 'C-Bet Decisions',
     positions: [],
     streets: ['flop'],
@@ -58,6 +62,7 @@ const FOCUS_AREAS = [
   },
   {
     id: 'turn-play',
+    gameId: 'cash-024',
     name: 'Turn Play',
     positions: [],
     streets: ['turn'],
@@ -66,6 +71,7 @@ const FOCUS_AREAS = [
   },
   {
     id: 'river-decisions',
+    gameId: 'cash-012',
     name: 'River Decisions',
     positions: [],
     streets: ['river'],
@@ -74,14 +80,16 @@ const FOCUS_AREAS = [
   },
   {
     id: '3bet-pots',
+    gameId: 'cash-007',
     name: '3-Bet Pots',
     positions: [],
-    streets: ['preflop', 'flop'],
+    streets: ['flop'],
     color: '#ec4899',
     icon: '',
   },
   {
     id: 'mtt-push-fold',
+    gameId: 'mtt-001',
     name: 'MTT Push/Fold',
     positions: [],
     streets: ['preflop'],
@@ -90,6 +98,7 @@ const FOCUS_AREAS = [
   },
   {
     id: 'position-awareness',
+    gameId: 'cash-006',
     name: 'Position Play',
     positions: ['CO', 'HJ', 'MP'],
     streets: ['preflop'],
@@ -98,17 +107,19 @@ const FOCUS_AREAS = [
   },
   {
     id: 'sb-play',
+    gameId: 'cash-018',
     name: 'SB Strategy',
     positions: ['SB'],
-    streets: ['preflop', 'flop'],
+    streets: ['preflop'],
     color: 'var(--sp-accent-purple)',
     icon: '♠',
   },
   {
     id: 'bluffing',
+    gameId: 'mtt-024',
     name: 'Bluffing Spots',
     positions: [],
-    streets: ['turn', 'river'],
+    streets: ['river'],
     color: '#f43f5e',
     icon: '',
   },
@@ -170,7 +181,8 @@ function generateStudyPlan(sessions) {
       // Every other day: add a challenge drill
       if (i % 2 === 0) {
         dayAreas.push({
-          id: 'challenge',
+        id: 'challenge',
+        gameId: 'quiz-gauntlet',
           name: 'Daily Challenge',
           color: 'var(--sp-accent-amber)',
           icon: '★',
@@ -205,12 +217,19 @@ function analyzeWeaknesses(sessions) {
   sessions.forEach((s) => {
     const category = (s.game_id || '').split('-')[0] || 'unknown';
     if (!categoryStats[category]) {
-      categoryStats[category] = { total: 0, correct: 0, sessions: 0, evLoss: 0 };
+      categoryStats[category] = { total: 0, correct: 0, sessions: 0, evLoss: 0, measuredEvDecisions: 0 };
     }
     categoryStats[category].total += s.hands_played || s.total_questions || 0;
     categoryStats[category].correct += s.correct_count || s.correct_answers || 0;
     categoryStats[category].sessions += 1;
-    categoryStats[category].evLoss += s.total_ev_loss || 0;
+    const measuredDecisions = Number(s.measured_ev_decisions) || 0;
+    const measuredLoss = s.total_ev_loss === null || s.total_ev_loss === undefined
+      ? null
+      : Number(s.total_ev_loss);
+    if (measuredDecisions > 0 && Number.isFinite(measuredLoss)) {
+      categoryStats[category].evLoss += measuredLoss;
+      categoryStats[category].measuredEvDecisions += measuredDecisions;
+    }
   });
 
   // Compute accuracy per category and rank by weakness
@@ -218,7 +237,8 @@ function analyzeWeaknesses(sessions) {
     .map(([cat, stats]) => ({
       category: cat,
       accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
-      evLoss: stats.evLoss,
+      evLoss: stats.measuredEvDecisions > 0 ? stats.evLoss : null,
+      measuredEvDecisions: stats.measuredEvDecisions,
       sessions: stats.sessions,
     }))
     .sort((a, b) => a.accuracy - b.accuracy);
@@ -245,11 +265,9 @@ function analyzeWeaknesses(sessions) {
 // DAY CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
+function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
   const [expanded, setExpanded] = useState(isToday);
-  const allDone = dayPlan.areas.every((_, i) =>
-    completedAreas.includes(`${dayPlan.dayIndex}-${i}`)
-  );
+  const allDone = dayPlan.areas.every((area) => completedGames.has(area.gameId));
 
   return (
     <motion.div
@@ -375,20 +393,19 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
               style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}
             >
               {dayPlan.areas.map((area, areaIdx) => {
-                const areaKey = `${dayPlan.dayIndex}-${areaIdx}`;
-                const isDone = completedAreas.includes(areaKey);
+                const isDone = completedGames.has(area.gameId);
 
                 return (
                   <motion.div
                     key={areaIdx}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => !isDone && onStartArea(area, areaKey)}
+                    onClick={() => onStartArea(area)}
                     style={{
                       padding: '12px 14px',
                       borderRadius: 10,
                       background: isDone ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
                       border: `1px solid ${isDone ? 'rgba(34,197,94,0.15)' : `${area.color}18`}`,
-                      cursor: isDone ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -408,7 +425,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                           {area.name}
                           {isDone && (
                             <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--sp-accent-green)' }}>
-                              ✓ Done
+                              ✓ Practiced This Week
                             </span>
                           )}
                         </div>
@@ -444,7 +461,6 @@ export default function StudyPlanPage() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
-  const [completedAreas, setCompletedAreas] = useState([]);
   const [fetchError, setFetchError] = useState(null);
 
   // Get current day of week (0 = Monday)
@@ -477,16 +493,6 @@ export default function StudyPlanPage() {
     if (!loading && sessions !== null) {
       const newPlan = generateStudyPlan(sessions);
       setPlan(newPlan);
-
-      // Restore completed areas from localStorage
-      try {
-        const saved = localStorage.getItem('study-plan-completed');
-        const savedWeek = localStorage.getItem('study-plan-week');
-        const currentWeek = getWeekNumber();
-        if (saved && savedWeek === String(currentWeek)) {
-          setCompletedAreas(JSON.parse(saved));
-        }
-      } catch (e) { console.warn('[App] Handled exception:', e); }
     }
   }, [loading, sessions]);
 
@@ -501,45 +507,45 @@ export default function StudyPlanPage() {
     return unsub;
   }, [fetchSessions]);
 
-  const handleStartArea = (area, areaKey) => {
-    // Navigate to arena with focus params
-    const params = new URLSearchParams({
-      format: 'cash',
-      positions: (area.positions || []).join(','),
-      streets: (area.streets || []).join(','),
-      stackMin: '80',
-      stackMax: '200',
-    });
-    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
-
-    // Mark as completed (optimistic)
-    const newCompleted = [...completedAreas, areaKey];
-    setCompletedAreas(newCompleted);
-    try {
-      localStorage.setItem('study-plan-completed', JSON.stringify(newCompleted));
-      localStorage.setItem('study-plan-week', String(getWeekNumber()));
-    } catch (e) { console.warn('[App] Handled exception:', e); }
+  const handleStartArea = (area) => {
+    if (area.id === 'challenge') {
+      router.push('/hub/training/arena/quiz-gauntlet?level=1&source=study-plan');
+      return;
+    }
+    router.push(buildCustomTrainingArenaHref({
+      gameId: area.gameId,
+      format: area.gameId?.startsWith('mtt-') ? 'mtt' : 'cash',
+      positions: area.positions,
+      streets: area.streets,
+      stackDepth: area.gameId === 'mtt-001' ? 10 : 100,
+    }, 'study-plan'));
   };
 
   const regeneratePlan = () => {
     const newPlan = generateStudyPlan(sessions);
     setPlan(newPlan);
-    setCompletedAreas([]);
-    try {
-      localStorage.removeItem('study-plan-completed');
-    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
-  // Week number helper
-  function getWeekNumber() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    return 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
-  }
-
-  const totalCompleted = completedAreas.length;
+  // Only server-returned completed sessions can mark a plan item practiced.
+  // Navigation itself never authors completion.
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const completedGames = new Set(
+    sessions
+      .filter((session) => {
+        const timestamp = new Date(session.completed_at || session.created_at || 0).getTime();
+        return Number.isFinite(timestamp) && timestamp >= weekStart.getTime();
+      })
+      .map((session) => session.game_id)
+      .filter(Boolean),
+  );
+  const totalCompleted = plan
+    ? plan.reduce(
+        (sum, day) => sum + day.areas.filter((area) => completedGames.has(area.gameId)).length,
+        0,
+      )
+    : 0;
   const totalAreas = plan ? plan.reduce((sum, d) => sum + d.areas.length, 0) : 0;
   const progress = totalAreas > 0 ? Math.round((totalCompleted / totalAreas) * 100) : 0;
 
@@ -752,9 +758,9 @@ export default function StudyPlanPage() {
                         >
                           {w.accuracy}%
                         </span>
-                        {w.evLoss > 0 && (
+                        {w.measuredEvDecisions > 0 && w.evLoss !== null && (
                           <span style={{ fontSize: 10, color: 'var(--sp-accent-red)' }}>
-                            -{Math.round(w.evLoss * 10) / 10} EV
+                            {Math.round(w.evLoss * 10) / 10} BB Measured EV Loss
                           </span>
                         )}
                       </div>
@@ -827,7 +833,7 @@ export default function StudyPlanPage() {
                 dayPlan={dayPlan}
                 isToday={idx === todayIdx}
                 onStartArea={handleStartArea}
-                completedAreas={completedAreas}
+                completedGames={completedGames}
               />
             ))}
 

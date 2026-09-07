@@ -41,6 +41,16 @@
 
 import { v2ToAppMatrix } from '../utils/v2Matrix';
 import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
+import { isSolverRowIdentityValid } from '../lib/training/solverRowIdentity.mjs';
+
+const CONTINUATION_QUERY_CHUNK_SIZE = 12;
+const MAX_CONTINUATION_RUNOUTS = 47;
+const CONTINUATION_BOARD_CARD_RE = /^[2-9TJQKA][cdhs]$/;
+
+function exactContinuationScenarioHash(street, gameType, heroPosition, stackDepth, boardCards) {
+    const prefix = street === 'flop' ? '' : `${street}_`;
+    return `${prefix}${gameType}_${heroPosition}_${stackDepth}bb_${boardCards.join('')}`;
+}
 
 // ●● Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ●●●●
 export function toHandClass(h) {
@@ -63,9 +73,14 @@ const isAggressiveAction = (a) => /^b|^r|allin|jam|push/i.test(String(a || ''));
 // keys. WeakSet membership can only be granted by the live validator/bridge.
 const SANITIZED_MATRICES = new WeakSet();
 
-/** Prefer strategy_matrix_v2 (rebuilt PioSOLVER data) when present. Mutates row. */
-function preferV2(row) {
+/** Validate and bridge strategy_matrix_v2. Mutates the private server row. */
+export function prepareSolverScenarioRow(row) {
     if (row && row.strategy_matrix_v2) {
+        if (!isSolverRowIdentityValid(row)) {
+            row.strategy_matrix = null;
+            row.__invalidV2 = true;
+            return null;
+        }
         const m = v2ToAppMatrix(row.strategy_matrix_v2);
         // A present v2 payload is the rebuilt pipeline's authoritative
         // export. If it fails the strict bridge, reject the row outright;
@@ -74,12 +89,24 @@ function preferV2(row) {
         if (m) SANITIZED_MATRICES.add(m);
         else row.__invalidV2 = true;
     }
-    return row;
+    return row?.__invalidV2 ? null : row;
 }
 
 function provenanceIsComplete(row) {
+    const v2 = row?.strategy_matrix_v2;
+    const rootPotBb = Number(v2?.pot_bb);
+    const effectiveStackBb = Number(v2?.eff_stack_bb);
     return Boolean(
-        row?.strategy_matrix_v2
+        v2
+        && isSolverRowIdentityValid(row)
+        && Number.isFinite(rootPotBb)
+        && rootPotBb > 0
+        && Number.isFinite(effectiveStackBb)
+        && effectiveStackBb > 0
+        && effectiveStackBb <= Number(row?.stack_depth)
+        && /^\d+(?:\.\d+)?(?: \d+(?:\.\d+)?){3}$/.test(String(v2?.rake || ''))
+        && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(v2?.tree_geometry || ''))
+        && v2?.solver === 'PioSOLVER'
         && row?.quality_status === 'validated'
         && row?.solver_version
         && /^[0-9a-f]{64}$/i.test(String(row?.solver_binary_checksum || ''))
@@ -92,9 +119,85 @@ function provenanceIsComplete(row) {
     );
 }
 
+function rowMatchesContinuationLineage(row, lineage) {
+    const v2 = row?.strategy_matrix_v2 || {};
+    const release = lineage?.release || {};
+    return Boolean(
+        lineage
+        && provenanceIsComplete(row)
+        && row.scenario_hash === lineage.childScenarioHash
+        && row.street === lineage.childStreet
+        && row.game_type === lineage.gameType
+        && row.stack_depth === lineage.solverStackDepth
+        && v2.node === lineage.childNode
+        && (Array.isArray(v2.board) ? v2.board.join('') : v2.board) === lineage.boardCards.join('')
+        && v2.position === lineage.heroPosition
+        && v2.oop_player === lineage.villainPosition
+        && v2.ip_player === lineage.heroPosition
+        && Number(v2.pot_bb) === Number(release.rootPotBb)
+        && Number(v2.eff_stack_bb) === Number(release.effectiveStackBb)
+        && v2.rake === release.rake
+        && v2.tree_geometry === release.treeGeometry
+        && row.solver_version === release.solverVersion
+        && row.solver_binary_checksum === release.solverBinaryChecksum
+        && row.pipeline_commit === release.pipelineCommit
+        && String(row.manifest_version) === String(release.manifestVersion)
+        && row.manifest_checksum === release.manifestChecksum
+    );
+}
+
+/**
+ * Return usable candidates in deterministic runout order. Missing, damaged,
+ * or duplicate rows for an earlier card do not make a later exact card
+ * unreachable; only a unique identity-preserving child is eligible.
+ */
+export function orderedExactContinuationCandidates(rows, lineages) {
+    if (!Array.isArray(rows) || !Array.isArray(lineages)) return [];
+    const candidates = [];
+    for (const lineage of lineages) {
+        const exactRows = rows.filter((row) => rowMatchesContinuationLineage(row, lineage));
+        if (exactRows.length === 1) candidates.push({ lineage, row: exactRows[0] });
+    }
+    return candidates;
+}
+
 function stampSolverProvenance(question, row) {
     if (!question || !row) return question;
     const verified = provenanceIsComplete(row);
+    const authoredContext = row?.strategy_matrix_v2?.training_context;
+    const authoredActionScenario = ['SRP', '3BP', '4BP'].includes(
+        String(authoredContext?.action_scenario || '').toUpperCase(),
+    ) ? String(authoredContext.action_scenario).toUpperCase() : null;
+    const authoredSpotType = ['cbet', 'checkraise', 'facing_bet', 'probe', 'donk'].includes(
+        String(authoredContext?.spot_type || '').toLowerCase(),
+    ) ? String(authoredContext.spot_type).toLowerCase() : null;
+    const exactFacingBet = question?.scenario?.nodeType === 'hero_faces_bet'
+        && Number(question?.scenario?.villainBet) > 0;
+    question.scenario = {
+        ...(question.scenario || {}),
+        // Custom-filter labels may only come from fields inside the checksummed
+        // v2 artifact. Facing-bet is the one exception that can be derived
+        // exactly from the reconstructed node and wager geometry. Never use
+        // the legacy scenario-hash prose inference for a solver-exact filter.
+        solverSelectionContext: {
+            actionScenario: authoredActionScenario,
+            spotType: authoredSpotType || (exactFacingBet ? 'facing_bet' : null),
+            source: authoredActionScenario || authoredSpotType
+                ? 'strategy_matrix_v2.training_context'
+                : exactFacingBet ? 'reconstructed_solver_node' : null,
+        },
+        // Parent/child linkage must bind to one tree, not merely to a hash
+        // whose relational columns happen to match. Scenario hashes omit the
+        // root pot, effective stack, rake, and tree template.
+        solverLineage: verified ? {
+            rootPotBb: Number(row.strategy_matrix_v2.pot_bb),
+            effectiveStackBb: Number(row.strategy_matrix_v2.eff_stack_bb),
+            rake: row.strategy_matrix_v2.rake,
+            treeGeometry: row.strategy_matrix_v2.tree_geometry,
+            oopPosition: row.strategy_matrix_v2.oop_player,
+            ipPosition: row.strategy_matrix_v2.ip_player,
+        } : null,
+    };
     question.dataQuality = verified ? 'SOLVER_EXACT' : 'LEGACY_UNVERIFIED';
     question.solverProvenance = {
         verified,
@@ -220,7 +323,6 @@ export function applyDeterministicEnginePatches(engine) {
     if (!engine || engine.__auditPatches20260719) return engine;
     engine.__auditPatches20260719 = true;
 
-    const originalFetchSolverPool = engine.fetchSolverPool.bind(engine);
     const originalBuild = engine.buildQuestionFromScenario.bind(engine);
 
     // ●● PATCH 1+2: street-null guard + v2 preference + matrix sanitization ●●
@@ -237,31 +339,26 @@ export function applyDeterministicEnginePatches(engine) {
 
             let allData = [];
             for (const depth of effectiveStackDepths) {
-                const run = (projection) => {
+                const run = () => {
                     let q = this.db
                         .from('solved_spots_gold')
-                        .select(projection)
+                        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at')
                         .eq('game_type', gameConfig.pioGameType)
-                        .eq('stack_depth', depth);
+                        .eq('stack_depth', depth)
+                        .not('strategy_matrix_v2', 'is', null)
+                        .eq('quality_status', 'validated')
+                        .not('solver_version', 'is', null)
+                        .not('solver_binary_checksum', 'is', null)
+                        .not('machine_id', 'is', null)
+                        .not('pipeline_commit', 'is', null)
+                        .not('manifest_version', 'is', null)
+                        .not('manifest_checksum', 'is', null)
+                        .not('source_artifact_checksum', 'is', null)
+                        .not('audited_at', 'is', null);
                     if (street) q = q.eq('street', street); // FIX: never .eq('street', null)
                     return q.limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
                 };
-                const fullProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
-                const legacyProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
-                const initialProjection = this.__solverProvenanceColumnsAvailable === false
-                    ? legacyProjection
-                    : fullProjection;
-                let { data, error } = await run(initialProjection);
-                // Rolling deploy compatibility: before the additive migration
-                // lands, legacy rows may still be read, but stamp as unverified.
-                // Never fabricate a provenance seal from the source label.
-                if (initialProjection === fullProjection
-                    && error && (error.code === '42703' || error.code === 'PGRST204')) {
-                    this.__solverProvenanceColumnsAvailable = false;
-                    ({ data, error } = await run(legacyProjection));
-                } else if (initialProjection === fullProjection && !error) {
-                    this.__solverProvenanceColumnsAvailable = true;
-                }
+                const { data, error } = await run();
                 if (!error && data && data.length > 0) allData = allData.concat(data);
             }
 
@@ -299,7 +396,7 @@ export function applyDeterministicEnginePatches(engine) {
             }
 
             // Prefer rebuilt v2 data, then sanitize; drop rows with no credible hands
-            allData.forEach(row => preferV2(row));
+            allData = allData.map(row => prepareSolverScenarioRow(row)).filter(Boolean);
             allData.forEach(row => sanitizeStrategyMatrix(row.strategy_matrix));
             allData = allData.filter(row => {
                 const f = row.strategy_matrix?.frequencies || {};
@@ -326,6 +423,13 @@ export function applyDeterministicEnginePatches(engine) {
         scenario, gameConfig, level, questionIndex, forcedHand = null
     ) {
         try {
+            // Callers such as Custom Training already own a bounded, exact
+            // warehouse query and therefore hand rows directly to the
+            // builder instead of going through fetchSolverPool().  The v2
+            // bridge must live at both boundaries or those callers silently
+            // read the legacy payload while the standard trainer reads v2.
+            prepareSolverScenarioRow(scenario);
+            if (scenario?.__invalidV2) return null;
             if (scenario?.strategy_matrix) sanitizeStrategyMatrix(scenario.strategy_matrix);
 
             if (forcedHand) {
@@ -358,44 +462,147 @@ export function applyDeterministicEnginePatches(engine) {
         }
     };
 
-    // ●● PATCH 4: multi-street with hand integrity + true-child preference ●●
+    // ●● PATCH 4: exact multi-street parent/action/child lineage ●●
     engine.queryNextStreet = async function patchedQueryNextStreet(
-        { gameConfig, heroHand: rawHeroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition }
+        {
+            gameConfig,
+            heroHand: rawHeroHand,
+            street,
+            stackDepth,
+            heroPosition,
+            villainPosition,
+            continuationLineages,
+        }
     ) {
-        if (!gameConfig || !boardCards || boardCards.length < 3) return null;
+        if (!gameConfig || !Array.isArray(continuationLineages)
+            || continuationLineages.length === 0
+            || continuationLineages.length > MAX_CONTINUATION_RUNOUTS) return null;
         const heroHand = toHandClass(rawHeroHand);
         try {
-            const boardStr = boardCards.map(c => c.toLowerCase()).join('');
-            const queryMatches = async (pattern, limit) => {
-                const run = (projection) => this.db
+            const requestedHero = String(heroPosition || '').toUpperCase();
+            const requestedVillain = String(villainPosition || '').toUpperCase();
+            const requestedStack = Number(stackDepth);
+            const release = continuationLineages[0]?.release || {};
+            const firstLineage = continuationLineages[0] || {};
+            const expectedBoardCount = street === 'turn' ? 4 : street === 'river' ? 5 : 0;
+            const expectedParentStreet = street === 'turn' ? 'flop' : 'turn';
+            const sameRelease = (candidateRelease) => Boolean(
+                candidateRelease?.solverVersion === release.solverVersion
+                && candidateRelease?.solverBinaryChecksum === release.solverBinaryChecksum
+                && candidateRelease?.pipelineCommit === release.pipelineCommit
+                && String(candidateRelease?.manifestVersion) === String(release.manifestVersion)
+                && candidateRelease?.manifestChecksum === release.manifestChecksum
+                && Number(candidateRelease?.rootPotBb) === Number(release.rootPotBb)
+                && Number(candidateRelease?.effectiveStackBb) === Number(release.effectiveStackBb)
+                && candidateRelease?.rake === release.rake
+                && candidateRelease?.treeGeometry === release.treeGeometry
+                && candidateRelease?.ipPosition === release.ipPosition
+                && candidateRelease?.oopPosition === release.oopPosition
+            );
+            const exactCommonContract = Boolean(
+                heroHand
+                && ['turn', 'river'].includes(String(street || '').toLowerCase())
+                && requestedHero
+                && requestedVillain
+                && requestedHero !== requestedVillain
+                && Number.isSafeInteger(requestedStack)
+                && requestedStack > 0
+                && requestedStack === Number(gameConfig.pioStackDepth)
+                && release.solverVersion
+                && /^[0-9a-f]{64}$/i.test(String(release.solverBinaryChecksum || ''))
+                && /^[0-9a-f]{40}$/i.test(String(release.pipelineCommit || ''))
+                && release.manifestVersion
+                && /^[0-9a-f]{64}$/i.test(String(release.manifestChecksum || ''))
+                && Number.isFinite(Number(release.rootPotBb))
+                && Number(release.rootPotBb) > 0
+                && Number.isFinite(Number(release.effectiveStackBb))
+                && Number(release.effectiveStackBb) > 0
+                && Number(release.effectiveStackBb) <= requestedStack
+                && /^\d+(?:\.\d+)?(?: \d+(?:\.\d+)?){3}$/.test(String(release.rake || ''))
+                && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(release.treeGeometry || ''))
+                && release.ipPosition === requestedHero
+                && release.oopPosition === requestedVillain
+            );
+            const exactCandidateContract = exactCommonContract && continuationLineages.every((lineage) => {
+                const candidateCards = Array.isArray(lineage?.boardCards) ? lineage.boardCards : [];
+                const parentBoard = candidateCards.slice(0, -1);
+                return lineage?.gameType === gameConfig.pioGameType
+                    && lineage?.childStreet === street
+                    && candidateCards.length === expectedBoardCount
+                    && candidateCards.every((card) => CONTINUATION_BOARD_CARD_RE.test(card))
+                    && new Set(candidateCards).size === candidateCards.length
+                    && lineage?.heroPosition === requestedHero
+                    && lineage?.villainPosition === requestedVillain
+                    && lineage?.solverStackDepth === requestedStack
+                    && lineage?.parentScenarioHash === firstLineage.parentScenarioHash
+                    && lineage?.parentNode === firstLineage.parentNode
+                    && lineage?.continuationAction === firstLineage.continuationAction
+                    && lineage?.parentScenarioHash === exactContinuationScenarioHash(
+                        expectedParentStreet,
+                        gameConfig.pioGameType,
+                        requestedHero,
+                        requestedStack,
+                        parentBoard,
+                    )
+                    && typeof lineage?.parentNode === 'string'
+                    && /^b[1-9]\d*$/.test(String(lineage?.continuationAction || ''))
+                    && lineage?.childScenarioHash === exactContinuationScenarioHash(
+                        street,
+                        gameConfig.pioGameType,
+                        requestedHero,
+                        requestedStack,
+                        candidateCards,
+                    )
+                    && typeof lineage?.childNode === 'string'
+                    && lineage.childNode === `${lineage.parentNode}:${lineage.continuationAction}:c:${lineage.boardCards.at(-1)}:c`
+                    && sameRelease(lineage.release);
+            });
+            const uniqueCandidateIdentities = new Set(
+                continuationLineages.map(({ childScenarioHash, childNode }) => `${childScenarioHash}\u0000${childNode}`),
+            );
+            if (!exactCandidateContract
+                || uniqueCandidateIdentities.size !== continuationLineages.length) return null;
+
+            const data = [];
+            for (let start = 0; start < continuationLineages.length; start += CONTINUATION_QUERY_CHUNK_SIZE) {
+                const lineageChunk = continuationLineages.slice(
+                    start,
+                    start + CONTINUATION_QUERY_CHUNK_SIZE,
+                );
+                const result = await this.db
                     .from('solved_spots_gold')
-                    .select(projection)
+                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at')
+                    .in('scenario_hash', lineageChunk.map(({ childScenarioHash }) => childScenarioHash))
                     .eq('game_type', gameConfig.pioGameType)
-                    .eq('stack_depth', gameConfig.pioStackDepth)
+                    .eq('stack_depth', requestedStack)
                     .eq('street', street)
-                    .ilike('scenario_hash', pattern)
-                    .limit(limit);
-                const fullProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
-                const legacyProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
-                const initialProjection = this.__solverProvenanceColumnsAvailable === false
-                    ? legacyProjection
-                    : fullProjection;
-                let result = await run(initialProjection);
-                if (initialProjection === fullProjection
-                    && result.error && (result.error.code === '42703' || result.error.code === 'PGRST204')) {
-                    this.__solverProvenanceColumnsAvailable = false;
-                    result = await run(legacyProjection);
-                } else if (initialProjection === fullProjection && !result.error) {
-                    this.__solverProvenanceColumnsAvailable = true;
-                }
-                return result.data || [];
-            };
+                    .in('strategy_matrix_v2->>node', lineageChunk.map(({ childNode }) => childNode))
+                    .in('strategy_matrix_v2->>board', lineageChunk.map(({ boardCards }) => boardCards.join('')))
+                    .eq('strategy_matrix_v2->>position', requestedHero)
+                    .eq('strategy_matrix_v2->>pot_bb', String(release.rootPotBb))
+                    .eq('strategy_matrix_v2->>eff_stack_bb', String(release.effectiveStackBb))
+                    .eq('strategy_matrix_v2->>rake', release.rake)
+                    .eq('strategy_matrix_v2->>tree_geometry', release.treeGeometry)
+                    .eq('strategy_matrix_v2->>oop_player', release.oopPosition)
+                    .eq('strategy_matrix_v2->>ip_player', release.ipPosition)
+                    .not('strategy_matrix_v2', 'is', null)
+                    .eq('quality_status', 'validated')
+                    .eq('solver_version', release.solverVersion)
+                    .eq('solver_binary_checksum', release.solverBinaryChecksum)
+                    .eq('pipeline_commit', release.pipelineCommit)
+                    .eq('manifest_version', release.manifestVersion)
+                    .eq('manifest_checksum', release.manifestChecksum)
+                    .not('machine_id', 'is', null)
+                    .not('source_artifact_checksum', 'is', null)
+                    .not('audited_at', 'is', null)
+                    .limit(100);
+                if (result.error || !Array.isArray(result.data)) return null;
+                data.push(...result.data);
+            }
 
-            // True child node: hash ENDS WITH the full board
-            const exactMatches = await queryMatches(`%${boardStr}`, 5);
-
-            for (const scenario of exactMatches || []) {
-                preferV2(scenario);
+            const orderedCandidates = orderedExactContinuationCandidates(data, continuationLineages);
+            for (const { row: scenario, lineage } of orderedCandidates) {
+                if (!prepareSolverScenarioRow(scenario)) continue;
                 const matrix = scenario.strategy_matrix || {};
                 const solvedHero = String(matrix.position || '').toUpperCase();
                 const solvedVillain = solvedHero === String(matrix.oop_player || '').toUpperCase()
@@ -403,21 +610,39 @@ export function applyDeterministicEnginePatches(engine) {
                     : solvedHero === String(matrix.ip_player || '').toUpperCase()
                         ? String(matrix.oop_player || '').toUpperCase()
                         : '';
-                const requestedHero = String(heroPosition || '').toUpperCase();
-                const requestedVillain = String(villainPosition || '').toUpperCase();
-                const requestedPot = Number(pot);
-                if (!requestedHero || !requestedVillain
-                    || solvedHero !== requestedHero || solvedVillain !== requestedVillain
-                    || !Number.isFinite(requestedPot)
-                    || Math.abs(Number(matrix.pot_bb) - requestedPot) > 0.05) continue;
-                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
-                if (question) return question;
+                const childPot = Number(matrix.pot_bb);
+                const childEffectiveStack = Number(matrix.eff_stack_bb);
+                if (solvedHero !== requestedHero
+                    || solvedVillain !== requestedVillain
+                    || !Number.isFinite(childPot)
+                    || childPot <= 0
+                    || !Number.isFinite(childEffectiveStack)
+                    || childEffectiveStack <= 0
+                    || childEffectiveStack > requestedStack) continue;
+                const question = this.buildQuestionFromScenario(
+                    scenario,
+                    gameConfig,
+                    5,
+                    0,
+                    heroHand,
+                );
+                if (!question) continue;
+                question.scenario = {
+                    ...(question.scenario || {}),
+                    pot: childPot,
+                    stackDepth: childEffectiveStack,
+                    heroStack: childEffectiveStack,
+                    villainStack: childEffectiveStack,
+                    solverStackDepth: requestedStack,
+                    continuationParentScenarioHash: lineage.parentScenarioHash,
+                    continuationParentNode: lineage.parentNode,
+                    continuationParentAction: lineage.continuationAction,
+                };
+                question.stackDepth = childEffectiveStack;
+                question.solverStackDepth = requestedStack;
+                question.estimatedPot = childPot;
+                return question;
             }
-
-            // A similar texture is not the same decision. Transplanting
-            // frequencies onto another turn or river changes card removal,
-            // available draws, nut advantage, and legal range composition.
-            // End the hand cleanly unless the exact full-board suffix exists.
             return null;
         } catch (err) {
             console.warn('[EnginePatches] queryNextStreet error:', err.message);

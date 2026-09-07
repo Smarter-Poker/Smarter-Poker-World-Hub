@@ -150,9 +150,8 @@ test('Training callbacks cannot retain stale difficulty or adaptive-analysis sta
   const source = read('src/hooks/useGTOTrainer.js');
 
   assert.match(source, /updateWeakSpotMap,\s*getWeakSpots,\s*prefetchNextLevel,\s*gameId,/);
-  assert.match(source, /resolveDifficultyMode,\s*getWeakSpots,\s*\]\);/);
-  assert.match(source, /\}, \[gameId, trainerConfig\]\);/);
-  assert.match(source, /effectiveQuestionsPerLevel,\s*selectedLevel,\s*currentQuestion,\s*level,\s*trainerConfig,\s*\]\);/);
+  assert.match(source, /resolveDifficultyMode,\s*getWeakSpots,\s*trainingSessionId,\s*userId,\s*activateFreshTrainingSession,\s*activateNewTrainingQuestion,\s*captureTrainingLease,\s*isTrainingLeaseActive,\s*recoverTerminalAttempt,\s*\]\);/);
+  assert.match(source, /effectiveQuestionsPerLevel,\s*selectedLevel,\s*currentQuestion,\s*persistPendingAnswer,\s*trainerConfig,\s*activateNewTrainingQuestion,\s*activateFreshTrainingSession,\s*captureTrainingLease,\s*isTrainingLeaseActive,\s*\]\);/);
 });
 
 test('browser route audit enforces serious WCAG failures and runtime performance bounds', () => {

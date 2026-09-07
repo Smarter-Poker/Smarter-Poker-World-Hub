@@ -10,7 +10,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/sessionEvidence.mjs';
 
 // TRAIN-CSS-MOTION-ADOPT-19 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -107,13 +108,16 @@ function StatIcon({ kind, size = 18, color = 'currentColor' }) {
 
 export default function TrainingProgress() {
   useTrainingBus('training-progress');
+  const mountedRef = useRef(false);
+  const requestRef = useRef(null);
+  const inFlightRef = useRef(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [stats, setStats] = useState({
     totalQuestions: 0,
     correctAnswers: 0,
-    accuracy: 0,
+    accuracy: null,
     totalTime: 0,
     averageTime: 0,
     streak: 0,
@@ -122,103 +126,71 @@ export default function TrainingProgress() {
     weakAreas: [],
   });
 
-  useEffect(() => {
-    loadProgress();
-  }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`train-progress:${user?.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'jarvis_training_sessions',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          loadProgress();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'training_streaks',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          loadProgress();
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(_ch);
-    };
-  }, [user?.id]);
-
-  // EventBus SESSION_END listener — refresh when any training session completes
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
-      loadProgress();
-    });
-    return unsub;
-  }, []);
-
-  const loadProgress = async () => {
-    setFetchError(null);
+  const loadProgress = useCallback(async () => {
+    if (inFlightRef.current) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
+    inFlightRef.current = true;
+    let timedOut = false;
+    const deadline = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 10_000);
+    if (mountedRef.current) setFetchError(null);
     try {
       const authUser = getAuthUser();
-      setUser(authUser);
+      if (mountedRef.current) setUser(authUser);
 
       if (!authUser) {
-        setLoading(false);
         return;
       }
 
-      // Fetch training sessions
-      const { data: sessions, error } = await supabase
-        .from('jarvis_training_sessions')
-        .select('*')
+      // Only sealed attempt projections are eligible for user-facing progress.
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('training_sessions')
+        .select('attempt_id, game_id, game_name, hands_played, correct_count, accuracy, best_streak, created_at, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
         .eq('user_id', authUser.id)
+        .eq('training_attempts.user_id', authUser.id)
+        .eq('training_attempts.status', 'completed')
+        .eq('training_attempts.practice_only', false)
+        .not('attempt_id', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(100); // training sessions
+        .limit(100)
+        .abortSignal(controller.signal); // training sessions
 
-      if (error) throw error;
+      if (sessionsError) throw sessionsError;
 
       // Calculate stats
       const totalQuestions =
-        sessions?.reduce((sum, s) => sum + (s.questions_answered || 0), 0) || 0;
-      const correctAnswers = sessions?.reduce((sum, s) => sum + (s.correct_answers || 0), 0) || 0;
-      const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-      const totalTime = sessions?.reduce((sum, s) => sum + (s.time_spent || 0), 0) || 0;
-      const averageTime = totalQuestions > 0 ? Math.round(totalTime / totalQuestions) : 0;
+        sessions?.reduce((sum, s) => sum + (s.hands_played || 0), 0) || 0;
+      const correctAnswers = sessions?.reduce((sum, s) => sum + (s.correct_count || 0), 0) || 0;
+      const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : null;
+      // Canonical training_sessions intentionally does not accept a
+      // browser-authored duration. Do not manufacture a time statistic.
+      const totalTime = null;
+      const averageTime = null;
 
       // Category breakdown
       const categoryBreakdown = {};
       sessions?.forEach((session) => {
-        const category = session.category || 'General';
+        const category = session.game_name || session.game_id || 'General';
+        const answered = Number(session.hands_played) || 0;
+        if (answered <= 0) return;
         if (!categoryBreakdown[category]) {
           categoryBreakdown[category] = { total: 0, correct: 0 };
         }
-        categoryBreakdown[category].total += session.questions_answered || 0;
-        categoryBreakdown[category].correct += session.correct_answers || 0;
+        categoryBreakdown[category].total += answered;
+        categoryBreakdown[category].correct += session.correct_count || 0;
       });
 
       // Recent activity (last 10 sessions)
       const recentActivity =
         sessions?.slice(0, 10).map((s) => ({
           date: new Date(s.created_at),
-          category: s.category || 'General',
-          questions: s.questions_answered || 0,
-          correct: s.correct_answers || 0,
-          accuracy:
-            s.questions_answered > 0
-              ? Math.round((s.correct_answers / s.questions_answered) * 100)
-              : 0,
+          category: s.game_name || s.game_id || 'General',
+          questions: s.hands_played || 0,
+          correct: s.correct_count || 0,
+          accuracy: deriveTrainingSessionAccuracy(s),
         })) || [];
 
       // Weak areas (categories with < 70% accuracy)
@@ -233,35 +205,93 @@ export default function TrainingProgress() {
 
       // Fetch streak data
       let currentStreak = 0;
-      const { data: streakData } = await supabase
+      const { data: streakData, error: streakError } = await supabase
         .from('training_streaks')
-        .select('current_streak')
+        .select('current_streak:authority_current_streak')
         .eq('user_id', authUser.id)
-        .maybeSingle();
+        .maybeSingle()
+        .abortSignal(controller.signal);
+
+      if (streakError) throw streakError;
 
       if (streakData) {
         currentStreak = streakData.current_streak || 0;
       }
 
-      setStats({
-        totalQuestions,
-        correctAnswers,
-        accuracy,
-        totalTime,
-        averageTime,
-        streak: currentStreak,
-        categoryBreakdown,
-        recentActivity,
-        weakAreas,
-      });
-
-      setLoading(false);
+      if (mountedRef.current && !controller.signal.aborted) {
+        setStats({
+          totalQuestions,
+          correctAnswers,
+          accuracy,
+          totalTime,
+          averageTime,
+          streak: currentStreak,
+          categoryBreakdown,
+          recentActivity,
+          weakAreas,
+        });
+      }
     } catch (error) {
+      if (controller.signal.aborted && !timedOut) return;
       console.warn('Error loading progress:', error);
-      setFetchError('Unable to load progress data. Please try again.');
-      setLoading(false);
+      if (mountedRef.current) {
+        setFetchError(timedOut
+          ? 'Progress verification timed out. Please try again.'
+          : 'Unable to load progress data. Please try again.');
+        setStats({
+          totalQuestions: 0,
+          correctAnswers: 0,
+          accuracy: null,
+          totalTime: null,
+          averageTime: null,
+          streak: 0,
+          categoryBreakdown: {},
+          recentActivity: [],
+          weakAreas: [],
+        });
+      }
+    } finally {
+      window.clearTimeout(deadline);
+      if (requestRef.current === controller) {
+        requestRef.current = null;
+        inFlightRef.current = false;
+        if (mountedRef.current) setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    loadProgress();
+    return () => {
+      mountedRef.current = false;
+      requestRef.current?.abort();
+      requestRef.current = null;
+      inFlightRef.current = false;
+    };
+  }, [loadProgress]);
+
+  // training_sessions is not in the realtime publication. Same-tab saves use
+  // EventBus below; cross-tab/device projection changes use bounded,
+  // visibility-aware, single-flight polling.
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    const refreshIfVisible = () => {
+      if (typeof document === 'undefined' || !document.hidden) loadProgress();
+    };
+    const pollInterval = window.setInterval(refreshIfVisible, 30_000);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    return () => {
+      window.clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+    };
+  }, [user?.id, loadProgress]);
+
+  // EventBus SESSION_END listener — refresh when any training session completes.
+  useEffect(() => {
+    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', loadProgress);
+    return unsub;
+  }, [loadProgress]);
 
   if (loading) {
     return (
@@ -288,6 +318,27 @@ export default function TrainingProgress() {
             cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[progress] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
           />
         </div>
+      </PageTransition>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <PageTransition>
+        <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
+        <div style={styles.container}>
+          <UniversalHeader pageDepth={2} />
+          <div style={styles.content}>
+            <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); loadProgress(); }} />
+            <TrainerEmptyState
+              variant="retry"
+              title="Training Progress Is Unavailable"
+              message="We could not verify your sealed training sessions. No zero-history fallback has been shown."
+              cta={{ label: 'Try Again', onClick: () => { setFetchError(null); setLoading(true); loadProgress(); } }}
+            />
+          </div>
+        </div>
+        <ConnectionToast />
       </PageTransition>
     );
   }
@@ -325,12 +376,14 @@ export default function TrainingProgress() {
             <StatCard
               iconKind="accuracy"
               label="Accuracy"
-              value={`${stats.accuracy}%`}
+              value={Number.isFinite(stats.accuracy) ? `${stats.accuracy}%` : '—'}
               color={
-                stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444'
+                Number.isFinite(stats.accuracy)
+                  ? (stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444')
+                  : 'var(--sp-fg-muted)'
               }
             />
-            <StatCard iconKind="timer" label="Avg Time/Question" value={`${stats.averageTime}s`} />
+            <StatCard iconKind="timer" label="Avg Time/Question" value={stats.averageTime == null ? 'Unavailable' : `${stats.averageTime}s`} />
             <StatCard
               iconKind="streak"
               label="Current Streak"
@@ -469,7 +522,7 @@ function ActivityCard({ date, category, questions, correct, accuracy }) {
       <div style={styles.activityDetails}>
         <div style={styles.activityCategory}>{category}</div>
         <div style={styles.activityStats}>
-          {correct}/{questions} Correct ({accuracy}%)
+          {correct}/{questions} Correct ({Number.isFinite(accuracy) ? `${accuracy}%` : 'Accuracy Not Available'})
         </div>
       </div>
     </div>

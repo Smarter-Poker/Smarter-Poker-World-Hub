@@ -15,39 +15,34 @@ import dynamic from 'next/dynamic';
 import { shareResult } from '../../utils/shareCard';
 import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
-import HandReplayViewer from './HandReplayViewer';
 import VerifiedToolGateway from './VerifiedToolGateway';
-import PositionStatsPanel from './PositionStatsPanel';
-import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
 // ●●● PHASE 16: Performance Analytics Components ●●●
-import PerformanceTrends from './PerformanceTrends';
-import StreetAccuracyPanel from './StreetAccuracyPanel';
-import ActionAccuracyPanel from './ActionAccuracyPanel';
-import MistakePatternPanel from './MistakePatternPanel';
 import { useTrainingAnalytics } from './PerformanceTrends';
 // ●●● PHASE 17: Smart Practice + AI Coaching ●●●
-import SmartPracticeBanner from './SmartPracticeBanner';
-import { getSessionToken, authedFetch } from '../../lib/authUtils';
-import { heroPositionOf, streetOf, playerActionOf } from '../../lib/training/handHistoryEntry';
+import { getSessionToken } from '../../lib/authUtils';
+import {
+  handFieldOf,
+  heroPositionOf,
+  streetOf,
+  playerActionOf,
+} from '../../lib/training/handHistoryEntry';
+import {
+  normalizeTrainingSessionConfig,
+  withTrainingSessionDifficulty,
+} from '../../lib/training/sessionConfigContract.mjs';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
 // ●●● PHASE 19: Share Card + Achievement Toasts ●●●
 import SessionShareCard from './SessionShareCard';
-import AchievementToast from './AchievementToast';
-import { checkAllAchievements } from './utils/achievementChecker';
-// ●●● PHASE 20: EV Graph + GTO Deviation Heatmap ●●●
+// ●●● PHASE 20: Verified EV Graph ●●●
 import EVGraph from './EVGraph';
-import EVLossTracker from './EVLossTracker';
-import GTODeviationHeatmap from './GTODeviationHeatmap';
 // ●●● PHASE 21: Study Streak Map + Ghost Replay ●●●
 import { StudyStreakMapAuto } from './StudyStreakMap';
-import GhostReplayEngine from './GhostReplayEngine';
 // ●●● PHASE 356: Solver Tree Viewer ●●●
 import SolverTreeViewer from './SolverTreeViewer';
 import PostflopRangeViewer from './PostflopRangeViewer';
 import RunoutStrategyMatrix from './RunoutStrategyMatrix';
-import FrequencyTrainer from './FrequencyTrainer';
 import SolverComparisonReplay from './SolverComparisonReplay';
 import RangeEquityVisualizer from './RangeEquityVisualizer';
 import CrossSessionAnalytics from './CrossSessionAnalytics';
@@ -79,19 +74,15 @@ import EVTreeVisualizer from './EVTreeVisualizer';
 import BankrollTracker from './BankrollTracker';
 import SpotFilterTrainer from './SpotFilterTrainer';
 // ●●● PHASE 10: HUD, Hand Notes, Leak Finder, Table Dynamics ●●●
-import HandNoteTagger from './HandNoteTagger';
 import LeakFinderEngine from './LeakFinderEngine';
 import TableDynamicsPanel from './TableDynamicsPanel';
 // ●●● PHASE 11: Runout Sim, Position Mastery, Mixed Strategy, Session Replay ●●●
 import RunoutSimulator from './RunoutSimulator';
-import PositionMasteryTracker from './PositionMasteryTracker';
 import MixedStrategyTrainer from './MixedStrategyTrainer';
-import SessionReplayTimeline from './SessionReplayTimeline';
 // ●●● PHASE 12: Flop Textures, Preflop Charts, Hand Strength, Frequency Exploiter ●●●
 import FlopTextureAnalyzer from './FlopTextureAnalyzer';
 import PreflopRangeCharts from './PreflopRangeCharts';
 import HandStrengthDistribution from './HandStrengthDistribution';
-import FrequencyExploiter from './FrequencyExploiter';
 // ●●● PHASE 13: Chip EV, Flop Categories, Pot Odds, Stack Depth ●●●
 import ChipEVCalculator from './ChipEVCalculator';
 import FlopCategoryBrowser from './FlopCategoryBrowser';
@@ -335,7 +326,6 @@ import ReverseImpliedOdds from './ReverseImpliedOdds';
 // ●●● PHASE 59: Board Coverage, Node Analysis, Solver Simplify, Range Viz ●●●
 import BoardCoverageMap from './BoardCoverageMap';
 import NodeAnalysis from './NodeAnalysis';
-import SolverSimplify from './SolverSimplify';
 import RangeVisualization from './RangeVisualization';
 
 // ●●● PHASE 60: Live Tells, Online Timing, Betting Patterns, Player Typing ●●●
@@ -387,7 +377,6 @@ import HandHistoryAnalysis from './HandHistoryAnalysis';
 import WarmUpRoutine from './WarmUpRoutine';
 
 // ●●● GAP CLOSERS: GTO Wizard Feature Parity ●●●
-import SimplifiedSolutions from './SimplifiedSolutions';
 import CustomSolutionBuilder from './CustomSolutionBuilder';
 import PokerArenaMode from './PokerArenaMode';
 import PKOSolverGuide from './PKOSolverGuide';
@@ -401,7 +390,7 @@ import StraddleAnteSolver from './StraddleAnteSolver';
 import HUSNGSolver from './HUSNGSolver';
 import SessionCoachingEngine from './SessionCoachingEngine';
 // ●●● Phase 3 Engines: Real-time scoring + diamond rewards ●●●
-import { calculateSessionDiamonds, getScoreGrade, getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
+import { getScoreGrade, getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
 
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
@@ -411,13 +400,9 @@ import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOW
 // accumulator — the same functions the session-analytics harness asserts.
 import { deriveTopLeaks } from '../../lib/sessionAnalytics';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
-import { getDiamondReward } from '../../config/trainingConfig';
 import { getLevel } from '../../config/LevelRegistry';
 import { getGameConfig as getGameEngineConfig } from '../../config/gameConfigs';
 import { eventBus, EventType } from '../../engine/EventBus';
-// Extracted utilities
-import { saveSession } from './utils/saveSession';
-import { checkSpeedBonus } from './utils/achievementChecker';
 import { acquireScrollLock } from '../../lib/scrollLock';
 
 // ALL GAMES use full-screen immersive UI with GameUIRouter
@@ -1074,1106 +1059,6 @@ const AnalysisSection = memo(function AnalysisSection({
 });
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// CARD PATH HELPER — Same custom card images used in UniversalDynamicTable
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-function getCardImagePath(card) {
-  if (!card || card.length < 2) return '/cards/back.png';
-  const rankChar = card[0].toLowerCase();
-  const suit = card[1].toLowerCase();
-  const rank = rankChar === 't' ? '10' : rankChar;
-  const suitMap = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' };
-  return `/cards/${suitMap[suit] || 'hearts'}_${rank}.png`;
-}
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// HAND HISTORY IMPORT MODAL — Paste hand history to train from your own hands
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-function HandHistoryImportModal({
-  importState,
-  setImportState,
-  importHandToTrainingQuestion,
-  onStartImported,
-  onClose,
-}) {
-  const { parseHandHistory, detectFormat } = require('../../utils/hh-parser');
-
-  const handleParse = () => {
-    if (!importState.rawText.trim()) {
-      setImportState((prev) => ({ ...prev, error: 'Paste a hand history to continue' }));
-      return;
-    }
-    try {
-      const parsed = parseHandHistory(importState.rawText.trim());
-      if (!parsed || !parsed.success) {
-        setImportState((prev) => ({
-          ...prev,
-          error: parsed?.error || 'Could not parse hand history',
-          parsedHand: null,
-        }));
-        return;
-      }
-      setImportState((prev) => ({ ...prev, parsedHand: parsed, error: null }));
-    } catch (e) {
-      setImportState((prev) => ({ ...prev, error: `Parse error: ${e.message}`, parsedHand: null }));
-    }
-  };
-
-  const handleTrain = (street) => {
-    if (!importState.parsedHand) return;
-    const question = importHandToTrainingQuestion(importState.parsedHand, street);
-    if (question) {
-      onStartImported(question);
-    }
-  };
-
-  const parsed = importState.parsedHand;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: 'linear-gradient(180deg, #0f172a 0%, #0a0e17 100%)',
-          border: '1px solid rgba(16,185,129,0.3)',
-          borderRadius: 16,
-          width: '100%',
-          maxWidth: 520,
-          maxHeight: '90vh',
-          overflow: 'auto',
-          padding: 24,
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-          }}
-        >
-          <h3
-            style={{
-              color: '#10b981',
-              fontSize: 16,
-              fontWeight: 700,
-              margin: 0,
-              fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
-            }}
-          >
-            Import Hand History
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#64748b',
-              fontSize: 20,
-              cursor: 'pointer',
-            }}
-          >
-            X
-          </button>
-        </div>
-
-        {/* Format badges */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-          {['PokerStars', 'GGPoker', 'Ignition', '888poker', 'WPN/ACR'].map((f) => (
-            <span
-              key={f}
-              style={{
-                padding: '2px 8px',
-                borderRadius: 4,
-                fontSize: 9,
-                fontWeight: 600,
-                background: 'rgba(16,185,129,0.1)',
-                color: '#10b981',
-                border: '1px solid rgba(16,185,129,0.2)',
-              }}
-            >
-              {f}
-            </span>
-          ))}
-        </div>
-
-        {/* Textarea */}
-        <textarea
-          value={importState.rawText}
-          onChange={(e) =>
-            setImportState((prev) => ({ ...prev, rawText: e.target.value, error: null }))
-          }
-          placeholder="Paste your hand history here..."
-          style={{
-            width: '100%',
-            minHeight: 140,
-            padding: 12,
-            borderRadius: 8,
-            background: 'rgba(0,0,0,0.4)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#e2e8f0',
-            fontSize: 11,
-            fontFamily: 'monospace',
-            resize: 'vertical',
-            outline: 'none',
-          }}
-        />
-
-        {importState.error && (
-          <div style={{ color: '#ef4444', fontSize: 11, marginTop: 6 }}>{importState.error}</div>
-        )}
-
-        {/* Parse button */}
-        <button
-          onClick={handleParse}
-          style={{
-            width: '100%',
-            padding: '10px',
-            marginTop: 10,
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            border: 'none',
-            color: '#fff',
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          Parse Hand
-        </button>
-
-        {/* Parsed result */}
-        {parsed && (
-          <div
-            style={{
-              marginTop: 16,
-              padding: 14,
-              borderRadius: 10,
-              background: 'rgba(16,185,129,0.06)',
-              border: '1px solid rgba(16,185,129,0.15)',
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 8 }}>
-              Hand Parsed Successfully
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 6,
-                fontSize: 11,
-                color: '#94a3b8',
-              }}
-            >
-              <div>
-                Format: <span style={{ color: '#e2e8f0' }}>{parsed.format}</span>
-              </div>
-              <div>
-                Position: <span style={{ color: '#e2e8f0' }}>{parsed.heroPosition}</span>
-              </div>
-              <div>
-                Hero:{' '}
-                <span style={{ color: '#e2e8f0' }}>{parsed.heroCards?.join(' ') || 'N/A'}</span>
-              </div>
-              <div>
-                Pot: <span style={{ color: '#e2e8f0' }}>{parsed.potSize || '?'} BB</span>
-              </div>
-              <div>
-                Flop:{' '}
-                <span style={{ color: '#e2e8f0' }}>{parsed.board?.flop?.join(' ') || 'N/A'}</span>
-              </div>
-              <div>
-                Players: <span style={{ color: '#e2e8f0' }}>{parsed.numPlayers}</span>
-              </div>
-              {parsed.board?.turn && (
-                <div>
-                  Turn: <span style={{ color: '#e2e8f0' }}>{parsed.board.turn}</span>
-                </div>
-              )}
-              {parsed.board?.river && (
-                <div>
-                  River: <span style={{ color: '#e2e8f0' }}>{parsed.board.river}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Street buttons */}
-            <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
-              {parsed.board?.flop?.length > 0 && (
-                <button
-                  onClick={() => handleTrain('flop')}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: '#3b82f6',
-                    color: '#fff',
-                    fontSize: 11,
-                    fontWeight: 700,
-                  }}
-                >
-                  Train Flop
-                </button>
-              )}
-              {parsed.board?.turn && (
-                <button
-                  onClick={() => handleTrain('turn')}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: '#f59e0b',
-                    color: '#fff',
-                    fontSize: 11,
-                    fontWeight: 700,
-                  }}
-                >
-                  Train Turn
-                </button>
-              )}
-              {parsed.board?.river && (
-                <button
-                  onClick={() => handleTrain('river')}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: '#ef4444',
-                    color: '#fff',
-                    fontSize: 11,
-                    fontWeight: 700,
-                  }}
-                >
-                  Train River
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// FLASHCARD MODE — GTO concept flip-cards with spaced repetition feel
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, onExit }) {
-  const { cards, currentIndex, flipped, score } = flashcardState;
-
-  // Initialize cards if empty
-  useEffect(() => {
-    if (cards.length === 0 && generateFlashcards) {
-      const data = generateFlashcards();
-      if (data) {
-        const cardList = data.cards || data;
-        setFlashcardState((prev) => ({
-          ...prev,
-          category: data.category || 'mixed',
-          cards: Array.isArray(cardList) ? cardList : [],
-        }));
-      }
-    }
-  }, [cards.length, generateFlashcards, setFlashcardState]);
-
-  if (cards.length === 0) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: '#64748b',
-        }}
-      >
-        Loading Flashcards...
-      </div>
-    );
-  }
-
-  const card = cards[currentIndex];
-  const progress = currentIndex / cards.length;
-  const isComplete = currentIndex >= cards.length;
-
-  const handleFlip = () => setFlashcardState((prev) => ({ ...prev, flipped: !prev.flipped }));
-
-  const handleResponse = (knew) => {
-    setFlashcardState((prev) => ({
-      ...prev,
-      flipped: false,
-      currentIndex: prev.currentIndex + 1,
-      completed: prev.completed + 1,
-      score: {
-        knew: prev.score.knew + (knew ? 1 : 0),
-        learning: prev.score.learning + (knew ? 0 : 1),
-      },
-    }));
-  };
-
-  const handleNewDeck = () => {
-    const data = generateFlashcards();
-    if (data) {
-      const cardList = data.cards || data;
-      setFlashcardState({
-        category: data.category || 'mixed',
-        cards: Array.isArray(cardList) ? cardList : [],
-        currentIndex: 0,
-        flipped: false,
-        completed: 0,
-        score: { knew: 0, learning: 0 },
-      });
-    }
-  };
-
-  const catLabels = {
-    pot_odds: 'Pot Odds',
-    position: 'Position Play',
-    betting: 'Betting Strategy',
-    draws: 'Drawing Hands',
-    preflop: 'Preflop Play',
-    board_texture: 'Board Texture',
-    river_play: 'River Play',
-    gto_theory: 'GTO Theory',
-  };
-
-  if (isComplete) {
-    const totalCards = score.knew + score.learning;
-    const pct = totalCards > 0 ? Math.round((score.knew / totalCards) * 100) : 0;
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          padding: 20,
-        }}
-      >
-        <div style={{ fontSize: 48, marginBottom: 16 }}>
-          {pct >= 80 ? '★' : pct >= 50 ? '□' : '▲'}
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 8 }}>
-          Deck Complete!
-        </div>
-        <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20 }}>
-          {catLabels[flashcardState.category] || 'GTO Concepts'}
-        </div>
-        <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 800,
-                color: '#22c55e',
-                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-              }}
-            >
-              {score.knew}
-            </div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Knew It</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 800,
-                color: '#f59e0b',
-                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-              }}
-            >
-              {score.learning}
-            </div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Learning</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 300 }}>
-          <button
-            onClick={handleNewDeck}
-            style={{
-              flex: 1,
-              padding: '12px 0',
-              borderRadius: 10,
-              border: 'none',
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            New Deck
-          </button>
-          <button
-            onClick={onExit}
-            style={{
-              flex: 1,
-              padding: '12px 0',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(0,0,0,0.3)',
-              color: '#94a3b8',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        padding: 20,
-      }}
-    >
-      {/* Decorative custom card images */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 8, opacity: 0.5 }}>
-        <img
-          src={getCardImagePath('As')}
-          alt="card"
-          style={{ width: 28, height: 39, borderRadius: 3 }}
-        />
-        <img
-          src={getCardImagePath('Kh')}
-          alt="card"
-          style={{ width: 28, height: 39, borderRadius: 3 }}
-        />
-      </div>
-
-      {/* Category + Progress */}
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          color: '#00d4ff',
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-          marginBottom: 4,
-        }}
-      >
-        {catLabels[flashcardState.category] || 'GTO Concepts'} • Card {currentIndex + 1}/
-        {cards.length}
-      </div>
-      <div
-        style={{
-          width: '80%',
-          maxWidth: 300,
-          height: 3,
-          background: 'rgba(255,255,255,0.06)',
-          borderRadius: 2,
-          marginBottom: 20,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            height: '100%',
-            width: `${progress * 100}%`,
-            background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-            borderRadius: 2,
-            transition: 'width 0.3s',
-          }}
-        />
-      </div>
-
-      {/* Card */}
-      <div
-        role="button"
-        tabIndex={0}
-        aria-pressed={flipped}
-        aria-label={flipped ? 'Hide flashcard answer' : 'Reveal flashcard answer'}
-        onClick={handleFlip}
-        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleFlip(); } }}
-        style={{
-          width: '100%',
-          maxWidth: 360,
-          minHeight: 200,
-          padding: 24,
-          borderRadius: 16,
-          cursor: 'pointer',
-          background: flipped
-            ? 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.06))'
-            : 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.06))',
-          border: `1px solid ${flipped ? 'rgba(34,197,94,0.25)' : 'rgba(59,130,246,0.25)'}`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.3s',
-          transform: flipped ? 'rotateY(0deg)' : 'rotateY(0deg)',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: flipped ? '#22c55e' : '#3b82f6',
-            textTransform: 'uppercase',
-            letterSpacing: 1.5,
-            marginBottom: 12,
-          }}
-        >
-          {flipped ? 'Answer' : 'Question'}
-        </div>
-        <div
-          style={{
-            fontSize: 15,
-            color: '#e2e8f0',
-            fontWeight: 600,
-            textAlign: 'center',
-            lineHeight: 1.5,
-          }}
-        >
-          {flipped ? card?.back || 'No answer' : card?.front || 'No question'}
-        </div>
-        {!flipped && (
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 12 }}>Tap To Reveal Answer</div>
-        )}
-      </div>
-
-      {/* Response buttons (only when flipped) */}
-      {flipped && (
-        <div style={{ display: 'flex', gap: 10, marginTop: 16, width: '100%', maxWidth: 360 }}>
-          <button
-            onClick={() => handleResponse(false)}
-            style={{
-              flex: 1,
-              padding: '14px 0',
-              borderRadius: 10,
-              border: '1px solid rgba(245,158,11,0.3)',
-              background: 'rgba(245,158,11,0.08)',
-              color: '#f59e0b',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Still Learning
-          </button>
-          <button
-            onClick={() => handleResponse(true)}
-            style={{
-              flex: 1,
-              padding: '14px 0',
-              borderRadius: 10,
-              border: '1px solid rgba(34,197,94,0.3)',
-              background: 'rgba(34,197,94,0.08)',
-              color: '#22c55e',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Knew It ✓
-          </button>
-        </div>
-      )}
-
-      {/* Score bar */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
-        <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>✓ {score.knew}</div>
-        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>□ {score.learning}</div>
-      </div>
-
-      {/* Back */}
-      <button
-        onClick={onExit}
-        style={{
-          marginTop: 16,
-          background: 'none',
-          border: 'none',
-          color: '#475569',
-          fontSize: 11,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        ← Back To Training
-      </button>
-    </div>
-  );
-}
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// DRILL COUNTDOWN — leaf owner of the drill's 1Hz tick
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// PERF: the drill clock used to tick `drillState.timeLeft` via setDrillState,
-// and drillState lives in the top-level GodModeArena component -- so every
-// second of drill mode re-rendered the entire arena tree to repaint a 4px
-// bar and a two-digit number. The seconds now live here; the parent hears
-// from the clock exactly once, at expiry. The clock resets whenever
-// `questionKey` (the current drill question object) changes, which is the
-// same lifecycle the old `timeLeft: 10` writes implemented. onExpire is read
-// through a ref at fire time so the interval never calls a stale closure,
-// and fires at most once per question.
-function DrillCountdown({ questionKey, seconds = 10, onExpire }) {
-  const [timeLeft, setTimeLeft] = useState(seconds);
-  const onExpireRef = useRef(onExpire);
-  onExpireRef.current = onExpire;
-  const firedRef = useRef(false);
-  useEffect(() => {
-    setTimeLeft(seconds);
-    firedRef.current = false;
-    const id = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(id);
-          if (!firedRef.current) {
-            firedRef.current = true;
-            if (onExpireRef.current) onExpireRef.current();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [questionKey, seconds]);
-
-  const timerPct = (timeLeft / seconds) * 100;
-  const timerColor = timeLeft > 5 ? '#22c55e' : timeLeft > 2 ? '#f59e0b' : '#ef4444';
-
-  return (
-    <>
-      {/* Timer bar */}
-      <div
-        style={{
-          width: '80%',
-          maxWidth: 300,
-          height: 4,
-          background: 'rgba(255,255,255,0.06)',
-          borderRadius: 2,
-          marginBottom: 20,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            height: '100%',
-            width: `${timerPct}%`,
-            background: timerColor,
-            borderRadius: 2,
-            transition: 'width 1s linear, background 0.3s',
-          }}
-        />
-      </div>
-
-      {/* Timer number */}
-      <div
-        style={{
-          fontSize: 36,
-          fontWeight: 800,
-          color: timerColor,
-          fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-          marginBottom: 16,
-          transition: 'color 0.3s',
-        }}
-      >
-        {timeLeft}
-      </div>
-    </>
-  );
-}
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// DRILL MODE — Rapid-fire yes/no GTO decisions with countdown timer
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-function DrillMode({
-  drillState,
-  setDrillState,
-  currentQuestion,
-  generateQuickFireQuestion,
-  getBoardTextureQuiz,
-  getConceptQuiz,
-  onExit,
-  timerRef,
-}) {
-  const { currentQ, answered, correct, streak, bestStreak, results } = drillState;
-
-  // Generate first drill question
-  useEffect(() => {
-    if (!currentQ && currentQuestion) {
-      const scenario = currentQuestion.scenario || {};
-      const heroHand = currentQuestion.heroHand || 'AKs';
-      const correctAction = currentQuestion.correctAnswer || 'c';
-      let q = null;
-      if (generateQuickFireQuestion) {
-        q = generateQuickFireQuestion(scenario, heroHand, correctAction);
-      }
-      if (!q && getBoardTextureQuiz) {
-        const btq = getBoardTextureQuiz();
-        if (btq)
-          q = {
-            q: btq.question || btq.prompt || 'Classify this board texture',
-            a: btq.answer || 'YES',
-          };
-      }
-      if (!q && getConceptQuiz) {
-        const cq = getConceptQuiz();
-        if (cq && cq.question) q = { q: cq.question, a: cq.correctAnswer === 0 ? 'YES' : 'NO' };
-      }
-      if (q) setDrillState((prev) => ({ ...prev, currentQ: q, timeLeft: 10 }));
-    }
-  }, [
-    currentQ,
-    currentQuestion,
-    generateQuickFireQuestion,
-    getBoardTextureQuiz,
-    getConceptQuiz,
-    setDrillState,
-  ]);
-
-  // Countdown clock: DrillCountdown (a leaf) owns the 1Hz tick and calls up
-  // exactly once, at expiry. The `!prev.currentQ` guard replaces the old
-  // synchronous clearInterval-on-answer race guard: an expiry that lands in
-  // the same tick as an answer finds currentQ already null and does nothing.
-  const handleDrillExpire = useCallback(() => {
-    setDrillState((prev) => {
-      if (!prev.currentQ) return prev;
-      // Time's up = wrong
-      return {
-        ...prev,
-        timeLeft: 0,
-        answered: prev.answered + 1,
-        streak: 0,
-        results: [...prev.results, { q: prev.currentQ?.q, correct: false, timedOut: true }],
-        currentQ: null, // triggers new question generation
-      };
-    });
-  }, [setDrillState]);
-
-  const handleAnswer = (answer) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    const isCorrect = currentQ && answer === currentQ.a;
-    setDrillState((prev) => ({
-      ...prev,
-      answered: prev.answered + 1,
-      correct: prev.correct + (isCorrect ? 1 : 0),
-      streak: isCorrect ? prev.streak + 1 : 0,
-      bestStreak: isCorrect ? Math.max(prev.bestStreak, prev.streak + 1) : prev.bestStreak,
-      results: [...prev.results, { q: currentQ?.q, correct: isCorrect, answer }],
-      currentQ: null, // triggers re-generation
-      timeLeft: 10,
-    }));
-  };
-
-  const isComplete = answered >= 20;
-  const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
-
-  if (isComplete) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          padding: 20,
-        }}
-      >
-        <div style={{ fontSize: 48, marginBottom: 12 }}>
-          {accuracy >= 80 ? '▲' : accuracy >= 60 ? '⌁' : '▲'}
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 4 }}>
-          Drill Complete!
-        </div>
-        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
-          20 Rapid-Fire Decisions
-        </div>
-        <div style={{ display: 'flex', gap: 20, marginBottom: 24 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color: accuracy >= 70 ? '#22c55e' : '#f59e0b',
-                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-              }}
-            >
-              {accuracy}%
-            </div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Accuracy</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color: '#00d4ff',
-                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-              }}
-            >
-              {bestStreak}
-            </div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Best Streak</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color: '#a78bfa',
-                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-              }}
-            >
-              {correct}/{answered}
-            </div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Score</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 300 }}>
-          <button
-            onClick={() =>
-              setDrillState({
-                active: true,
-                currentQ: null,
-                answered: 0,
-                correct: 0,
-                streak: 0,
-                bestStreak: 0,
-                timeLeft: 10,
-                results: [],
-              })
-            }
-            style={{
-              flex: 1,
-              padding: '12px 0',
-              borderRadius: 10,
-              border: 'none',
-              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Again
-          </button>
-          <button
-            onClick={onExit}
-            style={{
-              flex: 1,
-              padding: '12px 0',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(0,0,0,0.3)',
-              color: '#94a3b8',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentQ) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: '#64748b',
-        }}
-      >
-        Loading Drill Question...
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        padding: 20,
-      }}
-    >
-      {/* Header stats */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>Q {answered + 1}/20</div>
-        <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>✓ {correct}</div>
-        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>▲ {streak}</div>
-      </div>
-
-      {/* Timer bar + number — the leaf owns the tick (see DrillCountdown) */}
-      <DrillCountdown questionKey={currentQ} onExpire={handleDrillExpire} />
-
-      {/* Hero Cards + Board (custom card images) */}
-      {currentQuestion && (currentQuestion.heroCards || currentQuestion.scenario?.board) && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 6,
-            marginBottom: 12,
-          }}
-        >
-          {/* Hero hand */}
-          {currentQuestion.heroCards && currentQuestion.heroCards.length >= 2 && (
-            <div style={{ display: 'flex', gap: 4 }}>
-              {currentQuestion.heroCards.map((c, i) => (
-                <img
-                  key={i}
-                  src={getCardImagePath(c)}
-                  alt={c}
-                  style={{
-                    width: 40,
-                    height: 56,
-                    borderRadius: 4,
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          {/* Board cards */}
-          {currentQuestion.scenario?.board &&
-            (() => {
-              const boardStr = currentQuestion.scenario.board;
-              const bc =
-                typeof boardStr === 'string'
-                  ? boardStr.replace(/\s+/g, '').match(/.{2}/g) || []
-                  : Array.isArray(boardStr)
-                    ? boardStr
-                    : [];
-              if (bc.length === 0) return null;
-              return (
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {bc.map((c, i) => (
-                    <img
-                      key={i}
-                      src={getCardImagePath(c)}
-                      alt={c}
-                      style={{
-                        width: 32,
-                        height: 44,
-                        borderRadius: 3,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                      }}
-                    />
-                  ))}
-                </div>
-              );
-            })()}
-        </div>
-      )}
-
-      {/* Question */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 380,
-          padding: '20px 24px',
-          borderRadius: 14,
-          background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.04))',
-          border: '1px solid rgba(59,130,246,0.2)',
-          textAlign: 'center',
-          marginBottom: 20,
-        }}
-      >
-        <div style={{ fontSize: 16, color: '#e2e8f0', fontWeight: 700, lineHeight: 1.5 }}>
-          {currentQ.q}
-        </div>
-      </div>
-
-      {/* YES / NO buttons */}
-      <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 380 }}>
-        <button
-          onClick={() => handleAnswer('YES')}
-          style={{
-            flex: 1,
-            padding: '18px 0',
-            borderRadius: 12,
-            border: 'none',
-            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-            color: '#fff',
-            fontSize: 18,
-            fontWeight: 800,
-            cursor: 'pointer',
-            letterSpacing: 1,
-          }}
-        >
-          YES
-        </button>
-        <button
-          onClick={() => handleAnswer('NO')}
-          style={{
-            flex: 1,
-            padding: '18px 0',
-            borderRadius: 12,
-            border: 'none',
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-            color: '#fff',
-            fontSize: 18,
-            fontWeight: 800,
-            cursor: 'pointer',
-            letterSpacing: 1,
-          }}
-        >
-          NO
-        </button>
-      </div>
-
-      <button
-        onClick={onExit}
-        style={{
-          marginTop: 16,
-          background: 'none',
-          border: 'none',
-          color: '#475569',
-          fontSize: 11,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        ← Exit Drill
-      </button>
-    </div>
-  );
-}
-
 // F7: DRILL FILTERS — Pre-session position/street filter modal
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -2563,29 +1448,32 @@ function GodModeArenaInner({
 
   const engineType = getEngineType(gameId);
 
+  // Resolve every entry path (Hub setup, multi-table, direct Arena, and old
+  // saved aliases) once through the same vocabulary before the question hook
+  // performs its first preload.
+  const [bootstrapSessionConfig] = useState(() => normalizeTrainingSessionConfig(
+    initialConfig || {},
+    {
+      difficulty: typeof window !== 'undefined'
+        ? localStorage.getItem('gma_difficulty') || 'standard'
+        : 'standard',
+      timer: typeof window !== 'undefined'
+        ? localStorage.getItem('gma_timer') || 'standard'
+        : 'standard',
+    },
+  ));
+
   // Trainer config state
   const [trainerConfig, setTrainerConfig] = useState(() => {
-    if (initialConfig) {
-      return {
-        ...initialConfig,
-        feedbackRule: 'every',
-        autoAdvance: false,
-        autoAdvanceDelayMs: 0,
-      };
-    }
-    return null;
+    return bootstrapSessionConfig;
   });
   const [showConfigModal, setShowConfigModal] = useState(false);
 
   const handleConfigStart = useCallback((config) => {
-    setTrainerConfig({
-      ...config,
-      feedbackRule: 'every',
-      autoAdvance: false,
-      autoAdvanceDelayMs: 0,
-    });
+    setTrainerConfig((current) => normalizeTrainingSessionConfig(config, current));
     setShowConfigModal(false);
-    // Game will re-mount with new config
+    // The hook rotates to a fresh server-attempt identity and clears every
+    // attempt-scoped value when this normalized contract changes.
   }, []);
 
   const {
@@ -2593,8 +1481,12 @@ function GodModeArenaInner({
     questionNumber,
     totalQuestions,
     level: currentLevel,
+    trainingSessionId,
     loading,
     error,
+    answerSaveError,
+    answerSaveRetrying,
+    answerSaveRequiresRefresh,
     correctCount,
     streak,
     bestStreak,
@@ -2609,16 +1501,17 @@ function GodModeArenaInner({
     explanation,
     gameComplete,
     levelPassed,
+    diamondsEarned,
     // GTOW scoring
     moveClassification,
     evLoss,
+    evLossMeasured,
     gtoFrequencies,
     gtowScore,
-    totalEVLoss,
+    measuredTotalEVLoss,
+    measuredEVDecisions,
     sessionMistakes,
     handHistory,
-    avgEVLossPerHand,
-    avgEVLossPerMistake,
     avgFrequencyDiff,
     // Phase 37: Enhanced session metrics
     classificationCounts: gtowClassificationCounts,
@@ -2640,6 +1533,7 @@ function GodModeArenaInner({
     // Actions
     submitAnswer,
     nextQuestion,
+    retryAnswerPersistence,
     startNextLevel,
     retryLevel,
     retrainMistakes,
@@ -2751,13 +1645,9 @@ function GodModeArenaInner({
     getWinRateByHandCategory,
     getActionTimeline,
     getPreDecisionPreview,
-    // ●●● Flashcard & Drill mode methods ●●●
-    generateFlashcards,
-    generateQuickFireQuestion,
-    // ●●● Phase 355-356: Hand History Import + Game Tree ●●●
-    importHandToTrainingQuestion,
+    // ●●● Post-session Game Tree ●●●
     buildDetailedGameTree,
-  } = useGTOTrainer(gameId, engineType, level, trainerConfig);
+  } = useGTOTrainer(gameId, engineType, level, trainerConfig, sessionId);
 
   // ●●● PHASE 15: Spaced Repetition (cross-session review) ●●●
   const { dueCount: reviewDueCount, getReviewSession, markReviewed } = useSpacedRepetition(gameId);
@@ -2816,7 +1706,7 @@ function GodModeArenaInner({
         // handData is SPREAD FLAT, there is no `h.handData` key. Every
         // `h.handData?.x` read below therefore returned undefined, so every
         // position bucketed as 'UNK' and every weak spot as 'general'. Read
-        // both shapes, the way PositionStatsPanel already does.
+        // both shapes, the way the shared history accessors already do.
         const hdOf = (h) => (h && h.handData) || h || {};
         const posStats = {};
         handHistory?.forEach((h) => {
@@ -2895,8 +1785,6 @@ function GodModeArenaInner({
 
         let feedback = `You played ${totalQ} hands with ${acc}% accuracy.`;
         if (gtowScore !== undefined) feedback += ` GTOW Score: ${gtowScore}.`;
-        if (totalEVLoss !== undefined && totalEVLoss > 0)
-          feedback += ` Total EV loss: ${totalEVLoss.toFixed(1)} BB.`;
         feedback +=
           bestStreak > 5
             ? ` Great streak of ${bestStreak}!`
@@ -2926,7 +1814,7 @@ function GodModeArenaInner({
       setIsLoadingCoaching(false);
     }
     fetchCoaching();
-  }, [gameComplete, gameId, crossSessionAnalytics, bestStreak, gtowScore, handHistory, totalEVLoss]);
+  }, [gameComplete, gameId, crossSessionAnalytics, bestStreak, gtowScore, handHistory]);
 
   // Reset coaching when level changes
   useEffect(() => {
@@ -2936,89 +1824,16 @@ function GodModeArenaInner({
 
   const [showDrillFilters, setShowDrillFilters] = useState(false);
   const [drillFilters, setDrillFilters] = useState(null);
-  const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
 
-  // ●●● TRAINING MODE: Standard / Flashcard / Drill ●●●
-  const [trainingMode, setTrainingMode] = useState(initialConfig?.mode || 'standard'); // 'standard' | 'flashcard' | 'drill' | 'import'
-
-  // ●●● HAND HISTORY IMPORT STATE ●●●
-  const [importState, setImportState] = useState({
-    showModal: false,
-    rawText: '',
-    parsedHand: null,
-    error: null,
-    importedQuestion: null,
-  });
-  // Local feedback for imported hands — they are graded here, not by the hook,
-  // so the imported question's answer is never compared against the trainer queue.
-  const [importedFeedback, setImportedFeedback] = useState(null);
-  const [flashcardState, setFlashcardState] = useState({
-    category: null,
-    cards: [],
-    currentIndex: 0,
-    flipped: false,
-    completed: 0,
-    score: { knew: 0, learning: 0 },
-  });
-  const [drillState, setDrillState] = useState({
-    active: false,
-    currentQ: null,
-    answered: 0,
-    correct: 0,
-    streak: 0,
-    bestStreak: 0,
-    timeLeft: 10,
-    results: [],
-  });
-  const drillTimerRef = useRef(null);
-  const [shareStatus, setShareStatus] = useState(null); // 'success' | 'error' | null
-  // ●●● PHASE 19: Share Card + Achievements ●●●
+  // The Arena has one authority path: a signed server-delivered question,
+  // server grading, durable feedback, and explicit manual Next. Browser-made
+  // flashcards, quick-fire grading, and imported-question grading are retired
+  // until equivalent authenticated server contracts exist.
+  // ●●● PHASE 19: Local share card ●●●
   const [showShareCard, setShowShareCard] = useState(false);
-  const [showGhostReplay, setShowGhostReplay] = useState(false);
-  const [sessionAchievements, setSessionAchievements] = useState([]);
-  const achievementsCheckedRef = useRef(false);
-
-  // Check achievements when game completes
-  useEffect(() => {
-    if (!gameComplete || achievementsCheckedRef.current) return;
-    achievementsCheckedRef.current = true;
-
-    const achievements = checkAllAchievements({
-      currentStreak: streak,
-      bestStreak,
-      accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-      questionsAnswered: totalQuestions,
-      level: currentLevel,
-      levelPassed,
-      gtowScore,
-    });
-
-    if (achievements.length > 0) {
-      setSessionAchievements(achievements);
-    }
-  }, [
-    gameComplete,
-    streak,
-    bestStreak,
-    correctCount,
-    totalQuestions,
-    currentLevel,
-    levelPassed,
-    gtowScore,
-  ]);
-
-  // Reset on level change
-  useEffect(() => {
-    achievementsCheckedRef.current = false;
-    setSessionAchievements([]);
-  }, [currentLevel]);
 
   // ●●● QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ●●●
-  const [difficulty, setDifficulty] = useState(() => {
-    if (initialConfig?.difficulty) return initialConfig.difficulty;
-    if (typeof window !== 'undefined') return localStorage.getItem('gma_difficulty') || 'standard';
-    return 'standard';
-  });
+  const [difficulty, setDifficulty] = useState(bootstrapSessionConfig.difficulty);
   useEffect(() => {
     // A table-scoped arena READS its preference from its own trainerConfig
     // (prefsScope: 'table'), so it must not WRITE the shared key either.
@@ -3031,13 +1846,17 @@ function GodModeArenaInner({
     // visit there -- which passes no initialConfig and therefore reads these
     // keys -- came back Standard with no clock at all. Nothing the player
     // touched caused it and nothing told them it had happened.
-    const tableScoped = initialConfig?.prefsScope === 'table';
+    const tableScoped = bootstrapSessionConfig.prefsScope === 'table';
     if (!tableScoped && typeof window !== 'undefined') {
       localStorage.setItem('gma_difficulty', difficulty);
     }
     // A mid-game settings change still has to reach THIS table's engine.
-    setTrainerConfig((c) => (c ? { ...c, difficulty } : c));
-  }, [difficulty, initialConfig?.prefsScope]);
+    setTrainerConfig((current) => withTrainingSessionDifficulty(
+      current,
+      difficulty,
+      bootstrapSessionConfig,
+    ));
+  }, [difficulty, bootstrapSessionConfig]);
 
   // ●●● QW-2: TIMER MODE (relaxed/standard/quick/blitz) ●●●
   //
@@ -3049,24 +1868,15 @@ function GodModeArenaInner({
   // else too, because resolveTimerSeconds maps anything unknown to 0. So an
   // unrecognised stored value falls back to the default tier instead of being
   // trusted -- the stale key is repaired the first time the arena mounts.
-  const [timerMode, setTimerMode] = useState(() => {
-    const known = (v) => typeof v === 'string'
-      && Object.prototype.hasOwnProperty.call(TIMER_DURATIONS, v);
-    if (known(initialConfig?.timer)) return initialConfig.timer;
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('gma_timer');
-      if (known(stored)) return stored;
-    }
-    return 'standard';
-  });
+  const [timerMode, setTimerMode] = useState(bootstrapSessionConfig.timer);
   useEffect(() => {
     // Same rule as gma_difficulty above: a table-scoped arena does not own the
     // shared preference and must not overwrite it with its own default. The
     // sanitiser on READ is unaffected -- a stale out-of-vocabulary value is
     // still repaired the next time a non-scoped arena mounts.
-    if (initialConfig?.prefsScope === 'table') return;
+    if (bootstrapSessionConfig.prefsScope === 'table') return;
     if (typeof window !== 'undefined') localStorage.setItem('gma_timer', timerMode);
-  }, [timerMode, initialConfig?.prefsScope]);
+  }, [timerMode, bootstrapSessionConfig.prefsScope]);
   // The in-hand countdown lives in UDT's CountdownTimer, fed timerSeconds /
   // timerEnabled through trainerConfig below. A "fallback" interval used to
   // sit here -- it was DEAD both ways (timer enabled: early return; timer
@@ -3077,14 +1887,25 @@ function GodModeArenaInner({
 
   // ●●● Phase 21: Game Phase State Machine ●●●
   // Skip the splash entirely when the caller already gathered the config.
-  const [gamePhase, setGamePhase] = useState(initialConfig ? 'playing' : 'splash'); // 'splash' | 'playing' | 'review'
+  const [gamePhase, setGamePhase] = useState(() => (
+    initialConfig ? 'playing' : 'splash'
+  )); // 'splash' | 'playing' | 'review'
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis' | 'gametree'
   const [gameTreeData, setGameTreeData] = useState(null);
   const [adaptiveToast, setAdaptiveToast] = useState(null);
 
-  // ●●● Phase 2: Speed Bonus Aggregation ●●●
-  const [speedBonusDiamonds, setSpeedBonusDiamonds] = useState(0);
+  // GodModeArena is normally remounted for a new configured launch, but keep
+  // prop transitions correct for embedded/multi-table callers that reuse it.
+  // Every legacy mode value is normalized into the same signed Arena flow.
+  useEffect(() => {
+    if (!initialConfig) return;
+    const next = normalizeTrainingSessionConfig(initialConfig, bootstrapSessionConfig);
+    setTrainerConfig(next);
+    setDifficulty(next.difficulty);
+    setTimerMode(next.timer);
+    setGamePhase('playing');
+  }, [initialConfig, bootstrapSessionConfig]);
 
   // ●●● Phase 2: Adaptive Difficulty Level (1-10) ●●●
   // Phase 50: Enhanced adaptive difficulty using GTOW metrics
@@ -3133,14 +1954,10 @@ function GodModeArenaInner({
     return Math.max(1, base - 2); // Drowning → drop fast
   }, [handHistory, currentLevel, gtowCurrentStreak, mistakePatterns]);
 
-  // ●●● Phase 2: Wrap submitAnswer to capture speed data ●●●
+  // Preserve the table metadata (including signed RNG guidance) without
+  // manufacturing any client-side currency entitlement.
   const handleSubmitAnswer = useCallback(
     (answerId, meta) => {
-      // Track speed bonus diamonds using utility
-      const bonus = checkSpeedBonus(meta);
-      if (bonus > 0) {
-        setSpeedBonusDiamonds((prev) => prev + bonus);
-      }
       // Forward `meta` intact. The RNG randomiser (GTOW parity #38) rides in
       // here as `rngTargetActionId`; dropping it meant the table drew a dice
       // pointing at one action while the grader scored a different one.
@@ -3172,7 +1989,7 @@ function GodModeArenaInner({
     // onClick fired without throwing, but the session never began.
     //
     // This guard was the cause. handleStartTraining is a useCallback over
-    // [splashReady, trainingMode]; the button is ALSO already
+    // [splashReady, the legacy training mode]; the button is ALSO already
     // disabled={!splashReady}, so the guard is redundant -- and when the
     // handler closure lags the render that enabled the button, it early-returns
     // against a stale `false` while the button looks perfectly clickable. The
@@ -3181,40 +1998,8 @@ function GodModeArenaInner({
       // Only refuse when there is genuinely nothing to play.
       return;
     }
-    if (trainingMode === 'flashcard') {
-      setFlashcardState({
-        category: null,
-        cards: [],
-        currentIndex: 0,
-        flipped: false,
-        completed: 0,
-        score: { knew: 0, learning: 0 },
-      });
-      setGamePhase('flashcard');
-    } else if (trainingMode === 'drill') {
-      setDrillState({
-        active: true,
-        currentQ: null,
-        answered: 0,
-        correct: 0,
-        streak: 0,
-        bestStreak: 0,
-        timeLeft: 10,
-        results: [],
-      });
-      setGamePhase('drill');
-    } else if (trainingMode === 'import') {
-      setImportState((prev) => ({
-        ...prev,
-        showModal: true,
-        rawText: '',
-        parsedHand: null,
-        error: null,
-      }));
-    } else {
-      setGamePhase('playing');
-    }
-  }, [splashReady, trainingMode, currentQuestion]);
+    setGamePhase('playing');
+  }, [splashReady, currentQuestion]);
 
   // Phase 8: Listen for adaptive difficulty changes
   useEffect(() => {
@@ -3246,16 +2031,8 @@ function GodModeArenaInner({
       try {
         // Engine: Calculate diamond rewards + grade from GTOScoreEngine
         let engineGrade = null;
-        let diamondReward = 0;
         try {
           engineGrade = getScoreGrade(Number(gtowScore));
-          const sessionSummary = {
-            score: Number(gtowScore),
-            totalMoves: totalQuestions,
-            correctMoves: correctCount,
-            bestStreak: bestStreak,
-          };
-          diamondReward = calculateSessionDiamonds(sessionSummary, currentLevel || 1);
         } catch (e) {
           console.warn('[GodModeArena] Engine scoring failed:', e.message);
         }
@@ -3278,12 +2055,17 @@ function GodModeArenaInner({
           durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
           perfectActionCount: correctCount,
           engineGrade,
-          diamondReward,
-          // GTOW parity #10. `totalEVLoss` was already a dependency of this
-          // effect but was never put in the payload, so every consumer that
-          // wanted session EV loss — the multi-table aggregator most of all —
-          // had nothing to read and fell through to zero.
-          totalEVLoss: Number.isFinite(totalEVLoss) ? Number(totalEVLoss) : 0,
+          // This is the amount already settled by the server's idempotent
+          // completion transaction, never an estimate from browser scores.
+          diamondReward: diamondsEarned,
+          // EV is evidence-bearing only when the answer receipt sealed exact
+          // per-action values. A compatibility zero on an authored or legacy
+          // question is absence, not proof of a perfect decision.
+          totalEVLoss: measuredEVDecisions > 0
+            && Number.isFinite(measuredTotalEVLoss)
+            ? Number(measuredTotalEVLoss)
+            : null,
+          measuredEVDecisions,
           // Which RUN this completion belongs to.
           //
           // EventBus mirrors every emit onto a BroadcastChannel, so SESSION_END
@@ -3298,7 +2080,7 @@ function GodModeArenaInner({
           // artifact. The multi-table route already hands each arena a
           // `<runId>-<gameId>` sessionId; it just never travelled with the
           // event that needed it.
-          sessionId: sessionId || null,
+          sessionId: trainingSessionId || sessionId || null,
         };
 
         eventBus.emit(EventType.SESSION_END, sessionPayload, 'GodModeArena');
@@ -3314,14 +2096,16 @@ function GodModeArenaInner({
     gameId,
     gameName,
     gtowScore,
-    totalEVLoss,
+    measuredTotalEVLoss,
+    measuredEVDecisions,
     totalQuestions,
     sessionMistakes,
     correctCount,
     bestStreak,
-    speedBonusDiamonds,
+    diamondsEarned,
     currentLevel,
     sessionId,
+    trainingSessionId,
   ]);
 
   // Restart actions (retryLevel/retrainMistakes/startNextLevel) reset gameComplete
@@ -3341,58 +2125,12 @@ function GodModeArenaInner({
     }
   }, [gameComplete]);
 
-  // Gap 2 Fix: Auto-save rich session data when game completes
-  const sessionSavedRef = useRef(false);
-  useEffect(() => {
-    if (!gameComplete || sessionSavedRef.current) return;
-    sessionSavedRef.current = true;
-
-    // Use extracted saveSession utility
-    saveSession({
-      gameId,
-      gameName,
-      gtowScore,
-      totalEVLoss,
-      totalQuestions,
-      sessionMistakes,
-      correctCount,
-      bestStreak,
-      levelPassed,
-      currentLevel,
-      handHistory,
-      avgEVLossPerHand,
-      avgEVLossPerMistake,
-      avgFrequencyDiff,
-      trainerConfig,
-      speedBonusDiamonds,
-    });
-  }, [
-    gameComplete,
-    gameId,
-    gameName,
-    gtowScore,
-    totalEVLoss,
-    totalQuestions,
-    sessionMistakes,
-    correctCount,
-    bestStreak,
-    levelPassed,
-    currentLevel,
-    handHistory,
-    avgEVLossPerHand,
-    avgEVLossPerMistake,
-    avgFrequencyDiff,
-    trainerConfig,
-    speedBonusDiamonds,
-  ]);
-
-  // Reset one-shot session refs whenever a new run starts (retry/retrain/next level)
-  // so coaching, achievements, and session save all fire again on the next completion
+  // Reset one-shot coaching refs whenever a new run starts. Canonical session
+  // analytics are materialized by useGTOTrainer only after its server-owned
+  // attempt completes; this component must never post browser-computed totals.
   useEffect(() => {
     if (!gameComplete) {
       coachingFetchedRef.current = false;
-      achievementsCheckedRef.current = false;
-      sessionSavedRef.current = false;
       sessionStartRef.current = Date.now();
       setAiCoaching(null);
     }
@@ -3404,17 +2142,10 @@ function GodModeArenaInner({
     setIsTransitioning(true);
     // Small delay for visual breathing room
     setTimeout(() => {
-      // Clear any one-off imported hand so the trainer queue resumes
-      if (importState.importedQuestion) {
-        setImportState((s) => ({ ...s, importedQuestion: null }));
-        setImportedFeedback(null);
-        setIsTransitioning(false);
-        return; // imported hand was a one-off; resume the queue without skipping
-      }
       nextQuestion();
       setIsTransitioning(false);
     }, 350);
-  }, [nextQuestion, isTransitioning, importState.importedQuestion]);
+  }, [nextQuestion, isTransitioning]);
 
   // ●●● GLOBAL KEYBOARD LISTENER & SCROLL LOCK ●●●
   useEffect(() => {
@@ -3509,38 +2240,6 @@ function GodModeArenaInner({
     return { ...currentQuestion, options: filteredOptions };
   }, [currentQuestion, filteredOptions]);
 
-  // ●●● IMPORTED-HAND LOCAL GRADING ●●●
-  // When an imported hand is being displayed, grade against IT (not the hook's
-  // currentQuestion) and drive feedback from local state.
-  const iqActive = !!importState.importedQuestion;
-  const handleImportedAnswer = useCallback(
-    (optionId) => {
-      const iq = importState.importedQuestion;
-      if (!iq || importedFeedback) return;
-      const isRight = optionId === iq.correctAnswer;
-      setImportedFeedback({
-        result: isRight ? 'correct' : 'wrong',
-        explanation: iq.explanation || '',
-      });
-    },
-    [importState.importedQuestion, importedFeedback]
-  );
-  // This was `submitAnswer`, which bypassed handleSubmitAnswer entirely — so on
-  // the ONLY path a player actually answers from, the BUG-05 speed bonus was
-  // never accrued (handleSubmitAnswer fired solely from the keydown handler
-  // above) and the RNG meta was discarded before it could reach the grader.
-  const fxOnAnswer = iqActive ? handleImportedAnswer : handleSubmitAnswer;
-  const fxShowFeedback = iqActive ? importedFeedback != null : showFeedback;
-  const fxFeedbackResult = iqActive ? (importedFeedback?.result ?? null) : feedbackResult;
-  const fxExplanation = iqActive ? (importedFeedback?.explanation ?? '') : explanation;
-  const fxMoveClassification = iqActive
-    ? (importedFeedback ? (importedFeedback.result === 'correct' ? 'best' : 'wrong') : null)
-    : moveClassification;
-  const fxGtoFrequencies = iqActive
-    ? (importState.importedQuestion?.gtoFrequencies || null)
-    : gtoFrequencies;
-  const fxEvLoss = iqActive ? 0 : evLoss;
-
   // PERF: UniversalDynamicTable is wrapped in React.memo, but three props at
   // the GameUIRouter call sites were re-created on every GodModeArena render
   // -- an inline `trainerConfig={{ ...trainerConfig, timerEnabled,
@@ -3558,14 +2257,7 @@ function GodModeArenaInner({
     autoAdvanceDelayMs: 0,
   }), [trainerConfig, timerMode]);
   const handleConfigClick = useCallback(() => setShowConfigModal(true), []);
-  const handleDefaultNextHand = useCallback(() => {
-    if (importState.importedQuestion) {
-      setImportState((s) => ({ ...s, importedQuestion: null }));
-      setImportedFeedback(null);
-      return; // one-off imported hand; resume queue without skipping
-    }
-    nextQuestion();
-  }, [importState.importedQuestion, nextQuestion]);
+  const handleDefaultNextHand = useCallback(() => nextQuestion(), [nextQuestion]);
 
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
@@ -3699,6 +2391,41 @@ function GodModeArenaInner({
     // identical math, but two code paths for one number is how screens drift.
     const classificationCounts = gtowClassificationCounts;
     const movesGraded = handHistory.length;
+    // Solver-facing review widgets must consume only answer evidence the
+    // server explicitly marked as solver verified. EV charts need the tighter
+    // measured-EV contract as well; an unmeasured decision carrying numeric
+    // zero is absence, not proof that the play lost exactly 0.00 BB.
+    const solverVerifiedReviewHistory = handHistory.filter(
+      (entry) => handFieldOf(entry, 'solverVerified') === true
+    );
+    const measuredEVReviewHistory = solverVerifiedReviewHistory.filter(
+      (entry) =>
+        handFieldOf(entry, 'evLossMeasured') === true &&
+        Number.isFinite(Number(handFieldOf(entry, 'evLoss')))
+    );
+    const measuredEVGraphHistory = measuredEVReviewHistory.map((entry) => ({
+      street: streetOf(entry),
+      evLoss: -Math.abs(Number(handFieldOf(entry, 'evLoss'))),
+    }));
+    const measuredEVTotal = measuredEVReviewHistory.reduce(
+      (sum, entry) => sum + Number(handFieldOf(entry, 'evLoss')),
+      0
+    );
+    const measuredEVMistakes = measuredEVReviewHistory.filter((entry) =>
+      ['inaccuracy', 'wrong', 'blunder'].includes(String(entry?.classification || '').toLowerCase())
+    ).length;
+    const measuredEVPerDecision = measuredEVReviewHistory.length > 0
+      ? measuredEVTotal / measuredEVReviewHistory.length
+      : null;
+    const measuredEVPerMistake = measuredEVMistakes > 0
+      ? measuredEVTotal / measuredEVMistakes
+      : null;
+    const verifiedFrequencyDiffs = solverVerifiedReviewHistory
+      .map((entry) => Number(handFieldOf(entry, 'frequencyDiff')))
+      .filter(Number.isFinite);
+    const verifiedAvgFrequencyDiff = verifiedFrequencyDiffs.length > 0
+      ? verifiedFrequencyDiffs.reduce((sum, value) => sum + value, 0) / verifiedFrequencyDiffs.length
+      : null;
 
     return (
       <div
@@ -3720,12 +2447,6 @@ function GodModeArenaInner({
             style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }}
           />
         )}
-        {/* ●●● PHASE 19: Achievement Toasts ●●● */}
-        <AchievementToast
-          achievements={sessionAchievements}
-          onDismiss={() => setSessionAchievements([])}
-          userId={userId}
-        />
         {/* REVIEW HEADER */}
         <div className="sp-arena-review__header" style={styles.reviewHeader}>
           <button onClick={onExit} style={styles.reviewBackBtn}>
@@ -3797,9 +2518,7 @@ function GodModeArenaInner({
 
           {/* DIAMOND REWARD CARD */}
           {(() => {
-            const baseReward = getDiamondReward(currentLevel, correctCount, bestStreak > 5 ? 2 : 0, totalQuestions || undefined);
-            const bonusReward = speedBonusDiamonds || 0;
-            const totalReward = baseReward + bonusReward;
+            const totalReward = Number(diamondsEarned) || 0;
             return (
               <motion.div
                 className="sp-arena-review__reward"
@@ -3870,21 +2589,9 @@ function GodModeArenaInner({
                       </div>
                     ) : null;
                   })()}
-                  {bonusReward > 0 && (
-                    <div
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 8,
-                        background: 'rgba(251, 191, 36, 0.15)',
-                        border: '1px solid rgba(251, 191, 36, 0.3)',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: '#fbbf24',
-                      }}
-                    >
-                      +{bonusReward} SPEED BONUS
-                    </div>
-                  )}
+                  <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '.08em' }}>
+                    SERVER SETTLED
+                  </div>
                 </div>
               </motion.div>
             );
@@ -3898,42 +2605,37 @@ function GodModeArenaInner({
             </div>
             <div style={styles.summaryItem}>
               <div style={{ ...styles.summaryValue, color: '#ef4444' }}>
-                -{totalEVLoss.toFixed(1)}
+                {measuredEVReviewHistory.length > 0 ? `-${measuredEVTotal.toFixed(1)}` : '—'}
               </div>
-              <div style={styles.summaryLabel}>EV Loss (BB)</div>
+              <div style={styles.summaryLabel}>Measured EV Loss (BB)</div>
             </div>
             <div style={styles.summaryItem}>
               <div style={{ ...styles.summaryValue, color: '#fbbf24' }}>{sessionMistakes}</div>
               <div style={styles.summaryLabel}>Mistakes</div>
             </div>
             <div style={styles.summaryItem}>
-              {/* 2026-07-19 (E2E defect D2): this is an EV LOSS metric — the old
-                  bare "EV/Hand" label read as positive EV next to "EV LOSS -X". */}
-              <div style={styles.summaryValue}>-{Math.abs(avgEVLossPerHand).toFixed(2)}</div>
-              <div style={styles.summaryLabel}>EV Loss/Hand</div>
+              <div style={styles.summaryValue}>
+                {measuredEVPerDecision === null
+                  ? '—'
+                  : `-${Math.abs(measuredEVPerDecision).toFixed(2)}`}
+              </div>
+              <div style={styles.summaryLabel}>Measured EV/Decision</div>
             </div>
             <div style={styles.summaryItem}>
-              {/* roadmap #28 — GTO Wizard reports THREE EV aggregates: total,
-                  per hand, and per MISTAKE. Only the first two were on screen.
-                  Per-mistake is the one that separates "rare but catastrophic"
-                  from "frequent but cheap" — two players can post an identical
-                  EV Loss/Hand and need opposite coaching. */}
               <div style={{ ...styles.summaryValue, color: '#f97316' }}>
-                -{Math.abs(avgEVLossPerMistake).toFixed(2)}
+                {measuredEVPerMistake === null
+                  ? '—'
+                  : `-${Math.abs(measuredEVPerMistake).toFixed(2)}`}
               </div>
-              <div style={styles.summaryLabel}>EV Loss/Mistake</div>
+              <div style={styles.summaryLabel}>Measured EV/Mistake</div>
             </div>
             <div style={styles.summaryItem}>
-              {/* roadmap #41 — avgFrequencyDiff has been computed, persisted to
-                  training_sessions.avg_frequency_diff, and selected back by
-                  get-sessions since it shipped, but had no render site at all.
-                  It is how far your action mix sat from the solver's, in
-                  percentage points; unlike EV loss, lower is better even on
-                  hands you got "right". */}
               <div style={{ ...styles.summaryValue, color: '#38bdf8' }}>
-                {Math.abs(avgFrequencyDiff).toFixed(1)}%
+                {verifiedAvgFrequencyDiff === null
+                  ? '—'
+                  : `${Math.abs(verifiedAvgFrequencyDiff).toFixed(1)}%`}
               </div>
-              <div style={styles.summaryLabel}>Freq Diff</div>
+              <div style={styles.summaryLabel}>Verified Freq Diff</div>
             </div>
           </div>
 
@@ -4360,11 +3062,21 @@ function GodModeArenaInner({
                       suffix: '%',
                     },
                     {
-                      label: 'EV Loss',
-                      value: totalEVLoss?.toFixed(1) || '0.0',
-                      color: totalEVLoss > 5 ? '#ef4444' : totalEVLoss > 2 ? '#fbbf24' : '#22c55e',
-                      suffix: ' BB',
-                      prefix: '-',
+                      label: 'Measured EV Loss',
+                      value:
+                        measuredEVReviewHistory.length > 0
+                          ? measuredEVTotal.toFixed(1)
+                          : '—',
+                      color:
+                        measuredEVReviewHistory.length === 0
+                          ? '#64748b'
+                          : measuredEVTotal > 5
+                            ? '#ef4444'
+                            : measuredEVTotal > 2
+                              ? '#fbbf24'
+                              : '#22c55e',
+                      suffix: measuredEVReviewHistory.length > 0 ? ' BB' : '',
+                      prefix: measuredEVReviewHistory.length > 0 ? '-' : '',
                     },
                     {
                       label: 'Best Streak',
@@ -4660,23 +3372,23 @@ function GodModeArenaInner({
                     if (worstType.accuracy < 40 && worstType.total >= 3) {
                       tips.push({
                         priority: 1,
-                        text: `Your ${worstType.type} play is a major leak (${worstType.accuracy}% accuracy, -${worstType.evLoss}bb). Focus practice on these hands.`,
+                        text: `Your ${worstType.type} play is a major leak (${worstType.accuracy}% accuracy). Focus practice on these hands.`,
                         color: '#ef4444',
                       });
                     }
                   }
 
-                  // EV-based tips
-                  if (avgEVLossPerHand > 0.3) {
+                  // EV-based tips require explicitly measured solver evidence.
+                  if (measuredEVPerDecision !== null && measuredEVPerDecision > 0.3) {
                     tips.push({
                       priority: 1,
-                      text: `Average EV loss of ${avgEVLossPerHand.toFixed(2)}bb/hand is high. Focus on avoiding blunders - those cost the most.`,
+                      text: `Measured EV loss of ${measuredEVPerDecision.toFixed(2)}bb/decision is high. Focus on avoiding blunders - those cost the most.`,
                       color: '#ef4444',
                     });
-                  } else if (avgEVLossPerHand > 0.1) {
+                  } else if (measuredEVPerDecision !== null && measuredEVPerDecision > 0.1) {
                     tips.push({
                       priority: 3,
-                      text: `Your ${avgEVLossPerHand.toFixed(2)}bb/hand EV loss is moderate. Refine marginal spots to push into the green zone.`,
+                      text: `Your ${measuredEVPerDecision.toFixed(2)}bb/decision measured EV loss is moderate. Refine marginal spots to push into the green zone.`,
                       color: '#fbbf24',
                     });
                   }
@@ -4778,7 +3490,7 @@ function GodModeArenaInner({
                               {ht.accuracy}%
                             </div>
                             <div style={{ fontSize: 7, color: '#475569' }}>
-                              {ht.correct}/{ht.total} · -{ht.evLoss}bb
+                              {ht.correct}/{ht.total} graded decisions
                             </div>
                           </div>
                         );
@@ -4788,18 +3500,13 @@ function GodModeArenaInner({
                 )}
               </div>
 
-              {/* ●●● PHASE 17: Smart Practice Recommendation ●●● */}
-              <SmartPracticeBanner
-                gameId={gameId}
-                onStartSmartPractice={(config) => {
-                  // Reset to playing phase with smart practice targeting
-                  sessionSavedRef.current = false;
-                  if (config.suggestedLevel) {
-                    startNextLevel();
-                  } else {
-                    retryLevel();
-                  }
-                }}
+              <VerifiedToolGateway
+                eyebrow="Authenticated Practice Planning"
+                title="Build Your Next Session"
+                description="Open the session dashboard for recommendations derived from sealed Training attempts. The Arena does not infer EV leaks from unmeasured answer rows or silently turn them into solver-backed drills."
+                href="/hub/training/session-dashboard"
+                action="Open Session Dashboard"
+                source="Sealed Non-Practice Attempts"
               />
 
               {/* ●●● PHASE 17: AI Coaching Debrief ●●● */}
@@ -5089,7 +3796,7 @@ function GodModeArenaInner({
                   session-analytics harness asserts). Each row: where you were,
                   what you did, what the solver does, what it cost. */}
               {(() => {
-                const leaks = deriveTopLeaks(handHistory, 5);
+                const leaks = deriveTopLeaks(measuredEVReviewHistory, 5);
                 if (leaks.length === 0) return null;
                 const classColors = {
                   inaccuracy: '#fbbf24',
@@ -5132,8 +3839,9 @@ function GodModeArenaInner({
                         Most Costly Spots
                       </div>
                       <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
-                        -{totalEVLoss.toFixed(1)} BB Total · -
-                        {Math.abs(avgEVLossPerMistake).toFixed(2)} BB/Mistake
+                        {measuredEVReviewHistory.length > 0
+                          ? `-${measuredEVTotal.toFixed(1)} BB measured total`
+                          : 'Measured EV unavailable'}
                       </div>
                     </div>
                     {leaks.map((leak, idx) => {
@@ -5222,8 +3930,15 @@ function GodModeArenaInner({
               {/* F14: ACCURACY BY POSITION CHART */}
               <AccuracyByPositionChart handHistory={handHistory} />
 
-              {/* F4: EV LOSS TRACKER — Comprehensive EV analysis */}
-              <EVLossTracker handHistory={handHistory} />
+              {/* Exact EV evidence belongs in authenticated hand history. */}
+              <VerifiedToolGateway
+                eyebrow="Authenticated Decision Evidence"
+                title="Review Measured EV"
+                description="Open Replay Theater to inspect EV only where the signed answer evidence recorded a measured solver value. Unmeasured decisions are never displayed as zero-loss solves."
+                href="/hub/training/replay-theater"
+                action="Open Replay Theater"
+                source="Authenticated Hand History"
+              />
 
               {/* F5: MIXED STRATEGY ADHERENCE */}
               {mixedStrategyScore !== null && (
@@ -5245,7 +3960,7 @@ function GodModeArenaInner({
                       marginBottom: 6,
                     }}
                   >
-                    Action Diversity
+                    Action Variety
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div
@@ -5291,20 +4006,21 @@ function GodModeArenaInner({
                   </div>
                   <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
                     {mixedStrategyScore >= 60
-                      ? 'Great mixing - GTO-balanced!'
+                      ? 'Broad action mix in this session'
                       : mixedStrategyScore >= 35
-                        ? 'Moderate - try diversifying your actions'
-                        : 'Too predictable - mix in more actions'}
+                        ? 'Moderate variety across recorded actions'
+                        : 'One action dominated this session'}
+                    {' · Descriptive only; not solver-frequency adherence.'}
                   </div>
                 </div>
               )}
 
-              {/* Phase 24: Mistakes-Only Filter + Retrain */}
+              {/* Phase 24: Authenticated Mistake Review + Retrain */}
               <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <motion.button
+                <motion.a
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => setMistakesFilterActive((prev) => !prev)}
+                  href="/hub/training/replay-theater"
                   style={{
                     padding: '8px 16px',
                     borderRadius: 8,
@@ -5315,10 +4031,11 @@ function GodModeArenaInner({
                     fontWeight: 700,
                     cursor: 'pointer',
                     letterSpacing: 0.3,
+                    textDecoration: 'none',
                   }}
                 >
-                  Mistakes Only ({sessionMistakes})
-                </motion.button>
+                  Review Recorded Mistakes ({sessionMistakes})
+                </motion.a>
 
                 {sessionMistakes > 0 && (
                   <motion.button
@@ -5353,7 +4070,6 @@ function GodModeArenaInner({
                       // Restart level to practice — the spaced repetition system
                       // tracks which spots need review, and future sessions will
                       // surface similar spot types via smart practice targeting
-                      sessionSavedRef.current = false;
                       retryLevel();
                     }}
                     style={{
@@ -5373,17 +4089,20 @@ function GodModeArenaInner({
                 )}
               </div>
 
-              {/* Phase 24: Per-Street EV Loss Breakdown */}
-              {handHistory.length > 0 &&
+              {/* Per-street EV is rendered only from measured solver evidence. */}
+              {measuredEVReviewHistory.length > 0 &&
                 (() => {
                   const streetEV = { flop: 0, turn: 0, river: 0, preflop: 0 };
-                  handHistory.forEach((h) => {
+                  const streetDecisions = { flop: 0, turn: 0, river: 0, preflop: 0 };
+                  measuredEVReviewHistory.forEach((h) => {
                     // No street recorded means the decision cannot be
                     // attributed. Defaulting to 'flop' -- which this did --
                     // charged every preflop mistake to the flop bar.
                     const s = streetOf(h);
-                    if (!s) return;
-                    streetEV[s] = (streetEV[s] || 0) + (h.evLoss || 0);
+                    if (!s || !Object.prototype.hasOwnProperty.call(streetEV, s)) return;
+                    streetEV[s] =
+                      (streetEV[s] || 0) + Number(handFieldOf(h, 'evLoss'));
+                    streetDecisions[s] = (streetDecisions[s] || 0) + 1;
                   });
                   const maxEV = Math.max(0.01, ...Object.values(streetEV || {}));
                   const streetColors = {
@@ -5441,7 +4160,12 @@ function GodModeArenaInner({
                           >
                             <motion.div
                               initial={{ width: 0 }}
-                              animate={{ width: `${(streetEV[s] / maxEV) * 100}%` }}
+                              animate={{
+                                width:
+                                  streetDecisions[s] > 0
+                                    ? `${(streetEV[s] / maxEV) * 100}%`
+                                    : '0%',
+                              }}
                               transition={{ duration: 0.6, delay: 0.2 }}
                               style={{
                                 height: '100%',
@@ -5455,11 +4179,16 @@ function GodModeArenaInner({
                               width: 45,
                               fontSize: 10,
                               fontWeight: 'bold',
-                              color: streetEV[s] > 0 ? '#ef4444' : '#22c55e',
+                              color:
+                                streetDecisions[s] === 0
+                                  ? '#64748b'
+                                  : streetEV[s] > 0
+                                    ? '#ef4444'
+                                    : '#22c55e',
                               textAlign: 'right',
                             }}
                           >
-                            -{streetEV[s].toFixed(1)}
+                            {streetDecisions[s] > 0 ? `-${streetEV[s].toFixed(1)}` : '—'}
                           </span>
                         </div>
                       ))}
@@ -5476,16 +4205,16 @@ function GodModeArenaInner({
               <AccuracyOverTimeChart handHistory={handHistory} />
 
               {/* WEAKEST SPOT CALLOUT */}
-              {handHistory.length >= 5 &&
+              {measuredEVReviewHistory.length >= 5 &&
                 (() => {
                   const spotStats = {};
-                  handHistory.forEach((h) => {
+                  measuredEVReviewHistory.forEach((h) => {
                     const pos = heroPositionOf(h);
                     const st = streetOf(h) || 'preflop';
                     const key = `${pos} on ${st}`;
                     if (!spotStats[key]) spotStats[key] = { evLoss: 0, mistakes: 0, total: 0 };
                     spotStats[key].total++;
-                    spotStats[key].evLoss += h.evLoss || 0;
+                    spotStats[key].evLoss += Number(handFieldOf(h, 'evLoss'));
                     if (
                       h.classification &&
                       h.classification !== 'best' &&
@@ -5533,31 +4262,6 @@ function GodModeArenaInner({
                   );
                 })()}
 
-              {/* Phase 2: Speed Bonus Summary */}
-              {speedBonusDiamonds > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    marginBottom: 16,
-                    padding: '10px 14px',
-                    background: 'rgba(251,191,36,0.06)',
-                    border: '1px solid rgba(251,191,36,0.2)',
-                    borderRadius: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
-                    Speed Bonus Diamonds
-                  </span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24' }}>
-                    +{speedBonusDiamonds}
-                  </span>
-                </motion.div>
-              )}
-
               {/* ●●● PHASE 19: Share Results (image card + feed) ●●● */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <motion.button
@@ -5580,44 +4284,9 @@ function GodModeArenaInner({
                   Share Results Card
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={async () => {
-                    try {
-                      const token = getSessionToken();
-                      const headers = { 'Content-Type': 'application/json' };
-                      if (token) headers['Authorization'] = `Bearer ${token}`;
-                      const res = await authedFetch('/api/training/share', {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({
-                          userId,
-                          shareType: 'session_complete',
-                          data: {
-                            gameId,
-                            gameName,
-                            gtowScore,
-                            totalEVLoss,
-                            totalQuestions,
-                            sessionMistakes,
-                            correctCount,
-                            bestStreak,
-                            speedBonusDiamonds,
-                          },
-                        }),
-                      });
-                      if (res.ok) {
-                        setShareStatus('success');
-                      } else {
-                        setShareStatus('error');
-                      }
-                      setTimeout(() => setShareStatus(null), 3000);
-                    } catch (e) {
-                      console.warn('[Share] Error:', e);
-                      setShareStatus('error');
-                      setTimeout(() => setShareStatus(null), 3000);
-                    }
-                  }}
+                  disabled
+                  title="Feed Sharing Reopens After Server-Verified Settlement Is Certified"
+                  aria-label="Posting Training results to the feed is unavailable"
                   style={{
                     flex: 1,
                     padding: '10px 0',
@@ -5627,56 +4296,46 @@ function GodModeArenaInner({
                     color: '#00d4ff',
                     fontSize: 12,
                     fontWeight: 700,
-                    cursor: 'pointer',
+                    cursor: 'not-allowed',
+                    opacity: 0.6,
                   }}
                 >
-                  {shareStatus === 'success'
-                    ? '✓ Posted'
-                    : shareStatus === 'error'
-                      ? 'Failed'
-                      : 'Post to Feed'}
+                  Feed Posting Unavailable
                 </motion.button>
               </div>
 
-              {/* ●●● PHASE 21: Ghost Replay — Review hands with GTO overlay ●●● */}
-              {handHistory.length > 0 && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setShowGhostReplay(true)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 0',
-                    marginBottom: 12,
-                    borderRadius: 10,
-                    border: '1px solid rgba(168, 85, 247, 0.25)',
-                    background:
-                      'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(139,92,246,0.04))',
-                    color: '#a78bfa',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    letterSpacing: 0.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span style={{ fontSize: 14 }}>●</span> Ghost Replay - Review With GTO Line
-                </motion.button>
-              )}
+              <VerifiedToolGateway
+                eyebrow="Authenticated Hand Review"
+                title="Replay Recorded Decisions"
+                description="Open Replay Theater for persisted hand and answer evidence. The Arena never treats an unmeasured decision as a perfect zero-EV solve or invents a GTO replay overlay."
+                href="/hub/training/replay-theater"
+                action="Open Replay Theater"
+                source="Authenticated Hand History"
+              />
             </>
           )}
 
+          {reviewTab === 'mistakes' && (
+            <VerifiedToolGateway
+              eyebrow="Authenticated Mistake Evidence"
+              title="Review Recorded Mistakes"
+              description="Open Replay Theater for server-revealed answers and measured solver evidence. Unavailable legacy cluster methods never render a false clean-session result or zero-EV hand."
+              href="/hub/training/replay-theater"
+              action="Open Replay Theater"
+              source="Authenticated Hand History"
+            />
+          )}
+
+          {/* Retained legacy markup is unreachable while its reports await an
+              authenticated server endpoint. No visible control selects it. */}
           {/* ●●● TAB: MISTAKES — clusters, critical hands, mental game ●●●
-              Data source: DeterministicGTOEngine._sessionStats.history via the
+              Data source: server-revealed session results via the
               useGTOTrainer wrappers. That history and the rail's handHistory
               are written from the SAME moveResult at grade time (fcd0f9fc74),
               and the engine's `correct` flag is defined as classification in
               {best, correct} — so every count here agrees with the
               distribution bar and EV summary above by construction. */}
-          {reviewTab === 'mistakes' && (
+          {reviewTab === '__legacy_mistakes' && (
             <>
               {/* MISTAKE CLUSTERS — repeated error patterns, by kind */}
               {(() => {
@@ -6145,8 +4804,21 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ●●● TAB: POSITIONS & STREETS — EV heatmap, leaderboard, node types ●●● */}
           {reviewTab === 'positions' && (
+            <VerifiedToolGateway
+              eyebrow="Authenticated Position Evidence"
+              title="Review Position And Street Results"
+              description="Open the session dashboard for sealed cross-session breakdowns. The Arena does not label an unavailable legacy heatmap as zero-loss play or invent position grades."
+              href="/hub/training/session-dashboard"
+              action="Open Session Dashboard"
+              source="Sealed Non-Practice Attempts"
+            />
+          )}
+
+          {/* Legacy client insight markup remains unreachable pending a
+              provenance-complete server report. */}
+          {/* ●●● TAB: POSITIONS & STREETS — EV heatmap, leaderboard, node types ●●● */}
+          {reviewTab === '__legacy_positions' && (
             <>
               {/* EV LOSS HEATMAP — position × street grid */}
               {(() => {
@@ -6515,8 +5187,21 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ●●● TAB: CONCEPTS — mastery report as compact bars ●●● */}
           {reviewTab === 'concepts' && (
+            <VerifiedToolGateway
+              eyebrow="Authenticated Mastery Evidence"
+              title="Review Skill Progress"
+              description="Open Progress for mastery derived from sealed Training attempts. The Arena does not manufacture concept mastery from an unavailable browser insight method."
+              href="/hub/training/progress"
+              action="Open Progress"
+              source="Sealed Training Attempts"
+            />
+          )}
+
+          {/* Legacy client insight markup remains unreachable pending a
+              provenance-complete server report. */}
+          {/* ●●● TAB: CONCEPTS — mastery report as compact bars ●●● */}
+          {reviewTab === '__legacy_concepts' && (
             <>
               {(() => {
                 try {
@@ -6692,22 +5377,14 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: HANDS ●●● */}
           {reviewTab === 'hands' && (
-            <>
-              <div id="hand-replay-section">
-                <HandReplayViewer
-                  handHistory={
-                    mistakesFilterActive
-                      ? handHistory.filter(
-                          (h) =>
-                            h.classification &&
-                            h.classification !== 'best' &&
-                            h.classification !== 'correct'
-                        )
-                      : handHistory
-                  }
-                />
-              </div>
-            </>
+            <VerifiedToolGateway
+              eyebrow="Authenticated Hand Review"
+              title="Replay Recorded Decisions"
+              description="Open Replay Theater for the exact hand and answer evidence preserved by authenticated Training sessions. The Arena never derives equity, future runout EV, blocker scores, or game-tree branches from a single frequency matrix."
+              href="/hub/training/replay-theater"
+              action="Open Replay Theater"
+              source="Authenticated Hand History"
+            />
           )}
 
           {/* ●●● TAB: SOLVER COMPARISON ●●● */}
@@ -6725,10 +5402,14 @@ function GodModeArenaInner({
           {/* ●●● TAB: ANALYSIS ●●● */}
           {reviewTab === 'analysis' && (
             <>
-              {/* ●●● FREQUENCY ADHERENCE TRACKER ●●● */}
-              <div style={{ marginBottom: 16 }}>
-                <FrequencyTrainer handHistory={handHistory} />
-              </div>
+              <VerifiedToolGateway
+                eyebrow="Verified Solver Workspace"
+                title="Inspect Frequency Evidence"
+                description="Open the Solutions Browser for versioned, spot-specific solver frequencies. The Arena does not pool unrelated decisions into a fabricated frequency-adherence grade."
+                href="/hub/training/solutions"
+                action="Open Solutions Browser"
+                source="Audited PioSOLVER V2 Corpus"
+              />
 
               {/* ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
                             GROUPED ANALYSIS — Collapsible sections for organized insights
@@ -7614,7 +6295,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Vs Average Player
+                          Vs Previous Verified Session
                         </div>
                         {comparison.improvements.map((imp, i) => (
                           <div
@@ -10821,112 +9502,19 @@ function GodModeArenaInner({
               {/* ●● SECTION 6: DATA & HISTORY ●● */}
               <AnalysisSection title="Data & History" icon="▲" color="#22d3ee" defaultOpen={false}>
                 {/* ●●● PHASE 20: EV by Street visualization ●●● */}
-                <EVGraph handHistory={handHistory} title="EV Loss by Street" />
+                <EVGraph handHistory={measuredEVGraphHistory} title="Measured EV Loss By Street" />
 
-                {/* ●●● PHASE 20: GTO Deviation Analysis ●●● */}
-                {(() => {
-                  // Compute user's actual action frequencies vs solver's GTO frequencies
-                  if (!handHistory || handHistory.length < 3) return null;
-                  const actionCounts = {};
-                  const gtoCounts = {};
-                  let totalHands = 0;
-                  handHistory.forEach((h) => {
-                    const hd = h.handData || h;
-                    const userAction = (hd.action || '').toLowerCase();
-                    const correct = (hd.correctAction || '').toLowerCase();
-                    if (!userAction) return;
-                    totalHands++;
-                    // Normalize action names
-                    const normalizeAction = (a) => {
-                      if (a.includes('fold')) return 'Fold';
-                      if (a.includes('check')) return 'Check';
-                      if (a.includes('call')) return 'Call';
-                      if (a.includes('raise') || a.includes('3-bet') || a.includes('4-bet'))
-                        return 'Raise';
-                      if (a.includes('bet') || a.includes('pot') || a.includes('overbet'))
-                        return 'Bet';
-                      if (a.includes('all-in') || a.includes('push')) return 'All-In';
-                      return 'Other';
-                    };
-                    const norm = normalizeAction(userAction);
-                    const normCorrect = normalizeAction(correct);
-                    actionCounts[norm] = (actionCounts[norm] || 0) + 1;
-                    gtoCounts[normCorrect] = (gtoCounts[normCorrect] || 0) + 1;
-                  });
-                  if (totalHands < 3) return null;
-                  // Get top actions
-                  const actions = [
-                    ...new Set([
-                      ...Object.keys(actionCounts || {}),
-                      ...Object.keys(gtoCounts || {}),
-                    ]),
-                  ].filter((a) => a !== 'Other');
-                  return actions.length > 0 ? (
-                    <div style={{ marginBottom: 12 }}>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: '#94a3b8',
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                          marginBottom: 8,
-                        }}
-                      >
-                        GTO Deviation Analysis
-                      </div>
-                      {actions.map((action) => (
-                        <GTODeviationHeatmap
-                          key={action}
-                          label={`${action} Frequency`}
-                          actualPct={((actionCounts[action] || 0) / totalHands) * 100}
-                          gtoPct={((gtoCounts[action] || 0) / totalHands) * 100}
-                          description={`You ${action.toLowerCase()} ${actionCounts[action] || 0}/${totalHands} vs GTO ${gtoCounts[action] || 0}/${totalHands}`}
-                        />
-                      ))}
-                    </div>
-                  ) : null;
-                })()}
-
-                {/* POSITION STATS -- Per-position breakdown */}
-                <PositionStatsPanel handHistory={handHistory} />
-
-                {/* LIFETIME STATS -- Aggregated metrics */}
-                <LifetimeStatsCard
-                  totalHands={totalQuestions}
-                  totalSessions={1}
-                  avgGTOWScore={gtowScore}
-                  bestGTOWScore={gtowScore}
-                  totalEVLoss={totalEVLoss}
-                  avgEVPerHand={avgEVLossPerHand}
-                  longestStreak={bestStreak}
-                  totalMistakes={sessionMistakes}
-                  gamesCompleted={1}
-                  // roadmap #40 — the pot-type breakdown inside this card is
-                  // gated on `handHistory.length > 0` and the prop was never
-                  // passed, so the SRP / 3BP / 4BP+ row has never once rendered
-                  // on this screen. The audit that marked #40 "verified in
-                  // source" read the component, not the call site.
-                  handHistory={handHistory}
+                <VerifiedToolGateway
+                  eyebrow="Authenticated Performance History"
+                  title="Review Verified Session Trends"
+                  description="Open the session dashboard for cross-session results loaded from authenticated Training history. This current-session drawer never relabels one run as lifetime data or treats the modal correct action as a solver frequency distribution."
+                  href="/hub/training/session-dashboard"
+                  action="Open Session Dashboard"
+                  source="Sealed Non-Practice Attempts"
                 />
 
                 {/* ●●● PHASE 21: Study Streak Map — Training consistency ●●● */}
                 {userId && <StudyStreakMapAuto userId={userId} gameId={gameId} />}
-
-                {/* ●●● PHASE 16: Cross-Session Analytics ●●● */}
-                <PerformanceTrends gameId={gameId} userId={userId} days={30} compact={false} />
-
-                {crossSessionAnalytics?.streetAccuracy && (
-                  <StreetAccuracyPanel streetAccuracy={crossSessionAnalytics.streetAccuracy} />
-                )}
-
-                {crossSessionAnalytics?.actionAccuracy && (
-                  <ActionAccuracyPanel actionAccuracy={crossSessionAnalytics.actionAccuracy} />
-                )}
-
-                {crossSessionAnalytics?.mistakePatterns?.length > 0 && (
-                  <MistakePatternPanel mistakePatterns={crossSessionAnalytics.mistakePatterns} />
-                )}
 
                 {/* SESSION HISTORY -- Past sessions */}
                 <SessionHistoryList gameId={gameId} userId={userId} limit={5} />
@@ -11309,9 +9897,14 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: HAND NOTE TAGGER ●●● */}
           {reviewTab === 'notes' && (
-            <>
-              <HandNoteTagger />
-            </>
+            <VerifiedToolGateway
+              eyebrow="Authenticated Hand Review"
+              title="Review Recorded Hands"
+              description="Open Replay Theater to inspect decisions preserved in your authenticated session history. The Arena review never substitutes sample hands, generated notes, or demo player records."
+              href="/hub/training/replay-theater"
+              action="Open Replay Theater"
+              source="Authenticated Hand History"
+            />
           )}
 
           {/* ●●● TAB: LEAK FINDER ENGINE ●●● */}
@@ -11337,9 +9930,14 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: POSITION MASTERY TRACKER ●●● */}
           {reviewTab === 'mastery' && (
-            <>
-              <PositionMasteryTracker />
-            </>
+            <VerifiedToolGateway
+              eyebrow="Verified Training Progress"
+              title="Review Position Progress"
+              description="Open your progress dashboard for position results derived from sealed Training attempts. The Arena review does not invent mastery percentages or positional sample sizes."
+              href="/hub/training/progress"
+              action="Open Training Progress"
+              source="Sealed Training Attempts"
+            />
           )}
 
           {/* ●●● TAB: MIXED STRATEGY TRAINER ●●● */}
@@ -11351,9 +9949,14 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: SESSION REPLAY TIMELINE ●●● */}
           {reviewTab === 'replay' && (
-            <>
-              <SessionReplayTimeline />
-            </>
+            <VerifiedToolGateway
+              eyebrow="Authenticated Session Replay"
+              title="Replay Recorded Decisions"
+              description="Open Replay Theater for hand-by-hand decisions loaded from authenticated Training sessions. No decorative timeline events or fictional outcomes are rendered here."
+              href="/hub/training/replay-theater"
+              action="Open Replay Theater"
+              source="Authenticated Hand History"
+            />
           )}
 
           {/* ●●● TAB: FLOP TEXTURE ANALYZER ●●● */}
@@ -11379,9 +9982,14 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: FREQUENCY EXPLOITER ●●● */}
           {reviewTab === 'exploits' && (
-            <>
-              <FrequencyExploiter />
-            </>
+            <VerifiedToolGateway
+              eyebrow="Verified Solver Evidence"
+              title="Inspect Audited Frequencies"
+              description="Open the solutions browser for frequencies returned by provenance-complete solver artifacts. The Arena review does not infer population exploits or generate unsupported frequency targets."
+              href="/hub/training/solutions"
+              action="Open Solutions Browser"
+              source="Audited PioSOLVER V2 Corpus"
+            />
           )}
 
           {/* ●●● TAB: CHIP EV CALCULATOR ●●● */}
@@ -12491,9 +11099,14 @@ function GodModeArenaInner({
           )}
 
           {reviewTab === 'solvsimpl' && (
-            <>
-              <SolverSimplify />
-            </>
+            <VerifiedToolGateway
+              eyebrow="Verified Solver Evidence"
+              title="Study Audited Solver Outputs"
+              description="Open the solutions browser to inspect supported actions, frequencies, and hand EVs with explicit artifact provenance. Missing branches are never simplified into invented strategy advice."
+              href="/hub/training/solutions"
+              action="Open Solutions Browser"
+              source="Audited PioSOLVER V2 Corpus"
+            />
           )}
 
           {reviewTab === 'rngviz' && (
@@ -12721,9 +11334,14 @@ function GodModeArenaInner({
           )}
 
           {reviewTab === 'simpsolve' && (
-            <>
-              <SimplifiedSolutions />
-            </>
+            <VerifiedToolGateway
+              eyebrow="Verified Solver Evidence"
+              title="Browse Audited Solutions"
+              description="Open the solutions browser for the solver outputs the platform can prove. The Arena review does not present hardcoded ranges or demo frequencies as simplified GTO solutions."
+              href="/hub/training/solutions"
+              action="Open Solutions Browser"
+              source="Audited PioSOLVER V2 Corpus"
+            />
           )}
 
           {reviewTab === 'custsolve' && (
@@ -12845,7 +11463,6 @@ function GodModeArenaInner({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  sessionSavedRef.current = false;
                   startNextLevel();
                 }}
                 style={{
@@ -12875,7 +11492,6 @@ function GodModeArenaInner({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  sessionSavedRef.current = false;
                   retryLevel();
                 }}
                 style={{
@@ -12912,7 +11528,9 @@ function GodModeArenaInner({
                   levelPassed,
                   level: currentLevel,
                   gtowScore,
-                  totalEVLoss,
+                  totalEVLoss:
+                    measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,
+                  measuredEVDecisions: measuredEVReviewHistory.length,
                   sessionMistakes,
                 });
                 onExit?.();
@@ -12980,7 +11598,13 @@ function GodModeArenaInner({
                   color: '#00D4FF',
                   stats: [
                     { label: 'HANDS', value: totalQuestions },
-                    { label: 'EV LOSS', value: `-${totalEVLoss.toFixed(1)}` },
+                    {
+                      label: 'MEASURED EV LOSS',
+                      value:
+                        measuredEVReviewHistory.length > 0
+                          ? `-${measuredEVTotal.toFixed(1)}`
+                          : '—',
+                    },
                     { label: 'MISTAKES', value: sessionMistakes },
                     { label: 'STREAK', value: bestStreak },
                   ],
@@ -13045,15 +11669,6 @@ function GodModeArenaInner({
             />
           </AnimatePresence>
 
-          {/* ●●● PHASE 21: Ghost Replay Modal ●●● */}
-          {showGhostReplay && (
-            <GhostReplayEngine
-              sessionName={gameName}
-              handHistory={handHistory}
-              onClose={() => setShowGhostReplay(false)}
-            />
-          )}
-
           {/* ●●● PHASE 19: Share Card Modal ●●● */}
           {showShareCard && (
             <SessionShareCard
@@ -13062,7 +11677,8 @@ function GodModeArenaInner({
               gtowScore={gtowScore}
               totalQuestions={totalQuestions}
               correctCount={correctCount}
-              totalEVLoss={totalEVLoss}
+              totalEVLoss={measuredEVTotal}
+              measuredEVDecisions={measuredEVReviewHistory.length}
               bestStreak={bestStreak}
               classificationCounts={classificationCounts}
               sessionMistakes={sessionMistakes}
@@ -13079,6 +11695,60 @@ function GodModeArenaInner({
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
   const hasFullScreenUI = FULL_SCREEN_UI_GAMES.includes(gameId);
+  const answerSaveNotice = answerSaveError ? (
+    <div
+      role="alert"
+      data-testid="training-answer-save-error"
+      style={{
+        position: 'absolute',
+        left: '50%',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)',
+        transform: 'translateX(-50%)',
+        zIndex: 500,
+        width: 'min(92vw, 560px)',
+        padding: '14px 16px',
+        background: 'linear-gradient(180deg, rgba(54,20,22,.98), rgba(13,7,10,.98))',
+        border: '1px solid rgba(255,102,112,.72)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.16), 0 14px 36px rgba(0,0,0,.62), 0 0 22px rgba(255,70,86,.18)',
+        color: '#f8d8dc',
+        display: 'flex',
+        gap: 14,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      <div>
+        <div style={{ color: '#ff8b95', fontSize: 13, fontWeight: 900, letterSpacing: '.06em' }}>
+          {answerSaveRequiresRefresh ? 'Hand Expired' : 'Answer Save Failed'}
+        </div>
+        <div style={{ marginTop: 3, fontSize: 11, lineHeight: 1.45 }}>
+          {answerSaveRequiresRefresh
+            ? 'No Result Was Recorded. Load A Fresh Signed Hand To Continue.'
+            : 'Your Result Is Still Open. Retry The Same Save Before Moving To The Next Question.'}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={retryAnswerPersistence}
+        disabled={answerSaveRetrying}
+        data-testid="training-answer-retry-save"
+        style={{
+          minWidth: 112,
+          minHeight: 44,
+          border: '1px solid rgba(255,180,188,.72)',
+          background: 'linear-gradient(180deg, #7f2630, #3b1017)',
+          color: '#fff',
+          fontWeight: 850,
+          cursor: answerSaveRetrying ? 'wait' : 'pointer',
+          opacity: answerSaveRetrying ? .7 : 1,
+        }}
+      >
+        {answerSaveRetrying
+          ? (answerSaveRequiresRefresh ? 'Loading…' : 'Saving…')
+          : (answerSaveRequiresRefresh ? 'Load Fresh Hand' : 'Retry Save')}
+      </button>
+    </div>
+  ) : null;
 
   if (hasFullScreenUI) {
     return (
@@ -13229,13 +11899,12 @@ function GodModeArenaInner({
                             fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {crossSessionAnalytics.milestones.last5Avg ||
-                            crossSessionAnalytics.milestones.overallAccuracy ||
-                            '-'}
-                          %
+                          {Number.isFinite(crossSessionAnalytics.milestones.overallAccuracy)
+                            ? `${crossSessionAnalytics.milestones.overallAccuracy}%`
+                            : '—'}
                         </div>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
-                          Avg Score
+                          Accuracy
                         </div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
@@ -13247,7 +11916,7 @@ function GodModeArenaInner({
                             fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {crossSessionAnalytics.milestones.totalSessions || 0}
+                          {crossSessionAnalytics.milestones.totalSessions ?? 0}
                         </div>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
                           Sessions
@@ -13262,7 +11931,7 @@ function GodModeArenaInner({
                             fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {crossSessionAnalytics.milestones.totalHands || 0}
+                          {crossSessionAnalytics.milestones.totalHands ?? 0}
                         </div>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>Hands</div>
                       </div>
@@ -13402,87 +12071,6 @@ function GodModeArenaInner({
                   </div>
                 </motion.div>
 
-                {/* Training Mode Selector */}
-                <motion.div
-                  className="sp-arena-lobby__panel sp-arena-lobby__panel--mode"
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.38 }}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    marginBottom: 12,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: '#94a3b8',
-                      textTransform: 'capitalize',
-                      letterSpacing: 1,
-                      marginBottom: 8,
-                    }}
-                  >
-                    Training Mode
-                  </div>
-                  <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--four">
-                    {[
-                      {
-                        key: 'standard',
-                        label: 'Standard',
-                        desc: 'Full GTO',
-                        icon: '◆',
-                        color: '#00d4ff',
-                      },
-                      {
-                        key: 'flashcard',
-                        label: 'Flashcards',
-                        desc: 'Concepts',
-                        icon: '◇',
-                        color: '#00d4ff',
-                      },
-                      {
-                        key: 'drill',
-                        label: 'Speed Drill',
-                        desc: '20 Qs',
-                        icon: '⌁',
-                        color: '#f59e0b',
-                      },
-                      {
-                        key: 'import',
-                        label: 'Import HH',
-                        desc: 'Your Hands',
-                        icon: '□',
-                        color: '#10b981',
-                      },
-                    ].map((m) => (
-                      <button
-                        className="sp-arena-lobby__option sp-arena-lobby__mode-option"
-                        key={m.key}
-                        data-selected={trainingMode === m.key}
-                        onClick={() => setTrainingMode(m.key)}
-                        style={{
-                          flex: 1,
-                          padding: '8px 4px',
-                          borderRadius: 8,
-                          cursor: 'pointer',
-                          border: `1px solid ${trainingMode === m.key ? m.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                          background: trainingMode === m.key ? m.color + '15' : 'transparent',
-                          color: trainingMode === m.key ? m.color : '#64748b',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <div style={{ fontSize: 16 }}>{m.icon}</div>
-                        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 2 }}>{m.label}</div>
-                        <div style={{ fontSize: 8, fontWeight: 600, opacity: 0.7 }}>{m.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-
                 {/* Spaced Repetition Due */}
                 {reviewDueCount > 0 && (
                   <motion.div
@@ -13543,13 +12131,7 @@ function GodModeArenaInner({
                       fontFamily: "'Inter', -apple-system, sans-serif",
                     }}
                   >
-                    {!splashReady
-                      ? 'Loading Solver Data...'
-                      : trainingMode === 'flashcard'
-                        ? 'Start Flashcards'
-                        : trainingMode === 'drill'
-                          ? 'Start Speed Drill'
-                          : 'Start Training →'}
+                    {!splashReady ? 'Loading Solver Data...' : 'Start Training →'}
                   </motion.button>
                 </motion.div>
 
@@ -13578,72 +12160,6 @@ function GodModeArenaInner({
             </motion.div>
           )}
 
-          {/* ●●● FLASHCARD MODE ●●● */}
-          {gamePhase === 'flashcard' && (
-            <motion.div
-              key="flashcard"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ width: '100%', height: '100%', position: 'relative' }}
-            >
-              <FlashcardMode
-                flashcardState={flashcardState}
-                setFlashcardState={setFlashcardState}
-                generateFlashcards={generateFlashcards}
-                onExit={() => {
-                  setGamePhase('splash');
-                  setTrainingMode('standard');
-                }}
-              />
-            </motion.div>
-          )}
-
-          {/* ●●● DRILL MODE ●●● */}
-          {gamePhase === 'drill' && (
-            <motion.div
-              key="drill"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ width: '100%', height: '100%', position: 'relative' }}
-            >
-              <DrillMode
-                drillState={drillState}
-                setDrillState={setDrillState}
-                currentQuestion={currentQuestion}
-                generateQuickFireQuestion={generateQuickFireQuestion}
-                getBoardTextureQuiz={getBoardTextureQuiz}
-                getConceptQuiz={getConceptQuiz}
-                onExit={() => {
-                  setGamePhase('splash');
-                  setTrainingMode('standard');
-                }}
-                timerRef={drillTimerRef}
-              />
-            </motion.div>
-          )}
-
-          {/* ●●● HAND HISTORY IMPORT MODAL ●●● */}
-          {importState.showModal && (
-            <HandHistoryImportModal
-              importState={importState}
-              setImportState={setImportState}
-              importHandToTrainingQuestion={importHandToTrainingQuestion}
-              onStartImported={(question) => {
-                setImportState((prev) => ({
-                  ...prev,
-                  showModal: false,
-                  importedQuestion: question,
-                }));
-                setGamePhase('playing');
-              }}
-              onClose={() => setImportState((prev) => ({ ...prev, showModal: false }))}
-            />
-          )}
-
           {/* ●●● GAMEPLAY ●●● */}
           {gamePhase === 'playing' && (
             <motion.div
@@ -13662,18 +12178,20 @@ function GodModeArenaInner({
                   </button>
                 </div>
               ) : currentQuestion ? (
+                <>
                 <GameUIRouter
                   gameId={gameId}
                   gameName={gameName}
+                  trainingSessionId={trainingSessionId}
                   streak={streak}
-                  question={importState.importedQuestion || questionWithFilteredOptions}
+                  question={questionWithFilteredOptions}
                   level={currentLevel}
                   questionNumber={questionNumber}
                   totalQuestions={totalQuestions}
-                  onAnswer={fxOnAnswer}
-                  showFeedback={fxShowFeedback}
-                  feedbackResult={fxFeedbackResult}
-                  explanation={fxExplanation}
+                  onAnswer={handleSubmitAnswer}
+                  showFeedback={showFeedback}
+                  feedbackResult={feedbackResult}
+                  explanation={explanation}
                   structuredExplanation={structuredExplanation}
                   // Phase 261-280: Deep coaching callbacks
                   getTeachingPrinciple={getTeachingPrinciple}
@@ -13699,11 +12217,13 @@ function GodModeArenaInner({
                   getPreDecisionPreview={getPreDecisionPreview}
                   getKeyConceptReminders={getKeyConceptReminders}
                   // GTOW scoring props
-                  moveClassification={fxMoveClassification}
-                  evLoss={fxEvLoss}
-                  gtoFrequencies={fxGtoFrequencies}
+                  moveClassification={moveClassification}
+                  evLoss={evLoss}
+                  evLossMeasured={evLossMeasured}
+                  gtoFrequencies={gtoFrequencies}
                   gtowScore={gtowScore}
-                  totalSessionEVLoss={totalEVLoss}
+                  totalSessionEVLoss={measuredEVDecisions > 0 ? measuredTotalEVLoss : null}
+                  measuredEVDecisions={measuredEVDecisions}
                   sessionMistakes={sessionMistakes}
                   // Phase 37: Enhanced session metrics
                   classificationCounts={gtowClassificationCounts}
@@ -13716,7 +12236,7 @@ function GodModeArenaInner({
                   weakestPosition={weakestPosition}
                   // Phase 49: Live leak detection
                   mistakePatterns={mistakePatterns}
-                  onNextHand={handleNextQuestion}
+                  onNextHand={answerSaveError ? null : handleNextQuestion}
                   isMultiStreetActive={isMultiStreetActive}
                   currentStreet={currentStreet}
                   dealingNextStreet={loading && isMultiStreetActive}
@@ -13727,6 +12247,8 @@ function GodModeArenaInner({
                   onConfigClick={handleConfigClick}
                   trainerConfig={resolvedTrainerConfig}
                 />
+                {answerSaveNotice}
+                </>
               ) : null}
             </motion.div>
           )}
@@ -13758,23 +12280,27 @@ function GodModeArenaInner({
             </button>
           </div>
         ) : currentQuestion ? (
+          <>
           <GameUIRouter
             gameId={gameId}
             gameName={gameName}
+            trainingSessionId={trainingSessionId}
             streak={streak}
-            question={importState.importedQuestion || questionWithFilteredOptions}
+            question={questionWithFilteredOptions}
             level={currentLevel}
             questionNumber={questionNumber}
             totalQuestions={totalQuestions}
-            onAnswer={fxOnAnswer}
-            showFeedback={fxShowFeedback}
-            feedbackResult={fxFeedbackResult}
-            explanation={fxExplanation}
-            moveClassification={fxMoveClassification}
-            evLoss={fxEvLoss}
-            gtoFrequencies={fxGtoFrequencies}
+            onAnswer={handleSubmitAnswer}
+            showFeedback={showFeedback}
+            feedbackResult={feedbackResult}
+            explanation={explanation}
+            moveClassification={moveClassification}
+            evLoss={evLoss}
+            evLossMeasured={evLossMeasured}
+            gtoFrequencies={gtoFrequencies}
             gtowScore={gtowScore}
-            totalSessionEVLoss={totalEVLoss}
+            totalSessionEVLoss={measuredEVDecisions > 0 ? measuredTotalEVLoss : null}
+            measuredEVDecisions={measuredEVDecisions}
             sessionMistakes={sessionMistakes}
             // Phase 37: Enhanced session metrics
             classificationCounts={gtowClassificationCounts}
@@ -13787,7 +12313,7 @@ function GodModeArenaInner({
             weakestPosition={weakestPosition}
             // Phase 49: Live leak detection
             mistakePatterns={mistakePatterns}
-            onNextHand={handleDefaultNextHand}
+            onNextHand={answerSaveError ? null : handleDefaultNextHand}
             isMultiStreetActive={isMultiStreetActive}
             currentStreet={currentStreet}
             dealingNextStreet={loading && isMultiStreetActive}
@@ -13799,14 +12325,16 @@ function GodModeArenaInner({
             getKeyConceptReminders={getKeyConceptReminders}
             trainerConfig={resolvedTrainerConfig}
           />
+          {answerSaveNotice}
+          </>
         ) : null}
       </div>
 
       <div style={styles.footer}>
         <div style={styles.footerStat}>
           <span style={{ color: '#94a3b8' }}>EV Loss:</span>
-          <span style={{ color: '#ef4444', fontWeight: 'bold', marginLeft: 6 }}>
-            -{totalEVLoss.toFixed(1)} BB
+          <span style={{ color: measuredEVDecisions > 0 ? '#ef4444' : '#94a3b8', fontWeight: 'bold', marginLeft: 6 }}>
+            {measuredEVDecisions > 0 ? `-${measuredTotalEVLoss.toFixed(1)} BB` : '— Unmeasured'}
           </span>
         </div>
         <div style={styles.footerStat}>

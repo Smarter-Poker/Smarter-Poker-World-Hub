@@ -23,7 +23,7 @@
       "routePrefixes": ["/hub/personal-assistant"],
       "items": [
         { "href": "/hub/personal-assistant", "label": "Coach", "title": "Assistant Home", "icon": "brain" },
-        { "href": "/hub/personal-assistant/sandbox", "label": "Sandbox", "title": "GTO Sandbox", "icon": "target" },
+        { "href": "/hub/personal-assistant/sandbox", "label": "Archive", "title": "Scenario Analysis Archive", "icon": "target" },
         { "href": "/hub/personal-assistant/leaks", "label": "Leaks", "title": "Leak Finder", "icon": "flame" },
         { "href": "/hub/training", "label": "Train", "title": "Training Games", "icon": "graduation" },
         { "href": "/hub/preflop-charts", "label": "Charts", "title": "Preflop Charts", "icon": "grid" },

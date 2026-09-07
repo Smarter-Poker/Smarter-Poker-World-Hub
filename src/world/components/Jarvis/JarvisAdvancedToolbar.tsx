@@ -197,7 +197,6 @@ export function JarvisAdvancedToolbar({
                     {activeTool === 'quiz' && (
                         <PokerQuiz
                             onClose={() => setActiveTool(null)}
-                            onEarnDiamonds={(amount) => console.log(`Earned ${amount} diamonds!`)}
                         />
                     )}
                     {activeTool === 'screenshot' && (

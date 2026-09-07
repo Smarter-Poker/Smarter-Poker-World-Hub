@@ -25,10 +25,11 @@ test('draft and applied filter states remain explicit without changing the data 
     assert.match(PANEL, /data-filter-state=\{isDirty \? 'draft' : hasFilters \? 'active' : 'idle'\}/);
     assert.match(PANEL, /onFilterChange\(\{[\s\S]*position: position \|\| null,[\s\S]*stackDepth: stackDepth \|\| null,[\s\S]*format: format \|\| null/);
     assert.match(PANEL, /onFilterChange\(\{\}\)/);
-    assert.match(PAGE, /availableScenarios=\{ALL_TRAINING_SCENARIOS\.length\}/);
+    assert.match(PAGE, /availableScenarios=\{ALL_RANGE_LAB_SCENARIOS\.length\}/);
     // Mobile phase 2: the count is computed once as filteredScenarioCount.
-    assert.match(PAGE, /const filteredScenarioCount = filterScenarios\(ALL_TRAINING_SCENARIOS, scenarioFilters\)\.length/);
+    assert.match(PAGE, /const filteredScenarioCount = filterScenarios\(ALL_RANGE_LAB_SCENARIOS, scenarioFilters\)\.length/);
     assert.match(PAGE, /filteredCount=\{filteredScenarioCount\}/);
+    assert.doesNotMatch(PAGE, /ALL_TRAINING_SCENARIOS/);
 });
 
 test('the command panel is mobile-first, touch-safe, and expands to three axes on desktop', () => {

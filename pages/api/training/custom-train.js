@@ -17,11 +17,52 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { analyzeBoard, FLUSH_TEXTURE, PAIR_TEXTURE, CONNECTIVITY } from '../../../src/engines/BoardTextureEngine';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import {
+    createTrainingSessionId,
+} from '../../../src/lib/training/gradingReceipt.mjs';
+import {
+    isTrainingAttemptContractError,
+    prepareTrainingAttemptDelivery,
+} from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+    trainingQuestionMatchesSelection,
+    normalizeTrainingGameMode,
+    normalizeTrainingHandSelection,
+} from '../../../src/lib/training/questionSelectionContract.mjs';
+import {
+    runTrainingPersistenceQuery,
+    trainingPersistenceUnavailableBody,
+} from '../../../src/lib/training/trainingPersistence.mjs';
+import {
+    CustomTrainingConfigError,
+    customTrainingBoardMatchesTexture,
+    customTrainingAttemptConfig,
+    customTrainingQuestionMatchesConfig,
+    normalizeCustomTrainingConfig,
+} from '../../../src/lib/training/customTrainerConfigContract.mjs';
+
+const SOLVER_ROW_PROJECTION = [
+    'id',
+    'scenario_hash',
+    'street',
+    'stack_depth',
+    'game_type',
+    'strategy_matrix_v2',
+    'solver_version',
+    'solver_binary_checksum',
+    'machine_id',
+    'pipeline_commit',
+    'manifest_version',
+    'manifest_checksum',
+    'source_artifact_checksum',
+    'quality_status',
+    'audited_at',
+].join(', ');
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -34,14 +75,6 @@ function getSupabase() {
     }
     return _supabase;
 }
-// Map custom trainer game types to PIO solver game types in database
-// IMP-3 FIX: Expanded spins mapping to include all 6 actual spin game types
-const GAME_TYPE_TO_PIO = {
-    cash: ['hu_cash', 'postflop_complete'],
-    mtt: ['mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev', 'river_mtt_icm', 'turn_mtt_icm'],
-    spins: ['turn_spin', 'spin_3max_chipev', 'spin_3max_icm', 'spin_hu_chipev', 'spin_hu_icm', 'spin_postflop'],
-};
-
 // ═══════════════════════════════════════════════════════════════════════════
 // BOARD TEXTURE TARGETING (GTOW parity #8)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -81,15 +114,6 @@ function parseBoardFromHash(scenarioHash) {
 // bucket — a lone ace makes a board HIGH by avgRank without making it a
 // broadway board. Evaluating one analysis against a predicate also costs a
 // single pass per row instead of one per filter field.
-const BOARD_TEXTURE_PREDICATES = {
-    dry_rainbow: (a) => a.flush.texture === FLUSH_TEXTURE.RAINBOW && a.wetness.isDry,
-    monotone: (a) => a.flush.texture === FLUSH_TEXTURE.MONOTONE,
-    two_tone: (a) => a.flush.texture === FLUSH_TEXTURE.TWO_TONE,
-    paired: (a) => a.pair.texture !== PAIR_TEXTURE.UNPAIRED,
-    connected: (a) => a.connectivity.connectivity === CONNECTIVITY.CONNECTED,
-    broadway: (a) => a.height.broadwayCount >= 2,
-};
-
 /**
  * Keep only rows whose board matches the requested texture.
  * Returns the input untouched when no texture is requested or the id is not
@@ -97,24 +121,18 @@ const BOARD_TEXTURE_PREDICATES = {
  * rather than to an empty session.
  */
 function filterScenariosByTexture(scenarios, textureId) {
-    const predicate = BOARD_TEXTURE_PREDICATES[textureId];
-    if (!predicate || !Array.isArray(scenarios)) return scenarios;
+    if (!Array.isArray(scenarios)) return scenarios;
 
     return scenarios.filter(row => {
         const board = parseBoardFromHash(row?.scenario_hash);
-        if (board.length < 3) return false;
-        const analysis = analyzeBoard(board);
-        if (!analysis || analysis.error) return false;
-        try {
-            return predicate(analysis);
-        } catch (_err) {
-            return false;
-        }
+        return customTrainingBoardMatchesTexture(board, textureId);
     });
 }
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -131,6 +149,7 @@ export default async function handler(req, res) {
       }
 
       const {
+          gameId: rawGameId,
           gameType = 'cash',
           position,
           villainPosition,
@@ -139,58 +158,103 @@ export default async function handler(req, res) {
           street,
           handClass,
           boardTexture,
+          spotType,
           count = '25',
+          level = '1',
+          difficulty = 'standard',
+          sessionId: rawSessionId,
+          gameMode: rawGameMode,
+          handSelection: rawHandSelection,
       } = req.query;
+      const gameId = sanitizeParam(rawGameId, 100);
+      if (!gameId) {
+          return res.status(400).json({ success: false, error: 'gameId is required' });
+      }
 
-      const parsedStack = parseInt(stackDepth, 10) || 100;
-      const parsedCount = Math.min(parseInt(count, 10) || 25, 100);
-      const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
-
-      // #8 — only act on a texture this build actually knows how to test.
-      // An unknown value is treated as "any board", which is what the player
-      // had before this filter existed, rather than as a filter that matches
-      // nothing and hands back an empty session.
-      const textureId = typeof boardTexture === 'string' && boardTexture !== 'any'
-          ? boardTexture.trim()
-          : '';
-      const textureRequested = Object.prototype.hasOwnProperty.call(BOARD_TEXTURE_PREDICATES, textureId);
+      let customConfig;
+      try {
+          customConfig = normalizeCustomTrainingConfig({
+              gameType,
+              position,
+              villainPosition,
+              actionScenario,
+              stackDepth,
+              street,
+              handClass,
+              boardTexture,
+              spotType,
+              count,
+          });
+      } catch (configError) {
+          if (configError instanceof CustomTrainingConfigError) {
+              return res.status(configError.status).json({
+                  success: false,
+                  error: configError.message,
+                  code: configError.code,
+                  field: configError.field,
+              });
+          }
+          throw configError;
+      }
+      const {
+          gameType: safeGameType,
+          position: safePosition,
+          stackDepth: parsedStack,
+          street: safeStreet,
+          boardTexture: safeBoardTexture,
+          questionsCount: parsedCount,
+          pioGameTypes,
+      } = customConfig;
+      const parsedLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
+      const safeDifficulty = ['beginner', 'standard', 'expert', 'simple', 'grouped', 'exact'].includes(String(difficulty).toLowerCase())
+          ? String(difficulty).toLowerCase()
+          : 'standard';
+      const gameMode = normalizeTrainingGameMode(rawGameMode);
+      const handSelection = normalizeTrainingHandSelection(rawHandSelection);
+      const deliveryContext = {
+          userId: user.id,
+          gameId,
+          gameType: safeGameType,
+          level: parsedLevel,
+          difficultyMode: safeDifficulty,
+          sessionId: sanitizeParam(rawSessionId, 180) || createTrainingSessionId(),
+          gameMode,
+          handSelection,
+      };
+      const textureRequested = safeBoardTexture !== 'any';
 
       try {
-          console.debug(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${parsedCount} hands`);
+          console.debug(`[CustomTrain] Config: ${safeGameType} | ${safePosition} | ${parsedStack}BB | ${parsedCount} hands`);
 
           // Build query filters
           let query = getSupabase()
               .from('solved_spots_gold')
-              .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+              .select(SOLVER_ROW_PROJECTION)
               .in('game_type', pioGameTypes)
-              .eq('stack_depth', parsedStack);
+              .eq('stack_depth', parsedStack)
+              .not('strategy_matrix_v2', 'is', null)
+              .eq('quality_status', 'validated')
+              .not('solver_version', 'is', null)
+              .not('solver_binary_checksum', 'is', null)
+              .not('machine_id', 'is', null)
+              .not('pipeline_commit', 'is', null)
+              .not('manifest_version', 'is', null)
+              .not('manifest_checksum', 'is', null)
+              .not('source_artifact_checksum', 'is', null)
+              .not('audited_at', 'is', null);
 
           // Filter by street if specified
-          if (street && street !== 'all') {
-              query = query.eq('street', street);
+          if (safeStreet !== 'all') {
+              query = query.eq('street', safeStreet);
           }
 
           // Filter by position if specified (position is in scenario_hash)
-          if (position && position !== 'any') {
-              const safePos = sanitizeParam(position, 10);
-              if (safePos) query = query.ilike('scenario_hash', `%_${safePos}_%`);
+          if (safePosition !== 'any') {
+              query = query.ilike('scenario_hash', `%_${safePosition}_${parsedStack}bb_%`);
           }
-
-          // Filter by villain position if specified
-          if (villainPosition && villainPosition !== 'any') {
-              const safeVPos = sanitizeParam(villainPosition, 10);
-              if (safeVPos) query = query.ilike('scenario_hash', `%_${safeVPos}_%`);
-          }
-
-          // Filter by action scenario if specified (SRP, 3BP, 4BP are in scenario_hash)
-          if (actionScenario && actionScenario !== 'any') {
-              const scenarioMap = { 'SRP': 'srp', '3BP': '3bet', '4BP': '4bet' };
-              const tag = scenarioMap[actionScenario];
-              if (tag) {
-                  const safeTag = sanitizeParam(tag, 10);
-                  if (safeTag) query = query.ilike('scenario_hash', `%${safeTag}%`);
-              }
-          }
+          // Villain position is not encoded in the canonical scenario hash.
+          // It is validated from the checksummed v2 payload after building;
+          // applying an ILIKE here falsely removes every legitimate match.
 
           // Fetch pool.
           // #8: a texture filter throws rows away AFTER the database has
@@ -205,11 +269,10 @@ export default async function handler(req, res) {
           query = query.limit(poolSize);
 
           const { data: rawScenarios, error: dbErr } = await query;
-          // Applied here rather than inside buildAndReturnQuestions so that an
-          // empty result after filtering falls through to the SAME broader
-          // searches below that an empty database result already used.
+          // Board texture is an exact part of the requested drill. It may
+          // reduce the candidate pool, but it is never silently relaxed.
           const scenarios = textureRequested
-              ? filterScenariosByTexture(rawScenarios, textureId)
+              ? filterScenariosByTexture(rawScenarios, safeBoardTexture)
               : rawScenarios;
 
           if (dbErr) {
@@ -218,67 +281,15 @@ export default async function handler(req, res) {
           }
 
           if (!scenarios || scenarios.length === 0) {
-              console.debug(`[CustomTrain] No scenarios found for config, trying broader search...`);
-
-              // Fallback: try without position filter
-              let fallbackQuery = getSupabase()
-                  .from('solved_spots_gold')
-                  .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                  .in('game_type', pioGameTypes)
-                  .eq('stack_depth', parsedStack)
-                  .limit(poolSize);
-
-              if (street && street !== 'all') {
-                  fallbackQuery = fallbackQuery.eq('street', street);
-              }
-
-              const { data: rawFallback } = await fallbackQuery;
-              // The position filter is what was dropped at this tier — the
-              // texture the player asked for is still honoured.
-              const fallbackData = textureRequested
-                  ? filterScenariosByTexture(rawFallback, textureId)
-                  : rawFallback;
-
-              if (!fallbackData || fallbackData.length === 0) {
-                  // Final fallback: any stack depth for this game type
-                  const { data: anyData } = await getSupabase()
-                      .from('solved_spots_gold')
-                      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                      .in('game_type', pioGameTypes)
-                      .limit(poolSize);
-
-                  if (!anyData || anyData.length === 0) {
-                      return res.status(200).json({
-                          success: false,
-                          questions: [],
-                          message: 'No solver data available for this configuration',
-                      });
-                  }
-
-                  // Last tier. If even the whole-game-type pool holds no board
-                  // of the requested texture, the honest answer is a session
-                  // that says so, not one that silently ignores the filter and
-                  // trains the player on the boards they explicitly excluded.
-                  const anyTextured = textureRequested
-                      ? filterScenariosByTexture(anyData, textureId)
-                      : anyData;
-                  if (textureRequested && (!anyTextured || anyTextured.length === 0)) {
-                      return res.status(200).json({
-                          success: false,
-                          questions: [],
-                          boardTexture: textureId,
-                          boardTextureApplied: false,
-                          message: 'No solved boards of that texture are available for this configuration',
-                      });
-                  }
-
-                  return buildAndReturnQuestions(res, anyTextured, parsedCount, position, parsedStack, street, handClass, textureRequested ? textureId : null);
-              }
-
-              return buildAndReturnQuestions(res, fallbackData, parsedCount, position, parsedStack, street, handClass, textureRequested ? textureId : null);
+              return res.status(422).json({
+                  success: false,
+                  questions: [],
+                  code: 'TRAINING_CUSTOM_EXACT_MATCH_UNAVAILABLE',
+                  error: 'No solver data matches every selected Custom Training filter.',
+              });
           }
 
-          return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street, handClass, textureRequested ? textureId : null);
+          return await buildAndReturnQuestions(res, scenarios, customConfig, deliveryContext);
 
       } catch (err) {
           console.warn('[CustomTrain] Error:', err);
@@ -295,10 +306,14 @@ export default async function handler(req, res) {
 /**
  * Build questions from scenarios and return response
  */
-function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, street, handClass, boardTexture = null) {
+async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryContext = {}) {
+    const count = customConfig.questionsCount;
     const engine = new DeterministicGTOEngine();
+    engine.setSupabaseClient(getSupabase());
+    applyDeterministicEnginePatches(engine);
     const questions = [];
     const usedIds = new Set();
+    const usedDecisionKeys = new Set();
 
     // BUG-D FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
     const shuffled = [...scenarios];
@@ -307,29 +322,46 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    for (let i = 0; i < count && i < shuffled.length * 2; i++) {
+    // A scenario contains up to 169 hand classes. Two passes over rows could
+    // never satisfy a 100-hand drill when a rare board-texture filter left
+    // fewer than 50 rows. Explore a bounded set of deterministic hand seeds
+    // while refusing duplicate scenario+hand decisions.
+    const buildBudget = Math.min(
+        shuffled.length * 169,
+        Math.max(count * 20, shuffled.length * 8),
+    );
+    for (let i = 0; questions.length < count && i < buildBudget; i++) {
         const scenario = shuffled[i % shuffled.length];
         const gameConfig = {
             sourceOfTruth: 'PioSOLVER',
             pioGameType: scenario.game_type,
             pioStackDepth: scenario.stack_depth,
-            handClass: handClass, // Pass handClass to engine
+            handClass: customConfig.handClass,
         };
 
         const question = engine.buildQuestionFromScenario(scenario, gameConfig, 5, i);
-        if (question && !usedIds.has(question.id)) {
-            // Override position if specified
-            if (position && position !== 'any') {
-                question.scenario.heroPosition = position;
-            }
-            question.scenario.stackDepth = stackDepth;
-            question.scenario.heroStack = stackDepth;
-            question.scenario.villainStack = stackDepth;
-
+        if (question?.solverProvenance?.verified === true && !usedIds.has(question.id)) {
             const contractedQuestion = enforceTrainingQuestionContract(question);
-            if (isTrainingQuestionValid(contractedQuestion)) {
+            const decisionKey = [
+                contractedQuestion?.scenario?.scenarioHash,
+                contractedQuestion?.scenario?.heroHand || contractedQuestion?.heroHand,
+            ].map((value) => String(value || '')).join('::');
+            if (
+                isTrainingQuestionValid(contractedQuestion)
+                && !usedDecisionKeys.has(decisionKey)
+                && customTrainingQuestionMatchesConfig(contractedQuestion, customConfig)
+                && trainingQuestionMatchesSelection(
+                    contractedQuestion,
+                    {
+                        gameMode: deliveryContext.gameMode,
+                        targetStreet: customConfig.street === 'all' ? null : customConfig.street,
+                        handSelection: deliveryContext.handSelection,
+                    },
+                )
+            ) {
                 questions.push(contractedQuestion);
                 usedIds.add(contractedQuestion.id);
+                usedDecisionKeys.add(decisionKey);
             }
         }
 
@@ -338,16 +370,80 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
 
     console.debug(`[CustomTrain] Generated ${questions.length}/${count} questions from ${scenarios.length} scenarios`);
 
+    if (questions.length !== count) {
+        return res.status(422).json({
+            success: false,
+            questions: [],
+            code: 'TRAINING_CUSTOM_EXACT_MATCH_SHORTFALL',
+            error: `Only ${questions.length} of ${count} required solver questions match every selected filter.`,
+            matched: questions.length,
+            required: count,
+        });
+    }
+
+    const canonicalRows = questions.map((question) => ({
+        question_id: String(question.id).slice(0, 180),
+        game_id: deliveryContext.gameId,
+        engine_type: 'PIO',
+        game_type: deliveryContext.gameType === 'mtt'
+            ? 'tournament'
+            : deliveryContext.gameType === 'spins' ? 'sng' : 'cash',
+        level: deliveryContext.level,
+        question_data: question,
+    }));
+    try {
+        if (canonicalRows.length > 0) {
+            await runTrainingPersistenceQuery(
+                () => getSupabase().from('training_question_cache').upsert(canonicalRows, {
+                    onConflict: 'question_id',
+                    defaultToNull: false,
+                }),
+                { label: 'CustomTrain:canonicalize' },
+            );
+        }
+    } catch (canonicalizeError) {
+        console.warn('[CustomTrain] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+    }
+
+    let delivery;
+    try {
+        delivery = await prepareTrainingAttemptDelivery({
+            supabase: getSupabase(),
+            userId: deliveryContext.userId,
+            clientSessionId: deliveryContext.sessionId,
+            gameId: deliveryContext.gameId,
+            level: deliveryContext.level,
+            sessionKind: 'custom',
+            difficultyMode: deliveryContext.difficultyMode,
+            requestedHands: count,
+            questions,
+            requireFullAttempt: true,
+            config: customTrainingAttemptConfig(customConfig, deliveryContext),
+        });
+    } catch (deliveryError) {
+        console.warn('[CustomTrain] Attempt delivery failed:', deliveryError?.message || deliveryError);
+        if (isTrainingAttemptContractError(deliveryError)) {
+            return res.status(deliveryError.status || 409).json({
+                success: false,
+                error: deliveryError.message,
+                code: deliveryError.code,
+            });
+        }
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+    }
+
     return res.status(200).json({
         success: true,
-        questions,
+        questions: delivery.questions,
+        sessionId: deliveryContext.sessionId,
+        attemptId: delivery.attemptId,
+        sessionKind: delivery.sessionKind,
+        targetHands: delivery.targetHands,
         totalAvailable: scenarios.length,
-        // #8: every caller that reaches this point has had its rows filtered
-        // already, so `boardTextureApplied` is true whenever a texture was
-        // requested. It is reported rather than assumed so the trainer can
-        // show the player which texture the session is actually made of.
-        boardTexture: boardTexture || null,
-        boardTextureApplied: Boolean(boardTexture),
-        config: { position, stackDepth, street, handClass, boardTexture: boardTexture || null },
+        boardTexture: customConfig.boardTexture === 'any' ? null : customConfig.boardTexture,
+        boardTextureApplied: customConfig.boardTexture !== 'any',
+        exactFiltersApplied: true,
+        config: customTrainingAttemptConfig(customConfig, deliveryContext),
     });
 }

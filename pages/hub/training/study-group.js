@@ -1,5 +1,5 @@
 // TRAIN-CSS-TOKENS-BATCH5-57 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
@@ -36,6 +36,9 @@ function BackArrowIcon({ size=14 }){ return <_Svg size={size}><line x1="19" y1="
 export default function StudyGroupRoom() {
   const router = useRouter();
   const { roomId } = router.query;
+  const mountedRef = useRef(true);
+  const roomRequestRef = useRef(null);
+  const roomRequestInFlightRef = useRef(false);
 
   useTrainingBus('study-group');
 
@@ -49,33 +52,74 @@ export default function StudyGroupRoom() {
   const [inviteStatus, setInviteStatus] = useState(null);
 
   const loadRoom = useCallback(async ({ quiet = false } = {}) => {
-    if (!roomId) return;
-    if (!quiet) setLoading(true);
+    if (!roomId || roomRequestInFlightRef.current) return;
+    const controller = new AbortController();
+    roomRequestRef.current = controller;
+    roomRequestInFlightRef.current = true;
+    let timedOut = false;
+    const deadline = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 10_000);
+    if (!quiet && mountedRef.current) setLoading(true);
     try {
       const [roomResponse, messageResponse] = await Promise.all([
-        authedFetch(`/api/training/study-groups/${roomId}`),
-        authedFetch(`/api/training/study-groups/${roomId}/messages`),
+        authedFetch(`/api/training/study-groups/${roomId}`, { signal: controller.signal }),
+        authedFetch(`/api/training/study-groups/${roomId}/messages`, { signal: controller.signal }),
       ]);
       const roomPayload = await roomResponse.json().catch(() => null);
       const messagePayload = await messageResponse.json().catch(() => null);
       if (!roomResponse.ok || !roomPayload?.group) throw new Error(roomPayload?.error || 'Study room could not be loaded');
       if (!messageResponse.ok || !messagePayload?.success) throw new Error(messagePayload?.error || 'Study room discussion could not be loaded');
-      setGroup(roomPayload.group);
-      setParticipants(roomPayload.members || []);
-      setMessages(messagePayload.messages || []);
-      setError(null);
+      if (mountedRef.current && !controller.signal.aborted) {
+        setGroup(roomPayload.group);
+        setParticipants(roomPayload.members || []);
+        setMessages(messagePayload.messages || []);
+        setError(null);
+      }
     } catch (loadError) {
-      setError(loadError?.message || 'Study room could not be loaded');
+      if (controller.signal.aborted && !timedOut) return;
+      if (mountedRef.current) {
+        setError(timedOut
+          ? 'Study room verification timed out. Please try again.'
+          : loadError?.message || 'Study room could not be loaded');
+      }
     } finally {
-      if (!quiet) setLoading(false);
+      window.clearTimeout(deadline);
+      if (roomRequestRef.current === controller) {
+        roomRequestRef.current = null;
+        roomRequestInFlightRef.current = false;
+        if (!quiet && mountedRef.current) setLoading(false);
+      }
     }
   }, [roomId]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      roomRequestRef.current?.abort();
+      roomRequestRef.current = null;
+      roomRequestInFlightRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!roomId) return undefined;
     loadRoom();
-    const timer = setInterval(() => loadRoom({ quiet: true }), 5000);
-    return () => clearInterval(timer);
+    const refreshIfVisible = () => {
+      if (typeof document === 'undefined' || !document.hidden) loadRoom({ quiet: true });
+    };
+    const timer = window.setInterval(refreshIfVisible, 5000);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      const activeRequest = roomRequestRef.current;
+      roomRequestRef.current = null;
+      roomRequestInFlightRef.current = false;
+      activeRequest?.abort();
+    };
   }, [roomId, loadRoom]);
 
   const handleSendMessage = async (e) => {

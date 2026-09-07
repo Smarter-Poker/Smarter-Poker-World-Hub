@@ -28,7 +28,7 @@
 // The sizing vocabulary lives in one place. actionGrouper.js owns the
 // thresholds and the parser; this engine reuses them so the two remappers can
 // never drift into disagreeing about what "Large" means.
-import { parseSizingPercent, getSizingGroup, SIZING_GROUPS } from '../utils/actionGrouper';
+import { parseSizingPercent, getSizingGroup, SIZING_GROUPS } from '../utils/actionGrouper.js';
 
 // ●● Difficulty Modes ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 

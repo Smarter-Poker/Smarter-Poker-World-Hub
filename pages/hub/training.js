@@ -43,6 +43,7 @@ import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import { normalizeTrainingSessionConfig } from '../../src/lib/training/sessionConfigContract.mjs';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
@@ -229,6 +230,7 @@ export default function TrainingPage() {
       });
       return;
     }
+    const sessionConfig = normalizeTrainingSessionConfig(prefs);
     // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
     // used to be handed to GodModeArena's wrapper, which rendered N copies of
     // the arena with IDENTICAL props · same drill, same userId, same sessionId.
@@ -242,7 +244,7 @@ export default function TrainingPage() {
     // table, one combined session, one save. Route there instead of mounting
     // the broken inline copy. The chosen game leads so the player still gets
     // the drill they clicked.
-    const tableCount = parseInt(prefs?.tables || '1', 10);
+    const tableCount = parseInt(sessionConfig.tables, 10);
     if (Number.isFinite(tableCount) && tableCount > 1 && setupGame?.id) {
       setSetupGame(null);
       router.push({
@@ -250,10 +252,12 @@ export default function TrainingPage() {
         query: {
           tables: String(tableCount),
           game: setupGame.id,
-          ...(prefs?.difficulty ? { difficulty: prefs.difficulty } : {}),
-          ...(prefs?.timer ? { timer: prefs.timer } : {}),
+          difficulty: sessionConfig.difficulty,
+          timer: sessionConfig.timer,
+          scope: sessionConfig.scope,
+          ...(sessionConfig.targetStreet ? { targetStreet: sessionConfig.targetStreet } : {}),
           autoAdvance: '0',
-          ...(prefs?.handSelection ? { handSelection: prefs.handSelection } : {}),
+          handSelection: sessionConfig.handSelection,
           // GTOW parity #9 / #6: the arena derives its Auto New Hand delay from
           // `speed` and its pause behaviour from `feedbackRule`. The single-table
           // branch below forwards both; this branch dropped them, so every
@@ -266,24 +270,7 @@ export default function TrainingPage() {
       return;
     }
 
-    setArenaConfig(prefs ? {
-      difficulty: prefs.difficulty, 
-      timer: prefs.timer, 
-      mode: prefs.mode,
-      scope: prefs.scope,
-      speed: 'normal',
-      tables: prefs.tables,
-      // GTOW parity #29: the player's feedback rule and Auto New Hand choice
-      // must survive into the arena. These used to be dropped here and then
-      // hardcoded downstream.
-      feedbackRule: 'every',
-      autoAdvance: false,
-      // GTOW parity #7: `applyHandSelection` in useGTOTrainer reads
-      // trainerConfig.handSelection. Dropping it here is what kept the filter
-      // dead · the hook received undefined and returned the unfiltered set on
-      // every session regardless of what the player picked.
-      handSelection: prefs.handSelection
-    } : null);
+    setArenaConfig(sessionConfig);
     // Session identity must be stable for the entire run. Rendering Date.now()
     // directly as a prop regenerated it whenever the hub rerendered, which
     // could split one player's answers and completion event across identities.
@@ -507,7 +494,7 @@ export default function TrainingPage() {
                     <GameCardNew
                       key={g.id}
                       game={g}
-                      progress={getGameProgress?.(g.id)?.percent || 0}
+                      progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
                       isRecommended={g.id === jarvisPick?.id}
                       onStart={() => startDrill(g)}
                     />
@@ -796,15 +783,16 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
     );
   }
 
-  const signedScore = (r) =>
-    r.gtow_score_signed != null
-      ? r.gtow_score_signed
-      : r.gtow_score == null
-        ? 0
-        : (r.score_scale === 2 ? r.gtow_score : r.gtow_score * 2 - 100);
+  const signedScore = (r) => {
+    const raw = r?.gtow_score_signed;
+    if (raw === null || raw === undefined || raw === '') return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  };
 
   // rows arrive newest-first; sparkline reads left → right chronologically
-  const chrono = [...rows].reverse();
+  const scoreRows = rows.filter((row) => signedScore(row) !== null);
+  const chrono = [...scoreRows].reverse();
   const sparkData = chrono.map(r => ({
     value: Math.max(0, Math.min(1, (signedScore(r) + 100) / 200)),
     miss: r.level_passed === false,
@@ -816,17 +804,21 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
     .filter(r => (r.total || 0) > 0);
 
   const barColor = (acc) => acc >= 75 ? 'var(--sp-good)' : acc >= 55 ? 'var(--sp-warn)' : 'var(--sp-bad)';
-  const fmtScore = (v) => { const n = Math.round(v); return n > 0 ? `+${n}` : `${n}`; };
+  const fmtScore = (v) => {
+    if (v === null) return '—';
+    const n = Math.round(v);
+    return n > 0 ? `+${n}` : `${n}`;
+  };
 
   return (
     <div className="sp-progress">
       <div className="sp-progress-grid">
         <div>
-          <div className="sp-progress-label">GTOW Score · Last {chrono.length} Sessions</div>
-          <Sparkline data={sparkData} />
+          <div className="sp-progress-label">Verified Signed Score · Last {chrono.length} Sessions</div>
+          {sparkData.length > 0 ? <Sparkline data={sparkData} /> : <div className="sp-progress-note">No Verified Signed Scores Recorded Yet.</div>}
           <div className="sp-progress-meta">
-            Latest <b className="sp-num">{fmtScore(signedScore(rows[0]))}</b>
-            {rows[0]?.created_at ? ` · ${new Date(rows[0].created_at).toLocaleDateString()}` : ''}
+            Latest <b className="sp-num">{scoreRows.length > 0 ? fmtScore(signedScore(scoreRows[0])) : '—'}</b>
+            {scoreRows[0]?.created_at ? ` · ${new Date(scoreRows[0].created_at).toLocaleDateString()}` : ''}
           </div>
         </div>
         <div>
@@ -849,17 +841,26 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
 
       <div className="sp-progress-label" style={{ marginTop: 14 }}>Recent Sessions</div>
       <ul className="sp-plist">
-        {rows.slice(0, 6).map((r, i) => (
+        {rows.slice(0, 6).map((r, i) => {
+          const score = signedScore(r);
+          const measuredEv = (Number(r.measured_ev_decisions) || 0) > 0
+            && r.total_ev_loss !== null
+            && r.total_ev_loss !== undefined
+            && Number.isFinite(Number(r.total_ev_loss))
+            ? Number(r.total_ev_loss)
+            : null;
+          return (
           <li key={r.id || i} className="sp-plist-row">
             <span className="sp-plist-date">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</span>
             <span className="sp-plist-game">{r.game_name || r.game_id || 'Training'}</span>
-            <span className="sp-plist-score sp-num" style={{ color: signedScore(r) >= 50 ? 'var(--sp-good)' : signedScore(r) >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
-              {fmtScore(signedScore(r))}
+            <span className="sp-plist-score sp-num" style={{ color: score === null ? 'var(--sp-fg-faint)' : score >= 50 ? 'var(--sp-good)' : score >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
+              {fmtScore(score)}
             </span>
             <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '-'}</span>
-            <span className="sp-plist-ev sp-num">-{Number(r.total_ev_loss || 0).toFixed(1)}</span>
+            <span className="sp-plist-ev sp-num">{measuredEv === null ? 'EV —' : `${measuredEv.toFixed(3)} BB EV`}</span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

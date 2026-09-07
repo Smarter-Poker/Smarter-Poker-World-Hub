@@ -1,6 +1,9 @@
 /**
- * DailyChallengeService - Memory Matrix Daily Challenges
- * Handles daily challenge queries and completions
+ * DailyChallengeService - Memory Matrix daily practice assignment
+ *
+ * This browser service is deliberately read-only. The Preflop Charts launch
+ * is unsigned local practice and therefore cannot settle challenge progress,
+ * streaks, leaderboards, or Diamond rewards.
  */
 
 import { supabase } from '../lib/supabase';
@@ -32,7 +35,24 @@ class DailyChallengeService {
 
             if (error) throw error;
 
-            return data;
+            if (!data?.success || !data?.challenge) return data;
+
+            // The legacy RPC includes completion/reward fields for its retired
+            // browser-scored flow. Preserve only the published assignment and
+            // label its actual local-practice authority at this call site.
+            const {
+                diamond_reward: _diamondReward,
+                bonus_reward: _bonusReward,
+                ...assignment
+            } = data.challenge;
+            return {
+                success: true,
+                challenge: assignment,
+                completed: false,
+                practiceOnly: true,
+                rewardEligible: false,
+                authority: 'unsigned_local_practice',
+            };
         } catch (error) {
             console.warn('[DailyChallengeService] Error getting daily challenge:', error);
             return {
@@ -42,137 +62,6 @@ class DailyChallengeService {
         }
     }
 
-    /**
-     * Complete daily challenge
-     */
-    async completeChallenge(userId, challengeId, score, accuracy, timeTaken) {
-        try {
-            const { data, error } = await this.supabase.rpc('complete_daily_challenge', {
-                p_user_id: userId,
-                p_challenge_id: challengeId,
-                p_score: score,
-                p_accuracy: accuracy,
-                p_time_taken: timeTaken
-            });
-
-            if (error) throw error;
-
-            return data;
-        } catch (error) {
-            console.warn('[DailyChallengeService] Error completing challenge:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Get user's challenge completion history
-     */
-    async getUserCompletions(userId, limit = 30) {
-        try {
-            const { data, error } = await this.supabase
-                .from('memory_challenge_completions')
-                .select(`
-                    *,
-                    challenge:challenge_id (
-                        challenge_date,
-                        game_mode,
-                        level,
-                        target_accuracy,
-                        target_time
-                    )
-                `)
-                .eq('user_id', userId)
-                .order('completed_at', { ascending: false })
-                .limit(limit);
-
-            if (error) throw error;
-
-            return {
-                success: true,
-                completions: data || []
-            };
-        } catch (error) {
-            console.warn('[DailyChallengeService] Error getting user completions:', error);
-            return {
-                success: false,
-                error: error.message,
-                completions: []
-            };
-        }
-    }
-
-    /**
-     * Get user's current streak
-     */
-    async getUserStreak(userId) {
-        try {
-            const { data, error } = await this.supabase
-                .from('user_daily_streaks')
-                .select('*')
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            if (error) throw error;
-
-            return {
-                success: true,
-                streak: data || {
-                    current_streak: 0,
-                    longest_streak: 0,
-                    total_days_played: 0
-                }
-            };
-        } catch (error) {
-            console.warn('[DailyChallengeService] Error getting user streak:', error);
-            return {
-                success: false,
-                error: error.message,
-                streak: {
-                    current_streak: 0,
-                    longest_streak: 0,
-                    total_days_played: 0
-                }
-            };
-        }
-    }
-
-    /**
-     * Create a new daily challenge (admin only)
-     */
-    async createDailyChallenge(challengeDate, gameMode, level, scenarioId, targetAccuracy, targetTime, diamondReward, bonusReward) {
-        try {
-            const { data, error } = await this.supabase
-                .from('memory_daily_challenges')
-                .insert({
-                    challenge_date: challengeDate,
-                    game_mode: gameMode,
-                    level: level,
-                    scenario_id: scenarioId,
-                    target_accuracy: targetAccuracy,
-                    target_time: targetTime,
-                    diamond_reward: diamondReward,
-                    bonus_reward: bonusReward
-                })
-                .select()
-                .maybeSingle();
-
-            if (error) throw error;
-
-            return {
-                success: true,
-                challenge: data
-            };
-        } catch (error) {
-            console.warn('[DailyChallengeService] Error creating daily challenge:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
 }
 
 // Export singleton instance

@@ -14,7 +14,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 // ═══ Phase GTO-CLONE: Grok AI removed — all questions from engines only ═══
 // import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
-import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
+import { getGameConfig } from '../../../src/config/gameConfigs';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
@@ -26,21 +26,21 @@ import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/util
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
-import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
-import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
+import { enforceSolverClaimHonesty, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
 import {
+  isTrainingPersistenceUnavailable,
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
-
-// ── Deterministic hash for seeded fallback data ──
-function hashSeed(str) {
-  let h = 0;
-  for (let i = 0; i < (str || '').length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
+import {
+  createTrainingSessionId,
+} from '../../../src/lib/training/gradingReceipt.mjs';
+import { trainingMasteryMinimum } from '../../../src/lib/training/sessionAttemptContract.mjs';
+import {
+  isTrainingAttemptContractError,
+  isTrainingQuestionCampaignEligible,
+  prepareTrainingAttemptDelivery,
+} from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -53,8 +53,11 @@ function getSupabase() {
   }
   return _supabase;
 }
+
 export default async function handler(req, res) {
   try {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Vary', 'Authorization');
     withTiming(res);
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -71,10 +74,25 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { gameId: rawGameId, level: rawLevel = 1, engineType: rawEngine = 'PIO' } = req.query;
+    const {
+      gameId: rawGameId,
+      level: rawLevel = 1,
+      engineType: rawEngine = 'PIO',
+      difficulty: rawDifficulty = 'standard',
+      sessionId: rawSessionId,
+      handOrdinal: rawHandOrdinal = '1',
+    } = req.query;
     const gameId = sanitizeParam(rawGameId, 100);
     const level = Math.min(12, Math.max(1, parseInt(rawLevel, 10) || 1));
     const engineType = ['PIO', 'CHART', 'SCENARIO'].includes(rawEngine) ? rawEngine : 'PIO';
+    const difficulty = ['beginner', 'standard', 'expert', 'simple', 'grouped', 'exact'].includes(String(rawDifficulty).toLowerCase())
+      ? String(rawDifficulty).toLowerCase()
+      : 'standard';
+    const trainingSessionId = sanitizeParam(rawSessionId, 180) || createTrainingSessionId();
+    const handOrdinal = Math.min(
+      trainingMasteryMinimum(level),
+      Math.max(1, Number.parseInt(rawHandOrdinal, 10) || 1),
+    );
     // BUG FIX: was reading userId from query — IDOR; use JWT identity instead
     const userId = _authUser.id;
 
@@ -96,9 +114,6 @@ export default async function handler(req, res) {
       // Get comprehensive game configuration
       const gameConfig = getGameConfig(gameId);
       const gameType = gameConfig.gameType; // 'cash', 'tournament', or 'sng'
-      const playerCount = gameConfig.players; // 2, 3, 6, or 9
-      const gameFormat = gameConfig.format; // "Heads-Up Cash", "6-Max Cash", etc.
-      const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
       const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
 
       // ═══════════════════════════════════════════════════════════════════
@@ -106,14 +121,22 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════════
       let seenQuestionIds = [];
       if (userId) {
-        const { data: seen } = await getSupabase()
-          .from('user_seen_questions')
-          .select('question_id')
-          .eq('user_id', userId)
-          .eq('game_id', gameId)
-          .limit(100);
-
-        seenQuestionIds = (seen || []).map((s) => s.question_id);
+        try {
+          const { data: seen } = await runTrainingPersistenceQuery(
+            () => getSupabase()
+              .from('user_seen_questions')
+              .select('question_id')
+              .eq('user_id', userId)
+              .eq('game_id', gameId)
+              .limit(100),
+            { label: 'GetQuestion:seen-read' },
+          );
+          seenQuestionIds = (seen || []).map((s) => s.question_id);
+        } catch (seenError) {
+          // Seen history is an optimization, not grading truth. Bound the wait
+          // and continue without de-duplication rather than hanging delivery.
+          console.warn('[Training] Seen history unavailable; continuing without exclusion:', seenError.message);
+        }
       }
 
       // ═══════════════════════════════════════════════════════════════════
@@ -127,12 +150,24 @@ export default async function handler(req, res) {
       let question = null;
 
       {
-        const { data: cachedQuestions } = await getSupabase()
-          .from('training_question_cache')
-          .select('question_data, question_id, engine_type')
-          .eq('game_id', gameId)
-          .eq('level', level)
-          .limit(50);
+        let cachedQuestions;
+        try {
+          const cachedResult = await runTrainingPersistenceQuery(
+            () => getSupabase()
+              .from('training_question_cache')
+              .select('question_data, question_id, engine_type')
+              .eq('game_id', gameId)
+              .eq('level', level)
+              .limit(50),
+            { label: 'GetQuestion:cache-read' },
+          );
+          cachedQuestions = cachedResult.data;
+        } catch (cacheError) {
+          if (isTrainingPersistenceUnavailable(cacheError)) {
+            return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
+          throw cacheError;
+        }
 
         // roadmap #16 -- same declared-street rule the batch route applies. The
         // cache is the primary source here too (Phase 92 reorder), so a game
@@ -142,30 +177,36 @@ export default async function handler(req, res) {
         const eligibleCached = filterCachedRowsForGame(
           (cachedQuestions || []).filter((row) => !seenQuestionIds.includes(row.question_id)),
           pioQueryService.getGameConfig(gameId),
-        );
+        ).map((row) => ({
+          ...row,
+          question_data: normalizeCampaignQuestionWithoutFabrication(row?.question_data),
+        })).filter((row) => row.question_data);
 
         if (eligibleCached && eligibleCached.length > 0) {
           const randomIndex = Math.floor(Math.random() * eligibleCached.length);
-          // Enrich cached questions that were generated before GTO fields were added
-          question = enrichLegacyCachedQuestion(
-            eligibleCached[randomIndex].question_data,
-            gameConfig,
-            parseInt(level, 10),
-            gameType
-          );
+          question = eligibleCached[randomIndex].question_data;
 
           // Increment times_used (getSupabase().raw() doesn't exist in JS SDK v2)
           const questionId = eligibleCached[randomIndex].question_id;
-          const { data: currentQ } = await getSupabase()
-            .from('training_question_cache')
-            .select('times_used')
-            .eq('question_id', questionId)
-            .maybeSingle();
-          const { error: err_training_question_cache_m6nf0 } = await getSupabase()
-            .from('training_question_cache')
-            .update({ times_used: (currentQ?.times_used || 0) + 1 })
-            .eq('question_id', questionId);
-          if (err_training_question_cache_m6nf0) console.warn('[Supabase] Silent mutation failed in training_question_cache:', err_training_question_cache_m6nf0.message);
+          try {
+            const { data: currentQ } = await runTrainingPersistenceQuery(
+              () => getSupabase()
+                .from('training_question_cache')
+                .select('times_used')
+                .eq('question_id', questionId)
+                .maybeSingle(),
+              { label: 'GetQuestion:usage-read' },
+            );
+            await runTrainingPersistenceQuery(
+              () => getSupabase()
+                .from('training_question_cache')
+                .update({ times_used: (currentQ?.times_used || 0) + 1 })
+                .eq('question_id', questionId),
+              { label: 'GetQuestion:usage-update' },
+            );
+          } catch (usageError) {
+            console.warn('[Training] Non-critical question usage counter unavailable:', usageError.message);
+          }
         }
       }
 
@@ -212,8 +253,8 @@ export default async function handler(req, res) {
 
       // ═══════════════════════════════════════════════════════════════════
       // STEP 4: ENGINE-ONLY — No AI fallback
-      // All questions come from DeterministicGTOEngine, PostflopScenarioGenerator,
-      // or Supabase cache. If none available, return error.
+      // Questions come from the deterministic engine's verified sources or the
+      // sealed Supabase cache. Local postflop heuristics are never an API fallback.
       // ═══════════════════════════════════════════════════════════════════
       if (!question) {
         console.warn(
@@ -229,19 +270,19 @@ export default async function handler(req, res) {
         });
       }
 
-      question = enforceTrainingQuestionContract(question);
-      if (!isTrainingQuestionValid(question)) {
-        console.warn('[Training] Question rejected by integrity contract:', question?.questionContract?.issues);
+      question = normalizeCampaignQuestionWithoutFabrication(question);
+      if (!question) {
+        console.warn('[Training] Question rejected by integrity or campaign authority contract.');
         return res.status(422).json({
           success: false,
-          error: 'This question did not pass the training integrity audit.',
+          error: 'This question did not pass the Training integrity and authority audit.',
+          code: 'TRAINING_ATTEMPT_QUESTION_AUTHORITY_INELIGIBLE',
         });
       }
 
       // Persist the exact post-contract envelope before serving so the answer
-      // API can independently regrade the same question. Existing legacy rows
-      // must be refreshed too: their in-memory sanitized envelope is the only
-      // grade-eligible representation and cannot be discarded after serving.
+      // API can independently regrade the same question. Authority-ineligible
+      // legacy, heuristic, simulated, and incomplete rows cannot reach here.
       if (question?.id) {
         const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
         const canonicalPayload = {
@@ -270,10 +311,43 @@ export default async function handler(req, res) {
         }
       }
 
+      let delivery;
+      try {
+        delivery = await prepareTrainingAttemptDelivery({
+          supabase: getSupabase(),
+          userId,
+          clientSessionId: trainingSessionId,
+          gameId,
+          level,
+          sessionKind: 'campaign',
+          difficultyMode: difficulty,
+          requestedHands: trainingMasteryMinimum(level),
+          questions: [question],
+          handOrdinalStart: handOrdinal,
+          requireFullAttempt: false,
+          config: { engineType },
+        });
+      } catch (deliveryError) {
+        console.warn('[Training] Attempt delivery failed:', deliveryError?.message || deliveryError);
+        if (isTrainingAttemptContractError(deliveryError)) {
+          return res.status(deliveryError.status || 409).json({
+            success: false,
+            error: deliveryError.message,
+            code: deliveryError.code,
+          });
+        }
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+      }
+      const servedQuestion = delivery.questions[0];
+
       return res.status(200).json({
         success: true,
-        question,
+        question: servedQuestion,
         level: parseInt(level, 10),
+        sessionId: trainingSessionId,
+        attemptId: delivery.attemptId,
+        sessionKind: delivery.sessionKind,
+        targetHands: delivery.targetHands,
         passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
         gameType, // Return game type for debugging
       });
@@ -316,21 +390,13 @@ export default async function handler(req, res) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Enrich a legacy cached question with all GTO Wizard-level fields.
- * Ensures heroCards, boardCards, gtoFrequencies, evData always exist.
- * This makes every question render full GTO feedback UI.
- *
- * NOTE (Operation Grok-Sweep, 2026-05): renamed from enrichGrokQuestion.
- * The function does NOT call any LLM — it deterministically backfills missing
- * fields on cached question rows that were authored before the GTO-Wizard UI
- * fields existed. New questions never need this; only legacy cache entries do.
+ * Losslessly normalize a canonical source row. Missing poker state is an
+ * authority failure; this path never manufactures cards, boards, seats,
+ * streets, pot geometry, stacks, frequencies, or provenance.
  */
-function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
-  if (!q) return q;
+function normalizeCampaignQuestionWithoutFabrication(q) {
+  if (!q || typeof q !== 'object' || Array.isArray(q)) return null;
   if (String(q.type || '').toUpperCase() === 'CHART') normalizeAuditedChartQuestion(q);
-  const sourceName = String(q.source || '').toUpperCase();
-  const isWarehouseSolver = String(q.type || '').toUpperCase() === 'PIO'
-    && ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'LEGACY_STRATEGY_ARCHIVE'].includes(sourceName);
 
   // ═══ 2026-07-19 AUDIT FIX: reconcile answer key with solver frequencies
   // BEFORE enrichment. ~7% of cached rows had correctAnswer /
@@ -338,78 +404,10 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   // `frequencies` distribution (grading key vs displayed label vs bars). ═══
   reconcileAnswerKey(q);
 
-  const scenario = q.scenario || {};
-  // 1. Ensure heroCards array exists
-  if (!q.heroCards || !Array.isArray(q.heroCards) || q.heroCards.length < 2) {
-    const heroHand = scenario.heroHand || q.heroHand || '';
-    const represented = handNotationToRepresentativeCards(
-      heroHand,
-      q.boardCards || scenario.board || [],
-    );
-    if (represented) {
-      q.heroCards = represented;
-    } else if (isWarehouseSolver) {
-      return null;
-    } else {
-      // Deterministic fallback cards based on question id hash
-      const seed = hashSeed(q.id || q.questionId || 'fallback');
-      q.heroCards = _getDeterministicCards(seed, 2);
-    }
-  }
-
-  // 2. Ensure boardCards array exists
-  const declaredStreet = String(scenario.street || q.street || '').toLowerCase();
-  if (declaredStreet === 'preflop') q.boardCards = [];
-  if (declaredStreet !== 'preflop' && (!q.boardCards || !Array.isArray(q.boardCards) || q.boardCards.length === 0)) {
-    const boardStr = scenario.board || '';
-    if (boardStr && boardStr.length >= 6) {
-      // Parse board string like "Jh7s2d" or "Jh 7s 2d"
-      const clean = boardStr.replace(/\s+/g, '');
-      const cards = [];
-      for (let i = 0; i < clean.length; i += 2) {
-        if (i + 1 < clean.length) cards.push(clean.substring(i, i + 2));
-      }
-      const seed = hashSeed(q.id || 'board_fallback');
-      if (cards.length < 3 && isWarehouseSolver) return null;
-      q.boardCards = cards.length >= 3 ? cards : _getDeterministicCards(seed, 3, q.heroCards);
-    } else if (isWarehouseSolver) {
-      return null;
-    } else {
-      const seed = hashSeed(q.id || 'board_fallback');
-      q.boardCards = _getDeterministicCards(seed, 3, q.heroCards);
-    }
-  }
-
-  // 2.5. Phase 36: GTO Engine Identical/Collision Check
-  let seenCards = new Set();
-  let collision = false;
-  (q.heroCards || []).forEach((c) => {
-    if (seenCards.has(c)) collision = true;
-    seenCards.add(c);
-  });
-  (q.boardCards || []).forEach((c) => {
-    if (seenCards.has(c)) collision = true;
-    seenCards.add(c);
-  });
-
-  if (collision) {
-    if (isWarehouseSolver) return null;
-    // Phase 93: collision-avoid by regenerating heroCards from a fresh seed
-    // that excludes the boardCards. Do NOT clobber scenario.heroHand or
-    // q.explanation — those are the canonical truth from the cached row,
-    // and clobbering them produces a visible "you hold QJs" prose vs
-    // "scenario.heroHand=As Ks" mismatch in the rendered UI.
-    console.warn(
-      '[GetQuestion] Hero/board card collision - regenerating heroCards from non-board suits.'
-    );
-    const seed = hashSeed((q.id || q.questionId || 'collision') + ':retry');
-    q.heroCards = _getDeterministicCards(seed, 2, q.boardCards || []);
-    // scenario.heroHand and explanation intentionally preserved.
-  }
-
-  // 3. Ensure gtoFrequencies exist (map option ids to 0-100 percentages)
+  // Audited local sources sometimes store the same exact distribution as
+  // decimals under `frequencies`. Converting that view to percentages is
+  // lossless; no percentage is inferred from the correct-answer key.
   if (!q.gtoFrequencies || Object.keys(q.gtoFrequencies || {}).length === 0) {
-    if (isWarehouseSolver) return null;
     if (q.frequencies && typeof q.frequencies === 'object') {
       const measured = Object.fromEntries(Object.entries(q.frequencies)
         .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1)
@@ -418,113 +416,10 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
     }
   }
 
-  // 4. Ensure scenario has all required fields + SANITIZE values
-  if (isWarehouseSolver && (
-    !scenario.heroPosition
-    || !scenario.villainPosition
-    || !scenario.street
-    || !Number.isFinite(Number(scenario.pot))
-    || !Number.isFinite(Number(scenario.heroStack))
-    || !Number.isFinite(Number(scenario.villainStack))
-  )) return null;
-  if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
-  if (!scenario.villainPosition) scenario.villainPosition = 'BB';
-  if (!scenario.pot) scenario.pot = gameType === 'tournament' ? 8 : 12;
-  if (!scenario.heroStack) scenario.heroStack = gameType === 'tournament' ? 25 : 100;
-  if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
-  // ═══ SANITIZE: Clamp pot/stacks to sane BB ranges ═══
-  // Grok sometimes returns absolute chip values instead of BB
-  scenario.pot = Math.min(Math.max(scenario.pot, 0), 50);
-  scenario.heroStack = Math.min(Math.max(scenario.heroStack, 1), 300);
-  scenario.villainStack = Math.min(Math.max(scenario.villainStack, 1), 300);
-  if (!scenario.street) {
-    scenario.street =
-      q.boardCards?.length === 3 ? 'flop' : q.boardCards?.length === 4 ? 'turn' : 'river';
-  }
-  q.scenario = scenario;
-
-  // 6. Ensure source is set
-  // Operation Grok-Sweep: default tag is now CACHED_LEGACY (was GROK_GTO).
-  // Older rows already in the cache may still have q.source === 'GROK_GTO',
-  // which is fine — we don't overwrite an existing tag.
-  if (!q.source) q.source = 'CACHED_LEGACY';
-  q.dataQuality = isVerifiedSolverQuestion(q)
-    ? 'SOLVER_EXACT'
-    : (isWarehouseSolver ? 'LEGACY_UNVERIFIED' : (q.dataQuality || 'CURATED'));
-
-  return enforceSolverClaimHonesty(q);
-}
-
-/** Generate deterministic cards, preventing collisions */
-function _getDeterministicCards(seed, count, exclude = []) {
-  const deck = [
-    '2c',
-    '3c',
-    '4c',
-    '5c',
-    '6c',
-    '7c',
-    '8c',
-    '9c',
-    'Tc',
-    'Jc',
-    'Qc',
-    'Kc',
-    'Ac',
-    '2d',
-    '3d',
-    '4d',
-    '5d',
-    '6d',
-    '7d',
-    '8d',
-    '9d',
-    'Td',
-    'Jd',
-    'Qd',
-    'Kd',
-    'Ad',
-    '2h',
-    '3h',
-    '4h',
-    '5h',
-    '6h',
-    '7h',
-    '8h',
-    '9h',
-    'Th',
-    'Jh',
-    'Qh',
-    'Kh',
-    'Ah',
-    '2s',
-    '3s',
-    '4s',
-    '5s',
-    '6s',
-    '7s',
-    '8s',
-    '9s',
-    'Ts',
-    'Js',
-    'Qs',
-    'Ks',
-    'As',
-  ];
-  const excludeSet = new Set(exclude.map((c) => c.toLowerCase()));
-  const available = deck.filter((c) => !excludeSet.has(c.toLowerCase()));
-  let a = seed || Date.now();
-  const rng = () => {
-    let t = (a += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  for (let i = available.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [available[i], available[j]] = [available[j], available[i]];
-  }
-  return available.slice(0, count);
+  const canonical = enforceTrainingQuestionContract(enforceSolverClaimHonesty(q));
+  return isTrainingQuestionValid(canonical) && isTrainingQuestionCampaignEligible(canonical)
+    ? canonical
+    : null;
 }
 
 // Deploy trigger Wed Jan 28 23:02:33 CST 2026

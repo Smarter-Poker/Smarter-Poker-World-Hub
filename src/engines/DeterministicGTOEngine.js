@@ -456,11 +456,6 @@ export class DeterministicGTOEngine {
             return this.generateFromLocalSolverRanges(gameConfig, level);
         }
 
-        // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
-        if (level >= 8 && source !== 'ICMIZER') {
-            return this.generateFromPostflopEngine(gameConfig, level, seenIds);
-        }
-
         if (source === 'PioSOLVER') {
             // Preflop games returned above, so this is a postflop game and the
             // old `!question && pioStreet === 'preflop'` fallback here could
@@ -481,12 +476,13 @@ export class DeterministicGTOEngine {
      */
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // POSTFLOP ENGINE (L8-L10) — Routes to PostflopScenarioGenerator
+    // LOCAL POSTFLOP PRACTICE (L8-L10) — Never authoritative Training data
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * Generate a postflop training question from the PostflopScenarioGenerator.
-     * Converts engine scenario format → standard training question format.
+     * Format one explicitly illustrative local-practice question from the
+     * PostflopScenarioGenerator. Authoritative Training paths never call this
+     * method; PioSOLVER games read sealed warehouse evidence instead.
      */
     generateFromPostflopEngine(gameConfig, level, seenIds = [], presetScenario = null) {
         try {
@@ -517,25 +513,37 @@ export class DeterministicGTOEngine {
                 }
             }
 
+            // This bridge is local-practice only. Missing or contradictory
+            // provenance must fail closed so a legacy object cannot be
+            // laundered into a solver-backed Training question.
+            if (
+                scenario.authority !== 'illustrative_local_heuristic'
+                || scenario.practiceOnly !== true
+                || scenario.solverVerified !== false
+                || scenario.authoritative !== false
+            ) {
+                console.warn(`[DeterministicEngine] Refusing postflop scenario with unverified authority for L${level}`);
+                return null;
+            }
+
             // Map scenario options to standard question format
             const options = scenario.options.map((opt, idx) => ({
                 id: String.fromCharCode(97 + idx), // a, b, c, d
                 text: opt.label || opt.action,
                 action: opt.action,
-                frequency: opt.frequency || 0,
+                illustrativeWeight: opt.frequency || 0,
                 ...(opt.feedback !== undefined ? { feedback: opt.feedback } : {}),
             }));
 
-            // Prefer the generator's flagged correct option; fall back to highest frequency
+            // Local grading is permitted only when the generator explicitly
+            // flags one preferred teaching action. Never infer authority from
+            // a numerical weight.
             const flaggedIdx = (scenario.options || []).findIndex(o => o.isCorrect);
-            const correctOption = (flaggedIdx >= 0 && options[flaggedIdx])
-                ? options[flaggedIdx]
-                : options.reduce((best, opt) =>
-                    opt.frequency > best.frequency ? opt : best, options[0]);
+            if (flaggedIdx < 0 || !options[flaggedIdx]) return null;
+            const correctOption = options[flaggedIdx];
 
-            // Build GTO frequencies map { "a": 45, "b": 30, "c": 25 }
-            const gtoFrequencies = {};
-            options.forEach(opt => { gtoFrequencies[opt.id] = opt.frequency; });
+            const illustrativeWeights = {};
+            options.forEach(opt => { illustrativeWeights[opt.id] = opt.illustrativeWeight; });
 
             // Build the street label
             const streetLabels = { flop: 'Flop', turn: 'Turn', river: 'River' };
@@ -559,9 +567,15 @@ export class DeterministicGTOEngine {
 
             const question = {
                 id: scenarioId,
-                type: 'PIO',
-                source: 'POSTFLOP_ENGINE',
-                question: `${scenario.description || `${streetLabel} decision.`} ${scenario.lastAction ? `${scenario.lastAction}. ` : ''}You are in ${scenario.position} with ${heroStr}. What is your best action?`,
+                type: 'PRACTICE',
+                source: 'LOCAL_POSTFLOP_HEURISTIC',
+                dataQuality: 'ILLUSTRATIVE_HEURISTIC',
+                authority: 'illustrative_local_heuristic',
+                authoritative: false,
+                solverVerified: false,
+                practiceOnly: true,
+                exactEVAvailable: false,
+                question: `${scenario.description || `${streetLabel} decision.`} ${scenario.lastAction ? `${scenario.lastAction}. ` : ''}You are in ${scenario.position} with ${heroStr}. Which action does the illustrative local model prefer?`,
                 scenario: {
                     title: `${streetLabel} Play`,
                     context: contextParts.join(' | '),
@@ -571,7 +585,7 @@ export class DeterministicGTOEngine {
                     // scenario.potSize / effectiveStack are the street-correct
                     // numbers from PostflopScenarioGenerator.potGeometry. A
                     // missing pot now rejects the scenario above; substituting
-                    // a generic pot would change the exact decision and SPR.
+                    // a generic pot would change the illustrated context and SPR.
                     pot: postflopPot,
                     heroStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
                     villainStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
@@ -591,11 +605,11 @@ export class DeterministicGTOEngine {
                 options,
                 correctAnswer: correctOption.id,
                 correctAnswerText: correctOption.text,
-                explanation: scenario.tip || scenario.strategy?.reason || scenario.explanation || `GTO ${correctOption.text} at ${correctOption.frequency}% frequency on this ${scenario.boardTexture?.description || ''} board.`,
-                gtoFrequencies,
+                explanation: scenario.tip || scenario.strategy?.reason || scenario.explanation || `The illustrative local model prefers ${correctOption.text} for this practice spot.`,
+                resultLabel: 'Illustrative Local Heuristic',
+                illustrativeWeights,
                 level,
-                // EV data from EVCalculator if available
-                evData: scenario.evData || null,
+                evData: null,
             };
 
             return question;
@@ -639,7 +653,7 @@ export class DeterministicGTOEngine {
             questions.push(q);
         }
 
-        console.debug(`[DeterministicEngine] ✓ Generated ${questions.length} postflop questions for L${level}`);
+        console.debug(`[DeterministicEngine] Generated ${questions.length} illustrative local postflop practice questions for L${level}`);
         return questions;
     }
 
@@ -1170,11 +1184,6 @@ export class DeterministicGTOEngine {
                 preflopQuestions.push(q);
             }
             return preflopQuestions;
-        }
-
-        // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
-        if (level >= 8 && gameConfig.sourceOfTruth !== 'ICMIZER') {
-            return this.generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty, gameConfig);
         }
 
         // ═══ ICMIZER: Push/fold chart questions — the solver pool has no ICM spots ═══
@@ -13308,13 +13317,21 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     getSessionComparison(previousSessionData = null) {
+        // A comparison is only meaningful when the caller supplies an actual
+        // prior session. The former default invented an "Average Player"
+        // session (60% / 25 hands / 8.5 BB) and surfaced it in the live review
+        // drawer as if it were measured history. Fail closed until an
+        // authenticated previous-session record is wired into this callback.
+        if (!previousSessionData || previousSessionData.authority !== 'verified_training_session') {
+            return null;
+        }
         const current = {
             accuracy: this._sessionStats?.total > 0 ? Math.round((this._sessionStats.correct / this._sessionStats.total) * 100) : 0,
             total: this._sessionStats?.total || 0, correct: this._sessionStats?.correct || 0,
             streak: this._sessionBests?.streak || 0, evLoss: 0,
         };
         if (this._sessionStats?.history) { current.evLoss = Math.round(this._sessionStats.history.reduce((sum, h) => sum + (h.evLoss || 0), 0) * 100) / 100; }
-        const baseline = previousSessionData || { accuracy: 60, total: 25, correct: 15, streak: 3, evLoss: 8.5, label: 'Average Player' };
+        const baseline = previousSessionData;
         const improvements = [], regressions = [];
         if (current.accuracy > baseline.accuracy) improvements.push({ metric: 'Accuracy', current: current.accuracy + '%', baseline: baseline.accuracy + '%', delta: '+' + (current.accuracy - baseline.accuracy) + '%' });
         else if (current.accuracy < baseline.accuracy) regressions.push({ metric: 'Accuracy', current: current.accuracy + '%', baseline: baseline.accuracy + '%', delta: (current.accuracy - baseline.accuracy) + '%' });

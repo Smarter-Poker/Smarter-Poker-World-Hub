@@ -356,11 +356,18 @@ test('multi-street play requires the exact runout and solver sizing copy uses ch
     patches.indexOf('engine.queryNextStreet ='),
     patches.indexOf('return engine;', patches.indexOf('engine.queryNextStreet =')),
   );
-  assert.match(nextStreetPatch, /const exactMatches = await queryMatches\(`%\$\{boardStr\}`/);
-  assert.doesNotMatch(nextStreetPatch, /partialMatches|isApproximateBoard|semantic match/);
-  assert.match(nextStreetPatch, /similar texture is not the same decision/i);
-  assert.match(nextStreetPatch, /solvedHero !== requestedHero \|\| solvedVillain !== requestedVillain/);
-  assert.match(nextStreetPatch, /Math\.abs\(Number\(matrix\.pot_bb\) - requestedPot\) > 0\.05/);
+  assert.match(nextStreetPatch, /\.in\('scenario_hash', lineageChunk\.map/);
+  assert.match(nextStreetPatch, /\.in\('strategy_matrix_v2->>node', lineageChunk\.map/);
+  assert.match(nextStreetPatch, /\.in\('strategy_matrix_v2->>board', lineageChunk\.map/);
+  assert.match(nextStreetPatch, /\.eq\('strategy_matrix_v2->>position', requestedHero\)/);
+  assert.match(nextStreetPatch, /lineage\.childNode === `\$\{lineage\.parentNode\}:\$\{lineage\.continuationAction\}:c:\$\{lineage\.boardCards\.at\(-1\)\}:c`/);
+  assert.match(nextStreetPatch, /orderedExactContinuationCandidates\(data, continuationLineages\)/);
+  assert.match(nextStreetPatch, /isSolverRowIdentityValid|prepareSolverScenarioRow/);
+  assert.doesNotMatch(nextStreetPatch, /partialMatches|isApproximateBoard|\.ilike\(|semantic match/);
+  assert.doesNotMatch(nextStreetPatch, /requestedPot|Math\.abs\(Number\(matrix\.pot_bb\)/);
+  assert.match(nextStreetPatch, /pot: childPot/);
+  assert.match(nextStreetPatch, /stackDepth: childEffectiveStack/);
+  assert.match(nextStreetPatch, /solverStackDepth: requestedStack/);
   assert.match(engine, /solverPotChips,[\s\S]*gameCategory/);
   assert.match(engine, /hasExactSolverPot/);
   assert.match(engine, /Math\.round\(\(parseInt\(sizeMatch\[1\]\) \/ Number\(ctx\.solverPotChips\)\) \* 100\)/);

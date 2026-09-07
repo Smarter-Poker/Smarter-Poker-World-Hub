@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { getAuthUser } from '../../lib/authUtils';
 import MemoryGameClient from './MemoryGameClient';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -27,14 +26,6 @@ interface Chart {
     [key: string]: unknown;
 }
 
-interface LevelProgress {
-    chart_id: string;
-    best_accuracy: number;
-    is_unlocked: boolean;
-    times_played: number;
-    last_played_at?: string;
-}
-
 interface LevelCard {
     chart: Chart;
     chartName: string; // Generated display name
@@ -53,24 +44,12 @@ export default function MemoryCampaignView() {
     const [levels, setLevels] = useState<LevelCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeLevel, setActiveLevel] = useState<LevelCard | null>(null);
-    const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        initializeUser();
+        loadCampaignData();
     }, []);
 
-    const initializeUser = async () => {
-        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-        const user = getAuthUser();
-        if (user) {
-            setUserId(user.id);
-            loadCampaignData(user.id);
-        } else {
-            setLoading(false);
-        }
-    };
-
-    const loadCampaignData = async (uid: string) => {
+    const loadCampaignData = async () => {
         setLoading(true);
 
         // Fetch all charts
@@ -97,43 +76,11 @@ export default function MemoryCampaignView() {
             return posA - posB;
         }) || [];
 
-        // Fetch user progress
-        const { data: progressData, error: progressError } = await supabase
-            .from('memory_game_sessions')
-            .select('scenario_id, accuracy, completed')
-            .eq('user_id', uid);
-
-        // Create progress map
-        const progressMap = new Map<string, LevelProgress>();
-        if (progressData && !progressError) {
-            progressData.forEach((session) => {
-                if (!session.scenario_id) return;
-                const previous = progressMap.get(session.scenario_id);
-                progressMap.set(session.scenario_id, {
-                    chart_id: session.scenario_id,
-                    best_accuracy: Math.max(previous?.best_accuracy || 0, session.accuracy || 0),
-                    is_unlocked: Boolean(previous?.is_unlocked || session.completed),
-                    times_played: (previous?.times_played || 0) + 1,
-                });
-            });
-        }
-
-        // Build level cards with unlock logic
+        // This is local practice. Browser-owned answers cannot unlock account
+        // progression, so every reference chart is available and no saved or
+        // mastered state is inferred from legacy session rows.
         const levelCards: LevelCard[] = [];
         sortedCharts.forEach((chart, index) => {
-            const progress = progressMap.get(chart.chart_id);
-            const prevProgress = index > 0 ? progressMap.get(sortedCharts[index - 1].chart_id) : null;
-
-            // Level 1 is always unlocked
-            // Level N is unlocked if Level N-1 has is_unlocked=true OR best_accuracy >= 85%
-            const isUnlocked = index === 0
-                ? true
-                : (prevProgress?.is_unlocked || (prevProgress?.best_accuracy || 0) >= 0.85);
-
-            // Calculate pass threshold for this level
-            const passThreshold = Math.min(100, 85 + (index * 2)) / 100;
-            const isMastered = (progress?.best_accuracy || 0) >= passThreshold;
-
             // Generate display name from hero_position and stack_depth
             const chartName = `${chart.hero_position} ${chart.game_type} ${chart.stack_depth}bb`;
 
@@ -141,10 +88,10 @@ export default function MemoryCampaignView() {
                 chart,
                 chartName,
                 levelIndex: index,
-                isUnlocked,
-                isMastered,
-                bestAccuracy: progress?.best_accuracy || 0,
-                timesPlayed: progress?.times_played || 0,
+                isUnlocked: true,
+                isMastered: false,
+                bestAccuracy: 0,
+                timesPlayed: 0,
             });
         });
 
@@ -158,33 +105,8 @@ export default function MemoryCampaignView() {
         }
     };
 
-    const handleLevelComplete = async (passed: boolean, accuracy: number) => {
-        if (!activeLevel || !userId) return;
-
-        // Update user progress in database
-        const passThreshold = Math.min(100, 85 + (activeLevel.levelIndex * 2)) / 100;
-        const shouldUnlock = passed && accuracy >= passThreshold;
-
-        const { error: progressError } = await supabase
-
-          .from('memory_game_sessions')
-
-          .insert({
-                user_id: userId,
-                game_mode: activeLevel.chart.game_type || 'memory_campaign',
-                level: activeLevel.levelIndex + 1,
-                scenario_id: activeLevel.chart.chart_id,
-                score: Math.round(accuracy * 100),
-                accuracy,
-                completed: shouldUnlock,
-            });
-
-        if (progressError) console.warn('[Supabase] Memory campaign progress was not saved:', progressError.message);
-
-        // Reload campaign data
-        loadCampaignData(userId);
-
-        // Close game client
+    const handleLevelComplete = () => {
+        // Local campaign answers never mutate account progress or rewards.
         setActiveLevel(null);
     };
 
@@ -232,23 +154,21 @@ export default function MemoryCampaignView() {
                         Memory Matrix Campaign
                     </h1>
                     <p className="text-xl text-slate-400">
-                        Master GTO Preflop Ranges • Progress Through {levels.length} Levels
+                        Local Range Reference Practice • {levels.length} Available Levels
                     </p>
                 </div>
 
                 {/* Progress Stats */}
                 <div className="flex justify-center gap-8 mb-8">
                     <div className="bg-slate-800/50 rounded-lg px-6 py-3 border border-slate-700">
-                        <div className="text-sm text-slate-400">Levels Unlocked</div>
+                        <div className="text-sm text-slate-400">Available Levels</div>
                         <div className="text-2xl font-bold text-cyan-400">
                             {levels.filter(l => l.isUnlocked).length}/{levels.length}
                         </div>
                     </div>
                     <div className="bg-slate-800/50 rounded-lg px-6 py-3 border border-slate-700">
-                        <div className="text-sm text-slate-400">Levels Mastered</div>
-                        <div className="text-2xl font-bold text-yellow-400">
-                            {levels.filter(l => l.isMastered).length}/{levels.length}
-                        </div>
+                        <div className="text-sm text-slate-400">Account Progress</div>
+                        <div className="text-2xl font-bold text-yellow-400">Not Recorded</div>
                     </div>
                 </div>
             </div>

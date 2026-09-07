@@ -14,6 +14,18 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
+const AUTHORITY_PROGRESS_SELECT = [
+    'id',
+    'user_id',
+    'game_id',
+    'level:authority_level',
+    'hands_played:authority_hands_played',
+    'correct_answers:authority_correct_answers',
+    'total_answers:authority_total_answers',
+    'current_streak:authority_current_streak',
+    'best_streak:authority_best_streak',
+    'last_played_at:authority_last_played_at',
+].join(',');
 function getSupabase() {
     if (!_supabase) {
         _supabase = createClient(
@@ -40,7 +52,11 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+      // Progress is account-scoped authority data. A browser can switch
+      // accounts without changing this URL, so never reuse one identity's
+      // projection for another identity from an HTTP cache.
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
 
       try {
           const gameId = sanitizeParam(req.query.gameId, 100);
@@ -52,7 +68,7 @@ export default async function handler(req, res) {
           if (gameId) {
               const { data, error } = await getSupabase()
                   .from('training_progress')
-                  .select('*')
+                  .select(AUTHORITY_PROGRESS_SELECT)
                   .eq('user_id', userId)
                   .eq('game_id', gameId)
                   .maybeSingle();
@@ -71,10 +87,10 @@ export default async function handler(req, res) {
           // Fetch all progress for user
           const { data, error } = await getSupabase()
               .from('training_progress')
-              .select('*')
+              .select(AUTHORITY_PROGRESS_SELECT)
               .eq('user_id', userId)
-              .order('last_played_at', { ascending: false })
-              .limit(100);
+              .order('authority_last_played_at', { ascending: false })
+              .limit(200);
 
           if (error) {
               console.warn('Error fetching all progress:', error);
@@ -91,7 +107,7 @@ export default async function handler(req, res) {
           const totalCorrect = (data || []).reduce((sum, p) => sum + (p.correct_answers ?? p.total_correct ?? 0), 0);
           const overallAccuracy = totalQuestionsAnswered > 0
               ? Math.round((totalCorrect / totalQuestionsAnswered) * 100)
-              : 0;
+              : null;
           const bestStreak = Math.max(...(data || []).map(p => p.best_streak || 0), 0);
 
           return res.status(200).json({

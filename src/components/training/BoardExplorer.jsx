@@ -2,7 +2,7 @@
  * BOARD EXPLORER — Strategy Changes Across Different Board Textures
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
- * GTO Wizard-style board explorer showing how solver strategy changes
+ * Illustrative board explorer showing how a local heuristic changes
  * for the same hand across different board textures:
  *   - Pick a hand → see strategy on 12 different board textures
  *   - Color-coded frequency comparison grid
@@ -10,7 +10,7 @@
  *   - Per-texture c-bet/check frequency bars
  *   - Highlights where your hand plays very differently
  *
- * Uses PostflopStrategyEngine + BoardTextureEngine + solver data matrices.
+ * Uses PostflopStrategyEngine + BoardTextureEngine + local heuristic tables.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
@@ -260,7 +260,7 @@ export default function BoardExplorer() {
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
-                        Board Explorer
+                        Illustrative Board Explorer
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
                         {['IP', 'OOP'].map(p => (
@@ -339,7 +339,7 @@ export default function BoardExplorer() {
                 display: 'flex', gap: 16,
             }}>
                 <div style={{ fontSize: 10 }}>
-                    <span style={{ color: '#64748b' }}>Avg Bet Freq: </span>
+                    <span style={{ color: '#64748b' }}>Avg Bet Weight: </span>
                     <span style={{
                         color: stats.avgBet >= 0.6 ? '#22c55e' : stats.avgBet >= 0.35 ? '#f59e0b' : '#ef4444',
                         fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
@@ -348,7 +348,7 @@ export default function BoardExplorer() {
                     </span>
                 </div>
                 <div style={{ fontSize: 10 }}>
-                    <span style={{ color: '#64748b' }}>Avg Check Freq: </span>
+                    <span style={{ color: '#64748b' }}>Avg Check Weight: </span>
                     <span style={{ color: '#94a3b8', fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {(stats.avgCheck * 100).toFixed(0)}%
                     </span>

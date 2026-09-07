@@ -26,55 +26,6 @@ import { getWorldMenuByKey, resolveWorldMenu } from './worldMenuNavigation';
 // sp-notif-count). The menu auto-appends a "Log Out" row whenever a config
 // does not already supply one, so configs must NOT define their own.
 
-// Helper to copy / share the current user's referral link.
-export const copyReferralLink = async (user) => {
-    const notify = async (kind, message) => {
-        try {
-            const { default: toast } = await import('react-hot-toast');
-            if (kind === 'error') toast.error(message);
-            else toast.success(message);
-        } catch (_) {
-            try { window.alert(message); } catch (__) { /* non-browser */ }
-        }
-    };
-
-    if (!user?.id) {
-        await notify('error', 'Please log in to use referral links.');
-        return;
-    }
-    try {
-        // Shared singleton — it is the only client configured with the
-        // `smarter-poker-auth` storage key, so the profiles read runs
-        // authenticated instead of anonymously failing RLS.
-        const { supabase } = await import('../lib/supabase');
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('player_number')
-            .eq('id', user.id)
-            .maybeSingle();
-        if (error || !data?.player_number) {
-            await notify('error', 'Could not find your player number. Please try again.');
-            return;
-        }
-        const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
-        // Safari revokes the user-gesture clipboard grant across an await, so
-        // prefer the native share sheet on mobile.
-        if (typeof navigator !== 'undefined' && navigator.share) {
-            try {
-                await navigator.share({ title: 'Smarter Poker', text: 'Join me on Smarter Poker', url: link });
-                return;
-            } catch (shareErr) {
-                if (shareErr?.name === 'AbortError') return; // user dismissed
-            }
-        }
-        await navigator.clipboard.writeText(link);
-        await notify('success', 'Referral link copied - you earn 500 diamonds per signup.');
-    } catch (err) {
-        console.warn('Copy referral link error:', err);
-        await notify('error', 'Failed to copy referral link. Please try again.');
-    }
-};
-
 // Helper function to create menu items.
 // `opts` carries the structural flags the renderer understands:
 //   id       — stable identity used for de-duplication (never match on copy)
@@ -274,7 +225,7 @@ export const MENU_CONFIGS = {
                     icon: MenuIcons.brain
                 },
                 {
-                    label: 'GTO Sandbox',
+                    label: 'Scenario Analysis Archive',
                     href: '/hub/personal-assistant/sandbox',
                     icon: MenuIcons.target
                 },
@@ -392,7 +343,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Training Library', '/hub/training', MenuIcons.training),
             createMenuItem.navigation('My Progress', '/hub/training/progress', MenuIcons.chart),
             createMenuItem.navigation('Leaderboard', '/hub/training/leaderboard', MenuIcons.trophy),
-            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('Scenario Analysis Archive', '/hub/personal-assistant/sandbox', MenuIcons.target),
             createMenuItem.navigation('Leak Finder', '/hub/personal-assistant/leaks', MenuIcons.flame)
         ],
         bottomLinks: [
@@ -916,7 +867,7 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Coach Tools'),
             createMenuItem.grid([
-                { label: 'GTO Sandbox', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
+                { label: 'Scenario Analysis Archive', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
                 { label: 'Leak Finder', href: '/hub/personal-assistant/leaks', icon: MenuIcons.flame },
                 { label: 'Training', href: '/hub/training', icon: MenuIcons.training },
                 { label: 'Preflop Charts', href: '/hub/preflop-charts', icon: MenuIcons.grid },
@@ -969,7 +920,7 @@ export const MENU_CONFIGS = {
                 )]
                 : []),
             ...(handlers?.onPracticeWorst
-                ? [createMenuItem.action('Practice Worst Leak', handlers.onPracticeWorst, MenuIcons.target)]
+                ? [createMenuItem.action('Open Hand Review', handlers.onPracticeWorst, MenuIcons.target)]
                 : []),
 
             ...(handlers?.onToggleResolved
@@ -981,7 +932,7 @@ export const MENU_CONFIGS = {
                 : []),
 
             createMenuItem.section('Navigation'),
-            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('Scenario Analysis Archive', '/hub/personal-assistant/sandbox', MenuIcons.target),
             createMenuItem.navigation('PA Hub', '/hub/personal-assistant', MenuIcons.brain),
             createMenuItem.navigation('Session History', '/hub/session-history', MenuIcons.clock),
             createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)

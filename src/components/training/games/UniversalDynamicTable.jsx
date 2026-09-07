@@ -19,7 +19,6 @@ import RangeGrid from '../RangeGrid';
 import {
     MOVE_CLASSIFICATIONS,
     CLASSIFICATION_CONFIG,
-    simulateGTOFrequencies,
     classifyMove,
 } from '../../../hooks/useGTOWScore';
 import { busEmit } from '../../../engine/EventBus';
@@ -34,6 +33,7 @@ import { committedFor, computeDisplayPot } from './potMath';
 import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars';
 import TrainingQuestionReport from '../TrainingQuestionReport';
 import { isVerifiedSolverQuestion } from '../../../lib/training/solverDecisionEvidence';
+import { buildRngRanges, resolveRngTarget } from '../../../lib/training/rngDecisionContract.mjs';
 import {
     CLUB_ARENA_GEOMETRY_SOURCE,
     CLUB_ARENA_SEAT_LAYOUTS,
@@ -1139,9 +1139,10 @@ function FrequencyBar({ frequency, color, show }) {
 // losses are comparable across pot sizes. We computed the pot percentage in
 // the engine (evLossPctPot) and then displayed neither it nor anything else
 // derived from it. `pot` is threaded in so the banner can show both.
-function ClassificationFlashBanner({ classification, evLoss, pot = 0, reduceMotion = false }) {
+function ClassificationFlashBanner({ classification, evLoss, evLossMeasured = false, pot = 0, reduceMotion = false }) {
     const config = CLASSIFICATION_CONFIG[classification];
     if (!config) return null;
+    const hasMeasuredEV = evLossMeasured === true && Number.isFinite(evLoss);
 
     const isBestOrCorrect = classification === 'best' || classification === 'correct';
     const verdict = isBestOrCorrect ? 'Correct' : 'Incorrect';
@@ -1223,9 +1224,11 @@ function ClassificationFlashBanner({ classification, evLoss, pot = 0, reduceMoti
                 fontFamily: "'Inter', monospace",
                 boxShadow: 'inset 0 1px rgba(255,255,255,.14)',
             }}>
-                {evLoss > 0
+                {!hasMeasuredEV
+                    ? 'EV NOT MEASURED'
+                    : evLoss > 0
                     ? `EV COST −${evLoss.toFixed(2)} BB${pot > 0 ? ` · ${((evLoss / pot) * 100).toFixed(1)}% POT` : ''}`
-                    : 'NO EV LOSS'}
+                    : 'NO MEASURED EV LOSS'}
             </div>
         </motion.div>
     );
@@ -1235,14 +1238,21 @@ function ClassificationFlashBanner({ classification, evLoss, pot = 0, reduceMoti
 // EV LOSS TICKER — Running session EV loss counter
 // ═══════════════════════════════════════════════════════════════════════════
 
-function EVLossTicker({ totalEVLoss, show }) {
+function EVLossTicker({ totalEVLoss, measuredEVDecisions = 0, show }) {
     if (!show) return null;
 
-    const evColor = totalEVLoss <= 0 ? 'var(--sp-accent-green)' : totalEVLoss < 5 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
+    const hasMeasuredEV = measuredEVDecisions > 0 && Number.isFinite(totalEVLoss);
+    const evColor = !hasMeasuredEV
+        ? 'var(--sp-fg-muted)'
+        : totalEVLoss <= 0
+        ? 'var(--sp-accent-green)'
+        : totalEVLoss < 5
+        ? 'var(--sp-accent-amber)'
+        : 'var(--sp-accent-red)';
 
     return (
         <motion.div
-            key={totalEVLoss}
+            key={`${measuredEVDecisions}:${totalEVLoss}`}
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
@@ -1262,7 +1272,7 @@ function EVLossTicker({ totalEVLoss, show }) {
                 letterSpacing: 0.5,
             }}
         >
-            EV: -{(totalEVLoss || 0).toFixed(2)} BB
+            {hasMeasuredEV ? `EV: -${totalEVLoss.toFixed(2)} BB` : 'EV: — UNMEASURED'}
         </motion.div>
     );
 }
@@ -1421,13 +1431,16 @@ function UniversalDynamicTable({
     structuredExplanation = null,
     gameType = 'cash', // 'cash', 'mtt', 'sng', 'spins'
     gameTitle = '',    // Title of the training game
+    trainingSessionId = null,
     streak = 0,        // Current streak count (only show if >= 2)
     // GTOW scoring props
     moveClassification = null,     // 'best', 'correct', 'inaccuracy', 'wrong', 'blunder'
-    evLoss = 0,                    // EV loss in BB for this decision
+    evLoss = null,                 // Measured EV loss in BB, or null when unavailable
+    evLossMeasured = false,        // True only for sealed per-action EV evidence
     gtoFrequencies = null,         // { a: 60, b: 25, c: 10, d: 5 }
     gtowScore = 100,               // Current session GTOW score
-    totalSessionEVLoss = 0,        // Cumulative EV loss
+    totalSessionEVLoss = null,     // Cumulative measured EV loss, or null
+    measuredEVDecisions = 0,       // Number of decisions with sealed EV evidence
     sessionMistakes = 0,           // Mistake count this session
     // Phase 37: Enhanced session metrics
     classificationCounts = null,   // { best, correct, inaccuracy, wrong, blunder }
@@ -1606,6 +1619,11 @@ function UniversalDynamicTable({
     // viewed. Read through this getter at feedback-render sites; falls back
     // to the live prop when the ref is empty (initial render edge case).
     const getFeedbackQuestion = () => {
+        // Server-authoritative grading replaces the live blind DTO with the
+        // revealed question immediately before feedback opens. Prefer that
+        // reveal; if an eager parent has already moved on to another blind DTO,
+        // retain the answered snapshot instead.
+        if (showFeedback && question?.correctAnswer) return question;
         if (showFeedback && lastQuestionRef.current) return lastQuestionRef.current;
         return question;
     };
@@ -1795,7 +1813,7 @@ function UniversalDynamicTable({
 
     // ═══ ALL QUESTION DATA EXTRACTION (must be before any hooks that reference these) ═══
     const questionText = question?.question || question?.text || 'Loading question...';
-    const correctAnswer = question?.correctAnswer || question?.correct || 'a';
+    const correctAnswer = question?.correctAnswer || question?.correct || null;
 
     // BUG-A FIX: Fisher-Yates shuffle options per question to eliminate position bias
     const options = useMemo(() => {
@@ -1893,6 +1911,7 @@ function UniversalDynamicTable({
                     correctAnswer: question?.correctAnswer,
                     classification: moveClassification,
                     evLoss,
+                    evLossMeasured,
                     timestamp: Date.now(),
                     gameTitle,
                 };
@@ -1904,10 +1923,18 @@ function UniversalDynamicTable({
             try { busEmit('BOOKMARK_TOGGLED', { questionId: qId, action: exists ? 'removed' : 'added', count: next.length }); } catch (e) { console.warn('[App] Handled exception:', e); }
             return next;
         });
-    }, [question, questionNumber, heroCards, boardCards, heroPosition, villainPosition, selectedAnswer, moveClassification, evLoss, gameTitle]);
+    }, [question, questionNumber, heroCards, boardCards, heroPosition, villainPosition, selectedAnswer, moveClassification, evLoss, evLossMeasured, gameTitle]);
 
     // PHASE 6: Session Mistakes Tracker (HARDENED with dedup + EventBus)
     const sessionMistakesListRef = useRef([]);
+    const mistakeSessionIdRef = useRef(trainingSessionId);
+    useEffect(() => {
+        if (mistakeSessionIdRef.current === trainingSessionId) return;
+        mistakeSessionIdRef.current = trainingSessionId;
+        sessionMistakesListRef.current = [];
+        setShowMistakeReview(false);
+        setMistakeReviewIndex(0);
+    }, [trainingSessionId]);
     useEffect(() => {
         if (showFeedback && moveClassification && question) {
             const isMistake = moveClassification === 'wrong' || moveClassification === 'blunder' || moveClassification === 'inaccuracy';
@@ -1925,6 +1952,7 @@ function UniversalDynamicTable({
                         correctAnswer: question?.correctAnswer,
                         classification: moveClassification,
                         evLoss,
+                        evLossMeasured,
                         explanation: explanation || null,
                     };
                     sessionMistakesListRef.current = [...sessionMistakesListRef.current, entry];
@@ -1933,23 +1961,9 @@ function UniversalDynamicTable({
                 }
             }
         }
-    }, [showFeedback, moveClassification, question, questionNumber, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, explanation]);
+    }, [showFeedback, moveClassification, question, questionNumber, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, evLossMeasured, explanation]);
     const [showMistakeReview, setShowMistakeReview] = React.useState(false);
     const [mistakeReviewIndex, setMistakeReviewIndex] = React.useState(0);
-
-    // PHASE 9: Simplified Mode — collapses low-frequency actions for scoring (HARDENED)
-    const [simplifiedMode, setSimplifiedMode] = React.useState(() => {
-        try { return localStorage.getItem('sp_simplified_mode') === 'true'; } catch { return false; }
-    });
-    const toggleSimplifiedMode = useCallback(() => {
-        setSimplifiedMode(prev => {
-            const next = !prev;
-            try { localStorage.setItem('sp_simplified_mode', String(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
-            // HARDENED: EventBus emission for cross-page awareness
-            try { busEmit('SIMPLIFIED_MODE_CHANGED', { enabled: next }); } catch (e) { console.warn('[App] Handled exception:', e); }
-            return next;
-        });
-    }, []);
 
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
@@ -1986,6 +2000,11 @@ function UniversalDynamicTable({
     // This key changes on every DECISION -- new hand or new street -- and is
     // the single reset signal for every per-decision effect below.
     const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`;
+    const issuedRngRolls = question?._gradingContext?.rngRolls || null;
+    const hasIssuedRngRolls = ['low', 'high'].every((mode) => {
+        const roll = Number(issuedRngRolls?.[mode]);
+        return Number.isInteger(roll) && roll >= 1 && roll <= 100;
+    });
 
     // TELL THE PLAYER THE DECK IS WORKING.
     //
@@ -2016,26 +2035,32 @@ function UniversalDynamicTable({
     // inherited the flop's roll -- the same number graded against a different
     // street's frequency ranges.
     useEffect(() => {
-        if (rngMode && !showFeedback && questionNumber) {
-            // Generate a new roll for each decision
-            setRngRoll(Math.floor(Math.random() * 100) + 1);
-        } else if (!rngMode) {
+        if (rngMode && questionNumber && hasIssuedRngRolls) {
+            // The server issues both dial rolls with the signed question. A
+            // browser-generated number could be changed before persistence;
+            // this value is cryptographically bound to the grading receipt.
+            setRngRoll(Number(issuedRngRolls[rngHighLow]));
+        } else {
             setRngRoll(null);
         }
-    }, [rngMode, decisionKey, questionNumber, showFeedback]);
+    }, [rngMode, rngHighLow, decisionKey, questionNumber, hasIssuedRngRolls, issuedRngRolls]);
 
     // Phase 3: EV popup on answer
     useEffect(() => {
         if (showFeedback && moveClassification) {
             const isGood = moveClassification === 'best' || moveClassification === 'correct';
             setEvPopup({
-                value: evLoss > 0 ? `-${evLoss.toFixed(1)}` : '+0.0',
-                color: isGood ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
+                value: evLossMeasured && Number.isFinite(evLoss)
+                    ? (evLoss > 0 ? `-${evLoss.toFixed(1)}` : '0.0')
+                    : '—',
+                color: evLossMeasured
+                    ? (isGood ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)')
+                    : 'var(--sp-fg-muted)',
             });
             const timer = setTimeout(() => setEvPopup(null), 1500);
             return () => clearTimeout(timer);
         }
-    }, [showFeedback, moveClassification, evLoss]);
+    }, [showFeedback, moveClassification, evLoss, evLossMeasured]);
 
     // F8: Sound effects on feedback
     useEffect(() => {
@@ -2058,11 +2083,9 @@ function UniversalDynamicTable({
         if (streak > prevStreakRef.current && streak >= 3) {
             // Major milestones: 5, 10, 15, 20 — full celebration overlay
             if (streak >= 5 && streak % 5 === 0) {
-                const rewards = { 5: 5, 10: 10, 15: 15, 20: 25 };
                 const icons = { 5: 'star', 10: 'diamond', 15: 'crown', 20: 'legend' };
                 setStreakCelebration({
                     streak,
-                    reward: rewards[streak] || 5,
                     icon: icons[streak] || 'star',
                 });
                 SoundEngine.play('level_up');
@@ -2101,8 +2124,8 @@ function UniversalDynamicTable({
         // Speed bonus tracking
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         if (onAnswer) onAnswer(answerId, { answerTimeSeconds: elapsed });
-        try { busEmit('ARENA_HAND_ANSWERED', { answerId, timeSeconds: elapsed, questionNumber, isCorrect: answerId === correctAnswer }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, onAnswer, questionNumber, correctAnswer]);
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId, timeSeconds: elapsed, questionNumber, gradingPending: true }); } catch (e) { console.warn('[App] Handled exception:', e); }
+    }, [showFeedback, onAnswer, questionNumber]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
     // This is the SINGLE keyboard handler. Do NOT add duplicates.
@@ -2366,11 +2389,11 @@ function UniversalDynamicTable({
         const own = question?.gtoFrequencies;
         if (own && Object.keys(own).length > 0) return own;
         if (gtoFrequencies) return gtoFrequencies;
-        // Third argument is `level` (dominance = max(40, 85 - level*4)), NOT a
-        // question index -- passing questionNumber made the fabricated mix a
-        // function of how far into the session you were.
-        return simulateGTOFrequencies(options, correctAnswer, difficultyLevel || 1);
-    }, [question, gtoFrequencies, options, correctAnswer, difficultyLevel]);
+        // A blind delivery intentionally has no answer key or solver mix. Do
+        // not fabricate one from a fallback answer: it both hints the result
+        // and lets pre-answer UI diverge from the server verdict.
+        return {};
+    }, [question, gtoFrequencies]);
 
     // ═══ RANGE MODE MATRIX (GTOW parity #35) ═══
     // The Range tab needs a per-HAND matrix, which only the solver's
@@ -2386,14 +2409,15 @@ function UniversalDynamicTable({
     // mounted through feedback, which means they must read the ANSWERED
     // question, not the live prop (the parent may already have swapped in the
     // preloaded next hand). Same rule as `fq` further down.
-    const infoPanelQuestion = showFeedback
-        ? (lastQuestionRef.current || question)
-        : question;
-    const solverFrequencyVerified = isVerifiedSolverQuestion(infoPanelQuestion);
+    const infoPanelQuestion = showFeedback ? getFeedbackQuestion() : question;
+    const solverFrequencyVerified = showFeedback
+        ? isVerifiedSolverQuestion(infoPanelQuestion)
+        : question?._gradingContext?.solverEvidenceAvailable === true;
+    const rngAvailable = solverFrequencyVerified && hasIssuedRngRolls;
 
     useEffect(() => {
-        if (!solverFrequencyVerified && rngMode) setRngMode(false);
-    }, [solverFrequencyVerified, rngMode]);
+        if (!rngAvailable && rngMode) setRngMode(false);
+    }, [rngAvailable, rngMode]);
 
     const rangeModeGrid = useMemo(() => {
         const raw = infoPanelQuestion?.rawFrequencies
@@ -2491,12 +2515,11 @@ function UniversalDynamicTable({
         const q = infoPanelQuestion;
         const solverMix = (showFeedback && q?.gtoFrequencies) ? q.gtoFrequencies : gtoFrequencies;
         // DeterministicGTOEngine never sets dataQuality — it tags provenance with
-        // `source` instead, and two of its four sources are not solver output.
-        // POSTFLOP_ENGINE frequencies come from PostflopScenarioGenerator's
-        // heuristics, and hand_history_import is the player's own hand with no
-        // solve behind it at all. Both were showing as though PioSOLVER had
-        // produced them.
-        const MODELLED_SOURCES = ['POSTFLOP_ENGINE', 'hand_history_import', 'CACHED_LEGACY', 'GROK_GTO'];
+        // `source` instead. Both the retired POSTFLOP_ENGINE label and the
+        // explicit LOCAL_POSTFLOP_HEURISTIC source describe illustrative local
+        // weights, while hand_history_import is the player's own hand with no
+        // solve behind it. None may appear as though PioSOLVER produced it.
+        const MODELLED_SOURCES = ['LOCAL_POSTFLOP_HEURISTIC', 'POSTFLOP_ENGINE', 'hand_history_import', 'CACHED_LEGACY', 'GROK_GTO'];
         const isModelled =
             !isVerifiedSolverQuestion(q) ||
             q?.dataQuality === 'SIMULATED' ||
@@ -2532,7 +2555,14 @@ function UniversalDynamicTable({
     // with no button for it. Re-grouping is now skipped when the question has
     // already been through the hook; the felt renders exactly what the hook
     // produced.
-    const difficultyAlreadyApplied = Boolean(question?._difficultyApplied);
+    // Every authenticated delivery is transformed and signed on the server.
+    // `_difficultyApplied` is intentionally stripped with the rest of the
+    // private underscore metadata, so the public signed difficulty mode is the
+    // durable marker. Re-grouping that already-transformed option list can
+    // remove Check/Fold and make the server-canonical answer unclickable.
+    const difficultyAlreadyApplied = Boolean(
+        question?._gradingContext?.difficultyMode || question?._difficultyApplied
+    );
     const groupingMode = difficultyAlreadyApplied
         ? DIFFICULTY_MODES.STANDARD
         : activeDifficultyMode;
@@ -2636,41 +2666,19 @@ function UniversalDynamicTable({
     // not sum to exactly 100 — a roll that lands in no range at all would show
     // the player a number with no instruction attached, which is worse than a
     // rounding error of one point on a boundary.
+    const rngFrequencies = useMemo(
+        () => ({ ...(computedFrequencies || {}), ...(displayFrequencies || {}) }),
+        [computedFrequencies, displayFrequencies]
+    );
     const rngRanges = useMemo(() => {
-        if (!solverFrequencyVerified) return [];
-        const entries = [];
-        (displayOptions || []).slice(0, 9).forEach(opt => {
-            const id = opt.id || opt;
-            const freq = Number(displayFrequencies[id] ?? computedFrequencies[id] ?? 0);
-            if (!Number.isFinite(freq) || freq <= 0) return;
-            entries.push({ id, text: typeof opt === 'string' ? opt : (opt.text || ''), freq });
-        });
-        if (entries.length === 0) return [];
-
-        let ranges;
-        if (rngHighLow === 'high') {
-            let ceiling = 100;
-            ranges = entries.map(e => {
-                const end = ceiling;
-                const start = Math.max(1, Math.round(ceiling - e.freq) + 1);
-                ceiling = start - 1;
-                return { id: e.id, text: e.text, start, end };
-            });
-            // Stretch the last (lowest) band down to 1 so no roll is orphaned.
-            const last = ranges[ranges.length - 1];
-            if (last) last.start = 1;
-        } else {
-            let cumulative = 0;
-            ranges = entries.map(e => {
-                const start = Math.round(cumulative) + 1;
-                cumulative += e.freq;
-                return { id: e.id, text: e.text, start, end: Math.round(cumulative) };
-            });
-            const last = ranges[ranges.length - 1];
-            if (last) last.end = 100;
-        }
-        return ranges.filter(r => r.end >= r.start);
-    }, [displayOptions, displayFrequencies, computedFrequencies, rngHighLow, solverFrequencyVerified]);
+        if (!rngAvailable) return [];
+        const fullRanges = buildRngRanges(
+            (displayOptions || []).slice(0, 9),
+            rngFrequencies,
+            rngHighLow
+        );
+        return fullRanges;
+    }, [displayOptions, rngFrequencies, rngHighLow, rngAvailable]);
 
     // GTOW parity #38 — the action the dice actually selected. The roadmap's
     // pass condition is that "the best action changes with the roll and the
@@ -2679,9 +2687,15 @@ function UniversalDynamicTable({
     // what stops the on-screen "→ Bet 75%" from being contradicted by a
     // feedback banner that graded against the highest-frequency action instead.
     const rngTargetAction = useMemo(() => {
-        if (!rngMode || rngRoll === null || rngRanges.length === 0) return null;
-        return rngRanges.find(r => rngRoll >= r.start && rngRoll <= r.end) || rngRanges[0];
-    }, [rngMode, rngRoll, rngRanges]);
+        if (!rngMode || !showFeedback || rngRoll === null) return null;
+        if (rngRanges.length === 0) return null;
+        return resolveRngTarget(
+            (displayOptions || []).slice(0, 9),
+            rngFrequencies,
+            rngRoll,
+            rngHighLow
+        );
+    }, [rngMode, showFeedback, rngRoll, rngRanges, displayOptions, rngFrequencies, rngHighLow]);
 
     // GTOW parity #38 — the reference product does not merely label the mode, it
     // recolours the whole dice affordance so a player mid-session can tell at a
@@ -2718,13 +2732,12 @@ function UniversalDynamicTable({
         // ignored entirely when RNG mode is off, so the default grading path is
         // untouched; when RNG mode is on it is the difference between the
         // banner agreeing with the dice and flatly contradicting it.
-        const rngMeta = solverFrequencyVerified && rngMode && rngTargetAction
-            ? { rngRoll, rngMode: rngHighLow, rngTargetActionId: rngTargetAction.id }
+        const rngMeta = rngAvailable && rngMode && Number.isInteger(Number(rngRoll))
+            ? { rngRoll, rngMode: rngHighLow }
             : null;
         if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}), ...(extraMeta || {}) });
-        const gradedAgainst = rngMeta ? rngMeta.rngTargetActionId : correctAnswer;
-        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === gradedAgainst }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction, solverFrequencyVerified]);
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, gradingPending: true }); } catch (e) { console.warn('[App] Handled exception:', e); }
+    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngAvailable]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED answer handler (1-9, F/C/R).
     // Advancing is deliberately button-only so feedback can never disappear
@@ -2796,27 +2809,15 @@ function UniversalDynamicTable({
 
     // Compute move classification for feedback display
     const computedClassification = useMemo(() => {
-        if (moveClassification) {
-            // PHASE 9: Simplified Mode override — if user's selected action has <5% freq, upgrade inaccuracies to 'correct'
-            if (solverFrequencyVerified && simplifiedMode && (moveClassification === 'inaccuracy') && selectedAnswer && computedFrequencies) {
-                const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
-                if (userFreq > 0 && userFreq < 5) return 'correct';
-            }
-            return moveClassification;
-        }
+        if (moveClassification) return moveClassification;
         if (!showFeedback || !selectedAnswer) return null;
-        let result = classifyMove(
+        const result = classifyMove(
             selectedAnswer,
             effectiveCorrectAnswer,
             solverFrequencyVerified ? computedFrequencies : {}
         );
-        // PHASE 9: Simplified Mode override for computed classification
-        if (solverFrequencyVerified && simplifiedMode && result.classification === 'inaccuracy') {
-            const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
-            if (userFreq > 0 && userFreq < 5) return 'correct';
-        }
         return result.classification;
-    }, [moveClassification, showFeedback, selectedAnswer, effectiveCorrectAnswer, computedFrequencies, simplifiedMode, solverFrequencyVerified]);
+    }, [moveClassification, showFeedback, selectedAnswer, effectiveCorrectAnswer, computedFrequencies, solverFrequencyVerified]);
 
     // Get classification config for display
     const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
@@ -3344,6 +3345,7 @@ function UniversalDynamicTable({
                         key={`flash-${questionNumber}`}
                         classification={computedClassification}
                         evLoss={evLoss}
+                        evLossMeasured={evLossMeasured}
                         pot={displayPot}
                         reduceMotion={reduceMotion}
                     />
@@ -3352,6 +3354,7 @@ function UniversalDynamicTable({
             {/* F15: Running EV Loss Ticker */}
             <EVLossTicker
                 totalEVLoss={totalSessionEVLoss}
+                measuredEVDecisions={measuredEVDecisions}
                 show={questionNumber > 1}
             />
             {/* TOP BAR — the template's three zones: a Back pill on the left,
@@ -3397,13 +3400,13 @@ function UniversalDynamicTable({
                     <div style={styles.modeGroup} role="group" aria-label="Session modes">
                         <button
                             data-compact
-                            disabled={!solverFrequencyVerified}
+                            disabled={!rngAvailable}
                             onClick={() => {
                                 if (solverFrequencyVerified) setRngMode(v => !v);
                             }}
                             aria-pressed={rngMode}
-                            title={!solverFrequencyVerified ? 'RNG Requires A Verified Solver Distribution' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')}
-                            style={{ ...styles.modeButton, ...(rngMode ? styles.modeButtonRng : null), opacity: solverFrequencyVerified ? 1 : .4, cursor: solverFrequencyVerified ? 'pointer' : 'not-allowed' }}
+                            title={!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')}
+                            style={{ ...styles.modeButton, ...(rngMode ? styles.modeButtonRng : null), opacity: rngAvailable ? 1 : .4, cursor: rngAvailable ? 'pointer' : 'not-allowed' }}
                         >
                             RNG
                         </button>
@@ -3521,21 +3524,6 @@ function UniversalDynamicTable({
                             <SeatAvatar src={heroAvatar} label={playerName || 'HERO'} fontSize={13} />
                         </div>
                     )}
-                    {/* PHASE 9: Simplified Mode Toggle */}
-                    <motion.button
-                        onClick={toggleSimplifiedMode}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            padding: '2px 8px', borderRadius: 6,
-                            fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
-                            border: simplifiedMode ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                            background: simplifiedMode ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.03)',
-                            color: simplifiedMode ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
-                            cursor: 'pointer', textTransform: 'uppercase',
-                        }}
-                    >
-                        {simplifiedMode ? 'SIMPLE' : 'FULL'}
-                    </motion.button>
                 </div>
             </div>
 
@@ -3608,11 +3596,19 @@ function UniversalDynamicTable({
                 <span
                     style={{
                         ...styles.sessionRailEV,
-                        color: totalSessionEVLoss > 1 ? '#ef4444' : totalSessionEVLoss > 0 ? '#fbbf24' : '#22c55e',
+                        color: measuredEVDecisions < 1
+                            ? 'var(--sp-fg-muted)'
+                            : totalSessionEVLoss > 1
+                            ? '#ef4444'
+                            : totalSessionEVLoss > 0
+                            ? '#fbbf24'
+                            : '#22c55e',
                     }}
                     title="Total EV surrendered this session"
                 >
-                    {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)}` : '0.0'} EV
+                    {measuredEVDecisions > 0 && Number.isFinite(totalSessionEVLoss)
+                        ? `${totalSessionEVLoss > 0 ? '-' : ''}${totalSessionEVLoss.toFixed(1)} EV`
+                        : '— EV'}
                 </span>
             </div>
 
@@ -4574,7 +4570,7 @@ function UniversalDynamicTable({
                                 color: 'var(--sp-accent-cyan)', letterSpacing: 1,
                             }}
                         >
-                            +{streakCelebration.reward} Diamonds
+                            Momentum Milestone Reached
                         </motion.div>
                     </motion.div>
                 )}
@@ -5048,8 +5044,8 @@ function UniversalDynamicTable({
                             style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <button disabled={!solverFrequencyVerified} onClick={() => solverFrequencyVerified && setRngMode(!rngMode)} style={{ ...styles.settingsBtn, opacity: solverFrequencyVerified ? 1 : .45 }}>
-                                    {!solverFrequencyVerified ? 'RNG Requires Verified Solver Data' : (rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF')}
+                                <button disabled={!rngAvailable} onClick={() => rngAvailable && setRngMode(!rngMode)} style={{ ...styles.settingsBtn, opacity: rngAvailable ? 1 : .45 }}>
+                                    {!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF')}
                                 </button>
                                 {rngMode && (
                                     <button
@@ -5248,9 +5244,15 @@ function UniversalDynamicTable({
                             <span style={{
                                 fontSize: 14, fontWeight: 800,
                                 fontFamily: "'Inter', monospace",
-                                color: evLoss > 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
+                                color: !evLossMeasured
+                                    ? 'var(--sp-fg-muted)'
+                                    : evLoss > 0
+                                    ? 'var(--sp-accent-red)'
+                                    : 'var(--sp-accent-green)',
                             }}>
-                                {evLoss > 0 ? `-${evLoss.toFixed(2)}` : '0.00'} BB
+                                {evLossMeasured && Number.isFinite(evLoss)
+                                    ? `${evLoss > 0 ? '-' : ''}${evLoss.toFixed(2)} BB`
+                                    : '— Unmeasured'}
                             </span>
                         </div>
                     </div>
@@ -5766,7 +5768,7 @@ function UniversalDynamicTable({
                                                         ) : (
                                                             <span style={{ color: 'var(--sp-accent-red)' }}> (0% - Not In The Solver's Strategy)</span>
                                                         )}
-                                                        {evLoss > 0 && (
+                                                        {evLossMeasured && evLoss > 0 && (
                                                             <span style={{ color: 'var(--sp-accent-red)' }}> - Loses {evLoss.toFixed(2)} BB</span>
                                                         )}
                                                     </div>
@@ -5786,7 +5788,7 @@ function UniversalDynamicTable({
                                                 )}
 
                                                 {/* Phase 65: EV loss severity context */}
-                                                {evLoss > 0 && selectedAnswer !== correctAnswer && (
+                                                {evLossMeasured && evLoss > 0 && selectedAnswer !== correctAnswer && (
                                                     <div style={{
                                                         marginBottom: 4, padding: '5px 8px',
                                                         background: evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(251, 191, 36, 0.06)',
@@ -6406,7 +6408,17 @@ function UniversalDynamicTable({
                                     {[
                                         { label: 'Hands', value: questionNumber || 0, color: 'var(--sp-fg)' },
                                         { label: 'Accuracy', value: `${questionNumber > 0 ? Math.round(((questionNumber - sessionMistakes) / questionNumber) * 100) : 0}%`, color: 'var(--sp-accent-green)' },
-                                        { label: 'EV Loss', value: `-${(totalSessionEVLoss || 0).toFixed(1)}`, color: totalSessionEVLoss > 3 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)' },
+                                        {
+                                            label: 'Measured EV Loss',
+                                            value: measuredEVDecisions > 0 && Number.isFinite(totalSessionEVLoss)
+                                                ? `-${totalSessionEVLoss.toFixed(1)}`
+                                                : '—',
+                                            color: measuredEVDecisions < 1
+                                                ? 'var(--sp-fg-muted)'
+                                                : totalSessionEVLoss > 3
+                                                ? 'var(--sp-accent-red)'
+                                                : 'var(--sp-accent-amber)',
+                                        },
                                         { label: 'Streak', value: streak, color: 'var(--sp-accent-amber)' },
                                     ].map((stat, i) => (
                                         <div key={i} style={{
@@ -6486,7 +6498,10 @@ function UniversalDynamicTable({
                             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-red)' }}>You: {mk.selectedAnswer ?? '-'}</div>
                             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>Correct: {mk.correctAnswer ?? '-'}</div>
                             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-amber)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                {mk.classification || 'mistake'}{mk.evLoss > 0 ? ` · -${mk.evLoss.toFixed(2)} BB` : ''}
+                                {mk.classification || 'mistake'}
+                                {mk.evLossMeasured === true && Number.isFinite(mk.evLoss)
+                                    ? ` · ${mk.evLoss > 0 ? '-' : ''}${mk.evLoss.toFixed(2)} BB`
+                                    : ' · EV Unmeasured'}
                             </div>
                             {mk.explanation && (
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>{mk.explanation}</div>

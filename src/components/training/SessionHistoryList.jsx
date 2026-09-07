@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { authedFetch } from '../../lib/authUtils';
+import { formatSignedScore, getArenaScoreColor } from '../../engines/GTOScoreEngine';
 
 export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
     const [sessions, setSessions] = useState([]);
@@ -55,8 +56,21 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
 
             <div style={styles.list}>
                 {sessions.map((session, i) => {
-                    const score = session.gtow_score || session.accuracy_percentage || 0;
-                    const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#fbbf24' : '#ef4444';
+                    // get-sessions owns legacy/current scale normalization and
+                    // always returns the signed projection. Zero is a valid
+                    // score, so it must never fall through to accuracy.
+                    const signedScore = session.gtow_score_signed === null || session.gtow_score_signed === undefined
+                        ? null
+                        : Number(session.gtow_score_signed);
+                    const hasSignedScore = signedScore !== null && Number.isFinite(signedScore);
+                    const score = hasSignedScore ? formatSignedScore(signedScore) : '—';
+                    const scoreColor = hasSignedScore ? getArenaScoreColor(signedScore) : '#64748b';
+                    const measuredEvLoss = (Number(session.measured_ev_decisions) || 0) > 0
+                        && session.total_ev_loss !== null
+                        && session.total_ev_loss !== undefined
+                        && Number.isFinite(Number(session.total_ev_loss))
+                        ? Number(session.total_ev_loss)
+                        : null;
                     const date = new Date(session.created_at || session.completed_at);
                     const timeAgo = getTimeAgo(date);
 
@@ -80,7 +94,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
                                 <div style={styles.sessionDate}>{timeAgo}</div>
                                 <div style={styles.sessionMeta}>
                                     {session.hands_played || session.questions_answered || 0} Hands
-                                    {session.total_ev_loss ? ` · -${session.total_ev_loss.toFixed(1)} EV` : ''}
+                                    {measuredEvLoss !== null ? ` · ${measuredEvLoss.toFixed(3)} BB Measured EV Loss` : ' · EV Unmeasured'}
                                     {session.mistake_count ? ` · ${session.mistake_count} mistakes` : ''}
                                 </div>
                             </div>

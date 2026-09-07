@@ -27,8 +27,6 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import {
   findBestGames,
-  buildSandboxUrl,
-  extractCardsFromContext,
 } from '../../src/utils/videoToTrainingMapper';
 
 const C = {
@@ -5798,11 +5796,11 @@ export default function ReelsPage() {
                   gap: 6,
                 }}
               >
-                {/* Solve in Sandbox */}
+                {/* Open the audited hand-review boundary. Reel context is not solver evidence. */}
                 <button
                   onClick={() => {
                     setTtsOverlay(null);
-                    router.push(buildSandboxUrl(ttsOverlay.ctx));
+                    router.push('/hub/training/hand-history-upload?source=reels');
                   }}
                   style={{
                     width: '100%',
@@ -5833,12 +5831,7 @@ export default function ReelsPage() {
                     <path d="M8 21h8" />
                     <path d="M12 17v4" />
                   </svg>
-                  {(() => {
-                    const ex = extractCardsFromContext(ttsOverlay.ctx);
-                    return ex.hand
-                      ? `Solve in Sandbox (${ex.hand.slice(0, 2)} ${ex.hand.slice(2)})`
-                      : 'Open in Virtual Sandbox';
-                  })()}
+                  Open Audited Hand Review
                 </button>
 
                 {/* Browse all training */}

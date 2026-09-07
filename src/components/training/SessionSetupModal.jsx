@@ -4,8 +4,8 @@
  *
  * Greenfield component originally tracked in issue #288. Mounts between a
  * game-tile click on /hub/training and the actual GodModeArena render.
- * Surfaces the "session goal + your 30-day stats + difficulty/timer/mode
- * pills + Start Training" pattern from the May 8 training-overhaul handoff.
+ * Surfaces the "session goal + your 30-day stats + difficulty/timer/scope
+ * controls + Start Training" pattern from the May 8 training-overhaul handoff.
  *
  * Data sources:
  *   - `training_dashboard_30day_stats(uuid, text)` RPC (shipped in
@@ -15,7 +15,7 @@
  *     default) "Last session" recap row.
  *
  * Persistence:
- *   - Last difficulty / timer / training mode is persisted in
+ *   - Last difficulty / timer / scope is persisted in
  *     localStorage under key `sp-train-prefs-${gameId}`, so returning users
  *     resume their preferred setup automatically.
  *
@@ -37,6 +37,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { normalizeTrainingSessionConfig } from '../../lib/training/sessionConfigContract.mjs';
 import TrainingGameArt from './TrainingGameArt';
 
 const DIFFICULTY_OPTIONS = [
@@ -55,17 +56,17 @@ const TIMER_OPTIONS = [
   { id: 'blitz',    label: 'Blitz',    desc: '7s' },
 ];
 
-const MODE_OPTIONS = [
-  { id: 'standard',   label: 'Standard',    desc: 'Full GTO' },
-  { id: 'flashcards', label: 'Flashcards',  desc: 'Concepts'  },
-  { id: 'speed',      label: 'Speed Drill', desc: '20 Qs'      },
-  { id: 'import',     label: 'Import HH',   desc: 'Your hands' },
-];
-
 const SCOPE_OPTIONS = [
   { id: 'full',   label: 'Full Hand', desc: 'Preflop to River' },
   { id: 'spot',   label: 'Spot',      desc: 'Specific Node' },
   { id: 'street', label: 'Street',    desc: 'Single Street' },
+];
+
+const STREET_OPTIONS = [
+  { id: 'preflop', label: 'Preflop', desc: 'Opening Round' },
+  { id: 'flop',    label: 'Flop',    desc: 'Three Cards' },
+  { id: 'turn',    label: 'Turn',    desc: 'Fourth Card' },
+  { id: 'river',   label: 'River',   desc: 'Final Card' },
 ];
 
 const TABLE_OPTIONS = [
@@ -75,12 +76,10 @@ const TABLE_OPTIONS = [
 ];
 
 // GTOW parity #7 — HAND SELECTION.
-// The filter itself already existed: `applyHandSelection` in
-// src/hooks/useGTOTrainer.js reads `trainerConfig.handSelection` and drops
-// trivial spots or keeps only close ones. Nothing in the UI ever set it, so
-// the engine work sat dead behind a value that was permanently undefined.
-// The ids below are the exact vocabulary that function expects — 'all',
-// 'no-trivial', 'close'. Do not rename one side without the other.
+// The server applies this choice to answer-bearing canonical questions before
+// it creates and signs the immutable attempt. The browser receives only the
+// filtered blind DTO, so it must preserve the exact server-owned hand count.
+// These ids are shared with questionSelectionContract.mjs.
 const HAND_SELECTION_OPTIONS = [
   { id: 'all',        label: 'All hands',   desc: 'Nothing filtered' },
   { id: 'no-trivial', label: 'Skip trivial', desc: 'Drop pure spots' },
@@ -130,14 +129,15 @@ export default function SessionSetupModal({
   const gameId = game?.id || game?.slug || '';
   const [difficulty, setDifficulty] = useState('standard');
   const [timer,      setTimer]      = useState('standard');
-  const [mode,       setMode]       = useState('standard');
   const [scope,      setScope]      = useState('full');
+  const [targetStreet, setTargetStreet] = useState('flop');
   const [tables,     setTables]     = useState('1');
   const [handSelection, setHandSelection] = useState('all');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
   const [loading,     setLoading]     = useState(false);
+  const [statsError,  setStatsError]  = useState(null);
 
   const closeBtnRef = useRef(null);
   const dialogRef = useRef(null);
@@ -149,15 +149,13 @@ export default function SessionSetupModal({
   // actual open/game transition and reject stale/out-of-vocabulary values.
   useEffect(() => {
     if (!isOpen || !gameId) return;
-    const saved = readPrefs(gameId) || {};
-    const valid = (options, candidate, fallback) =>
-      options.some((option) => option.id === candidate) ? candidate : fallback;
-    setDifficulty(valid(DIFFICULTY_OPTIONS, saved.difficulty, 'standard'));
-    setTimer(valid(TIMER_OPTIONS, saved.timer, 'standard'));
-    setMode(valid(MODE_OPTIONS, saved.mode, 'standard'));
-    setScope(valid(SCOPE_OPTIONS, saved.scope, 'full'));
-    setTables(valid(TABLE_OPTIONS, saved.tables, '1'));
-    setHandSelection(valid(HAND_SELECTION_OPTIONS, saved.handSelection, 'all'));
+    const saved = normalizeTrainingSessionConfig(readPrefs(gameId));
+    setDifficulty(saved.difficulty);
+    setTimer(saved.timer);
+    setScope(saved.scope);
+    setTargetStreet(saved.targetStreet || 'flop');
+    setTables(saved.tables);
+    setHandSelection(saved.handSelection);
   }, [isOpen, gameId]);
 
   // Pull the 30-day stats + last session from the RPCs shipped in PR #303.
@@ -167,19 +165,31 @@ export default function SessionSetupModal({
     setLoading(true);
     setStats(null);
     setLastSession(null);
+    setStatsError(null);
 
     Promise.all([
       supabase.rpc('training_dashboard_30day_stats',  { p_user_id: userId, p_game_id: gameId }),
       supabase.rpc('training_dashboard_last_session', { p_user_id: userId, p_game_id: gameId }),
     ]).then(([statsRes, lastRes]) => {
       if (cancelled) return;
-      if (!statsRes?.error && Array.isArray(statsRes?.data) && statsRes.data[0]) {
+      if (statsRes?.error || lastRes?.error) {
+        throw new Error('Verified performance history is temporarily unavailable.');
+      }
+      if (!Array.isArray(statsRes?.data) || !Array.isArray(lastRes?.data)) {
+        throw new Error('Verified performance history returned an invalid response.');
+      }
+      if (statsRes.data[0]) {
         setStats(statsRes.data[0]);
       }
-      if (!lastRes?.error && Array.isArray(lastRes?.data) && lastRes.data[0]) {
+      if (lastRes.data[0]) {
         setLastSession(lastRes.data[0]);
       }
-    }).catch(() => { /* silent — the empty-state branch handles missing data */ })
+    }).catch((historyError) => {
+      if (cancelled) return;
+      setStats(null);
+      setLastSession(null);
+      setStatsError(historyError?.message || 'Verified performance history is temporarily unavailable.');
+    })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
@@ -229,31 +239,36 @@ export default function SessionSetupModal({
   }, [isOpen, onClose]);
 
   const handleStart = useCallback(() => {
-    const prefs = {
+    const prefs = normalizeTrainingSessionConfig({
       difficulty,
       timer,
-      mode,
       scope,
+      targetStreet,
       speed: 'normal',
       tables,
       feedbackRule: 'every',
       autoAdvanceUI: 'off',
       autoAdvance: false,
       handSelection,
-    };
+    });
     if (gameId) writePrefs(gameId, prefs);
     onStart?.({ game, ...prefs });
-  }, [game, gameId, difficulty, timer, mode, scope, tables, handSelection, onStart]);
+  }, [game, gameId, difficulty, timer, scope, targetStreet, tables, handSelection, onStart]);
 
   if (!isOpen || !game) return null;
 
-  const sessionsCount = stats?.sessions_count != null ? Number(stats.sessions_count) : null;
-  const hands         = stats?.hands_played   != null ? Number(stats.hands_played)   : null;
-  const avgScore      = stats?.avg_score      != null ? Number(stats.avg_score)      : null;
+  const finiteOrNull = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
+  const sessionsCount = finiteOrNull(stats?.sessions_count);
+  const hands         = finiteOrNull(stats?.hands_played);
+  const avgAccuracy   = finiteOrNull(stats?.avg_score);
 
   const lastRel       = lastSession?.created_at ? formatRelative(lastSession.created_at) : null;
-  const lastScore     = lastSession?.gtow_score != null ? Number(lastSession.gtow_score) : null;
-  const lastHands     = lastSession?.hands_played != null ? Number(lastSession.hands_played) : null;
+  const lastAccuracy  = finiteOrNull(lastSession?.accuracy);
+  const lastHands     = finiteOrNull(lastSession?.hands_played);
 
   return (
     <div
@@ -330,13 +345,18 @@ export default function SessionSetupModal({
             <section className="sp-card sp-stack-2 sp-setup-performance" aria-label="Your performance over the last 30 days">
               <div className="sp-h4">Your Performance · 30 Days</div>
               <div className="sp-cluster sp-cluster-4" style={{ justifyContent: 'space-between' }}>
-                <Stat label="Avg Score" value={loading ? null : avgScore} unit="%" />
+                <Stat label="Avg Accuracy" value={loading || statsError ? null : avgAccuracy} unit="%" />
                 <Stat label="Sessions" value={loading ? null : sessionsCount} />
                 <Stat label="Hands" value={loading ? null : hands} />
               </div>
+              {statsError && (
+                <div role="status" className="sp-caption" style={{ marginTop: 4, color: 'var(--sp-accent-amber)' }}>
+                  Performance History Unavailable · No Score Or Session Count Was Inferred.
+                </div>
+              )}
               {lastSession && (
                 <div className="sp-caption" style={{ marginTop: 4 }}>
-                  Last: <span className="sp-num-tabular">{lastScore != null ? `${lastScore}%` : '-'}</span>
+                  Last Accuracy: <span className="sp-num-tabular">{lastAccuracy != null ? `${lastAccuracy}%` : '-'}</span>
                   {lastHands != null ? ` · ${lastHands} Hands` : ''}
                   {lastRel ? ` · ${lastRel}` : ''}
                 </div>
@@ -356,8 +376,10 @@ export default function SessionSetupModal({
             <div className="sp-setup-field-grid">
               <SetupField title="Difficulty"><PillRow options={DIFFICULTY_OPTIONS} value={difficulty} onChange={setDifficulty} name="difficulty" /></SetupField>
               <SetupField title="Timer"><PillRow options={TIMER_OPTIONS} value={timer} onChange={setTimer} name="timer" /></SetupField>
-              <SetupField title="Training Mode" wide><PillRow options={MODE_OPTIONS} value={mode} onChange={setMode} name="mode" tile /></SetupField>
               <SetupField title="Game Scope"><PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" /></SetupField>
+              {scope === 'street' && (
+                <SetupField title="Target Street" wide><PillRow options={STREET_OPTIONS} value={targetStreet} onChange={setTargetStreet} name="targetStreet" tile /></SetupField>
+              )}
               <SetupField title="Tables"><PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" /></SetupField>
               <SetupField title="Feedback"><div className="sp-caption"><strong>After Every Answer</strong><br />Correct And Incorrect Results Stay Visible.</div></SetupField>
               <SetupField title="Hand Advance"><div className="sp-caption"><strong>Manual Next Required</strong><br />Click Next When You Finish Reviewing.</div></SetupField>

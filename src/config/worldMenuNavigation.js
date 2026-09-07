@@ -193,12 +193,10 @@ export const WORLD_MENU_DEFINITIONS = Object.freeze(
   }))
 );
 
-const WORLD_BY_ID = new Map(WORLD_MENU_DEFINITIONS.map((world) => [world.id, world]));
 const WORLD_BY_MENU_KEY = new Map(
   WORLD_MENU_DEFINITIONS.map((world) => [world.menuKey, world])
 );
 
-export const getWorldMenuById = (id) => WORLD_BY_ID.get(id) || null;
 export const getWorldMenuByKey = (menuKey) => WORLD_BY_MENU_KEY.get(menuKey) || null;
 
 export const resolveWorldMenu = (value) => {
@@ -226,13 +224,3 @@ export const WORLD_NAVIGATION_CAPABILITIES = Object.freeze({
   CLUB_STAFF: 'club-staff',
   PLATFORM_STAFF: 'platform-staff',
 });
-
-export const getWorldMenuInventory = () =>
-  WORLD_MENU_DEFINITIONS.map((world) => ({
-    id: world.id,
-    label: world.label,
-    menuKey: world.menuKey,
-    purpose: world.purpose,
-    routePrefixes: [...world.routePrefixes],
-    primaryItems: world.primaryItems.map((item) => ({ ...item })),
-  }));

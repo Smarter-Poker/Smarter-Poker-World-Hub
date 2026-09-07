@@ -50,6 +50,11 @@ function usingServiceKey() {
     return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
+function hasDedicatedTrainingGradingReceiptSecret() {
+    return typeof process.env.TRAINING_GRADING_RECEIPT_SECRET === 'string'
+        && process.env.TRAINING_GRADING_RECEIPT_SECRET.length >= 32;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -113,13 +118,32 @@ export default async function handler(req, res) {
   try {
       const start = Date.now();
 
+      const commitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local';
       const health = {
           status: 'ok',
           timestamp: new Date().toISOString(),
-          version: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local').substring(0, 8),
+          version: commitSha.substring(0, 8),
+          commitSha,
+          deploymentUrl: process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || null,
+          deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
           uptime: Math.floor(process.uptime()),
           checks: {},
       };
+
+      // Training receipts deliberately use a dedicated signing boundary. The
+      // Supabase service-role key must never double as an application-token
+      // secret: independent rotation and blast-radius containment are part of
+      // the server-authoritative grading contract.
+      if (hasDedicatedTrainingGradingReceiptSecret()) {
+          health.checks.trainingGradingReceipt = { status: 'ok', configured: true };
+      } else {
+          health.checks.trainingGradingReceipt = {
+              status: 'error',
+              configured: false,
+              reason: 'TRAINING_GRADING_RECEIPT_SECRET must contain at least 32 characters',
+          };
+          health.status = 'degraded';
+      }
 
       // ── Database Connectivity Check ──
       try {

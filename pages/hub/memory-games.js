@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-    PREFLOP CHARTS - THE GTO WIZARD KILLER
-   Full Video Game Experience with Pressure, Combos, and Diamond Economy
-   Master GTO Preflop Ranges Through High-Pressure Training
+    PREFLOP RANGE LAB - AUTHORED LOCAL PRACTICE
+   Full Video Game Experience With Pressure And Combos
+   Practice Authored Preflop References With No Account Settlement
 
    Mobile phase 2 (docs/mobile-standard/ALWAYS-DISPLAYED-MOBILE-STANDARD.md,
    changelog docs/changelog/2026-09-04-mobile-phase2-preflop-charts.md):
@@ -32,8 +32,8 @@ async function fireConfetti(opts) {
         _confetti(opts);
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
-import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD, GAME_COST } from '../../src/games/GameEngine';
-import { getScenariosByLevel, getLevelConfig, RANKS, getHandName, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
+import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD } from '../../src/games/GameEngine';
+import { getScenariosByLevel, getLevelConfig, RANKS, getHandName, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS } from '../../src/games/ScenarioDatabase';
 
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
@@ -60,11 +60,7 @@ import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../s
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
-const GameCostPopup = dynamic(() => import('../../src/components/gates/GameCostPopup'), { ssr: false });
 import dailyChallengeService from '../../src/services/DailyChallengeService';
-import { processGameResult } from '../../src/games/ELOService';
-import gameSessionService from '../../src/services/GameSessionService';
-import achievementService from '../../src/services/AchievementService';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 // busEmit not needed at page level - DiamondEngine auto-emits, useTrainingBus has own import
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
@@ -75,7 +71,6 @@ const LazyBlock = ({ height = 220 }) => <div className="preflop-skel" style={{ h
 const lazyScreen = (loader, height) => dynamic(loader, { ssr: false, loading: () => <LazyBlock height={height} /> });
 const EnhancedReviewPanel = lazyScreen(() => import('../../src/components/memory-games/EnhancedReviewPanel'), 320);
 const JarvisExplanationDialog = dynamic(() => import('../../src/components/memory-games/JarvisExplanationDialog'), { ssr: false });
-const OutOfDiamondsModal = dynamic(() => import('../../src/components/gates/OutOfDiamondsModal'), { ssr: false });
 const ScenarioFilterPanel = lazyScreen(() => import('../../src/games/ScenarioFilterPanel'), 260);
 const ComboPopup = dynamic(() => import('../../src/components/memory-games/modals/ComboPopup'), { ssr: false });
 
@@ -88,10 +83,10 @@ const MixedStrategyGame = lazyScreen(() => import('../../src/games/MixedStrategy
 
 import { filterScenarios } from '../../src/games/scenarioFilters';
 import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
+import { getHeaderStats } from '../../src/lib/headerStats';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
 import PreflopMatrixPrimer from '../../src/components/memory-games/PreflopMatrixPrimer';
 import PreflopSubpageNav from '../../src/components/memory-games/PreflopSubpageNav';
-import DailyChallengeCard from '../../src/components/memory-games/DailyChallengeCard';
 import {
     accuracyToPercent,
     getUnlockedLevel,
@@ -100,9 +95,9 @@ import {
     normalizeRangeAction,
 } from '../../src/lib/preflopRangeLab';
 // 2026-05-07 - Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
-import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Redo2, Trash2, RefreshCw, Flame, Medal } from 'lucide-react';
+import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck, BrainCircuit, ChevronRight, Gem, Clock3, Lightbulb, Send, RotateCcw, ArrowRight, Undo2, Redo2, Trash2, RefreshCw, Medal } from 'lucide-react';
 
-const ALL_TRAINING_SCENARIOS = [
+const ALL_RANGE_LAB_SCENARIOS = [
     ...LEVEL_1_SCENARIOS,
     ...LEVEL_2_SCENARIOS,
     ...LEVEL_3_SCENARIOS,
@@ -110,9 +105,6 @@ const ALL_TRAINING_SCENARIOS = [
     ...LEVEL_5_SCENARIOS,
     ...LEVEL_6_SCENARIOS,
     ...LEVEL_7_SCENARIOS,
-    ...LEVEL_8_SCENARIOS,
-    ...LEVEL_9_SCENARIOS,
-    ...LEVEL_10_SCENARIOS,
 ];
 
 // Range-memory actions live here because MixedStrategyGame is lazy loaded and
@@ -128,15 +120,41 @@ const ACTION_COLORS = {
 };
 
 const LAZY_GAME_MODES = ['speed-drill', 'pressure-cooker', 'pattern-recognition', 'mixed-strategy', 'spot-trainer', 'tournament'];
+const PREFLOP_ONLY_LOCAL_MODES = new Set(['speed-drill', 'pressure-cooker', 'pattern-recognition']);
+const POSTFLOP_STREETS = new Set(['flop', 'turn', 'river']);
+
+function isIllustrativePostflopScenario(scenario) {
+    return Boolean(
+        scenario
+        && scenario.practiceOnly === true
+        && scenario.authority === 'illustrative_local_heuristic'
+        && scenario.solverVerified === false
+    );
+}
+
+function isPostflopScenario(scenario) {
+    return isIllustrativePostflopScenario(scenario)
+        || POSTFLOP_STREETS.has(String(scenario?.street || '').toLowerCase());
+}
+
+function isGradableRangeScenario(scenario) {
+    return Boolean(
+        scenario
+        && !isPostflopScenario(scenario)
+        && scenario.solution
+        && !Array.isArray(scenario.solution)
+        && Object.keys(scenario.solution).length > 0
+    );
+}
 
 const MODES = [
-    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Core GTO Training' },
+    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Authored Range Practice' },
     { key: 'speed',      label: 'Speed Drill',  Icon: Zap,            color: '#FFD700', desc: 'Beat The Clock' },
     { key: 'pressure',   label: 'Pressure',     Icon: Bomb,           color: '#FF4444', desc: 'Defuse The Bomb' },
     { key: 'pattern',    label: 'Pattern',      Icon: Puzzle,         color: '#3B82F6', desc: 'Read The Range' },
     { key: 'mixed',      label: 'Mixed',        Icon: Dices,          color: '#A855F7', desc: 'Dial Frequencies' },
     { key: 'spot',       label: 'Spot Trainer', Icon: Crosshair,      color: '#F97316', desc: 'Full Hand Trees' },
-    { key: 'tournament', label: 'VS Ranked',    Icon: Swords,         color: '#EC4899', desc: 'Climb The Ladder' },
+    { key: 'tournament', label: 'Local VS',     Icon: Swords,         color: '#EC4899', desc: 'Simulated Practice' },
 ];
 const EXTRA_MODES = [
     { key: 'daily',       label: 'Daily',    Icon: Calendar, color: '#00FF88', special: true },
@@ -148,43 +166,43 @@ const MODE_CARDS = {
         Icon: Zap, title: 'SPEED DRILL', color: '#FFD700', gradient: ['#FFD700', '#F59E0B'],
         difficulty: 'INTERMEDIATE', diffColor: '#FFD700',
         desc: 'Flash A Hand, Pick The Action, Build Streaks. Time Gets Shorter The Better You Do. Three Lives, Do Not Lose Them.',
-        stats: [{ label: 'FORMAT', value: '3 Lives' }, { label: 'SPEED', value: 'Accelerating' }, { label: 'REWARD', value: '15-50 Diamonds' }],
+        stats: [{ label: 'FORMAT', value: '3 Lives' }, { label: 'SPEED', value: 'Accelerating' }, { label: 'SETTLEMENT', value: 'Free Local Practice' }],
         mode: 'speed-drill', btn: 'START SPEED DRILL',
     },
     pressure: {
         Icon: Bomb, title: 'PRESSURE COOKER', color: '#FF4444', gradient: ['#FF4444', '#FF0066'],
         difficulty: 'HARD', diffColor: '#FF4444',
         desc: 'Answer 10 Hands Before The Clock Runs Out. Correct Answers Add Time, Wrong Answers Cost You. Can You Defuse The Bomb?',
-        stats: [{ label: 'FORMAT', value: '10 Hands' }, { label: 'CLOCK', value: '+/- 3-5 Sec' }, { label: 'REWARD', value: '20-60 Diamonds' }],
+        stats: [{ label: 'FORMAT', value: '10 Hands' }, { label: 'CLOCK', value: '+/- 3-5 Sec' }, { label: 'SETTLEMENT', value: 'Free Local Practice' }],
         mode: 'pressure-cooker', btn: 'START PRESSURE COOKER',
     },
     pattern: {
         Icon: Puzzle, title: 'PATTERN RECOGNITION', color: '#3B82F6', gradient: ['#3B82F6', '#0088ff'],
         difficulty: 'ADVANCED', diffColor: '#3B82F6',
-        desc: 'See A Partial Range And Identify The Dominant Action. Is It A Raising, Calling, Or Folding Range? Train Your GTO Intuition.',
-        stats: [{ label: 'FORMAT', value: '8 Patterns' }, { label: 'SKILL', value: 'Range Reading' }, { label: 'REWARD', value: '20-50 Diamonds' }],
+        desc: 'See A Partial Authored Range And Identify The Dominant Action. Is It A Raising, Calling, Or Folding Range? Train Your Range-Reading Instincts.',
+        stats: [{ label: 'FORMAT', value: '8 Patterns' }, { label: 'SKILL', value: 'Range Reading' }, { label: 'SETTLEMENT', value: 'Free Local Practice' }],
         mode: 'pattern-recognition', btn: 'START PATTERN RECOGNITION',
     },
     mixed: {
         Icon: Dices, title: 'MIXED STRATEGY', color: '#A855F7', gradient: ['#A855F7', '#D946EF'],
         difficulty: 'EXPERT', diffColor: '#A855F7',
-        desc: 'Dial In The Exact Frequency For Complex GTO Spots. Should You Raise 30% Or 70%? Ten Rounds Of High-Precision Frequency Training.',
-        stats: [{ label: 'FORMAT', value: '10 Rounds' }, { label: 'SKILL', value: 'Frequencies' }, { label: 'REWARD', value: '25-75 Diamonds' }],
+        desc: 'Exact-Frequency Practice Requires A Verified Solver Source. Open This Mode To Continue In The Audited Training Arena.',
+        stats: [{ label: 'FORMAT', value: '10 Rounds' }, { label: 'SKILL', value: 'Frequencies' }, { label: 'SETTLEMENT', value: 'Free Local Practice' }],
         mode: 'mixed-strategy', btn: 'START MIXED TRAINER',
     },
     spot: {
         Icon: Crosshair, title: 'SPOT TRAINER', color: '#F97316', gradient: ['#F97316', '#EA580C'],
         difficulty: 'ADVANCED', diffColor: '#F97316',
         desc: 'Play Through Entire Hand Trees From Preflop To River. Learn How Ranges Evolve On Each Street And Compare Your EV To Optimal GTO Play.',
-        stats: [{ label: 'FORMAT', value: 'Full Trees' }, { label: 'SKILL', value: 'EV Analysis' }, { label: 'REWARD', value: '30-80 Diamonds' }],
+        stats: [{ label: 'FORMAT', value: 'Full Trees' }, { label: 'SKILL', value: 'EV Analysis' }, { label: 'SETTLEMENT', value: 'Verified Training Route' }],
         mode: 'spot-trainer', btn: 'START SPOT TRAINER',
     },
     tournament: {
-        Icon: Swords, title: 'VS RANKED', color: '#EC4899', gradient: ['#EC4899', '#DB2777'],
-        difficulty: 'COMPETITIVE', diffColor: '#EC4899',
-        desc: 'Head-To-Head GTO Challenges Against 300+ AI Opponents For ELO Ranking. Climb The Ladder And Prove You Are The Best.',
-        stats: [{ label: 'FORMAT', value: 'Best Of 10' }, { label: 'RANKING', value: 'ELO System' }, { label: 'REWARD', value: '40-100 Diamonds' }],
-        mode: 'tournament', btn: 'ENTER RANKED BATTLE',
+        Icon: Swords, title: 'LOCAL VS PRACTICE', color: '#EC4899', gradient: ['#EC4899', '#DB2777'],
+        difficulty: 'SIMULATED', diffColor: '#EC4899',
+        desc: 'Practice A Five-Round Range Drill Against A Scripted Browser Coach. There Is No Live Opponent, Matchmaking, Account Rank, Or Account Reward.',
+        stats: [{ label: 'FORMAT', value: '5 Local Rounds' }, { label: 'OPPONENT', value: 'Simulated Coach' }, { label: 'SETTLEMENT', value: 'No Account Changes' }],
+        mode: 'tournament', btn: 'START LOCAL VS PRACTICE',
     },
 };
 
@@ -195,7 +213,6 @@ const LEADERBOARD_MODES = [
     { id: 'pattern-recognition', label: 'Pattern', color: '#3B82F6' },
     { id: 'mixed-strategy', label: 'Mixed', color: '#A855F7' },
     { id: 'spot-trainer', label: 'Spot', color: '#F97316' },
-    { id: 'tournament', label: 'Ranked', color: '#EC4899' },
 ];
 
 const LEADERBOARD_COLUMNS = [
@@ -222,12 +239,53 @@ function MenuSkeleton() {
     );
 }
 
+function DailyLocalPracticeCard({ challenge, loading, onPlay }) {
+    if (loading) {
+        return (
+            <div className="preflop-daily-card is-loading" role="status" data-tutorial="daily">
+                Synchronizing Today&apos;s Practice Assignment
+            </div>
+        );
+    }
+
+    if (!challenge) {
+        return (
+            <section className="preflop-daily-card is-empty" aria-labelledby="preflop-daily-title" data-tutorial="daily">
+                <div className="preflop-daily-card-mark" aria-hidden><Calendar size={21} /></div>
+                <div className="preflop-daily-card-copy">
+                    <span>DAILY LOCAL PRACTICE</span>
+                    <h2 id="preflop-daily-title">No Practice Assignment Posted Yet</h2>
+                    <p>Today&apos;s Practice Appears Here As Soon As It Is Published. Check Back Soon.</p>
+                </div>
+            </section>
+        );
+    }
+
+    const target = accuracyToPercent(challenge.target_accuracy ?? 75);
+    return (
+        <section className="preflop-daily-card" aria-labelledby="preflop-daily-title" data-tutorial="daily">
+            <div className="preflop-daily-card-mark" aria-hidden><Calendar size={21} /></div>
+            <div className="preflop-daily-card-copy">
+                <span>DAILY LOCAL PRACTICE</span>
+                <h2 id="preflop-daily-title">{challenge.title || `Level ${challenge.level || 1} Practice`}</h2>
+                <p>This Unsigned Drill Does Not Record Challenge Completion, Streaks, Rankings, Or Diamond Rewards.</p>
+            </div>
+            <div className="preflop-daily-card-metrics">
+                <div><Target size={15} aria-hidden /><span><small>Mode</small><strong>{challenge.game_mode || 'Range Lab'}</strong></span></div>
+                <div><Clock3 size={15} aria-hidden /><span><small>Practice Goal</small><strong>{target.toFixed(target % 1 ? 1 : 0)}% Accuracy</strong></span></div>
+                <div><Gem size={15} aria-hidden /><span><small>Settlement</small><strong>Local Practice Only</strong></span></div>
+            </div>
+            <button type="button" onClick={onPlay}>Start Local Practice <ChevronRight size={17} aria-hidden /></button>
+        </section>
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MemoryGamesPage() {
     const router = useRouter();
-    const { user } = useAvatar();
+    const { user, initializing: authInitializing } = useAvatar();
     useTrainingBus('preflop-charts');
     const userId = user?.id;
     const containerRef = useRef(null);
@@ -305,8 +363,6 @@ export default function MemoryGamesPage() {
     // Daily Challenge state
     const [dailyChallenge, setDailyChallenge] = useState(null);
     const [challengeLoading, setChallengeLoading] = useState(false);
-    const [userStreak, setUserStreak] = useState({ current_streak: 0, longest_streak: 0 });
-    const [challengeCompleted, setChallengeCompleted] = useState(false);
 
     // Scenario Filter state
     const [showFilters, setShowFilters] = useState(false);
@@ -331,8 +387,10 @@ export default function MemoryGamesPage() {
     const [comboName, setComboName] = useState(null);
     const [multiplier, setMultiplier] = useState(1);
 
-    // Economy state - fetched from Supabase
-    const [diamondBalance, setDiamondBalance] = useState(100);
+    // Economy state is optional for these free local drills. Signed-in values
+    // are shown only after the authenticated header-stats endpoint proves them.
+    const [diamondBalance, setDiamondBalance] = useState(null);
+    const [economyReady, setEconomyReady] = useState(false);
     // 2026-05-07 - single-call dashboard payload from /api/memory/dashboard
     // RPC: public.rpc_memory_dashboard(uuid). Renders grade chip + per-level
     // mastery + daily-challenge state in one round-trip (replaces 5+ fetches).
@@ -360,7 +418,6 @@ export default function MemoryGamesPage() {
     const [screenShake, setScreenShake] = useState(false);
     const [showComboPopup, setShowComboPopup] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
     const [vipCheckoutPending, setVipCheckoutPending] = useState(false);
     const vipCheckoutRef = useRef(false);
 
@@ -372,13 +429,6 @@ export default function MemoryGamesPage() {
         userAction: null,
         explanation: null,
         loading: false
-    });
-
-    // Jarvis Post-Game Coach state
-    const [coachAnalysis, setCoachAnalysis] = useState({
-        show: false,
-        loading: false,
-        analysis: null
     });
 
     // Adaptive training state
@@ -428,38 +478,70 @@ export default function MemoryGamesPage() {
         if (preferences.soundEffects !== false) SoundEngine.play(sound);
     }, [preferences.soundEffects]);
 
-    // Initialize effects CSS once. Re-initialize the economy whenever auth
-    // resolves so an authenticated player can never remain in guest mode.
+    // Initialize effects CSS once. Re-initialize the economy only after auth
+    // resolves so a signed-in player can never cross into guest/local state.
     useEffect(() => {
         EffectsEngine.initCSS();
     }, []);
 
     useEffect(() => {
+        if (authInitializing) {
+            setEconomyReady(false);
+            setDiamondBalance(null);
+            setIsVIP(null);
+            setLastReward(null);
+            return undefined;
+        }
+
         let cancelled = false;
         const initializeDiamondEngine = async () => {
+            setEconomyReady(false);
+            setDiamondBalance(null);
+            setIsVIP(null);
+            setLastReward(null);
             try {
+                // A restored bearer token with no resolved context user is an
+                // unresolved authenticated session, not a guest. Fail closed
+                // instead of opening a second local economy identity.
+                if (!userId && getAccessToken()) {
+                    throw new Error('Authenticated identity is unresolved');
+                }
                 await DiamondEngine.init(userId || null);
-                const [balance, vipStatus] = await Promise.all([
-                    DiamondEngine.getBalance(),
-                    userId ? DiamondEngine.isVIP() : Promise.resolve(false),
-                ]);
+
+                let balance;
+                let vipStatus = false;
+                if (userId) {
+                    const proof = await getHeaderStats({ userId, force: true });
+                    if (!proof?.success || !proof.profile || !Number.isFinite(Number(proof.profile.diamonds))) {
+                        throw new Error('Authenticated economy proof unavailable');
+                    }
+                    balance = Number(proof.profile.diamonds);
+                    vipStatus = proof.profile.is_vip === true;
+                } else {
+                    balance = await DiamondEngine.getBalance();
+                    if (!Number.isFinite(Number(balance))) throw new Error('Local practice balance unavailable');
+                    balance = Number(balance);
+                }
+
                 if (cancelled) return;
                 setDiamondBalance(balance);
                 setIsVIP(vipStatus);
+                setEconomyReady(true);
             } catch (e) {
                 console.warn('[MemoryGames] Failed to initialize DiamondEngine:', e);
-                // Fallback to localStorage - treat as non-VIP so gameplay is not blocked
-                await DiamondEngine.init(null);
-                const balance = await DiamondEngine.getBalance();
                 if (cancelled) return;
-                setDiamondBalance(balance);
-                setIsVIP(false);
+                // Never re-initialize an authenticated identity as a guest. The
+                // free drills remain playable, but all economy/VIP extras stay
+                // unavailable until authenticated proof succeeds.
+                setDiamondBalance(null);
+                setIsVIP(null);
+                setEconomyReady(false);
             }
         };
 
         initializeDiamondEngine();
         return () => { cancelled = true; };
-    }, [userId]);
+    }, [authInitializing, userId]);
 
     // Timer logic
     useEffect(() => {
@@ -620,43 +702,8 @@ export default function MemoryGamesPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, gradeResult, userGrid, currentScenario, preferences.keyboardShortcuts, handleActionSelect, handleRedo, handleUndo]);
 
-    // Reusable: Fresh DB balance check + DiamondEngine deduction
-    // NOTE: isStartingRef guards here AND in startGame - both are needed because:
-    //   - 8 buttons call checkAndDeductDiamonds directly (need guard here)
-    //   - VIP users skip checkAndDeductDiamonds in startGame (need guard there)
-    const isStartingRef = useRef(false); // Double-click guard
-    const checkAndDeductDiamonds = async () => {
-        if (isVIP === true) return true;
-        if (isVIP === null) return false;
-        if (!requireOnline()) return false;
-        if (isStartingRef.current) return false;
-        isStartingRef.current = true;
-        try {
-        // Fresh authoritative balance check to avoid stale-state false negatives.
-        try {
-            const freshBalance = await DiamondEngine.getBalance();
-            setDiamondBalance(freshBalance);
-            if (freshBalance < GAME_COST) {
-                setShowOutOfDiamondsModal(true);
-                return false;
-            }
-        } catch (e) {
-            console.warn('[MemoryGames] Balance check failed:', e);
-        }
-        const result = await DiamondEngine.deduct(GAME_COST);
-        if (!result.success) {
-            setShowOutOfDiamondsModal(true);
-            return false;
-        }
-        if (result.balance !== undefined) setDiamondBalance(result.balance);
-        // DiamondEngine.deduct auto-emits busEmit.diamondsSpent - no manual emit needed
-        return true;
-        } finally {
-            isStartingRef.current = false;
-        }
-    };
-
-    // Start game - separate guard for VIP path (isStartingRef guards deduction only)
+    // Local Range Lab sessions have no entry settlement. The guard prevents a
+    // double launch; it is not an economy gate.
     const isGameStartingRef = useRef(false);
     const startGame = async (level, filterOverrides = null) => {
         // Double-click guard - protects ALL users (VIP + non-VIP)
@@ -664,17 +711,6 @@ export default function MemoryGamesPage() {
         isGameStartingRef.current = true;
         setGameNotice(null);
         try {
-        if (isVIP === null) {
-            isGameStartingRef.current = false;
-            return;
-        }
-
-        // A level that spends diamonds, or asks Jarvis for a scenario, needs the
-        // network before anything is charged.
-        if ((isVIP === false && Number(level) > 3) || useAIGeneration) {
-            if (!requireOnline()) return;
-        }
-
         const serverUnlockedLevel = getUnlockedLevel(memoryDashboard?.per_level_mastery || []);
         const sessionUnlockedLevel = Math.min(10, Math.floor(consecutivePasses / 5) + 1);
         const highestUnlocked = Math.max(serverUnlockedLevel, sessionUnlockedLevel);
@@ -684,6 +720,32 @@ export default function MemoryGamesPage() {
                 message: `Level ${level} is locked. Master Level ${highestUnlocked} at 85% or better first.`,
             });
             return;
+        }
+
+        // Levels 8-10 describe flop, turn, and river decisions. Transfer them
+        // before either static lookup or the preflop-only generation endpoint;
+        // otherwise AI mode can return a valid preflop matrix under a postflop
+        // level label, while static mode returns an ungradable postflop object.
+        if (Number(level) >= 8) {
+            setCurrentLevel(Number(level));
+            setCurrentScenario(null);
+            setTimerActive(false);
+            toast.info('Postflop Levels Continue In Verified Spot Trainer. Local Heuristic References Are Never Graded As Solver Answers.', 5000);
+            setMode('spot-trainer');
+            return;
+        }
+
+        // Only the authenticated AI scenario request needs the network and a
+        // resolved VIP entitlement. Static local practice remains free.
+        if (useAIGeneration) {
+            if (isVIP !== true) {
+                setGameNotice({
+                    type: 'warning',
+                    message: 'AI Mode Is Unavailable Until VIP Access Is Verified. Local Practice Is Still Free.',
+                });
+                return;
+            }
+            if (!requireOnline()) return;
         }
 
         let scenario = null;
@@ -750,11 +812,27 @@ export default function MemoryGamesPage() {
             return;
         }
 
-        // Charge only after a playable scenario is resolved. Previously a
-        // filtered-out level could deduct diamonds and then fail to launch.
-        if (isVIP === false && level > 3) {
-            const canPlay = await checkAndDeductDiamonds();
-            if (!canPlay) return;
+        // The Range Lab is a 13x13 preflop matrix and cannot grade a postflop
+        // action tree. Levels 8-10 used to pass heuristic options into this
+        // surface with no `solution`; the grader then treated every absent hand
+        // as a fold and manufactured a score. Preserve those illustrative local
+        // scenarios in their catalog, but transfer play to the server-delivered
+        // Spot Trainer rather than laundering them into a verified result.
+        if (isPostflopScenario(scenario)) {
+            setCurrentLevel(level);
+            setCurrentScenario(null);
+            setTimerActive(false);
+            toast.info('Postflop Levels Continue In Verified Spot Trainer. Local Heuristic References Are Never Graded As Solver Answers.', 5000);
+            setMode('spot-trainer');
+            return;
+        }
+
+        if (!isGradableRangeScenario(scenario)) {
+            setGameNotice({
+                type: 'warning',
+                message: 'This Scenario Has No Auditable Preflop Range Key And Cannot Be Graded. Choose Another Scenario.',
+            });
+            return;
         }
 
         // Get level-specific config for progressive difficulty
@@ -796,6 +874,16 @@ export default function MemoryGamesPage() {
     // Submit handler
     const handleSubmit = (timedOut = false) => {
         if (submissionLockedRef.current || !currentScenario) return;
+        if (!isGradableRangeScenario(currentScenario)) {
+            setTimerActive(false);
+            clearInterval(timerRef.current);
+            setGameNotice({
+                type: 'warning',
+                message: 'This Scenario Has No Auditable Preflop Range Key, So No Score Was Recorded.',
+            });
+            setMode('menu');
+            return;
+        }
         submissionLockedRef.current = true;
         strokeRef.current = null;
         setTimerActive(false);
@@ -856,7 +944,7 @@ export default function MemoryGamesPage() {
             const comboBonus = Math.floor(newCombo * 2);
             totalReward = Math.floor((baseReward + accuracyBonus + perfectBonus + comboBonus) * multiplier);
 
-            if (!user?.id) DiamondEngine.award(totalReward).then(newBalance => {
+            if (!user?.id && economyReady) DiamondEngine.award(totalReward).then(newBalance => {
                 // Signed-in awards require a server catalog action. Never put a
                 // Promise or a failure object into balance state, and only show
                 // a reward receipt when an award actually landed.
@@ -877,147 +965,12 @@ export default function MemoryGamesPage() {
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // PERSIST TO SUPABASE - Leaderboard, ELO, Daily Challenge
-        // The grade above is local and always shown; the writes need the
-        // network, so offline they are skipped with the standard toast.
+        // LOCAL PRACTICE AUTHORITY BOUNDARY
+        // This legacy range lab grades against a browser-owned answer map. It
+        // therefore cannot author sessions, ELO, challenge completions,
+        // leaderboard scores, achievements, or Jarvis training records. Those
+        // projections are derived only from a persisted server-graded attempt.
         // ═══════════════════════════════════════════════════════════════════════════
-        if (user?.id && requireOnline()) {
-            const gameMode = gameType || 'range';
-            const timeTaken = Math.max(0, Math.floor((safeLevelConfig.timer || 90) - submittedTime));
-
-            // 1. Update leaderboard (only if passed)
-            if (passed) {
-                leaderboardService.updateLeaderboard(
-                    user.id,
-                    gameMode,
-                    currentLevel,
-                    result.score,
-                    result.score, // accuracy
-                    timeTaken,
-                    null // sessionId
-                ).then(res => {
-                }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
-            }
-
-            // 2. Update ELO rating
-            const gamesPlayed = memoryDashboard?.rolling_30d_sessions || 0;
-            processGameResult(user.id, currentLevel, result.score, gamesPlayed)
-                .catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
-
-            // 3. Check and complete daily challenge
-            dailyChallengeService.getTodaysChallenge().then(challengeData => {
-                if (challengeData?.success && challengeData?.challenge && !challengeData.completed) {
-                    const challenge = challengeData.challenge;
-                    // Check if this game matches the daily challenge
-                    if (challenge.level === currentLevel && result.score >= challenge.target_accuracy) {
-                        dailyChallengeService.completeChallenge(
-                            user.id,
-                            challenge.id,
-                            result.score,
-                            result.score,
-                            timeTaken
-                        ).then(async completionResult => {
-                            if (completionResult?.success) {
-                                // The completion RPC records the challenge, streak,
-                                // and award atomically. Refresh the authoritative
-                                // balance instead of double-claiming trivia rewards.
-                                setChallengeCompleted(true);
-                                const refreshedBalance = await DiamondEngine.getBalance();
-                                if (Number.isFinite(refreshedBalance)) setDiamondBalance(refreshedBalance);
-                            }
-                        }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
-                    }
-                }
-            }).catch(err => console.warn('[MemoryGames] Daily challenge check failed:', err?.message || err));
-
-            // 4. Increment games played counter
-            const newGamesPlayed = gamesPlayed + 1;
-
-            // 5. Record game session for analytics
-            gameSessionService.recordSession(user.id, {
-                gameMode,
-                level: currentLevel,
-                scenarioId: currentScenario?.id || currentScenario?.title,
-                score: result.score,
-                accuracy: result.score,
-                timeTaken,
-                diamondsSpent: isVIP || currentLevel <= 3 ? 0 : GAME_COST,
-                diamondsEarned: 0,
-                completed: true
-            }).then(sessionResult => {
-                if (sessionResult?.success) loadMemoryDashboard(true);
-            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
-
-            // 6. Check and unlock achievements
-            const modesPlayed = Array.from(new Set([
-                ...(memoryDashboard?.per_mode_best || []).map(modeRow => modeRow.game_mode).filter(Boolean),
-                gameMode,
-            ]));
-            achievementService.checkAndUnlock(user.id, {
-                gamesPlayed: newGamesPlayed,
-                accuracy: result.score,
-                timeTaken,
-                level: currentLevel,
-                gameMode,
-                totalDiamonds: diamondBalance,
-                aiScenariosCompleted: useAIGeneration ? 1 : 0,
-                currentStreak: consecutivePasses,
-                modesPlayed,
-            }).then(unlocked => {
-                if (unlocked.length > 0) {
-                }
-            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
-
-            // 7. Push to Jarvis Personal Assistant for leak detection
-            const answersData = [];
-            // Build answers array from gradeResult
-            if (result.wrongActionHands) {
-                result.wrongActionHands.forEach(hand => {
-                    answersData.push({
-                        hand,
-                        userAnswer: submittedGrid[hand] || 'fold',
-                        correctAnswer: currentScenario?.solution?.[hand] || 'raise',
-                        wasCorrect: false,
-                        position: currentScenario?.position,
-                        scenario: { title: currentScenario?.title, stackDepth: currentScenario?.stackDepth }
-                    });
-                });
-            }
-            if (result.missedHands) {
-                result.missedHands.forEach(hand => {
-                    answersData.push({
-                        hand,
-                        userAnswer: 'fold',
-                        correctAnswer: currentScenario?.solution?.[hand] || 'raise',
-                        wasCorrect: false,
-                        position: currentScenario?.position,
-                        scenario: { title: currentScenario?.title, stackDepth: currentScenario?.stackDepth }
-                    });
-                });
-            }
-            // result.correctHands is a count (number), not an array - skip forEach loop
-
-            authedFetch('/api/jarvis/training-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.id,
-                    sessionId: `memory_${Date.now()}`,
-                    gameId: 'preflop-charts',
-                    gameName: 'Preflop Charts',
-                    category: currentScenario?.position || 'PREFLOP',
-                    level: currentLevel,
-                    questionsAnswered: Object.keys(currentScenario?.solution || {}).length,
-                    questionsCorrect: result.correctHands || 0,
-                    accuracy: result.score,
-                    streak: consecutivePasses,
-                    timeSpentSeconds: timeTaken,
-                    answers: answersData,
-                    leaksDetected: []
-                })
-            }).then(res => res.json()).then(jarvisResult => {
-            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
-        }
 
         setMode('result');
     };
@@ -1077,7 +1030,6 @@ export default function MemoryGamesPage() {
         setLastTouchedHand(null);
         setGradeResult(null);
         setLastReward(null);
-        setCoachAnalysis({ show: false, loading: false, analysis: null });
         setTimeRemaining(levelConfig.timer);
         latestTimeRef.current = levelConfig.timer;
         submissionLockedRef.current = false;
@@ -1087,139 +1039,20 @@ export default function MemoryGamesPage() {
         playSound('levelUp');
     };
 
-    // Fetch Jarvis explanation for a hand (with GTO panel image)
-    const fetchJarvisExplanation = async (hand, correctAction, userAction) => {
-        if (!requireOnline()) return;
+    // Local Range Lab keys are not server-sealed Training answers. Explain
+    // that boundary directly instead of laundering a browser-owned key through
+    // a paid endpoint and presenting generated prose as solver authority.
+    const showLocalRangeKeyNote = (hand, correctAction, userAction) => {
         haptic('light');
         setExplainModal({
             show: true,
             hand,
             correctAction,
             userAction,
-            explanation: null,
+            explanation: 'This Is A Local Range-Key Comparison, Not A Verified Solver Decision. Open The Training Arena For Server-Delivered Questions, Authoritative Grading, And Audited Explanations.',
             panelImageUrl: null,
-            loading: true
+            loading: false
         });
-
-        try {
-            // Fetch both explanation AND GTO panel image in parallel
-            const [explainResponse, panelResponse] = await Promise.all([
-                authedFetch('/api/gto/explain-hand', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        hand,
-                        position: currentScenario?.position,
-                        stackDepth: currentScenario?.stackDepth,
-                        correctAction,
-                        userAction,
-                        scenario: currentScenario
-                    })
-                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)),
-                authedFetch('/api/gto/render-analysis-card', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: correctAction,
-                        frequency: 100,
-                        explanation: `${correctAction.toUpperCase()} with ${hand} is the correct play in this spot.`,
-                        gtoApproach: currentScenario?.tip || 'Follow solver-approved strategies.',
-                        evAnalysis: '+EV',
-                        alternateLines: []
-                    })
-                }).catch(() => null) // Fallback if panel generation fails
-            ]);
-
-            const explainResult = await explainResponse.json();
-            const panelResult = panelResponse ? await panelResponse.json().catch(() => null) : null;
-
-            setExplainModal(prev => ({
-                ...prev,
-                explanation: explainResult.explanation || 'Unable to generate explanation.',
-                panelImageUrl: panelResult?.imageUrl || null,
-                loading: false
-            }));
-        } catch (error) {
-            console.warn('[MemoryGames] Explain error:', error);
-            setExplainModal(prev => ({
-                ...prev,
-                explanation: 'Failed to get explanation. Please try again.',
-                panelImageUrl: null,
-                loading: false
-            }));
-        }
-    };
-
-    // Fetch Jarvis post-game analysis
-    const fetchCoachAnalysis = async (gradeResultForCoach) => {
-        if (!gradeResultForCoach) return;
-        if (!requireOnline()) return;
-        haptic('light');
-
-        // Build mistakes array
-        const mistakes = [];
-
-        // Wrong action hands
-        if (gradeResultForCoach.wrongActionHands) {
-            gradeResultForCoach.wrongActionHands.forEach(hand => {
-                mistakes.push({
-                    hand,
-                    userAction: userGrid[hand] || 'fold',
-                    correctAction: currentScenario?.solution?.[hand] || 'raise'
-                });
-            });
-        }
-
-        // Missed hands (should have selected but didn't)
-        if (gradeResultForCoach.missedHands) {
-            gradeResultForCoach.missedHands.forEach(hand => {
-                mistakes.push({
-                    hand,
-                    userAction: 'fold',
-                    correctAction: currentScenario?.solution?.[hand] || 'raise'
-                });
-            });
-        }
-
-        setCoachAnalysis({
-            show: true,
-            loading: true,
-            analysis: null
-        });
-
-        try {
-            const response = await authedFetch('/api/gto/analyze-game', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mistakes,
-                    scenario: currentScenario,
-                    finalScore: gradeResultForCoach.score,
-                    position: currentScenario?.position,
-                    stackDepth: currentScenario?.stackDepth
-                })
-            });
-
-            if (!response.ok) throw new Error(`Request failed (${response.status})`);
-            const result = await response.json();
-
-            setCoachAnalysis({
-                show: true,
-                loading: false,
-                analysis: result.analysis
-            });
-        } catch (error) {
-            console.warn('[MemoryGames] Coach analysis error:', error);
-            setCoachAnalysis({
-                show: true,
-                loading: false,
-                analysis: {
-                    summary: "Great effort! Review your mistakes to improve.",
-                    patternInsights: [],
-                    recommendations: ["Practice this scenario again"]
-                }
-            });
-        }
     };
 
     // Fetch user's weak spots for adaptive training
@@ -1261,9 +1094,33 @@ export default function MemoryGamesPage() {
             const result = await response.json();
 
             if (result.success && result.scenario) {
+                const returnedLevel = Number(result.scenario.level);
+                const adaptiveLevel = Number.isInteger(returnedLevel) && returnedLevel >= 1 && returnedLevel <= 7
+                    ? returnedLevel
+                    : ['CO', 'BTN', 'SB'].includes(String(result.scenario.position || '').toUpperCase())
+                        ? 2
+                        : 1;
+
+                if (isPostflopScenario(result.scenario) || returnedLevel >= 8) {
+                    setCurrentLevel(Number.isInteger(returnedLevel) ? returnedLevel : 8);
+                    setCurrentScenario(null);
+                    setTimerActive(false);
+                    toast.info('Postflop Practice Continues In Verified Spot Trainer. This Range Matrix Does Not Grade Local Heuristics.', 5000);
+                    setMode('spot-trainer');
+                    return;
+                }
+                if (!isGradableRangeScenario(result.scenario)) {
+                    setGameNotice({
+                        type: 'warning',
+                        message: 'Adaptive Training Returned No Auditable Preflop Range Key. Nothing Was Graded.',
+                    });
+                    setMode('menu');
+                    return;
+                }
                 // Load the adaptive scenario through the same range-game state
                 // contract as a standard level launch.
-                const levelConfig = getLevelConfig(currentLevel) || { timer: 90 };
+                const levelConfig = getLevelConfig(adaptiveLevel) || { timer: 90 };
+                setCurrentLevel(adaptiveLevel);
                 setCurrentScenario(result.scenario);
                 setUserGrid({});
                 gridHistoryRef.current = [];
@@ -1272,7 +1129,6 @@ export default function MemoryGamesPage() {
                 setLastTouchedHand(null);
                 setGradeResult(null);
                 setLastReward(null);
-                setCoachAnalysis({ show: false, loading: false, analysis: null });
                 setTimeRemaining(levelConfig.timer);
                 latestTimeRef.current = levelConfig.timer;
                 submissionLockedRef.current = false;
@@ -1403,22 +1259,13 @@ export default function MemoryGamesPage() {
                     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }
                 setDailyChallenge(challenge);
-                setChallengeCompleted(result.completed);
-            }
-
-            // Get user streak if logged in
-            if (userId) {
-                const streakResult = await dailyChallengeService.getUserStreak(userId);
-                if (streakResult.success) {
-                    setUserStreak(streakResult.streak);
-                }
             }
         } catch (error) {
             console.warn('[MemoryGames] Failed to load daily challenge:', error);
         } finally {
             setChallengeLoading(false);
         }
-    }, [userId]);
+    }, []);
 
     // The daily card sits at the top of the menu, so today's assignment is
     // loaded with the page instead of waiting for a tap on Daily.
@@ -1438,7 +1285,7 @@ export default function MemoryGamesPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadMemoryDashboard, loadDailyChallenge, loadLeaderboard, gameType, userId]);
 
-    const startDailyChallenge = useCallback(() => {
+    const startDailyPractice = useCallback(() => {
         if (!dailyChallenge) return;
         if (!requireOnline()) return;
         haptic('medium');
@@ -1536,11 +1383,8 @@ export default function MemoryGamesPage() {
         return () => window.removeEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
     }, []);
 
-    // Overlays the page owns: the phone back gesture closes them first. The
-    // filter panel is page state, so its history entry lives here; the
-    // Out Of Diamonds and Jarvis dialogs push their own (they mount only
-    // while open and call useModalHistory themselves).
-    const closeOutOfDiamonds = useCallback(() => setShowOutOfDiamondsModal(false), []);
+    // The filter panel is page state, so its phone-back history entry lives here.
+    // Jarvis dialogs own their own modal history while mounted.
     const closeFilters = useCallback(() => setShowFilters(false), []);
     useModalHistory(showFilters, closeFilters);
 
@@ -1552,7 +1396,7 @@ export default function MemoryGamesPage() {
     };
 
     const activeScenarioFilterCount = Object.values(scenarioFilters || {}).filter(Boolean).length;
-    const filteredScenarioCount = filterScenarios(ALL_TRAINING_SCENARIOS, scenarioFilters).length;
+    const filteredScenarioCount = filterScenarios(ALL_RANGE_LAB_SCENARIOS, scenarioFilters).length;
     const masteredLevelCount = memoryDashboard?.mastered_levels_count
         ?? memoryDashboard?.per_level_mastery?.filter((level) => level.mastered).length
         ?? 0;
@@ -1562,16 +1406,19 @@ export default function MemoryGamesPage() {
     const markedHandCount = Object.keys(userGrid).length;
     const selectedActionCount = Object.values(userGrid).filter((action) => action === selectedAction).length;
     const showMenuSkeleton = memoryDashboardLoading && !hasLoadedOnce;
-    const anySheetOpen = showOutOfDiamondsModal || explainModal.show || showFilters || aiGenerating || menuOpen;
+    const anySheetOpen = explainModal.show || showFilters || aiGenerating || menuOpen;
 
     // Readout above the matrix: the last hand touched, what it holds now, and
-    // (once graded) what the solver holds.
+    // (once graded) what the local range key holds.
     const touchedAction = lastTouchedHand ? userGrid[lastTouchedHand] : null;
     const solverActionForTouched = lastTouchedHand && currentScenario?.solution
         ? normalizeRangeAction(currentScenario.solution[lastTouchedHand])
         : null;
 
     const launchCard = MODE_CARDS[gameType] || null;
+    // The three browser-only speed/pattern games consume a preflop range key.
+    // Never pass a level 8-10 postflop object into their preflop hand picker.
+    const preflopPracticeLevel = Math.min(7, Math.max(1, Number(currentLevel) || 1));
     let personalBest = null;
     if (launchCard && hasLoadedOnce) {
         try {
@@ -1585,8 +1432,8 @@ export default function MemoryGamesPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Preflop Charts - Master GTO Ranges"
-                description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
+                title="Preflop Range Lab - Authored Local Practice"
+                description="Practice authored preflop reference ranges in free local drills. Results do not change account progress, rank, or rewards."
                 canonical="/hub/preflop-charts"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -1604,11 +1451,6 @@ export default function MemoryGamesPage() {
                 {/* Background */}
                 <div style={styles.bgGrid} />
                 <div style={styles.bgGlow} />
-
-                {/* Per-game cost popup (one-time) - only for confirmed non-VIP users */}
-                {userId && isVIP === false && (
-                    <GameCostPopup userId={userId} featureKey="memory_games" isVip={isVIP} cost={10} />
-                )}
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
@@ -1640,11 +1482,11 @@ export default function MemoryGamesPage() {
                             {/* Title */}
                             <div className="preflop-hero">
                                 <div className="preflop-hero-copy">
-                                    <span className="preflop-eyebrow">GTO RANGE COMMAND</span>
+                                    <span className="preflop-eyebrow">AUTHORED RANGE PRACTICE</span>
                                     <h1>Preflop Charts</h1>
-                                    <p>Master GTO Ranges Through High-Pressure Training.</p>
+                                    <p>Practice Authored Range References. No Solver-Exact Or Account-Progress Claim.</p>
                                     {memoryDashboard?.current_grade && memoryDashboard?.rolling_30d_sessions > 0 && (
-                                        <div className="preflop-grade-chip" aria-label={`Current GTO grade ${memoryDashboard.current_grade}`}>
+                                        <div className="preflop-grade-chip" aria-label={`Current memory grade ${memoryDashboard.current_grade}`}>
                                             <span>{memoryDashboard.current_grade}</span>
                                             <span>{memoryDashboard.rolling_accuracy_pct}% Across Last 30 Days</span>
                                             {memoryDashboard.mastered_levels_count > 0 && (
@@ -1652,13 +1494,10 @@ export default function MemoryGamesPage() {
                                             )}
                                         </div>
                                     )}
-                                    {/* Only show cost info once VIP status is confirmed */}
-                                    {isVIP !== null && (
-                                        <div className="preflop-cost-chip">
-                                            <Gem size={17} aria-hidden />
-                                            <span>{isVIP ? 'VIP: Unlimited Access' : `${GAME_COST} Diamonds Per Game`}</span>
-                                        </div>
-                                    )}
+                                    <div className="preflop-cost-chip">
+                                        <ShieldCheck size={17} aria-hidden />
+                                        <span>Free Local Practice / No Entry Fee</span>
+                                    </div>
                                 </div>
                                 <div className="preflop-hero-visual" aria-hidden="true">
                                     <div className="preflop-range-matrix">
@@ -1674,12 +1513,10 @@ export default function MemoryGamesPage() {
                             <PreflopSubpageNav current="/hub/preflop-charts" sticky={false} tutorialTarget="subnav" />
 
                             {/* Daily Challenge Card (tutorial target: daily) */}
-                            <DailyChallengeCard
+                            <DailyLocalPracticeCard
                                 challenge={dailyChallenge}
-                                streak={userStreak}
-                                completed={challengeCompleted}
                                 loading={challengeLoading && !dailyChallenge}
-                                onPlay={startDailyChallenge}
+                                onPlay={startDailyPractice}
                             />
 
                             {/* Smart Practice Card - Adaptive Training (tutorial target: jarvis) */}
@@ -1732,7 +1569,7 @@ export default function MemoryGamesPage() {
                                                     haptic('light');
                                                     if (suggestion.actionType === 'daily_challenge') {
                                                         if (dailyChallenge) {
-                                                            startGame(dailyChallenge.level || 1);
+                                                            startDailyPractice();
                                                         } else {
                                                             loadDailyChallenge();
                                                         }
@@ -1753,8 +1590,12 @@ export default function MemoryGamesPage() {
                                                 }}
                                                 className="preflop-suggestion-row"
                                             >
-                                                <span>{suggestion.message}</span>
-                                                <span>{suggestion.action}<ChevronRight size={15} aria-hidden /></span>
+                                                <span>{suggestion.actionType === 'daily_challenge'
+                                                    ? 'Practice Today\'s Posted Range Assignment Locally.'
+                                                    : suggestion.message}</span>
+                                                <span>{suggestion.actionType === 'daily_challenge'
+                                                    ? 'Start Local Practice'
+                                                    : suggestion.action}<ChevronRight size={15} aria-hidden /></span>
                                             </button>
                                         ))}
                                     </div>
@@ -1838,7 +1679,7 @@ export default function MemoryGamesPage() {
                                     {personalBest && (
                                         <div className="preflop-launch-best">
                                             <Medal size={16} aria-hidden />
-                                            <span>YOUR BEST</span>
+                                            <span>LOCAL BEST</span>
                                             <strong>{personalBest.score}</strong>
                                             {personalBest.grade && (
                                                 <em style={{
@@ -1853,11 +1694,11 @@ export default function MemoryGamesPage() {
                                     <button
                                         type="button"
                                         className="preflop-launch-button"
-                                        onClick={async () => {
-                                            if (!requireOnline()) return;
+                                        onClick={() => {
                                             haptic('medium');
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
+                                            if (PREFLOP_ONLY_LOCAL_MODES.has(launchCard.mode) && Number(currentLevel) > 7) {
+                                                toast.info('This Local Mode Uses The Level 7 Preflop Range Catalog. Postflop Levels Continue In Verified Spot Trainer.', 5000);
+                                            }
                                             setMode(launchCard.mode);
                                         }}
                                     >
@@ -1930,73 +1771,53 @@ export default function MemoryGamesPage() {
                             {/* Daily Challenge Section */}
                             {gameType === 'daily' && (
                                 <div className="preflop-board-panel is-green">
-                                    <div className="preflop-board-streaks">
-                                        <div>
-                                            <Flame size={28} aria-hidden style={{ color: '#FF6B00' }} />
-                                            <strong style={{ color: '#FF6B00' }}>{userStreak.current_streak || 0}</strong>
-                                            <span>Current Streak</span>
-                                        </div>
-                                        <div>
-                                            <Trophy size={28} aria-hidden style={{ color: '#FFD700' }} />
-                                            <strong style={{ color: '#FFD700' }}>{userStreak.longest_streak || 0}</strong>
-                                            <span>Best Streak</span>
-                                        </div>
-                                    </div>
-
                                     <div className="preflop-board-heading">
                                         <Calendar size={40} aria-hidden />
-                                        <h2 style={{ color: '#00ff88' }}>DAILY CHALLENGE</h2>
-                                        <p>Complete Today's Challenge To Keep Your Streak Alive!</p>
+                                        <h2 style={{ color: '#00ff88' }}>DAILY LOCAL PRACTICE</h2>
+                                        <p>Practice Today&apos;s Posted Assignment Without Changing Your Account Progress.</p>
                                     </div>
 
                                     {challengeLoading ? (
-                                        <div className="preflop-board-empty">Loading Today's Challenge...</div>
-                                    ) : challengeCompleted ? (
-                                        <div className="preflop-board-complete">
-                                            <ShieldCheck size={48} aria-hidden />
-                                            <h3>CHALLENGE COMPLETE!</h3>
-                                            <p>Come Back Tomorrow For A New Challenge!</p>
-                                            <strong>+{dailyChallenge?.diamond_reward || 50} Diamonds Earned!</strong>
-                                        </div>
+                                        <div className="preflop-board-empty">Loading Today&apos;s Practice...</div>
                                     ) : dailyChallenge ? (
                                         <div className="preflop-board-challenge">
                                             <div className="preflop-board-challenge-head">
                                                 <Target size={28} aria-hidden />
                                                 <div>
-                                                    <strong>{dailyChallenge.title || 'Today\'s Challenge'}</strong>
+                                                    <strong>{dailyChallenge.title || 'Today\'s Practice'}</strong>
                                                     <span>Level {dailyChallenge.level || 1} / {(dailyChallenge.game_mode || 'range').replace('-', ' ').toUpperCase()}</span>
                                                 </div>
                                             </div>
 
                                             <p>
-                                                {dailyChallenge.description || `Score ${accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}% Or Higher To Complete The Challenge.`}
+                                                Aim For {accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}% Accuracy In This Local Drill. Results Stay On This Device And Do Not Settle A Daily Challenge.
                                             </p>
 
                                             <div className="preflop-board-challenge-meta">
                                                 <div>
-                                                    <span>TARGET SCORE</span>
+                                                    <span>PRACTICE GOAL</span>
                                                     <strong style={{ color: '#00ff88' }}>{accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%</strong>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <span>REWARD</span>
-                                                    <strong style={{ color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50} Diamonds</strong>
+                                                    <span>SETTLEMENT</span>
+                                                    <strong style={{ color: '#FFD700' }}>NO ACCOUNT REWARD</strong>
                                                 </div>
                                             </div>
 
-                                            <button type="button" className="preflop-board-start" onClick={startDailyChallenge}>
-                                                START DAILY CHALLENGE
+                                            <button type="button" className="preflop-board-start" onClick={startDailyPractice}>
+                                                START LOCAL PRACTICE
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="preflop-board-empty is-warning">
-                                            <h3>No Challenge Available</h3>
-                                            <p>Check Back Soon For Today's Challenge!</p>
+                                            <h3>No Practice Available</h3>
+                                            <p>Check Back Soon For Today&apos;s Practice Assignment!</p>
                                         </div>
                                     )}
 
                                     <div className="preflop-board-note">
-                                        <strong>STREAK REWARDS</strong>
-                                        <span>7 Days: +100 Diamonds Bonus. 30 Days: +500 Diamonds Bonus. 100 Days: +2000 Diamonds Bonus.</span>
+                                        <strong>LOCAL PRACTICE ONLY</strong>
+                                        <span>This Launch Does Not Record Completion, Extend A Streak, Change Rankings, Or Award Diamonds.</span>
                                     </div>
                                 </div>
                             )}
@@ -2014,7 +1835,18 @@ export default function MemoryGamesPage() {
                                             {/* AI Generation Toggle (VIP Feature) */}
                                             <button
                                                 type="button"
-                                                onClick={() => { haptic('light'); setUseAIGeneration(!useAIGeneration); }}
+                                                onClick={() => {
+                                                    haptic('light');
+                                                    if (isVIP !== true) {
+                                                        setGameNotice({
+                                                            type: 'warning',
+                                                            message: 'AI Mode Requires Verified VIP Access. Local Practice Remains Available.',
+                                                        });
+                                                        return;
+                                                    }
+                                                    setUseAIGeneration(!useAIGeneration);
+                                                }}
+                                                disabled={isVIP !== true}
                                                 className={`preflop-tool-button${useAIGeneration ? ' is-active is-gold' : ''}`}
                                                 title="Generate Unique Scenarios Using Jarvis AI"
                                                 aria-pressed={useAIGeneration}
@@ -2045,7 +1877,7 @@ export default function MemoryGamesPage() {
                                             onFilterChange={setScenarioFilters}
                                             onClose={closeFilters}
                                             currentFilters={scenarioFilters}
-                                            availableScenarios={ALL_TRAINING_SCENARIOS.length}
+                                            availableScenarios={ALL_RANGE_LAB_SCENARIOS.length}
                                             filteredCount={filteredScenarioCount}
                                         />
                                     )}
@@ -2081,7 +1913,7 @@ export default function MemoryGamesPage() {
                                             <Filter size={15} aria-hidden />
                                             <span>
                                                 <small>Practice Pool</small>
-                                                <strong>{filteredScenarioCount}/{ALL_TRAINING_SCENARIOS.length} <em>{activeScenarioFilterCount > 0 ? `${activeScenarioFilterCount} Active` : 'Full Range'}</em></strong>
+                                                <strong>{filteredScenarioCount}/{ALL_RANGE_LAB_SCENARIOS.length} <em>{activeScenarioFilterCount > 0 ? `${activeScenarioFilterCount} Active` : 'Full Range'}</em></strong>
                                             </span>
                                         </div>
                                     </div>
@@ -2094,6 +1926,7 @@ export default function MemoryGamesPage() {
                                                 ? filterScenarios(levelScenarios, scenarioFilters).length
                                                 : scenarioCount;
                                             const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, diamondMultiplier: 1.0 };
+                                            const opensVerifiedSpotTrainer = level.level >= 8;
                                             const isUnlocked = level.level <= highestUnlockedLevel;
                                             const isCurrent = level.level === currentLevel;
                                             const mastery = memoryDashboard?.per_level_mastery?.find(x => x.level === level.level);
@@ -2130,7 +1963,7 @@ export default function MemoryGamesPage() {
                                                         className="preflop-level-card-action"
                                                         onClick={() => startGame(level.level)}
                                                         disabled={!isAvailable}
-                                                        aria-label={`${levelStateLabel}: Level ${level.level}, ${level.name}. ${matchingScenarioCount} matching scenarios.`}
+                                                        aria-label={`${levelStateLabel}: Level ${level.level}, ${level.name}. ${matchingScenarioCount} matching scenarios.${opensVerifiedSpotTrainer ? ' Opens Verified Spot Trainer.' : ''}`}
                                                     />
                                                     <div className="preflop-level-node" aria-hidden="true"><span>{level.level}</span></div>
                                                     <div className="preflop-level-copy">
@@ -2142,18 +1975,12 @@ export default function MemoryGamesPage() {
                                                         <p>{level.focus}</p>
                                                     </div>
                                                     <div className="preflop-level-meta">
-                                                        <span>{levelConfig.timer}s</span>
-                                                        <span><Gem size={13} aria-hidden />x{levelConfig.diamondMultiplier}</span>
+                                                        <span>{opensVerifiedSpotTrainer ? 'Verified Spot Trainer' : `${levelConfig.timer}s`}</span>
+                                                        <span>{opensVerifiedSpotTrainer ? 'Server-Graded Route' : 'Free Local Practice'}</span>
                                                         <span className={activeScenarioFilterCount > 0 ? 'is-filtered-count' : ''}>
                                                             {matchingScenarioCount} {activeScenarioFilterCount > 0 ? 'Matching' : `Scenario${matchingScenarioCount !== 1 ? 's' : ''}`}
                                                         </span>
                                                         <div className="preflop-level-locks">
-                                                            {level.level > 3 && isVIP === false && (
-                                                                <span className="preflop-level-cost"><Gem size={12} aria-hidden />10</span>
-                                                            )}
-                                                            {level.level > 3 && isVIP && (
-                                                                <span className="preflop-level-vip">VIP</span>
-                                                            )}
                                                             {!isUnlocked && <Lock size={12} aria-hidden style={{ color: 'rgba(255,255,255,0.45)' }} />}
                                                         </div>
                                                     </div>
@@ -2284,7 +2111,7 @@ export default function MemoryGamesPage() {
                                     <div className="preflop-vip-seal">VIP</div>
                                     <div className="preflop-vip-copy">
                                         <div>Go VIP - $19.99/Month</div>
-                                        <p>Unlimited Games. All Levels. No Diamond Cost. Exclusive Modes.</p>
+                                        <p>Unlock Verified AI Scenario Generation And Other VIP Features.</p>
                                     </div>
                                     <button type="button" onClick={() => { haptic('light'); handleVipUpgrade(); }} disabled={vipCheckoutPending}>
                                         {vipCheckoutPending ? 'Opening Checkout...' : 'Upgrade To VIP'} <ChevronRight size={18} aria-hidden />
@@ -2304,10 +2131,10 @@ export default function MemoryGamesPage() {
                     {/* Speed Drill Mode - Full Implementation */}
                     {mode === 'speed-drill' && (
                         <SpeedDrillGame
-                            level={currentLevel}
+                            level={preflopPracticeLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
-                            DiamondEngine={DiamondEngine}
+                            DiamondEngine={economyReady ? DiamondEngine : null}
                             userId={userId}
                         />
                     )}
@@ -2315,10 +2142,10 @@ export default function MemoryGamesPage() {
                     {/* Pressure Cooker Mode - Full Implementation */}
                     {mode === 'pressure-cooker' && (
                         <PressureCookerGame
-                            level={currentLevel}
+                            level={preflopPracticeLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
-                            DiamondEngine={DiamondEngine}
+                            DiamondEngine={economyReady ? DiamondEngine : null}
                             userId={userId}
                         />
                     )}
@@ -2326,10 +2153,10 @@ export default function MemoryGamesPage() {
                     {/* Pattern Recognition Mode - Full Implementation */}
                     {mode === 'pattern-recognition' && (
                         <PatternRecognitionGame
-                            level={currentLevel}
+                            level={preflopPracticeLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
-                            DiamondEngine={DiamondEngine}
+                            DiamondEngine={economyReady ? DiamondEngine : null}
                             userId={userId}
                         />
                     )}
@@ -2340,7 +2167,7 @@ export default function MemoryGamesPage() {
                             level={currentLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
-                            DiamondEngine={DiamondEngine}
+                            DiamondEngine={economyReady ? DiamondEngine : null}
                             userId={userId}
                         />
                     )}
@@ -2351,7 +2178,7 @@ export default function MemoryGamesPage() {
                             level={currentLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
-                            DiamondEngine={DiamondEngine}
+                            DiamondEngine={economyReady ? DiamondEngine : null}
                             userId={userId}
                         />
                     )}
@@ -2362,18 +2189,8 @@ export default function MemoryGamesPage() {
                             level={currentLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
-                            DiamondEngine={DiamondEngine}
-                            userId={userId}
-                        />
-                    )}
-
-                    {/* Out of Diamonds Modal (back gesture closes it: useModalHistory above) */}
-                    {showOutOfDiamondsModal && (
-                        <OutOfDiamondsModal
-                            isOpen={showOutOfDiamondsModal}
-                            onClose={closeOutOfDiamonds}
-                            gameCost={GAME_COST}
-                            isVIP={isVIP}
+                            DiamondEngine={economyReady ? DiamondEngine : null}
+                            diamondBalance={Number.isFinite(diamondBalance) ? diamondBalance : 0}
                         />
                     )}
 
@@ -2382,7 +2199,7 @@ export default function MemoryGamesPage() {
                         <div className="preflop-ai-overlay sp-fullscreen-overlay" role="status" aria-live="polite">
                             <div className="preflop-ai-overlay-icon" aria-hidden="true"><BrainCircuit size={48} /></div>
                             <div className="preflop-ai-overlay-title">Jarvis Is Generating Your Scenario...</div>
-                            <div className="preflop-ai-overlay-sub">Creating A Unique, Solver-Accurate Training Challenge</div>
+                            <div className="preflop-ai-overlay-sub">Creating A Unique Local Practice Challenge</div>
                         </div>
                     )}
 
@@ -2569,12 +2386,12 @@ export default function MemoryGamesPage() {
                                                     style={{ '--action-color': solverActionForTouched && ACTION_COLORS[solverActionForTouched] ? ACTION_COLORS[solverActionForTouched].border : ACTION_COLORS.fold.border }}
                                                 >
                                                     <i aria-hidden />
-                                                    Solver: {solverActionForTouched && ACTION_COLORS[solverActionForTouched] ? ACTION_COLORS[solverActionForTouched].label : 'FOLD'}
+                                                    Local Key: {solverActionForTouched && ACTION_COLORS[solverActionForTouched] ? ACTION_COLORS[solverActionForTouched].label : 'FOLD'}
                                                 </span>
                                             )}
                                         </>
                                     ) : (
-                                        <span className="preflop-lab-touch-hint">{gradeResult ? 'Tap A Hand To Compare It With The Solver' : 'Tap Or Drag To Paint Hands'}</span>
+                                        <span className="preflop-lab-touch-hint">{gradeResult ? 'Tap A Hand To Compare It With The Local Range Key' : 'Tap Or Drag To Paint Hands'}</span>
                                     )}
                                 </div>
 
@@ -2642,7 +2459,7 @@ export default function MemoryGamesPage() {
                                     {gradeResult.score >= 85 && lastReward && (
                                         <div className="preflop-lab-reward">
                                             <Gem size={17} aria-hidden />
-                                            +{lastReward.diamonds} Diamonds Earned / x{multiplier} Multiplier
+                                            +{lastReward.diamonds} Local Practice Diamonds / x{multiplier} Multiplier
                                         </div>
                                     )}
 
@@ -2656,75 +2473,23 @@ export default function MemoryGamesPage() {
                                                 const firstMistake = gradeResult.wrongActionHands[0] || gradeResult.missedHands[0];
                                                 const correctAction = currentScenario?.solution?.[firstMistake] || 'call';
                                                 const userAction = userGrid[firstMistake] || 'fold';
-                                                fetchJarvisExplanation(firstMistake, correctAction, userAction);
+                                                showLocalRangeKeyNote(firstMistake, correctAction, userAction);
                                             }}
                                         >
-                                            Ask Jarvis: Why Was I Wrong?
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="preflop-lab-coach-button"
-                                            onClick={() => fetchCoachAnalysis(gradeResult)}
-                                        >
-                                            Get Full Game Analysis
+                                            Explain This Local Range Key
                                         </button>
                                     </>)}
-
-                                    {/* Jarvis Coach Panel */}
-                                    {coachAnalysis.show && (
-                                        <div className="preflop-lab-coach">
-                                            <div className="preflop-lab-coach-head">
-                                                <span aria-hidden="true">J</span>
-                                                <span>Jarvis Analysis</span>
-                                            </div>
-
-                                            {coachAnalysis.loading ? (
-                                                <div className="preflop-lab-coach-loading">
-                                                    Jarvis Is Analyzing Your Game...
-                                                </div>
-                                            ) : coachAnalysis.analysis ? (
-                                                <div>
-                                                    <p className="preflop-lab-coach-summary">{coachAnalysis.analysis.summary}</p>
-
-                                                    {coachAnalysis.analysis.patternInsights?.length > 0 && (
-                                                        <div className="preflop-lab-coach-block">
-                                                            <div className="preflop-lab-coach-label">Patterns Detected</div>
-                                                            {coachAnalysis.analysis.patternInsights.map((item, i) => (
-                                                                <div key={i} className="preflop-lab-coach-item">
-                                                                    <span style={{ color: '#FFD700' }}>{item.pattern}:</span>{' '}
-                                                                    <span>{item.insight}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {coachAnalysis.analysis.recommendations?.length > 0 && (
-                                                        <div className="preflop-lab-coach-block">
-                                                            <div className="preflop-lab-coach-label" style={{ color: '#06B6D4' }}>Next Steps</div>
-                                                            {coachAnalysis.analysis.recommendations.map((rec, i) => (
-                                                                <div key={i} className="preflop-lab-coach-item is-step">
-                                                                    <span aria-hidden="true">-</span>
-                                                                    <span>{rec}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : null}
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
-                            {/* ═══ ENHANCED REVIEW PANEL - GTO Wizard-Quality Analysis ═══ */}
+                            {/* Local range-key review; no solver or exact-EV authority. */}
                             {gradeResult && (
                                 <EnhancedReviewPanel
                                     gradeResult={gradeResult}
                                     scenario={currentScenario}
                                     userGrid={userGrid}
                                     sessionHistory={sessionHistory}
-                                    onAskJarvis={(hand, correctAction, userAction) => fetchJarvisExplanation(hand, correctAction, userAction)}
-                                    onCoachAnalysis={() => fetchCoachAnalysis(gradeResult)}
+                                    onAskJarvis={(hand, correctAction, userAction) => showLocalRangeKeyNote(hand, correctAction, userAction)}
                                 />
                             )}
 

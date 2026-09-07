@@ -121,7 +121,9 @@ export default function StreetAccuracyPanel({ streetAccuracy }) {
                                     {street.accuracy}%
                                 </span>
                                 <span style={styles.evValue}>
-                                    -{street.avgEvLoss.toFixed(2)}
+                                    {Number.isFinite(street.avgEvLoss)
+                                        ? `-${street.avgEvLoss.toFixed(2)}`
+                                        : '—'}
                                 </span>
                             </div>
 

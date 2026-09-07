@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 
 // BUG FIX (TRAIN-DAILY-GOALS-A11Y-1): SVG icon components replacing the
@@ -58,9 +59,13 @@ function GoalIcon({ kind, size=20 }) {
 }
 
 function generateGoals(sessionsParams) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayCST();
   const sessions = sessionsParams || [];
-  const todaySessions = sessions.filter((s) => s.created_at && s.created_at.startsWith(today));
+  const todaySessions = sessions.filter((session) => {
+    if (!session.created_at) return false;
+    const createdAt = new Date(session.created_at);
+    return !Number.isNaN(createdAt.getTime()) && getTodayCST(createdAt) === today;
+  });
 
   let todayHands = 0;
   let todayCorrect = 0;
@@ -146,22 +151,9 @@ export default function DailyGoalsPage() {
   useTrainingBus('daily-goals');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ goals: [], completeCount: 0, totalGoals: 5 });
-  const [streakDays, setStreakDays] = useState(0);
-  const [prevComplete, setPrevComplete] = useState(0);
   const [dailyBonus, setDailyBonus] = useState(null); // { available, totalBonus, streakBonus, alreadyClaimed }
   const [fetchError, setFetchError] = useState(null);
-
-  // Load streak
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('daily-goals-streak') || '{}');
-      const today = new Date().toISOString().slice(0, 10);
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      if (saved.lastDate === today) setStreakDays(saved.streak || 0);
-      else if (saved.lastDate === yesterday) setStreakDays(saved.streak || 0);
-      else setStreakDays(0);
-    } catch (e) { console.warn('[App] Handled exception:', e); }
-  }, []);
+  const streakDays = Number(dailyBonus?.streakDays) || 0;
 
   // Fetch daily bonus status
   useEffect(() => {
@@ -191,45 +183,13 @@ export default function DailyGoalsPage() {
       if (d.success && d.sessions) {
         const result = generateGoals(d.sessions);
         setData(result);
-        // Check if all goals completed — update streak
-        if (result.completeCount === result.totalGoals && prevComplete < result.totalGoals) {
-          const today = new Date().toISOString().slice(0, 10);
-          const newStreak = streakDays + 1;
-          setStreakDays(newStreak);
-          try {
-            localStorage.setItem(
-              'daily-goals-streak',
-              JSON.stringify({ streak: newStreak, lastDate: today })
-            );
-          } catch (e) { console.warn('[App] Handled exception:', e); }
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            { gameId: 'daily-goals', allComplete: true, streak: newStreak },
-            'DailyGoals'
-          );
-          // Auto-claim daily bonus when all goals complete
-          try {
-            const bonusRes = await authedFetch('/api/training/daily-bonus', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ claimNow: true }),
-            });
-            if (bonusRes.ok) {
-              const bonusData = await bonusRes.json();
-              if (bonusData.claimed) {
-                setDailyBonus((prev) => ({ ...prev, available: false, alreadyClaimed: true, diamondsAwarded: bonusData.totalAwarded }));
-              }
-            }
-          } catch (e) { console.warn('[App] Handled exception:', e); }
-        }
-        setPrevComplete(result.completeCount);
       }
     } catch (e) {
       console.warn('[DailyGoals]', e);
       setFetchError('Unable to load daily goals. Please try again.');
     }
     setLoading(false);
-  }, [prevComplete, streakDays]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -305,8 +265,9 @@ export default function DailyGoalsPage() {
 
           {!loading && (
             <>
-              {/* Daily Bonus Banner */}
-              {dailyBonus && dailyBonus.available && (
+              {/* Daily Bonus Status — currency copy is shown only for a
+                  persisted historical settlement receipt. */}
+              {dailyBonus?.settlementStatus === 'verified_completion_required' && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -323,17 +284,11 @@ export default function DailyGoalsPage() {
                 >
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      Daily Bonus Available
+                      Daily Bonus Settlement Paused
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      Complete All Goals To Claim +{dailyBonus.totalBonus} Diamonds
-                      {dailyBonus.streakBonus > 0 && (
-                        <span style={{ color: 'var(--sp-accent-amber)' }}> (Includes {dailyBonus.streakBonus} Streak Bonus)</span>
-                      )}
+                      Goal Progress Is Live. No Daily-Goal Currency Is Promised Until Settlement Is Bound To A Verified Completion.
                     </div>
-                  </div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
-                    +{dailyBonus.totalBonus}
                   </div>
                 </motion.div>
               )}
@@ -449,7 +404,7 @@ export default function DailyGoalsPage() {
                   }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
-                    All Goals Complete! +25 Diamonds Earned
+                    All Goals Complete For Today
                   </div>
                 </motion.div>
               )}

@@ -12,216 +12,23 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { authedFetch, getAuthUser } from '../lib/authUtils';
 import TRAINING_CONFIG, {
-  checkLevelPassed,
   getRequiredCorrect,
-  getDiamondReward,
 } from '../config/trainingConfig';
-import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
+import useGTOWScore from './useGTOWScore';
 import { eventBus } from '../engine/EventBus';
 import { getScoreGrade, getScoreColor } from '../engines/GTOScoreEngine';
 import { trainingSounds } from '../utils/trainingSounds';
-import { deterministicEngine } from '../engines/DeterministicGTOEngine';
+import { MultiStreetHand } from '../engines/MultiStreetHandManager';
 
-// ═══ Phase GTO-CLONE: SessionTracker for Supabase persistence ═══
-import { createSessionRecord, createMoveRecords, saveSession } from '../engines/SessionTracker';
-// ═══ Phase GTO-CLONE: DifficultyEngine for Simple/Grouped/Standard modes ═══
-import { simplifyActions, DIFFICULTY, toEngineDifficulty } from '../engines/DifficultyEngine';
 // ═══ Phase GTO-CLONE: ActionTreeEngine for GTO action mapping + scoring ═══
 import { scoreAction, mapToSolverAction } from '../engines/ActionTreeEngine';
-import { enforceTrainingQuestionContract } from '../lib/training/questionContract.mjs';
 import { isCustomTrainerConfig } from '../lib/training/trainerConfigMode.mjs';
-import { getOfflineQuestions, setOfflineQuestions } from '../lib/training/offlineQuestionCache';
-import { isVerifiedSolverQuestion } from '../lib/training/solverDecisionEvidence';
-
-/**
- * Apply difficulty-based option simplification (GTO Wizard Simple/Grouped/Standard)
- * Simple: Bet/Check/Fold (3 options max)
- * Grouped: Small/Medium/Large/Check/Fold (5 options max)
- * Standard: Full solver sizings (unchanged)
- */
-function applyDifficultyToQuestion(question, difficultyMode) {
-  if (!question || !question.options) return question;
-  // GTOW parity #21: translate the UI vocabulary (beginner/standard/expert)
-  // into the engine's (simple/grouped/standard) before doing anything. The
-  // old code compared the RAW value against 'standard', which meant the UI's
-  // middle tier skipped simplification entirely and 'expert' was simplified
-  // MORE than it should have been.
-  const engineMode = toEngineDifficulty(difficultyMode);
-  if (engineMode === DIFFICULTY.STANDARD) return enforceTrainingQuestionContract(question);
-  try {
-    const potSize = question.scenario?.pot || 10;
-    // Normalize each option to the canonical action token simplifyActions matches on
-    // ('fold'|'check'|'call'|'bet'|'raise'|'allin') — raw ids like 'b33'/'x'/'f' or
-    // display text like 'Bet 33%' would otherwise never match and get dropped.
-    const tokenOf = (o) => {
-      const id = String(o.id || '').toLowerCase();
-      const text = String(o.text || '').toLowerCase();
-      if (id === 'f' || id === 'fold' || id === 'simple_fold' || text.startsWith('fold')) return 'fold';
-      if (id === 'x' || id === 'check' || text.startsWith('check')) return 'check';
-      if (id === 'c' || id === 'call' || text.startsWith('call')) return 'call';
-      if (id === 'allin' || id === 'push' || text.includes('all-in') || text.includes('all in') || text.startsWith('push') || text.startsWith('shove') || text.startsWith('jam')) return 'allin';
-      if (/^r\d*$/.test(id) || id === 'raise' || text.startsWith('raise') || text.includes('3-bet') || text.includes('4-bet')) return 'raise';
-      if (/^b\d*$/.test(id) || id === 'bet' || text.startsWith('bet')) return 'bet';
-      return text.split(' ')[0] || id;
-    };
-    const enriched = question.options.map((o) => ({
-      id: o.id,
-      text: o.text,
-      action: tokenOf(o),
-      frequency: question.gtoFrequencies?.[o.id] || 0,
-    }));
-    const simplified = simplifyActions(enriched, engineMode, potSize);
-    if (simplified && simplified.length > 0) {
-      // simplifyActions returns { action, label, amount?, mappedFrom?, isSimplified }
-      // where mappedFrom is an array of the original option objects it collapsed.
-      // Passive entries (check/call/fold) carry no mappedFrom — recover their
-      // original option ids via the canonical token.
-      const idsByToken = {};
-      for (const o of enriched) {
-        if (!idsByToken[o.action]) idsByToken[o.action] = [];
-        idsByToken[o.action].push(o.id);
-      }
-      const memberIds = (s) => {
-        const fromMapped = (s.mappedFrom || [])
-          .map((m) => (typeof m === 'string' ? m : m.id))
-          .filter(Boolean);
-        if (fromMapped.length) return fromMapped;
-        if (s.isSimplified && (s.label === 'Raise' || s.label === 'Bet')) {
-          return [
-            ...(idsByToken.bet || []),
-            ...(idsByToken.raise || []),
-            ...(idsByToken.allin || []),
-          ];
-        }
-        return idsByToken[s.action] || [];
-      };
-      const newOptions = simplified.map((s) => ({
-        id: s.id || s.action,
-        text: s.text || s.label,
-      }));
-      // Remap correctAnswer onto the simplified option that covers the original id
-      const origCorrect = question.correctAnswer;
-      let newCorrect = origCorrect;
-      const owner = simplified.find(
-        (s) =>
-          memberIds(s).includes(origCorrect) || s.action === origCorrect || s.id === origCorrect
-      );
-      if (owner) newCorrect = owner.id || owner.action;
-      // Fail-safe: if the correct answer cannot be mapped onto a simplified
-      // option, serve the question unsimplified rather than unwinnable.
-      if (!newOptions.some((o) => o.id === newCorrect)) return question;
-      // Aggregate frequencies onto simplified ids
-      let newFreqs = question.gtoFrequencies;
-      if (question.gtoFrequencies) {
-        newFreqs = {};
-        for (const s of simplified) {
-          const key = s.id || s.action;
-          newFreqs[key] = memberIds(s).reduce(
-            (sum, m) => sum + (question.gtoFrequencies[m] || 0),
-            0
-          );
-        }
-      }
-      // GTOW parity #32: aggregate per-action EVs onto the simplified ids too.
-      // Options, correctAnswer and gtoFrequencies were all remapped above, but
-      // actionEVs was passed through untouched by the `...question` spread —
-      // so after any Simple/Grouped simplification every EV lookup (the
-      // per-button EV chips, the action-vs-optimal panel, and
-      // calculateRealEVLoss) missed, because it was keyed by original solver
-      // ids like 'b33' while the UI now asked for 'bet'.
-      //
-      // A grouped option means "play this group's mix", so its EV is the
-      // frequency-weighted average of its members. When every member sits at
-      // 0% there is no mix to weight, and the group's value is the best you
-      // could do inside it — so fall back to the max.
-      const remapEVs = (evs) => {
-        if (!evs || typeof evs !== 'object') return evs;
-        const out = {};
-        for (const s of simplified) {
-          const key = s.id || s.action;
-          const members = memberIds(s).filter((m) => typeof evs[m] === 'number');
-          if (members.length === 0) continue;
-          let weighted = 0;
-          let totalFreq = 0;
-          let best = -Infinity;
-          for (const m of members) {
-            const f = question.gtoFrequencies?.[m] || 0;
-            weighted += evs[m] * f;
-            totalFreq += f;
-            if (evs[m] > best) best = evs[m];
-          }
-          const value = totalFreq > 0 ? weighted / totalFreq : best;
-          out[key] = Math.round(value * 100) / 100;
-        }
-        return out;
-      };
-
-      const newActionEVs = remapEVs(question.actionEVs);
-      const newEvData = question.evData
-        ? { ...question.evData, actionEVs: remapEVs(question.evData.actionEVs) }
-        : question.evData;
-
-      return enforceTrainingQuestionContract({
-        ...question,
-        options: newOptions,
-        correctAnswer: newCorrect,
-        gtoFrequencies: newFreqs,
-        actionEVs: newActionEVs,
-        evData: newEvData,
-        _originalOptions: question.options,
-        _originalCorrect: origCorrect,
-        _originalFrequencies: question.gtoFrequencies,
-        _originalActionEVs: question.actionEVs,
-        _difficultyApplied: difficultyMode,
-      });
-    }
-  } catch (e) {
-    console.warn('[App] Handled exception:', e?.message || e);
-  }
-  return enforceTrainingQuestionContract(question);
-}
-
-
-/**
- * roadmap #7 — HAND SELECTION.
- * GTO Wizard lets you filter out trivial spots, or drill only close decisions.
- * A trivial spot is one the solver plays almost purely (one action at ~100%):
- * you learn nothing from being told to fold 72o. A close decision is one where
- * the top two actions sit within a few points of each other -- the spots that
- * actually decide winrate.
- *
- * Applied to the preloaded batch so it costs nothing per hand. Never returns an
- * empty queue: if a filter would leave nothing, the unfiltered set is served
- * rather than stranding the player on an empty session.
- *
- *   'all'      -> everything (default)
- *   'no-trivial' -> drop spots whose top action is >= 95%
- *   'close'    -> keep only spots where the top two actions are within 20 pts
- */
-export function applyHandSelection(questions, mode) {
-  if (!Array.isArray(questions) || questions.length === 0) return questions;
-  if (!mode || mode === 'all') return questions;
-
-  const sortedFreqs = (q) => {
-    const f = q?.gtoFrequencies;
-    if (!f || typeof f !== 'object') return [];
-    return Object.values(f)
-      .map((v) => Number(v) || 0)
-      .sort((a, b) => b - a);
-  };
-
-  const filtered = questions.filter((q) => {
-    const fr = sortedFreqs(q);
-    if (fr.length < 2) return mode !== 'close'; // no distribution to judge
-    const [top, second] = fr;
-    if (mode === 'no-trivial') return top < 95;
-    if (mode === 'close') return (top - second) <= 20;
-    return true;
-  });
-
-  return filtered.length > 0 ? filtered : questions;
-}
-
+import {
+  consumeOfflineQuestion,
+  createOfflineQuestionCacheContract,
+  getOfflineQuestions,
+  setOfflineQuestions,
+} from '../lib/training/offlineQuestionCache';
 
 /**
  * roadmap #3 — GAME MODE.
@@ -234,16 +41,22 @@ export function applyHandSelection(questions, mode) {
  *   'spot'   -> one decision per hand, never continue
  *   'street' -> like spot, but restricted to questions on `targetStreet`
  *
- * Like hand selection, the street filter never returns an empty queue.
+ * An explicit street is a hard contract. Selection happens on the server,
+ * before the attempt manifest is signed and before answer-bearing fields are
+ * stripped from the browser DTO. The browser may validate that contract, but
+ * it must never filter a signed attempt and silently redefine its hand count.
  */
 export function applyStreetFilter(questions, gameMode, targetStreet) {
   if (!Array.isArray(questions) || questions.length === 0) return questions;
   if (gameMode !== 'street' || !targetStreet) return questions;
   const want = String(targetStreet).toLowerCase();
-  const filtered = questions.filter(
-    (q) => String(q?.scenario?.street || '').toLowerCase() === want
+  const mismatched = questions.find(
+    (question) => String(question?.scenario?.street || '').toLowerCase() !== want
   );
-  return filtered.length > 0 ? filtered : questions;
+  if (mismatched) {
+    throw new Error(`The signed Training attempt contains a non-${want} question.`);
+  }
+  return questions;
 }
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
@@ -251,6 +64,58 @@ const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 
 // classifyMove returns lowercase classifications — compare in lowercase everywhere
 const MISTAKE_CLASSES = ['inaccuracy', 'wrong', 'blunder'];
+
+/**
+ * The browser used to instantiate the solver/question engine for optional review
+ * widgets. That engine also imports authored solver ranges, curated questions,
+ * psychology answers, and generation helpers, so the Arena bundle contained
+ * the grading oracle before a player submitted anything.
+ *
+ * Keep the old optional widget call surface inert while those reports move to
+ * an authenticated post-session endpoint. The only state retained here is a
+ * count of verdicts the server has already revealed. Unknown insight methods
+ * deliberately return null; they can neither author a question nor infer a
+ * correct action.
+ */
+function createServerFeedbackOnlyInsightBoundary() {
+  const revealedResults = [];
+  const unavailable = () => null;
+  const boundary = {
+    _recentResults: revealedResults,
+    _getSessionQuestionCount: () => revealedResults.length,
+    recordRecentResult(result) {
+      revealedResults.push(Boolean(result));
+      if (revealedResults.length > 100) revealedResults.shift();
+    },
+    resetSession() {
+      revealedResults.length = 0;
+    },
+    resetSessionDifficulty() {
+      revealedResults.length = 0;
+    },
+  };
+
+  return new Proxy(boundary, {
+    get(target, property) {
+      if (Reflect.has(target, property)) return Reflect.get(target, property);
+      return unavailable;
+    },
+  });
+}
+
+const RECOVERABLE_ATTEMPT_START_CODES = new Set([
+  'TRAINING_ATTEMPT_NONCE_CONFLICT',
+  'TRAINING_ATTEMPT_EXPIRED',
+  'TRAINING_ATTEMPT_NOT_OPEN',
+  'TRAINING_ATTEMPT_ALREADY_COMPLETED',
+]);
+
+function trainingApiResponseError(payload, response, fallback) {
+  const error = new Error(payload?.error || fallback || `Training request failed (${response?.status || 500}).`);
+  error.code = payload?.code || null;
+  error.status = response?.status || null;
+  return error;
+}
 
 // ---------------------------------------------------------------------------
 // Multi-table residual (#10, shared prefs): 'gma_difficulty' is ONE
@@ -260,8 +125,9 @@ const MISTAKE_CLASSES = ['inaccuracy', 'wrong', 'blunder'];
 // deal. A caller that mounts several arenas at once (pages/hub/training/
 // multi-table.js) now passes prefsScope: 'table' in initialConfig; a
 // table-scoped mount resolves difficulty from its OWN config and never from
-// the shared key. Single-table mounts (no prefsScope) keep the localStorage
-// live-read so mid-game panel changes still take effect there.
+// the shared key. GodModeArena now gives every mount a normalized config and
+// merges panel changes into it, so an explicit config always wins. The stored
+// key is only a backward-compatible default for older/direct callers.
 //
 // NOTE for the GodModeArena owner: for a table-scoped mount, the settings
 // panel's setDifficulty currently reaches this hook only through the shared
@@ -271,21 +137,224 @@ const MISTAKE_CLASSES = ['inaccuracy', 'wrong', 'blunder'];
 // the exact replacement.
 // ---------------------------------------------------------------------------
 function resolveSharedDifficulty(trainerConfig) {
-  if (trainerConfig?.prefsScope === 'table') {
-    return trainerConfig?.difficulty || 'standard';
-  }
+  if (trainerConfig?.difficulty) return trainerConfig.difficulty;
   return (
     (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) ||
     'standard'
   );
 }
 
+function resolveDeliveryDifficulty(trainerConfig) {
+  return trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
+}
+
+function createClientTrainingSessionId() {
+  const randomUUID = globalThis?.crypto?.randomUUID;
+  if (typeof randomUUID === 'function') return randomUUID.call(globalThis.crypto);
+  return `training-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function createChildTrainingSessionId(baseSessionId, purpose) {
+  const suffix = `${purpose}-${createClientTrainingSessionId()}`;
+  const base = normalizeExternalTrainingSessionId(baseSessionId) || 'training';
+  return `${base.slice(0, Math.max(1, 179 - suffix.length))}-${suffix}`.slice(0, 180);
+}
+
+function normalizeExternalTrainingSessionId(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.replace(/[^a-zA-Z0-9_+\-.]/g, '').slice(0, 180);
+  return normalized || null;
+}
+
+function createDeliveryFamilyKey(gameId, level, trainerConfig) {
+  return JSON.stringify({
+    gameId,
+    level: Math.max(1, Math.min(12, Number(level) || 1)),
+    difficulty: String(resolveDeliveryDifficulty(trainerConfig)).toLowerCase(),
+    gameMode: String(trainerConfig?.gameMode || 'full').toLowerCase(),
+    targetStreet: String(trainerConfig?.targetStreet || trainerConfig?.street || '').toLowerCase() || null,
+    handSelection: String(trainerConfig?.handSelection || 'all').toLowerCase(),
+    custom: isCustomTrainerConfig(trainerConfig) ? {
+      gameType: String(trainerConfig?.gameType || 'cash').toLowerCase(),
+      stackDepth: Number(trainerConfig?.stackDepth) || 100,
+      position: String(trainerConfig?.position || 'any').toUpperCase(),
+      villainPosition: String(trainerConfig?.villainPosition || 'any').toUpperCase(),
+      actionScenario: String(trainerConfig?.actionScenario || 'any').toUpperCase(),
+      handClass: String(trainerConfig?.handClass || 'all').toLowerCase(),
+      boardTexture: String(trainerConfig?.boardTexture || 'any').toLowerCase(),
+      spotType: String(trainerConfig?.spotType || 'any').toLowerCase(),
+      questionsCount: Number(trainerConfig?.questionsCount) || QUESTIONS_PER_LEVEL,
+    } : null,
+  });
+}
+
+function createDeliveryContractKey(gameId, sessionId, trainerConfig, level = 1) {
+  return JSON.stringify({
+    sessionId,
+    family: createDeliveryFamilyKey(gameId, level, trainerConfig),
+  });
+}
+
+const PRE_ANSWER_PRIVATE_KEYS = new Set([
+  'actionevs', 'answer', 'answerkey', 'bestaction', 'classification',
+  'correct', 'correctanswer', 'correctanswerid', 'correctanswertext',
+  'evdata', 'explanation', 'feedback', 'frequencies', 'frequency',
+  'gtofrequencies', 'iscorrect', 'nextstreetcontinuation',
+  'nextstreetcontinuationaction', 'optimalaction', 'preferredaction',
+  'rawfrequencies', 'rngguidance', 'solution', 'solverstrategy',
+  'structuredexplanation', 'targetactionid', 'targetactiontext',
+]);
+
+function containsPreAnswerGradingData(value) {
+  if (Array.isArray(value)) return value.some(containsPreAnswerGradingData);
+  if (!value || typeof value !== 'object') return false;
+  return Object.entries(value).some(([key, child]) => {
+    const normalizedKey = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+    return PRE_ANSWER_PRIVATE_KEYS.has(normalizedKey)
+      || normalizedKey.startsWith('correct')
+      || normalizedKey.startsWith('bestaction')
+      || normalizedKey.startsWith('preferredaction')
+      || normalizedKey.startsWith('optimalaction')
+      || normalizedKey.startsWith('nextstreetcontinuation')
+      || normalizedKey.startsWith('targetaction')
+      || normalizedKey.endsWith('explanation')
+      || normalizedKey.endsWith('frequencies')
+      || normalizedKey.endsWith('actionevs')
+      || containsPreAnswerGradingData(child);
+  });
+}
+
+/**
+ * A question may only be graded when it came from the authenticated delivery
+ * boundary. Besides catching accidental unsigned mocks/fallbacks, this makes
+ * sure every online request in one mounted Arena remains bound to the same
+ * server-visible session.
+ */
+function assertSignedTrainingDelivery(payload, expectedSessionId, expectedAttempt = null) {
+  const questions = Array.isArray(payload?.questions)
+    ? payload.questions
+    : payload?.question ? [payload.question] : [];
+  if (String(payload?.sessionId || '') !== String(expectedSessionId || '')) {
+    throw new Error('Training delivery returned a mismatched session. Reload the Arena.');
+  }
+  if (!payload?.attemptId) {
+    throw new Error('Training delivery returned without an attempt identity. Reload the Arena.');
+  }
+  const seenSubmissionIds = new Set();
+  const seenHandOrdinals = new Set();
+  let attemptContract = null;
+  for (const question of questions) {
+    if (containsPreAnswerGradingData(question)) {
+      throw new Error('Training delivery exposed private grading data. Reload the Arena.');
+    }
+    const context = question?._gradingContext;
+    if (
+      !context?.receipt
+      || !context?.submissionId
+      || !context?.sessionId
+      || !context?.attemptId
+      || !context?.snapshotKey
+      || !context?.sessionKind
+      || !Number.isInteger(Number(context?.sessionTargetHands))
+      || Number(context.sessionTargetHands) < 1
+      || !Number.isInteger(Number(context?.handOrdinal))
+      || Number(context.handOrdinal) < 1
+      || Number(context.handOrdinal) > Number(context.sessionTargetHands)
+      || !Number.isInteger(Number(context?.decisionOrdinal))
+      || Number(context.decisionOrdinal) < 1
+      || typeof context?.countsTowardCompletion !== 'boolean'
+      || typeof context?.practiceOnly !== 'boolean'
+    ) {
+      throw new Error('Training delivery returned an unsigned question. Reload the Arena.');
+    }
+    const expiresAt = Date.parse(context.expiresAt || '');
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      throw new Error('Training delivery returned an expired question. Reload the Arena.');
+    }
+    if (String(context.sessionId) !== String(expectedSessionId || '')) {
+      throw new Error('Training question belongs to a different session. Reload the Arena.');
+    }
+    if (String(context.attemptId) !== String(payload.attemptId)) {
+      throw new Error('Training question belongs to a different attempt. Reload the Arena.');
+    }
+    const contractKey = JSON.stringify({
+      sessionKind: context.sessionKind,
+      sessionTargetHands: Number(context.sessionTargetHands),
+      practiceOnly: context.practiceOnly,
+    });
+    if (attemptContract && attemptContract !== contractKey) {
+      throw new Error('Training questions disagree about their attempt contract. Reload the Arena.');
+    }
+    attemptContract = contractKey;
+    if (
+      seenSubmissionIds.has(String(context.submissionId))
+      || seenHandOrdinals.has(Number(context.handOrdinal))
+    ) {
+      throw new Error('Training delivery repeated a signed hand. Reload the Arena.');
+    }
+    seenSubmissionIds.add(String(context.submissionId));
+    seenHandOrdinals.add(Number(context.handOrdinal));
+    if (
+      payload?.targetHands !== undefined
+      && Number(payload.targetHands) !== Number(context.sessionTargetHands)
+    ) {
+      throw new Error('Training delivery returned a mismatched attempt target. Reload the Arena.');
+    }
+    if (Boolean(context.countsTowardCompletion) !== (Number(context.decisionOrdinal) === 1)) {
+      throw new Error('Training question has an invalid decision count contract. Reload the Arena.');
+    }
+    if (expectedAttempt && (
+      (expectedAttempt.attemptId
+        && String(context.attemptId) !== String(expectedAttempt.attemptId))
+      || (expectedAttempt.snapshotKey
+        && String(context.snapshotKey) !== String(expectedAttempt.snapshotKey))
+      || (expectedAttempt.handOrdinal !== undefined
+        && Number(context.handOrdinal) !== Number(expectedAttempt.handOrdinal))
+      || (expectedAttempt.decisionOrdinal !== undefined
+        && Number(context.decisionOrdinal) !== Number(expectedAttempt.decisionOrdinal))
+    )) {
+      throw new Error('Training continuation does not match the active hand attempt.');
+    }
+  }
+  return questions;
+}
+
+function assertRecordedAnswerAcknowledgement(payload, submission) {
+  if (
+    payload?.success !== true
+    || String(payload?.submissionId || '') !== String(submission?.submissionId || '')
+    || String(payload?.sessionId || '') !== String(submission?.sessionId || '')
+    || String(payload?.attemptId || '') !== String(submission?.attemptId || '')
+    || String(payload?.snapshotKey || '') !== String(submission?.snapshotKey || '')
+    || Number(payload?.handOrdinal) !== Number(submission?.handOrdinal)
+    || Number(payload?.decisionOrdinal) !== Number(submission?.decisionOrdinal)
+    || typeof payload?.countsTowardCompletion !== 'boolean'
+    || typeof payload?.practiceOnly !== 'boolean'
+    || Boolean(payload?.countsTowardCompletion) !== Boolean(submission?.countsTowardCompletion)
+    || Boolean(payload?.practiceOnly) !== Boolean(submission?.practiceOnly)
+  ) {
+    throw new Error('The Training server did not acknowledge this exact signed answer.');
+  }
+}
+
 export default function useGTOTrainer(
   gameId,
   engineType = 'PIO',
   initialLevel = 1,
-  trainerConfig = null
+  trainerConfig = null,
+  externalSessionId = null,
 ) {
+  // Session analytics must be isolated per Arena mount. Multi-table Training
+  // renders several hooks concurrently; sharing the module singleton allowed
+  // one table's reset and answers to erase or contaminate every other table.
+  const postAnswerInsightsRef = useRef(null);
+  if (!postAnswerInsightsRef.current) {
+    postAnswerInsightsRef.current = createServerFeedbackOnlyInsightBoundary();
+  }
+  // Backward-compatible name for the optional post-answer widget wrappers
+  // below. This is the inert boundary above, never the solver/question engine.
+  const postAnswerInsights = postAnswerInsightsRef.current;
+
   // If custom trainer config provided, use its questions count
   const baseQuestionsPerLevel = trainerConfig?.questionsCount || QUESTIONS_PER_LEVEL;
   const [effectiveQuestionsPerLevel, setEffectiveQuestionsPerLevel] =
@@ -301,7 +370,7 @@ export default function useGTOTrainer(
   // see "Retry Level 2". `selectedLevel` is the immutable level the user
   // entered with: use it for persistence/thresholds/labels; keep `level` as
   // the adaptive CONTENT difficulty only. ═══
-  const [selectedLevel] = useState(initialLevel);
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel);
   const [loading, setLoading] = useState(true); // Start true until pre-load completes
   const [error, setError] = useState(null);
 
@@ -314,7 +383,89 @@ export default function useGTOTrainer(
   // only after the player explicitly clicks Next.
   const refreshRequiredQuestionIdsRef = useRef(new Set());
   const pendingAnswerPersistenceRef = useRef(null);
-  const nextQuestionInFlightRef = useRef(false);
+  const nextQuestionInFlightRef = useRef(null);
+  const submitAnswerInFlightRef = useRef(null);
+  const [answerSaveError, setAnswerSaveError] = useState(null);
+  const [answerSaveRetrying, setAnswerSaveRetrying] = useState(false);
+  const [answerSaveRequiresRefresh, setAnswerSaveRequiresRefresh] = useState(false);
+  const trainingSessionIdRef = useRef(null);
+  const trainingSessionGameIdRef = useRef(null);
+  const externalSessionIdRef = useRef(null);
+  const loadedDeliveryContractRef = useRef(null);
+  const loadedSessionConfigContractRef = useRef(null);
+  const pendingSessionConfigContractRef = useRef(null);
+  const deliveryGenerationRef = useRef(0);
+  const terminalRecoveryBudgetRef = useRef({ familyKey: null, used: false });
+  const runtimeIdentityChangedRef = useRef(false);
+  const resetAttemptRuntimeRef = useRef(() => {});
+  const [, bumpTrainingSessionRevision] = useState(0);
+  const normalizedExternalSessionId = normalizeExternalTrainingSessionId(externalSessionId);
+  if (
+    !trainingSessionIdRef.current
+    || trainingSessionGameIdRef.current !== gameId
+    || externalSessionIdRef.current !== normalizedExternalSessionId
+  ) {
+    if (trainingSessionIdRef.current) runtimeIdentityChangedRef.current = true;
+    trainingSessionIdRef.current = normalizedExternalSessionId || createClientTrainingSessionId();
+    trainingSessionGameIdRef.current = gameId;
+    externalSessionIdRef.current = normalizedExternalSessionId;
+    loadedDeliveryContractRef.current = null;
+    loadedSessionConfigContractRef.current = null;
+    pendingSessionConfigContractRef.current = null;
+    terminalRecoveryBudgetRef.current = { familyKey: null, used: false };
+    deliveryGenerationRef.current += 1;
+  }
+  const trainingSessionId = trainingSessionIdRef.current;
+
+  const activateFreshTrainingSession = useCallback((purpose, explicitSessionId = null) => {
+    const nextSessionId = normalizeExternalTrainingSessionId(explicitSessionId)
+      || createChildTrainingSessionId(trainingSessionIdRef.current, purpose);
+    trainingSessionIdRef.current = nextSessionId;
+    trainingSessionGameIdRef.current = gameId;
+    externalSessionIdRef.current = normalizedExternalSessionId;
+    loadedDeliveryContractRef.current = null;
+    deliveryGenerationRef.current += 1;
+    refreshRequiredQuestionIdsRef.current.clear();
+    nextLevelCacheRef.current = null;
+    if (purpose !== 'attempt-recovery') {
+      terminalRecoveryBudgetRef.current = { familyKey: null, used: false };
+    }
+    bumpTrainingSessionRevision((revision) => revision + 1);
+    return nextSessionId;
+  }, [gameId, normalizedExternalSessionId]);
+
+  const captureTrainingLease = useCallback(() => ({
+    generation: deliveryGenerationRef.current,
+    sessionId: trainingSessionIdRef.current,
+    gameId,
+  }), [gameId]);
+
+  const isTrainingLeaseActive = useCallback((lease) => Boolean(
+    lease
+    && lease.generation === deliveryGenerationRef.current
+    && lease.sessionId === trainingSessionIdRef.current
+    && lease.gameId === trainingSessionGameIdRef.current
+  ), []);
+
+  const recoverTerminalAttempt = useCallback((error, effectiveLevel, requestLease) => {
+    if (!isTrainingLeaseActive(requestLease)) return false;
+    const familyKey = createDeliveryFamilyKey(gameId, effectiveLevel, trainerConfig);
+    const budget = terminalRecoveryBudgetRef.current;
+    if (budget.familyKey === familyKey && budget.used) {
+      setPreloadComplete(false);
+      setLoading(false);
+      setError(
+        error?.message
+        || 'This Training attempt could not be refreshed automatically. Start a new session.',
+      );
+      return false;
+    }
+    terminalRecoveryBudgetRef.current = { familyKey, used: true };
+    resetAttemptRuntimeRef.current();
+    activateFreshTrainingSession('attempt-recovery');
+    setLoading(true);
+    return true;
+  }, [activateFreshTrainingSession, gameId, isTrainingLeaseActive, trainerConfig]);
 
   // Score tracking
   const [correctCount, setCorrectCount] = useState(0);
@@ -331,11 +482,13 @@ export default function useGTOTrainer(
   // Game completion state
   const [gameComplete, setGameComplete] = useState(false);
   const [levelPassed, setLevelPassed] = useState(false);
+  const [diamondsEarned, setDiamondsEarned] = useState(0);
 
   // GTOW scoring integration
   const gtowScoring = useGTOWScore();
   const [lastMoveClassification, setLastMoveClassification] = useState(null);
-  const [lastEVLoss, setLastEVLoss] = useState(0);
+  const [lastEVLoss, setLastEVLoss] = useState(null);
+  const [lastEVLossMeasured, setLastEVLossMeasured] = useState(false);
   const [lastGTOFrequencies, setLastGTOFrequencies] = useState(null);
 
   // ═══ MULTI-STREET STATE ═══
@@ -344,6 +497,21 @@ export default function useGTOTrainer(
   const [handSummary, setHandSummary] = useState(null);
   const [lastSelectedAction, setLastSelectedAction] = useState(null);
   const multiStreetHandRef = useRef(null);
+
+  const activateNewTrainingQuestion = useCallback((question) => {
+    if (!question) throw new Error('A signed Training question is required.');
+    const scenario = question.scenario || {};
+    const street = String(scenario.street || 'flop').toLowerCase();
+    // Continuation eligibility is deliberately absent from the blind DTO: it
+    // reveals which answer keeps a solved line alive. The manager is created
+    // only after record-question persists the decision and reveals that
+    // canonical action in its feedback response.
+    multiStreetHandRef.current = null;
+    setIsMultiStreetActive(false);
+    setCurrentStreet(street);
+    setCurrentQuestion(question);
+    return question;
+  }, []);
 
   // ═══ MISTAKE REPLAY STATE ═══
   const mistakeQuestionsRef = useRef([]);
@@ -371,6 +539,12 @@ export default function useGTOTrainer(
 
   // Get user ID for no-repeat tracking
   const userId = getAuthUser()?.id;
+  const offlineCacheContract = createOfflineQuestionCacheContract({
+    difficulty: resolveDeliveryDifficulty(trainerConfig),
+    gameMode: trainerConfig?.gameMode || 'full',
+    handSelection: trainerConfig?.handSelection || 'all',
+    targetStreet: trainerConfig?.targetStreet || trainerConfig?.street || null,
+  });
 
   /**
    * ═══ PHASE 14: Background prefetch for next level ═══
@@ -379,67 +553,114 @@ export default function useGTOTrainer(
    */
   const prefetchNextLevel = useCallback(async () => {
     if (prefetchTriggeredRef.current) return;
-    if (level >= TOTAL_LEVELS) return; // Max level, nothing to prefetch
+    if (selectedLevel >= TOTAL_LEVELS) return; // Max campaign level, nothing to prefetch
     if (isCustomTrainerConfig(trainerConfig)) return; // Custom trainers don't auto-advance
 
     prefetchTriggeredRef.current = true;
-    const nextLevel = level + 1;
+    const nextLevel = selectedLevel + 1;
+    const prefetchSessionId = createChildTrainingSessionId(
+      trainingSessionIdRef.current,
+      `prefetch-L${nextLevel}`,
+    );
+    const requestLease = captureTrainingLease();
 
     try {
       const params = new URLSearchParams({
         gameId,
         level: nextLevel.toString(),
         count: effectiveQuestionsPerLevel.toString(),
+        difficulty: resolveDeliveryDifficulty(trainerConfig),
+        sessionId: prefetchSessionId,
+        gameMode: trainerConfig?.gameMode || 'full',
+        handSelection: trainerConfig?.handSelection || 'all',
       });
+      if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
+        params.set('targetStreet', trainerConfig.targetStreet);
+      }
 
       const response = await authedFetch(`/api/training/batch-preload?${params}`);
+      if (!isTrainingLeaseActive(requestLease)) return;
 
       const textResponse = await response.text();
+      if (!isTrainingLeaseActive(requestLease)) return;
       const data = JSON.parse(textResponse);
 
       if (response.ok && data.questions && data.questions.length > 0) {
-        nextLevelCacheRef.current = { level: nextLevel, questions: data.questions };
+        if (!isTrainingLeaseActive(requestLease)) return;
+        assertSignedTrainingDelivery(data, prefetchSessionId);
+        const selected = applyStreetFilter(
+          data.questions,
+          trainerConfig?.gameMode,
+          trainerConfig?.targetStreet,
+        );
+        if (selected.length === 0) return;
+        nextLevelCacheRef.current = {
+          level: nextLevel,
+          sessionId: prefetchSessionId,
+          questions: selected,
+        };
         console.debug(
-          `[GTOTrainer] 🚀 Prefetched ${data.questions.length} questions for level ${nextLevel}`
+          `[GTOTrainer] 🚀 Prefetched ${selected.length} questions for level ${nextLevel}`
         );
       }
     } catch (err) {
+      if (!isTrainingLeaseActive(requestLease)) return;
       console.warn('[App] Handled exception:', err?.message || err);
     }
-  }, [gameId, level, effectiveQuestionsPerLevel, trainerConfig]);
+  }, [captureTrainingLease, effectiveQuestionsPerLevel, gameId, isTrainingLeaseActive, selectedLevel, trainerConfig]);
 
   /**
    * Resolve the active difficulty mode (Simple/Grouped/Standard) —
    * same resolution order used everywhere a question is served.
    */
   const resolveDifficultyMode = useCallback(() => {
-    return trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
+    return resolveDeliveryDifficulty(trainerConfig);
   }, [trainerConfig]);
 
   /**
    * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
    * Eliminates all Grok AI dependency — pure solver data only
    */
-  const fetchSingleQuestion = useCallback(async (levelOverride = null) => {
-    if (!gameId) return;
+  const fetchSingleQuestion = useCallback(async (
+    levelOverride = null,
+    handOrdinalOverride = questionNumber,
+    { throwOnError = false } = {},
+  ) => {
+    if (!gameId) {
+      const missingGameError = new Error('A Training game is required to load a signed hand.');
+      if (throwOnError) throw missingGameError;
+      return null;
+    }
 
-    const effectiveLevel = levelOverride ?? level;
+    const effectiveLevel = levelOverride ?? selectedLevel;
+    const requestLease = captureTrainingLease();
+    const requestSessionId = requestLease.sessionId;
+    if (!isTrainingLeaseActive(requestLease) || trainingSessionId !== requestSessionId) return null;
     setLoading(true);
     setError(null);
-    setShowFeedback(false);
 
     try {
       const params = new URLSearchParams({
         gameId,
         level: effectiveLevel.toString(),
         count: '1',
+        difficulty: resolveDeliveryDifficulty(trainerConfig),
+        sessionId: trainingSessionId,
+        handOrdinalStart: Math.max(1, Number(handOrdinalOverride) || 1).toString(),
+        gameMode: trainerConfig?.gameMode || 'full',
+        handSelection: trainerConfig?.handSelection || 'all',
       });
+      if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
+        params.set('targetStreet', trainerConfig.targetStreet);
+      }
 
       const response = await authedFetch(`/api/training/batch-preload?${params}`);
+      if (!isTrainingLeaseActive(requestLease)) return null;
 
       // Safe JSON parsing
       let data;
       const textResponse = await response.text();
+      if (!isTrainingLeaseActive(requestLease)) return null;
       try {
         data = JSON.parse(textResponse);
       } catch (e) {
@@ -448,17 +669,183 @@ export default function useGTOTrainer(
       }
 
       if (!response.ok || !data.questions || data.questions.length === 0) {
-        throw new Error(data.error || 'No solver data available');
+        throw trainingApiResponseError(data, response, 'No solver data available');
       }
+      if (!isTrainingLeaseActive(requestLease)) return null;
+      assertSignedTrainingDelivery(data, trainingSessionId, {
+        handOrdinal: Math.max(1, Number(handOrdinalOverride) || 1),
+        decisionOrdinal: 1,
+      });
 
-      setCurrentQuestion(applyDifficultyToQuestion(data.questions[0], resolveDifficultyMode()));
+      const selected = applyStreetFilter(
+        data.questions,
+        trainerConfig?.gameMode,
+        trainerConfig?.targetStreet,
+      );
+      if (selected.length === 0) {
+        throw new Error(`No ${trainerConfig.targetStreet} question is available for this game.`);
+      }
+      const signedTargetHands = Number(data.targetHands);
+      if (
+        !Number.isInteger(signedTargetHands)
+        || signedTargetHands < 1
+        || Number(selected[0]?._gradingContext?.sessionTargetHands) !== signedTargetHands
+      ) {
+        throw new Error('The signed Training hand does not match its attempt target.');
+      }
+      terminalRecoveryBudgetRef.current = {
+        familyKey: createDeliveryFamilyKey(gameId, effectiveLevel, trainerConfig),
+        used: false,
+      };
+      const activatedQuestion = activateNewTrainingQuestion(selected[0]);
+      setEffectiveQuestionsPerLevel(signedTargetHands);
+      setShowFeedback(false);
+      return activatedQuestion;
     } catch (err) {
+      if (!isTrainingLeaseActive(requestLease)) return null;
+      if (RECOVERABLE_ATTEMPT_START_CODES.has(err?.code)) {
+        recoverTerminalAttempt(err, effectiveLevel, requestLease);
+        return null;
+      }
       console.warn('[GTOTrainer] Fetch error:', err);
       setError(err.message);
+      if (throwOnError) throw err;
+      return null;
     } finally {
-      setLoading(false);
+      if (isTrainingLeaseActive(requestLease)) setLoading(false);
     }
-  }, [gameId, level, resolveDifficultyMode]);
+  }, [activateNewTrainingQuestion, captureTrainingLease, gameId, isTrainingLeaseActive, questionNumber, recoverTerminalAttempt, selectedLevel, trainerConfig, trainingSessionId]);
+
+  const reissueSignedQuestions = useCallback(async (
+    sourceQuestions,
+    sessionIdOverride = trainingSessionId,
+    levelOverride = selectedLevel,
+    {
+      sessionKind = 'campaign',
+      handOrdinalStart = 1,
+      parentAttemptId = null,
+      attemptId = null,
+    } = {},
+  ) => {
+    const requestLease = captureTrainingLease();
+    if (!isTrainingLeaseActive(requestLease)) {
+      throw new Error('The Training session changed before questions could be reissued.');
+    }
+    const questionIds = Array.from(new Set(
+      (Array.isArray(sourceQuestions) ? sourceQuestions : [])
+        .map((question) => String(question?.id || ''))
+        .filter(Boolean),
+    ));
+    if (questionIds.length === 0) throw new Error('No canonical questions are available to reissue.');
+
+    const reissueBody = {
+      gameId,
+      questionIds,
+      level: levelOverride,
+      difficulty: resolveDeliveryDifficulty(trainerConfig),
+      sessionId: sessionIdOverride,
+      sessionKind,
+      parentAttemptId,
+      requestedHands: questionIds.length,
+      handOrdinalStart,
+      gameMode: trainerConfig?.gameMode || 'full',
+      handSelection: trainerConfig?.handSelection || 'all',
+      targetStreet: trainerConfig?.targetStreet || trainerConfig?.street || null,
+    };
+    if (attemptId) reissueBody.attemptId = attemptId;
+    const immutableBody = JSON.stringify(reissueBody);
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await authedFetch('/api/training/reissue-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: immutableBody,
+      });
+      if (!isTrainingLeaseActive(requestLease)) {
+        throw new Error('The Training session changed while questions were being reissued.');
+      }
+      let payload = null;
+      try { payload = await response.json(); } catch (_) { /* handled below */ }
+      if (!isTrainingLeaseActive(requestLease)) {
+        throw new Error('The Training session changed while questions were being reissued.');
+      }
+      if (response.ok && Array.isArray(payload?.questions) && payload.questions.length > 0) {
+        assertSignedTrainingDelivery(payload, sessionIdOverride);
+        return payload.questions;
+      }
+      lastError = new Error(payload?.error || `Question reissue failed (${response.status})`);
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable || attempt === 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)));
+      if (!isTrainingLeaseActive(requestLease)) {
+        throw new Error('The Training session changed while questions were being reissued.');
+      }
+    }
+    throw lastError || new Error('Question reissue failed.');
+  }, [captureTrainingLease, gameId, isTrainingLeaseActive, selectedLevel, trainerConfig, trainingSessionId]);
+
+  const recoverCachedQuestions = useCallback(async (cachedQuestions, effectiveLevel) => {
+    if (!Array.isArray(cachedQuestions) || cachedQuestions.length === 0) return null;
+    const cachedSessionId = String(cachedQuestions[0]?._gradingContext?.sessionId || '');
+    const cachedAttemptId = String(cachedQuestions[0]?._gradingContext?.attemptId || '');
+    const cachedSessionKind = String(cachedQuestions[0]?._gradingContext?.sessionKind || '');
+    const cachedTargetHands = Number(
+      cachedQuestions[0]?._gradingContext?.sessionTargetHands,
+    );
+    const cachedPayload = {
+      success: true,
+      sessionId: cachedSessionId,
+      attemptId: cachedAttemptId,
+      targetHands: cachedTargetHands,
+      questions: cachedQuestions,
+    };
+    assertSignedTrainingDelivery(cachedPayload, cachedSessionId);
+    const sameSession = cachedQuestions.every(
+      (question) => String(question?._gradingContext?.sessionId || '') === trainingSessionId,
+    );
+    if (sameSession) {
+      return cachedPayload;
+    }
+
+    let recoveredQuestions = cachedQuestions;
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+      recoveredQuestions = await reissueSignedQuestions(
+        cachedQuestions,
+        cachedSessionId,
+        effectiveLevel,
+        {
+          sessionKind: cachedSessionKind,
+          attemptId: cachedAttemptId,
+        },
+      );
+      await setOfflineQuestions(
+        gameId,
+        effectiveLevel,
+        recoveredQuestions,
+        userId,
+        offlineCacheContract,
+      );
+    }
+
+    // The database binds every persisted decision to the attempt's original
+    // client nonce. Adopt that immutable identity and let the delivery effect
+    // restart under it; never move cached hands into a newly minted campaign.
+    resetAttemptRuntimeRef.current();
+    activateFreshTrainingSession('offline-resume', cachedSessionId);
+    return {
+      ...cachedPayload,
+      questions: recoveredQuestions,
+      recovered: true,
+      adoptedSession: true,
+    };
+  }, [
+    activateFreshTrainingSession,
+    gameId,
+    offlineCacheContract,
+    reissueSignedQuestions,
+    trainingSessionId,
+    userId,
+  ]);
 
   /**
    * 🚀 BATCH PRE-LOAD ALL QUESTIONS AT ONCE
@@ -470,7 +857,10 @@ export default function useGTOTrainer(
 
     // levelOverride avoids stale-closure fetches when callers change the
     // level state and preload in the same tick (startNextLevel/resetGame)
-    const effectiveLevel = levelOverride ?? level;
+    const effectiveLevel = levelOverride ?? selectedLevel;
+    const requestLease = captureTrainingLease();
+    const requestSessionId = requestLease.sessionId;
+    if (!isTrainingLeaseActive(requestLease) || trainingSessionId !== requestSessionId) return;
     setLoading(true);
     setError(null);
 
@@ -481,9 +871,15 @@ export default function useGTOTrainer(
       if (isCustomTrainerConfig(trainerConfig)) {
         // CUSTOM TRAINER MODE — use custom-train API with detailed config
         params = new URLSearchParams({
+          gameId,
           gameType: trainerConfig.gameType || 'cash',
           stackDepth: (trainerConfig.stackDepth || 100).toString(),
           count: (trainerConfig.questionsCount || effectiveQuestionsPerLevel).toString(),
+          level: effectiveLevel.toString(),
+          difficulty: resolveDeliveryDifficulty(trainerConfig),
+          sessionId: trainingSessionId,
+          gameMode: trainerConfig.gameMode || 'full',
+          handSelection: trainerConfig.handSelection || 'all',
         });
         if (trainerConfig.position && trainerConfig.position !== 'any') {
           params.set('position', trainerConfig.position);
@@ -494,8 +890,9 @@ export default function useGTOTrainer(
         if (trainerConfig.actionScenario) {
           params.set('actionScenario', trainerConfig.actionScenario);
         }
-        if (trainerConfig.street) {
-          params.set('street', trainerConfig.street);
+        const customTargetStreet = trainerConfig.targetStreet || trainerConfig.street;
+        if (customTargetStreet) {
+          params.set('street', customTargetStreet);
         }
         if (trainerConfig.handClass) {
           params.set('handClass', trainerConfig.handClass);
@@ -511,6 +908,9 @@ export default function useGTOTrainer(
         if (trainerConfig.boardTexture) {
           params.set('boardTexture', trainerConfig.boardTexture);
         }
+        if (trainerConfig.spotType) {
+          params.set('spotType', trainerConfig.spotType);
+        }
         apiUrl = `/api/training/custom-train?${params}`;
         console.debug(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
       } else {
@@ -519,6 +919,9 @@ export default function useGTOTrainer(
           gameId,
           level: effectiveLevel.toString(),
           count: effectiveQuestionsPerLevel.toString(),
+          sessionId: trainingSessionId,
+          gameMode: trainerConfig?.gameMode || 'full',
+          handSelection: trainerConfig?.handSelection || 'all',
         });
 
         // ═══ PHASE 15: Pass weak-spot targeting hints if available ═══
@@ -538,10 +941,12 @@ export default function useGTOTrainer(
           );
         }
 
-        // ═══ PHASE 19: Pass difficulty hint if set in localStorage ═══
-        if (typeof window !== 'undefined') {
-          const diff = localStorage.getItem('gma_difficulty');
-          if (diff && diff !== 'standard') params.set('difficulty', diff);
+        // Session configuration is authoritative. Reading localStorage here
+        // raced the Arena's persistence effect, so the first question after a
+        // Hub launch could be generated for the previous difficulty.
+        params.set('difficulty', resolveDeliveryDifficulty(trainerConfig));
+        if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
+          params.set('targetStreet', trainerConfig.targetStreet);
         }
 
         apiUrl = `/api/training/batch-preload?${params}`;
@@ -556,10 +961,17 @@ export default function useGTOTrainer(
       const browserIsOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
       if (isStandardSession && browserIsOffline) {
-        const cachedQuestions = await getOfflineQuestions(gameId, effectiveLevel);
+        const cachedQuestions = await getOfflineQuestions(
+          gameId,
+          effectiveLevel,
+          userId,
+          offlineCacheContract,
+        );
+        if (!isTrainingLeaseActive(requestLease)) return;
         if (cachedQuestions.length > 0) {
-          data = { success: true, questions: cachedQuestions, offline: true };
-          console.debug(`[GTOTrainer] Loaded ${cachedQuestions.length} offline questions`);
+          data = await recoverCachedQuestions(cachedQuestions, effectiveLevel);
+          if (!isTrainingLeaseActive(requestLease)) return;
+          console.debug(`[GTOTrainer] Recovered ${cachedQuestions.length} signed session questions`);
         }
       }
 
@@ -571,13 +983,16 @@ export default function useGTOTrainer(
         // fail closed immediately and use the existing recovery path below.
         for (let attempt = 0; attempt < 3; attempt += 1) {
           response = await authedFetch(apiUrl);
+          if (!isTrainingLeaseActive(requestLease)) return;
           const retryable = response.status === 429 || response.status >= 500;
           if (response.ok || !retryable || attempt === 2) break;
           await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)));
+          if (!isTrainingLeaseActive(requestLease)) return;
         }
 
         // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
         const textResponse = await response.text();
+        if (!isTrainingLeaseActive(requestLease)) return;
         try {
           data = JSON.parse(textResponse);
         } catch (e) {
@@ -588,75 +1003,153 @@ export default function useGTOTrainer(
       }
 
       if ((response && !response.ok) || !data.questions || data.questions.length === 0) {
+        const responseError = trainingApiResponseError(
+          data,
+          response,
+          isStandardSession
+            ? 'Training questions could not be delivered.'
+            : 'Custom Training questions could not be delivered.',
+        );
+        if (RECOVERABLE_ATTEMPT_START_CODES.has(responseError.code)) throw responseError;
+        if (!isStandardSession) {
+          throw responseError;
+        }
         console.warn('[GTOTrainer] Pre-load failed, using single-question mode');
         setPreloadComplete(false);
         setLoading(false);
-        return fetchSingleQuestion(effectiveLevel);
+        if (!isTrainingLeaseActive(requestLease)) return;
+        return fetchSingleQuestion(effectiveLevel, questionNumber);
       }
 
-      if (isStandardSession && !data.offline) {
-        await setOfflineQuestions(gameId, effectiveLevel, data.questions);
+      if (!isTrainingLeaseActive(requestLease)) return;
+      assertSignedTrainingDelivery(data, trainingSessionId);
+
+      if (isStandardSession) {
+        if (!isTrainingLeaseActive(requestLease)) return;
+        await setOfflineQuestions(
+          gameId,
+          effectiveLevel,
+          data.questions,
+          userId,
+          offlineCacheContract,
+        );
+        if (!isTrainingLeaseActive(requestLease)) return;
       }
 
       console.debug(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
 
-      // roadmap #7 — hand selection filter, applied once to the batch.
+      // Hand/street selection was already applied before this immutable
+      // attempt was signed. Validate the visible street only; never filter the
+      // blind DTO and redefine the server-owned target.
       const selected = applyStreetFilter(
-        applyHandSelection(data.questions, trainerConfig?.handSelection),
+        data.questions,
         trainerConfig?.gameMode,
         trainerConfig?.targetStreet
       );
-      if (selected.length !== data.questions.length) {
-        console.debug(`[GTOTrainer] hand selection '${trainerConfig?.handSelection}': ${data.questions.length} -> ${selected.length}`);
+      if (selected.length === 0) {
+        throw new Error(`No ${trainerConfig.targetStreet} questions are available for this game.`);
       }
+      if (selected.length !== data.questions.length) {
+        throw new Error('The signed Training attempt changed size in the browser.');
+      }
+      const signedTargetHands = Number(data.targetHands);
+      if (!Number.isInteger(signedTargetHands) || selected.length !== signedTargetHands) {
+        throw new Error('The signed Training attempt does not contain its complete hand target.');
+      }
+
+      terminalRecoveryBudgetRef.current = {
+        familyKey: createDeliveryFamilyKey(gameId, effectiveLevel, trainerConfig),
+        used: false,
+      };
 
       setPreloadedQuestions(selected);
       setPreloadComplete(true);
-      // Apply difficulty simplification to the first question too (later
-      // questions get it in nextQuestion)
-      setCurrentQuestion(applyDifficultyToQuestion(selected[0], resolveDifficultyMode()));
+      // The API has already applied the requested difficulty and signed the
+      // exact displayed shape. Never rewrite its answer vocabulary here.
+      activateNewTrainingQuestion(selected[0]);
 
-      // Bug 5 fix: Cap question count at actual returned count to prevent game never ending
-      if (data.questions.length < effectiveQuestionsPerLevel) {
+      // The signed attempt owns its exact target (20/25/30 for campaign,
+      // configured count for custom). The UI and completion gate must use the
+      // delivered target in both directions, not only cap short responses.
+      if (signedTargetHands !== effectiveQuestionsPerLevel) {
         console.warn(
-          `[GTOTrainer] API returned ${data.questions.length}/${effectiveQuestionsPerLevel} questions, capping`
+          `[GTOTrainer] Signed attempt target is ${signedTargetHands} questions (was ${effectiveQuestionsPerLevel})`
         );
-        setEffectiveQuestionsPerLevel(data.questions.length);
+        setEffectiveQuestionsPerLevel(signedTargetHands);
       }
 
       setLoading(false);
     } catch (err) {
+      if (!isTrainingLeaseActive(requestLease)) return;
       console.warn('[GTOTrainer] Pre-load error:', err);
+      if (RECOVERABLE_ATTEMPT_START_CODES.has(err?.code)) {
+        recoverTerminalAttempt(err, effectiveLevel, requestLease);
+        return;
+      }
       if (!isCustomTrainerConfig(trainerConfig)) {
-        const cachedQuestions = await getOfflineQuestions(gameId, effectiveLevel);
+        const cachedQuestions = await getOfflineQuestions(
+          gameId,
+          effectiveLevel,
+          userId,
+          offlineCacheContract,
+        );
+        if (!isTrainingLeaseActive(requestLease)) return;
         if (cachedQuestions.length > 0) {
-          const selected = applyStreetFilter(
-            applyHandSelection(cachedQuestions, trainerConfig?.handSelection),
-            trainerConfig?.gameMode,
-            trainerConfig?.targetStreet,
-          );
-          if (selected.length > 0) {
-            setPreloadedQuestions(selected);
-            setPreloadComplete(true);
-            setCurrentQuestion(applyDifficultyToQuestion(selected[0], resolveDifficultyMode()));
-            setEffectiveQuestionsPerLevel(Math.min(effectiveQuestionsPerLevel, selected.length));
-            setLoading(false);
-            return;
+          try {
+            const recovered = await recoverCachedQuestions(cachedQuestions, effectiveLevel);
+            if (!isTrainingLeaseActive(requestLease)) return;
+            const selected = applyStreetFilter(
+              recovered.questions,
+              trainerConfig?.gameMode,
+              trainerConfig?.targetStreet,
+            );
+            const recoveredTargetHands = Number(
+              selected[0]?._gradingContext?.sessionTargetHands,
+            );
+            if (
+              selected.length > 0
+              && Number.isInteger(recoveredTargetHands)
+              && selected.length === recoveredTargetHands
+            ) {
+              setPreloadedQuestions(selected);
+              setPreloadComplete(true);
+              activateNewTrainingQuestion(selected[0]);
+              setEffectiveQuestionsPerLevel(recoveredTargetHands);
+              setLoading(false);
+              return;
+            }
+            throw new Error('A partial offline attempt cannot be resumed.');
+          } catch (cacheContractError) {
+            console.warn('[GTOTrainer] Ignoring unsigned offline cache:', cacheContractError.message);
           }
         }
       }
+      if (!isTrainingLeaseActive(requestLease)) return;
       setPreloadComplete(false);
       setLoading(false);
-      return fetchSingleQuestion(effectiveLevel);
+      if (isCustomTrainerConfig(trainerConfig)) {
+        setError(err?.message || 'Custom Training questions could not be delivered.');
+        return;
+      }
+      return fetchSingleQuestion(effectiveLevel, questionNumber);
     }
   }, [
     gameId,
-    level,
+    selectedLevel,
     trainerConfig,
     effectiveQuestionsPerLevel,
     fetchSingleQuestion,
+    offlineCacheContract,
+    recoverCachedQuestions,
     resolveDifficultyMode,
     getWeakSpots,
+    trainingSessionId,
+    userId,
+    activateFreshTrainingSession,
+    activateNewTrainingQuestion,
+    captureTrainingLease,
+    isTrainingLeaseActive,
+    recoverTerminalAttempt,
   ]);
 
   /**
@@ -717,12 +1210,15 @@ export default function useGTOTrainer(
    * Record answer to API (for no-repeat tracking + weak-spot metadata)
    */
   const recordAnswer = useCallback(
-    async (questionId, selectedAnswer, isCorrect, spotMeta = {}) => {
-      if (!userId || !gameId) return;
+    async (submission) => {
+      if (!userId || !gameId) {
+        return {
+          ok: false,
+          error: 'Sign in again before this answer can be graded and credited.',
+        };
+      }
 
-      const submissionId = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${questionId}:${Date.now()}:${selectedAnswer}`;
+      const { questionId, selectedAnswer } = submission;
       try {
         for (let attempt = 0; attempt < 3; attempt++) {
           const response = await authedFetch('/api/training/record-question', {
@@ -734,20 +1230,36 @@ export default function useGTOTrainer(
               userId,
               gameId,
               questionId,
-              submissionId,
+              submissionId: submission.submissionId,
+              sessionId: submission.sessionId,
+              attemptId: submission.attemptId,
+              snapshotKey: submission.snapshotKey,
+              sessionKind: submission.sessionKind,
+              sessionTargetHands: submission.sessionTargetHands,
+              handOrdinal: submission.handOrdinal,
+              decisionOrdinal: submission.decisionOrdinal,
+              countsTowardCompletion: submission.countsTowardCompletion,
+              practiceOnly: submission.practiceOnly,
+              gradingReceipt: submission.gradingReceipt,
               selectedAnswer,
-              isCorrect,
-              level,
-              // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
-              heroPosition: spotMeta.heroPosition || null,
-              villainPosition: spotMeta.villainPosition || null,
-              street: spotMeta.street || null,
-              classification: spotMeta.classification || null,
-              evLoss: spotMeta.evLoss || 0,
-              spotType: spotMeta.spotType || null,
+              gradingMode: submission.gradingMode,
+              rng: submission.rng,
             }),
           });
-          if (response.ok) return true;
+          if (response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            assertRecordedAnswerAcknowledgement(payload, submission);
+            const serverEvidence = payload?.evidence || null;
+            if (!serverEvidence || !payload?.feedback || typeof serverEvidence.isCorrect !== 'boolean') {
+              throw new Error('The Training server did not return an authoritative verdict and feedback reveal.');
+            }
+            return {
+              ok: true,
+              evidence: serverEvidence,
+              feedback: payload.feedback,
+              idempotentReplay: payload.idempotentReplay === true,
+            };
+          }
 
           let detail = '';
           let code = '';
@@ -756,11 +1268,12 @@ export default function useGTOTrainer(
             detail = payload?.error || '';
             code = payload?.code || '';
           } catch (_) { /* response may be empty */ }
-          if (response.status === 409 && code === 'TRAINING_QUESTION_REFRESH_REQUIRED') {
-            refreshRequiredQuestionIdsRef.current.add(String(questionId));
-            setPreloadComplete(false);
-            console.warn('[Training] Canonical question expired; a fresh hand will load on Next.');
-            return false;
+          if (response.status === 409 && [
+            'TRAINING_QUESTION_REFRESH_REQUIRED',
+            'TRAINING_GRADING_RECEIPT_EXPIRED',
+            'TRAINING_GRADING_RECEIPT_QUESTION_CHANGED',
+          ].includes(code)) {
+            return { ok: false, refreshRequired: true, error: detail };
           }
           const retryable = response.status === 429 || response.status >= 500;
           if (!retryable || attempt === 2) {
@@ -770,11 +1283,109 @@ export default function useGTOTrainer(
         }
       } catch (err) {
         console.warn('[Training] Answer evidence was not persisted:', err?.message || err);
-        return false;
+        return { ok: false, error: err?.message || 'Answer persistence failed' };
       }
     },
-    [userId, gameId, level]
+    [userId, gameId, selectedLevel]
   );
+
+  const isPendingAnswerEntryActive = useCallback((entry) => Boolean(
+    entry
+    && pendingAnswerPersistenceRef.current === entry
+    && isTrainingLeaseActive(entry.lease)
+    && String(entry.submission?.sessionId || '') === String(trainingSessionIdRef.current || '')
+  ), [isTrainingLeaseActive]);
+
+  const persistPendingAnswer = useCallback(async (entry, { retry = false } = {}) => {
+    if (!entry) return { ok: true };
+    if (!isPendingAnswerEntryActive(entry)) return { ok: false, stale: true };
+    if (entry.inFlight && entry.promise) return entry.promise;
+    if (entry.result?.ok) return entry.result;
+
+    entry.inFlight = true;
+    if (retry) setAnswerSaveRetrying(true);
+    entry.promise = recordAnswer(entry.submission)
+      .then(async (result) => {
+        entry.result = result;
+        if (!isPendingAnswerEntryActive(entry)) return { ...result, stale: true };
+        if (result?.ok) {
+          if (!entry.finalized && typeof entry.onPersisted === 'function') {
+            entry.onPersisted(result);
+            entry.finalized = true;
+          }
+          if (!isPendingAnswerEntryActive(entry)) return { ...result, stale: true };
+          await consumeOfflineQuestion(
+            gameId,
+            selectedLevel,
+            entry.submission.questionId,
+            userId,
+            offlineCacheContract,
+          ).catch((cacheError) => {
+            console.warn('[Training] Submitted question cache cleanup failed:', cacheError?.message || cacheError);
+          });
+          if (!isPendingAnswerEntryActive(entry)) return { ...result, stale: true };
+          setAnswerSaveRequiresRefresh(false);
+          setAnswerSaveError(null);
+        }
+        else if (result?.refreshRequired) {
+          refreshRequiredQuestionIdsRef.current.add(String(entry.submission?.questionId || ''));
+          setPreloadComplete(false);
+          console.warn('[Training] Canonical question expired; a fresh hand will load on Next.');
+          setAnswerSaveRequiresRefresh(true);
+          setAnswerSaveError(
+            result?.error || 'This signed hand expired before it could be graded. Load a fresh hand.'
+          );
+        } else {
+          setAnswerSaveRequiresRefresh(false);
+          setAnswerSaveError(result?.error || 'Your answer could not be saved.');
+        }
+        return result;
+      })
+      .catch((error) => {
+        const result = { ok: false, error: error?.message || 'The saved answer could not be rendered.' };
+        entry.result = result;
+        if (!isPendingAnswerEntryActive(entry)) return { ...result, stale: true };
+        setAnswerSaveError(result.error);
+        return result;
+      })
+      .finally(() => {
+        entry.inFlight = false;
+        if (retry && isPendingAnswerEntryActive(entry)) setAnswerSaveRetrying(false);
+      });
+    return entry.promise;
+  }, [gameId, isPendingAnswerEntryActive, offlineCacheContract, recordAnswer, selectedLevel, userId]);
+
+  const retryAnswerPersistence = useCallback(async () => {
+    const entry = pendingAnswerPersistenceRef.current;
+    if (!entry || !isPendingAnswerEntryActive(entry)) return false;
+    if (entry.result?.ok) return true;
+    if (entry.result?.refreshRequired) {
+      setAnswerSaveRetrying(true);
+      try {
+        setShowFeedback(false);
+        setLastGTOFrequencies(null);
+        const replacement = await fetchSingleQuestion(selectedLevel, questionNumber, { throwOnError: true });
+        if (!replacement || !isPendingAnswerEntryActive(entry)) return false;
+        refreshRequiredQuestionIdsRef.current.delete(String(entry.submission?.questionId || ''));
+        pendingAnswerPersistenceRef.current = null;
+        setAnswerSaveRequiresRefresh(false);
+        setAnswerSaveError(null);
+        return true;
+      } catch (refreshError) {
+        // Keep the expired entry as a recovery token so the same visible
+        // button can retry loading a replacement after a transient failure.
+        setAnswerSaveRequiresRefresh(true);
+        setAnswerSaveError(
+          refreshError?.message || 'A fresh Training hand could not be loaded. Try again.'
+        );
+        return false;
+      } finally {
+        setAnswerSaveRetrying(false);
+      }
+    }
+    const result = await persistPendingAnswer(entry, { retry: true });
+    return result?.ok === true && result?.stale !== true;
+  }, [fetchSingleQuestion, isPendingAnswerEntryActive, persistPendingAnswer, questionNumber, selectedLevel]);
 
   /**
    * Submit answer and show feedback
@@ -782,59 +1393,162 @@ export default function useGTOTrainer(
   const submitAnswer = useCallback(
     async (selectedOptionId, meta) => {
       if (!currentQuestion || showFeedback) return;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setAnswerSaveError(
+          'Reconnect before submitting. Offline hands remain visible, but cannot be graded or credited.'
+        );
+        return;
+      }
+      if (!userId) {
+        setAnswerSaveError('Sign in again before this answer can be graded and credited.');
+        return;
+      }
 
-      const solverCorrectAnswer = currentQuestion.correctAnswer;
-      const options = currentQuestion.options || [];
-      const scenario = currentQuestion.scenario || {};
+      const publicQuestion = currentQuestion;
+      const options = publicQuestion.options || [];
+      const scenario = publicQuestion.scenario || {};
       const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
+      const gradingContext = publicQuestion?._gradingContext || null;
+      if (
+        !gradingContext?.receipt
+        || !gradingContext?.submissionId
+        || !gradingContext?.sessionId
+        || !gradingContext?.attemptId
+        || !gradingContext?.snapshotKey
+        || !gradingContext?.sessionKind
+        || !Number.isInteger(Number(gradingContext?.sessionTargetHands))
+        || !Number.isInteger(Number(gradingContext?.handOrdinal))
+        || !Number.isInteger(Number(gradingContext?.decisionOrdinal))
+      ) {
+        setAnswerSaveError('This hand is missing its secure grading receipt. Reload the Arena.');
+        return;
+      }
+      const submittedRng = gradingContext?.solverEvidenceAvailable === true
+        && meta?.rngMode
+        && Number.isInteger(Number(meta?.rngRoll))
+        ? {
+            roll: Number(meta?.rngRoll),
+            mode: meta?.rngMode,
+          }
+        : null;
+      if (submittedRng && Number(gradingContext?.rngRolls?.[submittedRng.mode]) !== submittedRng.roll) {
+        setAnswerSaveError('The randomizer target no longer matches this signed hand. Reload the Arena.');
+        return;
+      }
 
-      // Only verified solver distributions may make a second action grade as
-      // correct. Modelled/backfilled percentages are coaching context, never
-      // grading evidence.
-      const solverVerified = isVerifiedSolverQuestion(currentQuestion);
-      const hasDisplayedFrequencies =
-        currentQuestion.gtoFrequencies &&
-        Object.keys(currentQuestion.gtoFrequencies || {}).length > 0;
-      // ORDERING MATTERS: the simulated distribution must be seeded from the
-      // SOLVER's answer, never the dice's. The table built its 1-100 bands from
-      // this exact distribution before the player acted; reseeding it here would
-      // shift the bands out from under a roll that has already been shown.
-      const frequencies = hasDisplayedFrequencies
-        ? currentQuestion.gtoFrequencies
-        : simulateGTOFrequencies(options, solverCorrectAnswer, level);
-      const gradingFrequencies = solverVerified ? frequencies : {};
+      const submission = {
+        submissionId: gradingContext.submissionId,
+        sessionId: gradingContext.sessionId,
+        attemptId: gradingContext.attemptId,
+        snapshotKey: gradingContext.snapshotKey,
+        sessionKind: gradingContext.sessionKind,
+        sessionTargetHands: gradingContext.sessionTargetHands,
+        handOrdinal: gradingContext.handOrdinal,
+        decisionOrdinal: gradingContext.decisionOrdinal,
+        countsTowardCompletion: gradingContext.countsTowardCompletion,
+        practiceOnly: gradingContext.practiceOnly,
+        gradingReceipt: gradingContext.receipt,
+        questionId: publicQuestion.id,
+        selectedAnswer: selectedOptionId,
+        gradingMode: gradingContext.difficultyMode || resolveDifficultyMode(),
+        rng: submittedRng,
+      };
+      const submissionLease = captureTrainingLease();
+      if (
+        !isTrainingLeaseActive(submissionLease)
+        || String(submission.sessionId) !== String(submissionLease.sessionId)
+      ) {
+        setAnswerSaveError('This Training session changed before the answer could be submitted.');
+        return;
+      }
+      if (submitAnswerInFlightRef.current) return;
 
-      // GTOW parity #38 — with the randomiser live, the action the dice landed
-      // on is what "Best" means for this hand; that is the entire point of the
-      // tool. The id is validated against the real option list so a stale or
-      // malformed meta can never silently redirect grading at nothing. Ignoring
-      // the dice is still safe: classifyMove awards BEST to any action the
-      // solver plays at >=20%, so following the solver is never punished.
-      const rngTargetId = meta && meta.rngTargetActionId;
-      const correctAnswer =
-        rngTargetId && options.some((o) => (o?.id ?? o) === rngTargetId)
-          ? rngTargetId
-          : solverCorrectAnswer;
-      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
+      const finalizePersistedAnswer = (recorded) => {
+        const serverEvidence = recorded?.evidence || null;
+        const feedback = recorded?.feedback || null;
+        if (!serverEvidence || !feedback || typeof serverEvidence.isCorrect !== 'boolean') {
+          throw new Error('The Training server did not return a complete authoritative verdict.');
+        }
+        const revealedContinuationAction = String(
+          feedback?.continuation?.actionId || '',
+        );
+        const revealedScenario = revealedContinuationAction
+          ? {
+              ...(publicQuestion.scenario || {}),
+              nextStreetContinuationAction: revealedContinuationAction,
+            }
+          : { ...(publicQuestion.scenario || {}) };
+        const currentQuestion = {
+          ...publicQuestion,
+          ...feedback,
+          scenario: revealedScenario,
+          _gradingContext: publicQuestion._gradingContext,
+        };
+        setCurrentQuestion(currentQuestion);
+        const revealedStreet = String(revealedScenario.street || '').toLowerCase();
+        const fullHandMode = (trainerConfig?.gameMode || 'full') === 'full';
+        if (
+          fullHandMode
+          && revealedContinuationAction
+          && (revealedStreet === 'flop' || revealedStreet === 'turn')
+        ) {
+          try {
+            if (!multiStreetHandRef.current) {
+              multiStreetHandRef.current = new MultiStreetHand(currentQuestion);
+              setIsMultiStreetActive(true);
+            } else {
+              // A continuation question was already adopted before it was
+              // answered. Replace its blind DTO with the post-persistence reveal
+              // so recordAction validates the exact canonical line.
+              multiStreetHandRef.current.currentQuestion = currentQuestion;
+            }
+          } catch (multiStreetSetupError) {
+            // This answer is already durably persisted. A malformed optional
+            // continuation must fail closed for the next street without
+            // suppressing the authoritative verdict or trapping the user in
+            // an idempotent retry loop.
+            multiStreetHandRef.current = null;
+            setIsMultiStreetActive(false);
+            console.warn(
+              '[GTOTrainer] Multi-street setup rejected after persistence (non-critical):',
+              multiStreetSetupError?.message || multiStreetSetupError,
+            );
+          }
+        }
+        const solverCorrectAnswer = feedback.correctAnswer;
+        const correctAnswer = serverEvidence?.rng?.targetActionId || solverCorrectAnswer;
+        const correctText = options.find((o) => o.id === correctAnswer)?.text
+          || feedback.correctAnswerText
+          || correctAnswer;
+        const frequencies = feedback.gtoFrequencies || feedback.frequencies || {};
+        const gradingFrequencies = serverEvidence.solverVerified === true ? frequencies : {};
+        const solverVerified = serverEvidence.solverVerified === true;
+        const frequencyDiff = Number.isFinite(Number(serverEvidence.selectedFrequency))
+          && Number.isFinite(Number(serverEvidence.optimalFrequency))
+          ? Math.abs(Number(serverEvidence.optimalFrequency) - Number(serverEvidence.selectedFrequency))
+          : 0;
+        const hasMeasuredEVLoss = serverEvidence.evLossMeasured === true
+          && Number.isFinite(Number(serverEvidence.evLoss));
+        const moveResult = {
+          classification: String(serverEvidence.classification || 'wrong').toLowerCase(),
+          isCorrect: serverEvidence.isCorrect,
+          evLoss: hasMeasuredEVLoss ? Number(serverEvidence.evLoss) : null,
+          frequencyDiff,
+          isRealData: hasMeasuredEVLoss,
+          solverVerified,
+          selectedFrequency: serverEvidence.selectedFrequency,
+          optimalFrequency: serverEvidence.optimalFrequency,
+          optimalAction: serverEvidence.optimalAction,
+        };
+        const isCorrect = serverEvidence.isCorrect === true;
+        let renderedExplanation = currentQuestion.explanation || '';
 
-      // Classify the move — pass real PIO data for accurate EV loss when available
-      const moveResult = classifyMove(
-        selectedOptionId,
-        correctAnswer,
-        gradingFrequencies,
-        level,
-        solverVerified ? currentQuestion.evData : null,
-        solverVerified ? currentQuestion.rawFrequencies : null,
-        currentQuestion.heroHand || scenario.heroHand, // Hero hand for EV lookup
-        scenario.pot // Pot size for scaling
-      );
-
-      // Mixed-strategy grading: when solver frequencies exist, any action the
-      // solver plays at meaningful frequency grades as correct — derive from
-      // the classification instead of exact-id match.
-      const isCorrect = moveResult
-        ? ['best', 'correct'].includes((moveResult.classification || '').toLowerCase())
-        : selectedOptionId === correctAnswer;
+        // From this point onward every operation is a browser-side projection
+        // of an answer that the server has already graded and persisted. A
+        // broken sound device, analytics engine, replay helper, or prefetch
+        // must never turn that durable success into a false save failure or
+        // hide the authoritative Correct/Incorrect reveal.
+        try {
 
       // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
       let actionTreeScore = null;
@@ -858,10 +1572,13 @@ export default function useGTOTrainer(
       // Store for UI consumption
       setLastMoveClassification(moveResult.classification);
       setLastEVLoss(moveResult.evLoss);
+      setLastEVLossMeasured(moveResult.isRealData);
       setLastGTOFrequencies(frequencies);
 
-      // Record to GTOW scoring engine
-      gtowScoring.recordMove({
+      // Record to GTOW scoring engine. This projection is deliberately
+      // isolated from the durable answer acknowledgement above.
+      try {
+        gtowScoring.recordMove({
         classification: moveResult.classification,
         evLoss: moveResult.evLoss,
         frequencyDiff: moveResult.frequencyDiff,
@@ -883,7 +1600,7 @@ export default function useGTOTrainer(
           // questionNumber is the ONLY counter that advances once per hand:
           // nextQuestion increments it and advanceToNextStreet deliberately
           // never touches it. Key off that and nothing else.
-          handId: `q_${level}_${questionNumber}`,
+          handId: `q_${selectedLevel}_${questionNumber}`,
           heroCards: currentQuestion.heroCards || scenario.heroHand,
           board: scenario.board,
           heroPosition: scenario.heroPosition || scenario.position,
@@ -916,7 +1633,10 @@ export default function useGTOTrainer(
           // ═══ PHASE 51: Hand categorization for replay display ═══
           handCategory: currentQuestion.handCategory || null,
         },
-      });
+        });
+      } catch (scoreError) {
+        console.warn('[GTOTrainer] Local score projection failed (non-critical):', scoreError?.message || scoreError);
+      }
 
       // Save full question for mistake replay
       const isMistakeMove = MISTAKE_CLASSES.includes(
@@ -927,7 +1647,8 @@ export default function useGTOTrainer(
           ...currentQuestion,
           _mistakeMeta: {
             classification: moveResult.classification,
-            evLoss: moveResult.evLoss || 0,
+            evLoss: moveResult.isRealData ? moveResult.evLoss : null,
+            evLossMeasured: moveResult.isRealData,
             chosenAction: selectedOptionId,
           },
         });
@@ -935,7 +1656,7 @@ export default function useGTOTrainer(
 
       // Phase 75: Update adaptive difficulty tracking
       try {
-        deterministicEngine.updateSessionDifficulty(isCorrect);
+        postAnswerInsights.updateSessionDifficulty(isCorrect);
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
@@ -949,10 +1670,11 @@ export default function useGTOTrainer(
       // the human-readable option text because getExploitativeAdjustments /
       // getBettingSizeAnalysis pattern-match on words like 'fold' and '50%'.
       try {
-        deterministicEngine.recordSessionHand({
+        postAnswerInsights.recordSessionHand({
           correct: isCorrect,
           classification: moveResult.classification,
-          evLoss: moveResult.evLoss || 0,
+          evLoss: moveResult.isRealData ? moveResult.evLoss : null,
+          evLossMeasured: moveResult.isRealData,
           street: scenario.street || null,
           nodeType: scenario.nodeType || '',
           action: selectedText,
@@ -971,7 +1693,7 @@ export default function useGTOTrainer(
           texture:
             scenario.boardTexture?.description ||
             (Array.isArray(scenario.board) && scenario.board.length >= 3
-              ? deterministicEngine.classifyBoardTexture(scenario.board)?.desc || null
+              ? postAnswerInsights.classifyBoardTexture(scenario.board)?.desc || null
               : null),
         });
       } catch (e) {
@@ -980,7 +1702,7 @@ export default function useGTOTrainer(
 
       // Phase 76: Record mistake pattern for dynamic explanation depth
       try {
-        deterministicEngine.recordMistakePattern({
+        postAnswerInsights.recordMistakePattern({
           isCorrect,
           street: scenario.street || 'flop',
           handCategory: currentQuestion.handCategory || '',
@@ -996,7 +1718,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 140: GTO deviation detection ═══
       try {
-        const deviationNote = deterministicEngine.detectGTODeviation(
+        const deviationNote = postAnswerInsights.detectGTODeviation(
           selectedOptionId,
           correctAnswer,
           currentQuestion.frequencies?.[correctAnswer] || 0,
@@ -1016,20 +1738,20 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 143: Auto-difficulty adjustment ═══
       try {
-        deterministicEngine.recordRecentResult(isCorrect);
+        postAnswerInsights.recordRecentResult(isCorrect);
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
 
       // ═══ PHASE 144: Concept mastery tracking ═══
       try {
-        const concept = deterministicEngine.deriveConceptFromContext(
+        const concept = postAnswerInsights.deriveConceptFromContext(
           scenario.nodeType || '',
           scenario.street || 'flop',
           correctAnswer,
           currentQuestion.handCategory || ''
         );
-        deterministicEngine.recordConceptExposure(concept, isCorrect);
+        postAnswerInsights.recordConceptExposure(concept, isCorrect);
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
@@ -1037,7 +1759,7 @@ export default function useGTOTrainer(
       // ═══ PHASE 146: Spaced repetition for missed scenarios ═══
       try {
         if (!isCorrect) {
-          deterministicEngine.recordMissedScenario(scenario, moveResult.classification);
+          postAnswerInsights.recordMissedScenario(scenario, moveResult.classification);
         }
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
@@ -1045,14 +1767,14 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 153: EV graph data ═══
       try {
-        const evLossData = deterministicEngine.estimateEVLoss(
+        const evLossData = postAnswerInsights.estimateEVLoss(
           selectedOptionId,
           correctAnswer,
           currentQuestion.actionEVs || {},
           currentQuestion.estimatedPot || 0
         );
-        deterministicEngine.recordEVDataPoint(
-          deterministicEngine._getSessionQuestionCount(),
+        postAnswerInsights.recordEVDataPoint(
+          postAnswerInsights._getSessionQuestionCount(),
           isCorrect,
           evLossData ? parseFloat(evLossData.evLossBB) : 0,
           scenario.street || 'flop'
@@ -1063,7 +1785,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 158: Aggression tracking ═══
       try {
-        deterministicEngine.recordAggressionAction(selectedOptionId, scenario.street || 'flop');
+        postAnswerInsights.recordAggressionAction(selectedOptionId, scenario.street || 'flop');
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
@@ -1071,7 +1793,7 @@ export default function useGTOTrainer(
       // ═══ PHASE 159: VPIP/PFR tracking ═══
       try {
         if (scenario.street === 'preflop') {
-          deterministicEngine.recordPreflopAction(selectedOptionId, scenario.nodeType || '');
+          postAnswerInsights.recordPreflopAction(selectedOptionId, scenario.nodeType || '');
         }
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
@@ -1079,14 +1801,14 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 160: Positional awareness ═══
       try {
-        deterministicEngine.recordPositionalDecision(scenario.heroPosition || '', isCorrect);
+        postAnswerInsights.recordPositionalDecision(scenario.heroPosition || '', isCorrect);
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
 
       // ═══ PHASE 180: Question type diversity ═══
       try {
-        deterministicEngine.recordQuestionType(
+        postAnswerInsights.recordQuestionType(
           `${scenario.street || 'flop'}:${scenario.nodeType || 'general'}`
         );
       } catch (e) {
@@ -1095,7 +1817,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 185: User vs solver frequency ═══
       try {
-        deterministicEngine.recordUserAction(
+        postAnswerInsights.recordUserAction(
           selectedOptionId,
           correctAnswer,
           scenario.street || 'flop',
@@ -1107,7 +1829,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 190: Hand history replay ═══
       try {
-        deterministicEngine.recordHandForReplay(
+        postAnswerInsights.recordHandForReplay(
           scenario,
           currentQuestion.heroHand || '',
           currentQuestion.board || [],
@@ -1121,14 +1843,14 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 227: Deviation cost tracking ═══
       try {
-        const evLossForCost = deterministicEngine.estimateEVLoss(
+        const evLossForCost = postAnswerInsights.estimateEVLoss(
           selectedOptionId,
           correctAnswer,
           currentQuestion.actionEVs || {},
           currentQuestion.estimatedPot || 0
         );
         if (evLossForCost && !isCorrect) {
-          deterministicEngine.recordDeviationCost(parseFloat(evLossForCost.evLossBB) || 0);
+          postAnswerInsights.recordDeviationCost(parseFloat(evLossForCost.evLossBB) || 0);
         }
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
@@ -1136,7 +1858,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 241: Training calendar ═══
       try {
-        deterministicEngine.recordDailyTraining();
+        postAnswerInsights.recordDailyTraining();
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
@@ -1144,9 +1866,9 @@ export default function useGTOTrainer(
       // ═══ PHASE 179: Session bests tracking ═══
       try {
         if (isCorrect) {
-          const recentResults = deterministicEngine._recentResults || [];
+          const recentResults = postAnswerInsights._recentResults || [];
           const currentStreakVal = recentResults.reduce((acc, r) => (r ? acc + 1 : 0), 0);
-          deterministicEngine.recordSessionBest('streak', currentStreakVal);
+          postAnswerInsights.recordSessionBest('streak', currentStreakVal);
         }
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
@@ -1168,7 +1890,9 @@ export default function useGTOTrainer(
         setStreak((prev) => {
           const newStreak = prev + 1;
           if (newStreak > bestStreak) setBestStreak(newStreak);
-          if (newStreak % 5 === 0) trainingSounds.play('streak'); // Streak milestone
+          if (newStreak % 5 === 0) {
+            try { trainingSounds.play('streak'); } catch (_) { /* non-critical audio */ }
+          }
           return newStreak;
         });
       } else {
@@ -1177,20 +1901,21 @@ export default function useGTOTrainer(
 
       // Audio Feedback for Move Quality
       const cls = moveResult.classification;
-      if (cls === 'blunder' || cls === 'wrong' || cls === 'inaccuracy') {
-        trainingSounds.play('incorrect');
-      } else {
-        trainingSounds.play('correct');
+      try {
+        if (cls === 'blunder' || cls === 'wrong' || cls === 'inaccuracy') {
+          trainingSounds.play('incorrect');
+        } else {
+          trainingSounds.play('correct');
+        }
+      } catch (_) {
+        // Audio feedback is useful, but never part of grading authority.
       }
-
-      // Show feedback
-      setFeedbackResult(isCorrect ? 'correct' : 'wrong');
 
       // Phase 80: Append frequency deviation note when player picks a secondary action
       let fullExplanation = currentQuestion.explanation || '';
       if (!isCorrect && selectedOptionId !== correctAnswer) {
         try {
-          const deviationNote = deterministicEngine.getFrequencyDeviationNote(
+          const deviationNote = postAnswerInsights.getFrequencyDeviationNote(
             selectedOptionId,
             correctAnswer,
             currentQuestion.frequencies || {},
@@ -1219,7 +1944,7 @@ export default function useGTOTrainer(
 
         // ═══ PHASE 147: EV loss quantification ═══
         try {
-          const evLoss = deterministicEngine.estimateEVLoss(
+          const evLoss = postAnswerInsights.estimateEVLoss(
             selectedOptionId,
             correctAnswer,
             currentQuestion.actionEVs || {},
@@ -1235,9 +1960,9 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 150: Coaching message ═══
       try {
-        const coachMsg = deterministicEngine.getCoachingMessage(
+        const coachMsg = postAnswerInsights.getCoachingMessage(
           moveResult.classification,
-          deterministicEngine._getSessionQuestionCount()
+          postAnswerInsights._getSessionQuestionCount()
         );
         if (coachMsg) {
           fullExplanation = coachMsg + ' ' + fullExplanation;
@@ -1248,7 +1973,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 249: Tilt detection ═══
       try {
-        const tiltStatus = deterministicEngine.detectTilt();
+        const tiltStatus = postAnswerInsights.detectTilt();
         if (tiltStatus && tiltStatus.message) {
           fullExplanation = `${fullExplanation} ${tiltStatus.message}`;
         }
@@ -1258,7 +1983,7 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 198: Mental game note ═══
       try {
-        const mentalNote = deterministicEngine.getMentalGameNote();
+        const mentalNote = postAnswerInsights.getMentalGameNote();
         if (mentalNote) {
           fullExplanation = `${fullExplanation} ${mentalNote}`;
         }
@@ -1268,8 +1993,8 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 225: Smart recap ═══
       try {
-        const recap = deterministicEngine.generateSmartRecap(
-          deterministicEngine._getSessionQuestionCount()
+        const recap = postAnswerInsights.generateSmartRecap(
+          postAnswerInsights._getSessionQuestionCount()
         );
         if (recap) {
           const recapText = recap.sections.map((s) => `${s.title}: ${s.content}`).join(' | ');
@@ -1279,11 +2004,11 @@ export default function useGTOTrainer(
         console.warn('[App] Handled exception:', e?.message || e);
       }
 
-      setExplanation(fullExplanation);
+      renderedExplanation = fullExplanation;
 
       // ═══ PHASE 251: Generate structured explanation for rich UI rendering ═══
       try {
-        const structured = deterministicEngine.generateStructuredExplanation(
+        const structured = postAnswerInsights.generateStructuredExplanation(
           selectedOptionId,
           correctAnswer,
           currentQuestion.frequencies || {},
@@ -1295,7 +2020,7 @@ export default function useGTOTrainer(
         );
         // Phase 256: Attach spot difficulty estimation
         try {
-          structured.spotDifficulty = deterministicEngine.estimateSpotDifficulty(
+          structured.spotDifficulty = postAnswerInsights.estimateSpotDifficulty(
             currentQuestion.frequencies || {},
             scenario.street || 'flop',
             scenario.stackDepth,
@@ -1308,11 +2033,6 @@ export default function useGTOTrainer(
       } catch (e) {
         setStructuredExplanation(null);
       }
-
-      setShowFeedback(true);
-
-      // Store the selected action for multi-street advance
-      setLastSelectedAction(selectedOptionId);
 
       // ═══ ADAPTIVE DIFFICULTY: Auto-adjust level every 5 questions ═══
       // Also identifies weak spots and emits them for targeted practice
@@ -1398,41 +2118,77 @@ export default function useGTOTrainer(
 
       // ═══ MULTI-STREET: Record action on current hand ═══
       if (multiStreetHandRef.current && !multiStreetHandRef.current.isComplete) {
-        multiStreetHandRef.current.recordAction(
-          selectedOptionId,
-          moveResult.classification,
-          moveResult.evLoss
-        );
+        try {
+          multiStreetHandRef.current.recordAction(
+            selectedOptionId,
+            moveResult.classification,
+            moveResult.evLoss
+          );
+        } catch (multiStreetError) {
+          console.warn('[GTOTrainer] Multi-street projection failed (non-critical):', multiStreetError?.message || multiStreetError);
+        }
       }
 
       // ═══ PHASE 14: Trigger background prefetch at 60% through level ═══
       const progress = questionNumber / effectiveQuestionsPerLevel;
       if (progress >= 0.6 && !prefetchTriggeredRef.current) {
-        prefetchNextLevel();
+        void Promise.resolve(prefetchNextLevel()).catch((prefetchError) => {
+          console.warn('[GTOTrainer] Background prefetch failed (non-critical):', prefetchError?.message || prefetchError);
+        });
       }
 
       // ═══ PHASE 14: Track weak spots + record with spot metadata ═══
       const spotType = deriveSpotType(scenario);
       const heroPos = scenario.heroPosition || 'BTN';
       const streetName = scenario.street || 'flop';
-      updateWeakSpotMap(heroPos, streetName, spotType, moveResult.classification);
+      try {
+        updateWeakSpotMap(heroPos, streetName, spotType, moveResult.classification);
+      } catch (weakSpotError) {
+        console.warn('[GTOTrainer] Weak-spot projection failed (non-critical):', weakSpotError?.message || weakSpotError);
+      }
 
-      // Record to backend (async, non-blocking) — now with spot metadata
-      const persistence = recordAnswer(currentQuestion.id, selectedOptionId, isCorrect, {
-        heroPosition: heroPos,
-        villainPosition: scenario.villainPosition || 'BB',
-        street: streetName,
-        classification: moveResult.classification,
-        evLoss: moveResult.evLoss,
-        spotType,
-      });
-      pendingAnswerPersistenceRef.current = persistence;
+        } catch (projectionError) {
+          console.warn('[GTOTrainer] Optional answer projection failed (non-critical):', projectionError?.message || projectionError);
+        } finally {
+          // These four fields are the mandatory browser rendering of the
+          // already-persisted server verdict. They remain explicit and gated
+          // by manual Next even if every optional projection above fails.
+          setFeedbackResult(isCorrect ? 'correct' : 'wrong');
+          setExplanation(renderedExplanation);
+          setShowFeedback(true);
+          setLastSelectedAction(selectedOptionId);
+        }
+      };
+
+      // Preserve one immutable submission until the exact write and feedback
+      // reveal succeed. The callback runs once after the server acknowledges
+      // this receipt, including after an idempotent Retry Save. No visible
+      // verdict, score, streak, or explanation is derived in the browser.
+      const entry = {
+        lease: submissionLease,
+        submission,
+        promise: null,
+        result: null,
+        inFlight: false,
+        finalized: false,
+        onPersisted: finalizePersistedAnswer,
+      };
+      submitAnswerInFlightRef.current = entry;
+      pendingAnswerPersistenceRef.current = entry;
+      setAnswerSaveRequiresRefresh(false);
+      setAnswerSaveError(null);
+      try {
+        await persistPendingAnswer(entry);
+      } finally {
+        if (submitAnswerInFlightRef.current === entry) submitAnswerInFlightRef.current = null;
+      }
     },
     [
       currentQuestion,
       showFeedback,
       bestStreak,
-      recordAnswer,
+      persistPendingAnswer,
+      resolveDifficultyMode,
       level,
       gtowScoring,
       questionNumber,
@@ -1442,6 +2198,10 @@ export default function useGTOTrainer(
       getWeakSpots,
       prefetchNextLevel,
       gameId,
+      userId,
+      captureTrainingLease,
+      isTrainingLeaseActive,
+      trainerConfig,
     ]
   );
 
@@ -1453,6 +2213,18 @@ export default function useGTOTrainer(
   const advanceToNextStreet = useCallback(async () => {
     const hand = multiStreetHandRef.current;
     if (!hand || hand.isComplete) return false;
+    const requestLease = captureTrainingLease();
+    if (!isTrainingLeaseActive(requestLease)) return null;
+    const activeContext = currentQuestion?._gradingContext;
+    if (
+      !activeContext?.attemptId
+      || !activeContext?.snapshotKey
+      || !Number.isInteger(Number(activeContext?.handOrdinal))
+      || !Number.isInteger(Number(activeContext?.decisionOrdinal))
+    ) {
+      setError('This hand cannot continue without its signed attempt context. Reload the Arena.');
+      return false;
+    }
 
     try {
       setLoading(true);
@@ -1460,130 +2232,63 @@ export default function useGTOTrainer(
       // survive into the turn -- RNG grades against these bands.
       setLastGTOFrequencies(null);
 
-      // Call API endpoint to get next-street question
-      const params = new URLSearchParams({
-        gameId,
-        heroHand: hand.heroHand,
-        boardCards: hand.boardCards.join(','),
-        street: hand.nextStreetName,
-        pot: hand.pot.toString(),
-        stackDepth: hand.stackDepth.toString(),
-        heroPosition: hand.heroPosition,
-        villainPosition: hand.villainPosition,
+      // The server reconstructs every card, position, street, stack, pot and
+      // attempt field from the immutable signed snapshot. The browser sends
+      // only the parent receipt, so it cannot splice a more favourable hand
+      // state into a continuation.
+      const response = await authedFetch('/api/training/next-street', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gradingReceipt: activeContext.receipt }),
       });
-      // Pass hero's actual cards so the server deals a consistent runout
-      if (Array.isArray(hand.heroCards) && hand.heroCards.length > 0) {
-        params.set('heroCards', hand.heroCards.join(','));
-      }
+      if (!isTrainingLeaseActive(requestLease) || multiStreetHandRef.current !== hand) return null;
 
-      const response = await authedFetch(`/api/training/next-street?${params}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.question) {
-          // Update MultiStreetHand state with the new card from API
-          const advancingToStreet = hand.nextStreetName; // 'turn' or 'river'
-          const newCard = data.newCard;
-          if (newCard) {
-            hand.boardCards.push(newCard);
-            hand.deadCards.add(newCard.toLowerCase());
-          }
-          hand.streetIndex++;
-          hand.currentStreet = advancingToStreet || data.street || 'done';
-
-          // Track street data in MultiStreetHand
-          hand.streetData.push({
-            street: data.street || hand.currentStreet,
-            boardCards: [...hand.boardCards],
-            pot: hand.pot,
-            newCard: newCard,
+      let data = null;
+      try { data = await response.json(); } catch (_) { /* handled below */ }
+      if (!isTrainingLeaseActive(requestLease) || multiStreetHandRef.current !== hand) return null;
+      if (response.ok && data?.question) {
+          assertSignedTrainingDelivery(data, activeContext.sessionId, {
+            attemptId: activeContext.attemptId,
+            handOrdinal: activeContext.handOrdinal,
+            decisionOrdinal: Number(activeContext.decisionOrdinal) + 1,
           });
+          // The hand manager validates and adopts the entire continuation
+          // atomically; no browser field may partially mutate before a board,
+          // street, card, or canonical-question mismatch is discovered.
+          const nextQ = hand.applyServerContinuation(data);
 
-          // Enrich question with multi-street context
-          const nextQ = data.question;
-          nextQ.scenario = {
-            ...nextQ.scenario,
-            isMultiStreet: true,
-            streetNumber: hand.streetData.length,
-            previousActions: hand.streetActions,
-            pot: hand.pot,
-            board: hand.boardCards.join(' '),
-            street: data.street || hand.currentStreet,
-            heroPosition: hand.heroPosition,
-            villainPosition: hand.villainPosition,
-            heroHand: hand.heroHand,
-          };
-          nextQ.heroCards = hand.heroCards;
-          nextQ.heroHand = hand.heroHand;
-          hand.currentQuestion = nextQ;
-
-          // ═══ Phase GTO-CLONE: Apply difficulty mode ═══
-          const diffMode2 =
-            trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
-          setCurrentQuestion(applyDifficultyToQuestion(nextQ, diffMode2));
+          if (!isTrainingLeaseActive(requestLease) || multiStreetHandRef.current !== hand) return null;
+          setCurrentQuestion(nextQ);
           setCurrentStreet(data.street || hand.currentStreet);
           setShowFeedback(false);
           setLoading(false);
           return true;
-        }
       }
 
-      // Next street failed — end the hand
-      setIsMultiStreetActive(false);
-      setHandSummary(hand.getHandSummary());
-      multiStreetHandRef.current = null;
-      setLoading(false);
-      return false;
-    } catch (err) {
-      console.warn('[GTOTrainer] Multi-street advance error:', err);
-      setIsMultiStreetActive(false);
-      multiStreetHandRef.current = null;
-      setLoading(false);
-      return false;
-    }
-  }, [gameId, trainerConfig]);
+      if (response.status === 404 && data?.code === 'TRAINING_CONTINUATION_SOLVER_MISS') {
+        hand.finishAtSolverBoundary(data.code);
+        setAnswerSaveError(null);
+        setLoading(false);
+        return 'solver-boundary';
+      }
 
-  /**
-   * ═══ PHASE 14: Save mistakes to spaced repetition system ═══
-   * Called on session complete. Sends mistake hand signatures to the SR API.
-   */
-  const saveMistakesToSpacedRepetition = useCallback(async () => {
-    const mistakes = mistakeQuestionsRef.current;
-    if (!mistakes || mistakes.length === 0) return;
-
-    try {
-      const mistakePayloads = mistakes.map((q) => {
-        const scenario = q.scenario || {};
-        return {
-          gameId,
-          heroPosition: scenario.heroPosition || 'BTN',
-          villainPosition: scenario.villainPosition || 'BB',
-          street: scenario.street || 'flop',
-          spotType: deriveSpotType(scenario),
-          classification: q._mistakeMeta?.classification?.toUpperCase() || 'WRONG',
-          evLoss: q._mistakeMeta?.evLoss || 0,
-          heroHand: q.heroCards ? q.heroCards.join('') : scenario.heroHand || '',
-          board: q.boardCards ? q.boardCards.join(' ') : scenario.board || '',
-          correctAction: q.correctAnswerText || q.correctAnswer || '',
-          chosenAction: q._mistakeMeta?.chosenAction || '',
-        };
-      });
-
-      await authedFetch('/api/training/spaced-repetition', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mistakes: mistakePayloads }),
-      });
-
-      console.debug(
-        `[GTOTrainer] 🔄 Saved ${mistakePayloads.length} mistakes to spaced repetition`
+      setAnswerSaveError(
+        data?.error
+          || `The next street could not be dealt (${response.status}). Your completed decision is still saved; try Next again.`
       );
+      setLoading(false);
+      return false;
     } catch (err) {
-      console.warn('[GTOTrainer] Spaced repetition save error (non-critical):', err.message);
+      if (!isTrainingLeaseActive(requestLease) || multiStreetHandRef.current !== hand) return null;
+      console.warn('[GTOTrainer] Multi-street advance error:', err);
+      setAnswerSaveError(
+        err?.message
+          || 'The next street could not be dealt. Your completed decision is still saved; try Next again.'
+      );
+      setLoading(false);
+      return false;
     }
-  }, [gameId, deriveSpotType]);
+  }, [captureTrainingLease, currentQuestion, isTrainingLeaseActive]);
 
   /**
    * Save progress to database
@@ -1592,139 +2297,79 @@ export default function useGTOTrainer(
   const [masteryToken, setMasteryToken] = useState(null);
   const [masteryStatus, setMasteryStatus] = useState(null); // server-verified mastery result
 
-  const saveProgress = useCallback(
-    async (passed, accuracy) => {
-      if (!userId || !gameId) return;
+  const saveProgress = useCallback(async (attemptId, requestLease = captureTrainingLease()) => {
+    if (!userId || !gameId || !attemptId) {
+      throw new Error('This Training attempt cannot be completed without a signed identity.');
+    }
+    if (!isTrainingLeaseActive(requestLease)) {
+      throw new Error('The Training session changed before completion could be verified.');
+    }
 
-      try {
-        const headers = {
-          'Content-Type': 'application/json',
-        };
-
-        // Calculate diamond rewards using LevelRegistry multipliers
-        // 2026-07-19: persist against the level the user SELECTED, not the
-        // adaptive content level; denominator honors the actual question count
-        const diamondsEarned = getDiamondReward(
-          selectedLevel,
-          correctCount,
-          bestStreak > 5 ? 2 : 0,
-          effectiveQuestionsPerLevel
-        );
-
-        const response = await authedFetch('/api/training/save-progress', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            userId,
-            gameId,
-            level: selectedLevel,
-            questionsAnswered: effectiveQuestionsPerLevel,
-            questionsCorrect: correctCount,
-            accuracy,
-            passed,
-            streak: bestStreak,
-            diamondsEarned,
-            timeSpentSeconds: 0,
-          }),
-        });
-
-        // ═══ MASTERY GATE: Handle server-verified mastery response ═══
-        let data;
-        try {
-          data = await response.json();
-        } catch (_parseErr) {
-          throw new Error(`Progress persistence returned invalid JSON (${response.status})`);
-        }
-        if (!response.ok || data?.success === false) {
-          throw new Error(data?.error || `Progress persistence failed (${response.status})`);
-        }
-        if (data.mastery) {
-          setMasteryStatus(data.mastery);
-          if (data.mastery.masteryToken) {
-            setMasteryToken(data.mastery.masteryToken);
-            console.debug(
-              `[GTOTrainer] 🏆 Mastery token received - next level: ${data.mastery.nextLevelUnlocked}`
-            );
-          }
-          // Server overrides client pass/fail
-          if (data.mastery.passed !== passed) {
-            console.debug(
-              `[GTOTrainer] ⚠️ Server mastery override: client=${passed} server=${data.mastery.passed}`
-            );
-            setLevelPassed(data.mastery.passed);
-          }
-        }
-
-        // ═══ PHASE 14: Save mistakes to spaced repetition ═══
-        saveMistakesToSpacedRepetition();
-
-        // Emit progress-saved event so useTrainingProgress can re-hydrate
-        try {
-          eventBus.emit(
-            'training:session-saved',
-            {
-              gameId: gameId,
-              gtowScore: gtowScoring.gtowScore,
-              handsPlayed: gtowScoring.handsPlayed,
-            },
-            'useGTOTrainer'
-          );
-        } catch (busErr) {
-          console.warn('[GTOTrainer] Bus emit failed (non-critical):', busErr.message);
-        }
-
-        // ═══ Phase GTO-CLONE: Save session + moves via SessionTracker ═══
-        try {
-          if (gtowScoring.sessionScorer && userId) {
-            const summary = gtowScoring.sessionScorer.getSummary();
-            const sessionRecord = createSessionRecord({
-              userId,
-              gameId,
-              level: selectedLevel,
-              summary,
-            });
-            const moveRecords = createMoveRecords(
-              'session_' + Date.now(),
-              gtowScoring.sessionScorer.moves || []
-            );
-            // BUG FIX (2026-05-08, MAX-RIGOR audit round 3):
-            // SessionTracker.saveSession signature is
-            // `(supabase, sessionRecord, moveRecords)`. The previous
-            // call passed only 2 args, so `supabase` arg received
-            // `sessionRecord` (an object). Inside saveSession,
-            // `supabase.from(...)` then threw TypeError; the catch
-            // fell through to `_saveToLocalStorage(sessionRecord,
-            // moveRecords)` where `sessionRecord` was actually
-            // `moveRecords` (the array), so localStorage received
-            // garbage on every game completion. Pass `null` as the
-            // first arg so saveSession bypasses the broken Supabase
-            // write and goes straight to the localStorage fallback
-            // with correctly ordered args. (Server-side persistence
-            // already happens via /api/training/save-session in the
-            // saveSession.js utility — this localStorage path is the
-            // dev/offline backup only.)
-            await saveSession(null, sessionRecord, moveRecords).catch((e) =>
-              console.warn('[GTOTrainer] SessionTracker save non-critical error:', e.message)
-            );
-          }
-        } catch (stErr) {
-          console.warn('[GTOTrainer] SessionTracker integration non-critical:', stErr.message);
-        }
-      } catch (err) {
-        console.warn('[GTOTrainer] Save progress error:', err);
+    const postAttempt = async (endpoint, label) => {
+      const response = await authedFetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attemptId }),
+      });
+      if (!isTrainingLeaseActive(requestLease)) {
+        throw new Error('The Training session changed while completion was being verified.');
       }
-    },
-    [
-      userId,
-      gameId,
-      selectedLevel,
-      correctCount,
-      bestStreak,
-      gtowScoring,
-      effectiveQuestionsPerLevel,
-      saveMistakesToSpacedRepetition,
-    ]
-  );
+      let payload;
+      try {
+        payload = await response.json();
+      } catch (_parseError) {
+        throw new Error(`${label} returned invalid JSON (${response.status}).`);
+      }
+      if (!isTrainingLeaseActive(requestLease)) {
+        throw new Error('The Training session changed while completion was being verified.');
+      }
+      if (!response.ok || payload?.success !== true) {
+        throw new Error(payload?.error || `${label} failed (${response.status}).`);
+      }
+      if (String(payload.attemptId || '').toLowerCase() !== String(attemptId).toLowerCase()) {
+        throw new Error(`${label} acknowledged a different Training attempt.`);
+      }
+      return payload;
+    };
+
+    // Completion owns mastery, history, progress, leaderboards, and rewards in
+    // one database transaction. The analytics projection is a second
+    // idempotent server-derived operation over that completed attempt.
+    const completion = await postAttempt('/api/training/save-progress', 'Training completion');
+    await postAttempt('/api/training/save-session', 'Training analytics');
+    if (!isTrainingLeaseActive(requestLease)) {
+      throw new Error('The Training session changed while completion was being verified.');
+    }
+
+    const mastery = {
+      passed: Boolean(completion.passed),
+      requiredCorrect: Number(completion.requiredCorrect) || 0,
+      requiredQuestions: Number(completion.requiredQuestions) || 0,
+      nextLevelUnlocked: Boolean(completion.passed) && selectedLevel < TOTAL_LEVELS,
+      message: completion.passed
+        ? `Mastery verified: ${completion.correct}/${completion.requiredQuestions}.`
+        : `Keep training: ${completion.correct}/${completion.requiredCorrect} required answers.`,
+    };
+    setMasteryStatus(mastery);
+    setMasteryToken(null);
+    setLevelPassed(mastery.passed);
+
+    try {
+      eventBus.emit(
+        'training:session-saved',
+        {
+          gameId,
+          attemptId,
+          gtowScore: gtowScoring.gtowScore,
+          handsPlayed: completion.answered,
+        },
+        'useGTOTrainer'
+      );
+    } catch (busError) {
+      console.warn('[GTOTrainer] Bus emit failed (non-critical):', busError.message);
+    }
+    return completion;
+  }, [captureTrainingLease, gameId, gtowScoring.gtowScore, isTrainingLeaseActive, selectedLevel, userId]);
 
   /**
    * Advance to next question or complete level
@@ -1733,30 +2378,64 @@ export default function useGTOTrainer(
    */
   const nextQuestion = useCallback(async () => {
     if (nextQuestionInFlightRef.current) return;
-    nextQuestionInFlightRef.current = true;
+    const transitionLease = captureTrainingLease();
+    if (!isTrainingLeaseActive(transitionLease)) return;
+    const transitionToken = { lease: transitionLease };
+    nextQuestionInFlightRef.current = transitionToken;
     try {
     // Do not outrun the canonical answer recorder. A refresh-required response
     // means this browser question is no longer trustworthy, so explicit Next
     // replaces it at the same question number instead of consuming another
     // possibly stale preloaded entry or auto-advancing behind the feedback.
     const pendingPersistence = pendingAnswerPersistenceRef.current;
-    pendingAnswerPersistenceRef.current = null;
-    const answerPersisted = pendingPersistence ? await pendingPersistence : true;
+    const persistenceResult = pendingPersistence
+      ? await persistPendingAnswer(pendingPersistence)
+      : { ok: true };
+    if (!isTrainingLeaseActive(transitionLease)) return;
+
     const answeredQuestionId = String(currentQuestion?.id || '');
-    if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.delete(answeredQuestionId)) {
+    if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.has(answeredQuestionId)) {
       setShowFeedback(false);
       setLastGTOFrequencies(null);
-      await fetchSingleQuestion(level);
+      try {
+        const replacement = await fetchSingleQuestion(selectedLevel, questionNumber, { throwOnError: true });
+        if (!replacement || !isTrainingLeaseActive(transitionLease)) return;
+        refreshRequiredQuestionIdsRef.current.delete(answeredQuestionId);
+        pendingAnswerPersistenceRef.current = null;
+        setAnswerSaveRequiresRefresh(false);
+        setAnswerSaveError(null);
+      } catch (refreshError) {
+        setAnswerSaveRequiresRefresh(true);
+        setAnswerSaveError(
+          refreshError?.message || 'A fresh Training hand could not be loaded. Try again.'
+        );
+      }
       return;
     }
-    if (answerPersisted === false) {
+    if (persistenceResult?.ok !== true) {
       // The player has already had unlimited time to read the verdict. Once
       // they explicitly ask to continue, fail visibly instead of silently
       // consuming a new question whose predecessor was never recorded.
-      setError('Your answer could not be saved. Check your connection, then retry.');
+      setAnswerSaveError(
+        persistenceResult?.error || 'Your answer could not be saved. Check your connection, then retry.'
+      );
       return;
     }
-    setShowFeedback(false);
+    const pendingConfigContract = pendingSessionConfigContractRef.current;
+    const isFinalRequiredHand = questionNumber >= effectiveQuestionsPerLevel;
+    if (pendingConfigContract && !isFinalRequiredHand) {
+      // Never abandon an answer merely because settings changed while its
+      // authoritative write was still in flight. Rotate only after the old
+      // attempt has acknowledged the persisted decision.
+      loadedSessionConfigContractRef.current = pendingConfigContract;
+      pendingSessionConfigContractRef.current = null;
+      resetAttemptRuntimeRef.current();
+      activateFreshTrainingSession('config');
+      return;
+    }
+    pendingAnswerPersistenceRef.current = null;
+    setAnswerSaveError(null);
+    if (!pendingConfigContract || !isFinalRequiredHand) setShowFeedback(false);
     // The graded mix belongs to the decision just finished. Leaving it set
     // meant the felt served it as the NEXT spot's solver output until that one
     // was graded too -- see the note on `computedFrequencies` in
@@ -1773,7 +2452,23 @@ export default function useGTOTrainer(
       const isFold = ['f', 'fold', 'simple_fold'].includes(lastSelectedAction);
       if (!isFold) {
         const advanced = await advanceToNextStreet();
-        if (advanced) return; // Successfully moved to next street
+        if (!isTrainingLeaseActive(transitionLease)) return;
+        if (advanced === true) return; // Successfully moved to next street
+        if (advanced === null || advanced === false) {
+        // An active, unfinished multi-street hand has no legitimate silent
+        // fallback. Keep the persisted verdict and manual Next on screen so a
+        // transport or integrity failure cannot shorten the server-owned attempt.
+        setShowFeedback(true);
+        return;
+        }
+        if (advanced === 'solver-boundary') {
+          const finishedHand = multiStreetHandRef.current;
+          if (finishedHand && typeof finishedHand.getHandSummary === 'function') {
+            setHandSummary(finishedHand.getHandSummary());
+          }
+          setIsMultiStreetActive(false);
+          multiStreetHandRef.current = null;
+        }
       }
 
       // Multi-street hand is done — save summary (persists until next hand feedback dismisses it)
@@ -1783,6 +2478,13 @@ export default function useGTOTrainer(
       // unhandled TypeError 19 times in one live session. Re-check the ref.
       const finishedHand = multiStreetHandRef.current;
       if (finishedHand && typeof finishedHand.getHandSummary === 'function') {
+        setHandSummary(finishedHand.getHandSummary());
+      }
+      setIsMultiStreetActive(false);
+      multiStreetHandRef.current = null;
+    } else if (multiStreetHandRef.current?.isComplete) {
+      const finishedHand = multiStreetHandRef.current;
+      if (typeof finishedHand.getHandSummary === 'function') {
         setHandSummary(finishedHand.getHandSummary());
       }
       setIsMultiStreetActive(false);
@@ -1806,65 +2508,72 @@ export default function useGTOTrainer(
     setCurrentStreet('flop');
 
     if (questionNumber >= effectiveQuestionsPerLevel) {
-      // Level complete
-      const accuracy = Math.min(
-        100,
-        Math.round((correctCount / effectiveQuestionsPerLevel) * 100)
-      );
-      const passed = checkLevelPassed(selectedLevel, correctCount, effectiveQuestionsPerLevel);
-
-      setLevelPassed(passed);
-      setGameComplete(true);
-
-      // Audio feedback for level completion
-      if (passed) {
-        if (accuracy === 100) trainingSounds.play('mastery');
-        else trainingSounds.play('levelUp');
-      } else {
-        trainingSounds.play('incorrect');
+      // The browser never declares a level complete. It supplies only the
+      // opaque signed attempt id, then waits for the atomic server verdict.
+      const attemptId = currentQuestion?._gradingContext?.attemptId;
+      try {
+        const completion = await saveProgress(attemptId, transitionLease);
+        if (!isTrainingLeaseActive(transitionLease)) return;
+        const passed = Boolean(completion.passed);
+        const accuracy = Number(completion.accuracy) || 0;
+        setDiamondsEarned(Number(completion.diamondsEarned) || 0);
+        setLevelPassed(passed);
+        setGameComplete(true);
+        try {
+          if (passed) {
+            if (accuracy === 100) trainingSounds.play('mastery');
+            else trainingSounds.play('levelUp');
+          } else {
+            trainingSounds.play('incorrect');
+          }
+        } catch (soundError) {
+          // Audio is presentation only. A disabled/broken output device must
+          // not turn a durable server completion into a fake completion error
+          // or invite the player to retry an already-settled reward.
+          console.warn('[GTOTrainer] Completion sound failed (non-critical):', soundError?.message || soundError);
+        }
+      } catch (completionError) {
+        // Keep the final verdict and explicit Next available. The RPC is
+        // idempotent, so the same button safely retries both completion and
+        // analytics without duplicating progress or rewards.
+        setShowFeedback(true);
+        setAnswerSaveError(
+          completionError?.message || 'Training completion could not be verified. Try Next again.'
+        );
+        return;
       }
-
-      // Save progress to database
-      saveProgress(passed, accuracy);
     } else {
       if (preloadComplete && preloadedQuestions[questionNumber]) {
-        // Serve next question from pre-loaded array (INSTANT)
-        // ═══ Phase GTO-CLONE: Apply difficulty mode to simplify options ═══
-        const diffMode =
-          trainerConfig?.difficultyMode || resolveSharedDifficulty(trainerConfig);
-        const nextQ = applyDifficultyToQuestion(preloadedQuestions[questionNumber], diffMode);
-        setCurrentQuestion(nextQ);
+        // Serve the already transformed and signed next question (INSTANT).
+        const nextQ = preloadedQuestions[questionNumber];
+        if (!isTrainingLeaseActive(transitionLease)) return;
+        activateNewTrainingQuestion(nextQ);
         setQuestionNumber((prev) => prev + 1);
-
-        // ═══ START MULTI-STREET HAND if this is a postflop question ═══
-        const scenario = nextQ.scenario || {};
-        const street = scenario.street || '';
-        // roadmap #3 — only Full Hand mode plays the hand out. 'spot' and
-        // 'street' are single-decision modes, so a multi-street hand must never
-        // start; previously ANY flop/turn question began one regardless.
-        const gameMode = trainerConfig?.gameMode || 'full';
-        // Removed 'DETERMINISTIC_SOLVER' source restriction to enable multi-street for all 100+ games
-        const continuationAction = scenario.nextStreetContinuationAction || null;
-        if (gameMode === 'full'
-          && continuationAction
-          && (street === 'flop' || street === 'turn')) {
-          try {
-            const { MultiStreetHand } = await import('../engines/MultiStreetHandManager');
-            multiStreetHandRef.current = new MultiStreetHand(nextQ);
-            setIsMultiStreetActive(true);
-            setCurrentStreet(street);
-          } catch (e) {
-            console.warn('[GTOTrainer] MultiStreetHand import failed:', e);
-          }
-        }
       } else {
         // Fallback to single-question mode
-        setQuestionNumber((prev) => prev + 1);
-        fetchSingleQuestion();
+        try {
+          const loadedQuestion = await fetchSingleQuestion(
+            selectedLevel,
+            questionNumber + 1,
+            { throwOnError: true },
+          );
+          if (!loadedQuestion || !isTrainingLeaseActive(transitionLease)) return;
+          setQuestionNumber((prev) => prev + 1);
+        } catch (loadError) {
+          // Keep the just-persisted verdict and explicit Next visible. The
+          // ordinal advances only after a new signed hand is actually active.
+          setShowFeedback(true);
+          setAnswerSaveError(
+            loadError?.message || 'The next Training hand could not be loaded. Try Next again.',
+          );
+          return;
+        }
       }
     }
     } finally {
-      nextQuestionInFlightRef.current = false;
+      if (nextQuestionInFlightRef.current === transitionToken) {
+        nextQuestionInFlightRef.current = null;
+      }
     }
   }, [
     questionNumber,
@@ -1879,52 +2588,108 @@ export default function useGTOTrainer(
     effectiveQuestionsPerLevel,
     selectedLevel,
     currentQuestion,
-    level,
+    persistPendingAnswer,
     trainerConfig,
+    activateNewTrainingQuestion,
+    activateFreshTrainingSession,
+    captureTrainingLease,
+    isTrainingLeaseActive,
   ]);
 
   /**
    * Start next level (if passed)
    * 🚀 Uses prefetched cache if available, otherwise fetches fresh
    */
-  const startNextLevel = useCallback(() => {
-    if (!levelPassed || level >= TOTAL_LEVELS) return;
+  const startNextLevel = useCallback(async () => {
+    if (!levelPassed || selectedLevel >= TOTAL_LEVELS) return;
+    const operationLease = captureTrainingLease();
+    if (!isTrainingLeaseActive(operationLease)) return;
 
-    const nextLevel = level + 1;
+    const nextLevel = selectedLevel + 1;
+    let nextSessionId = createChildTrainingSessionId(trainingSessionIdRef.current, 'level');
+    const prefetched = nextLevelCacheRef.current;
+    let prefetchedQuestions = null;
+    if (prefetched && prefetched.level === nextLevel && prefetched.questions.length > 0) {
+      try {
+        const candidateSessionId = String(prefetched.sessionId || '');
+        const candidateAttemptId = String(
+          prefetched.questions[0]?._gradingContext?.attemptId || '',
+        );
+        const candidateTargetHands = Number(
+          prefetched.questions[0]?._gradingContext?.sessionTargetHands,
+        );
+        assertSignedTrainingDelivery({
+          success: true,
+          sessionId: candidateSessionId,
+          attemptId: candidateAttemptId,
+          targetHands: candidateTargetHands,
+          questions: prefetched.questions,
+        }, candidateSessionId);
+        if (prefetched.questions.length !== candidateTargetHands) {
+          throw new Error('The prefetched attempt is incomplete.');
+        }
+        nextSessionId = candidateSessionId;
+        prefetchedQuestions = prefetched.questions;
+      } catch (prefetchError) {
+        console.warn('[GTOTrainer] Next-level prefetch could not be adopted:', prefetchError.message);
+      }
+    }
+
+    if (!isTrainingLeaseActive(operationLease)) return;
+
+    activateFreshTrainingSession('level', nextSessionId);
+    loadedSessionConfigContractRef.current = createDeliveryFamilyKey(
+      gameId,
+      nextLevel,
+      trainerConfig,
+    );
+    pendingSessionConfigContractRef.current = null;
+    setSelectedLevel(nextLevel);
     setLevel(nextLevel);
     setQuestionNumber(1);
     setCorrectCount(0);
     setStreak(0);
     setGameComplete(false);
     setLevelPassed(false);
+    setDiamondsEarned(0);
     prefetchTriggeredRef.current = false; // Reset for next level
 
-    // ═══ PHASE 14: Use prefetched cache if available for INSTANT level transition ═══
-    const cache = nextLevelCacheRef.current;
-    if (cache && cache.level === nextLevel && cache.questions.length > 0) {
+    // Background prefetch already created a distinct server-owned attempt for
+    // the next level. Adopt that exact attempt instead of minting a duplicate
+    // reward-eligible campaign from its browser-visible question ids.
+    if (prefetchedQuestions?.length > 0) {
       console.debug(
-        `[GTOTrainer] ⚡ Using prefetched cache for level ${nextLevel} (${cache.questions.length} questions)`
+        `[GTOTrainer] ⚡ Using signed prefetch for level ${nextLevel} (${prefetchedQuestions.length} questions)`
       );
-      setPreloadedQuestions(cache.questions);
+      loadedDeliveryContractRef.current = createDeliveryContractKey(
+        gameId,
+        nextSessionId,
+        trainerConfig,
+        nextLevel,
+      );
+      setPreloadedQuestions(prefetchedQuestions);
       setPreloadComplete(true);
-      setCurrentQuestion(applyDifficultyToQuestion(cache.questions[0], resolveDifficultyMode()));
-      if (cache.questions.length < effectiveQuestionsPerLevel) {
-        setEffectiveQuestionsPerLevel(cache.questions.length);
+      activateNewTrainingQuestion(prefetchedQuestions[0]);
+      if (prefetchedQuestions.length !== effectiveQuestionsPerLevel) {
+        setEffectiveQuestionsPerLevel(prefetchedQuestions.length);
       }
       setLoading(false);
-      nextLevelCacheRef.current = null; // Clear used cache
     } else {
+      setCurrentQuestion(null);
       setPreloadComplete(false);
-      // Pass nextLevel explicitly — the level state update above hasn't
-      // committed yet, so the closure's `level` would be stale
-      preloadAllQuestions(nextLevel);
+      setLoading(true);
     }
+    nextLevelCacheRef.current = null;
   }, [
     levelPassed,
-    level,
-    preloadAllQuestions,
+    selectedLevel,
     effectiveQuestionsPerLevel,
-    resolveDifficultyMode,
+    activateFreshTrainingSession,
+    gameId,
+    trainerConfig,
+    activateNewTrainingQuestion,
+    captureTrainingLease,
+    isTrainingLeaseActive,
   ]);
 
   /**
@@ -1932,11 +2697,16 @@ export default function useGTOTrainer(
    * 🚀 Pre-loads fresh set of questions
    */
   const retryLevel = useCallback(() => {
+    resetAttemptRuntimeRef.current();
+    pendingSessionConfigContractRef.current = null;
+    activateFreshTrainingSession('retry');
+    setLevel(selectedLevel);
     setQuestionNumber(1);
     setCorrectCount(0);
     setStreak(0);
     setGameComplete(false);
     setLevelPassed(false);
+    setDiamondsEarned(0);
     setPreloadComplete(false);
     setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
     // Reset per-session scoring + tracking state
@@ -1944,24 +2714,60 @@ export default function useGTOTrainer(
     // Keep the engine-side session accumulator (_sessionStats.history) in
     // step with the hook's — otherwise a retry's review screen would mix
     // two sessions' histories.
-    try { deterministicEngine.resetSessionDifficulty(); } catch (_) {}
+    try { postAnswerInsights.resetSessionDifficulty(); } catch (_) {}
     mistakeQuestionsRef.current = [];
     adaptiveCheckpointRef.current = 5;
     prefetchTriggeredRef.current = false;
-    preloadAllQuestions();
-  }, [preloadAllQuestions, baseQuestionsPerLevel, gtowScoring]);
+    setCurrentQuestion(null);
+    setLoading(true);
+  }, [activateFreshTrainingSession, baseQuestionsPerLevel, gtowScoring, selectedLevel]);
 
   /**
    * Retrain only the hands the player got wrong.
    * Injects saved mistake questions directly into the queue.
    */
-  const retrainMistakes = useCallback(() => {
+  const retrainMistakes = useCallback(async () => {
     const mistakes = mistakeQuestionsRef.current;
     if (!mistakes || mistakes.length === 0) return;
 
+    const operationLease = captureTrainingLease();
+    if (!isTrainingLeaseActive(operationLease)) return false;
+    setLoading(true);
+    setError(null);
+    const nextSessionId = createChildTrainingSessionId(trainingSessionIdRef.current, 'retrain');
+    const parentAttemptIds = Array.from(new Set(
+      mistakes.map((question) => String(question?._gradingContext?.attemptId || '')).filter(Boolean),
+    ));
+    if (parentAttemptIds.length !== 1) {
+      setError('Mistake replay requires one completed, server-verified source attempt.');
+      setLoading(false);
+      return false;
+    }
+    let reissued;
+    try {
+      reissued = await reissueSignedQuestions(mistakes, nextSessionId, selectedLevel, {
+        sessionKind: 'replay',
+        handOrdinalStart: 1,
+        parentAttemptId: parentAttemptIds[0],
+      });
+      if (!isTrainingLeaseActive(operationLease)) return false;
+    } catch (reissueError) {
+      setError(reissueError?.message || 'Mistake hands could not be refreshed.');
+      setLoading(false);
+      return false;
+    }
+    if (!isTrainingLeaseActive(operationLease)) return false;
+    activateFreshTrainingSession('retrain', nextSessionId);
+    loadedSessionConfigContractRef.current = createDeliveryFamilyKey(
+      gameId,
+      selectedLevel,
+      trainerConfig,
+    );
+    pendingSessionConfigContractRef.current = null;
+
     // Shuffle mistake questions for varied practice.
     // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
-    const shuffled = [...mistakes];
+    const shuffled = [...reissued];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -1972,27 +2778,39 @@ export default function useGTOTrainer(
     setStreak(0);
     setGameComplete(false);
     setLevelPassed(false);
+    setDiamondsEarned(0);
     setShowFeedback(false);
     setPreloadedQuestions(shuffled);
     setPreloadComplete(true);
     setEffectiveQuestionsPerLevel(shuffled.length);
-    setCurrentQuestion(shuffled[0]);
+    activateNewTrainingQuestion(shuffled[0]);
     setLoading(false);
+    loadedDeliveryContractRef.current = createDeliveryContractKey(
+      gameId,
+      nextSessionId,
+      trainerConfig,
+      selectedLevel,
+    );
 
     // Reset scoring for the retrain session
     gtowScoring.resetScore();
-    try { deterministicEngine.resetSessionDifficulty(); } catch (_) {}
+    try { postAnswerInsights.resetSessionDifficulty(); } catch (_) {}
     // Clear the mistakes ref so this retrain session tracks fresh mistakes
     mistakeQuestionsRef.current = [];
 
     console.debug(`[GTOTrainer] Retraining ${shuffled.length} mistake hands`);
-  }, [gtowScoring]);
+    return true;
+  }, [activateFreshTrainingSession, activateNewTrainingQuestion, captureTrainingLease, gameId, gtowScoring, isTrainingLeaseActive, selectedLevel, reissueSignedQuestions, trainerConfig]);
 
   /**
    * Reset entire game
    * 🚀 Pre-loads questions for level 1
    */
   const resetGame = useCallback(() => {
+    resetAttemptRuntimeRef.current();
+    pendingSessionConfigContractRef.current = null;
+    activateFreshTrainingSession('reset');
+    setSelectedLevel(1);
     setLevel(1);
     setQuestionNumber(1);
     setCorrectCount(0);
@@ -2000,6 +2818,7 @@ export default function useGTOTrainer(
     setBestStreak(0);
     setGameComplete(false);
     setLevelPassed(false);
+    setDiamondsEarned(0);
     setPreloadComplete(false);
     setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
     // Reset per-session scoring + tracking state
@@ -2007,15 +2826,68 @@ export default function useGTOTrainer(
     // Keep the engine-side session accumulator (_sessionStats.history) in
     // step with the hook's — otherwise a retry's review screen would mix
     // two sessions' histories.
-    try { deterministicEngine.resetSessionDifficulty(); } catch (_) {}
+    try { postAnswerInsights.resetSessionDifficulty(); } catch (_) {}
     mistakeQuestionsRef.current = [];
     adaptiveCheckpointRef.current = 5;
     prefetchTriggeredRef.current = false;
-    // Pass level 1 explicitly — setLevel(1) hasn't committed yet
-    preloadAllQuestions(1);
-  }, [preloadAllQuestions, baseQuestionsPerLevel, gtowScoring]);
+    setCurrentQuestion(null);
+    setLoading(true);
+  }, [activateFreshTrainingSession, baseQuestionsPerLevel, gtowScoring]);
 
-  // 🚀 Pre-load all questions on mount / gameId change ONLY.
+  // Central reset used by configuration changes and terminal-attempt recovery.
+  // It preserves the selected campaign level, but no question, score, receipt,
+  // continuation, or review state is allowed to cross into the fresh attempt.
+  resetAttemptRuntimeRef.current = () => {
+    pendingAnswerPersistenceRef.current = null;
+    submitAnswerInFlightRef.current = null;
+    refreshRequiredQuestionIdsRef.current.clear();
+    nextQuestionInFlightRef.current = null;
+    nextLevelCacheRef.current = null;
+    prefetchTriggeredRef.current = false;
+    mistakeQuestionsRef.current = [];
+    adaptiveCheckpointRef.current = 5;
+    multiStreetHandRef.current = null;
+    weakSpotMapRef.current = {};
+    setQuestionNumber(1);
+    setLevel(selectedLevel);
+    setCorrectCount(0);
+    setStreak(0);
+    setBestStreak(0);
+    setCurrentQuestion(null);
+    setPreloadedQuestions([]);
+    setPreloadComplete(false);
+    setEffectiveQuestionsPerLevel(baseQuestionsPerLevel);
+    setError(null);
+    setAnswerSaveError(null);
+    setAnswerSaveRetrying(false);
+    setAnswerSaveRequiresRefresh(false);
+    setShowFeedback(false);
+    setFeedbackResult(null);
+    setExplanation('');
+    setStructuredExplanation(null);
+    setGameComplete(false);
+    setLevelPassed(false);
+    setDiamondsEarned(0);
+    setMasteryToken(null);
+    setMasteryStatus(null);
+    setLastMoveClassification(null);
+    setLastEVLoss(null);
+    setLastEVLossMeasured(false);
+    setLastGTOFrequencies(null);
+    setCurrentStreet('flop');
+    setIsMultiStreetActive(false);
+    setHandSummary(null);
+    setLastSelectedAction(null);
+    setAdaptiveLevelChange(null);
+    gtowScoring.resetScore();
+    try { postAnswerInsights.resetSessionDifficulty(); } catch (_) {}
+    setLoading(true);
+  };
+
+  // 🚀 Load on mount/game change and refetch whenever the server-owned
+  // delivery contract changes. Difficulty/street/custom filters cannot be
+  // rewritten client-side because doing so invalidates the signed question
+  // digest. A change made while feedback is visible waits for explicit Next.
   // Ref pattern: preloadAllQuestions changes identity whenever level or
   // effectiveQuestionsPerLevel change (e.g. adaptive difficulty mid-game),
   // and having it in the dep array re-fired the effect mid-game, wiping the
@@ -2023,11 +2895,61 @@ export default function useGTOTrainer(
   // explicitly (startNextLevel/retryLevel/resetGame), so no re-fire is needed.
   const preloadRef = useRef(preloadAllQuestions);
   preloadRef.current = preloadAllQuestions;
+  const deliveryContractKey = createDeliveryContractKey(
+    gameId,
+    trainingSessionId,
+    trainerConfig,
+    selectedLevel,
+  );
+  const sessionConfigContractKey = createDeliveryFamilyKey(gameId, selectedLevel, trainerConfig);
   useEffect(() => {
-    if (gameId) {
+    if (!gameId) return;
+    if (runtimeIdentityChangedRef.current) {
+      runtimeIdentityChangedRef.current = false;
+      resetAttemptRuntimeRef.current();
+      loadedSessionConfigContractRef.current = sessionConfigContractKey;
+      pendingSessionConfigContractRef.current = null;
+      loadedDeliveryContractRef.current = deliveryContractKey;
       preloadRef.current();
+      return;
     }
-  }, [gameId]);
+    if (loadedSessionConfigContractRef.current === null) {
+      loadedSessionConfigContractRef.current = sessionConfigContractKey;
+    } else if (loadedSessionConfigContractRef.current !== sessionConfigContractKey) {
+      if (
+        showFeedback
+        || nextQuestionInFlightRef.current
+        || submitAnswerInFlightRef.current
+        || pendingAnswerPersistenceRef.current
+        || (
+          questionNumber >= effectiveQuestionsPerLevel
+          && Number(multiStreetHandRef.current?.streetActions?.length || 0) > 0
+        )
+      ) {
+        pendingSessionConfigContractRef.current = sessionConfigContractKey;
+        return;
+      }
+      loadedSessionConfigContractRef.current = sessionConfigContractKey;
+      pendingSessionConfigContractRef.current = null;
+      resetAttemptRuntimeRef.current();
+      activateFreshTrainingSession('config');
+      return;
+    } else {
+      pendingSessionConfigContractRef.current = null;
+    }
+    if (showFeedback) return;
+    if (loadedDeliveryContractRef.current === deliveryContractKey) return;
+    loadedDeliveryContractRef.current = deliveryContractKey;
+    preloadRef.current();
+  }, [
+    activateFreshTrainingSession,
+    deliveryContractKey,
+    gameId,
+    effectiveQuestionsPerLevel,
+    questionNumber,
+    sessionConfigContractKey,
+    showFeedback,
+  ]);
 
   return {
     // Current state
@@ -2038,8 +2960,12 @@ export default function useGTOTrainer(
     // persistence); `contentLevel` = adaptive difficulty actually being served
     level: selectedLevel,
     contentLevel: level,
+    trainingSessionId,
     loading,
     error,
+    answerSaveError,
+    answerSaveRetrying,
+    answerSaveRequiresRefresh,
 
     // Pre-load state
     preloadComplete,
@@ -2064,9 +2990,12 @@ export default function useGTOTrainer(
     // GTOW scoring state
     moveClassification: lastMoveClassification,
     evLoss: lastEVLoss,
+    evLossMeasured: lastEVLossMeasured,
     gtoFrequencies: lastGTOFrequencies,
     gtowScore: gtowScoring.gtowScore,
     totalEVLoss: gtowScoring.totalEVLoss,
+    measuredTotalEVLoss: gtowScoring.measuredTotalEVLoss,
+    measuredEVDecisions: gtowScoring.measuredEVDecisions,
     sessionMistakes: gtowScoring.mistakeCount,
     handHistory: gtowScoring.handHistory,
     avgEVLossPerHand: gtowScoring.avgEVLossPerHand,
@@ -2098,6 +3027,7 @@ export default function useGTOTrainer(
     // Completion state
     gameComplete,
     levelPassed,
+    diamondsEarned,
 
     // Adaptive difficulty
     adaptiveLevelChange,
@@ -2109,14 +3039,14 @@ export default function useGTOTrainer(
     // ═══ PHASE 90: Session weakness summary ═══
     getSessionSummary: () => {
       try {
-        return deterministicEngine.generateSessionSummary();
+        return postAnswerInsights.generateSessionSummary();
       } catch (e) {
         return null;
       }
     },
     getMistakeTrackerData: () => {
       try {
-        return deterministicEngine.getMistakeTrackerData();
+        return postAnswerInsights.getMistakeTrackerData();
       } catch (e) {
         return {};
       }
@@ -2124,7 +3054,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 94: Milestone coaching ═══
     getMilestoneCoaching: (qNum) => {
       try {
-        return deterministicEngine.getMilestoneCoaching(qNum);
+        return postAnswerInsights.getMilestoneCoaching(qNum);
       } catch (e) {
         return null;
       }
@@ -2132,7 +3062,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 124: Performance trend tracking ═══
     getPerformanceTrend: () => {
       try {
-        return deterministicEngine.getPerformanceTrend();
+        return postAnswerInsights.getPerformanceTrend();
       } catch (e) {
         return null;
       }
@@ -2140,7 +3070,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 125: Engine stats ═══
     getEngineStats: () => {
       try {
-        return deterministicEngine.getEngineStats();
+        return postAnswerInsights.getEngineStats();
       } catch (e) {
         return null;
       }
@@ -2148,7 +3078,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 140: GTO deviation summary ═══
     getDeviationSummary: () => {
       try {
-        return deterministicEngine.getDeviationSummary();
+        return postAnswerInsights.getDeviationSummary();
       } catch (e) {
         return null;
       }
@@ -2156,7 +3086,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 143: Auto-adjusted difficulty ═══
     getAutoAdjustedDifficulty: () => {
       try {
-        return deterministicEngine.getAutoAdjustedDifficulty();
+        return postAnswerInsights.getAutoAdjustedDifficulty();
       } catch (e) {
         return 'standard';
       }
@@ -2164,7 +3094,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 144: Concept mastery ═══
     getConceptMastery: () => {
       try {
-        return deterministicEngine.getConceptMastery();
+        return postAnswerInsights.getConceptMastery();
       } catch (e) {
         return {};
       }
@@ -2172,7 +3102,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 145: Weakness targets ═══
     getWeaknessTargets: () => {
       try {
-        return deterministicEngine.getWeaknessTargets();
+        return postAnswerInsights.getWeaknessTargets();
       } catch (e) {
         return null;
       }
@@ -2180,7 +3110,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 146: Spaced repetition ═══
     getSpacedRepetitionDue: () => {
       try {
-        return deterministicEngine.getSpacedRepetitionDue();
+        return postAnswerInsights.getSpacedRepetitionDue();
       } catch (e) {
         return null;
       }
@@ -2188,7 +3118,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 148: Optimal play comparison ═══
     getOptimalPlayComparison: () => {
       try {
-        return deterministicEngine.getOptimalPlayComparison();
+        return postAnswerInsights.getOptimalPlayComparison();
       } catch (e) {
         return null;
       }
@@ -2196,7 +3126,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 149: Detailed session report ═══
     generateDetailedSessionReport: () => {
       try {
-        return deterministicEngine.generateDetailedSessionReport();
+        return postAnswerInsights.generateDetailedSessionReport();
       } catch (e) {
         return null;
       }
@@ -2204,7 +3134,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 151: Range grid data ═══
     generateRangeGridData: (handActions, nodeType) => {
       try {
-        return deterministicEngine.generateRangeGridData(handActions, nodeType);
+        return postAnswerInsights.generateRangeGridData(handActions, nodeType);
       } catch (e) {
         return null;
       }
@@ -2212,7 +3142,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 152: Action heatmap ═══
     generateActionHeatmap: () => {
       try {
-        return deterministicEngine.generateActionHeatmap();
+        return postAnswerInsights.generateActionHeatmap();
       } catch (e) {
         return null;
       }
@@ -2220,7 +3150,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 153: EV graph data ═══
     getEVGraphData: () => {
       try {
-        return deterministicEngine.getEVGraphData();
+        return postAnswerInsights.getEVGraphData();
       } catch (e) {
         return [];
       }
@@ -2228,7 +3158,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 158: Aggression factors ═══
     getAggressionFactors: () => {
       try {
-        return deterministicEngine.getAggressionFactors();
+        return postAnswerInsights.getAggressionFactors();
       } catch (e) {
         return {};
       }
@@ -2236,7 +3166,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 159: Preflop stats ═══
     getPreflopStats: () => {
       try {
-        return deterministicEngine.getPreflopStats();
+        return postAnswerInsights.getPreflopStats();
       } catch (e) {
         return null;
       }
@@ -2244,7 +3174,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 160: Positional awareness ═══
     getPositionalAwarenessScore: () => {
       try {
-        return deterministicEngine.getPositionalAwarenessScore();
+        return postAnswerInsights.getPositionalAwarenessScore();
       } catch (e) {
         return null;
       }
@@ -2252,7 +3182,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 178: Streak messages ═══
     getStreakMessage: (streak) => {
       try {
-        return deterministicEngine.getStreakMessage(streak);
+        return postAnswerInsights.getStreakMessage(streak);
       } catch (e) {
         return null;
       }
@@ -2260,21 +3190,21 @@ export default function useGTOTrainer(
     // ═══ PHASE 181-183: Quiz generators ═══
     generateTextureQuiz: (board) => {
       try {
-        return deterministicEngine.generateTextureQuiz(board);
+        return postAnswerInsights.generateTextureQuiz(board);
       } catch (e) {
         return null;
       }
     },
     generateRangeQuiz: (position) => {
       try {
-        return deterministicEngine.generateRangeQuiz(position);
+        return postAnswerInsights.generateRangeQuiz(position);
       } catch (e) {
         return null;
       }
     },
     generatePotOddsQuiz: () => {
       try {
-        return deterministicEngine.generatePotOddsQuiz();
+        return postAnswerInsights.generatePotOddsQuiz();
       } catch (e) {
         return null;
       }
@@ -2282,7 +3212,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 185: Frequency comparison ═══
     getFrequencyComparison: () => {
       try {
-        return deterministicEngine.getFrequencyComparison();
+        return postAnswerInsights.getFrequencyComparison();
       } catch (e) {
         return null;
       }
@@ -2290,7 +3220,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 187: Leak finder ═══
     generateLeakFinderReport: () => {
       try {
-        return deterministicEngine.generateLeakFinderReport();
+        return postAnswerInsights.generateLeakFinderReport();
       } catch (e) {
         return null;
       }
@@ -2298,7 +3228,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 188: Timing analysis ═══
     getTimingAnalysis: () => {
       try {
-        return deterministicEngine.getTimingAnalysis();
+        return postAnswerInsights.getTimingAnalysis();
       } catch (e) {
         return null;
       }
@@ -2307,8 +3237,8 @@ export default function useGTOTrainer(
     getHandHistory: (filter) => {
       try {
         return filter
-          ? deterministicEngine.getFilteredHandHistory(filter)
-          : deterministicEngine.getHandHistory();
+          ? postAnswerInsights.getFilteredHandHistory(filter)
+          : postAnswerInsights.getHandHistory();
       } catch (e) {
         return [];
       }
@@ -2316,14 +3246,14 @@ export default function useGTOTrainer(
     // ═══ PHASE 191: Custom drills ═══
     createCustomDrill: (config) => {
       try {
-        return deterministicEngine.createCustomDrill(config);
+        return postAnswerInsights.createCustomDrill(config);
       } catch (e) {
         return null;
       }
     },
     getCustomDrills: () => {
       try {
-        return deterministicEngine.getCustomDrills();
+        return postAnswerInsights.getCustomDrills();
       } catch (e) {
         return [];
       }
@@ -2331,7 +3261,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 192: Progressive level ═══
     getProgressiveLevel: () => {
       try {
-        return deterministicEngine.getProgressiveLevelDescription();
+        return postAnswerInsights.getProgressiveLevelDescription();
       } catch (e) {
         return null;
       }
@@ -2339,7 +3269,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 196: Thought prompts ═══
     generateThoughtPrompts: (scenario, heroHand, board) => {
       try {
-        return deterministicEngine.generateThoughtPrompts(scenario, heroHand, board);
+        return postAnswerInsights.generateThoughtPrompts(scenario, heroHand, board);
       } catch (e) {
         return [];
       }
@@ -2347,7 +3277,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 198: Mental game ═══
     getMentalGameNote: () => {
       try {
-        return deterministicEngine.getMentalGameNote();
+        return postAnswerInsights.getMentalGameNote();
       } catch (e) {
         return null;
       }
@@ -2355,14 +3285,14 @@ export default function useGTOTrainer(
     // ═══ PHASE 200: Engine health ═══
     getEngineHealth: () => {
       try {
-        return deterministicEngine.getEngineHealth();
+        return postAnswerInsights.getEngineHealth();
       } catch (e) {
         return null;
       }
     },
     resetSession: () => {
       try {
-        deterministicEngine.resetSession();
+        postAnswerInsights.resetSession();
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
@@ -2370,7 +3300,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 203: Board coverage ═══
     generateBoardCoverageData: (board, heroPos, isPFR) => {
       try {
-        return deterministicEngine.generateBoardCoverageData(board, heroPos, isPFR);
+        return postAnswerInsights.generateBoardCoverageData(board, heroPos, isPFR);
       } catch (e) {
         return null;
       }
@@ -2378,7 +3308,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 204: Nut combos ═══
     countNutCombos: (board) => {
       try {
-        return deterministicEngine.countNutCombos(board);
+        return postAnswerInsights.countNutCombos(board);
       } catch (e) {
         return null;
       }
@@ -2386,7 +3316,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 213: Action clusters ═══
     getActionClusters: () => {
       try {
-        return deterministicEngine.getActionClusters();
+        return postAnswerInsights.getActionClusters();
       } catch (e) {
         return null;
       }
@@ -2394,14 +3324,14 @@ export default function useGTOTrainer(
     // ═══ PHASE 214: Tagging ═══
     tagScenario: (handId, tag) => {
       try {
-        deterministicEngine.tagScenario(handId, tag);
+        postAnswerInsights.tagScenario(handId, tag);
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
     },
     getTaggedScenarios: (tag) => {
       try {
-        return deterministicEngine.getTaggedScenarios(tag);
+        return postAnswerInsights.getTaggedScenarios(tag);
       } catch (e) {
         return [];
       }
@@ -2409,7 +3339,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 216: Explanation ratings ═══
     rateExplanation: (handId, rating, feedback) => {
       try {
-        deterministicEngine.rateExplanation(handId, rating, feedback);
+        postAnswerInsights.rateExplanation(handId, rating, feedback);
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }
@@ -2417,7 +3347,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 218: Frequency-weighted scoring ═══
     calculateFrequencyWeightedScore: (chosen, handActions) => {
       try {
-        return deterministicEngine.calculateFrequencyWeightedScore(chosen, handActions);
+        return postAnswerInsights.calculateFrequencyWeightedScore(chosen, handActions);
       } catch (e) {
         return null;
       }
@@ -2425,21 +3355,21 @@ export default function useGTOTrainer(
     // ═══ PHASE 219: Challenge mode ═══
     initChallengeMode: (config) => {
       try {
-        return deterministicEngine.initChallengeMode(config);
+        return postAnswerInsights.initChallengeMode(config);
       } catch (e) {
         return null;
       }
     },
     recordChallengeAnswer: (isCorrect, timeMs) => {
       try {
-        return deterministicEngine.recordChallengeAnswer(isCorrect, timeMs);
+        return postAnswerInsights.recordChallengeAnswer(isCorrect, timeMs);
       } catch (e) {
         return null;
       }
     },
     getChallengeResults: () => {
       try {
-        return deterministicEngine.getChallengeResults();
+        return postAnswerInsights.getChallengeResults();
       } catch (e) {
         return null;
       }
@@ -2447,7 +3377,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 220: Achievements ═══
     checkAchievements: () => {
       try {
-        return deterministicEngine.checkAchievements();
+        return postAnswerInsights.checkAchievements();
       } catch (e) {
         return null;
       }
@@ -2455,14 +3385,14 @@ export default function useGTOTrainer(
     // ═══ PHASE 221-222: Concept tree & drill recommendations ═══
     getConceptDependencyTree: () => {
       try {
-        return deterministicEngine.getConceptDependencyTree();
+        return postAnswerInsights.getConceptDependencyTree();
       } catch (e) {
         return {};
       }
     },
     getRecommendedDrills: () => {
       try {
-        return deterministicEngine.getRecommendedDrills();
+        return postAnswerInsights.getRecommendedDrills();
       } catch (e) {
         return [];
       }
@@ -2470,7 +3400,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 224: Frequency balance ═══
     getExpectedFrequencyBalance: () => {
       try {
-        return deterministicEngine.getExpectedFrequencyBalance();
+        return postAnswerInsights.getExpectedFrequencyBalance();
       } catch (e) {
         return null;
       }
@@ -2478,7 +3408,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 225: Smart recap ═══
     generateSmartRecap: (qNum) => {
       try {
-        return deterministicEngine.generateSmartRecap(qNum);
+        return postAnswerInsights.generateSmartRecap(qNum);
       } catch (e) {
         return null;
       }
@@ -2486,7 +3416,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 227: Cumulative deviation cost ═══
     getCumulativeDeviationCost: () => {
       try {
-        return deterministicEngine.getCumulativeDeviationCost();
+        return postAnswerInsights.getCumulativeDeviationCost();
       } catch (e) {
         return null;
       }
@@ -2494,7 +3424,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 229: Runout simulation ═══
     simulateRunouts: (board, handStrength, street) => {
       try {
-        return deterministicEngine.simulateRunouts(board, handStrength, street);
+        return postAnswerInsights.simulateRunouts(board, handStrength, street);
       } catch (e) {
         return null;
       }
@@ -2502,7 +3432,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 230: 3-bet defense matrix ═══
     get3BetDefenseMatrix: () => {
       try {
-        return deterministicEngine.get3BetDefenseMatrix();
+        return postAnswerInsights.get3BetDefenseMatrix();
       } catch (e) {
         return {};
       }
@@ -2510,7 +3440,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 232: Sizing optimizer ═══
     recommendBetSizing: (handStrength, street, texture, pot, stack) => {
       try {
-        return deterministicEngine.recommendBetSizing(handStrength, street, texture, pot, stack);
+        return postAnswerInsights.recommendBetSizing(handStrength, street, texture, pot, stack);
       } catch (e) {
         return null;
       }
@@ -2518,7 +3448,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 236: Draw equity ═══
     calculateDrawEquity: (handStrength, street) => {
       try {
-        return deterministicEngine.calculateDrawEquity(handStrength, street);
+        return postAnswerInsights.calculateDrawEquity(handStrength, street);
       } catch (e) {
         return null;
       }
@@ -2526,7 +3456,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 237: Fold equity ═══
     calculateFoldEquity: (betSize, potSize) => {
       try {
-        return deterministicEngine.calculateFoldEquity(betSize, potSize);
+        return postAnswerInsights.calculateFoldEquity(betSize, potSize);
       } catch (e) {
         return null;
       }
@@ -2534,7 +3464,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 238: EV calculator ═══
     calculateActionEV: (action, equity, potSize, betSize, foldEquity) => {
       try {
-        return deterministicEngine.calculateActionEV(action, equity, potSize, betSize, foldEquity);
+        return postAnswerInsights.calculateActionEV(action, equity, potSize, betSize, foldEquity);
       } catch (e) {
         return null;
       }
@@ -2542,7 +3472,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 239: Bluff ratio ═══
     calculateOptimalBluffRatio: (betSizePct) => {
       try {
-        return deterministicEngine.calculateOptimalBluffRatio(betSizePct);
+        return postAnswerInsights.calculateOptimalBluffRatio(betSizePct);
       } catch (e) {
         return null;
       }
@@ -2550,7 +3480,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 240: Leaderboard ═══
     getLeaderboardEntry: () => {
       try {
-        return deterministicEngine.getLeaderboardEntry();
+        return postAnswerInsights.getLeaderboardEntry();
       } catch (e) {
         return null;
       }
@@ -2558,38 +3488,22 @@ export default function useGTOTrainer(
     // ═══ PHASE 241: Training calendar ═══
     getTrainingCalendar: () => {
       try {
-        return deterministicEngine.getTrainingCalendar();
+        return postAnswerInsights.getTrainingCalendar();
       } catch (e) {
         return {};
       }
     },
     getTrainingStreak: () => {
       try {
-        return deterministicEngine.getTrainingStreak();
+        return postAnswerInsights.getTrainingStreak();
       } catch (e) {
         return 0;
-      }
-    },
-    // ═══ PHASE 242: Flashcards ═══
-    generateFlashcards: (category) => {
-      try {
-        return deterministicEngine.generateFlashcards(category);
-      } catch (e) {
-        return null;
-      }
-    },
-    // ═══ PHASE 243: Quick-fire ═══
-    generateQuickFireQuestion: (scenario, heroHand, correctAction) => {
-      try {
-        return deterministicEngine.generateQuickFireQuestion(scenario, heroHand, correctAction);
-      } catch (e) {
-        return null;
       }
     },
     // ═══ PHASE 244: Board texture classification ═══
     classifyBoardTexture: (board) => {
       try {
-        return deterministicEngine.classifyBoardTexture(board);
+        return postAnswerInsights.classifyBoardTexture(board);
       } catch (e) {
         return null;
       }
@@ -2597,7 +3511,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 245: Action tree ═══
     generateActionTree: (handActions, heroHand) => {
       try {
-        return deterministicEngine.generateActionTree(handActions, heroHand);
+        return postAnswerInsights.generateActionTree(handActions, heroHand);
       } catch (e) {
         return null;
       }
@@ -2605,7 +3519,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 246: Range vs range ═══
     getRangeVsRangeEquity: (heroRange, villainRange, boardType) => {
       try {
-        return deterministicEngine.getRangeVsRangeEquity(heroRange, villainRange, boardType);
+        return postAnswerInsights.getRangeVsRangeEquity(heroRange, villainRange, boardType);
       } catch (e) {
         return null;
       }
@@ -2613,7 +3527,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 249: Tilt detection ═══
     detectTilt: () => {
       try {
-        return deterministicEngine.detectTilt();
+        return postAnswerInsights.detectTilt();
       } catch (e) {
         return null;
       }
@@ -2621,7 +3535,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 250: Training dashboard ═══
     getTrainingDashboard: () => {
       try {
-        return deterministicEngine.getTrainingDashboard();
+        return postAnswerInsights.getTrainingDashboard();
       } catch (e) {
         return null;
       }
@@ -2631,7 +3545,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 254: Leak report ═══
     generateLeakReport: () => {
       try {
-        return deterministicEngine.generateLeakReport();
+        return postAnswerInsights.generateLeakReport();
       } catch (e) {
         return { leaks: [], summary: '' };
       }
@@ -2639,7 +3553,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 255: Session grade ═══
     getSessionGrade: () => {
       // 2026-07-19 AUDIT FIX (wave-1 E2E): the review screen graded via TWO
-      // systems at once — this returned deterministicEngine's internal grade
+      // systems at once — this returned postAnswerInsights's internal grade
       // while other panels graded gtowScore, so one screen showed "C-" and
       // "D" simultaneously. Single source of truth: grade the GTOW score.
       try {
@@ -2658,7 +3572,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 256: Spot difficulty ═══
     estimateSpotDifficulty: (frequencies, street, stackDepth, nodeType) => {
       try {
-        return deterministicEngine.estimateSpotDifficulty(
+        return postAnswerInsights.estimateSpotDifficulty(
           frequencies,
           street,
           stackDepth,
@@ -2671,7 +3585,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 257: Improvement velocity ═══
     getImprovementVelocity: () => {
       try {
-        return deterministicEngine.getImprovementVelocity();
+        return postAnswerInsights.getImprovementVelocity();
       } catch (e) {
         return { velocity: 0, trend: 'INSUFFICIENT_DATA' };
       }
@@ -2679,7 +3593,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 258: Drill prescription ═══
     prescribeDrills: () => {
       try {
-        return deterministicEngine.prescribeDrills();
+        return postAnswerInsights.prescribeDrills();
       } catch (e) {
         return [];
       }
@@ -2687,7 +3601,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 259: Frequency mastery ═══
     getFrequencyMasteryScore: () => {
       try {
-        return deterministicEngine.getFrequencyMasteryScore();
+        return postAnswerInsights.getFrequencyMasteryScore();
       } catch (e) {
         return { score: 0, label: 'No data' };
       }
@@ -2695,7 +3609,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 260: Full session report ═══
     generateSessionReport: () => {
       try {
-        return deterministicEngine.generateSessionReport();
+        return postAnswerInsights.generateSessionReport();
       } catch (e) {
         return null;
       }
@@ -2703,7 +3617,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 261-270: Deep coaching intelligence ═══
     getTeachingPrinciple: (street, nodeType, correctAction, handStrength, texture) => {
       try {
-        return deterministicEngine.getTeachingPrinciple(
+        return postAnswerInsights.getTeachingPrinciple(
           street,
           nodeType,
           correctAction,
@@ -2716,14 +3630,14 @@ export default function useGTOTrainer(
     },
     getPositionReminder: (heroPosition, street, nodeType) => {
       try {
-        return deterministicEngine.getPositionReminder(heroPosition, street, nodeType);
+        return postAnswerInsights.getPositionReminder(heroPosition, street, nodeType);
       } catch (e) {
         return null;
       }
     },
     getTextureStrategyGuide: (texture, street, heroPosition, villainPosition) => {
       try {
-        return deterministicEngine.getTextureStrategyGuide(
+        return postAnswerInsights.getTextureStrategyGuide(
           texture,
           street,
           heroPosition,
@@ -2735,14 +3649,14 @@ export default function useGTOTrainer(
     },
     getSPRStrategyGuide: (estimatedPot, stackDepth) => {
       try {
-        return deterministicEngine.getSPRStrategyGuide(estimatedPot, stackDepth);
+        return postAnswerInsights.getSPRStrategyGuide(estimatedPot, stackDepth);
       } catch (e) {
         return null;
       }
     },
     getVillainRangeNarration: (street, nodeType, villainActions) => {
       try {
-        return deterministicEngine.getVillainRangeNarration(street, nodeType, villainActions);
+        return postAnswerInsights.getVillainRangeNarration(street, nodeType, villainActions);
       } catch (e) {
         return null;
       }
@@ -2755,7 +3669,7 @@ export default function useGTOTrainer(
       stackDepth
     ) => {
       try {
-        return deterministicEngine.getMultiStreetPlanningGuide(
+        return postAnswerInsights.getMultiStreetPlanningGuide(
           street,
           handStrength,
           optimalAction,
@@ -2768,21 +3682,21 @@ export default function useGTOTrainer(
     },
     getFrequencyCorrectionPrompt: () => {
       try {
-        return deterministicEngine.getFrequencyCorrectionPrompt();
+        return postAnswerInsights.getFrequencyCorrectionPrompt();
       } catch (e) {
         return null;
       }
     },
     getTiltRecoveryAdvice: () => {
       try {
-        return deterministicEngine.getTiltRecoveryAdvice();
+        return postAnswerInsights.getTiltRecoveryAdvice();
       } catch (e) {
         return null;
       }
     },
     getSessionPacingAnalysis: () => {
       try {
-        return deterministicEngine.getSessionPacingAnalysis();
+        return postAnswerInsights.getSessionPacingAnalysis();
       } catch (e) {
         return null;
       }
@@ -2798,7 +3712,7 @@ export default function useGTOTrainer(
       texture
     ) => {
       try {
-        return deterministicEngine.estimateSpotDifficultyEnhanced(
+        return postAnswerInsights.estimateSpotDifficultyEnhanced(
           frequencies,
           street,
           stackDepth,
@@ -2815,14 +3729,14 @@ export default function useGTOTrainer(
     // ═══ PHASE 271-280: Advanced coaching + analytics ═══
     classifyHandStrength: (handCategory, boardTexture, street) => {
       try {
-        return deterministicEngine.classifyHandStrength(handCategory, boardTexture, street);
+        return postAnswerInsights.classifyHandStrength(handCategory, boardTexture, street);
       } catch (e) {
         return null;
       }
     },
     estimateEquityVsRange: (handCategory, street, nodeType, heroPosition, villainPosition) => {
       try {
-        return deterministicEngine.estimateEquityVsRange(
+        return postAnswerInsights.estimateEquityVsRange(
           handCategory,
           street,
           nodeType,
@@ -2835,7 +3749,7 @@ export default function useGTOTrainer(
     },
     getActionEVComparison: (frequencies, correctAction, selectedAction) => {
       try {
-        return deterministicEngine.getActionEVComparison(
+        return postAnswerInsights.getActionEVComparison(
           frequencies,
           correctAction,
           selectedAction
@@ -2846,7 +3760,7 @@ export default function useGTOTrainer(
     },
     getSolverLineComparison: (selectedAction, correctAction, frequencies, street, nodeType) => {
       try {
-        return deterministicEngine.getSolverLineComparison(
+        return postAnswerInsights.getSolverLineComparison(
           selectedAction,
           correctAction,
           frequencies,
@@ -2859,14 +3773,14 @@ export default function useGTOTrainer(
     },
     getConceptMasteryReport: () => {
       try {
-        return deterministicEngine.getConceptMasteryReport();
+        return postAnswerInsights.getConceptMasteryReport();
       } catch (e) {
         return { concepts: [], overallMastery: 0 };
       }
     },
     generateHints: (frequencies, street, nodeType, handCategory, heroPosition, texture) => {
       try {
-        return deterministicEngine.generateHints(
+        return postAnswerInsights.generateHints(
           frequencies,
           street,
           nodeType,
@@ -2880,7 +3794,7 @@ export default function useGTOTrainer(
     },
     getRunoutImpactPreview: (handCategory, street, correctAction, boardTexture) => {
       try {
-        return deterministicEngine.getRunoutImpactPreview(
+        return postAnswerInsights.getRunoutImpactPreview(
           handCategory,
           street,
           correctAction,
@@ -2892,21 +3806,21 @@ export default function useGTOTrainer(
     },
     getMixedFrequencyDrillData: () => {
       try {
-        return deterministicEngine.getMixedFrequencyDrillData();
+        return postAnswerInsights.getMixedFrequencyDrillData();
       } catch (e) {
         return { mixedSpots: [], needsPractice: false };
       }
     },
     getHandCategoryBreakdown: () => {
       try {
-        return deterministicEngine.getHandCategoryBreakdown();
+        return postAnswerInsights.getHandCategoryBreakdown();
       } catch (e) {
         return { categories: [] };
       }
     },
     getSessionComparison: (previousSessionData) => {
       try {
-        return deterministicEngine.getSessionComparison(previousSessionData);
+        return postAnswerInsights.getSessionComparison(previousSessionData);
       } catch (e) {
         return null;
       }
@@ -2914,7 +3828,7 @@ export default function useGTOTrainer(
     // ═══ PHASE 281-290: Advanced analytics + coaching ═══
     getPreDecisionPreview: (handCategory, street, nodeType, heroPosition, frequencies) => {
       try {
-        return deterministicEngine.getPreDecisionPreview(
+        return postAnswerInsights.getPreDecisionPreview(
           handCategory,
           street,
           nodeType,
@@ -2927,63 +3841,63 @@ export default function useGTOTrainer(
     },
     getRunningActionFrequencies: () => {
       try {
-        return deterministicEngine.getRunningActionFrequencies();
+        return postAnswerInsights.getRunningActionFrequencies();
       } catch (e) {
         return null;
       }
     },
     getMistakeClusters: () => {
       try {
-        return deterministicEngine.getMistakeClusters();
+        return postAnswerInsights.getMistakeClusters();
       } catch (e) {
         return { clusters: [], totalMistakes: 0 };
       }
     },
     getBoardCoverageAnalysis: () => {
       try {
-        return deterministicEngine.getBoardCoverageAnalysis();
+        return postAnswerInsights.getBoardCoverageAnalysis();
       } catch (e) {
         return null;
       }
     },
     getBluffToValueRatio: () => {
       try {
-        return deterministicEngine.getBluffToValueRatio();
+        return postAnswerInsights.getBluffToValueRatio();
       } catch (e) {
         return null;
       }
     },
     getEVLossHeatmap: () => {
       try {
-        return deterministicEngine.getEVLossHeatmap();
+        return postAnswerInsights.getEVLossHeatmap();
       } catch (e) {
         return null;
       }
     },
     getQuickFireReviewCards: () => {
       try {
-        return deterministicEngine.getQuickFireReviewCards();
+        return postAnswerInsights.getQuickFireReviewCards();
       } catch (e) {
         return [];
       }
     },
     generateFrequencyQuizQuestion: () => {
       try {
-        return deterministicEngine.generateFrequencyQuizQuestion();
+        return postAnswerInsights.generateFrequencyQuizQuestion();
       } catch (e) {
         return null;
       }
     },
     getPositionLeaderboard: () => {
       try {
-        return deterministicEngine.getPositionLeaderboard();
+        return postAnswerInsights.getPositionLeaderboard();
       } catch (e) {
         return null;
       }
     },
     generateCoachingSummary: () => {
       try {
-        return deterministicEngine.generateCoachingSummary();
+        return postAnswerInsights.generateCoachingSummary();
       } catch (e) {
         return { summary: '', tips: [] };
       }
@@ -2992,35 +3906,35 @@ export default function useGTOTrainer(
     // Phase 291-300: Advanced Training Intelligence II
     getStreakAnalysis: () => {
       try {
-        return deterministicEngine.getStreakAnalysis();
+        return postAnswerInsights.getStreakAnalysis();
       } catch (e) {
         return null;
       }
     },
     getTimePressureAnalysis: () => {
       try {
-        return deterministicEngine.getTimePressureAnalysis();
+        return postAnswerInsights.getTimePressureAnalysis();
       } catch (e) {
         return null;
       }
     },
     getRangeConstructionDrill: (position, nodeType) => {
       try {
-        return deterministicEngine.getRangeConstructionDrill(position, nodeType);
+        return postAnswerInsights.getRangeConstructionDrill(position, nodeType);
       } catch (e) {
         return null;
       }
     },
     getExploitativeAdjustments: () => {
       try {
-        return deterministicEngine.getExploitativeAdjustments();
+        return postAnswerInsights.getExploitativeAdjustments();
       } catch (e) {
         return null;
       }
     },
     getICMPressureAnalysis: (stackSize, avgStack, playersLeft, payoutSpots) => {
       try {
-        return deterministicEngine.getICMPressureAnalysis(
+        return postAnswerInsights.getICMPressureAnalysis(
           stackSize,
           avgStack,
           playersLeft,
@@ -3032,35 +3946,35 @@ export default function useGTOTrainer(
     },
     getMultiGameTypeStats: () => {
       try {
-        return deterministicEngine.getMultiGameTypeStats();
+        return postAnswerInsights.getMultiGameTypeStats();
       } catch (e) {
         return null;
       }
     },
     getBettingSizeAnalysis: () => {
       try {
-        return deterministicEngine.getBettingSizeAnalysis();
+        return postAnswerInsights.getBettingSizeAnalysis();
       } catch (e) {
         return null;
       }
     },
     getHandReadingDrill: (street, villainActions) => {
       try {
-        return deterministicEngine.getHandReadingDrill(street, villainActions);
+        return postAnswerInsights.getHandReadingDrill(street, villainActions);
       } catch (e) {
         return null;
       }
     },
     getVarianceSimulator: (winRate, sampleSize) => {
       try {
-        return deterministicEngine.getVarianceSimulator(winRate, sampleSize);
+        return postAnswerInsights.getVarianceSimulator(winRate, sampleSize);
       } catch (e) {
         return null;
       }
     },
     getPerformanceTrendAnalysis: () => {
       try {
-        return deterministicEngine.getPerformanceTrendAnalysis();
+        return postAnswerInsights.getPerformanceTrendAnalysis();
       } catch (e) {
         return null;
       }
@@ -3076,7 +3990,7 @@ export default function useGTOTrainer(
       handCategory
     ) => {
       try {
-        return deterministicEngine.getOptimalLineNarration(
+        return postAnswerInsights.getOptimalLineNarration(
           correctAction,
           frequencies,
           street,
@@ -3090,63 +4004,63 @@ export default function useGTOTrainer(
     },
     getStreetTransitionAnalysis: () => {
       try {
-        return deterministicEngine.getStreetTransitionAnalysis();
+        return postAnswerInsights.getStreetTransitionAnalysis();
       } catch (e) {
         return null;
       }
     },
     getDefenseFrequencyCheck: () => {
       try {
-        return deterministicEngine.getDefenseFrequencyCheck();
+        return postAnswerInsights.getDefenseFrequencyCheck();
       } catch (e) {
         return null;
       }
     },
     getPolarizationIndex: () => {
       try {
-        return deterministicEngine.getPolarizationIndex();
+        return postAnswerInsights.getPolarizationIndex();
       } catch (e) {
         return null;
       }
     },
     getMistakeRecoveryRate: () => {
       try {
-        return deterministicEngine.getMistakeRecoveryRate();
+        return postAnswerInsights.getMistakeRecoveryRate();
       } catch (e) {
         return null;
       }
     },
     getConceptQuiz: () => {
       try {
-        return deterministicEngine.getConceptQuiz();
+        return postAnswerInsights.getConceptQuiz();
       } catch (e) {
         return null;
       }
     },
     getSessionMilestones: () => {
       try {
-        return deterministicEngine.getSessionMilestones();
+        return postAnswerInsights.getSessionMilestones();
       } catch (e) {
         return [];
       }
     },
     getAdaptiveDrillRecommendation: () => {
       try {
-        return deterministicEngine.getAdaptiveDrillRecommendation();
+        return postAnswerInsights.getAdaptiveDrillRecommendation();
       } catch (e) {
         return null;
       }
     },
     getCriticalHandHighlights: () => {
       try {
-        return deterministicEngine.getCriticalHandHighlights();
+        return postAnswerInsights.getCriticalHandHighlights();
       } catch (e) {
         return null;
       }
     },
     getComprehensiveSessionReport: () => {
       try {
-        return deterministicEngine.getComprehensiveSessionReport();
+        return postAnswerInsights.getComprehensiveSessionReport();
       } catch (e) {
         return null;
       }
@@ -3155,70 +4069,70 @@ export default function useGTOTrainer(
     // Phase 311-320: Training Edge Features
     getNodeTypeBreakdown: () => {
       try {
-        return deterministicEngine.getNodeTypeBreakdown();
+        return postAnswerInsights.getNodeTypeBreakdown();
       } catch (e) {
         return null;
       }
     },
     getActionTimeline: () => {
       try {
-        return deterministicEngine.getActionTimeline();
+        return postAnswerInsights.getActionTimeline();
       } catch (e) {
         return null;
       }
     },
     getStreetSpecificLeaks: () => {
       try {
-        return deterministicEngine.getStreetSpecificLeaks();
+        return postAnswerInsights.getStreetSpecificLeaks();
       } catch (e) {
         return null;
       }
     },
     getOverbetAnalysis: () => {
       try {
-        return deterministicEngine.getOverbetAnalysis();
+        return postAnswerInsights.getOverbetAnalysis();
       } catch (e) {
         return null;
       }
     },
     getCheckRaiseAnalysis: () => {
       try {
-        return deterministicEngine.getCheckRaiseAnalysis();
+        return postAnswerInsights.getCheckRaiseAnalysis();
       } catch (e) {
         return null;
       }
     },
     getCBetAnalysis: () => {
       try {
-        return deterministicEngine.getCBetAnalysis();
+        return postAnswerInsights.getCBetAnalysis();
       } catch (e) {
         return null;
       }
     },
     getPositionPairAnalysis: () => {
       try {
-        return deterministicEngine.getPositionPairAnalysis();
+        return postAnswerInsights.getPositionPairAnalysis();
       } catch (e) {
         return null;
       }
     },
     getFrequencyConvergenceTracker: () => {
       try {
-        return deterministicEngine.getFrequencyConvergenceTracker();
+        return postAnswerInsights.getFrequencyConvergenceTracker();
       } catch (e) {
         return null;
       }
     },
     getSmartSessionLength: () => {
       try {
-        return deterministicEngine.getSmartSessionLength();
+        return postAnswerInsights.getSmartSessionLength();
       } catch (e) {
         return null;
       }
     },
     getTrainingPlan: () => {
       try {
-        return deterministicEngine.getTrainingPlan();
+        return postAnswerInsights.getTrainingPlan();
       } catch (e) {
         return null;
       }
@@ -3227,70 +4141,70 @@ export default function useGTOTrainer(
     // Phase 321-330: Polish & Competitive Edge
     getHandStrengthDistribution: () => {
       try {
-        return deterministicEngine.getHandStrengthDistribution();
+        return postAnswerInsights.getHandStrengthDistribution();
       } catch (e) {
         return null;
       }
     },
     getAggressionProfile: () => {
       try {
-        return deterministicEngine.getAggressionProfile();
+        return postAnswerInsights.getAggressionProfile();
       } catch (e) {
         return null;
       }
     },
     getWinRateByHandCategory: () => {
       try {
-        return deterministicEngine.getWinRateByHandCategory();
+        return postAnswerInsights.getWinRateByHandCategory();
       } catch (e) {
         return null;
       }
     },
     getTightLooseProfile: () => {
       try {
-        return deterministicEngine.getTightLooseProfile();
+        return postAnswerInsights.getTightLooseProfile();
       } catch (e) {
         return null;
       }
     },
     getBluffSpotAnalysis: () => {
       try {
-        return deterministicEngine.getBluffSpotAnalysis();
+        return postAnswerInsights.getBluffSpotAnalysis();
       } catch (e) {
         return null;
       }
     },
     getValueBetAnalysis: () => {
       try {
-        return deterministicEngine.getValueBetAnalysis();
+        return postAnswerInsights.getValueBetAnalysis();
       } catch (e) {
         return null;
       }
     },
     getSessionSummaryCard: () => {
       try {
-        return deterministicEngine.getSessionSummaryCard();
+        return postAnswerInsights.getSessionSummaryCard();
       } catch (e) {
         return null;
       }
     },
     getDifficultyProgression: () => {
       try {
-        return deterministicEngine.getDifficultyProgression();
+        return postAnswerInsights.getDifficultyProgression();
       } catch (e) {
         return null;
       }
     },
     getWeaknessHeatmap: () => {
       try {
-        return deterministicEngine.getWeaknessHeatmap();
+        return postAnswerInsights.getWeaknessHeatmap();
       } catch (e) {
         return null;
       }
     },
     getGTOComplianceScore: () => {
       try {
-        return deterministicEngine.getGTOComplianceScore();
+        return postAnswerInsights.getGTOComplianceScore();
       } catch (e) {
         return null;
       }
@@ -3299,70 +4213,70 @@ export default function useGTOTrainer(
     // Phase 331-340: Ultimate Training Intelligence
     getRangeBalanceScore: () => {
       try {
-        return deterministicEngine.getRangeBalanceScore();
+        return postAnswerInsights.getRangeBalanceScore();
       } catch (e) {
         return null;
       }
     },
     getCheckBackAnalysis: () => {
       try {
-        return deterministicEngine.getCheckBackAnalysis();
+        return postAnswerInsights.getCheckBackAnalysis();
       } catch (e) {
         return null;
       }
     },
     getDonkBetAnalysis: () => {
       try {
-        return deterministicEngine.getDonkBetAnalysis();
+        return postAnswerInsights.getDonkBetAnalysis();
       } catch (e) {
         return null;
       }
     },
     getMultiWayPotAnalysis: () => {
       try {
-        return deterministicEngine.getMultiWayPotAnalysis();
+        return postAnswerInsights.getMultiWayPotAnalysis();
       } catch (e) {
         return null;
       }
     },
     getThinValueFrequency: () => {
       try {
-        return deterministicEngine.getThinValueFrequency();
+        return postAnswerInsights.getThinValueFrequency();
       } catch (e) {
         return null;
       }
     },
     getProtectionBetAnalysis: () => {
       try {
-        return deterministicEngine.getProtectionBetAnalysis();
+        return postAnswerInsights.getProtectionBetAnalysis();
       } catch (e) {
         return null;
       }
     },
     getShowdownAnalysis: () => {
       try {
-        return deterministicEngine.getShowdownAnalysis();
+        return postAnswerInsights.getShowdownAnalysis();
       } catch (e) {
         return null;
       }
     },
     getRiverDecisionQuality: () => {
       try {
-        return deterministicEngine.getRiverDecisionQuality();
+        return postAnswerInsights.getRiverDecisionQuality();
       } catch (e) {
         return null;
       }
     },
     getPreFlopLeaks: () => {
       try {
-        return deterministicEngine.getPreFlopLeaks();
+        return postAnswerInsights.getPreFlopLeaks();
       } catch (e) {
         return null;
       }
     },
     getSessionProgressionChart: () => {
       try {
-        return deterministicEngine.getSessionProgressionChart();
+        return postAnswerInsights.getSessionProgressionChart();
       } catch (e) {
         return null;
       }
@@ -3371,86 +4285,80 @@ export default function useGTOTrainer(
     // Phase 341-350: Mastery & Deep Analysis
     getEquityRealizationAnalysis: () => {
       try {
-        return deterministicEngine.getEquityRealizationAnalysis();
+        return postAnswerInsights.getEquityRealizationAnalysis();
       } catch (e) {
         return null;
       }
     },
     getPotControlAnalysis: () => {
       try {
-        return deterministicEngine.getPotControlAnalysis();
+        return postAnswerInsights.getPotControlAnalysis();
       } catch (e) {
         return null;
       }
     },
     getBoardTextureQuiz: () => {
       try {
-        return deterministicEngine.getBoardTextureQuiz();
+        return postAnswerInsights.getBoardTextureQuiz();
       } catch (e) {
         return null;
       }
     },
     getStackDepthStrategy: (effectiveStack) => {
       try {
-        return deterministicEngine.getStackDepthStrategy(effectiveStack);
+        return postAnswerInsights.getStackDepthStrategy(effectiveStack);
       } catch (e) {
         return null;
       }
     },
     getMixedStrategyAccuracy: () => {
       try {
-        return deterministicEngine.getMixedStrategyAccuracy();
+        return postAnswerInsights.getMixedStrategyAccuracy();
       } catch (e) {
         return null;
       }
     },
     getEndgameReport: () => {
       try {
-        return deterministicEngine.getEndgameReport();
+        return postAnswerInsights.getEndgameReport();
       } catch (e) {
         return null;
       }
     },
     getPlaystyleEvolution: () => {
       try {
-        return deterministicEngine.getPlaystyleEvolution();
+        return postAnswerInsights.getPlaystyleEvolution();
       } catch (e) {
         return null;
       }
     },
     getKeyConceptReminders: (street, nodeType, heroPosition) => {
       try {
-        return deterministicEngine.getKeyConceptReminders(street, nodeType, heroPosition);
+        return postAnswerInsights.getKeyConceptReminders(street, nodeType, heroPosition);
       } catch (e) {
         return null;
       }
     },
     getNextSessionPrep: () => {
       try {
-        return deterministicEngine.getNextSessionPrep();
+        return postAnswerInsights.getNextSessionPrep();
       } catch (e) {
         return null;
       }
     },
     getUltimatePlayerRating: () => {
       try {
-        return deterministicEngine.getUltimatePlayerRating();
+        return postAnswerInsights.getUltimatePlayerRating();
       } catch (e) {
         return null;
       }
     },
 
-    // Phase 355-356: Hand History Import + Game Tree
-    importHandToTrainingQuestion: (parsedHand, targetStreet) => {
-      try {
-        return deterministicEngine.importHandToTrainingQuestion(parsedHand, targetStreet);
-      } catch (e) {
-        return null;
-      }
-    },
+    // Phase 356: Post-session game tree. Until it has an authenticated report
+    // endpoint this compatibility callback returns no browser-authored tree.
     buildDetailedGameTree: (spotData, heroHand, heroPosition, villainPosition, street) => {
       try {
-        return deterministicEngine.buildDetailedGameTree(
+        return postAnswerInsights.buildDetailedGameTree(
           spotData,
           heroHand,
           heroPosition,
@@ -3465,6 +4373,7 @@ export default function useGTOTrainer(
     // Actions
     submitAnswer,
     nextQuestion,
+    retryAnswerPersistence,
     startNextLevel,
     retryLevel,
     retrainMistakes,

@@ -8,9 +8,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { gradeSolverDecision } from '../../../src/lib/training/solverDecisionEvidence';
-import { pioQueryService } from '../../../src/services/PIOQueryService';
-import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
+import {
+  TrainingAnswerContractError,
+  gradeTrainingAnswer,
+} from '../../../src/lib/training/answerGradingContract.mjs';
+import {
+  deriveReceiptRng,
+  TrainingGradingReceiptError,
+  verifyTrainingGradingReceipt,
+  verifyTrainingGradingReceiptEnvelope,
+} from '../../../src/lib/training/gradingReceipt.mjs';
+import { normalizeTrainingDifficultyMode } from '../../../src/lib/training/difficultyQuestionContract.mjs';
 import {
   isTrainingPersistenceUnavailable,
   runTrainingPersistenceQuery,
@@ -29,58 +37,21 @@ function getSupabase() {
   return _supabase;
 }
 
-async function getCanonicalQuestion(questionId, gameId) {
-  const db = getSupabase();
-  const byQuestionId = await runTrainingPersistenceQuery(
-    () => db
-      .from('training_question_cache')
-      .select('question_id, question_data, engine_type')
-      .eq('question_id', questionId)
-      .eq('game_id', gameId)
+async function getImmutableQuestionSnapshot(snapshotKey) {
+  const result = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_question_snapshots')
+      .select('snapshot_key, source_question_id, game_id, level, content_digest, question_data')
+      .eq('snapshot_key', snapshotKey)
       .maybeSingle(),
-    { label: 'RecordQuestion:canonical-id' },
+    { label: 'RecordQuestion:snapshot-read' },
   );
-  if (!byQuestionId.error && byQuestionId.data?.question_data) return byQuestionId.data;
-
-  // A handful of old cache writers prefixed the row's question_id while the
-  // client received question_data.id. JSON containment finds those rows without
-  // trusting a solver snapshot supplied by the browser.
-  const byPayloadId = await runTrainingPersistenceQuery(
-    () => db
-      .from('training_question_cache')
-      .select('question_id, question_data, engine_type')
-      .eq('game_id', gameId)
-      .contains('question_data', { id: questionId })
-      .limit(1)
-      .maybeSingle(),
-    { label: 'RecordQuestion:canonical-payload' },
-  );
-  if (!byPayloadId.error && byPayloadId.data?.question_data) return byPayloadId.data;
-  return null;
-}
-
-async function getEligibleCanonicalQuestion(questionId, gameId) {
-  const gameConfig = pioQueryService.getGameConfig(String(gameId));
-  // Batch preload writes the sanitized envelope before it returns, but the
-  // first read through Supabase can briefly observe the pre-update row (or no
-  // row) while the PostgREST/read-replica path catches up. Re-read only the
-  // server-owned canonical row; never fall back to the browser's answer key.
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const canonicalRow = await getCanonicalQuestion(String(questionId), String(gameId));
-    const [eligibleCanonical] = canonicalRow
-      ? filterCachedRowsForGame(
-          [canonicalRow],
-          gameConfig,
-          { allowSanitizedLegacyArchive: true },
-        )
-      : [];
-    if (eligibleCanonical?.question_data) return eligibleCanonical.question_data;
-    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 100 * (2 ** attempt)));
-  }
-  return null;
+  return result.data || null;
 }
 export default async function handler(req, res) {
   try {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Vary', 'Authorization');
     withTiming(res);
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
@@ -109,7 +80,7 @@ export default async function handler(req, res) {
       return res.status(413).json({ success: false, error: 'Request body too large' });
     }
 
-    const { userId, gameId, questionId, isCorrect, level } = req.body;
+    const { userId, gameId, questionId } = req.body;
 
     // BUG FIX #3 (2026-05-08, MAX-RIGOR audit): FE callers
     // (`src/hooks/useGTOTrainer.js:386`, `questionGenerator.js:212`) POST
@@ -124,16 +95,99 @@ export default async function handler(req, res) {
     }
 
     try {
-      const canonicalQuestion = await getEligibleCanonicalQuestion(questionId, gameId);
-      if (!canonicalQuestion) {
-        // This includes old offline packs whose unsealed PIO rows are no longer
-        // safe to grade. Do not accept the browser's answer key; make the
-        // client fetch a freshly sanitized canonical question.
+      let receiptPayload;
+      try {
+        ({ payload: receiptPayload } = verifyTrainingGradingReceiptEnvelope(
+          req.body.gradingReceipt ?? req.body.receipt,
+          {
+            userId,
+            gameId,
+            questionId,
+            sessionId: req.body.sessionId || undefined,
+            attemptId: req.body.attemptId || undefined,
+            snapshotKey: req.body.snapshotKey || undefined,
+          },
+        ));
+      } catch (contractError) {
+        if (contractError instanceof TrainingGradingReceiptError) {
+          return res.status(contractError.status || 400).json({
+            success: false,
+            error: contractError.message,
+            code: contractError.code,
+          });
+        }
+        throw contractError;
+      }
+
+      const snapshot = await getImmutableQuestionSnapshot(receiptPayload.snapshotKey);
+      if (
+        !snapshot?.question_data
+        || String(snapshot.snapshot_key) !== String(receiptPayload.snapshotKey)
+        || String(snapshot.game_id) !== String(receiptPayload.gameId)
+        || Number(snapshot.level) !== Number(receiptPayload.level)
+        || !(
+          String(snapshot.source_question_id) === String(receiptPayload.questionId)
+          || String(snapshot.question_data?.id) === String(receiptPayload.questionId)
+        )
+      ) {
         return res.status(409).json({
           success: false,
-          error: 'This question has expired. Refresh the training hand and try again.',
+          error: 'This signed question snapshot is unavailable. Refresh the training hand and try again.',
           code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
         });
+      }
+      const canonicalQuestion = snapshot.question_data;
+      let answerContract;
+      let servedQuestion;
+      try {
+        const verifiedReceipt = verifyTrainingGradingReceipt(
+          req.body.gradingReceipt ?? req.body.receipt,
+          {
+            userId,
+            gameId,
+            questionId,
+            sessionId: req.body.sessionId || undefined,
+            attemptId: receiptPayload.attemptId,
+            snapshotKey: receiptPayload.snapshotKey,
+            canonicalQuestion,
+          },
+        );
+        receiptPayload = verifiedReceipt.payload;
+        servedQuestion = verifiedReceipt.servedQuestion;
+        if (
+          req.body.gradingMode
+          && normalizeTrainingDifficultyMode(req.body.gradingMode) !== receiptPayload.difficultyMode
+        ) {
+          throw new TrainingGradingReceiptError(
+            'Difficulty does not match the served hand.',
+            'TRAINING_GRADING_RECEIPT_DIFFICULTY_MISMATCH',
+          );
+        }
+        if (req.body.submissionId && String(req.body.submissionId) !== String(receiptPayload.jti)) {
+          throw new TrainingGradingReceiptError(
+            'Submission identity does not match the served hand.',
+            'TRAINING_GRADING_RECEIPT_SUBMISSION_MISMATCH',
+          );
+        }
+        const receiptRng = deriveReceiptRng(receiptPayload, req.body.rng ?? null);
+        answerContract = gradeTrainingAnswer({
+          canonicalQuestion,
+          selectedAnswer: String(answerId),
+          difficultyMode: receiptPayload.difficultyMode,
+          rng: receiptRng,
+        });
+      } catch (contractError) {
+        if (
+          contractError instanceof TrainingAnswerContractError
+          || contractError instanceof TrainingGradingReceiptError
+        ) {
+          return res.status(contractError.status || 400).json({
+            success: false,
+            error: contractError.message,
+            code: contractError.code,
+          });
+        }
+        throw contractError;
       }
       // Record the seen question (for no-repeat)
       await runTrainingPersistenceQuery(
@@ -150,24 +204,11 @@ export default async function handler(req, res) {
         { label: 'RecordQuestion:upsert' }
       );
 
-      // Record the answer for stats.
-      // 2026-07-19 AUDIT FIX: Phase 14 spot-metadata columns (hero_position,
-      // villain_position, street, classification, ev_loss, spot_type) are now
-      // real — added by migration training_answers_spot_metadata_columns.
-      // useGTOTrainer already POSTs this metadata on every answer; persisting
-      // it is what powers smart-practice weak-spot targeting and the
-      // position/street/mistake breakdowns in analytics.js.
-      const {
-        submissionId = null,
-        heroPosition = null,
-        villainPosition = null,
-        street = null,
-        classification = null,
-        spotType = null,
-      } = req.body || {};
-      const canonicalGrade = canonicalQuestion
-        ? gradeSolverDecision(canonicalQuestion, String(answerId))
-        : null;
+      // Record the answer for stats. Every graded and analytical field below
+      // comes from the immutable server snapshot; browser-supplied position,
+      // street, classification, spot type, correctness, and EV are ignored.
+      const canonicalGrade = answerContract.grade;
+      const canonicalSolverGrade = answerContract.canonicalSolverGrade;
       const verified = canonicalGrade?.solverVerified === true;
       const canonicalScenario = canonicalQuestion?.scenario || {};
       const canonicalSpotType = canonicalScenario.spotType
@@ -176,12 +217,7 @@ export default async function handler(req, res) {
         || canonicalQuestion?.spotType
         || 'general';
 
-      // The browser's classification is useful for legacy/scenario analytics,
-      // but it is never accepted as solver evidence. When a canonical cached
-      // question exists the server recomputes every graded field from it.
-      const persistedClassification = canonicalGrade
-        ? canonicalGrade.classification
-        : (typeof classification === 'string' ? classification.slice(0, 32) : null);
+      const persistedClassification = canonicalGrade.classification;
       // The answer endpoint now requires a server-canonical question, so a
       // client-supplied EV number is never authoritative. Preserve exact EV
       // only when the canonical provenance seal and per-action EV contract
@@ -200,65 +236,131 @@ export default async function handler(req, res) {
         // solver evidence, but its server-side answer key still outranks a
         // browser assertion. Only the evidence fields below remain gated on
         // the complete provenance seal.
-        is_correct: canonicalGrade ? canonicalGrade.isCorrect : !!isCorrect,
-        level: Math.min(12, Math.max(1, Number(level) || 1)),
+        is_correct: Boolean(canonicalGrade.isCorrect),
+        level: receiptPayload.level,
+        session_id: String(receiptPayload.sessionId).slice(0, 180),
+        attempt_id: receiptPayload.attemptId,
+        hand_ordinal: receiptPayload.handOrdinal,
+        decision_ordinal: receiptPayload.decisionOrdinal,
+        snapshot_key: receiptPayload.snapshotKey,
         answered_at: new Date().toISOString(),
-        hero_position: canonicalQuestion
-          ? String(canonicalScenario.heroPosition || canonicalScenario.position || '').slice(0, 10) || null
-          : (typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null),
-        villain_position: canonicalQuestion
-          ? String(canonicalScenario.villainPosition || '').slice(0, 10) || null
-          : (typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null),
-        street: canonicalQuestion
-          ? String(canonicalScenario.street || '').slice(0, 12) || null
-          : (typeof street === 'string' ? street.slice(0, 12) : null),
+        hero_position: String(canonicalScenario.heroPosition || canonicalScenario.position || '').slice(0, 10) || null,
+        villain_position: String(canonicalScenario.villainPosition || '').slice(0, 10) || null,
+        street: String(canonicalScenario.street || '').slice(0, 12) || null,
         classification: persistedClassification,
         ev_loss: persistedEVLoss,
-        spot_type: canonicalQuestion
-          ? String(canonicalSpotType).slice(0, 40)
-          : (typeof spotType === 'string' ? spotType.slice(0, 40) : null),
+        spot_type: String(canonicalSpotType).slice(0, 40),
       };
       const evidenceRow = {
         ...baseRow,
-        submission_id: typeof submissionId === 'string' ? submissionId.slice(0, 180) : null,
+        submission_id: String(receiptPayload.jti).slice(0, 180),
         solver_verified: verified,
         solver_source: verified ? String(canonicalGrade.solverSource || 'solver').slice(0, 60) : null,
         selected_frequency: verified ? canonicalGrade.selectedFrequency : null,
         optimal_frequency: verified ? canonicalGrade.optimalFrequency : null,
         ev_loss_measured: verified ? canonicalGrade.evLossMeasured : false,
-        evidence_metadata: verified ? {
-          optimalAction: canonicalGrade.optimalAction,
+        evidence_metadata: {
+          gradeMode: answerContract.gradeMode,
+          difficultyMode: answerContract.difficultyMode,
+          difficultyMembers: answerContract.difficultyMembers,
+          rng: answerContract.rng,
+          canonicalSolverClassification: canonicalSolverGrade.classification,
+          canonicalSolverIsCorrect: canonicalSolverGrade.isCorrect,
+          optimalAction: canonicalSolverGrade.optimalAction,
           dataQuality: canonicalQuestion.dataQuality || null,
-        } : { reason: canonicalQuestion ? 'question_not_solver_verified' : 'canonical_question_not_found' },
+          ...(verified ? {} : { reason: 'question_not_solver_verified' }),
+        },
       };
 
+      let idempotentReplay = false;
       try {
         await runTrainingPersistenceQuery(
-          () => submissionId
-            ? getSupabase().from('training_answers').upsert(evidenceRow, { onConflict: 'user_id,submission_id' })
-            : getSupabase().from('training_answers').insert(evidenceRow),
+          () => getSupabase().from('training_answers').insert(evidenceRow),
           { label: 'RecordQuestion:insert' }
         );
       } catch (insertError) {
-        // Rolling deploy safety: the application may arrive a few seconds before
-        // the additive migration. Preserve the answer using the old shape, but it
-        // remains ineligible for solver-grade leak evidence until the columns land.
-        if (insertError?.code === '42703' || /column .* does not exist/i.test(insertError?.cause?.message || '')) {
-          await runTrainingPersistenceQuery(
-            () => getSupabase().from('training_answers').insert(baseRow),
-            { label: 'RecordQuestion:legacy-insert' }
-          );
-        } else {
-          throw insertError;
+        if (insertError?.cause?.code !== '23505') throw insertError;
+        const existingResult = await runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_answers')
+            .select('game_id, question_id, answer_id, attempt_id, hand_ordinal, decision_ordinal, snapshot_key')
+            .eq('user_id', userId)
+            .eq('submission_id', String(receiptPayload.jti).slice(0, 180))
+            .maybeSingle(),
+          { label: 'RecordQuestion:idempotency-read' },
+        );
+        const existing = existingResult.data;
+        const sameSubmission = existing
+          && String(existing.game_id) === String(gameId)
+          && String(existing.question_id) === String(questionId)
+          && String(existing.answer_id).toLowerCase() === String(answerId).toLowerCase()
+          && String(existing.attempt_id) === String(receiptPayload.attemptId)
+          && Number(existing.hand_ordinal) === Number(receiptPayload.handOrdinal)
+          && Number(existing.decision_ordinal) === Number(receiptPayload.decisionOrdinal)
+          && String(existing.snapshot_key) === String(receiptPayload.snapshotKey);
+        if (!sameSubmission) {
+          return res.status(409).json({
+            success: false,
+            error: 'This training hand was already submitted with a different answer.',
+            code: 'TRAINING_GRADING_RECEIPT_REPLAY_CONFLICT',
+          });
         }
+        idempotentReplay = true;
       }
+
+      // A continuation action is grading-adjacent state: exposing it with the
+      // blind question hints which answer keeps the solved line alive. Reveal
+      // only the canonical option id, and only after the exact answer row has
+      // been durably inserted (or verified as an identical replay).
+      const continuationAction = String(
+        canonicalScenario.nextStreetContinuationAction || '',
+      );
+      const revealedContinuationAction = servedQuestion.options?.some(
+        (option) => String(option?.id ?? option) === continuationAction,
+      ) ? continuationAction : null;
 
       return res.status(200).json({
         success: true,
+        idempotentReplay,
+        submissionId: receiptPayload.jti,
+        sessionId: receiptPayload.sessionId,
+        attemptId: receiptPayload.attemptId,
+        snapshotKey: receiptPayload.snapshotKey,
+        handOrdinal: receiptPayload.handOrdinal,
+        decisionOrdinal: receiptPayload.decisionOrdinal,
+        countsTowardCompletion: receiptPayload.countsTowardCompletion,
+        practiceOnly: receiptPayload.practiceOnly,
         evidence: {
           solverVerified: verified,
           classification: persistedClassification,
           evLossMeasured: verified ? canonicalGrade.evLossMeasured : false,
+          isCorrect: canonicalGrade.isCorrect,
+          gradeMode: answerContract.gradeMode,
+          difficultyMode: answerContract.difficultyMode,
+          rng: answerContract.rng,
+          canonicalSolverClassification: canonicalSolverGrade.classification,
+          selectedFrequency: verified ? canonicalGrade.selectedFrequency : null,
+          optimalFrequency: verified ? canonicalGrade.optimalFrequency : null,
+          evLoss: persistedEVLoss,
+          optimalAction: canonicalSolverGrade.optimalAction,
+        },
+        feedback: {
+          correctAnswer: servedQuestion.correctAnswer,
+          correctAnswerText: servedQuestion.correctAnswerText
+            || servedQuestion.options?.find((option) => String(option?.id) === String(servedQuestion.correctAnswer))?.text
+            || String(servedQuestion.correctAnswer || ''),
+          explanation: servedQuestion.explanation || '',
+          structuredExplanation: servedQuestion.structuredExplanation || null,
+          gtoFrequencies: verified ? (servedQuestion.gtoFrequencies || null) : null,
+          frequencies: verified ? (servedQuestion.frequencies || null) : null,
+          rawFrequencies: verified ? (servedQuestion.rawFrequencies || null) : null,
+          evData: verified ? (servedQuestion.evData || null) : null,
+          actionEVs: verified ? (servedQuestion.actionEVs || null) : null,
+          solverVerified: verified,
+          dataQuality: servedQuestion.dataQuality || null,
+          continuation: revealedContinuationAction
+            ? { actionId: revealedContinuationAction }
+            : null,
         },
       });
     } catch (error) {

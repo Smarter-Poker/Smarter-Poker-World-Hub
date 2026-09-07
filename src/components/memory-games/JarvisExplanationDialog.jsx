@@ -100,9 +100,9 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
         <header className={styles.header}>
           <div className={styles.identity}>
             <span className={styles.mark} aria-hidden="true"><BrainCircuit size={22} /></span>
-            <div><small>JARVIS // RANGE INTELLIGENCE</small><h2 id="jarvis-dialog-title">Strategic Analysis</h2></div>
+            <div><small>LOCAL PRACTICE // RANGE KEY</small><h2 id="jarvis-dialog-title">Range-Key Notice</h2></div>
           </div>
-          <button type="button" className={`${styles.close} sp-icon-btn`} onClick={onClose} aria-label="Close strategic analysis">
+          <button type="button" className={`${styles.close} sp-icon-btn`} onClick={onClose} aria-label="Close local range-key notice">
             <X size={19} aria-hidden="true" />
           </button>
         </header>
@@ -111,15 +111,15 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
           {modal.loading ? (
             <div className={styles.loading} role="status" aria-live="polite">
               <span className={styles.scanner} aria-hidden="true" />
-              <strong>ANALYZING RANGE SIGNAL</strong>
-              <p id="jarvis-dialog-description">Generating Strategic Intelligence For This Hand.</p>
+              <strong>LOADING LOCAL RANGE-KEY NOTICE</strong>
+              <p id="jarvis-dialog-description">Preparing The Locally Stored Practice Comparison For This Hand.</p>
             </div>
           ) : modal.panelImageUrl ? (
             <div className={styles.imageFrame}>
-              <img src={modal.panelImageUrl} alt={`Jarvis strategic analysis for ${modal.hand || 'this hand'}`} />
+              <img src={modal.panelImageUrl} alt={`Local range-key notice for ${modal.hand || 'this hand'}`} />
               <p id="jarvis-dialog-description" className={styles.imageCaption}>
                 {modal.hand || 'Selected hand'}
-                {' // Optimal Action: '}
+                {' // Local Key: '}
                 {action}
               </p>
             </div>
@@ -131,11 +131,11 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
               </div>
               <dl className={styles.compare}>
                 <div><dt>Your Answer</dt><dd>{String(modal.userAction || 'fold').replaceAll('_', ' ')}</dd></div>
-                <div><dt>Optimal Line</dt><dd>{action}</dd></div>
+                <div><dt>Local Range Key</dt><dd>{action}</dd></div>
               </dl>
               <div className={styles.explanation}>
-                <small>GTO EXPLANATION</small>
-                <p id="jarvis-dialog-description">{modal.explanation || 'No explanation was returned. Close this panel and request the analysis again.'}</p>
+                <small>AUTHORITY NOTICE</small>
+                <p id="jarvis-dialog-description">{modal.explanation || 'No Local Practice Note Is Available For This Hand. Close This Panel And Choose Another Hand.'}</p>
               </div>
             </div>
           )}

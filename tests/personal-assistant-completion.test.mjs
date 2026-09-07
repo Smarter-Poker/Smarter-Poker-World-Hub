@@ -142,14 +142,15 @@ test('fractional frequency payloads normalize to percentages', () => {
   assert.equal(result.isMixed, true);
 });
 
-test('wiring guards cover cached persistence, canonical source priority, and live stats', () => {
+test('wiring guards keep retired sandbox analysis closed while live stats remain verified', () => {
   const analyze = fs.readFileSync(new URL('../pages/api/assistant/sandbox/analyze.js', import.meta.url), 'utf8');
   const stats = fs.readFileSync(new URL('../pages/api/assistant/stats.js', import.meta.url), 'utf8');
   const hub = fs.readFileSync(new URL('../pages/hub/personal-assistant/index.js', import.meta.url), 'utf8');
   const hooks = fs.readFileSync(new URL('../src/hooks/useAssistant.js', import.meta.url), 'utf8');
 
-  assert.ok(analyze.indexOf(".from('training_question_cache')") < analyze.indexOf(".from('solved_spots_gold')"));
-  assert.match(analyze, /if \(cached[\s\S]+persistSandboxAnalysis\([\s\S]+cached\.data/);
+  assert.match(analyze, /status\(410\)/);
+  assert.match(analyze, /SANDBOX_ANALYSIS_REQUIRES_VERIFIED_EVIDENCE/);
+  assert.doesNotMatch(analyze, /training_question_cache|solved_spots_gold|persistSandboxAnalysis|\.from\(|createClient/);
   assert.doesNotMatch(stats, /sandbox_sessions!inner/);
   assert.doesNotMatch(hooks, /sandbox_results\s*\(/);
   assert.match(hooks, /resultsBySession/);

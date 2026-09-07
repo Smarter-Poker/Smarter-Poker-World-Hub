@@ -25,6 +25,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { runTrainingPersistenceQuery } from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -41,6 +42,24 @@ function getSupabase() {
 // ●● Position and street config ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 const POSITIONS = ['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB'];
 const STREETS = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
+
+function measuredSolverEvLoss(answer) {
+    const rawValue = answer?.ev_loss;
+    if (answer?.solver_verified !== true
+        || answer?.ev_loss_measured !== true
+        || rawValue === null
+        || rawValue === undefined
+        || rawValue === '') return null;
+    const value = Number(rawValue);
+    return Number.isFinite(value) ? value : null;
+}
+
+function addMeasuredEv(bucket, answer) {
+    const value = measuredSolverEvLoss(answer);
+    if (value === null) return;
+    bucket.measuredEvLoss += value;
+    bucket.measuredEvDecisions += 1;
+}
 
 function buildRecommendations(sessions, answers, spacedRepDue) {
     const recommendations = [];
@@ -64,10 +83,12 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
     answers.forEach(a => {
         const pos = (a.hero_position || 'UNK').toUpperCase();
         if (!POSITIONS.includes(pos)) return;
-        if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
+        if (!posStats[pos]) posStats[pos] = {
+            correct: 0, total: 0, measuredEvLoss: 0, measuredEvDecisions: 0,
+        };
         posStats[pos].total += 1;
         if (a.is_correct) posStats[pos].correct += 1;
-        posStats[pos].evLoss += (a.ev_loss || 0);
+        addMeasuredEv(posStats[pos], a);
     });
 
     // Find weakest position with enough data (>= 5 hands)
@@ -76,7 +97,10 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         .map(([pos, s]) => ({
             pos,
             accuracy: Math.round((s.correct / s.total) * 100),
-            avgEvLoss: parseFloat((s.evLoss / s.total).toFixed(3)),
+            avgEvLoss: s.measuredEvDecisions > 0
+                ? Number((s.measuredEvLoss / s.measuredEvDecisions).toFixed(3))
+                : null,
+            measuredEvDecisions: s.measuredEvDecisions,
             total: s.total,
         }))
         .sort((a, b) => a.accuracy - b.accuracy);
@@ -106,10 +130,12 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
     answers.forEach(a => {
         const st = (a.street || 'unknown').toUpperCase();
         if (!STREETS.includes(st)) return;
-        if (!streetStats[st]) streetStats[st] = { correct: 0, total: 0, evLoss: 0 };
+        if (!streetStats[st]) streetStats[st] = {
+            correct: 0, total: 0, measuredEvLoss: 0, measuredEvDecisions: 0,
+        };
         streetStats[st].total += 1;
         if (a.is_correct) streetStats[st].correct += 1;
-        streetStats[st].evLoss += (a.ev_loss || 0);
+        addMeasuredEv(streetStats[st], a);
     });
 
     const streetEntries = Object.entries(streetStats || {})
@@ -117,7 +143,10 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         .map(([street, s]) => ({
             street,
             accuracy: Math.round((s.correct / s.total) * 100),
-            avgEvLoss: parseFloat((s.evLoss / s.total).toFixed(3)),
+            avgEvLoss: s.measuredEvDecisions > 0
+                ? Number((s.measuredEvLoss / s.measuredEvDecisions).toFixed(3))
+                : null,
+            measuredEvDecisions: s.measuredEvDecisions,
             total: s.total,
         }))
         .sort((a, b) => a.accuracy - b.accuracy);
@@ -146,13 +175,22 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         if (!a.classification) return;
         const key = `${a.spot_type || 'general'}|${(a.hero_position || 'UNK').toUpperCase()}`;
         if (!spotPatterns[key]) {
-            spotPatterns[key] = { spotType: a.spot_type || 'general', position: (a.hero_position || 'UNK').toUpperCase(), count: 0, evLoss: 0 };
+            spotPatterns[key] = {
+                spotType: a.spot_type || 'general',
+                position: (a.hero_position || 'UNK').toUpperCase(),
+                count: 0,
+                measuredEvLoss: 0,
+                measuredEvDecisions: 0,
+            };
         }
         spotPatterns[key].count += 1;
-        spotPatterns[key].evLoss += (a.ev_loss || 0);
+        addMeasuredEv(spotPatterns[key], a);
     });
 
-    const topPattern = Object.values(spotPatterns || {}).sort((a, b) => b.evLoss - a.evLoss)[0];
+    const topPattern = Object.values(spotPatterns || {}).sort((a, b) => (
+        b.count - a.count
+        || b.measuredEvLoss - a.measuredEvLoss
+    ))[0];
     if (topPattern && topPattern.count >= 3) {
         const spotLabels = {
             facing_cbet: 'Facing C-bet', open_raise: 'Open Raise', '3bet_defense': '3-Bet Defense',
@@ -164,23 +202,36 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         recommendations.push({
             type: 'mistake_pattern',
             title: `Drill: ${label} from ${topPattern.position}`,
-            description: `${topPattern.count} mistakes in ${label} spots from ${topPattern.position}. Total -${topPattern.evLoss.toFixed(1)} EV leaked.`,
+            description: `${topPattern.count} mistakes in ${label} spots from ${topPattern.position}. ${topPattern.measuredEvDecisions > 0
+                ? `Measured total: -${topPattern.measuredEvLoss.toFixed(1)} EV.`
+                : 'EV impact is not measured for these decisions.'}`,
             targetPositions: [topPattern.position],
             targetStreet: null,
             priority: topPattern.count >= 5 ? 5 : 3,
             config: { targetPositions: [topPattern.position], spotType: topPattern.spotType },
             reason: 'recurring_mistake_pattern',
-            stats: { count: topPattern.count, totalEvLoss: parseFloat(topPattern.evLoss.toFixed(2)) },
+            stats: {
+                count: topPattern.count,
+                totalEvLoss: topPattern.measuredEvDecisions > 0
+                    ? Number(topPattern.measuredEvLoss.toFixed(2))
+                    : null,
+                measuredEvDecisions: topPattern.measuredEvDecisions,
+            },
         });
     }
 
     // ●●● 5. Level progression recommendation ●●●●●●●●●●●●●●●●●●●●
     if (sessions.length >= 3) {
         const recent3 = sessions.slice(0, 3);
-        const avgScore = Math.round(recent3.reduce((s, x) => s + (x.gtow_score || x.accuracy || 0), 0) / 3);
+        const scoredRecent = recent3
+            .map(session => Number(session.accuracy))
+            .filter(accuracy => Number.isFinite(accuracy));
+        const avgScore = scoredRecent.length === recent3.length
+            ? Math.round(scoredRecent.reduce((sum, accuracy) => sum + accuracy, 0) / scoredRecent.length)
+            : null;
         const allPassed = recent3.every(s => s.level_passed);
 
-        if (allPassed && avgScore >= 80) {
+        if (allPassed && avgScore !== null && avgScore >= 80) {
             const maxLevel = Math.max(...sessions.map(s => s.level || 1));
             recommendations.push({
                 type: 'level_up',
@@ -219,6 +270,8 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
 export default async function handler(req, res) {
     try {
         withTiming(res);
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+        res.setHeader('Vary', 'Authorization');
         if (!applyRateLimit(req, res, LIMITS.read)) return;
 
         if (req.method !== 'GET') {
@@ -228,11 +281,8 @@ export default async function handler(req, res) {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
         const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-        const user = authData?.user;
+        const user = authUser;
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-        res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
 
         const rawGameId = req.query.gameId ? sanitizeParam(req.query.gameId, 100) : null;
 
@@ -240,33 +290,60 @@ export default async function handler(req, res) {
             // Fetch recent sessions (30 days)
             const sinceDate = new Date(Date.now() - 30 * 86400000).toISOString();
 
-            let sessQuery = getSupabase()
-                .from('training_sessions')
-                .select('id, gtow_score, accuracy, hands_played, total_ev_loss, level_passed, level, created_at')
-                .eq('user_id', user.id)
-                .gte('created_at', sinceDate)
-                .order('created_at', { ascending: false })
-                .limit(50);
-            if (rawGameId) sessQuery = sessQuery.eq('game_id', rawGameId);
+            const buildSessionQuery = () => {
+                let query = getSupabase()
+                    .from('training_sessions')
+                    .select('id, attempt_id, accuracy, hands_played, level_passed, level, created_at, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
+                    .eq('user_id', user.id)
+                    .eq('training_attempts.user_id', user.id)
+                    .eq('training_attempts.status', 'completed')
+                    .eq('training_attempts.practice_only', false)
+                    .not('attempt_id', 'is', null)
+                    .gte('created_at', sinceDate)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                if (rawGameId) query = query.eq('game_id', rawGameId);
+                return query;
+            };
 
-            let ansQuery = getSupabase()
-                .from('training_answers')
-                .select('is_correct, hero_position, street, classification, ev_loss, spot_type')
-                .eq('user_id', user.id)
-                .gte('answered_at', sinceDate)
-                .limit(2000);
-            if (rawGameId) ansQuery = ansQuery.eq('game_id', rawGameId);
+            const buildAnswerQuery = () => {
+                let query = getSupabase()
+                    .from('training_answers')
+                    .select('attempt_id, is_correct, hero_position, street, classification, ev_loss, ev_loss_measured, solver_verified, spot_type, training_attempts!training_answers_attempt_fk!inner(id, user_id, status, practice_only)')
+                    .eq('user_id', user.id)
+                    .eq('training_attempts.user_id', user.id)
+                    .eq('training_attempts.status', 'completed')
+                    .eq('training_attempts.practice_only', false)
+                    .not('attempt_id', 'is', null)
+                    .gte('answered_at', sinceDate)
+                    .limit(2000);
+                if (rawGameId) query = query.eq('game_id', rawGameId);
+                return query;
+            };
 
             // Spaced repetition due count
-            let srQuery = getSupabase()
+            const buildSpacedRepetitionQuery = () => getSupabase()
                 .from('training_spaced_repetition')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', user.id)
                 .lte('next_review_at', new Date().toISOString());
 
             const [sessResult, ansResult, srResult] = await Promise.all([
-                sessQuery, ansQuery, srQuery,
+                runTrainingPersistenceQuery(buildSessionQuery, { label: 'SmartPractice.sessions' }),
+                runTrainingPersistenceQuery(buildAnswerQuery, { label: 'SmartPractice.answers' }),
+                runTrainingPersistenceQuery(buildSpacedRepetitionQuery, { label: 'SmartPractice.spaced-repetition' }),
             ]);
+
+            const failedQuery = [sessResult, ansResult, srResult].find((result) => result?.error);
+            if (failedQuery) {
+                console.warn('[SmartPractice] Canonical data query failed:', failedQuery.error.message);
+                return res.status(503).json({
+                    success: false,
+                    unavailable: true,
+                    code: 'TRAINING_SMART_PRACTICE_UNAVAILABLE',
+                    error: 'Smart Practice is temporarily unavailable',
+                });
+            }
 
             const sessions = sessResult.data || [];
             const answers = ansResult.data || [];
@@ -283,28 +360,18 @@ export default async function handler(req, res) {
                     totalHands: answers.length,
                     overallAccuracy: answers.length > 0
                         ? Math.round(answers.filter(a => a.is_correct).length / answers.length * 100)
-                        : 0,
+                        : null,
                     spacedRepDue,
                 },
             });
 
         } catch (err) {
             console.warn('[SmartPractice] Error:', err);
-            // Graceful fallback
-            return res.status(200).json({
-                success: true,
-                recommendation: {
-                    type: 'general',
-                    title: 'General Practice',
-                    description: 'Start a training session to build up your analytics data.',
-                    targetPositions: [],
-                    targetStreet: null,
-                    priority: 1,
-                    config: {},
-                    reason: 'error_fallback',
-                },
-                alternatives: [],
-                analytics: { totalSessions: 0, totalHands: 0, overallAccuracy: 0, spacedRepDue: 0 },
+            return res.status(503).json({
+                success: false,
+                unavailable: true,
+                code: 'TRAINING_SMART_PRACTICE_UNAVAILABLE',
+                error: 'Smart Practice is temporarily unavailable',
             });
         }
 

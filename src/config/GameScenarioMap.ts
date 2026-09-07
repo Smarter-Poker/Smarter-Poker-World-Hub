@@ -18,9 +18,9 @@
  *   L5: Cold Call ranges (CO/BTN flat vs opener)
  *   L6: 4-Bet ranges (facing 3-bet after opening)
  *   L7: Squeeze ranges (3-bet over open + caller)
- *   L8: Flop decisions (c-bet, check-raise, float) — PostflopScenarioGenerator
- *   L9: Turn decisions (barrel, give up, raise) — PostflopScenarioGenerator
- *   L10: River decisions (value bet, bluff, hero call) — PostflopScenarioGenerator
+ *   L8-L10 local previews may use PostflopScenarioGenerator as explicitly
+ *   illustrative heuristic practice. Authoritative Training reads sealed
+ *   warehouse questions for flop, turn, and river decisions at every level.
  *
  * Each mapping specifies:
  *   - scenarioLevels: which generator levels to pull scenarios from

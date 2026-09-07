@@ -15,7 +15,6 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { TRAINING_CONFIG } from '../../config/trainingConfig';
-import { authedFetch } from '../../lib/authUtils';
 
 export default function GameIntroSplash({ isVisible, game, onComplete }) {
     const router = useRouter();
@@ -33,10 +32,9 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
             // Also prefetch the arena routes
             router.prefetch(`/hub/training/arena/${game.id}`);
 
-            // Fetch the first question in the background to warm up the API
-            authedFetch(`/api/training/get-question?gameId=${game.id}&engineType=PIO&level=1`)
-                .then(() => console.debug('✓ Question API warmed up'))
-                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Silently fail
+            // Question delivery is intentionally owned by useGTOTrainer. A
+            // discarded warm-up response creates a signed receipt/JTI that no
+            // Arena can consume and can race the real session configuration.
         }
     }, [isVisible, game?.id, router]);
 

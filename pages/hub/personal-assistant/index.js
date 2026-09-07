@@ -43,11 +43,11 @@ import { resolveDailyHeroHand } from '../../../src/lib/personal-assistant/dailyH
 const SYSTEMS = [
   {
     id: 'sandbox',
-    eyebrow: 'Explore Poker Theoretical Hands',
-    title: 'Virtual Sandbox',
-    description: 'Build any spot, pressure-test every line, and compare your decisions with solver-verified strategy.',
-    features: ['Run Any Poker Scenario', 'Test Lines Versus Villain Types', 'Review Solver-Verified Results'],
-    action: 'Enter Sandbox',
+    eyebrow: 'Verified Evidence Boundary',
+    title: 'Scenario Analysis Archive',
+    description: 'Review why approximate scenario grading is retired, then continue in evidence-backed Training.',
+    features: ['No Approximate Grades', 'No Substituted Spots', 'Open Verified Training'],
+    action: 'Review Evidence Gate',
     image: '/images/personal-assistant-v2/sandbox-system.webp',
     route: '/hub/personal-assistant/sandbox',
   },
@@ -193,18 +193,9 @@ export default function PersonalAssistantPage() {
     if (guardAction()) router.push(route);
   };
 
-  const loadHandInSandbox = (hand) => {
+  const openDailyTraining = () => {
     if (!guardAction()) return;
-    const params = new URLSearchParams();
-    const hero = normalizeHeroHand(hand.heroHand);
-    if (hero) params.set('h', hero);
-    if (hand.position) params.set('p', hand.position);
-    const board = normalizeBoardCards(hand.board);
-    if (board) params.set('b', board.join(','));
-    const pot = Number(hand.pot);
-    if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
-    const query = params.toString();
-    router.push(`/hub/personal-assistant/sandbox${query ? `?${query}` : ''}`);
+    router.push('/hub/training?source=personal-assistant-hand-of-day');
   };
 
   const openSession = (session) => {
@@ -213,18 +204,7 @@ export default function PersonalAssistantPage() {
       router.push('/hub/personal-assistant/leaks');
       return;
     }
-    const params = new URLSearchParams();
-    const hero = normalizeHeroHand(session.hero_hand);
-    if (hero) params.set('h', hero);
-    if (session.hero_position) params.set('p', session.hero_position);
-    const board = normalizeBoardCards(`${session.board_flop || ''}${session.board_turn || ''}${session.board_river || ''}`);
-    if (board) params.set('b', board.join(','));
-    const pot = Number(session.pot_size_bb);
-    if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
-    const stack = Number(session.hero_stack);
-    if (Number.isFinite(stack) && stack > 0) params.set('s', String(stack));
-    const query = params.toString();
-    router.push(`/hub/personal-assistant/sandbox${query ? `?${query}` : ''}`);
+    router.push('/hub/personal-assistant/sandbox?source=archived-session');
   };
 
   const formatSessionDate = (value) => {
@@ -246,7 +226,6 @@ export default function PersonalAssistantPage() {
   ) || null;
 
   const activeLeakCount = Number(stats?.leaksFound) || 0;
-  const sandboxSessionCount = Number(stats?.sandboxSessions) || 0;
   const handsAnalyzedCount = Number(stats?.handsAnalyzed) || 0;
   const dataSyncError = statsError || sessionsError;
 
@@ -300,10 +279,10 @@ export default function PersonalAssistantPage() {
     if (lastRealSession) {
       return {
         mode: 'resume',
-        badge: 'Continue Analysis',
+        badge: 'Historical Record',
         title: lastRealSession.title,
-        description: 'Return To Your Latest Sandbox Spot With The Hand, Position, Board, Pot, And Stack Restored.',
-        action: 'Resume Session',
+        description: 'Review The Evidence Boundary For Historical Sandbox Records. Approximate Sessions Cannot Resume As Scored Analysis.',
+        action: 'Review Archive',
         signal: formatSessionDate(lastRealSession.date) || 'Most Recent Session',
       };
     }
@@ -313,8 +292,8 @@ export default function PersonalAssistantPage() {
         mode: 'daily',
         badge: 'Daily Decision',
         title: dailyHand.title || 'Solve Today’s Featured Spot',
-        description: 'Load Today’s Hand Into The Sandbox And Compare Your Decision With The Recommended Line.',
-        action: 'Run Daily Hand',
+        description: 'Continue In The Signed Training Pipeline For Server-Delivered Questions And Grading.',
+        action: 'Open Verified Training',
         signal: dailyHand.position || 'Daily Scenario',
       };
     }
@@ -322,10 +301,10 @@ export default function PersonalAssistantPage() {
     return {
       mode: 'start',
       badge: 'Recommended Start',
-      title: 'Build Your First Decision Spot',
-      description: 'Choose A Hand, Position, Board, And Opponent Type To Start Your Personal Strategy Record.',
-      action: 'Start In Sandbox',
-      signal: 'No Session Required',
+      title: 'Start Evidence-Backed Training',
+      description: 'Open The Signed Training Pipeline For Verified Question Delivery, Grading, And Feedback.',
+      action: 'Open Verified Training',
+      signal: 'Signed Attempt Required',
     };
   })();
 
@@ -344,19 +323,19 @@ export default function PersonalAssistantPage() {
       return;
     }
     if (nextMission.mode === 'daily') {
-      loadHandInSandbox(dailyHand);
+      openDailyTraining();
       return;
     }
-    openGuardedRoute('/hub/personal-assistant/sandbox');
+    openGuardedRoute('/hub/training?source=personal-assistant-priority');
   };
 
   const decisionLoop = [
     {
       step: '01',
-      title: 'Analyze',
-      detail: `${sandboxSessionCount.toLocaleString()} Sandbox Session${sandboxSessionCount === 1 ? '' : 's'}`,
+      title: 'Train',
+      detail: 'Signed Question And Grading Pipeline',
       Icon: FlaskConical,
-      route: '/hub/personal-assistant/sandbox',
+      route: '/hub/training?source=personal-assistant-loop',
     },
     {
       step: '02',
@@ -375,10 +354,10 @@ export default function PersonalAssistantPage() {
   ];
 
   const statCards = [
-    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Total Reviewed', Icon: History, route: '/hub/personal-assistant/sandbox' },
-    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'GTO Checked', Icon: Layers, route: '/hub/personal-assistant/leaks' },
+    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Historical Records', Icon: History, route: '/hub/personal-assistant/sandbox' },
+    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'Recorded Reviews', Icon: Layers, route: '/hub/personal-assistant/leaks' },
     { title: 'Active Leaks', value: stats?.leaksFound || 0, label: `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`, Icon: Droplet, route: '/hub/personal-assistant/leaks' },
-    { title: 'Sandbox Sessions', value: stats?.sandboxSessions || 0, label: 'Scenarios Explored', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
+    { title: 'Archived Sessions', value: stats?.sandboxSessions || 0, label: 'Historical Sandbox Records', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
   ];
 
   const activityCards = [
@@ -391,9 +370,9 @@ export default function PersonalAssistantPage() {
           : 'No Sessions Yet',
       detail: (recentSessions || [])[0]
         ? `${recentSessions[0].title}${recentSessions[0].isDemo ? ' (Sample)' : ''} · ${formatEv(recentSessions[0].evLoss)}`
-        : 'Start A Sandbox Session',
+        : 'Open Verified Training',
       Icon: Clock3,
-      onClick: () => openGuardedRoute('/hub/personal-assistant/sandbox'),
+      onClick: () => openGuardedRoute('/hub/training?source=personal-assistant-activity'),
     },
     {
       title: 'New Leaks',
@@ -405,7 +384,7 @@ export default function PersonalAssistantPage() {
     {
       title: 'Last Session',
       label: sessionsLoading ? 'Loading Last Session…' : (lastRealSession?.title || 'Nothing To Restore Yet'),
-      detail: lastRealSession ? formatSessionDate(lastRealSession.date) : 'Open The Sandbox To Begin',
+      detail: lastRealSession ? formatSessionDate(lastRealSession.date) : 'No Historical Record Yet',
       Icon: Activity,
       onClick: () => (lastRealSession ? openSession(lastRealSession) : openGuardedRoute('/hub/personal-assistant/sandbox')),
     },
@@ -466,7 +445,7 @@ export default function PersonalAssistantPage() {
 
         <nav className={styles.tabs} aria-label="Personal Assistant Sections">
           <a className={styles.activeTab} href="#overview" aria-current="page">Overview</a>
-          <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}>Virtual Sandbox</button>
+          <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}>Scenario Archive</button>
           <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/leaks')}>Leak Finder</button>
           <button type="button" onClick={() => openGuardedRoute('/hub/training')}>Training Center</button>
           <a href="#activity">Activity</a>
@@ -478,18 +457,18 @@ export default function PersonalAssistantPage() {
               <div className={styles.heroCopy}>
                 <span className={styles.eyebrow}>Personal Poker Assistant</span>
                 <h1 id="assistant-title">Meet Jarvis.<br />Your Edge At The Table.</h1>
-                <p>Explore Theoretical Hands, Find Leaks, And Turn Solver Data Into Better Decisions From One Command Center.</p>
+                <p>Open Verified Training, Find Leaks, And Turn Evidence-Backed Reviews Into Better Decisions From One Command Center.</p>
                 <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
                   <span className={styles.statusDot} aria-hidden="true" />
-                  {dataSyncError ? 'Jarvis Online · Data Sync Needs Attention' : 'Jarvis Online · Solver Connected'}
+                  {dataSyncError ? 'Jarvis Online · Data Sync Needs Attention' : 'Jarvis Online · Training Pipeline Connected'}
                 </div>
                 <div className={styles.heroActions}>
                   <button
                     type="button"
                     className={styles.primaryButton}
-                    onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}
+                    onClick={() => openGuardedRoute('/hub/training?source=personal-assistant-hero')}
                   >
-                    <Play size={15} fill="currentColor" aria-hidden="true" />Start New Scenario
+                    <Play size={15} fill="currentColor" aria-hidden="true" />Open Verified Training
                   </button>
                   {lastRealSession && (
                     <button
@@ -704,10 +683,10 @@ export default function PersonalAssistantPage() {
                         ))}
                       </div>
                     )}
-                    <span className={styles.dailyPrompt}><Sparkles size={14} aria-hidden="true" />Load The Spot And Compare Your Decision</span>
+                    <span className={styles.dailyPrompt}><Sparkles size={14} aria-hidden="true" />Continue In The Signed Training Pipeline</span>
                   </div>
-                  <button type="button" className={styles.primaryButton} onClick={() => loadHandInSandbox(dailyHand)}>
-                    <Play size={15} fill="currentColor" aria-hidden="true" />Load In Sandbox
+                  <button type="button" className={styles.primaryButton} onClick={openDailyTraining}>
+                    <Play size={15} fill="currentColor" aria-hidden="true" />Open Verified Training
                   </button>
                 </div>
               ) : (
@@ -721,7 +700,7 @@ export default function PersonalAssistantPage() {
                   </span>
                   <div className={styles.dailyStateCopy}>
                     <span className={styles.dailyEyebrow}>
-                      {dailyHandStatus === 'loading' ? 'Syncing Solver Scenario' : 'Training Feed Interrupted'}
+                      {dailyHandStatus === 'loading' ? 'Syncing Training Question' : 'Training Feed Interrupted'}
                     </span>
                     <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
                     <p>

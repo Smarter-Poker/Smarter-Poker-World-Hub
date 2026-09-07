@@ -33,6 +33,21 @@ const DEFAULT_PROGRESS = {
     levels: {}
 };
 
+function verifiedHistoryAccuracy(row) {
+    const answered = Number(row?.questions_answered);
+    const correct = Number(row?.questions_correct);
+    if (Number.isFinite(answered) && answered > 0
+        && Number.isFinite(correct) && correct >= 0 && correct <= answered) {
+        return Math.round((correct / answered) * 100);
+    }
+    const rawStored = row?.accuracy_percentage;
+    if (rawStored === null || rawStored === undefined || rawStored === '') return null;
+    const stored = Number(rawStored);
+    return Number.isFinite(stored) && stored >= 0 && stored <= 100
+        ? Math.round(stored)
+        : null;
+}
+
 export default async function handler(req, res) {
   try {
       withTiming(res);
@@ -46,12 +61,18 @@ export default async function handler(req, res) {
 
       // Auth: require JWT, use authenticated user ID (not query param)
       const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(200).json(DEFAULT_PROGRESS); // Anonymous = defaults
+      if (!token) {
+          return res.status(401).json({ success: false, error: 'Auth required' });
+      }
 
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const user = authData?.user;
-      if (authErr || !user) return res.status(200).json(DEFAULT_PROGRESS);
+      if (authErr || !user) {
+          return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
+
+      res.setHeader('Cache-Control', 'private, no-store');
 
       const userId = user.id; // From JWT, not query param
 
@@ -69,11 +90,13 @@ export default async function handler(req, res) {
                   .select('level, accuracy_percentage, passed, questions_answered, questions_correct')
                   .eq('user_id', userId)
                   .eq('game_id', gameId)
+                  .not('attempt_id', 'is', null)
+                  .eq('practice_only', false)
                   .order('completed_at', { ascending: false })
                   .limit(500),
               getSupabase()
                   .from('training_progress')
-                  .select('level, hands_played, correct_answers, total_answers, best_streak')
+                  .select('level:authority_level, hands_played:authority_hands_played, correct_answers:authority_correct_answers, total_answers:authority_total_answers, best_streak:authority_best_streak')
                   .eq('user_id', userId)
                   .eq('game_id', gameId)
                   .maybeSingle(),
@@ -81,15 +104,32 @@ export default async function handler(req, res) {
 
           const history = historyResult.data || [];
           const prog = progressResult.data || null;
+          if (historyResult.error || progressResult.error) {
+              console.warn(
+                  '[Progress] Authority read failed:',
+                  historyResult.error?.message || progressResult.error?.message,
+              );
+              return res.status(503).json({
+                  success: false,
+                  code: 'TRAINING_PROGRESS_UNAVAILABLE',
+                  retryable: true,
+                  error: 'Training progress is temporarily unavailable.',
+              });
+          }
 
           // Build per-level map: attempts, high score, completion
           const levels = {};
           let highestPassed = 0;
           history.forEach(h => {
               const key = `level_${h.level}`;
-              if (!levels[key]) levels[key] = { attempts: 0, highScore: 0, completed: false };
+              if (!levels[key]) levels[key] = { attempts: 0, highScore: null, completed: false };
               levels[key].attempts += 1;
-              levels[key].highScore = Math.max(levels[key].highScore, Math.round(h.accuracy_percentage || 0));
+              const measuredAccuracy = verifiedHistoryAccuracy(h);
+              if (measuredAccuracy !== null) {
+                  levels[key].highScore = levels[key].highScore === null
+                      ? measuredAccuracy
+                      : Math.max(levels[key].highScore, measuredAccuracy);
+              }
               if (h.passed) {
                   levels[key].completed = true;
                   highestPassed = Math.max(highestPassed, h.level);
@@ -122,7 +162,12 @@ export default async function handler(req, res) {
 
       } catch (err) {
           console.warn('Error fetching progress:', err);
-          return res.status(200).json(DEFAULT_PROGRESS);
+          return res.status(503).json({
+              success: false,
+              code: 'TRAINING_PROGRESS_UNAVAILABLE',
+              retryable: true,
+              error: 'Training progress is temporarily unavailable.',
+          });
       }
 
   } catch (err) {

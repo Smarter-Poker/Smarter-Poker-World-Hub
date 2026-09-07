@@ -40,11 +40,16 @@ const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 
     const cW = svgW - pad.l - pad.r;
     const cH = svgH - pad.t - pad.b;
 
-    if (!data || data.length < 2) {
+    const chartData = (data || []).filter((datum) => {
+        const value = typeof datum === 'number' ? datum : datum?.[valueKey];
+        return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+    });
+
+    if (chartData.length < 2) {
         return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 10 }}>Not Enough Data</div>;
     }
 
-    const values = data.map(d => typeof d === 'number' ? d : d[valueKey] || 0);
+    const values = chartData.map(d => Number(typeof d === 'number' ? d : d[valueKey]));
     const max = Math.max(...values, 1);
     const min = Math.min(...values, 0);
     const range = max - min || 1;
@@ -95,12 +100,12 @@ const PositionHeatmap = memo(({ sessions, positionAccuracy }) => {
         // it covers every recorded answer, not only sessions carrying moves.
         if (positionAccuracy && positions.some(p => (positionAccuracy[p]?.total || 0) > 0)) {
             return positions.map(p => {
-                const b = positionAccuracy[p] || { correct: 0, total: 0, evLoss: 0 };
+                const b = positionAccuracy[p] || { correct: 0, total: 0, evLoss: null };
                 return {
                     position: p,
                     accuracy: b.total > 0 ? b.correct / b.total : 0,
-                    evLoss: b.evLoss || 0,
-                    total: b.total || 0,
+                    evLoss: Number.isFinite(b.evLoss) ? b.evLoss : null,
+                    total: b.total ?? 0,
                 };
             });
         }
@@ -298,9 +303,13 @@ const MilestoneBadges = memo(({ sessions }) => {
         const earned = [];
         const totalSessions = sessions.length;
         const totalHands = sessions.reduce((s, sess) => s + (sess.handsPlayed || 0), 0);
-        const bestScore = Math.max(...sessions.map(s => s.gtoScore || 0), 0);
-        const avgScore = sessions.length > 0
-            ? sessions.reduce((s, sess) => s + (sess.gtoScore || 0), 0) / sessions.length : 0;
+        const verifiedScores = sessions
+            .map(session => session.gtoScore)
+            .filter(score => Number.isFinite(score));
+        const bestScore = verifiedScores.length > 0 ? Math.max(...verifiedScores) : null;
+        const avgScore = verifiedScores.length > 0
+            ? verifiedScores.reduce((sum, score) => sum + score, 0) / verifiedScores.length
+            : null;
 
         // Session count milestones
         if (totalSessions >= 1) earned.push({ icon: '◆', label: 'First Session', color: '#3b82f6' });
@@ -309,9 +318,9 @@ const MilestoneBadges = memo(({ sessions }) => {
         if (totalSessions >= 50) earned.push({ icon: '★', label: '50 Sessions', color: '#22d3ee' });
 
         // Score milestones
-        if (bestScore >= 70) earned.push({ icon: '★', label: 'Score 70+', color: '#22c55e' });
-        if (bestScore >= 80) earned.push({ icon: '★', label: 'Score 80+', color: '#f59e0b' });
-        if (bestScore >= 90) earned.push({ icon: '▲', label: 'Score 90+', color: '#ef4444' });
+        if (bestScore !== null && bestScore >= 70) earned.push({ icon: '★', label: 'Score 70+', color: '#22c55e' });
+        if (bestScore !== null && bestScore >= 80) earned.push({ icon: '★', label: 'Score 80+', color: '#f59e0b' });
+        if (bestScore !== null && bestScore >= 90) earned.push({ icon: '▲', label: 'Score 90+', color: '#ef4444' });
 
         // Hand count milestones
         if (totalHands >= 100) earned.push({ icon: '◇', label: '100 Hands', color: '#818cf8' });
@@ -319,8 +328,8 @@ const MilestoneBadges = memo(({ sessions }) => {
         if (totalHands >= 1000) earned.push({ icon: '★', label: '1K Hands', color: '#f59e0b' });
 
         // Average score milestones
-        if (avgScore >= 65 && totalSessions >= 5) earned.push({ icon: '▲', label: 'Consistent B+', color: '#3b82f6' });
-        if (avgScore >= 75 && totalSessions >= 10) earned.push({ icon: '★', label: 'Master Student', color: '#a855f7' });
+        if (avgScore !== null && avgScore >= 65 && verifiedScores.length >= 5) earned.push({ icon: '▲', label: 'Consistent B+', color: '#3b82f6' });
+        if (avgScore !== null && avgScore >= 75 && verifiedScores.length >= 10) earned.push({ icon: '★', label: 'Master Student', color: '#a855f7' });
 
         return earned;
     }, [sessions]);
@@ -410,8 +419,9 @@ const RecentSessionsList = memo(({ sessions }) => {
     return (
         <div>
             {recent.map((s, i) => {
-                const score = Math.round(s.gtoScore ?? 0);
-                const scoreColor = score >= 50 ? '#22c55e' : score >= 0 ? '#f59e0b' : '#ef4444';
+                const hasVerifiedScore = Number.isFinite(s.gtoScore);
+                const score = hasVerifiedScore ? Math.round(s.gtoScore) : null;
+                const scoreColor = score === null ? '#64748b' : score >= 50 ? '#22c55e' : score >= 0 ? '#f59e0b' : '#ef4444';
                 const accRaw = s.accuracy;
                 const acc = accRaw === null || accRaw === undefined
                     ? null
@@ -429,13 +439,13 @@ const RecentSessionsList = memo(({ sessions }) => {
                             {s.gameName || s.gameId || 'Training'}
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 38, textAlign: 'right' }}>
-                            {score > 0 ? `+${score}` : score}
+                            {score === null ? '—' : score > 0 ? `+${score}` : score}
                         </span>
                         <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
                             {acc !== null ? `${acc}%` : '-'}
                         </span>
                         <span style={{ fontSize: 10, color: '#ef4444', width: 44, textAlign: 'right' }}>
-                            {`-${(s.evLossTotal || 0).toFixed(1)}`}
+                            {Number.isFinite(s.evLossTotal) ? `-${s.evLossTotal.toFixed(1)}` : '—'}
                         </span>
                     </div>
                 );
@@ -488,19 +498,33 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
     // Summary metrics
     const metrics = useMemo(() => {
         if (filteredSessions.length === 0) return null;
-        const scores = filteredSessions.map(s => s.gtoScore || 0);
-        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-        const bestScore = Math.max(...scores);
+        const scores = filteredSessions
+            .map(session => session.gtoScore)
+            .filter(score => Number.isFinite(score));
+        const avgScore = scores.length > 0
+            ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+            : null;
+        const bestScore = scores.length > 0 ? Math.max(...scores) : null;
         const totalHands = filteredSessions.reduce((s, sess) => s + (sess.handsPlayed || 0), 0);
-        const totalEV = filteredSessions.reduce((s, sess) => s + (sess.evLossTotal || 0), 0);
-        const avgAccuracy = filteredSessions.reduce((s, sess) => s + (sess.accuracy || 0), 0) / filteredSessions.length;
+        const measuredEvTotals = filteredSessions
+            .map(session => session.evLossTotal)
+            .filter(evLoss => Number.isFinite(evLoss));
+        const totalEV = measuredEvTotals.length > 0
+            ? measuredEvTotals.reduce((sum, evLoss) => sum + evLoss, 0)
+            : null;
+        const accuracies = filteredSessions
+            .map(session => session.accuracy)
+            .filter(accuracy => Number.isFinite(accuracy));
+        const avgAccuracy = accuracies.length > 0
+            ? accuracies.reduce((sum, accuracy) => sum + accuracy, 0) / accuracies.length
+            : null;
 
         // Trend (last 5 vs previous 5)
         const recent5 = scores.slice(-5);
         const prev5 = scores.slice(-10, -5);
-        const recentAvg = recent5.length > 0 ? recent5.reduce((a, b) => a + b, 0) / recent5.length : 0;
-        const prevAvg = prev5.length > 0 ? prev5.reduce((a, b) => a + b, 0) / prev5.length : recentAvg;
-        const trend = recentAvg - prevAvg;
+        const recentAvg = recent5.length > 0 ? recent5.reduce((a, b) => a + b, 0) / recent5.length : null;
+        const prevAvg = prev5.length > 0 ? prev5.reduce((a, b) => a + b, 0) / prev5.length : null;
+        const trend = recentAvg !== null && prevAvg !== null ? recentAvg - prevAvg : null;
 
         return { avgScore, bestScore, totalHands, totalEV, avgAccuracy, trend, sessionCount: filteredSessions.length };
     }, [filteredSessions]);
@@ -553,22 +577,24 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Avg Score</div>
                         <div style={{
                             fontSize: 18, fontWeight: 700,
-                            color: metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
+                            color: metrics.avgScore === null ? '#64748b' : metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
                             fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
-                            {metrics.avgScore.toFixed(0)}
+                            {metrics.avgScore === null ? '—' : metrics.avgScore.toFixed(0)}
                         </div>
                         <div style={{
                             fontSize: 9, fontWeight: 600,
-                            color: metrics.trend >= 0 ? '#22c55e' : '#ef4444',
+                            color: metrics.trend === null ? '#64748b' : metrics.trend >= 0 ? '#22c55e' : '#ef4444',
                         }}>
-                            {metrics.trend >= 0 ? '↑' : '↓'} {Math.abs(metrics.trend).toFixed(1)}
+                            {metrics.trend === null
+                                ? 'Not Enough Data'
+                                : `${metrics.trend >= 0 ? '↑' : '↓'} ${Math.abs(metrics.trend).toFixed(1)}`}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
-                            {metrics.bestScore}
+                            {metrics.bestScore ?? '—'}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
@@ -586,7 +612,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EV Lost</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
-                            -{metrics.totalEV.toFixed(0)}
+                            {metrics.totalEV === null ? '—' : `-${metrics.totalEV.toFixed(0)}`}
                         </div>
                     </div>
                 </div>
@@ -612,7 +638,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                 {/* GTO Score Trend */}
                 <DashSection title="GTO Score Trend" icon="▲" color="#22c55e">
                     <MiniTrendChart
-                        data={filteredSessions.map(s => ({ value: s.gtoScore || 0 }))}
+                        data={filteredSessions.map(s => ({ value: s.gtoScore }))}
                         color="#22c55e"
                         height={70}
                     />
@@ -621,7 +647,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                 {/* EV Loss Trend */}
                 <DashSection title="EV Loss / Hand" icon="▼" color="#ef4444">
                     <MiniTrendChart
-                        data={filteredSessions.map(s => ({ value: s.evLossAvg || 0 }))}
+                        data={filteredSessions.map(s => ({ value: s.evLossAvg }))}
                         color="#ef4444"
                         height={50}
                     />

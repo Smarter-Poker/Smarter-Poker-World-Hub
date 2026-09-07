@@ -1,16 +1,14 @@
 /**
  * DAILY TRAINING BONUS API
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Awards bonus diamonds for first training session each day
+ * Reports only persisted historical settlements. New daily-goal currency is
+ * paused until it can be settled by a verified Training completion.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { notifyDailyBonus } from '../../../src/utils/trainingNotifications';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
@@ -26,23 +24,19 @@ function getSupabase() {
     return _supabase;
 }
 
-// Base daily bonus amount
-const BASE_DAILY_BONUS = 25;
-
-// Streak bonuses (additional diamonds)
-const STREAK_BONUSES = {
-    3: 10,   // 3-day streak: +10 diamonds
-    7: 25,   // 7-day streak: +25 diamonds
-    14: 50,  // 14-day streak: +50 diamonds
-    30: 100, // 30-day streak: +100 diamonds
-};
-
 export default async function handler(req, res) {
   try {
       withTiming(res);
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+      if (req.method === 'POST') {
+          return res.status(410).json({
+              success: false,
+              error: 'Daily bonuses can only be settled by verified server-owned Training completion.',
+              code: 'TRAINING_DAILY_BONUS_VERIFIED_ATTEMPT_REQUIRED',
+          });
+      }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
       const supabase = getSupabase();
       // Phase 76 — anchor "today" to America/Chicago, not UTC. Without this, a CST
@@ -61,11 +55,19 @@ export default async function handler(req, res) {
 
       // GET: Check if daily bonus is available
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+          res.setHeader('Cache-Control', 'private, no-store');
 
           try {
+              const { data: streak, error: streakError } = await supabase
+                  .from('training_streaks')
+                  .select('current_streak:authority_current_streak')
+                  .eq('user_id', userId)
+                  .maybeSingle();
+              if (streakError) throw streakError;
+              const currentStreak = Number(streak?.current_streak) || 0;
+
               // Check if already claimed today
-              const { data: claimed } = await supabase
+              const { data: claimed, error: claimedError } = await supabase
                   .from('training_daily_bonus')
                   // 2026-08-15 CHECK 13 fix: diamonds_awarded is not a column (real:
                   // total_awarded; aliased to keep the response field). bonus_date was
@@ -77,6 +79,7 @@ export default async function handler(req, res) {
                   .eq('user_id', userId)
                   .eq('bonus_date', today)
                   .maybeSingle();
+              if (claimedError) throw claimedError;
 
               if (claimed) {
                   return res.status(200).json({
@@ -84,167 +87,23 @@ export default async function handler(req, res) {
                       available: false,
                       alreadyClaimed: true,
                       claimedAt: claimed.claimed_at,
-                      diamondsAwarded: claimed.diamonds_awarded
+                      diamondsAwarded: claimed.diamonds_awarded,
+                      streakDays: currentStreak,
                   });
               }
 
-              // Get current streak for bonus calculation
-              const { data: streak } = await supabase
-                  .from('training_streaks')
-                  .select('current_streak')
-                  .eq('user_id', userId)
-                  .maybeSingle();
-
-              const currentStreak = streak?.current_streak || 0;
-
-              // Calculate streak bonus
-              let streakBonus = 0;
-              for (const [threshold, bonus] of Object.entries(STREAK_BONUSES || {})) {
-                  if (currentStreak >= parseInt(threshold, 10)) {
-                      streakBonus = bonus;
-                  }
-              }
-
-              const totalBonus = BASE_DAILY_BONUS + streakBonus;
-
               return res.status(200).json({
                   success: true,
-                  available: true,
-                  baseBonus: BASE_DAILY_BONUS,
-                  streakBonus,
+                  available: false,
+                  claimEnabled: false,
+                  settlementStatus: 'verified_completion_required',
                   streakDays: currentStreak,
-                  totalBonus,
-                  nextStreakBonus: getNextStreakBonus(currentStreak)
+                  message: 'Daily Bonus Settlement Is Paused Until It Is Bound To A Verified Training Completion.'
               });
 
           } catch (error) {
               console.warn('[DailyBonus] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to check daily bonus' });
-          }
-      }
-
-      // POST: Claim daily bonus (called after first session of the day)
-      if (req.method === 'POST') {
-          const bodySize = JSON.stringify(req.body || {}).length;
-          if (bodySize > 5120) return res.status(413).json({ success: false, error: 'Request body too large' });
-          const { claimNow } = req.body;
-
-          try {
-              // Check if already claimed today
-              const { data: existing } = await supabase
-                  .from('training_daily_bonus')
-                  .select('id')
-                  .eq('user_id', userId)
-                  .eq('bonus_date', today)
-                  .maybeSingle();
-
-              if (existing) {
-                  return res.status(200).json({
-                      success: true,
-                      alreadyClaimed: true,
-                      message: 'Daily bonus already claimed for today'
-                  });
-              }
-
-              // Get current streak for bonus calculation
-              const { data: streak } = await supabase
-                  .from('training_streaks')
-                  .select('current_streak')
-                  .eq('user_id', userId)
-                  .maybeSingle();
-
-              const currentStreak = streak?.current_streak || 0;
-
-              // Calculate streak bonus
-              let streakBonus = 0;
-              for (const [threshold, bonus] of Object.entries(STREAK_BONUSES || {})) {
-                  if (currentStreak >= parseInt(threshold, 10)) {
-                      streakBonus = bonus;
-                  }
-              }
-
-              const totalBonus = BASE_DAILY_BONUS + streakBonus;
-
-              // BUG #269 FIX: Atomic insert with error check before awarding diamonds.
-              // Previous code did check→insert→award without verifying insert succeeded,
-              // allowing concurrent requests to both award diamonds.
-              const { error: claimInsertErr } = await supabase
-                  .from('training_daily_bonus')
-                  .insert({
-                      user_id: userId,
-                      bonus_date: today,
-                      total_awarded: totalBonus,
-                      base_bonus: BASE_DAILY_BONUS,
-                      streak_bonus: streakBonus,
-                      streak_days: currentStreak
-                  });
-
-              if (claimInsertErr) {
-                  if (claimInsertErr.code === '23505') {
-                      return res.status(200).json({
-                          success: true,
-                          alreadyClaimed: true,
-                          message: 'Daily bonus already claimed for today'
-                      });
-                  }
-                  console.warn('[DailyBonus] Insert error:', claimInsertErr);
-                  throw claimInsertErr;
-              }
-
-              // Award via award_diamonds_v2 (daily_bonus catalog key).
-              // Variable amount is passed in metadata.bonus_diamonds.
-              // The 3,750 ◆/month per-family ceiling and 2.5M platform breaker
-              // are enforced by the SQL function; the old add_diamonds_to_balance
-              // call bypassed both.
-              const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
-                  p_user_id: userId,
-                  p_action_key: 'daily_bonus',
-                  p_reference_id: `daily_bonus_${userId}_${today}`,
-                  p_metadata: {
-                      bonus_diamonds: totalBonus,
-                      base_bonus: BASE_DAILY_BONUS,
-                      streak_bonus: streakBonus,
-                      streak_day: currentStreak,
-                      _source: 'api/training/daily-bonus',
-                  },
-              });
-
-              if (!rpcOk) {
-                  // Roll back the daily-bonus claim row so the user can retry. The unique
-                  // constraint on (user_id, bonus_date) would otherwise lock them out.
-                  try {
-                      const { error: err_training_daily_bonus_vl5km } = await supabase
-                        .from('training_daily_bonus')
-                        .delete()
-                          .eq('user_id', userId)
-                          .eq('bonus_date', today);
-                      if (err_training_daily_bonus_vl5km) console.warn('[Supabase] Silent mutation failed in training_daily_bonus:', err_training_daily_bonus_vl5km.message);
-                  } catch (rbErr) {
-                      console.warn('[DailyBonus] Rollback delete failed:', rbErr?.message || rbErr);
-                  }
-                  console.warn('[DailyBonus] Diamond RPC failed (rolled back so user can retry):', rpcErr);
-                  return res.status(500).json({ success: false, error: 'Failed to credit daily bonus - please retry' });
-              }
-
-              // Send push notification if not called during session
-              if (claimNow) {
-                  await notifyDailyBonus(userId, totalBonus)
-                      .catch(e => console.warn('[DailyBonus] Push failed:', e.message));
-              }
-
-              return res.status(200).json({
-                  success: true,
-                  claimed: true,
-                  baseBonus: BASE_DAILY_BONUS,
-                  streakBonus,
-                  streakDays: currentStreak,
-                  totalAwarded: totalBonus,
-                  message: `+${totalBonus}diamonds Daily Bonus claimed!`
-              });
-
-          } catch (error) {
-              console.warn('[DailyBonus] Claim error:', error.message);
-              return res.status(500).json({ success: false, error: 'Failed to claim daily bonus' });
           }
       }
 
@@ -255,18 +114,4 @@ export default async function handler(req, res) {
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
-}
-
-// Helper to get next streak bonus milestone
-function getNextStreakBonus(currentStreak) {
-    for (const [threshold, bonus] of Object.entries(STREAK_BONUSES || {})) {
-        if (currentStreak < parseInt(threshold, 10)) {
-            return {
-                daysUntil: parseInt(threshold, 10) - currentStreak,
-                threshold: parseInt(threshold, 10),
-                bonus
-            };
-        }
-    }
-    return null; // Already at max
 }

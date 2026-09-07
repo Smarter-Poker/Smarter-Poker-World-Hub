@@ -1,18 +1,19 @@
 /**
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * POSTFLOP STRATEGY ENGINE — GTO Postflop Decision Framework
+ * POSTFLOP STRATEGY ENGINE — Illustrative Local Practice Framework
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
- * Generates solver-approximate GTO decisions for postflop play:
+ * Generates deterministic, local heuristic suggestions for postflop practice:
  *   - C-bet frequencies by board texture (IP/OOP)
  *   - Check-raise frequencies by board texture
  *   - Bet sizing logic (25%/33%/50%/75%/100%/150% pot)
  *   - Turn barrel frequencies based on runout
  *   - River value/bluff ratios
  *
- * Strategy is derived from board texture (BoardTextureEngine) and
- * hand classification (HandStrengthEngine). Approximates GTO frequencies
- * using heuristic models calibrated to PioSolver outputs.
+ * Strategy is derived from board texture (BoardTextureEngine), hand
+ * classification (HandStrengthEngine), and hand-authored lookup weights.
+ * It is not a solver artifact, has not been verified against a solved node,
+ * and never supplies exact EV. Consumers must preserve this provenance.
  *
  * Used by PostflopScenarioGenerator to build L8-L10 training scenarios.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -35,6 +36,27 @@ import {
     classifyBetSize,
     calculateGeometricSizing,
 } from '../config/postflopSolverData';
+
+/**
+ * Authority contract attached to every result from this module.
+ *
+ * The legacy config/module names contain "solver" for compatibility, but the
+ * values are locally authored heuristics. They are useful for illustrative
+ * practice only and cannot certify an answer, frequency, or EV claim.
+ */
+export const POSTFLOP_HEURISTIC_PROVENANCE = Object.freeze({
+    strategySource: 'local_postflop_heuristic_v1',
+    authority: 'illustrative_local_heuristic',
+    authoritative: false,
+    solverVerified: false,
+    exactEVAvailable: false,
+    practiceOnly: true,
+    frequencyAuthority: 'illustrative_heuristic_weight',
+});
+
+export function withIllustrativePostflopProvenance(result = {}) {
+    return { ...result, ...POSTFLOP_HEURISTIC_PROVENANCE };
+}
 
 // ●● Bet Sizing Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -68,10 +90,10 @@ export const ACTIONS = {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
- * GTO C-bet frequency tables by board texture.
+ * Illustrative c-bet weights by board texture.
  * IP = In Position (acting last), OOP = Out of Position (acting first).
  *
- * Calibrated to solver output for single-raised pots.
+ * These are hand-authored teaching weights, not measured node frequencies.
  * Format: { frequency: 0-1, preferredSize: BET_SIZES key }
  */
 const CBET_STRATEGY = {
@@ -130,7 +152,7 @@ function getBoardCbetKey(boardAnalysis) {
 }
 
 /**
- * Get the GTO c-bet strategy for a given board and position context.
+ * Get an illustrative c-bet suggestion for a board and position context.
  *
  * @param {string[]} board - Board cards (flop)
  * @param {string} posContext - 'IP' or 'OOP'
@@ -139,7 +161,7 @@ function getBoardCbetKey(boardAnalysis) {
  */
 export function getCbetStrategy(board, posContext, holeCards) {
     const boardAnalysis = analyzeBoard(board);
-    if (boardAnalysis.error) return { shouldBet: false, frequency: 0, sizing: null, reason: 'Invalid board' };
+    if (boardAnalysis.error) return withIllustrativePostflopProvenance({ shouldBet: false, frequency: 0, sizing: null, reason: 'Invalid board' });
 
     const cbetKey = getBoardCbetKey(boardAnalysis);
     const baseStrategy = CBET_STRATEGY[cbetKey]?.[posContext] || CBET_STRATEGY.medium_high[posContext];
@@ -191,7 +213,7 @@ export function getCbetStrategy(board, posContext, holeCards) {
         sizingKey = baseStrategy.altSize || 'LARGE';
     }
 
-    return {
+    return withIllustrativePostflopProvenance({
         shouldBet: adjustedFreq > 0.50,
         frequency: Math.round(adjustedFreq * 100) / 100,
         sizing: BET_SIZES[sizingKey],
@@ -200,7 +222,7 @@ export function getCbetStrategy(board, posContext, holeCards) {
         handCategory: madeHand.category,
         drawInfo: draws,
         boardTexture: boardAnalysis.description,
-    };
+    });
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -209,7 +231,7 @@ export function getCbetStrategy(board, posContext, holeCards) {
 
 /**
  * Check-raise frequencies by board type (defender's perspective, OOP).
- * Solvers check-raise ~8-15% overall depending on texture.
+ * The local model uses a small illustrative baseline that varies by texture.
  */
 const CHECKRAISE_BASE = {
     dry_high: 0.08,
@@ -232,7 +254,7 @@ const CHECKRAISE_BASE = {
  */
 export function getCheckRaiseStrategy(board, holeCards, betSizeFraction = 0.33) {
     const boardAnalysis = analyzeBoard(board);
-    if (boardAnalysis.error) return { shouldRaise: false, frequency: 0, reason: 'Invalid board' };
+    if (boardAnalysis.error) return withIllustrativePostflopProvenance({ shouldRaise: false, frequency: 0, reason: 'Invalid board' });
 
     const cbetKey = getBoardCbetKey(boardAnalysis);
     const baseFreq = CHECKRAISE_BASE[cbetKey] || 0.10;
@@ -288,14 +310,14 @@ export function getCheckRaiseStrategy(board, holeCards, betSizeFraction = 0.33) 
         ? BET_SIZES.LARGE  // vs small bet, raise to ~75% pot
         : BET_SIZES.POT;    // vs larger bet, raise to pot
 
-    return {
+    return withIllustrativePostflopProvenance({
         shouldRaise: adjustedFreq > 0.50,
         frequency: Math.round(adjustedFreq * 100) / 100,
         sizing: raiseSizing,
         reason,
         handCategory: madeHand.category,
         drawInfo: draws,
-    };
+    });
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -313,10 +335,10 @@ export function getCheckRaiseStrategy(board, holeCards, betSizeFraction = 0.33) 
  * @returns {{ action: string, frequency: number, sizing: Object, reason: string }}
  */
 export function getTurnStrategy(holeCards, board, flopAction, posContext) {
-    if (board.length < 4) return { action: ACTIONS.CHECK, frequency: 0, reason: 'Not on turn yet' };
+    if (board.length < 4) return withIllustrativePostflopProvenance({ action: ACTIONS.CHECK, frequency: 0, reason: 'Not on turn yet' });
 
     const boardAnalysis = analyzeBoard(board);
-    if (boardAnalysis.error) return { action: ACTIONS.CHECK, frequency: 0, reason: 'Invalid board' };
+    if (boardAnalysis.error) return withIllustrativePostflopProvenance({ action: ACTIONS.CHECK, frequency: 0, reason: 'Invalid board' });
 
     const madeHand = classifyMadeHand(holeCards, board);
     const draws = classifyDraws(holeCards, board);
@@ -387,7 +409,7 @@ export function getTurnStrategy(holeCards, board, flopAction, posContext) {
 
     const finalFreq = Math.max(0, Math.min(1, baseFreq));
 
-    return {
+    return withIllustrativePostflopProvenance({
         action: finalFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK,
         frequency: Math.round(finalFreq * 100) / 100,
         sizing: BET_SIZES[sizingKey],
@@ -396,7 +418,7 @@ export function getTurnStrategy(holeCards, board, flopAction, posContext) {
         handCategory: madeHand.category,
         drawInfo: draws,
         turnAnalysis: turnBrought,
-    };
+    });
 }
 
 /**
@@ -435,8 +457,7 @@ function analyzeTurnRunout(flopAnalysis, turnAnalysis, turnCard) {
  * On the river, there are no more cards to come — decisions are purely
  * about value bets, bluffs, and bluff-catchers.
  *
- * GTO river betting ratio: ~2 value bets : 1 bluff (at pot-sized bet)
- * Adjusts based on sizing: smaller bets = more bluffs allowed.
+ * The teaching model uses a value/bluff heuristic and adjusts it by sizing.
  *
  * @param {string[]} holeCards
  * @param {string[]} board - 5 cards
@@ -445,7 +466,7 @@ function analyzeTurnRunout(flopAnalysis, turnAnalysis, turnCard) {
  * @returns {{ action: string, frequency: number, sizing: Object, reason: string, category: string }}
  */
 export function getRiverStrategy(holeCards, board, posContext, prevAction) {
-    if (board.length < 5) return { action: ACTIONS.CHECK, frequency: 0, reason: 'Not on river yet' };
+    if (board.length < 5) return withIllustrativePostflopProvenance({ action: ACTIONS.CHECK, frequency: 0, reason: 'Not on river yet' });
 
     const madeHand = classifyMadeHand(holeCards, board);
     const eval5 = evaluateHand(holeCards, board);
@@ -532,7 +553,7 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
     // IP bluffs slightly more (can realize fold equity better)
     if (posContext === 'IP' && category === 'bluff') frequency += 0.05;
 
-    return {
+    return withIllustrativePostflopProvenance({
         action,
         frequency: Math.max(0, Math.min(1, Math.round(frequency * 100) / 100)),
         sizing: BET_SIZES[sizingKey],
@@ -541,7 +562,7 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
         category,
         handCategory: madeHand.category,
         handStrength: madeHand.strength,
-    };
+    });
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -621,14 +642,14 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
         reason = `${madeHand.description} - fold to bet`;
     }
 
-    return {
+    return withIllustrativePostflopProvenance({
         action,
         frequency: Math.round(frequency * 100) / 100,
         reason,
         handCategory: madeHand.category,
         drawInfo: draws,
         potOdds: Math.round(potOdds * 100) / 100,
-    };
+    });
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -636,7 +657,7 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
- * Get the full GTO strategy at a postflop decision node.
+ * Get the full illustrative strategy at a postflop decision node.
  * This is the master function that routes to the correct sub-strategy.
  *
  * @param {Object} params
@@ -655,28 +676,28 @@ export function getPostflopStrategy(params) {
     const { holeCards, board, position, street, isPFR, facingBet, betSize, potSize, prevAction, is3BetPot } = params;
 
     // Validate inputs
-    if (!holeCards || holeCards.length < 2) return { error: 'Need 2 hole cards' };
-    if (!board || board.length < 3) return { error: 'Need at least 3 board cards' };
+    if (!holeCards || holeCards.length < 2) return withIllustrativePostflopProvenance({ error: 'Need 2 hole cards' });
+    if (!board || board.length < 3) return withIllustrativePostflopProvenance({ error: 'Need at least 3 board cards' });
 
-    // Route to correct strategy based on context — use ENHANCED solver-data versions
+    // Route to the most granular local heuristic available for the context.
     if (facingBet) {
-        return {
+        return withIllustrativePostflopProvenance({
             type: 'facing_bet',
             street,
             ...getEnhancedFacingBetStrategy(holeCards, board, betSize || 3, potSize || 6, street),
-        };
+        });
     }
 
     if (street === 'flop') {
         if (isPFR) {
-            return {
+            return withIllustrativePostflopProvenance({
                 type: 'cbet',
                 street: 'flop',
                 ...getEnhancedCbetStrategy(board, position, holeCards, { is3BetPot }),
-            };
+            });
         } else {
             // As the defender (caller), check to PFR most of the time
-            // Use enhanced check-raise lookup from solver data
+            // Use the granular local check-raise lookup.
             const boardAnalysis = analyzeBoard(board);
             const textureKey = classifyBoardTexture(boardAnalysis);
             const handClass = classifyHandClass(holeCards, board);
@@ -695,11 +716,12 @@ export function getPostflopStrategy(params) {
                     raiseSizing: xrData.raiseSizing,
                     handClass,
                     boardTexture: textureKey,
-                    isEnhanced: true,
+                    usesGranularHeuristics: true,
+                    ...POSTFLOP_HEURISTIC_PROVENANCE,
                 }
                 : getCheckRaiseStrategy(board, holeCards);
 
-            return {
+            return withIllustrativePostflopProvenance({
                 type: 'defender_flop',
                 street: 'flop',
                 action: ACTIONS.CHECK,
@@ -707,27 +729,27 @@ export function getPostflopStrategy(params) {
                 reason: `As the caller (${handClass}), check to the preflop raiser`,
                 checkRaiseInfo,
                 handClass,
-            };
+            });
         }
     }
 
     if (street === 'turn') {
-        return {
+        return withIllustrativePostflopProvenance({
             type: 'turn_barrel',
             street: 'turn',
             ...getEnhancedTurnStrategy(holeCards, board, prevAction || 'bet', position),
-        };
+        });
     }
 
     if (street === 'river') {
-        return {
+        return withIllustrativePostflopProvenance({
             type: 'river_decision',
             street: 'river',
             ...getEnhancedRiverStrategy(holeCards, board, position, prevAction || 'check'),
-        };
+        });
     }
 
-    return { error: `Unknown street: ${street}` };
+    return withIllustrativePostflopProvenance({ error: `Unknown street: ${street}` });
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -768,12 +790,12 @@ export function getValidBetSizes(potSize, effectiveStack) {
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// ENHANCED SOLVER-DATA LOOKUP — Uses granular postflopSolverData tables
+// GRANULAR LOCAL LOOKUP — Uses the legacy-named postflopSolverData tables
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
- * Classify a hand into one of the solver data hand classes.
- * Maps from HandStrengthEngine output → postflopSolverData hand class keys.
+ * Classify a hand into one of the local lookup-table hand classes.
+ * Maps from HandStrengthEngine output to legacy config keys.
  */
 export function classifyHandClass(holeCards, board) {
     const madeHand = classifyMadeHand(holeCards, board);
@@ -839,8 +861,8 @@ export function classifyHandClass(holeCards, board) {
 }
 
 /**
- * Classify the board texture into one of the solver data texture keys.
- * Maps from BoardTextureEngine output → postflopSolverData texture keys.
+ * Classify the board texture into one of the local lookup-table texture keys.
+ * Maps from BoardTextureEngine output to legacy config keys.
  */
 export function classifyBoardTexture(boardAnalysis) {
     const { flush, pair, connectivity, wetness, height } = boardAnalysis;
@@ -924,14 +946,14 @@ export function classifyRiverBoardState(boardAnalysis) {
 }
 
 /**
- * ENHANCED c-bet strategy using solver data tables.
- * Uses the granular hand-class × board-texture matrix for per-hand frequencies.
+ * Granular c-bet heuristic using local lookup tables.
+ * Uses a hand-class by board-texture matrix for illustrative weights.
  *
  * @param {string[]} board - Flop cards
  * @param {string} posContext - 'IP' or 'OOP'
  * @param {string[]} holeCards - Hero's hole cards
  * @param {Object} [opts] - Options { is3BetPot: false }
- * @returns {Object} Enhanced strategy with solver-calibrated frequencies
+ * @returns {Object} Illustrative local strategy with explicit provenance
  */
 export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {}) {
     try {
@@ -959,19 +981,19 @@ export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {})
         const madeHand = classifyMadeHand(holeCards, board);
         const draws = classifyDraws(holeCards, board);
 
-        return {
+        return withIllustrativePostflopProvenance({
             shouldBet: betFreq > 0.50,
             frequency: Math.round(betFreq * 100) / 100,
             sizing: BET_SIZES[sizingKey],
             sizingKey,
             sizeDistribution: sizes,
-            reason: `${madeHand.description} (${handClass}) on ${textureKey} - solver freq ${Math.round(betFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) on ${textureKey} - illustrative weight ${Math.round(betFreq * 100)}%`,
             handCategory: madeHand.category,
             handClass,
             boardTexture: textureKey,
             drawInfo: draws,
-            isEnhanced: true,
-        };
+            usesGranularHeuristics: true,
+        });
     } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
         return getCbetStrategy(board, posContext, holeCards);
@@ -979,7 +1001,7 @@ export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {})
 }
 
 /**
- * ENHANCED turn strategy using solver data tables.
+ * Granular turn heuristic using local lookup tables.
  */
 export function getEnhancedTurnStrategy(holeCards, board, flopAction, posContext, opts = {}) {
     try {
@@ -1005,26 +1027,26 @@ export function getEnhancedTurnStrategy(holeCards, board, flopAction, posContext
         const madeHand = classifyMadeHand(holeCards, board);
         const draws = classifyDraws(holeCards, board);
 
-        return {
+        return withIllustrativePostflopProvenance({
             action: betFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK,
             frequency: Math.round(betFreq * 100) / 100,
             sizing: BET_SIZES[sizingKey],
             sizingKey,
             sizeDistribution: sizes,
-            reason: `${madeHand.description} (${handClass}) - ${runoutKey} turn - solver freq ${Math.round(betFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) - ${runoutKey} turn - illustrative weight ${Math.round(betFreq * 100)}%`,
             handCategory: madeHand.category,
             handClass,
             turnRunout: runoutKey,
             drawInfo: draws,
-            isEnhanced: true,
-        };
+            usesGranularHeuristics: true,
+        });
     } catch (e) {
         return getTurnStrategy(holeCards, board, flopAction, posContext);
     }
 }
 
 /**
- * ENHANCED river strategy using solver data tables.
+ * Granular river heuristic using local lookup tables.
  */
 export function getEnhancedRiverStrategy(holeCards, board, posContext, prevAction) {
     try {
@@ -1062,27 +1084,27 @@ export function getEnhancedRiverStrategy(holeCards, board, posContext, prevActio
             ? (madeHand.strength >= 0.25 ? ACTIONS.CALL : ACTIONS.FOLD)
             : (betFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK);
 
-        return {
+        return withIllustrativePostflopProvenance({
             action,
             frequency: Math.round(betFreq * 100) / 100,
             sizing: BET_SIZES[sizingKey],
             sizingKey,
             sizeDistribution: sizes,
-            reason: `${madeHand.description} (${handClass}) on ${boardState} river - solver freq ${Math.round(betFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) on ${boardState} river - illustrative weight ${Math.round(betFreq * 100)}%`,
             category,
             handCategory: madeHand.category,
             handClass,
             boardState,
             handStrength: madeHand.strength,
-            isEnhanced: true,
-        };
+            usesGranularHeuristics: true,
+        });
     } catch (e) {
         return getRiverStrategy(holeCards, board, posContext, prevAction);
     }
 }
 
 /**
- * ENHANCED facing-bet strategy using solver data tables.
+ * Granular facing-bet heuristic using local lookup tables.
  */
 export function getEnhancedFacingBetStrategy(holeCards, board, betSize, potSize, street) {
     try {
@@ -1101,7 +1123,7 @@ export function getEnhancedFacingBetStrategy(holeCards, board, betSize, potSize,
 
         const actionFreq = action === ACTIONS.RAISE ? strategy.raise : (action === ACTIONS.CALL ? strategy.call : strategy.fold);
 
-        return {
+        return withIllustrativePostflopProvenance({
             action,
             frequency: Math.round(actionFreq * 100) / 100,
             callFreq: strategy.call,
@@ -1112,8 +1134,8 @@ export function getEnhancedFacingBetStrategy(holeCards, board, betSize, potSize,
             handClass,
             drawInfo: draws,
             potOdds: Math.round(potOdds * 100) / 100,
-            isEnhanced: true,
-        };
+            usesGranularHeuristics: true,
+        });
     } catch (e) {
         return getFacingBetStrategy(holeCards, board, betSize, potSize, street);
     }
@@ -1130,7 +1152,7 @@ export default {
     getFacingBetStrategy,
     calculateBetAmount,
     getValidBetSizes,
-    // Enhanced solver-data versions
+    // Granular local heuristic versions
     getEnhancedCbetStrategy,
     getEnhancedTurnStrategy,
     getEnhancedRiverStrategy,
@@ -1139,6 +1161,8 @@ export default {
     classifyBoardTexture,
     classifyTurnRunout,
     classifyRiverBoardState,
+    withIllustrativePostflopProvenance,
+    POSTFLOP_HEURISTIC_PROVENANCE,
     BET_SIZES,
     POSITION_CONTEXT,
     ACTIONS,

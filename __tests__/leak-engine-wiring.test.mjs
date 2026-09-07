@@ -99,6 +99,10 @@ function cachedQuestion(question, id = 'question-1') {
 
 test('Leak Finder consumes canonical training answers and hand audits', () => {
   assert.match(detect, /from\('training_answers'\)/);
+  assert.match(detect, /training_attempts!training_answers_attempt_fk!inner\([^)]*user_id[^)]*status[^)]*practice_only[^)]*\)/);
+  assert.match(detect, /\.eq\('training_attempts\.user_id', userId\)/);
+  assert.match(detect, /\.eq\('training_attempts\.status', 'completed'\)/);
+  assert.match(detect, /\.eq\('training_attempts\.practice_only', false\)/);
   assert.match(detect, /from\('hand_audit_decisions'\)/);
   assert.match(detect, /like\('solver_source', '%\|hand-audit-v3'\)/);
   assert.match(detect, /aggregateSolverLeaks/);
@@ -108,11 +112,17 @@ test('Leak Finder consumes canonical training answers and hand audits', () => {
 });
 
 test('answer persistence regrades against a server-owned canonical question', () => {
-  assert.match(record, /getCanonicalQuestion/);
-  assert.match(record, /gradeSolverDecision\(canonicalQuestion/);
+  assert.match(record, /getImmutableQuestionSnapshot/);
+  assert.match(record, /from\('training_question_snapshots'\)/);
+  assert.doesNotMatch(record, /from\('training_question_cache'\)/);
+  assert.match(record, /verifyTrainingGradingReceipt/);
+  assert.match(record, /gradeTrainingAnswer\(\{\s*canonicalQuestion,/);
   assert.match(record, /solver_verified: verified/);
   assert.match(record, /ev_loss_measured/);
-  assert.match(record, /onConflict: 'user_id,submission_id'/);
+  assert.match(record, /submission_id: String\(receiptPayload\.jti\)/);
+  assert.match(record, /from\('training_answers'\)\.insert\(evidenceRow\)/);
+  assert.match(record, /insertError\?\.cause\?\.code !== '23505'/);
+  assert.match(record, /eq\('submission_id', String\(receiptPayload\.jti\)/);
   assert.match(read('src/hooks/useGTOTrainer.js'), /for \(let attempt = 0; attempt < 3; attempt\+\+\)/);
 });
 

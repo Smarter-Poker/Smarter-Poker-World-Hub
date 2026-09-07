@@ -1,13 +1,14 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * POSTFLOP SOLVER DATA — PioSolver-Calibrated Strategy Matrices
+ * POSTFLOP LOCAL HEURISTIC TABLES — Illustrative Strategy Weights
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Granular hand-class × board-texture frequency tables for postflop play.
- * Calibrated to PioSolver outputs for standard 6-max cash game spots (100BB).
- *
- * These tables replace the broad bucket approach with per-hand-class
- * frequencies that match solver output within ~3-5% accuracy.
+ * Granular hand-class x board-texture teaching tables for postflop play.
+ * These are locally maintained heuristic constants. This module has no
+ * per-node solver artifact, tree configuration, convergence proof, or exact
+ * EV evidence, so its numbers must never be presented as verified GTO output.
+ * Consumers may use them only as illustrative practice weights and must retain
+ * the non-authoritative provenance attached by PostflopStrategyEngine.
  *
  * Coverage:
  *   - Flop c-bet (IP/OOP, 11 board textures × 13 hand classes)
@@ -18,7 +19,7 @@
  *   - 3-bet pot adjustments
  *   - Sizing profiles with geometric calculation
  *
- * Source: Aggregated from PioSolver 2.0 outputs for 6-max 100BB NL cash.
+ * Source authority: illustrative local heuristic; practice only.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 

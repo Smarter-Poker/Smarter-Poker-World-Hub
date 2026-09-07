@@ -37,11 +37,17 @@ test('live, fallback, bookmark, and player entry points share the availability g
   assert.match(CATALOG, /map\(normaliseVideo\)\.filter\(isVideoLibraryVideoAllowed\)/);
 });
 
-test('build-health fixes use the verified live database contracts', () => {
-  assert.match(MEMORY_CAMPAIGN, /\.from\('memory_game_sessions'\)/);
-  assert.match(MEMORY_CAMPAIGN, /scenario_id: activeLevel\.chart\.chart_id/);
+test('build-health fixes keep memory reference practice outside unverified account progression', () => {
+  assert.match(MEMORY_CAMPAIGN, /\.from\('memory_charts_gold'\)/);
+  assert.doesNotMatch(MEMORY_CAMPAIGN, /\.from\('memory_game_sessions'\)/);
   assert.doesNotMatch(MEMORY_CAMPAIGN, /\.from\('user_level_progress'\)/);
-  assert.match(LIVE_HELP, /\.select\('game_id, gtow_score, created_at'\)/);
+  assert.match(MEMORY_CAMPAIGN, /Local Range Reference Practice/);
+  assert.match(MEMORY_CAMPAIGN, /Account Progress[\s\S]*Not Recorded/);
+  assert.match(MEMORY_CAMPAIGN, /Local campaign answers never mutate account progress or rewards/);
+  assert.match(LIVE_HELP, /\.select\('game_id, gtow_score, score_scale, created_at, attempt_id, training_attempts![^']+'\)/);
+  assert.match(LIVE_HELP, /\.eq\('training_attempts\.status', 'completed'\)/);
+  assert.match(LIVE_HELP, /\.eq\('training_attempts\.practice_only', false\)/);
+  assert.match(LIVE_HELP, /signedTrainingScore\(session\)/);
   assert.match(SUPABASE_TYPES, /memory_game_sessions: \{/);
   assert.match(SUPABASE_TYPES, /training_sessions: \{[\s\S]*gtow_score: number/);
 });

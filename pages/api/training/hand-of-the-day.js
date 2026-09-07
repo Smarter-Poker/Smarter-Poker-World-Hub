@@ -1,332 +1,470 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-/**
- * HAND OF THE DAY API (v2 — Rewired to training_question_cache)
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * GET  - Returns today's curated daily challenge (random from training_question_cache)
- * POST - Records a user's daily challenge completion
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
-import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import {
+  enforceTrainingQuestionContract,
+  isTrainingQuestionValid,
+} from '../../../src/lib/training/questionContract.mjs';
+import { toPublicTrainingQuestion } from '../../../src/lib/training/gradingReceipt.mjs';
+import { applyDifficultyToQuestion } from '../../../src/lib/training/difficultyQuestionContract.mjs';
+import {
+  isTrainingAttemptContractError,
+  prepareTrainingAttemptDelivery,
+} from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  isTrainingPersistenceUnavailable,
+  runTrainingPersistenceQuery,
+  trainingPersistenceUnavailableBody,
+} from '../../../src/lib/training/trainingPersistence.mjs';
 
-// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+const DAILY_GAME_ID = 'daily-challenge';
+const DAILY_LEVEL = 1;
+const DAILY_ENGINE_TYPES = Object.freeze(['PIO', 'CHART']);
+const CANDIDATE_BATCH_SIZE = 64;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
     _supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
     );
   }
   return _supabase;
 }
 
-// Deterministic hash from date string to get consistent daily question
-function dateHash(dateStr) {
-  let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    const char = dateStr.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
+function dateHash(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
   }
-  return Math.abs(hash);
+  return hash >>> 0;
 }
 
-async function getUserDailyState(req, dailyId) {
-  if (!req.headers.authorization?.startsWith('Bearer ')) {
-    return { completion: null, completedDays: [] };
+function tomorrowAtChicagoMidnight(today) {
+  const cursor = new Date(`${today}T12:00:00Z`);
+  cursor.setUTCDate(cursor.getUTCDate() + 1);
+  const tomorrow = cursor.toISOString().slice(0, 10);
+
+  // America/Chicago midnight is always 05:00Z or 06:00Z. Resolve the exact
+  // instant by asking Intl which candidate formats as the requested local day.
+  for (const hour of [5, 6]) {
+    const candidate = new Date(`${tomorrow}T${String(hour).padStart(2, '0')}:00:00Z`);
+    const localParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Chicago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hour12: false,
+    }).formatToParts(candidate);
+    const part = (type) => localParts.find((entry) => entry.type === type)?.value;
+    const localDate = `${part('year')}-${part('month')}-${part('day')}`;
+    if (localDate === tomorrow && ['00', '24'].includes(part('hour'))) {
+      return candidate.toISOString();
+    }
   }
-  const { user, error } = await getServerUserWithFallback(req, getSupabase());
-  if (error || !user) return { completion: null, completedDays: [] };
-  const { data } = await getSupabase()
-    .from('training_daily_challenge')
-    .select('daily_id, score, ev_loss, selected_action, completed_at')
-    .eq('user_id', user.id)
-    .like('daily_id', 'daily-%')
-    .order('completed_at', { ascending: false })
-    .limit(365);
-  const rows = Array.isArray(data) ? data : [];
+
+  // Fail closed to the later candidate if an unexpected Intl implementation
+  // cannot identify local midnight. This never expires a challenge early.
+  return new Date(`${tomorrow}T06:00:00Z`).toISOString();
+}
+
+function canonicalizeCandidate(row) {
+  if (!row?.question_data) return null;
+  let question;
+  try {
+    question = JSON.parse(JSON.stringify(row.question_data));
+  } catch {
+    return null;
+  }
+  question.id = String(question.id || row.question_id || '').slice(0, 180);
+  if (!question.id) return null;
+  reconcileAnswerKey(question);
+  question = enforceTrainingQuestionContract(question);
+  return isTrainingQuestionValid(question) ? { row, question } : null;
+}
+
+async function readCandidateRange(start, end) {
+  return runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_question_cache')
+      .select('question_data, question_id, game_id, engine_type, level')
+      .in('engine_type', DAILY_ENGINE_TYPES)
+      .order('question_id', { ascending: true })
+      .range(start, end),
+    { label: 'DailyChallenge:candidate-read' },
+  );
+}
+
+/**
+ * Pick the first contract-valid row in a stable circular ordering seeded by
+ * the Chicago product date. An invalid cache row can never make the daily
+ * challenge leak, disappear, or silently fall back to an invented question.
+ */
+async function selectDailyCanonicalQuestion(today) {
+  const countResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_question_cache')
+      .select('question_id', { count: 'exact', head: true })
+      .in('engine_type', DAILY_ENGINE_TYPES),
+    { label: 'DailyChallenge:candidate-count' },
+  );
+  const count = Number(countResult.count || 0);
+  if (!Number.isInteger(count) || count < 1) return null;
+
+  const initialOffset = dateHash(today) % count;
+  let scanned = 0;
+  while (scanned < count) {
+    const start = (initialOffset + scanned) % count;
+    const remainingBeforeWrap = count - start;
+    const take = Math.min(CANDIDATE_BATCH_SIZE, count - scanned, remainingBeforeWrap);
+    const result = await readCandidateRange(start, start + take - 1);
+    const rows = Array.isArray(result.data) ? result.data : [];
+    for (const row of rows) {
+      const candidate = canonicalizeCandidate(row);
+      if (candidate) return candidate;
+    }
+    // A short page means the cache changed during selection. Retrying would no
+    // longer be deterministic for this request, so fail closed.
+    if (rows.length !== take) return null;
+    scanned += take;
+  }
+  return null;
+}
+
+function optionText(options, answerId) {
+  const match = (Array.isArray(options) ? options : []).find(
+    (option) => String(option?.id ?? option) === String(answerId || ''),
+  );
+  return String(match?.text ?? match ?? answerId ?? '');
+}
+
+function postCompletionFeedback(canonicalQuestion, answer) {
+  if (!canonicalQuestion || !answer) return null;
+  const correctAnswer = String(canonicalQuestion.correctAnswer || '');
+  if (!correctAnswer) return null;
+  const solverVerified = answer.solver_verified === true;
+  const evLossMeasured = solverVerified
+    && answer.ev_loss_measured === true
+    && Number.isFinite(Number(answer.ev_loss));
   return {
-    completion: rows.find((row) => row.daily_id === dailyId) || null,
-    completedDays: rows.map((row) => String(row.daily_id).replace(/^daily-/, '')),
+    correctAnswer,
+    correctAnswerText: String(
+      canonicalQuestion.correctAnswerText
+      || optionText(canonicalQuestion.options, correctAnswer),
+    ),
+    explanation: String(canonicalQuestion.explanation || ''),
+    structuredExplanation: canonicalQuestion.structuredExplanation || null,
+    gtoFrequencies: solverVerified ? (canonicalQuestion.gtoFrequencies || null) : null,
+    frequencies: solverVerified ? (canonicalQuestion.frequencies || null) : null,
+    rawFrequencies: solverVerified ? (canonicalQuestion.rawFrequencies || null) : null,
+    evData: solverVerified ? (canonicalQuestion.evData || null) : null,
+    actionEVs: solverVerified ? (canonicalQuestion.actionEVs || null) : null,
+    solverVerified,
+    evLossMeasured,
+    evLoss: evLossMeasured ? Number(answer.ev_loss) : null,
+    dataQuality: canonicalQuestion.dataQuality || null,
   };
+}
+
+async function readDailyRows(userId, dailyId) {
+  const result = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_daily_challenge')
+      .select('daily_id, score, ev_loss, selected_action, completed_at, attempt_id')
+      .eq('user_id', userId)
+      .like('daily_id', 'daily-%')
+      .order('completed_at', { ascending: false })
+      .limit(365),
+    { label: 'DailyChallenge:completion-read' },
+  );
+  const rows = Array.isArray(result.data) ? result.data : [];
+  return {
+    row: rows.find((candidate) => (
+      candidate.daily_id === dailyId
+      && UUID_RE.test(String(candidate.attempt_id || ''))
+    )) || null,
+    // Legacy browser-authored rows without a sealed attempt are deliberately
+    // excluded from streak/progress truth.
+    completedDays: rows
+      .filter((candidate) => UUID_RE.test(String(candidate.attempt_id || '')))
+      .map((candidate) => String(candidate.daily_id).replace(/^daily-/, '')),
+  };
+}
+
+async function readAttemptEvidence(attempt) {
+  if (!attempt?.id) return null;
+  const handResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_attempt_hands')
+      .select('snapshot_key')
+      .eq('attempt_id', attempt.id)
+      .eq('hand_ordinal', 1)
+      .maybeSingle(),
+    { label: 'DailyChallenge:hand-read' },
+  );
+  const answerResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_answers')
+      .select('answer_id, is_correct, solver_verified, ev_loss, ev_loss_measured, answered_at, snapshot_key')
+      .eq('attempt_id', attempt.id)
+      .eq('hand_ordinal', 1)
+      .eq('decision_ordinal', 1)
+      .maybeSingle(),
+    { label: 'DailyChallenge:answer-read' },
+  );
+  const snapshotKey = handResult.data?.snapshot_key;
+  const snapshotResult = snapshotKey
+    ? await runTrainingPersistenceQuery(
+      () => getSupabase()
+        .from('training_question_snapshots')
+        .select('snapshot_key, question_data')
+        .eq('snapshot_key', snapshotKey)
+        .maybeSingle(),
+      { label: 'DailyChallenge:snapshot-read' },
+    )
+    : { data: null };
+  const canonicalQuestion = snapshotResult.data?.question_data || null;
+  const servedQuestion = canonicalQuestion
+    ? applyDifficultyToQuestion(canonicalQuestion, attempt.difficulty || 'standard')
+    : null;
+  const answer = answerResult.data
+    && String(answerResult.data.snapshot_key) === String(snapshotKey)
+    && typeof answerResult.data.is_correct === 'boolean'
+    ? answerResult.data
+    : null;
+
+  return {
+    attempt,
+    answer,
+    question: servedQuestion ? toPublicTrainingQuestion(servedQuestion) : null,
+    feedback: postCompletionFeedback(servedQuestion, answer),
+  };
+}
+
+async function readCompletedAttempt(userId, row) {
+  if (!row?.attempt_id) return null;
+  const attemptResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_attempts')
+      .select('id, user_id, client_nonce, game_id, level, session_kind, difficulty, status, expected_hands, answered_hands, correct_hands, accuracy_percentage, reward_diamonds, completed_at')
+      .eq('id', row.attempt_id)
+      .eq('user_id', userId)
+      .eq('game_id', DAILY_GAME_ID)
+      .eq('session_kind', 'daily')
+      .eq('status', 'completed')
+      .maybeSingle(),
+    { label: 'DailyChallenge:attempt-read' },
+  );
+  const attempt = attemptResult.data;
+  if (!attempt?.id || attempt.client_nonce !== row.daily_id || Number(attempt.expected_hands) !== 1) {
+    return null;
+  }
+  const evidence = await readAttemptEvidence(attempt);
+  if (!evidence) return null;
+  const answeredHands = Number(attempt.answered_hands);
+  const correctHands = Number(attempt.correct_hands);
+  const storedAccuracy = attempt.accuracy_percentage === null
+    || attempt.accuracy_percentage === undefined
+    || attempt.accuracy_percentage === ''
+    ? null
+    : Number(attempt.accuracy_percentage);
+  const score = Number.isFinite(storedAccuracy)
+    ? storedAccuracy
+    : Number.isInteger(answeredHands) && answeredHands > 0
+      && Number.isInteger(correctHands) && correctHands >= 0 && correctHands <= answeredHands
+      ? Math.round((correctHands / answeredHands) * 100)
+      : typeof evidence.answer?.is_correct === 'boolean'
+        ? (evidence.answer.is_correct ? 100 : 0)
+        : null;
+  if (score === null) return null;
+  return {
+    ...evidence,
+    completion: {
+      attemptId: attempt.id,
+      selectedAction: evidence.answer?.answer_id || row.selected_action || null,
+      isCorrect: typeof evidence.answer?.is_correct === 'boolean' ? evidence.answer.is_correct : null,
+      score,
+      evLoss: evidence.answer?.ev_loss_measured ? Number(evidence.answer.ev_loss || 0) : null,
+      diamondsEarned: Number(attempt.reward_diamonds || 0),
+      completedAt: attempt.completed_at || row.completed_at || null,
+    },
+  };
+}
+
+async function readPendingScoredAttempt(userId, dailyId) {
+  const attemptResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_attempts')
+      .select('id, user_id, client_nonce, game_id, level, session_kind, difficulty, status, expected_hands, expires_at')
+      .eq('user_id', userId)
+      .eq('client_nonce', dailyId)
+      .eq('game_id', DAILY_GAME_ID)
+      .eq('level', DAILY_LEVEL)
+      .eq('session_kind', 'daily')
+      .eq('status', 'open')
+      .maybeSingle(),
+    { label: 'DailyChallenge:pending-attempt-read' },
+  );
+  const attempt = attemptResult.data;
+  if (
+    !attempt?.id
+    || Number(attempt.expected_hands) !== 1
+    || Date.parse(attempt.expires_at || '') <= Date.now()
+  ) {
+    return null;
+  }
+  const evidence = await readAttemptEvidence(attempt);
+  return evidence?.answer && evidence?.feedback ? evidence : null;
+}
+
+function failureStatus(error) {
+  return Number.isInteger(error?.status) ? error.status : 409;
 }
 
 export default async function handler(req, res) {
   try {
     withTiming(res);
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Vary', 'Authorization');
+
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
+    if (authError || !user?.id) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
-    if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-      // GET: Return today's daily challenge hand from training_question_cache
-      try {
-        // Phase 76 — Hand of the Day rotates at America/Chicago midnight.
-        // Old UTC anchor caused a 6h drift in user-facing rotation.
-        const today = getTodayCST(); // YYYY-MM-DD in America/Chicago
-        const dailyId = `daily-${today}`;
+    try {
+      const today = getTodayCST();
+      const dailyId = `daily-${today}`;
+      const dailyState = await readDailyRows(user.id, dailyId);
+      const persisted = dailyState.row
+        ? await readCompletedAttempt(user.id, dailyState.row)
+        : null;
 
-        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-        // PULL FROM training_question_cache (same pipeline as arena)
-        // Only select PIO and CHART engine questions (not SCENARIO/psychology)
-        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-        const { count } = await getSupabase()
-          .from('training_question_cache')
-          .select('*', { count: 'exact', head: true })
-          .in('engine_type', ['PIO', 'CHART']);
-
-        if (!count || count === 0) {
-          return res.status(200).json({
-            success: true,
-            dailyId,
-            question: null,
-            message: 'No training questions available',
-          });
+      if (persisted) {
+        let publicQuestion = persisted.question;
+        if (!publicQuestion) {
+          const fallbackCandidate = await selectDailyCanonicalQuestion(today);
+          publicQuestion = fallbackCandidate
+            ? toPublicTrainingQuestion(fallbackCandidate.question)
+            : null;
         }
-
-        // Use date hash to pick a consistent question for the day
-        const offset = dateHash(today) % count;
-
-        const { data: cached, error } = await getSupabase()
-          .from('training_question_cache')
-          .select('question_data, question_id, game_id, engine_type, level')
-          .in('engine_type', ['PIO', 'CHART'])
-          .range(offset, offset)
-          .maybeSingle();
-
-        if (error) {
-          console.warn('[HandOfTheDay] Query error:', error);
-          return res.status(500).json({ success: false, error: 'Failed to fetch daily hand' });
-        }
-
-        if (!cached || !cached.question_data) {
-          return res.status(200).json({
-            success: true,
-            dailyId,
-            question: null,
-            message: 'No question data found',
-          });
-        }
-
-        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-        // MAP question_data to the daily challenge display format
-        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-        let qd = cached.question_data;
-        // 2026-07-19 AUDIT FIX: ~7% of cache rows carry a correctAnswer /
-        // correctAnswerText contradicting their own solver `frequencies` —
-        // and this endpoint grades by TEXT. Reconcile before mapping.
-        reconcileAnswerKey(qd);
-        qd = enforceTrainingQuestionContract(qd);
-        if (!isTrainingQuestionValid(qd)) {
-          return res.status(422).json({
-            success: false,
-            error: 'Today’s hand did not pass the training integrity audit.',
-          });
-        }
-        const scenario = qd.scenario || {};
-
-        // Phase 93: Prefer scenario.heroHand (canonical, matches explanation prose)
-        // over qd.heroCards. Some cache rows have stale heroCards from before
-        // Phase 77/78/79/80 swap migrations, which would surface as a visible
-        // mismatch (hero_hand="Ts2h" but explanation says "you hold AA").
-        let heroHand = '';
-        if (scenario.heroHand) {
-          heroHand = scenario.heroHand;
-        } else if (qd.heroHand) {
-          heroHand = qd.heroHand;
-        } else if (qd.heroCards && Array.isArray(qd.heroCards) && qd.heroCards.length >= 2) {
-          heroHand = qd.heroCards.join('');
-        }
-
-        // Extract board cards
-        let boardCards = [];
-        if (qd.boardCards && Array.isArray(qd.boardCards)) {
-          boardCards = qd.boardCards;
-        } else if (scenario.board) {
-          // Parse board string like "Jh 7s 2d" or "Jh7s2d"
-          const clean = scenario.board.replace(/\s+/g, '');
-          for (let i = 0; i < clean.length; i += 2) {
-            if (i + 1 < clean.length) boardCards.push(clean.substring(i, i + 2));
-          }
-        }
-
-        const options = qd.options || [];
-
-        // Build the question object that daily-challenge.js expects
-        const question = {
-          id: cached.question_id || dailyId,
-          game_id: cached.game_id,
-          engine_type: cached.engine_type,
-          level: cached.level,
-          // Fields that daily-challenge.js looks for:
-          hero_hand: heroHand,
-          hero_position: scenario.heroPosition || '',
-          street: scenario.street || 'flop',
-          board_cards: boardCards,
-          scenario_text: qd.question || scenario.context || `What is the GTO play?`,
-          options: options.map((o) => o.text || o),
-          choices: options.map((o) => o.text || o),
-          correct_answer:
-            qd.correctAnswerText || options.find((o) => o.id === qd.correctAnswer)?.text || 'Raise',
-          gto_action: qd.correctAnswerText || 'Raise',
-          explanation: qd.explanation || '',
-          gto_explanation: qd.explanation || '',
-          action_breakdown: qd.gtoFrequencies || null,
-          gto_frequencies: qd.gtoFrequencies || null,
-          // Pass through raw data for rich display
-          heroCards: qd.heroCards || [],
-          evData: qd.evData || null,
-          scenario: scenario,
-        };
-
-        // Phase 76 — expiry is CST midnight tomorrow, matching the dailyId
-        // rotation. Auto-detects -05:00 (CDT) vs -06:00 (CST) via Intl.
-        const cstNow = new Date(
-          new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
-        );
-        cstNow.setDate(cstNow.getDate() + 1);
-        const tYear = cstNow.getFullYear();
-        const tMonth = String(cstNow.getMonth() + 1).padStart(2, '0');
-        const tDate = String(cstNow.getDate()).padStart(2, '0');
-        const tzParts = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'America/Chicago',
-          timeZoneName: 'short',
-        }).formatToParts(new Date());
-        const tzAbbr = tzParts.find((p) => p.type === 'timeZoneName')?.value || 'CST';
-        const tzOffset = tzAbbr === 'CDT' ? '-05:00' : '-06:00';
-        const tomorrowMidnightCST = new Date(`${tYear}-${tMonth}-${tDate}T00:00:00${tzOffset}`);
-
-        const dailyState = await getUserDailyState(req, dailyId);
         return res.status(200).json({
           success: true,
           dailyId,
-          question,
-          expiresAt: tomorrowMidnightCST.toISOString(),
-          completion: dailyState.completion,
+          question: publicQuestion,
+          completion: persisted.completion,
+          feedback: persisted.feedback,
+          completionPending: false,
           completedDays: dailyState.completedDays,
+          expiresAt: tomorrowAtChicagoMidnight(today),
         });
-      } catch (error) {
-        console.warn('[HandOfTheDay] Error:', error.message);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
       }
-    } else if (req.method === 'POST') {
-      // POST: Record daily challenge completion
-      const bodySize = JSON.stringify(req.body || {}).length;
-      if (bodySize > 10240)
-        return res.status(413).json({ success: false, error: 'Request body too large' });
-      // ●● Auth: verify JWT identity ●●
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      try {
-        const userId = user.id; // From JWT, NOT from req.body
-        const { dailyId, score, evLoss, selectedAction } = req.body;
-
-        if (!dailyId) {
-          return res.status(400).json({ success: false, error: 'dailyId required' });
-        }
-
-        // 2026-07-19 AUDIT FIX: check for an existing completion FIRST so the
-        // 25-diamond reward is credited exactly once per user per day.
-        const { data: existing } = await getSupabase()
-          .from('training_daily_challenge')
-          .select('user_id')
-          .eq('user_id', userId)
-          .eq('daily_id', dailyId)
-          .maybeSingle();
-        const alreadyCompleted = !!existing;
-
-        const { error } = await getSupabase()
-          .from('training_daily_challenge')
-          .upsert(
-            {
-              user_id: userId,
-              daily_id: dailyId,
-              score: score || 0,
-              ev_loss: evLoss || 0,
-              selected_action: typeof selectedAction === 'string' ? selectedAction.slice(0, 80) : null,
-              completed_at: new Date().toISOString(),
-            },
-            {
-              onConflict: 'user_id,daily_id',
-            }
-          );
-
-        if (error) {
-          // Phase 81 — table exists in production (verified 2026-05-07).
-          // A real error here means RLS/FK/auth failure, not missing schema.
-          // Surface the failure so users know the completion didn't persist.
-          console.warn('[HandOfTheDay] Insert error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to record daily challenge completion',
-            code: error.code || 'UPSERT_FAILED',
-          });
-        }
-
-        // 2026-07-19 AUDIT FIX: the endpoint previously RETURNED
-        // `diamondsEarned: 25` without ever crediting the diamonds — clients
-        // told users they earned a reward that never landed. Credit for real
-        // via the same RPC save-progress uses, only on first completion.
-        let diamondsEarned = 0;
-        if (!alreadyCompleted) {
-          // Award via award_diamonds_v2 (training_reward catalog key).
-          // Amount passed in metadata.reward_diamonds; 1,500 ◆/month family ceiling applies.
-          const HOTD_DIAMONDS = 25;
-          const { ok: rpcOk, data: rpcData } = await safeAward(getSupabase(), {
-            p_user_id: userId,
-            p_action_key: 'training_reward',
-            p_reference_id: `hotd_${userId}_${dailyId}`,
-            p_target_id: `hotd_${dailyId}`,
-            p_metadata: {
-              reward_diamonds: HOTD_DIAMONDS,
-              source_type: 'hand_of_the_day',
-              daily_id: dailyId,
-              _source: 'api/training/hand-of-the-day',
-            },
-          });
-          if (rpcOk) {
-            const result = rpcData && typeof rpcData === 'object' ? rpcData : {};
-            diamondsEarned = result.success ? (Number(result.awarded) || 0) : 0;
-          } else {
-            console.warn('[HandOfTheDay] award_diamonds_v2 failed:', rpcOk);
-          }
-        }
-
+      // A record-question write can commit before the separate completion RPC
+      // experiences a transport failure. Restore that durable verdict without
+      // reissuing a receipt or asking the player to submit the hand again.
+      const pending = await readPendingScoredAttempt(user.id, dailyId);
+      if (pending) {
         return res.status(200).json({
           success: true,
-          message: alreadyCompleted ? 'Daily challenge already completed today' : 'Daily challenge completed!',
-          diamondsEarned,
-          alreadyCompleted,
+          dailyId,
+          question: pending.question,
+          completion: null,
+          completionPending: true,
+          persistedAnswer: {
+            attemptId: pending.attempt.id,
+            selectedAction: pending.answer.answer_id,
+            isCorrect: pending.answer.is_correct,
+          },
+          feedback: pending.feedback,
+          completedDays: dailyState.completedDays,
+          expiresAt: tomorrowAtChicagoMidnight(today),
         });
-      } catch (error) {
-        console.warn('[HandOfTheDay] Error:', error.message);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
       }
-    } else {
-      res.setHeader('Allow', ['GET', 'POST']);
-      return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-  } catch (err) {
-    try {
-      reportApiError(err, req);
-    } catch (_sentryErr) {
-      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
-    }
-    console.warn('[API Error]', err);
-    if (!res.headersSent)
+
+      const candidate = await selectDailyCanonicalQuestion(today);
+      if (!candidate) {
+        return res.status(503).json({
+          success: false,
+          code: 'TRAINING_DAILY_QUESTION_UNAVAILABLE',
+          error: 'Today\u2019s canonical Daily Challenge is temporarily unavailable.',
+        });
+      }
+
+      let delivery;
+      try {
+        delivery = await prepareTrainingAttemptDelivery({
+          supabase: getSupabase(),
+          userId: user.id,
+          clientSessionId: dailyId,
+          gameId: DAILY_GAME_ID,
+          level: DAILY_LEVEL,
+          sessionKind: 'daily',
+          difficultyMode: 'standard',
+          requestedHands: 1,
+          questions: [candidate.question],
+          handOrdinalStart: 1,
+          requireFullAttempt: true,
+          config: {
+            dailyId,
+          },
+        });
+      } catch (deliveryError) {
+        if (isTrainingAttemptContractError(deliveryError)) {
+          return res.status(failureStatus(deliveryError)).json({
+            success: false,
+            code: deliveryError.code,
+            error: deliveryError.message,
+          });
+        }
+        throw deliveryError;
+      }
+
+      return res.status(200).json({
+        success: true,
+        dailyId,
+        question: delivery.questions[0],
+        completion: null,
+        completionPending: false,
+        feedback: null,
+        completedDays: dailyState.completedDays,
+        expiresAt: tomorrowAtChicagoMidnight(today),
+      });
+    } catch (error) {
+      console.warn('[HandOfTheDay] Error:', error?.message || error);
+      if (isTrainingPersistenceUnavailable(error)) {
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+      }
       return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  } catch (error) {
+    try {
+      reportApiError(error, req);
+    } catch (reportingError) {
+      const reportingMessage = reportingError?.message || reportingError;
+      console.warn('[HandOfTheDay] Error reporting failed:', reportingMessage);
+    }
+    console.warn('[HandOfTheDay] Unhandled error:', error?.message || error);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   }
 }

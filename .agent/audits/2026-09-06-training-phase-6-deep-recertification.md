@@ -190,3 +190,61 @@ seat, table, header, footer, collision, overflow, and image guards. Both
 After the production gate passes, Phase 7 audits every setup, campaign, level
 selection, lobby, resume, review, and other secondary page reachable from all
 107 game cards on desktop and mobile.
+
+## 2026-09-07 Authority And Wiring Sweep Candidate
+
+Phase 6 remained open for a second adversarial pass before Phase 7. This
+candidate removes browser-authored grading, completion, rank, reward, and
+solver-evidence paths that the earlier geometry-focused certification did not
+fully cover. It is not a completion receipt until protected publication and the
+exact production runtime pass are recorded below.
+
+- Training questions are delivered with a dedicated HMAC-sealed grading
+  receipt, immutable snapshot identity, server-owned RNG rolls, exact attempt
+  and hand ordinals, and recursively stripped answer hints. The answer route
+  verifies the snapshot and receipt before deriving correctness,
+  classification, position, street, spot type, and measured EV.
+- Session completion, first-decision locking, question continuation, streak
+  settlement, challenge state, leaderboard rows, bookmarks, weekly statistics,
+  coaching summaries, recommendations, and dashboard projections now fail
+  closed or use server-owned evidence. Compatibility zeroes are never promoted
+  to measured solver EV or account accuracy.
+- Legacy local Memory, preflop, Jarvis, analysis, opponent, report, solver-tree,
+  and ranking mutations are either routed to the verified Training contract or
+  explicitly retired. Reachable local-practice surfaces disclose that they do
+  not create progress, rank, challenge, streak, reward, or solver evidence.
+- Private Training reads are non-cacheable and vary on authorization. Database
+  policies block direct authenticated access to answer keys, verified
+  leaderboards, memory-score writes, and maintenance-only functions.
+- Diamond settlement is serialized across reward families, idempotent across
+  duplicate requests, bounded by server caps, and rolls back profile, ledger,
+  platform-budget, and shadow-balance writes together.
+- The follow-up session evidence projection records the explicit
+  `evLossMeasured` marker, backfills only canonical server-bound answer rows,
+  computes weighted count-derived accuracy, and reports actual settled reward
+  totals instead of estimates.
+- Runtime and CI supervisors own bounded retry, timeout, checkpoint, exact-build,
+  and complete-ledger contracts. The route audit now recognizes both direct
+  default exports and standards-compliant default re-exports.
+
+Local candidate evidence before integration with current protected main:
+
+- Phase 6 authority suite: 578/578 passed.
+- Every `training-*.test.mjs` suite: 614/614 passed.
+- Repository guard reachability suite: 1,152/1,152 passed.
+- Cross-domain prebuild suite: 608/608 passed.
+- Leak Finder and Personal Assistant integration suite: 164/164 passed.
+- Disposable PostgreSQL reward, authority, and cross-RPC concurrency verifiers:
+  all passed, including rollback, cap, idempotency, access-control, and
+  evidence-projection assertions.
+- Full lint: 4,053/4,053 source and test files passed.
+- Strict TypeScript, inventory check, whitespace check, and the 94-page
+  Training route/link/API audit passed with zero unresolved or unwired gaps.
+- Optimized production build passed with 401 generated pages and all declared
+  Personal Assistant route/function performance budgets below their caps.
+- `src/components/ui/UniversalHeader.js` and `pages/_app.js` remain byte-identical
+  to the candidate baseline; the approved global header has no Phase 6 diff.
+
+Publication, production migration state, exact deployment revision, and the
+final 107-game desktop/mobile runtime receipts remain pending for this
+candidate. Phase 7 has not started.
