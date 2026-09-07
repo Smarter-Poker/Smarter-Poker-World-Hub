@@ -277,20 +277,24 @@ export default async function handler(req, res) {
            * path could never reach it and those accounts had no balance row at
            * all. Upsert on user_id, so calling it twice is harmless.
            */
+          // 2026-09-07 (Diamond Accounting Standard DR2, docs/DIAMOND-RULINGS.md): the welcome 500
+          // is ISSUED through the Mint, not inserted into the profile. The profile is born at 0 and
+          // fn_ca_mint credits it, journals it (class promotional) and registers it under op_id
+          // signup:<uid>, which is idempotent, so calling this twice grants once. The old body
+          // upserted user_diamond_balance, a mirror table that the profile trigger overwrites.
           const grantWelcomeDiamonds = async () => {
-              const { error: balanceErr } = await getSupabase()
-                  .from('user_diamond_balance')
-                  .upsert(
-                      {
-                          user_id: user_id,
-                          balance: isDisposable ? 0 : 500,
-                          created_at: new Date().toISOString(),
-                          updated_at: new Date().toISOString(),
-                      },
-                      { onConflict: 'user_id' }
-                  );
-              if (balanceErr) {
-                  console.warn('[ANTIGRAVITY] Failed to grant welcome diamonds:', balanceErr.message);
+              if (isDisposable) return;
+              const { data: minted, error: mintErr } = await getSupabase().rpc('fn_ca_mint', {
+                  p_asset: 'diamonds',
+                  p_destination: 'player',
+                  p_target_id: user_id,
+                  p_amount: 500,
+                  p_reason: 'Signup welcome grant issued by ensure-profile',
+                  p_op_id: `signup:${user_id}`,
+                  p_class: 'promotional',
+              });
+              if (mintErr || !minted?.ok) {
+                  console.warn('[ANTIGRAVITY] Welcome grant was not issued by the Mint:', mintErr?.message || minted?.reason);
               }
           };
 
@@ -409,7 +413,7 @@ export default async function handler(req, res) {
                   streak_count: 0,
                   // 🛡️ Welcome package — withheld for disposable-domain signups.
                   // access_tier stays 'Full_Access': we gate the reward, not the app.
-                  diamonds: isDisposable ? 0 : 500,   // Welcome bonus (Updated from 300 to 500)
+                  diamonds: 0,   // The welcome 500 is issued by the Mint in grantWelcomeDiamonds (DR2)
                   diamond_multiplier: 1.0,
                   skill_tier: 'Newcomer',
                   access_tier: 'Full_Access',
@@ -452,7 +456,7 @@ export default async function handler(req, res) {
                       player_number: nextPlayerNumber,
                       access_tier: 'Full_Access',
                       skill_tier: 'Newcomer',
-                      diamonds: isDisposable ? 0 : 500,
+                      diamonds: 0, // issued by the Mint below (DR2)
                       diamond_multiplier: 1.0,
                       streak_count: 0,
                       created_at: new Date().toISOString(),
