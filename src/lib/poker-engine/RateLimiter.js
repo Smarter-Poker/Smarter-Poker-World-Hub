@@ -30,7 +30,6 @@ const ENDPOINT_LIMITS = {
   'club-arena/club-leaderboard': 120,
   'club-arena/my-hands': 60,
   'club-arena/player-chip-flow': 60,
-  'club-arena/player-retention': 60,
   'club-arena/player-sessions': 60,
   'club-arena/public-clubs': 60,
   'club-arena/settlement-history': 60,
@@ -46,15 +45,12 @@ const ENDPOINT_LIMITS = {
   'club-arena/leave-club': 10,
   'club-arena/buyin': 30,
   'club-arena/distribute-promo': 20,
-  'club-arena/promo-wallet': 20,
-  'club-arena/manage-agent': 20,
   'club-arena/approve-cashout': 20,
   'club-arena/request-cashout': 10,
   'club-arena/marketplace-items': 30,
   'club-arena/marketplace-purchase': 10,
   'club-arena/club-branding': 10,
   'club-arena/accept-tos': 10,
-  'club-arena/agent-credit': 20,
 
   // ─── Club Arena — Destructive / Financial (tight) ──────────
   'club-arena/mint-chips': 10,
