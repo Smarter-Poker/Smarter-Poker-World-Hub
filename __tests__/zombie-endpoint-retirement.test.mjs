@@ -185,6 +185,38 @@ test('the newest row in a group is never retired', () => {
     assert.deepEqual(selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id), []);
 });
 
+test('a row with no user agent is never grouped with anything', () => {
+    // This code can take somebody's phone off notifications. Two different
+    // devices that both happen to lack a user_agent must not become "one
+    // device" and get one of them retired.
+    const a = { id: 'a', user_id: 'u', endpoint: 'https://web.push.apple.com/a', user_agent: null };
+    const b = { id: 'b', user_id: 'u', endpoint: 'https://web.push.apple.com/b', user_agent: '' };
+    assert.notEqual(deviceGroupKey(a), deviceGroupKey(b));
+    assert.notEqual(deviceGroupKey(a), deviceGroupKey({ ...a, id: 'c' }));
+
+    // ...and such a row is therefore never retirable, even beside a confirming
+    // sibling on the same host.
+    const rows = [
+        {
+            id: 'confirming',
+            user_id: 'u',
+            endpoint: 'https://web.push.apple.com/live',
+            user_agent: IPHONE_UA,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: '2026-09-07T17:00:00Z',
+        },
+        {
+            id: 'no-ua',
+            user_id: 'u',
+            endpoint: 'https://web.push.apple.com/quiet',
+            user_agent: null,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: null,
+        },
+    ];
+    assert.deepEqual(selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id), []);
+});
+
 test('two genuinely different devices are never merged by the group key', () => {
     const iphone = { user_id: 'u', endpoint: 'https://web.push.apple.com/a', user_agent: IPHONE_UA };
     const mac = { user_id: 'u', endpoint: 'https://fcm.googleapis.com/fcm/send/a', user_agent: MAC_UA };

@@ -109,3 +109,30 @@ test('the discovery pass writes a series to poker_series, not a fake venue', () 
     );
     assert.match(src, /def series_uid_for\(/, 'the uid must be content-derived and reproducible');
 });
+
+/**
+ * The first rewrite of that payload traded one broken upsert for two more, and
+ * both were only found by probing the live schema inside a rolled-back
+ * transaction. Neither is visible from the Python alone.
+ */
+test('the discovery payload satisfies poker_series constraints and triggers', () => {
+    const src = readFileSync(join(ROOT, 'scripts/scrape_poker_series_discovery.py'), 'utf8');
+    const block = src.slice(src.indexOf('def insert_new_series'), src.indexOf('sb_upsert("poker_series"'));
+
+    // chk_poker_series_data_quality allows exactly:
+    //   scraped_verified | scraped_inferred | manual_research | stale | expired
+    // "discovered" was rejected on every row (23514).
+    const quality = /"data_quality":\s*"([a-z_]+)"/.exec(block)?.[1];
+    assert.ok(
+        ['scraped_verified', 'scraped_inferred', 'manual_research', 'stale', 'expired'].includes(quality),
+        `data_quality "${quality}" violates chk_poker_series_data_quality`
+    );
+    // ...and a discovery pass has confirmed nothing, so it must not claim the
+    // strongest value the real scraper writes.
+    assert.notEqual(quality, 'scraped_verified', 'a name and a URL is not verification');
+
+    // enforce_scrape_provenance() raises P0001 without BOTH of these, and both
+    // columns are NOT NULL besides.
+    assert.match(block, /"scrape_html_hash":/, 'enforce_scrape_provenance requires scrape_html_hash');
+    assert.match(block, /"scrape_timestamp":/, 'enforce_scrape_provenance requires scrape_timestamp');
+});

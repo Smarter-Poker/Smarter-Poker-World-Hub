@@ -43,12 +43,27 @@
  * it safe, because it never acts without proof that delivery to the group works.
  */
 export function deviceGroupKey(s) {
+    const ua = typeof s.user_agent === 'string' ? s.user_agent.trim() : '';
     return [
         s.user_id,
         String(s.endpoint || '')
             .replace('https://', '')
             .split('/')[0],
-        s.user_agent || '',
+        // A MISSING USER AGENT NEVER GROUPS (2026-09-07 hardening).
+        //
+        // `user_agent || ''` meant every row without one landed in the same
+        // bucket, so two GENUINELY DIFFERENT devices of one person on the same
+        // push host could be treated as one device — and the silent one
+        // retired. This code can take somebody's phone off notifications, so
+        // the empty case must never merge.
+        //
+        // Measured before shipping: 0 active rows have a null or empty
+        // user_agent and 0 such groups exist, so this changes nothing today.
+        // It is here so that a legacy or partially-written row cannot make it
+        // true later. An unknown agent gets a key nothing else can collide
+        // with, which means such a row is always alone in its group and is
+        // therefore never retirable.
+        ua === '' ? `unknown-agent:${s.id ?? s.endpoint ?? Math.random()}` : ua,
     ].join('|');
 }
 
