@@ -120,6 +120,7 @@ JOB_TIMEOUTS = {
     '/api/cron/trivia-player-retag':   300,
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
+    '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
     '/api/cron/scrape-sports-clips':   300,
     '/api/cron/scrape-poker-clips':    300,
     '/api/cron/revalidate-poker-clips': 120,
@@ -657,6 +658,9 @@ ALL_CRONS = [
     # :00 pile-up.
     ('/api/cron/horse-posts',                     dict(minute=10)),          # hourly, whole fleet
     ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
+    # Fleet Content Programme Phase 6. The handler and every Phase 6 mode
+    # fail closed; while approval rows are disabled this is a measured no-op.
+    ('/api/cron/phase6-content',                  dict(hour=9, minute=20)),  # daily; Monday emits weekly club window
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
     # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
@@ -1060,6 +1064,7 @@ WORKERS_PREFERRED = {
     # horse-batch/0..9 retired 2026-09-05 (Fleet Content Programme phase 1);
     # the workers routes remain as a hand-over shim until the next cleanup.
     '/api/cron/horse-posts':                   '/cron/horse-posts',
+    '/api/cron/phase6-content':                '/cron/phase6-content',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of

@@ -22,6 +22,10 @@ const {
     publicShippingAddress,
     sanitizeExternalOrderId,
 } = require('../../../../src/lib/store/printfulFulfillment');
+const {
+    inspectStripeRuntime,
+    stripeEventModeAllowed,
+} = require('../../../../src/lib/store/stripeRuntimeMode');
 
 const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1024 * 1024;
 const VIP_SUBSCRIPTION_STATUSES = new Set([
@@ -64,6 +68,7 @@ const VIP_SUBSCRIPTION_METADATA_KEYS = Object.freeze([
     'checkout_session_id',
 ]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const STRIPE_EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{6,255}$/;
 
 // Read only the bounded raw bytes Stripe signs. Signature verification is the
 // authentication boundary, but it must not require buffering an unbounded
@@ -168,10 +173,14 @@ export default async function handler(req, res) {
 
       const sig = req.headers['stripe-signature'];
       const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const stripeRuntime = inspectStripeRuntime(process.env, {
+          requirePublishable: false,
+          requireWebhook: true,
+      });
 
       let event;
 
-      if (!endpointSecret || !stripe) {
+      if (!endpointSecret || !stripe || !stripeRuntime.ready) {
           console.warn('[stripe-webhook] payment webhook configuration is unavailable');
           return res.status(503).json({ error: 'Webhook unavailable' });
       }
@@ -191,6 +200,17 @@ export default async function handler(req, res) {
           console.warn('Webhook signature verification failed:', err?.message || err);
           return res.status(400).json({ error: 'Invalid webhook signature' });
       }
+      if (!stripeEventModeAllowed(event, process.env)) {
+          console.warn(`[stripe-webhook] rejected non-live production event ${event?.id || 'without-id'}`);
+          return res.status(400).json({ error: 'Webhook mode not accepted' });
+      }
+      if (!STRIPE_EVENT_ID_PATTERN.test(String(event?.id || ''))
+          || typeof event?.type !== 'string'
+          || !event.type
+          || event.type.length > 200) {
+          console.warn('[stripe-webhook] rejected signed event without a valid event identity');
+          return res.status(400).json({ error: 'Invalid webhook event' });
+      }
 
       // ═════════════════════════════════════════════════════════════════════
       // EVENT-LEVEL IDEMPOTENCY. Claim the event id before any handler runs.
@@ -208,19 +228,32 @@ export default async function handler(req, res) {
       // already claimed. The primary key makes that atomic, so two concurrent
       // deliveries of the same event cannot both win the claim.
       //
-      // A claim failure is NOT treated as a replay: if the ledger write itself
-      // errors we fall through and process the event, because dropping a paid
-      // event is far worse than handling one twice through guards that already
-      // exist.
+      // A claim failure is NOT treated as a replay and must never fall through
+      // to a paid-event handler. Returning a retryable response lets Stripe
+      // deliver the event again after the claim service recovers without
+      // allowing an unowned worker to mutate commerce state.
       // ═════════════════════════════════════════════════════════════════════
-      if (event?.id) {
-          const { data: claim, error: claimErr } = await getSupabase().rpc(
-              'claim_stripe_webhook_event',
-              { p_event_id: event.id, p_event_type: event.type, p_lease_seconds: 300 }
-          );
+      let eventClaimAcquired = false;
+      if (event.id) {
+          let claim;
+          let claimErr;
+          try {
+              ({ data: claim, error: claimErr } = await getSupabase().rpc(
+                  'claim_stripe_webhook_event',
+                  { p_event_id: event.id, p_event_type: event.type, p_lease_seconds: 300 }
+              ));
+          } catch (error) {
+              claimErr = error;
+          }
           if (claimErr) {
-              console.warn(`[stripe-webhook] could not claim event ${event.id}, processing anyway:`, claimErr.message);
-          } else if (!claim?.claimed) {
+              console.warn(
+                  `[stripe-webhook] could not claim event ${event.id}:`,
+                  claimErr?.message || claimErr
+              );
+              return res.status(503).json({ error: 'Webhook claim unavailable' });
+          }
+          eventClaimAcquired = claim?.claimed === true;
+          if (!eventClaimAcquired) {
               if (claim?.state === 'done') {
                   console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) - already processed`);
                   return res.status(200).json({ received: true, duplicate: true });
@@ -286,12 +319,21 @@ export default async function handler(req, res) {
               default:
           }
 
-          if (event?.id) {
-              const { error: completionError } = await getSupabase().rpc(
+          if (event?.id && eventClaimAcquired) {
+              const { data: completion, error: completionError } = await getSupabase().rpc(
                   'complete_stripe_webhook_event',
                   { p_event_id: event.id }
               );
               if (completionError) throw completionError;
+              // The deployed RPC has a void contract, which Supabase exposes
+              // as null. If a future compatible RPC returns business data,
+              // only an explicit success is accepted.
+              if (completion !== null
+                  && completion !== undefined
+                  && completion !== true
+                  && !(typeof completion === 'object' && completion?.completed === true)) {
+                  throw new Error('Stripe webhook event completion was not confirmed');
+              }
           }
           return res.status(200).json({ received: true });
       } catch (error) {
@@ -308,7 +350,7 @@ export default async function handler(req, res) {
           // retry it — if the claim stayed, that retry would be dismissed as a
           // duplicate and the work would never happen. A claim must only
           // outlive a handler that actually succeeded.
-          if (event?.id) {
+          if (event?.id && eventClaimAcquired) {
               try {
                   // silent-write-ok: best-effort claim release inside a failure
                   // path. If the row is already gone the retry proceeds anyway,

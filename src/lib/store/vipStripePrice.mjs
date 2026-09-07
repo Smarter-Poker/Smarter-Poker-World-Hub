@@ -24,7 +24,3 @@ export function vipStripePriceMismatch(price, plan) {
   if (metadataTier !== plan?.tier) return 'wrong_tier';
   return null;
 }
-
-export function isVipStripePriceReady(price, plan) {
-  return vipStripePriceMismatch(price, plan) === null;
-}

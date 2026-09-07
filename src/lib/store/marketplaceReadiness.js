@@ -5,16 +5,10 @@ const DEFAULT_PAGE_SIZE = 250;
 const DEFAULT_MAX_ITEMS = 2_500;
 const DEFAULT_MAX_VARIANTS = 10_000;
 const MARKETPLACE_PHASE7_SCHEMA_MARKER = 'marketplace_phase7_vip_acquisition_mutex:v1';
+const { inspectStripeRuntime } = require('./stripeRuntimeMode');
 
 function bool(value) {
   return Boolean(value);
-}
-
-function stripeKeyMode(value, expectedPrefix) {
-  const key = String(value || '').trim();
-  if (key.startsWith(`${expectedPrefix}_live_`)) return 'live';
-  if (key.startsWith(`${expectedPrefix}_test_`)) return 'test';
-  return null;
 }
 
 function elapsed(startedAt) {
@@ -277,21 +271,16 @@ async function runMarketplaceReadiness({
   if (typeof isPrintfulReady !== 'function') throw new TypeError('isPrintfulReady is required');
 
   const supabaseConfigured = bool(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
-  const stripeSecretConfigured = bool(env.STRIPE_SECRET_KEY);
-  const stripePublishableConfigured = bool(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-  const stripeWebhookConfigured = bool(env.STRIPE_WEBHOOK_SECRET);
-  const stripeSecretMode = stripeKeyMode(env.STRIPE_SECRET_KEY, 'sk');
-  const stripePublishableMode = stripeKeyMode(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, 'pk');
-  const stripeMode = stripeSecretMode && stripeSecretMode === stripePublishableMode
-    ? stripeSecretMode
-    : null;
-  const stripeModeAllowed = bool(
-    stripeMode && (env.VERCEL_ENV !== 'production' || stripeMode === 'live')
-  );
-  const stripeConfigured = stripeSecretConfigured
-    && stripePublishableConfigured
-    && stripeWebhookConfigured
-    && stripeModeAllowed;
+  const stripeRuntime = inspectStripeRuntime(env, {
+    requirePublishable: true,
+    requireWebhook: true,
+  });
+  const stripeSecretConfigured = stripeRuntime.secretConfigured;
+  const stripePublishableConfigured = stripeRuntime.publishableConfigured;
+  const stripeWebhookConfigured = stripeRuntime.webhookConfigured;
+  const stripeMode = stripeRuntime.keyMode;
+  const stripeModeAllowed = stripeRuntime.productionModeAllowed && bool(stripeMode);
+  const stripeConfigured = stripeRuntime.ready;
   const printfulTokenConfigured = bool(isPrintfulConfigured(env));
   const printfulAutoConfirmValue = String(env.PRINTFUL_AUTO_CONFIRM || '').trim().toLowerCase();
   const printfulAutoConfirmConfigured = bool(printfulAutoConfirmValue);

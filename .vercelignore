@@ -114,8 +114,12 @@ _legacy_sql/
 !/__tests__/marketplace-phase-6-club-card-debt-settlement.test.mjs
 !/__tests__/marketplace-phase-6-mutable-idempotency.test.mjs
 !/__tests__/marketplace-phase-6-package-storefront-authority.test.mjs
+!/__tests__/marketplace-phase-7-cancel-vip-execution.test.mjs
 !/__tests__/marketplace-phase-7-production-truth.test.mjs
+!/__tests__/marketplace-phase-7-stripe-runtime.test.mjs
 !/__tests__/marketplace-phase-7-subscription-open-claim-recovery.test.mjs
+!/__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs
+!/__tests__/marketplace-phase-7-webhook-claim-guard.test.mjs
 !/__tests__/marketplace-phase-7-webhook-execution.test.mjs
 !/__tests__/printful-fulfillment.test.mjs
 !/__tests__/merch-catalog-admin.test.mjs
