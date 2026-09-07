@@ -416,6 +416,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         // ═══ ALWAYS-ON: Pass table + opponent IDs for live observation data ═══
         tableId,
         primaryOppId,
+        currentBet: engineState.currentBet || 0,
+        legalActions,
+        players: (engineState.players || []).map(player => ({
+            id: player.id,
+            position: mapPosition(player.position || 'mp'),
+            stack: player.stack,
+            invested: player.invested || 0,
+            folded: player.folded === true,
+            allIn: player.allIn === true,
+        })),
     };
 
     // --- 1b. LOAD OPPONENT READS (Gap 4) ---
@@ -486,7 +496,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
     if (gtoDecision?.action) {
         // Map GTO action names to engine format
-        const actionMap = { 'Raise': 'raise', 'Call': 'call', 'Fold': 'fold', 'Check': 'check', 'Bet': 'bet' };
+        const actionMap = { 'Raise': 'raise', 'Call': 'call', 'Fold': 'fold', 'Check': 'check', 'Bet': 'bet', 'All-In': 'all_in' };
         finalAction = actionMap[gtoDecision.action] || gtoDecision.action.toLowerCase();
 
         // Calculate sizing from GTO (sizing is a pot fraction for the bet/raise SIZE)

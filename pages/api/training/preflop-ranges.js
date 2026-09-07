@@ -20,6 +20,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -31,6 +32,13 @@ function getSupabase() {
         );
     }
     return _supabase;
+}
+let _solverPolicyService = null;
+function getSolverPolicyService() {
+    if (!_solverPolicyService) {
+        _solverPolicyService = new SolverPolicyService({ db: getSupabase() });
+    }
+    return _solverPolicyService;
 }
 import { RFI, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, getHandFrequencies, getRFIByDepth } from '../../../src/config/solverRanges';
 
@@ -119,6 +127,7 @@ export default async function handler(req, res) {
           let actions = [];
           let source = 'solver_ranges';
           let spotLabel = '';
+          let solverPolicy = null;
 
           /**
            * Helper: convert solver spot data → API grid format
@@ -259,30 +268,39 @@ export default async function handler(req, res) {
                   : 'BTN';
               actions = isBB ? ['Call', 'Fold'] : ['Push', 'Fold'];
 
-              // Fetch nearest-depth Nash chart (pick closest, not arbitrary)
-              const { data: chartRows } = await getSupabase()
-                  .from('memory_charts_gold')
-                  .select('hand_matrix, hero_position, stack_depth')
-                  .eq('hero_position', chartPos)
-                  .eq('villain_action', isBB ? 'sb_push' : 'fold_to_hero')
-                  .eq('game_type', 'Tournament')
-                  .gte('stack_depth', Math.max(2, sd - 5))
-                  .lte('stack_depth', sd + 5)
-                  .limit(20);
-
+              // Fetch and interpret the nearest chart through the same
+              // canonical policy gateway used by every server consumer.
+              let chartRows = [];
+              try {
+                  chartRows = await getSolverPolicyService().readChartRows({
+                      gameType: 'Tournament',
+                      heroPosition: chartPos,
+                      villainAction: isBB ? 'sb_push' : 'fold_to_hero',
+                      minStackDepth: Math.max(2, sd - 5),
+                      maxStackDepth: sd + 5,
+                      limit: 20,
+                  });
+              } catch (chartError) {
+                  console.warn('[PreflopRanges] Canonical chart lookup failed:', chartError?.message || chartError);
+              }
               let chart = null;
-              (chartRows || []).forEach(row => {
-                  if (!chart || Math.abs(row.stack_depth - sd) < Math.abs(chart.stack_depth - sd)) {
-                      chart = row;
-                  }
-              });
+              chartRows.sort((left, right) =>
+                  Math.abs(Number(left.stack_depth) - sd) - Math.abs(Number(right.stack_depth) - sd)
+                  || String(left.chart_id || '').localeCompare(String(right.chart_id || ''))
+              );
+              chart = chartRows[0] || null;
 
               if (chart?.hand_matrix) {
-                  const matrix = chart.hand_matrix;
-                  const key = isBB ? 'call' : 'push';
+                  const answer = getSolverPolicyService().answerFromChart(chart, {}, {
+                      mode: 'aggregate',
+                      approximatedDimensions: Number(chart.stack_depth) === sd ? [] : ['stackDepth'],
+                      fallbackReason: Number(chart.stack_depth) === sd ? null : 'nearest_chart_stack_depth',
+                  });
+                  solverPolicy = getSolverPolicyService().consumerEnvelope(answer, 'preflop-ranges');
+                  const key = isBB ? 'call' : 'all_in';
                   const actionLabel = isBB ? 'Call' : 'Push';
                   allHands.forEach(hand => {
-                      const freq = matrix[hand]?.[key] ?? matrix[hand]?.push ?? 0;
+                      const freq = solverPolicy.rangeDistribution?.[hand]?.[key] ?? 0;
                       rangeData[hand] = freq > 0
                           ? { [actionLabel]: Math.round(freq * 1000) / 10, 'Fold': Math.round((1 - freq) * 1000) / 10 }
                           : null;
@@ -335,6 +353,7 @@ export default async function handler(req, res) {
                   stackDepth: parseInt(stackDepth, 10),
                   source,
                   spotLabel,
+                  solverPolicy,
               },
           });
 
