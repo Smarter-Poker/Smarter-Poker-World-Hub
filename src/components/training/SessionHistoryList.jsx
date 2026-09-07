@@ -9,31 +9,66 @@ import { authedFetch } from '../../lib/authUtils';
 import { formatSignedScore, getArenaScoreColor } from '../../engines/GTOScoreEngine';
 
 export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
-    const [sessions, setSessions] = useState([]);
+    const [sessions, setSessions] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const fetchSessions = useCallback(async () => {
-        if (!userId || !gameId) { setLoading(false); return; }
+        if (!userId || !gameId) {
+            setSessions(null);
+            setError(null);
+            setLoading(false);
+            return;
+        }
+        setSessions(null);
+        setError(null);
+        setLoading(true);
         try {
             const params = new URLSearchParams({ gameId, limit: limit.toString() });
             const res = await authedFetch(`/api/training/get-sessions?${params}`);
             const data = await res.json();
-            if (data.success && data.sessions) {
-                setSessions(data.sessions);
+            if (!res.ok || data?.success !== true || !Array.isArray(data.sessions)) {
+                throw new Error(`session history unavailable (${res.status})`);
             }
+            setSessions(data.sessions);
         } catch (err) {
+            setSessions(null);
+            setError('Session history is temporarily unavailable.');
             console.warn('[SessionHistory] Fetch error:', err.message);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [gameId, userId, limit]);
 
     useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
-    if (loading) {
+    if (!userId || !gameId) {
+        return (
+            <div style={styles.container} role="status">
+                <div style={styles.title}>Session History</div>
+                <div style={styles.empty}>
+                    {!userId ? 'Sign In To View Session History.' : 'Choose A Training Game To View Session History.'}
+                </div>
+            </div>
+        );
+    }
+
+    if (loading || (!error && sessions === null)) {
         return (
             <div style={styles.container}>
                 <div style={styles.title}>Session History</div>
                 <div style={styles.loading}>Loading Sessions...</div>
+            </div>
+        );
+    }
+
+    if (error || !Array.isArray(sessions)) {
+        return (
+            <div style={styles.container} role="alert">
+                <div style={styles.title}>Session History</div>
+                <div style={styles.error}>Session History Is Temporarily Unavailable.</div>
+                <div style={styles.unavailableDetail}>No Empty History Was Assumed.</div>
+                <button type="button" style={styles.retryButton} onClick={fetchSessions}>Retry</button>
             </div>
         );
     }
@@ -71,6 +106,12 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
                         && Number.isFinite(Number(session.total_ev_loss))
                         ? Number(session.total_ev_loss)
                         : null;
+                    const rawHandCount = session.hands_played ?? session.questions_answered;
+                    const handCount = rawHandCount !== null
+                        && rawHandCount !== undefined
+                        && Number.isFinite(Number(rawHandCount))
+                        ? Number(rawHandCount)
+                        : null;
                     const date = new Date(session.created_at || session.completed_at);
                     const timeAgo = getTimeAgo(date);
 
@@ -93,7 +134,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
                             <div style={styles.sessionInfo}>
                                 <div style={styles.sessionDate}>{timeAgo}</div>
                                 <div style={styles.sessionMeta}>
-                                    {session.hands_played || session.questions_answered || 0} Hands
+                                    {handCount === null ? 'Hands Unavailable' : `${handCount} Hands`}
                                     {measuredEvLoss !== null ? ` · ${measuredEvLoss.toFixed(3)} BB Measured EV Loss` : ' · EV Unmeasured'}
                                     {session.mistake_count ? ` · ${session.mistake_count} mistakes` : ''}
                                 </div>
@@ -155,6 +196,14 @@ const styles = {
     count: { fontSize: 10, color: '#475569' },
     loading: { color: '#64748b', fontSize: 12, textAlign: 'center', padding: 16 },
     empty: { color: '#475569', fontSize: 11, textAlign: 'center', padding: 16, fontStyle: 'italic' },
+    error: { color: '#fbbf24', fontSize: 12, fontWeight: 700, textAlign: 'center', padding: '16px 16px 4px' },
+    unavailableDetail: { color: '#64748b', fontSize: 11, textAlign: 'center' },
+    retryButton: {
+        display: 'block', minHeight: 44, margin: '12px auto 4px', padding: '0 18px',
+        border: '1px solid rgba(34, 211, 238, 0.55)', borderRadius: 8,
+        background: 'rgba(34, 211, 238, 0.1)', color: '#e2e8f0',
+        fontSize: 12, fontWeight: 700, cursor: 'pointer',
+    },
     list: { display: 'flex', flexDirection: 'column', gap: 4 },
     sessionRow: {
         display: 'flex', alignItems: 'center', gap: 10,

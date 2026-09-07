@@ -14,7 +14,7 @@ test('series ISR payload is ranked, compact, and capped below the Next page-data
   assert.match(source, /initialSeriesMeta/);
   assert.match(source, /previewCount/);
   assert.match(source, /totalCount/);
-  assert.match(source, /SSR_POKER_SERIES_ID_OFFSET/);
+  assert.match(source, /toPokerSeriesRouteId\(ps\.id\)/);
   assert.doesNotMatch(source, /supabase\.from\('poker_series'\)\.select\('\*'\)/);
 });
 
@@ -28,12 +28,15 @@ test('series client sync rejects invalid responses and exposes cached recovery',
   assert.match(source, /refreshSeriesRef\.current\(\)/);
 });
 
-test('daily schedules use bounded queries, state-first filtering, and truthful provenance', () => {
+test('daily schedules use complete paged queries, state-first filtering, and truthful provenance', () => {
   const api = read('pages/api/poker/daily-tournaments.js');
   assert.match(api, /from\('poker_venues'\)/);
   assert.match(api, /query\.in\('venue_id', stateVenueIds\)/);
-  assert.match(api, /Math\.min\(Math\.max\(parsedLimit \* 2, 500\), 2500\)/);
-  assert.doesNotMatch(api, /query = query\.range\(0, 4999\)/);
+  assert.match(api, /fetchAllDailyTournamentRows\(\(\) => buildTournamentQuery\('dated'\)\)/);
+  assert.match(api, /fetchAllDailyTournamentRows\(\(\) => buildTournamentQuery\('recurring'\)\)/);
+  assert.match(api, /order\('id', \{ ascending: true \}\)/);
+  assert.match(api, /rowsScanned: scheduleResult\.rows\.length/);
+  assert.doesNotMatch(api, /fetchCeiling/);
   assert.match(api, /schedule_query_timeout/);
   assert.match(api, /degraded: sourceWarnings\.length > 0/);
   assert.match(api, /generatedAt: new Date\(\)\.toISOString\(\)/);
@@ -43,6 +46,20 @@ test('daily schedules use bounded queries, state-first filtering, and truthful p
   assert.match(page, /Partial live coverage/);
   assert.match(page, /if \(!r\.ok\) throw new Error/);
   assert.match(page, /homeGameUrl\(t\)/);
+});
+
+test('unified calendar exhausts every source deterministically and fails closed', () => {
+  const api = read('pages/api/poker/events-calendar.js');
+  assert.match(api, /fetchAllRows\(buildVenueQuery/);
+  assert.match(api, /fetchAllRows\(buildDailyQuery/);
+  assert.match(api, /fetchAllRows\(buildSeriesQuery/);
+  assert.match(api, /fetchAllRows\(buildTourQuery/);
+  assert.match(api, /fetchAllRows\(buildHomeGameQuery/);
+  assert.match(api, /CALENDAR_SOURCE_MAX_ROWS = 50000/);
+  assert.match(api, /\.order\('id', \{ ascending: true \}\)/);
+  assert.match(api, /date must be a valid YYYY-MM-DD date/);
+  assert.match(api, /calMonth must be a valid YYYY-MM month/);
+  assert.doesNotMatch(api, /for \(let page = 0; page < 10/);
 });
 
 test('series and tournament media use a resilient shared identity mark', () => {

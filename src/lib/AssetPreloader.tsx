@@ -19,15 +19,15 @@ import { useState, useEffect } from 'react';
 export const ASSET_MANIFEST = {
     // Avatar images (9 players)
     avatars: [
-        '/avatars/vip/viking_warrior.png',
-        '/avatars/free/wizard.png',
-        '/avatars/free/ninja.png',
-        '/avatars/vip/wolf.png',
-        '/avatars/vip/spartan.png',
-        '/avatars/vip/pharaoh.png',
-        '/avatars/free/pirate.png',
-        '/avatars/free/cowboy.png',
-        '/avatars/free/fox.png',
+        '/avatars/vip/viking_warrior.webp',
+        '/avatars/free/wizard.webp',
+        '/avatars/free/ninja.webp',
+        '/avatars/vip/wolf.webp',
+        '/avatars/vip/spartan.webp',
+        '/avatars/vip/pharaoh.webp',
+        '/avatars/free/pirate.webp',
+        '/avatars/free/cowboy.webp',
+        '/avatars/free/fox.webp',
     ],
 
     // Card assets

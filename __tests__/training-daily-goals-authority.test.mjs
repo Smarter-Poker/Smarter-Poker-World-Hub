@@ -19,7 +19,7 @@ test('Daily Goals uses the Chicago product day instead of a UTC date prefix', ()
 });
 
 test('Daily Bonus reports only persisted settlements and fails database reads closed', () => {
-  assert.match(api, /Cache-Control', 'private, no-store'/);
+  assert.match(api, /Cache-Control', 'private, no-store, max-age=0'/);
   assert.match(api, /if \(streakError\) throw streakError/);
   assert.match(api, /if \(claimedError\) throw claimedError/);
   assert.match(api, /settlementStatus: 'verified_completion_required'/);

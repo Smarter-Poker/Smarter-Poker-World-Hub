@@ -880,7 +880,7 @@ export default function AvatarGallery({ onSelect }) {
                 <div className="current-avatar">
                     <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0, animation: 'ambientBreathe 4s ease-in-out infinite', filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.8))' }}>
                         <AvatarMedia 
-                            src={currentAvatar.imageUrl || '/avatars/free/shark.png'} 
+                            src={currentAvatar.imageUrl || '/avatars/free/shark.webp'} 
                             alt="Current Avatar" 
                             index={0} 
                             frame={currentAvatar.equipped_frame} 

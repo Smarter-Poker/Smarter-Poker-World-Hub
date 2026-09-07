@@ -66,7 +66,8 @@ test('card membership mutations are private, bounded, and Stripe-idempotent', as
     assert.match(source, /IDEMPOTENCY_KEY_PATTERN/);
     assert.match(source, /req\.headers\['x-idempotency-key'\]/);
     assert.match(source, /A valid X-Idempotency-Key header is required/);
-    assert.match(source, /\{ idempotencyKey: `vip-(?:cancel|switch):\$\{userId\}:\$\{clientKey\.trim\(\)\}` \}/);
+    assert.match(source, /const normalizedClientKey = clientKey\.trim\(\)/);
+    assert.match(source, /\{ idempotencyKey: `vip-(?:cancel|switch):\$\{userId\}:\$\{normalizedClientKey\}` \}/);
   }
 
   assert.match(cancel, /CANCELLATION_REASONS/);

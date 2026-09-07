@@ -82,7 +82,6 @@ const CRON_ENDPOINTS = [
   { path: '/api/cron/horses-avatars', name: 'Horses Avatars' },
 
   // Tournaments & Games
-  { path: '/api/cron/trivia-tournaments', name: 'Trivia Tournaments' },
   { path: '/api/cron/trivia-daily-generator', name: 'Trivia Daily Generator' },
   { path: '/api/cron/tournament-reminders', name: 'Tournament Reminders' },
   { path: '/api/cron/daily-challenges', name: 'Daily Challenges' },

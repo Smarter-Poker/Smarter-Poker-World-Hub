@@ -5,6 +5,7 @@
  *   - 9,697 daily venue tournaments (recurring + dated)
  *   - 208 poker series
  *   - 598+ tour stop events
+ *   - Public Commander home-game tournaments
  *
  * Features:
  *   - Always-visible horizontal filter dropdowns (matching Poker Near Me)
@@ -104,6 +105,7 @@ const EVENT_TYPES = [
   { key: 'daily',  label: 'Daily tournaments' },
   { key: 'series', label: 'Poker series' },
   { key: 'tour',   label: 'Tour events' },
+  { key: 'home_game', label: 'Home-game tournaments' },
 ];
 
 const SORT_OPTIONS = [
@@ -205,7 +207,16 @@ const SOURCE_COLORS = {
   daily:  { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
   series: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
   tour:   { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
+  home_game: { bg: 'rgba(216, 187, 125, 0.12)', border: 'rgba(216, 187, 125, 0.42)', text: '#D8BB7D', label: 'Home Game' },
 };
+
+async function fetchCalendarData(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  if (data?.success === false) throw new Error(data.error || 'Failed to fetch events');
+  return data;
+}
 
 /* ───── SVG icons replaced by Lucide (see imports). Local components removed. ───── */
 const SearchIcon    = (props) => <Search size={18} aria-hidden {...props} />;
@@ -228,8 +239,10 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
     if (event.venue_id && event.source === 'daily') return `/hub/venues/${event.venue_id}`;
     if (event.series_id) return `/hub/series/${event.series_id}`;
     if (event.tour_code && event.source === 'tour') return `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
+    if (event.source === 'home_game' && event.club_code) return `/home-game/${encodeURIComponent(event.club_code)}`;
+    if (event.source === 'home_game' && event.home_game_id) return '/hub/home-games';
     return null;
-  }, [event.venue_id, event.series_id, event.tour_code, event.source]);
+  }, [event.venue_id, event.series_id, event.tour_code, event.source, event.club_code, event.home_game_id]);
 
   // Memoize favicon fallback URL — was rebuilt on every render of every card
   const officialLogoFallback = useMemo(() => {
@@ -535,7 +548,10 @@ export default function EventsCalendarPage({ fallbackData }) {
           setDistance(parsed.radius || parsed.distance || '50');
           return;
         }
-      } catch (e) { console.warn('[EventsCalendar] Failed to parse saved location:', e); }
+      } catch (error) {
+        const storageError = error instanceof Error ? error.message : String(error);
+        console.warn('[EventsCalendar] Failed to parse saved location:', storageError);
+      }
     }
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -599,18 +615,32 @@ export default function EventsCalendarPage({ fallbackData }) {
   );
   const swrFallback = useMemo(
     () => (fallbackData ? { [initSsrUrl]: fallbackData } : {}),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [fallbackData, initSsrUrl]
   );
 
   const { data: apiData, error, isLoading: loading, mutate } = useSWR(
     apiUrl,
-    (url) => fetch(url).then(r => r.json()).then(data => {
-      if (data && data.success === false) throw new Error(data.error || 'Failed to fetch API events');
-      return data;
-    }),
+    fetchCalendarData,
     { fallback: swrFallback, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
+
+  const selectedDateUrl = useMemo(() => {
+    if (viewMode !== 'calendar' || !selectedCalDate) return null;
+    const url = new URL(apiUrl, 'https://smarter.poker');
+    url.searchParams.delete('calMonth');
+    url.searchParams.set('date', selectedCalDate);
+    url.searchParams.set('limit', '10000');
+    return `${url.pathname}?${url.searchParams.toString()}`;
+  }, [apiUrl, selectedCalDate, viewMode]);
+
+  const {
+    data: selectedDateData,
+    error: selectedDateError,
+    isLoading: selectedDateLoading,
+  } = useSWR(selectedDateUrl, fetchCalendarData, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
 
   useVenueRealtime((payload) => {
     // Drop irrelevant payloads from other tables the master hook listens to
@@ -685,8 +715,9 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   const selectedCalEvents = useMemo(() => {
     if (!selectedCalDate) return [];
-    return events.filter(e => e.event_date === selectedCalDate);
-  }, [events, selectedCalDate]);
+    return (selectedDateData?.events || []).filter(e => e.event_date === selectedCalDate);
+  }, [selectedDateData, selectedCalDate]);
+  const selectedCalTotal = selectedDateData?.total ?? selectedCalEvents.length;
 
   // Aggregate events by venue for Map View
   const mapEvents = useMemo(() => {
@@ -764,7 +795,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     <>
       <SEOHead
         title="Poker Events Calendar - Find Any Tournament"
-        description="Search thousands of poker tournaments by date, location, buy-in, and game type. Daily tournaments, series events, and tour stops - all in one place."
+        description="Search poker tournaments by date, location, buy-in, and game type. Daily tournaments, series, tours, and public home games are all in one place."
         canonical="/hub/events-calendar"
       />
       <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
@@ -822,7 +853,8 @@ export default function EventsCalendarPage({ fallbackData }) {
                 &middot; {[
                   stats.sources.daily > 0 && `${stats.sources.daily.toLocaleString()} Daily`,
                   stats.sources.series > 0 && `${stats.sources.series.toLocaleString()} Series`,
-                  stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`
+                  stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`,
+                  stats.sources.home_game > 0 && `${stats.sources.home_game.toLocaleString()} Home Game`
                 ].filter(Boolean).join(' · ')}
               </span>
             )}
@@ -1019,7 +1051,10 @@ export default function EventsCalendarPage({ fallbackData }) {
                 userLocation={userLocation}
                 fullHeight={true}
                 hideLegend={false}
-                        uniformColor="#ffffff"
+                uniformColor="#ffffff"
+                mapEyebrow="Tournament calendar map"
+                mapTitle="Events across the country"
+                mapDetail={`${mapEvents.length} scheduled locations · select a marker for event details`}
               />
             </div>
           )}
@@ -1110,9 +1145,13 @@ export default function EventsCalendarPage({ fallbackData }) {
                 <div className="ec-cal-events">
                   <h3 className="ec-cal-events-title">
                     {formatDateFull(selectedCalDate)}
-                    <span className="ec-cal-events-count">{selectedCalEvents.length} event{selectedCalEvents.length !== 1 ? 's' : ''}</span>
+                    <span className="ec-cal-events-count">{selectedCalTotal} event{selectedCalTotal !== 1 ? 's' : ''}</span>
                   </h3>
-                  {selectedCalEvents.length === 0 ? (
+                  {selectedDateLoading ? (
+                    <p className="ec-cal-no-events" role="status">Loading Every Event For This Date...</p>
+                  ) : selectedDateError ? (
+                    <p className="ec-cal-no-events" role="alert">Events For This Date Could Not Be Loaded.</p>
+                  ) : selectedCalEvents.length === 0 ? (
                     <p className="ec-cal-no-events">No Events Scheduled For This Date.</p>
                   ) : (
                     selectedCalEvents.map((evt, idx) => (
@@ -1187,14 +1226,14 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .ec-source-counts {
           display: flex; gap: 12px; justify-content: center; margin-top: 4px;
-          font-size: 12px; color: rgba(255,255,255,0.35);
+          font-size: 12px; color: #9aa8b5;
         }
         .ec-source-counts span::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
         .ec-source-counts span:nth-child(1)::before { background: #00D4FF; }
         .ec-source-counts span:nth-child(2)::before { background: #A855F7; }
         .ec-source-counts span:nth-child(3)::before { background: #F59E0B; }
         .ec-smart-agg-note {
-          display: block; font-size: 11px; color: rgba(245,158,11,0.6);
+          display: block; font-size: 12px; color: #d9b35c;
           margin-top: 4px; font-style: italic;
         }
 
@@ -1204,7 +1243,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           padding: 8px 16px 12px;
           display: flex; align-items: flex-end; gap: 8px;
           flex-wrap: wrap; justify-content: center;
-          overflow-x: auto;
+          overflow-x: visible;
         }
         .ec-filter-bar::-webkit-scrollbar { display: none; }
         .ec-filter-group {
@@ -1214,8 +1253,8 @@ export default function EventsCalendarPage({ fallbackData }) {
           align-self: flex-end;
         }
         .ec-filter-label {
-          font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
-          color: rgba(255,255,255,0.4); font-weight: 600; white-space: nowrap;
+          font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
+          color: #aeb9c8; font-weight: 600; white-space: nowrap;
           padding-left: 2px;
         }
         .ec-filter-select {
@@ -1273,7 +1312,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           0%,100% { opacity: 1; } 50% { opacity: 0.5; }
         }
         .pnm-location-label {
-          color: #3fb950; font-weight: 700; font-size: 11px;
+          color: #3fb950; font-weight: 700; font-size: 12px;
           text-transform: uppercase; letter-spacing: 0.8px;
         }
         .pnm-location-city {
@@ -1298,11 +1337,11 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ec-clear-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
 
         /* ═══ DAY TABS — centered ═══ */
-        .ec-day-selector { padding: 0 20px 16px; overflow-x: auto; }
+        .ec-day-selector { padding: 0 20px 16px; overflow-x: visible; }
         .ec-day-tabs-row { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
         .ec-day-tabs {
           display: flex; gap: 4px; flex-wrap: wrap;
-          justify-content: center; overflow-x: auto;
+          justify-content: center; overflow-x: visible;
         }
         .ec-day-tabs::-webkit-scrollbar { display: none; }
         .ec-day-tab {
@@ -1358,7 +1397,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           flex: 1; padding: 12px 10px; background: none; border: none; color: #fff;
           font-size: 14px; outline: none; font-family: inherit;
         }
-        .ec-search-input::placeholder { color: rgba(255,255,255,0.35); }
+        .ec-search-input::placeholder { color: #9aa8b5; }
         .ec-search-clear {
           background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 4px;
           display: flex; align-items: center;
@@ -1379,10 +1418,10 @@ export default function EventsCalendarPage({ fallbackData }) {
         @keyframes ec-spin { to { transform: rotate(360deg); } }
         .ec-loading p { margin-top: 12px; font-size: 14px; }
         .ec-error { text-align: center; padding: 60px 20px; color: #f87171; }
-        .ec-error-detail { color: rgba(255,255,255,0.4); font-size: 13px; margin-top: 4px; }
+        .ec-error-detail { color: #aeb9c8; font-size: 13px; margin-top: 4px; }
         .ec-empty {
           text-align: center; padding: 60px 20px;
-          display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.4);
+          display: flex; flex-direction: column; align-items: center; color: #aeb9c8;
         }
         .ec-empty-title { font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.6); margin: 16px 0 6px; }
         .ec-empty-sub { font-size: 13px; margin: 0 0 16px; }
@@ -1406,7 +1445,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .ec-date-header.today .ec-date-label { color: #00D4FF; }
         .ec-date-count {
-          font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 600;
+          font-size: 12px; color: #aeb9c8; font-weight: 600;
           background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 10px;
         }
         .ec-load-more {
@@ -1462,7 +1501,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ev-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
 
         .ev-source {
-          display: inline-block; font-size: 10px; font-weight: 700;
+          display: inline-block; font-size: 12px; font-weight: 700;
           padding: 2px 8px; border-radius: 4px; border: 1px solid;
           text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
         }
@@ -1476,27 +1515,27 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .ev-venue-link { color: rgba(0,212,255,0.8); text-decoration: none; font-weight: 500; }
         .ev-venue-link:hover { color: #00D4FF; text-decoration: underline; }
-        .ev-location { color: rgba(255,255,255,0.35); }
+        .ev-location { color: #9aa8b5; }
         .ev-stale {
-          color: #f59e0b; font-weight: 600; font-size: 11px;
+          color: #f59e0b; font-weight: 600; font-size: 12px;
           border: 1px solid rgba(245,158,11,0.45); border-radius: 4px; padding: 0 6px;
         }
         .ev-distance { color: rgba(0,212,255,0.7); font-weight: 600; }
-        .ev-recurrence { color: rgba(245,158,11,0.6); font-style: italic; }
+        .ev-recurrence { color: #d9b35c; font-style: italic; }
         .ev-tour-code {
-          display: inline-block; font-size: 10px; font-weight: 700;
+          display: inline-block; font-size: 12px; font-weight: 700;
           color: rgba(245,158,11,0.8); background: rgba(245,158,11,0.1);
           padding: 1px 6px; border-radius: 3px;
         }
-        .ev-stop-name { font-size: 11px; color: rgba(255,255,255,0.35); }
+        .ev-stop-name { font-size: 12px; color: #9aa8b5; }
         .ev-buyin { font-size: 16px; font-weight: 700; color: #fff; }
-        .ev-buyin-range { font-size: 12px; color: rgba(168,85,247,0.8); font-weight: 600; }
+        .ev-buyin-range { font-size: 12px; color: #c4a7f7; font-weight: 600; }
         .ev-gtd { font-size: 12px; font-weight: 600; color: #22c55e; }
         .ev-game-type {
-          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5);
+          font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.5);
           background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;
         }
-        .ev-event-count { font-size: 11px; color: rgba(168,85,247,0.6); }
+        .ev-event-count { font-size: 12px; color: #c4a7f7; }
 
         /* ═══ CALENDAR VIEW ═══ */
         .ec-calendar { }
@@ -1522,7 +1561,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ec-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 4px; }
         .ec-day-hdr {
           text-align: center; font-size: 12px; font-weight: 600;
-          color: rgba(255,255,255,0.4); padding: 8px 0;
+          color: #aeb9c8; padding: 8px 0;
           text-transform: uppercase; letter-spacing: 0.04em;
         }
         .ec-grid {
@@ -1549,7 +1588,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ec-day-num.today { background: #00D4FF; color: #000; font-weight: 700; }
         .ec-dot-row { display: flex; align-items: center; gap: 3px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
         .ec-dot { width: 5px; height: 5px; border-radius: 50%; background: #00D4FF; }
-        .ec-dot-more { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.4); }
+        .ec-dot-more { font-size: 12px; font-weight: 600; color: #aeb9c8; }
         .ec-cal-events {
           margin-top: 20px; padding: 16px;
           background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.1);
@@ -1559,8 +1598,8 @@ export default function EventsCalendarPage({ fallbackData }) {
           font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 12px;
           display: flex; align-items: center; gap: 10px;
         }
-        .ec-cal-events-count { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.4); }
-        .ec-cal-no-events { color: rgba(255,255,255,0.4); font-size: 13px; padding: 12px 0; }
+        .ec-cal-events-count { font-size: 13px; font-weight: 500; color: #aeb9c8; }
+        .ec-cal-no-events { color: #aeb9c8; font-size: 13px; padding: 12px 0; }
 
         /* ═══ LOCATION MODAL ═══ */
         .loc-overlay {
@@ -1595,7 +1634,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           color: #fff; font-size: 14px; outline: none; font-family: inherit;
         }
         .loc-input:focus { border-color: rgba(0,212,255,0.4); }
-        .loc-input::placeholder { color: rgba(255,255,255,0.35); }
+        .loc-input::placeholder { color: #9aa8b5; }
         .loc-select {
           width: 90px; padding: 12px 8px; background: rgba(0,0,0,0.3);
           border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
@@ -1608,7 +1647,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .loc-popular { }
         .loc-popular-label {
-          display: block; font-size: 11px; color: rgba(255,255,255,0.4);
+          display: block; font-size: 12px; color: #aeb9c8;
           text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600;
         }
         .loc-popular-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -1632,7 +1671,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           .ec-filter-bar {
             padding: 8px 12px 10px;
             gap: 8px;
-            overflow-x: auto;
+            overflow-x: visible;
             flex-wrap: wrap;
             justify-content: center;
             -webkit-overflow-scrolling: touch;
@@ -1668,7 +1707,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         .loc-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
         .loc-field--state { flex: 0 0 110px; }
         .loc-input-label {
-          font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+          font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
           text-transform: uppercase; color: rgba(255,255,255,0.5);
         }
 

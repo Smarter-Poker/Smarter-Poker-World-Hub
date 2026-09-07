@@ -14,6 +14,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -45,6 +46,14 @@ export default function PlayerHomeGamesHub() {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const joinDialog = useAccessibleDialog({
+    open: showJoinModal,
+    onClose: () => setShowJoinModal(false),
+  });
+  const filtersDialog = useAccessibleDialog({
+    open: showFiltersModal,
+    onClose: () => setShowFiltersModal(false),
+  });
 
   // Use persisted values for filter and activeTab
   const filter = persistedFilters.filter;
@@ -254,7 +263,7 @@ export default function PlayerHomeGamesHub() {
                 noindex={true}
             />
 
-      <div className="cmd-page">
+      <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Notification Banner */}
         {message && (
           <div className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center font-bold uppercase tracking-wide ${
@@ -269,8 +278,8 @@ export default function PlayerHomeGamesHub() {
         {/* Header */}
         <header className="cmd-header-full">
           <div className="max-w-6xl mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            <div className="cmd-home-games-header-row flex items-center justify-between">
+              <div className="cmd-home-games-header-copy flex items-center gap-4">
                 <div className="cmd-icon-box cmd-icon-box-glow w-14 h-14">
                   <Home className="w-7 h-7" />
                 </div>
@@ -279,8 +288,9 @@ export default function PlayerHomeGamesHub() {
                   <p className="text-sm text-[#64748B] font-medium tracking-wide">Find Or Host Private Poker Games</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="cmd-home-games-header-actions flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowJoinModal(true)}
                   className="cmd-btn cmd-btn-secondary"
                 >
@@ -288,6 +298,7 @@ export default function PlayerHomeGamesHub() {
                   JOIN BY CODE
                 </button>
                 <button
+                  type="button"
                   onClick={() => window.location.href = 'https://commander.smarter.poker/commander/register?tier=home_game&from=club_commander&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate'}
                   className="cmd-btn cmd-btn-primary"
                 >
@@ -302,7 +313,7 @@ export default function PlayerHomeGamesHub() {
         {/* Search */}
         <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
           <div className="max-w-6xl mx-auto px-4 py-3">
-            <div className="flex gap-3">
+            <div className="cmd-home-games-search-row flex gap-3">
               <div className="flex-1 relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]" />
                 <input
@@ -314,6 +325,7 @@ export default function PlayerHomeGamesHub() {
                 />
               </div>
               <button
+                type="button"
                 onClick={() => setShowFiltersModal(true)}
                 className="cmd-btn cmd-btn-secondary"
               >
@@ -329,7 +341,7 @@ export default function PlayerHomeGamesHub() {
 
         {/* Tabs */}
         <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
-          <div className="max-w-6xl mx-auto px-4 flex gap-1">
+          <div className="cmd-home-games-tabs max-w-6xl mx-auto px-4 flex gap-1">
             <button
               onClick={() => setActiveTab('my-games')}
               className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${
@@ -481,15 +493,30 @@ export default function PlayerHomeGamesHub() {
 
         {/* Join by Code Modal */}
         {showJoinModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="cmd-panel cmd-corner-lights p-6 w-full max-w-md mx-4">
+          <div
+            ref={joinDialog.dialogRef}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            data-pnm-home-games="true"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-games-join-title"
+            aria-describedby="home-games-join-description"
+            tabIndex={-1}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setShowJoinModal(false);
+            }}
+          >
+            <div className="cmd-panel cmd-corner-lights p-6 w-full max-w-md">
               <span className="cmd-light cmd-light-tl" />
               <span className="cmd-light cmd-light-br" />
-              <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Join By Invite Code</h3>
-              <p className="text-sm text-[#64748B] mb-4">
+              <h3 id="home-games-join-title" className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Join By Invite Code</h3>
+              <p id="home-games-join-description" className="text-sm text-[#64748B] mb-4">
                 Enter The Invite Code Or Club Code Shared By The Host
               </p>
+              <label htmlFor="home-games-join-code" className="sr-only">Invite Or Club Code</label>
               <input
+                ref={joinDialog.initialFocusRef}
+                id="home-games-join-code"
                 type="text"
                 placeholder="Enter Code (e.g., ABC123)"
                 value={joinCode}
@@ -499,12 +526,14 @@ export default function PlayerHomeGamesHub() {
               />
               <div className="flex gap-2 mt-4">
                 <button
+                  type="button"
                   onClick={() => setShowJoinModal(false)}
                   className="cmd-btn cmd-btn-secondary flex-1 justify-center"
                 >
                   CANCEL
                 </button>
                 <button
+                  type="button"
                   onClick={handleJoinByCode}
                   disabled={!joinCode.trim()}
                   className="cmd-btn cmd-btn-primary flex-1 justify-center disabled:opacity-50"
@@ -518,16 +547,29 @@ export default function PlayerHomeGamesHub() {
 
         {/* Filters Modal */}
         {showFiltersModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="cmd-panel cmd-corner-lights p-6 w-full max-w-md mx-4">
+          <div
+            ref={filtersDialog.dialogRef}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            data-pnm-home-games="true"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-games-filters-title"
+            tabIndex={-1}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setShowFiltersModal(false);
+            }}
+          >
+            <div className="cmd-panel cmd-corner-lights p-6 w-full max-w-md">
               <span className="cmd-light cmd-light-tl" />
               <span className="cmd-light cmd-light-br" />
-              <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Filter Games</h3>
+              <h3 id="home-games-filters-title" className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Filter Games</h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Game Type</label>
+                  <label htmlFor="home-games-type-filter" className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Game Type</label>
                   <select
+                    ref={filtersDialog.initialFocusRef}
+                    id="home-games-type-filter"
                     value={filters.gameType}
                     onChange={(e) => setFilters(prev => ({ ...prev, gameType: e.target.value }))}
                     className="cmd-input"
@@ -541,8 +583,9 @@ export default function PlayerHomeGamesHub() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Max Buy-In</label>
+                  <label htmlFor="home-games-buyin-filter" className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Max Buy-In</label>
                   <select
+                    id="home-games-buyin-filter"
                     value={filters.maxBuyin}
                     onChange={(e) => setFilters(prev => ({ ...prev, maxBuyin: e.target.value }))}
                     className="cmd-input"
@@ -556,8 +599,9 @@ export default function PlayerHomeGamesHub() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Days Ahead</label>
+                  <label htmlFor="home-games-days-filter" className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Days Ahead</label>
                   <select
+                    id="home-games-days-filter"
                     value={filters.daysAhead}
                     onChange={(e) => setFilters(prev => ({ ...prev, daysAhead: parseInt(e.target.value) }))}
                     className="cmd-input"
@@ -572,6 +616,7 @@ export default function PlayerHomeGamesHub() {
 
               <div className="flex gap-2 mt-6">
                 <button
+                  type="button"
                   onClick={() => {
                     setFilters({ gameType: 'all', maxBuyin: '', daysAhead: 30 });
                   }}
@@ -580,6 +625,7 @@ export default function PlayerHomeGamesHub() {
                   RESET
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowFiltersModal(false)}
                   className="cmd-btn cmd-btn-primary flex-1 justify-center"
                 >

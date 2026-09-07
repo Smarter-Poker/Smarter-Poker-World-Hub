@@ -10,6 +10,7 @@
 
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { evaluateCanaryHealth } from '../src/lib/personal-assistant/engineCanary.mjs';
 
 // Keep the post-deployment watchdog dependency-free. Local verification still
 // loads the untracked environment file without ever printing its contents.
@@ -45,6 +46,8 @@ export const protectedReadRoutes = [
   '/api/assistant/stats',
   '/api/assistant/leaks',
   '/api/assistant/leaks/audit-jobs',
+  '/api/assistant/coaching',
+  '/api/assistant/data-controls',
   '/api/assistant/sandbox/sandbox-quiz',
   '/api/sandbox/coach-accuracy',
   '/api/sandbox/create-share',
@@ -143,7 +146,15 @@ export async function runProductionHardeningProbe() {
   if (load.output.some(result => !result.ok)) throw new Error('Bounded page load produced a non-success response.');
   const durations = load.output.map(result => result.durationMs);
   const p95Ms = percentile(durations, 0.95);
-  if (p95Ms > 8_000) throw new Error(`Bounded page-load p95 exceeded 8000ms (${p95Ms}ms).`);
+  const releaseGate = evaluateCanaryHealth({
+    samples: load.output.length,
+    failures: load.output.filter(result => !result.ok).length,
+    mismatches: 0,
+    p95Ms,
+  }, { minimumSamples: requestCount });
+  if (releaseGate.decision === 'rollback') {
+    throw new Error(`Personal Assistant release gate requires rollback: ${releaseGate.reasons.join(', ')}.`);
+  }
 
   const session = await signIn();
   if (requireAuth && !session) throw new Error('Protected verification credentials are required.');
@@ -161,6 +172,10 @@ export async function runProductionHardeningProbe() {
       'hand_audit_decisions',
       'leak_review_state',
       'user_leaks',
+      'pa_coaching_goals',
+      'pa_coach_feedback',
+      'pa_coaching_preferences',
+      'pa_data_lifecycle_receipts',
     ].map(table => probeRls(table, session.token, session.userId)));
   }
 
@@ -169,6 +184,7 @@ export async function runProductionHardeningProbe() {
     baseUrl,
     publicChecks,
     load: { requests: requestCount, concurrency, observedPeak: load.peak, p95Ms, maxMs: Math.max(...durations) },
+    releaseGate,
     authenticated: Boolean(session),
     protectedChecks,
     rlsChecks,

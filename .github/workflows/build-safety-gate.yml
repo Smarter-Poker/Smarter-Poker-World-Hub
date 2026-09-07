@@ -856,6 +856,7 @@ jobs:
             __tests__/vercel-build-queue.test.mjs \
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
+            __tests__/phase6-content-dispatch.test.mjs \
             __tests__/login-bridge-probe-relay.test.mjs \
             __tests__/pull-to-refresh-no-transform-at-rest.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
@@ -939,6 +940,30 @@ jobs:
             tail -2 /tmp/pyreq.log >> $GITHUB_STEP_SUMMARY
           else
             tail -6 /tmp/pyreq.log >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      # CHECK 23: data_audit_log writes name real columns (2026-09-06)
+      # 27 scripts write that table. It has table_name, record_id, action,
+      # old_data, new_data, scrape_proof, batch_id, agent_id, created_at - and
+      # the scripts were sending `notes`, `records_affected`, `records_count`
+      # and `tour_code`, while omitting record_id, which is NOT NULL.
+      # PostgREST answers PGRST204 and TEN of the scripts catch it with a bare
+      # `except: pass`, so the audit trail reported itself working while never
+      # writing a row: of 1,092,446 rows, every one came from the trigger_auto
+      # DB trigger or three one-off March agents. Not one from a scraper.
+      # It only surfaced because one caller checks the row count and exits 1 -
+      # Daily Poker Series Auto-Pilot, red after a fully successful scrape.
+      # A RATCHET over the nine not yet migrated; the fix is always the same,
+      # move what is not a column into new_data (jsonb).
+      - name: "CHECK 23: data_audit_log writes use real columns"
+        run: |
+          echo "## data_audit_log column check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if node scripts/ci/check-audit-log-columns.mjs 2>&1 | tee /tmp/auditcols.log; then
+            tail -2 /tmp/auditcols.log >> $GITHUB_STEP_SUMMARY
+          else
+            tail -8 /tmp/auditcols.log >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 

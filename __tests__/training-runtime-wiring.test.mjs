@@ -634,7 +634,7 @@ test('next-street client sends only the signed parent while the API derives exac
   const trainer = fs.readFileSync('src/hooks/useGTOTrainer.js', 'utf8');
   const api = fs.readFileSync('pages/api/training/next-street.js', 'utf8');
   assert.match(trainer, /body: JSON\.stringify\(\{ gradingReceipt: activeContext\.receipt \}\)/);
-  const requestStart = trainer.indexOf("authedFetch('/api/training/next-street'");
+  const requestStart = trainer.indexOf("trainingFetch('/api/training/next-street'");
   const requestEnd = trainer.indexOf('\n      });', requestStart);
   assert.ok(requestStart >= 0 && requestEnd > requestStart, 'next-street request boundary is present');
   const requestSource = trainer.slice(requestStart, requestEnd);
@@ -694,8 +694,10 @@ test('runtime uses canonical auth and fails closed on progress API errors', () =
   assert.match(levelSelector, /authToken = getSessionToken\(\)/);
   assert.doesNotMatch(levelSelector, /sb-kuklfnapbkmacvwxktbh-auth-token/);
   assert.match(trainer, /import \{ authedFetch, getAuthUser \} from '\.\.\/lib\/authUtils'/);
+  assert.match(trainer, /createBoundedTrainingFetch\(authedFetch\)/);
   assert.doesNotMatch(trainer, /\bfetch\(/);
-  assert.match(trainer, /authedFetch\(`\/api\/training\/batch-preload\?\$\{params\}`\)/);
+  assert.doesNotMatch(trainer, /await\s+authedFetch\s*\(/);
+  assert.match(trainer, /trainingFetch\(`\/api\/training\/batch-preload\?\$\{params\}`\)/);
   assert.match(trainer, /if \(!response\.ok \|\| payload\?\.success !== true\)/);
   assert.match(trainer, /isCustomTrainerConfig\(trainerConfig\)/);
   assert.match(trainer, /level: selectedLevel/);
@@ -820,7 +822,8 @@ test('runtime matrix uses deployment-bound, fail-closed checkpoint recovery', ()
   assert.match(audit, /assertSupportedNodeVersion\(\)/);
   assert.match(audit, /await readDeploymentIdentity\(\)/);
   assert.match(health, /const commitSha = process\.env\.VERCEL_GIT_COMMIT_SHA \|\| process\.env\.BUILD_COMMIT_SHA \|\| 'local'/);
-  assert.match(health, /version: commitSha\.substring\(0, 8\),\s*commitSha,/);
+  assert.match(health, /version: commitSha,\s*commitSha,/);
+  assert.doesNotMatch(health, /commitSha\.substring\(/);
   assert.match(audit, /const commitSha = String\(health\?\.commitSha \|\| ''\)\.trim\(\)/);
   assert.match(audit, /assert\.equal\(\s*commitSha,\s*EXPECTED_BUILD,/);
   assert.match(audit, /auditImplementationSha256/);
@@ -944,11 +947,24 @@ test('reports and custom solve do not manufacture successful activity', () => {
   assert.match(sharedReports, /No Verified Training Data Yet/);
   assert.match(sharedReports, /No Sample Or Estimated Player Statistics Are Displayed/);
   assert.doesNotMatch(sharedReports, /Demo data for illustration|Sample data is being displayed|label:\s*['"]GTO Proximity/);
-  assert.match(customSolve, /data\?\.solution\?\.actions/);
+  assert.match(customSolve, /data\?\.source === 'solved_spots_gold'/);
+  assert.match(customSolve, /data\?\.matchQuality === 'exact_root_node'/);
+  assert.match(customSolve, /data\?\.solution\?\.isEstimate === false/);
+  assert.match(customSolve, /authorityLabel: 'Audited Solver Result'/);
+  assert.doesNotMatch(customSolve, /Modeled Baseline/);
   assert.doesNotMatch(customSolve, /gameId: 'custom-solve'|accuracy: 100/);
+  assert.match(solverApi, /\.from\('solved_spots_gold'\)/);
+  assert.match(solverApi, /\.eq\('scenario_hash', request\.scenarioHash\)/);
+  assert.match(solverApi, /\.eq\('quality_status', 'validated'\)/);
   assert.match(solverApi, /source: 'solved_spots_gold'/);
-  assert.match(solverApi, /source: 'modeled_baseline'/);
-  assert.doesNotMatch(solverApi, /from\('solver_queue'\)|status: 'queued'|queued for precise solving/);
+  assert.match(solverApi, /matchQuality: 'exact_root_node'/);
+  assert.match(solverApi, /isEstimate: false/);
+  assert.match(solverApi, /res\.status\(422\)\.json\(\{[\s\S]*code: 'SOLVER_NODE_CONTEXT_REQUIRED'/);
+  assert.match(solverApi, /res\.status\(404\)\.json\(\{[\s\S]*code: 'AUDITED_SOLVER_ARTIFACT_NOT_FOUND'/);
+  assert.doesNotMatch(
+    solverApi,
+    /modeled_baseline|generateBaselineStrategy|\.from\('solver_queue'\)|status: 'queued'|queued for precise solving/i,
+  );
 });
 
 test('paused Phase 11 challenges expose no fabricated live progress while Daily Challenge uses canonical results', () => {
@@ -1157,11 +1173,34 @@ test('legacy simulated reports and play surfaces route to verified data or Club 
   }
 
   const godMode = fs.readFileSync(path.join(ROOT, 'src/components/training/GodModeArena.jsx'), 'utf8');
-  assert.doesNotMatch(godMode, /CustomSpotDrillBuilder|GTOReportsDashboard|AggregatedFlopReport|PopupHUDOverlay|ActionFilterAnalyzer|EVComparisonTool|MassDataAnalysis|MarkTheSpot|StrategyNodeInspector/);
-  assert.match(godMode, /source="Solved Spots Gold"/);
-  assert.match(godMode, /source="Authenticated Training Sessions"/);
-  assert.match(godMode, /source="Authenticated Hand History"/);
-  assert.match(godMode, /source="Production Integration State"/);
+  assert.doesNotMatch(
+    godMode,
+    /CustomSpotDrillBuilder|GTOReportsDashboard|AggregatedFlopReport|PopupHUDOverlay|ActionFilterAnalyzer|EVComparisonTool|MassDataAnalysis|MarkTheSpot|StrategyNodeInspector|EVTreeVisualizer|EVLossTracker|FrequencyTrainer|GTODeviationHeatmap|GhostReplayEngine|HandNoteTagger|HandReplayViewer|LifetimeStatsCard|MixedStrategyTrainer|PositionMasteryTracker|PositionStatsPanel|SessionReplayTimeline|SessionCoachingEngine|FrequencyExploiter|SolverSimplify|SmartPracticeBanner|SimplifiedSolutions/,
+  );
+
+  const reviewBranches = [...godMode.matchAll(/reviewTab === '([^']+)'/g)].map(
+    ([, branch]) => branch,
+  );
+  assert.deepEqual(reviewBranches, [
+    'overview',
+    'mistakes',
+    'positions',
+    'concepts',
+    'hands',
+    'solver',
+    'analysis',
+  ]);
+
+  const verifiedSources = [
+    ...new Set([...godMode.matchAll(/source="([^"]+)"/g)].map(([, source]) => source)),
+  ].sort();
+  assert.deepEqual(verifiedSources, [
+    'Audited PioSOLVER V2 Corpus',
+    'Authenticated Hand History',
+    'Sealed Non-Practice Attempts',
+    'Sealed Training Attempts',
+    'Training Corpus And Solver APIs',
+  ]);
 });
 
 test('authenticated Training E2E waits for its setup dependency before reading saved state', () => {

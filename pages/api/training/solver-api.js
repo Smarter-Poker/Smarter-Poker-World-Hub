@@ -3,8 +3,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * SOLVER API — GTO Solver Query Foundation
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * API endpoint accepting custom spot definitions. Checks pre-computed
- * solutions DB first (instant) and returns an explicitly labelled modeled
- * baseline when the exact board is not present. It never claims that an
+ * solutions DB first (instant) and fails closed when the exact audited node
+ * is unavailable. It never invents an estimated policy or claims that an
  * unconfigured remote worker will solve a queued request.
  * Rate limited: 10 requests/minute per user.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -173,6 +173,8 @@ async function findExactSolverStrategy(request) {
 export default async function handler(req, res) {
   try {
       withTiming(res);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('Vary', 'Authorization');
       // Only POST
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -201,7 +203,6 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { action } = req.body;
           let request;
           try {
               request = normalizeCustomSolverSpot(req.body);
@@ -244,35 +245,18 @@ export default async function handler(req, res) {
               });
           }
 
-          const baselineStrategy = generateBaselineStrategy(
-              request.board,
-              request.heroPosition,
-              action,
-              request.villainPosition,
-          );
-          const missingReason = exact.status === 'node_context_required'
-              ? 'Hero acts second and no first-action history was supplied.'
-              : 'No single provenance-verified exact root decision was found.';
+          if (exact.status === 'node_context_required') {
+              return res.status(422).json({
+                  success: false,
+                  code: 'SOLVER_NODE_CONTEXT_REQUIRED',
+                  error: 'Hero acts second, so the preceding action is required to identify the exact decision node.',
+              });
+          }
 
-          return res.status(200).json({
-              success: true,
-              status: 'estimate',
-              source: 'modeled_baseline',
-              matchQuality: exact.status,
-              scenarioHash: request.scenarioHash,
-              message: `${missingReason} Showing a clearly labelled positional baseline, not solver output.`,
-              solution: {
-                  actions: baselineStrategy.actions,
-                  frequencies: baselineStrategy.frequencies,
-                  evByAction: baselineStrategy.evByAction,
-                  board: request.board,
-                  heroPosition: request.heroPosition,
-                  villainPosition: request.villainPosition,
-                  stackDepth: request.stackDepth,
-                  gameType: request.gameType,
-                  street: request.street,
-                  isEstimate: true,
-              },
+          return res.status(404).json({
+              success: false,
+              code: 'AUDITED_SOLVER_ARTIFACT_NOT_FOUND',
+              error: 'No single provenance-verified exact root decision was found.',
           });
 
       } catch (err) {
@@ -285,73 +269,4 @@ export default async function handler(req, res) {
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
-}
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// BASELINE STRATEGY GENERATOR
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-/**
- * Generate a reasonable GTO baseline strategy based on position + board texture.
- * Used as fallback when precise solver data isn't available.
- *
- * @param {string[]} board
- * @param {string} heroPosition
- * @param {string} currentAction
- * @param {string} villainPosition - required: whether hero is in position is a
- *   property of the PAIR of seats, not of hero's seat.
- */
-function generateBaselineStrategy(board, heroPosition, currentAction, villainPosition) {
-    // Board texture analysis
-    const ranks = board.map(c => 'AKQJT98765432'.indexOf(c[0].toUpperCase()));
-    const suits = board.map(c => c[c.length - 1].toLowerCase());
-    const isMonotone = new Set(suits).size === 1;
-    const isPaired = new Set(ranks).size < board.length;
-    const hasHighCards = ranks.some(r => r <= 3); // A, K, Q, J
-
-    // IP vs OOP — relative to the actual opponent.
-    //
-    // This used to be `['BTN','CO','SB'].includes(heroPosition)`. Two separate
-    // errors: it never looked at the villain, and it listed the small blind as
-    // an in-position seat when the SB acts FIRST postflop against every other
-    // seat. A player drilling SB vs BB was handed the in-position baseline —
-    // bet 55% on a high board instead of 35% — which is the opposite of the
-    // spot they were actually in.
-    const isIP = heroIsInPosition(heroPosition, villainPosition);
-
-    let betFreq, checkFreq, raiseFreq, callFreq, foldFreq;
-
-    if (isIP) {
-        // In position: more betting, less checking
-        betFreq = hasHighCards ? 55 : 45;
-        checkFreq = 100 - betFreq;
-        raiseFreq = isMonotone ? 10 : 15;
-        callFreq = 35;
-        foldFreq = isPaired ? 40 : 50;
-    } else {
-        // Out of position: more checking, less betting
-        betFreq = hasHighCards ? 35 : 25;
-        checkFreq = 100 - betFreq;
-        raiseFreq = isMonotone ? 8 : 12;
-        callFreq = isPaired ? 40 : 30;
-        foldFreq = isPaired ? 35 : 45;
-    }
-
-    return {
-        actions: {
-            bet: betFreq,
-            check: checkFreq,
-        },
-        frequencies: {
-            b: betFreq,
-            x: checkFreq,
-        },
-        evByAction: {
-            bet: +(betFreq * 0.015).toFixed(2),
-            check: +(checkFreq * 0.008).toFixed(2),
-            raise: +(raiseFreq * 0.02).toFixed(2),
-            call: +(callFreq * 0.01).toFixed(2),
-            fold: 0,
-        },
-    };
 }

@@ -31,6 +31,9 @@ export default function MerchandiseFulfillmentConsole() {
   const operationTitleRef = useRef(null);
   const operationTriggerRef = useRef(null);
   const loadAbortRef = useRef(null);
+  const transitionAbortRef = useRef(null);
+  const transitionInFlightRef = useRef(false);
+  const mountedRef = useRef(false);
 
   const loadOrders = useCallback(async ({ append = false, cursor = null } = {}) => {
     const requestId = ++requestRef.current;
@@ -97,11 +100,16 @@ export default function MerchandiseFulfillmentConsole() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     void loadOrders();
     return () => {
+      mountedRef.current = false;
       requestRef.current += 1;
       loadAbortRef.current?.abort();
       loadAbortRef.current = null;
+      transitionAbortRef.current?.abort();
+      transitionAbortRef.current = null;
+      transitionInFlightRef.current = false;
     };
   }, [loadOrders]);
 
@@ -148,9 +156,12 @@ export default function MerchandiseFulfillmentConsole() {
   };
 
   const transition = async (order, action, extraPayload = {}) => {
-    if (busyId) return;
+    if (transitionInFlightRef.current) return;
     const token = getAccessToken();
     if (!token) return setState({ kind: 'auth', message: 'Your operator session expired.' });
+    transitionInFlightRef.current = true;
+    const controller = new AbortController();
+    transitionAbortRef.current = controller;
     const payload = {
       orderId: order.id,
       expectedVersion: Number(order.fulfillment_version) || 0,
@@ -164,15 +175,21 @@ export default function MerchandiseFulfillmentConsole() {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
       const body = await response.json().catch(() => null);
+      if (controller.signal.aborted || !mountedRef.current) return;
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Operation failed');
       setOperation(null);
       await loadOrders();
     } catch (error) {
+      if (error?.name === 'AbortError' || controller.signal.aborted || !mountedRef.current) return;
       setState({ kind: 'error', message: error?.message || 'Operation failed' });
     } finally {
-      setBusyId(null);
+      if (transitionAbortRef.current === controller) transitionAbortRef.current = null;
+      controller.abort();
+      transitionInFlightRef.current = false;
+      if (mountedRef.current) setBusyId(null);
     }
   };
 
@@ -185,7 +202,7 @@ export default function MerchandiseFulfillmentConsole() {
         noindex
       />
       <UniversalHeader pageDepth={2} />
-      <main className={styles.page}>
+      <main className={styles.page} data-marketplace-route="/hub/merch-store/fulfillment">
         <header className={styles.hero}>
           <div className={styles.eyebrow}><ShieldCheck size={16} /> Protected Store Operations</div>
           <h1>Fulfillment Command Vault</h1>
@@ -199,7 +216,7 @@ export default function MerchandiseFulfillmentConsole() {
         </header>
 
         <div className={styles.status} role="status" aria-live="polite">{marketplaceCopy(state.message)}</div>
-        <section className={styles.grid} aria-label="Merchandise fulfillment orders">
+        <section className={styles.grid} aria-label="Merchandise Fulfillment Orders">
           {orders.map((order) => {
             const address = order.shipping_address || {};
             const busy = busyId === order.id;
@@ -294,7 +311,7 @@ export default function MerchandiseFulfillmentConsole() {
               <button
                 type="button"
                 className={styles.dialogClose}
-                aria-label="Close fulfillment operation"
+                aria-label="Close Fulfillment Operation"
                 disabled={Boolean(busyId)}
                 onClick={() => setOperation(null)}
               >

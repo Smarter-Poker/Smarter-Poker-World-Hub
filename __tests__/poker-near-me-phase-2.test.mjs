@@ -32,8 +32,9 @@ test('location recovery dialog is keyboard-addressable and casino themed', () =>
   const modal = read('src/components/ui/LocationEnableModal.jsx');
   assert.match(modal, /role="dialog"/);
   assert.match(modal, /aria-modal="true"/);
-  assert.match(modal, /event\.key === 'Escape'/);
-  assert.match(modal, /closeButtonRef\.current\?\.focus/);
+  assert.match(modal, /useAccessibleDialog/);
+  assert.match(modal, /open: isOpen/);
+  assert.match(modal, /ref=\{initialFocusRef\}/);
   assert.match(modal, /location-enable-modal__frame/);
 
   const theme = read('src/styles/worlds/poker-near-me.css');

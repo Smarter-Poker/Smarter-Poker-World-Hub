@@ -59,9 +59,11 @@ test('hidden legacy image maps and their stale assets stay removed', () => {
 
 test('the global header remains outside the redesigned store surface', () => {
   const headerIndex = STORE.indexOf('<UniversalHeader pageDepth={1} />');
-  const mainIndex = STORE.indexOf('<main className={`store-redesign-content');
+  const mainMatch = STORE.match(
+    /<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}/
+  );
   assert.ok(headerIndex > -1, 'global header is missing');
-  assert.ok(mainIndex > headerIndex, 'store styling must not wrap or alter the global header');
+  assert.ok(mainMatch?.index > headerIndex, 'store styling must not wrap or alter the global header');
 });
 
 test('dialogs lock mobile body scroll and restore it on cleanup', () => {
@@ -88,7 +90,7 @@ test('diamond checkout closes the rapid double-tap window and reports progress',
   assert.match(STORE, /if \(processingRef\.current\) return;/);
   assert.match(STORE, /setBusyPackageId\(pkg\.id\);\s*setStoreProcessing\(true\)/);
   assert.match(STORE, /busyPackageId=\{busyPackageId\}/);
-  assert.match(SHOWCASE, /disabled=\{isProcessing\}/);
+  assert.match(SHOWCASE, /disabled=\{isProcessing \|\| catalogState !== 'database'\}/);
   assert.match(SHOWCASE, /aria-busy=\{busyPackageId === pkg\.id\}/);
   assert.match(SHOWCASE, /Opening Checkout\.\.\./);
 });

@@ -216,7 +216,7 @@ async function recordMigration(client, sqlFile) {
 const MAX_SQL_RETRIES = 3;
 const TRANSIENT_CODES = new Set(['08000', '08003', '08006', '57014', '40001', '40P01']);
 
-async function executeSqlFile(client, sqlFile) {
+async function executeSqlFile(client, sqlFile, { canResetTransaction = false } = {}) {
     const sql = fs.readFileSync(sqlFile, 'utf-8');
     const basename = path.basename(sqlFile);
 
@@ -238,6 +238,17 @@ async function executeSqlFile(client, sqlFile) {
         } catch (e) {
             if (TRANSIENT_CODES.has(e.code) && attempt < MAX_SQL_RETRIES) {
                 const delay = 1000 * attempt;
+                console.log(`   ⚠️  Transient database message: ${e.message}`);
+                if (e.detail) console.log(`      Detail: ${e.detail}`);
+                if (!canResetTransaction) {
+                    console.error('   ❌ Transactional batch aborted; retry the full batch after rollback.');
+                    return false;
+                }
+                // PostgreSQL leaves a transaction failed after errors such as
+                // deadlocks. A single-file run can safely discard that failed
+                // transaction and retry the complete migration file. Retrying
+                // without ROLLBACK only produces 25P02 and hides the root cause.
+                await client.query('ROLLBACK');
                 console.log(`   ⚠️  Transient error (${e.code}). Retry ${attempt}/${MAX_SQL_RETRIES} in ${delay / 1000}s...`);
                 await new Promise(r => setTimeout(r, delay));
                 continue;
@@ -371,7 +382,9 @@ async function run() {
         // ── Execute each file ──
         for (const sqlFile of filesToRun) {
             console.log(`\n▶️  Executing: ${path.basename(sqlFile)}`);
-            const ok = await executeSqlFile(client, sqlFile);
+            const ok = await executeSqlFile(client, sqlFile, {
+                canResetTransaction: !useTransaction,
+            });
             if (ok) {
                 await recordMigration(client, sqlFile);
                 appliedFiles.push(path.basename(sqlFile));

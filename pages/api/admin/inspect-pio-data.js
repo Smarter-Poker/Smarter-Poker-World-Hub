@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -32,110 +33,22 @@ export default async function handler(req, res) {
       }
 
       try {
-          // 1. Get overview of available data
-          const { data: overview, error: overviewError } = await getSupabase()
-              .from('solved_spots_gold')
-              .select('game_type, street, stack_depth')
-              .limit(1000);
-
-          if (overviewError) {
-              return res.status(500).json({
-                  error: 'Failed to query overview',
-                  details: overviewError.message
-              });
-          }
-
-          // Count by category
-          const byGameType = {};
-          const byStreet = {};
-          const byStackDepth = {};
-
-          for (const row of (overview || [])) {
-              byGameType[row.game_type] = (byGameType[row.game_type] || 0) + 1;
-              byStreet[row.street] = (byStreet[row.street] || 0) + 1;
-              byStackDepth[row.stack_depth] = (byStackDepth[row.stack_depth] || 0) + 1;
-          }
-
-          // 2. Get a sample scenario with full structure
-          const { data: sample, error: sampleError } = await getSupabase()
-              .from('solved_spots_gold')
-              .select('*')
-              .limit(1)
-              .maybeSingle();
-
-          // 3. Analyze strategy_matrix structure
-          let strategyStructure = null;
-          if (sample?.strategy_matrix) {
-              const sm = sample.strategy_matrix;
-              strategyStructure = {
-                  hasActions: !!sm.actions,
-                  actions: sm.actions || [],
-                  hasFrequencies: !!sm.frequencies,
-                  frequencySample: null,
-                  hasHandEvs: !!sm.hand_evs,
-                  handEvSample: null,
-                  totalHands: 0,
-              };
-
-              // Get sample frequencies
-              if (sm.frequencies && sm.actions?.[0]) {
-                  const firstAction = sm.actions[0];
-                  const freqObj = sm.frequencies[firstAction];
-                  if (freqObj) {
-                      const hands = Object.keys(freqObj || {});
-                      strategyStructure.totalHands = hands.length;
-                      strategyStructure.frequencySample = {};
-                      hands.slice(0, 5).forEach(h => {
-                          strategyStructure.frequencySample[h] = freqObj[h];
-                      });
-                  }
-              }
-
-              // Get sample EVs
-              if (sm.hand_evs) {
-                  const evHands = Object.keys(sm.hand_evs || {});
-                  strategyStructure.handEvSample = {};
-                  evHands.slice(0, 5).forEach(h => {
-                      strategyStructure.handEvSample[h] = sm.hand_evs[h];
-                  });
-              }
-          }
-
-          // What PioSolver provides vs what Grok adds
-          const dataComparison = {
-              fromPioSolver: [
-                  'Optimal action (from frequencies)',
-                  'Action frequency (e.g., RAISE 85%)',
-                  'EV per hand (hand_evs)',
-                  'Alternate lines with frequencies',
-                  'Board texture and position',
-              ],
-              fromGrokAI: [
-                  'Human-readable explanation text',
-                  'GTO approach description',
-                  'EV analysis in plain English',
-                  'Alternate line reasoning',
-                  'Complete analysis when PIO data missing',
-              ],
-          };
-
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+          const inspection = await policyService.inspectWarehouse();
+          const samplePolicy = policyService.consumerEnvelope(
+              inspection.samplePolicy, 'admin-inspection',
+          );
           return res.status(200).json({
               success: true,
-              totalScenarios: overview?.length || 0,
-              byGameType,
-              byStreet,
-              byStackDepth,
-              sampleScenario: sample ? {
-                  id: sample.id,
-                  scenario_hash: sample.scenario_hash,
-                  game_type: sample.game_type,
-                  street: sample.street,
-                  stack_depth: sample.stack_depth,
-              } : null,
-              strategyMatrixStructure: strategyStructure,
-              dataComparison,
+              totalScenarios: inspection.sampledRows,
+              byGameType: inspection.byGameType,
+              byStreet: inspection.byStreet,
+              byStackDepth: inspection.byStackDepth,
+              acceptedPolicySamples: inspection.acceptedPolicySamples,
+              rejectedPolicySamples: inspection.rejectedPolicySamples,
+              sampleScenario: inspection.sampleMetadata,
+              solverPolicy: samplePolicy,
           });
-
       } catch (error) {
           console.warn('[Inspect PIO] Error:', error);
           return res.status(500).json({ error: error.message });

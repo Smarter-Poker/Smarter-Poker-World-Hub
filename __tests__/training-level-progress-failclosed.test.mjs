@@ -106,7 +106,8 @@ test('progress uses defaults only for a verified user with genuinely no rows', a
   assert.equal(res.body.current_level, 1);
   assert.equal(res.body.total_hands_played, 0);
   assert.equal(res.body.success, undefined);
-  assert.equal(res.headers['Cache-Control'], 'private, no-store');
+  assert.equal(res.headers['Cache-Control'], 'private, no-store, max-age=0');
+  assert.equal(res.headers.Vary, 'Authorization');
 });
 
 test('progress preserves a measured zero and never invents a score for incomplete evidence', async () => {

@@ -1,5 +1,5 @@
 /**
- * STUDY PLAN GENERATOR — Personalized Weekly Training Schedule
+ * STUDY PLAN GENERATOR — Verified Or Authored Weekly Training Schedule
  * ═══════════════════════════════════════════════════════════════════════════
  * Analyzes user session data to identify weak spots and generates a 7-day
  * training plan with recommended games and daily goals.
@@ -460,41 +460,53 @@ export default function StudyPlanPage() {
   useTrainingBus('study-plan');
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sessions, setSessions] = useState([]);
+  // `null` means session history is unavailable or has not been verified. An
+  // empty array means the server successfully verified that this player has no
+  // completed sessions yet, which is the only state that may use a starter plan.
+  const [sessions, setSessions] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   // Get current day of week (0 = Monday)
   const today = new Date();
   const todayIdx = (today.getDay() + 6) % 7; // JS Sunday=0 → shift so Monday=0
 
   const fetchSessions = useCallback(async () => {
+    setLoading(true);
     setFetchError(null);
+    setPlan(null);
     const user = getAuthUser();
     if (!user?.id) {
+      setSignedOut(true);
+      setSessions(null);
       setLoading(false);
       return;
     }
+    setSignedOut(false);
     try {
       const res = await authedFetch(`/api/training/get-sessions?limit=100`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success && data.sessions) {
-        setSessions(data.sessions);
+      if (data?.success !== true || !Array.isArray(data.sessions)) {
+        throw new Error('Verified Training history was not returned.');
       }
+      setSessions(data.sessions);
     } catch (e) {
       console.warn('[StudyPlan] Fetch error:', e);
-      setFetchError('Unable to load study plan data. Please try again.');
+      setSessions(null);
+      setFetchError('Unable To Load Study Plan Data. Please Try Again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Generate plan from sessions
   useEffect(() => {
-    if (!loading && sessions !== null) {
+    if (!loading && !fetchError && !signedOut && Array.isArray(sessions)) {
       const newPlan = generateStudyPlan(sessions);
       setPlan(newPlan);
     }
-  }, [loading, sessions]);
+  }, [fetchError, loading, sessions, signedOut]);
 
   // Fetch on mount
   useEffect(() => {
@@ -522,6 +534,7 @@ export default function StudyPlanPage() {
   };
 
   const regeneratePlan = () => {
+    if (!Array.isArray(sessions)) return;
     const newPlan = generateStudyPlan(sessions);
     setPlan(newPlan);
   };
@@ -531,8 +544,11 @@ export default function StudyPlanPage() {
   const weekStart = new Date();
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const verifiedSessions = Array.isArray(sessions) ? sessions : [];
+  const hasVerifiedHistory = verifiedSessions.length > 0;
+  const isAuthoredStarterPlan = Array.isArray(sessions) && sessions.length === 0;
   const completedGames = new Set(
-    sessions
+    verifiedSessions
       .filter((session) => {
         const timestamp = new Date(session.completed_at || session.created_at || 0).getTime();
         return Number.isFinite(timestamp) && timestamp >= weekStart.getTime();
@@ -597,31 +613,85 @@ export default function StudyPlanPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
                 Weekly Study Plan
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Personalized Training Schedule</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                {loading
+                  ? 'Loading Verified Training History'
+                  : signedOut
+                    ? 'Sign In To Build Your Schedule'
+                    : fetchError
+                      ? 'Training History Unavailable'
+                      : isAuthoredStarterPlan
+                        ? 'Authored Starter Schedule'
+                        : 'Personalized From Verified Training History'}
+              </div>
             </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={regeneratePlan}
-            style={{
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.03)',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            New Plan
-          </motion.button>
+          {plan && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={regeneratePlan}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.03)',
+                color: 'var(--sp-fg-muted)',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              New Plan
+            </motion.button>
+          )}
         </div>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
+          {!loading && signedOut && (
+            <div
+              role="status"
+              style={{
+                padding: '18px 16px',
+                borderRadius: 12,
+                border: '1px solid rgba(0,212,255,0.18)',
+                background: 'rgba(0,212,255,0.05)',
+                color: 'var(--sp-fg-muted)',
+                lineHeight: 1.6,
+                marginBottom: 16,
+              }}
+            >
+              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
+                Sign In To Build Your Study Plan
+              </strong>
+              Personalized Progress Requires Verified Training History. No Schedule Or Completion Totals Are Inferred While Signed Out.
+              <button
+                type="button"
+                onClick={() => router.push('/auth/login?redirect=/hub/training/study-plan')}
+                style={{
+                  display: 'block',
+                  marginTop: 12,
+                  padding: '9px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,212,255,0.3)',
+                  background: 'rgba(0,212,255,0.1)',
+                  color: 'var(--sp-accent-cyan)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+          {!loading && !signedOut && (fetchError || !Array.isArray(sessions)) && (
+            <ErrorBanner
+              message={fetchError || 'Verified Training History Is Unavailable.'}
+              onRetry={fetchSessions}
+            />
+          )}
           {/* Progress Overview */}
-          <motion.div
+          {plan && !loading && !fetchError && !signedOut && (
+            <motion.div
             className="sp-journey-spotlight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -690,7 +760,8 @@ export default function StudyPlanPage() {
                 }}
               />
             </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Loading State */}
           {loading && (
@@ -700,8 +771,8 @@ export default function StudyPlanPage() {
           )}
 
           {/* Weakness Insights (data-driven transparency) */}
-          {plan && sessions.length > 0 && (() => {
-            const weaknesses = analyzeWeaknesses(sessions);
+          {plan && hasVerifiedHistory && (() => {
+            const weaknesses = analyzeWeaknesses(verifiedSessions);
             const dataWeaknesses = weaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
             if (dataWeaknesses.length === 0) return null;
             return (
@@ -772,8 +843,8 @@ export default function StudyPlanPage() {
           })()}
 
           {/* Today's Focus — CTA */}
-          {sessions.length > 0 && (() => {
-            const allWeaknesses = analyzeWeaknesses(sessions);
+          {hasVerifiedHistory && (() => {
+            const allWeaknesses = analyzeWeaknesses(verifiedSessions);
             const focusWeaknesses = allWeaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
             if (focusWeaknesses.length === 0) return null;
             const focus = focusWeaknesses[Math.floor(Date.now() / 86400000) % focusWeaknesses.length];
@@ -848,9 +919,11 @@ export default function StudyPlanPage() {
                 lineHeight: 1.5,
               }}
             >
-              Plan Regenerates Each Week Based On Your Latest Performance.
+              {isAuthoredStarterPlan
+                ? 'This Is An Authored Starter Plan Because No Verified Sessions Were Found.'
+                : 'Plan Regenerates Each Week From Your Latest Verified Performance.'}
               <br />
-              Complete At Least 4 Days To Maintain Your Streak Bonus.
+              Training Completion And Streaks Are Recorded Only By The Server.
             </div>
           )}
         </div>

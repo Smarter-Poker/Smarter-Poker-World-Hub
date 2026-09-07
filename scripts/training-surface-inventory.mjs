@@ -166,6 +166,25 @@ function literals(source, pattern, group = 1) {
   return [...source.matchAll(pattern)].map((match) => match[group]).filter(Boolean);
 }
 
+function apiReferenceInventory(source) {
+  const policyPrefixes = new Set();
+  for (const declaration of source.matchAll(
+    /\b(?:const|let|var)\s+[A-Z][A-Z0-9_]*API_PREFIXES\s*=\s*(?:Object\.freeze\(\s*)?\[([\s\S]*?)\]\s*\)?\s*;/g,
+  )) {
+    for (const prefix of literals(declaration[1], /['"`](\/api\/[^'"` $}{?]*)/g)) {
+      policyPrefixes.add(prefix);
+    }
+  }
+
+  const references = [...new Set(literals(source, /['"`](\/api\/[^'"` $}{?]*)/g))]
+    .filter((route) => !policyPrefixes.has(route))
+    .sort();
+  return {
+    references,
+    policyPrefixes: [...policyPrefixes].sort(),
+  };
+}
+
 function jsxName(node) {
   if (!node) return '';
   if (node.type === 'JSXIdentifier') return node.name;
@@ -338,6 +357,7 @@ function classifyMarker(file, marker) {
 
 function sourceInventory(file) {
   const source = read(file);
+  const apiInventory = apiReferenceInventory(source);
   const markerPattern = /\b(TODO|FIXME|HACK|STUB|MOCK|PLACEHOLDER|DUMMY)\b|\b(simulat(?:e|ed|ion)|fallback)\b/gi;
   const markers = [...source.matchAll(markerPattern)].map((match) => ({
     kind: (match[1] || match[2] || '').toUpperCase(),
@@ -349,7 +369,8 @@ function sourceInventory(file) {
     file: rel(file),
     imports: importsFor(file, source).map(rel),
     links: [...new Set(literals(source, /['"`](\/hub\/training[^'"` $}{]*)/g))].sort(),
-    apiReferences: [...new Set(literals(source, /['"`](\/api\/[^'"` $}{?]*)/g))].sort(),
+    apiReferences: apiInventory.references,
+    apiReferencePrefixes: apiInventory.policyPrefixes,
     ctas: ctas(source, file),
     dialogs: {
       native: (source.match(/<dialog\b/gi) || []).length,
@@ -490,6 +511,7 @@ function main() {
   })).sort((a, b) => a.template.localeCompare(b.template));
   const links = [...new Set(sourceRows.flatMap((row) => row.links))].sort();
   const apiReferences = [...new Set(sourceRows.flatMap((row) => row.apiReferences))].sort();
+  const apiReferencePrefixes = [...new Set(sourceRows.flatMap((row) => row.apiReferencePrefixes))].sort();
   const allPageTemplates = walk(join(ROOT, 'pages')).filter((file) => !rel(file).startsWith('pages/api/')).map((file) => ({
     template: pageRoute(file, join(ROOT, 'pages'), ''),
     file: rel(file),
@@ -627,6 +649,9 @@ function main() {
   });
   const missingLinks = links.filter((link) => !routeExists(link, allPageTemplates));
   const missingApiDefinitions = apiReferences.filter((route) => !routeExists(route, allApiTemplates));
+  const missingApiPrefixDefinitions = apiReferencePrefixes.filter((prefix) => (
+    !allApiTemplates.some((route) => route.template.startsWith(prefix))
+  ));
   const manifest = {
     schemaVersion: 2,
     generatedBy: 'scripts/training-surface-inventory.mjs',
@@ -636,6 +661,7 @@ function main() {
       trainingRouteTemplates: routes.length,
       dynamicGameRouteExpansions: routes.reduce((sum, route) => sum + route.gameExpansions, 0),
       trainingApiRouteTemplates: apiRoutes.length,
+      apiReferencePrefixes: apiReferencePrefixes.length,
       dependencyFiles: graph.files.length,
       componentFiles: componentFiles.length,
       hookFiles: hookFiles.length,
@@ -658,6 +684,7 @@ function main() {
     routes,
     routeCoverage,
     apiRoutes,
+    apiReferencePrefixes,
     sourceFiles: sourceRows,
     dependencyEdges: graph.edges,
     componentFiles,
@@ -675,6 +702,7 @@ function main() {
     gaps: {
       missingLinks,
       missingApiDefinitions,
+      missingApiPrefixDefinitions,
       markerCandidates: markers,
       possibleUnwiredFunctions,
       routeStates: routeCoverage.filter((route) => route.uncoveredStates.length).map((route) => ({
@@ -686,6 +714,11 @@ function main() {
   };
   assert.deepEqual(missingLinks, [], 'Training source contains unresolved page links');
   assert.deepEqual(missingApiDefinitions, [], 'Training source contains unresolved API references');
+  assert.deepEqual(
+    missingApiPrefixDefinitions,
+    [],
+    'Training source contains an API policy prefix with no concrete route definitions',
+  );
   const json = `${JSON.stringify(manifest, null, 2)}\n`;
   const summary = `${JSON.stringify({ success: true, output: rel(OUTPUT), counts: manifest.counts }, null, 2)}\n`;
   if (process.argv.includes('--write')) {

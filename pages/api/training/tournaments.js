@@ -33,6 +33,8 @@ function failTournamentRead(res, operation, error) {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
 
       if (req.method === 'POST' || req.method === 'PUT') {
@@ -55,7 +57,6 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       const userId = user.id;
 
-      res.setHeader('Cache-Control', 'private, no-store');
       const safeQ = (value) => value
           ? (Array.isArray(value) ? String(value[0]) : typeof value === 'object' ? null : String(value))
           : value;

@@ -7,8 +7,26 @@
  */
 
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes';
+import {
+  isServableSeriesParentEvidence,
+  toPokerSeriesRouteId,
+} from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
+import bundledSeriesData from '../data/poker-tour-series-2026.json';
+import tourSourceRegistry from '../data/tour-source-registry.json';
 
 const SITE_URL = 'https://smarter.poker';
+const SITEMAP_DB_PAGE_SIZE = 1000;
+const SERVABLE_SERIES_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
+const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
+  'id',
+  'is_suppressed',
+  'data_quality',
+  'source_url',
+  'scrape_url',
+  'scrape_html_hash',
+  'scrape_timestamp',
+  'scrape_batch_id',
+].join(', ');
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
 const staticPages = [
@@ -38,6 +56,11 @@ const staticPages = [
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
+  // These standalone map/card directories are distinct, self-canonical public
+  // surfaces. Keep them discoverable alongside the unified PNM tour/series
+  // tabs instead of publishing canonical pages that the sitemap omits.
+  { path: '/hub/poker-tours', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/poker-series', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },
@@ -264,6 +287,122 @@ async function buildPokerVenueUrls() {
   }
 }
 
+async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilters }) {
+  const rows = [];
+  for (let from = 0; ; from += SITEMAP_DB_PAGE_SIZE) {
+    let query = supabase
+      .from(table)
+      .select(select)
+      .order(orderBy, { ascending: true })
+      .range(from, from + SITEMAP_DB_PAGE_SIZE - 1);
+    if (applyFilters) query = applyFilters(query);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`${table}: ${error.message}`);
+    const page = Array.isArray(data) ? data : [];
+    rows.push(...page);
+    if (page.length < SITEMAP_DB_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
+// Index every public detail contract behind the two event directories. A
+// nonempty API fallback bundle and the route-keyed tour registry keep their
+// resolvable detail routes discoverable during a database outage; database
+// rows extend that baseline without silently truncating at PostgREST's default
+// 1,000-row limit.
+async function buildPokerEventDetailUrls() {
+  const urls = new Map();
+  const addSeries = (rawId) => {
+    const id = Number(rawId);
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+    const path = `/hub/series/${id}`;
+    urls.set(path, { path, priority: '0.7', changefreq: 'daily' });
+  };
+  const addTour = (rawCode) => {
+    const code = String(rawCode || '').trim().toUpperCase();
+    if (!/^[A-Z0-9_-]+$/.test(code)) return;
+    const path = `/hub/tours/${encodeURIComponent(code)}`;
+    urls.set(path, { path, priority: '0.7', changefreq: 'daily' });
+  };
+
+  const bundledSeries = Array.isArray(bundledSeriesData)
+    ? bundledSeriesData
+    : (bundledSeriesData?.series_2026 || []);
+  // The public series API assigns IDs to this exact bundle before suppression,
+  // so preserve its original index. If the bundle is empty, add no fallback
+  // IDs: source-registry array positions are not persistent route identities.
+  bundledSeries.forEach((series, index) => {
+    if (!series?.is_suppressed) addSeries(index + 1);
+  });
+
+  for (const [registryCode, tour] of Object.entries(tourSourceRegistry?.tours || {})) {
+    if (tour?.is_active === false) continue;
+    addTour(tour?.tour_code || registryCode);
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return Array.from(urls.values());
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(url, key);
+    const results = await Promise.allSettled([
+      fetchAllSitemapRows({
+        supabase,
+        table: 'tournament_series',
+        select: SITEMAP_SERIES_EVIDENCE_COLUMNS,
+        orderBy: 'id',
+        applyFilters: (query) => query
+          .or('is_suppressed.is.null,is_suppressed.eq.false')
+          .in('data_quality', SERVABLE_SERIES_QUALITIES),
+      }),
+      fetchAllSitemapRows({
+        supabase,
+        table: 'poker_series',
+        select: SITEMAP_SERIES_EVIDENCE_COLUMNS,
+        orderBy: 'id',
+        applyFilters: (query) => query
+          .or('is_suppressed.is.null,is_suppressed.eq.false')
+          .in('data_quality', SERVABLE_SERIES_QUALITIES),
+      }),
+      fetchAllSitemapRows({
+        supabase,
+        table: 'tour_source_registry',
+        select: 'tour_code',
+        orderBy: 'tour_code',
+        applyFilters: (query) => query.eq('is_active', true),
+      }),
+    ]);
+
+    if (results[0].status === 'fulfilled') {
+      results[0].value
+        .filter(row => isServableSeriesParentEvidence(row))
+        .forEach((row) => addSeries(row.id));
+    } else {
+      console.warn('[sitemap] tournament_series detail URLs unavailable:', results[0].reason?.message);
+    }
+    if (results[1].status === 'fulfilled') {
+      results[1].value
+        .filter(row => isServableSeriesParentEvidence(row))
+        .forEach((row) => addSeries(toPokerSeriesRouteId(row.id)));
+    } else {
+      console.warn('[sitemap] poker_series detail URLs unavailable:', results[1].reason?.message);
+    }
+    if (results[2].status === 'fulfilled') {
+      results[2].value.forEach((row) => addTour(row.tour_code));
+    } else {
+      console.warn('[sitemap] tour detail URLs unavailable:', results[2].reason?.message);
+    }
+  } catch (err) {
+    console.warn('[sitemap] event detail URL build failed:', err.message);
+    return Array.from(urls.values());
+  }
+
+  return Array.from(urls.values());
+}
+
 function generateSitemapXml(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -284,8 +423,17 @@ ${urls
 }
 
 export async function getServerSideProps({ res }) {
-  const [homeGameUrls, pokerVenueUrls] = await Promise.all([buildHomeGameUrls(), buildPokerVenueUrls()]);
-  const sitemap = generateSitemapXml([...staticPages, ...homeGameUrls, ...pokerVenueUrls]);
+  const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls] = await Promise.all([
+    buildHomeGameUrls(),
+    buildPokerVenueUrls(),
+    buildPokerEventDetailUrls(),
+  ]);
+  const sitemap = generateSitemapXml([
+    ...staticPages,
+    ...homeGameUrls,
+    ...pokerVenueUrls,
+    ...pokerEventDetailUrls,
+  ]);
 
   res.setHeader('Content-Type', 'text/xml');
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');

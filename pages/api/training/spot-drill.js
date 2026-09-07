@@ -206,8 +206,9 @@ function buildCandidateQuery({ families, position, stackDepth, pivot }) {
 
 export default async function handler(req, res) {
     try {
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+        res.setHeader('Vary', 'Authorization');
         withTiming(res);
-        res.setHeader('Cache-Control', 'private, no-store');
         if (!applyRateLimit(req, res, LIMITS.read)) return;
         if (req.method !== 'GET') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });

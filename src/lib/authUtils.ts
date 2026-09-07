@@ -15,6 +15,12 @@
 
 import { useState, useEffect } from 'react';
 import { resolveAnonKey, anonKeyWarning } from './supabaseKeys';
+import {
+    boundedTrainingFetch,
+    isBoundedTrainingApiUrl,
+    trainingDeadlineIsActive,
+    TRAINING_REQUEST_TIMEOUT_MS,
+} from './training/boundedTrainingFetch';
 
 // Storage key used by Supabase client (must match supabase.ts config)
 const AUTH_STORAGE_KEY = 'smarter-poker-auth';
@@ -535,7 +541,7 @@ export async function ensureAuthReady(supabaseClient?: any): Promise<any | null>
  * Automatically injects the Authorization header from getAccessToken().
  * Usage: const data = await authedFetch('/api/some-endpoint', { method: 'POST', body: ... });
  */
-export async function authedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+async function performAuthedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const token = getAccessToken();
     const headers = new Headers(options.headers || {});
     if (options.body && typeof options.body === 'string' && !headers.has('Content-Type')) {
@@ -589,6 +595,19 @@ export async function authedFetch(url: string, options: RequestInit = {}): Promi
         } catch { /* non-JSON 403 — fall through to caller */ }
     }
     return resp;
+}
+
+export async function authedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    if (!isBoundedTrainingApiUrl(url) || trainingDeadlineIsActive(options.signal)) {
+        return performAuthedFetch(url, options);
+    }
+
+    return boundedTrainingFetch(
+        url,
+        options,
+        TRAINING_REQUEST_TIMEOUT_MS,
+        (_input: string, boundedOptions: RequestInit) => performAuthedFetch(url, boundedOptions),
+    );
 }
 
 /**

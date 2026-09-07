@@ -8,7 +8,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -16,6 +16,7 @@ import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNea
 import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
+import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -29,6 +30,16 @@ import dynamic from 'next/dynamic';
 import { createClient } from '@supabase/supabase-js';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
+import {
+  buildLiveCashGameIndex,
+  findLiveCashGameEntry,
+} from '../../../src/lib/poker-near-me/liveCashGameData';
+import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching';
+import {
+  createPokerMapSession,
+  loadPokerMapRuntime,
+  resetPokerMapRuntime,
+} from '../../../src/lib/poker-near-me/mapRuntime';
 
 const BestTimeToGoWidget = dynamic(
   () => import('../../../src/components/poker-near-me/BestTimeToGoWidget'),
@@ -279,7 +290,8 @@ const PUBLIC_VENUE_FIELDS = [
   'poker_atlas_url', 'pokeratlas_url', 'has_tournaments',
   'trust_score', 'is_featured', 'commander_enabled',
   'profile_photo_url', 'cover_photo_url', 'logo_url',
-  'about', 'tagline', 'slug', 'games_offered', 'stakes_cash', 'poker_tables',
+  'about', 'tagline', 'slug', 'bravo_slug', 'pokeratlas_slug',
+  'games_offered', 'stakes_cash', 'poker_tables',
   'follower_count', 'social_links', 'timezone',
   'last_scraped', 'last_scraped_at',
 ];
@@ -609,6 +621,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   const [copySuccess, setCopySuccess] = useState(false);
   const [friendState, setFriendState] = useState('none');
   const [friendBusy, setFriendBusy] = useState(false);
+  const [friendNotice, setFriendNotice] = useState('');
 
   // Live Games state
   const [liveGames, setLiveGames] = useState([]);
@@ -674,7 +687,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   // Map state
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const mapSessionRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState('');
+  const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
+  const handleVenueMapLayoutChange = useCallback(function () {
+    mapInstanceRef.current?.invalidateSize?.({ pan: false });
+  }, []);
 
   // Promotions state
   const [promotions, setPromotions] = useState([]);
@@ -815,27 +834,43 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   // Fetch Bravo live table data (scraped real-time from Bravo Poker Live)
   useEffect(function () {
     if (!venue || !venue.name) return;
+    var cancelled = false;
+    var controller = new AbortController();
     setBravoLiveLoading(true);
-    fetch('/api/poker/live-tables?search=' + encodeURIComponent(venue.name))
-      .then(function (r) { return r.json(); })
-      .then(function (json) {
-        if (json.venues && json.venues.length > 0) {
-          // Find best match by name similarity
-          var venueLower = venue.name.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-          var best = json.venues.find(function (v) {
-            var bName = (v.venue_name || '').toLowerCase().replace(/[^a-z0-9\s]/g, '');
-            return bName === venueLower || bName.includes(venueLower) || venueLower.includes(bName);
-          }) || null;
-          // If no name match, try the first result if only 1 venue returned
-          if (!best && json.venues.length === 1) best = json.venues[0];
-          setBravoLiveTables(best);
-        } else {
-          setBravoLiveTables(null);
+    (async function loadVenueActivity() {
+      try {
+        // Prefer a source identity key, then use the shared deterministic core
+        // matcher over a bounded name search. Never accept "the first" fuzzy
+        // result: generic names can describe multiple independent rooms.
+        var exactSlug = venue.bravo_slug
+          || (venue.pokeratlas_slug ? 'pa-' + venue.pokeratlas_slug : null);
+        var searchCore = normalizeVenueName(venue.name) || venue.name;
+        var urls = [];
+        if (exactSlug) {
+          urls.push('/api/poker/live-tables?venue=' + encodeURIComponent(exactSlug));
         }
-      })
-      .catch(function () { setBravoLiveTables(null); })
-      .finally(function () { setBravoLiveLoading(false); });
-  }, [venue]);
+        urls.push('/api/poker/live-tables?search=' + encodeURIComponent(searchCore));
+
+        var matched = null;
+        for (var requestUrl of Array.from(new Set(urls))) {
+          var response = await fetch(requestUrl, { signal: controller.signal });
+          if (!response.ok) continue;
+          var json = await response.json();
+          matched = findLiveCashGameEntry(venue, buildLiveCashGameIndex(json));
+          if (matched) break;
+        }
+        if (!cancelled) setBravoLiveTables(matched);
+      } catch (error) {
+        if (!cancelled && error?.name !== 'AbortError') setBravoLiveTables(null);
+      } finally {
+        if (!cancelled) setBravoLiveLoading(false);
+      }
+    })();
+    return function () {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [venue?.id, venue?.name, venue?.bravo_slug, venue?.pokeratlas_slug]);
 
   // Fetch waitlist data for board display
   var fetchWaitlist = async function () {
@@ -1189,18 +1224,24 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     }
   }, [action, tab, loading]);
 
-  // Wait for Leaflet scripts
+  // Load the same pinned Leaflet runtime used by every other Poker Near Me
+  // map. Waiting for an unrelated route to populate window.L left direct
+  // venue-profile loads with an empty map forever.
   useEffect(function () {
-    if (typeof window === 'undefined') return;
-    var check = function () {
-      if (window.L) {
-        setMapReady(true);
-      } else {
-        setTimeout(check, 200);
-      }
-    };
-    check();
-  }, []);
+    if (typeof window === 'undefined') return undefined;
+    var cancelled = false;
+    setMapReady(false);
+    setMapError('');
+    loadPokerMapRuntime()
+      .then(function () {
+        if (!cancelled) setMapReady(true);
+      })
+      .catch(function (error) {
+        console.warn('Venue map runtime failed to load:', error);
+        if (!cancelled) setMapError('The map engine could not be loaded. Directions remain available.');
+      });
+    return function () { cancelled = true; };
+  }, [mapLoadAttempt]);
 
   // Initialize venue map once Leaflet is ready and venue loaded
   useEffect(function () {
@@ -1209,35 +1250,55 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     if (mapInstanceRef.current) return;
 
     var L = window.L;
-    var map = L.map(mapContainerRef.current, {
-      center: [venue.latitude, venue.longitude],
-      zoom: 15,
-      zoomControl: true,
-      attributionControl: false,
-      scrollWheelZoom: false,
+    var session = createPokerMapSession({
+      L: L,
+      container: mapContainerRef.current,
+      tileStyle: 'dark_all',
+      attribution: false,
+      mapOptions: {
+        center: [venue.latitude, venue.longitude],
+        zoom: 15,
+        scrollWheelZoom: false,
+      },
     });
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '',
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(map);
+    var map = session.map;
+    mapSessionRef.current = session;
 
     var goldIcon = L.divIcon({
       className: 'venue-detail-marker',
-      html: '<div style="width:20px;height:20px;border-radius:50%;background:#ffffff;border:3px solid #fff;box-shadow:0 0 12px rgba(255,255,255,0.8);"></div>',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
+      html: '<div aria-hidden="true" style="width:44px;height:44px;display:grid;place-items:center;"><span style="display:block;width:20px;height:20px;border-radius:50%;background:#ffffff;border:3px solid #fff;box-shadow:0 0 12px rgba(255,255,255,0.8);"></span></div>',
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
     });
 
-    L.marker([venue.latitude, venue.longitude], { icon: goldIcon }).addTo(map);
+    var popup = document.createElement('div');
+    popup.className = 'venue-detail-map-popup';
+    var popupName = document.createElement('strong');
+    popupName.textContent = venue.name || 'Poker venue';
+    var popupLocation = document.createElement('span');
+    popupLocation.textContent = [venue.city, venue.state].filter(Boolean).join(', ');
+    popup.appendChild(popupName);
+    if (popupLocation.textContent) popup.appendChild(popupLocation);
+
+    var venueMarker = L.marker([venue.latitude, venue.longitude], {
+      icon: goldIcon,
+      keyboard: true,
+      title: venue.name || 'Poker venue',
+      alt: `${venue.name || 'Poker venue'} location marker`,
+    }).addTo(map).bindPopup(popup);
+    var venueMarkerElement = venueMarker.getElement && venueMarker.getElement();
+    if (venueMarkerElement) {
+      venueMarkerElement.setAttribute(
+        'aria-label',
+        `${venue.name || 'Poker venue'} location. Press Enter to show map details.`
+      );
+    }
     mapInstanceRef.current = map;
 
     return function () {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
+      mapSessionRef.current?.destroy();
+      mapSessionRef.current = null;
+      mapInstanceRef.current = null;
     };
   }, [mapReady, venue, locationConflict]);
   // Realtime subscription — live updates
@@ -1444,7 +1505,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     try {
       const u = getAuthUser();
       const authRaw = localStorage.getItem('smarter-poker-auth');
-      if (!u || !authRaw) { alert('You must be logged in to add friends.'); return; }
+      if (!u || !authRaw) {
+        setFriendNotice('Sign in to send a friend request to this host.');
+        return;
+      }
+      setFriendNotice('');
       setFriendBusy(true);
       const auth = JSON.parse(authRaw);
       // 2026-08-12: was POSTing to the non-existent /api/social/friends with
@@ -1459,9 +1524,16 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         },
         body: JSON.stringify({ friend_id: venue.owner_id })
       });
-      if (res.ok) setFriendState('pending');
-      else alert('Failed to send friend request. You may already be friends.');
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+      if (res.ok) {
+        setFriendState('pending');
+        setFriendNotice('Friend request sent.');
+      } else {
+        setFriendNotice('The friend request could not be sent. You may already be connected.');
+      }
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      setFriendNotice('The friend request could not be sent. Try again shortly.');
+    }
     setFriendBusy(false);
   };
 
@@ -1851,7 +1923,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           onClose={() => setMenuOpen(false)}
       />
 
-      <main className="venue-page" data-pnm-secondary-foundation="interaction-v1">
+      <main className="venue-page" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {loading && !venue && (
           <div className="loading-state">
             <div className="spinner" />
@@ -1886,16 +1958,27 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
                 { label: venue.name },
               ]}
-              status={(bravoLiveTables?.games || []).some(function (game) { return !game.is_simulated && (game.tables_running || 0) > 0; })
-                ? 'Live tables observed'
-                : (bravoLiveTables?.games || []).some(function (game) { return game.is_simulated; })
-                  ? 'Modeled activity available'
-                  : 'Venue profile available'}
-              statusTone={(bravoLiveTables?.games || []).some(function (game) { return !game.is_simulated && (game.tables_running || 0) > 0; })
+              status={bravoLiveTables?.data_mode === 'live'
+                ? ((bravoLiveTables?.games || []).some(function (game) { return (game.tables_running || 0) > 0; })
+                  ? 'Live tables observed'
+                  : 'Live feed current, no tables reported')
+                : bravoLiveTables?.data_mode === 'mixed'
+                  ? 'Observed and modeled activity available'
+                  : bravoLiveTables?.data_mode === 'estimated'
+                    ? 'Modeled activity available'
+                    : bravoLiveTables?.data_mode === 'catalog'
+                      ? 'Catalog games listed, live count unknown'
+                      : 'Venue profile available'}
+              statusTone={bravoLiveTables?.data_mode === 'live'
                 ? 'live'
-                : (bravoLiveTables?.games || []).some(function (game) { return game.is_simulated; }) ? 'modeled' : 'neutral'}
+                : ['mixed', 'estimated'].includes(bravoLiveTables?.data_mode) ? 'modeled' : 'neutral'}
               freshness={bravoLiveTables?.last_updated
-                ? { label: 'Live feed timestamp available', dateTime: bravoLiveTables.last_updated }
+                ? {
+                  label: bravoLiveTables?.data_mode === 'catalog'
+                    ? 'Catalog timestamp available'
+                    : 'Live feed timestamp available',
+                  dateTime: bravoLiveTables.last_updated,
+                }
                 : { label: 'Venue profile record' }}
               metrics={[
                 { label: 'Location', value: [venue.city, venue.state].filter(Boolean).join(', ') || 'See venue details' },
@@ -2071,6 +2154,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </button>
                 )}
               </div>
+              {friendNotice && (
+                <div className="venue-action-notice" role="status">
+                  <span>{friendNotice}</span>
+                  <button type="button" onClick={() => setFriendNotice('')} aria-label="Dismiss friend request notice">Dismiss</button>
+                </div>
+              )}
             </header>
 
             {/* ============================================ */}
@@ -2078,26 +2167,48 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {bravoLiveTables && bravoLiveTables.games && bravoLiveTables.games.length > 0 && (function () {
               var runningGames = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) > 0; });
+              var catalogGames = bravoLiveTables.games.filter(function (g) { return g.observation_kind === 'catalog'; });
+              var catalogOnly = bravoLiveTables.data_mode === 'catalog' && catalogGames.length > 0;
+              var displayedGames = catalogOnly ? catalogGames : runningGames;
               // Simulator rows intentionally carry source==='bravo'; is_simulated is
               // the API's authoritative flag. Never present modeled counts as live.
-              var allCountsSimulated = runningGames.length > 0 && runningGames.every(function (g) { return g.is_simulated; });
-              var anySimulated = (bravoLiveTables.games || []).some(function (g) { return g.is_simulated; });
+              var allCountsSimulated = bravoLiveTables.data_mode === 'estimated';
+              var anySimulated = (bravoLiveTables.games || []).some(function (g) { return g.is_simulated && g.live_count_known !== false && !g.is_stale; });
+              var anyObserved = (bravoLiveTables.games || []).some(function (g) { return !g.is_simulated && g.observation_kind === 'observed' && g.live_count_known !== false && !g.is_stale; });
+              var mixedCounts = bravoLiveTables.data_mode === 'mixed';
               var waitlistOnly = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) === 0 && (g.players_waiting || 0) > 0; });
               var totalTablesRunning = runningGames.reduce(function (sum, g) { return sum + (g.tables_running || 0); }, 0);
-              if (runningGames.length === 0 && waitlistOnly.length === 0) return null;
+              if (displayedGames.length === 0 && waitlistOnly.length === 0) return null;
               return (
               <section className="bravo-live-banner">
                 <div className="bravo-live-header">
                   <div className="bravo-live-title-row">
-                    <span className="bravo-live-pulse" />
-                    <h2 className="bravo-live-title">Live Games Right Now</h2>
+                    {anyObserved && !mixedCounts && <span className="bravo-live-pulse" />}
+                    <h2 className="bravo-live-title">{catalogOnly
+                      ? 'Cash Games Listed'
+                      : allCountsSimulated
+                        ? 'Estimated Cash-Game Activity'
+                        : mixedCounts
+                          ? 'Observed And Estimated Cash Games'
+                          : 'Live Games Right Now'}</h2>
                     <span className="bravo-live-count">
-                      {totalTablesRunning} {totalTablesRunning === 1 ? 'Table' : 'Tables'}{allCountsSimulated ? ' Estimated' : ' Running'}
+                      {catalogOnly
+                        ? 'Live Count Unknown'
+                        : totalTablesRunning + ' ' + (totalTablesRunning === 1 ? 'Table' : 'Tables') + (allCountsSimulated
+                          ? ' Estimated'
+                          : mixedCounts
+                            ? ' Observed + Estimated'
+                            : ' Running')}
                     </span>
                     {allCountsSimulated && (
                       <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}
                             title="Modeled from historical activity patterns, not a live observation">
                         Modeled
+                      </span>
+                    )}
+                    {mixedCounts && (
+                      <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}>
+                        Mixed Sources
                       </span>
                     )}
                   </div>
@@ -2108,7 +2219,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   )}
                 </div>
                 <div className="bravo-live-games-grid">
-                  {runningGames.map(function (g, idx) {
+                  {displayedGames.map(function (g, idx) {
                     var totalTables = g.tables_running || 0;
                     var waiting = g.players_waiting || 0;
                     return (
@@ -2116,11 +2227,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                         <div className="bravo-game-name">{g.game}</div>
                         <div className="bravo-game-stats">
                           <span className="bravo-game-tables">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={catalogOnly ? '#d8e4ec' : (allCountsSimulated || mixedCounts ? '#f59e0b' : '#4ade80')} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                               <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                             </svg>
-                            {totalTables} {totalTables === 1 ? 'Table' : 'Tables'}
+                            {catalogOnly ? 'Live count unknown' : totalTables + ' ' + (totalTables === 1 ? 'Table' : 'Tables')}
                           </span>
                           {waiting > 0 && (
                             <span className="bravo-game-waiting">
@@ -2138,7 +2249,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </div>
                 {waitlistOnly.length > 0 && (
                   <div style={{ padding: '8px 16px 4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(245,158,11,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(245,158,11,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
                     <div className="bravo-live-games-grid">
                       {waitlistOnly.map(function (g, idx) {
                         return (
@@ -2160,7 +2271,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                 )}
                 <div className="bravo-live-footer">
-                  <span className="bravo-live-source">Data From {(bravoLiveTables.games || []).some(function(g) { return g.source === 'bravo' && !g.is_simulated; }) ? 'Bravo Poker Live' : (anySimulated ? 'Smarter.Poker Estimates (modeled)' : 'Smarter.Poker Intelligence')}</span>
+                  <span className="bravo-live-source">Data From {catalogOnly
+                    ? 'PokerAtlas Catalog'
+                    : mixedCounts
+                      ? 'Bravo Poker Live + Smarter.Poker Estimates'
+                      : anyObserved
+                        ? 'Bravo Poker Live'
+                        : (anySimulated ? 'Smarter.Poker Estimates (modeled)' : 'Smarter.Poker Intelligence')}</span>
                   <button
                     className="bravo-live-scroll-btn"
                     onClick={function () {
@@ -2531,9 +2648,37 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </svg>
                   Location
                 </h2>
-                <div className="venue-map-wrapper">
-                  <div ref={mapContainerRef} className="venue-map-container" />
-                </div>
+                <MapSurfaceFrame
+                  eyebrow="Venue coordinates"
+                  title={venue.name + ' location'}
+                  detail={buildVenueAddress(venue) || 'Select full screen for detailed map navigation'}
+                  onLayoutChange={handleVenueMapLayoutChange}
+                >
+                  <div className="venue-map-wrapper pnm-map-stage">
+                    <div
+                      ref={mapContainerRef}
+                      className="venue-map-container pnm-leaflet-map"
+                      role="region"
+                      aria-label={venue.name + ' interactive location map'}
+                      aria-busy={!mapReady && !mapError}
+                      tabIndex={0}
+                      data-map-foundation="shared-v3"
+                      data-map-ready={mapReady ? 'true' : 'false'}
+                    />
+                    {mapError && (
+                      <div className="pnm-map-error-state" role="alert">
+                        <p>{mapError}</p>
+                        <button
+                          type="button"
+                          onClick={function () {
+                            resetPokerMapRuntime();
+                            setMapLoadAttempt(function (value) { return value + 1; });
+                          }}
+                        >Retry Map</button>
+                      </div>
+                    )}
+                  </div>
+                </MapSurfaceFrame>
                 <div className="map-actions">
                   <button
                     onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('directions'); }}
@@ -2549,7 +2694,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     className="viewmap-btn"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
                       <line x1="8" y1="2" x2="8" y2="18" />
                       <line x1="16" y1="6" x2="16" y2="22" />
                     </svg>
@@ -2971,7 +3116,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       <div style={{
                         width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,212,255,0.15)',
                         border: '2px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', marginLeft: -8, fontSize: 10, fontWeight: 700, color: '#00D4FF'
+                        justifyContent: 'center', marginLeft: -8, fontSize: 12, fontWeight: 700, color: '#00D4FF'
                       }}>+{whosHere.total - 4}</div>
                     )}
                   </div>
@@ -3117,7 +3262,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {leader.full_name || leader.user_name}
                           </div>
-                          {leader.username && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>@{leader.username}</div>}
+                          {leader.username && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{leader.username}</div>}
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>{leader.count}</div>
                       </div>
@@ -3141,13 +3286,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     var pct = venueActivity.maxCount > 0 ? (d.count / venueActivity.maxCount) * 100 : 0;
                     return (
                       <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{d.count || ''}</span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{d.count || ''}</span>
                         <div style={{
                           width: '100%', minHeight: 4, height: Math.max(4, pct * 0.7) + 'px',
                           borderRadius: 3, background: d.count > 0 ? 'linear-gradient(180deg, #22c55e, #16a34a)' : 'rgba(255,255,255,0.05)',
                           transition: 'height 0.3s ease'
                         }} />
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{d.dayName}</span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{d.dayName}</span>
                       </div>
                     );
                   })}
@@ -3598,7 +3743,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           text-transform: capitalize;
         }
         .game-schedule-day-count {
-          font-size: 11px;
+          font-size:12px;
           color: rgba(200, 214, 229, 0.5);
           font-weight: 600;
           margin-left: auto;
@@ -3637,7 +3782,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           white-space: nowrap;
         }
         .game-schedule-notes {
-          font-size: 11px;
+          font-size:12px;
           color: rgba(200, 214, 229, 0.45);
           font-style: italic;
         }
@@ -3659,7 +3804,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           border: 1px solid rgba(239, 68, 68, 0.3);
           background: rgba(239, 68, 68, 0.1);
           color: #ef4444;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 600;
           cursor: pointer;
           font-family: inherit;
@@ -3852,7 +3997,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           display: inline-block;
           padding: 3px 12px;
           border-radius: 20px;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           letter-spacing: 0.5px;
           text-transform: uppercase;
@@ -3866,7 +4011,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           gap: 4px;
           padding: 3px 12px;
           border-radius: 20px;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           letter-spacing: 0.5px;
           text-transform: uppercase;
@@ -3899,6 +4044,41 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           display: flex;
           gap: 10px;
           margin-top: 20px;
+        }
+        .venue-action-notice {
+          min-height: 46px;
+          margin-top: 10px;
+          padding: 8px 10px 8px 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          border: 1px solid #526071;
+          border-radius: 3px;
+          background: #090e16;
+          box-shadow: inset 2px 0 0 #38bdf8, inset 0 0 0 1px rgba(255,255,255,.035);
+          color: #cbd5e1;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .venue-action-notice button {
+          min-height: 40px;
+          flex: 0 0 auto;
+          border: 1px solid #526071;
+          border-radius: 2px;
+          padding: 0 12px;
+          background: #0d131c;
+          color: #bae6fd;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+        .venue-action-notice button:focus-visible {
+          outline: 2px solid #e0f2fe;
+          outline-offset: 2px;
         }
         .action-btn {
           display: inline-flex;
@@ -3945,7 +4125,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           padding: 0 6px;
           border-radius: 10px;
           background: rgba(0, 212, 255, 0.2);
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           color: #00D4FF;
         }
@@ -4022,7 +4202,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         .venue-location-integrity strong {
           display: block;
           color: #ead29b;
-          font-size: 11px;
+          font-size:12px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
         }
@@ -4068,7 +4248,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           min-width: 0;
         }
         .info-label {
-          font-size: 11px;
+          font-size:12px;
           font-weight: 600;
           color: #64748b;
           text-transform: uppercase;
@@ -4134,7 +4314,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           margin: 0;
         }
         .today-badge {
-          font-size: 10px;
+          font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -4186,7 +4366,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           flex-wrap: wrap;
         }
         .detail-chip {
-          font-size: 11px;
+          font-size:12px;
           font-weight: 600;
           padding: 3px 10px;
           border-radius: 6px;
@@ -4509,14 +4689,14 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         }
         .waitlist-overflow {
           text-align: center;
-          font-size: 11px;
+          font-size:12px;
           color: rgba(255,255,255,0.3);
           padding: 4px;
         }
         .waitlist-column-footer {
           padding: 8px;
           text-align: center;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           color: rgba(255,255,255,0.5);
           text-transform: uppercase;
@@ -4549,7 +4729,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         }
         .waitlist-powered-by {
           margin-top: 8px;
-          font-size: 11px;
+          font-size:12px;
           color: rgba(255,255,255,0.3);
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -4568,7 +4748,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           margin-left: 10px;
           padding: 2px 10px;
           border-radius: 10px;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.3px;
@@ -4636,7 +4816,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         .live-game-time {
           display: block;
           margin-top: 8px;
-          font-size: 11px;
+          font-size:12px;
           color: #64748b;
         }
 
@@ -4935,7 +5115,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           display: inline-block;
           padding: 3px 10px;
           border-radius: 6px;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.3px;
@@ -5227,7 +5407,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           display: inline-block;
           padding: 3px 10px;
           border-radius: 6px;
-          font-size: 11px;
+          font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.3px;
@@ -5289,7 +5469,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           min-width: 0;
         }
         .related-series-tour {
-          font-size: 10px;
+          font-size:12px;
           font-weight: 700;
           color: #00D4FF;
           text-transform: uppercase;
@@ -5375,7 +5555,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           color: #94a3b8;
         }
         .nearby-venue-type {
-          font-size: 11px;
+          font-size:12px;
           font-weight: 600;
           color: #64748b;
           text-transform: uppercase;
@@ -5461,7 +5641,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           letter-spacing: 0.3px;
         }
         .bravo-live-updated {
-          font-size: 11px;
+          font-size:12px;
           color: rgba(255, 255, 255, 0.4);
           font-style: italic;
         }
@@ -5529,7 +5709,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           justify-content: space-between;
         }
         .bravo-live-source {
-          font-size: 11px;
+          font-size:12px;
           color: rgba(255, 255, 255, 0.35);
           letter-spacing: 0.3px;
           text-transform: uppercase;

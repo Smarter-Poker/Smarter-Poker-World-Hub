@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-BRAVO POKER LIVE — HISTORICAL PATTERN SIMULATOR DAEMON v1.2
+BRAVO POKER LIVE - OBSERVED-HISTORY ESTIMATOR DAEMON v1.4
 ============================================================
-PURPOSE: Keeps Poker Near Me "live" while the real Bravo scraper is offline.
-         Uses a RECENT window of real historical data from game_live_history
-         (newest-first, up to MAX_HISTORY_ROWS rows per source) to reproduce
-         per-venue, per-game, per-hour patterns.
+PURPOSE: Publishes Poker Near Me estimates while the real Bravo scraper is
+         offline, but only where a RECENT window of saved Bravo observations
+         contains enough samples for that exact venue, game, Central weekday,
+         and Central hour.
 
          These rows are MODELLED, NOT OBSERVED. They are marked as such: the
          batch id is prefixed 'sim-', scrape_html_hash is NULL because no page
@@ -15,24 +15,22 @@ PURPOSE: Keeps Poker Near Me "live" while the real Bravo scraper is offline.
 
 ARCHITECTURE:
   Phase 1 (startup, rebuilt every 24h): Pull a RECENT window of
-                     game_live_history from Supabase → build in-memory
-                     pattern model for every venue+game combination.
-  Phase 2 (every 15 min): Apply time-of-day + day-of-week multipliers +
-                           mean-reverting step + Gaussian noise → generate
-                           synthetic "live" snapshot → INSERT fresh batch to
-                           venue_live_tables → DELETE stale sim rows.
+                     game_live_history from Supabase, retain qualified Bravo
+                     observations, and map them to unique active directory
+                     venues. PokerAtlas rows may enrich metadata only.
+  Phase 2 (every 15 min): Select the saved median for the exact Central
+                           weekday/hour context, UPSERT the modeled batch to
+                           venue_live_tables, then DELETE stale sim rows.
 
 REALISM FEATURES:
-  • Per-venue, per-game baseline tables/waiting from real observed data
-  • Time-of-day curves: peak 6–10pm, dead 4–8am (US Central time)
-  • Day-of-week multipliers: Fri/Sat +40%, Mon/Tue -25%
-  • Historical hour/day curves derived from OBSERVED TABLE COUNTS
-  • Gaussian noise on each game's table count (σ ≈ 20% of mean)
-  • Mean-reverting continuity between cycles (no 15-min teleporting)
-  • Waitlist only appears when tables > baseline (overflow condition)
-  • Venues can go dark as a whole; per-game random blackouts removed
+  • Exact venue + game + Central weekday + Central hour evidence gates
+  • Median tables/waiting derived only from qualified Bravo observations
+  • Minimum sample and distinct-date floors for every published context
+  • Deterministic estimates: no generic curve, random noise, or blackout
+  • Catalog metadata can enrich a matched observed game but cannot create one
+  • Ambiguous or unmatched directory identities fail closed
   • Batch_id prefixed "sim-" for audit trail (never confused with real scrapes)
-  • Writes source='bravo' so API treats it as real-time priority data
+  • Writes observation_kind='modeled' while retaining the legacy source key
   • Venues with FRESH REAL scraped data are skipped entirely
   • scrape_html_hash is NULL — nothing was fetched, so no page hash exists
   • DST-aware Central time offset computed dynamically
@@ -83,6 +81,22 @@ CHANGELOG v1.2 (data-integrity pass):
   • PID guard treats PermissionError as "process is alive" (it means exactly
     that) and verifies the recorded command line before reusing a PID.
 
+CHANGELOG v1.3 (retry safety):
+  • RETRIES ARE IDEMPOTENT: every modeled current-feed row carries a stable
+    negative primary key scoped to source + batch + venue + game. PostgREST
+    conflict-merges those IDs and returns the persisted rows for confirmation,
+    so a commit followed by a lost response cannot duplicate the batch.
+
+CHANGELOG v1.4 (observed-history truth gate):
+  • Removed the arbitrary one-table baseline for PokerAtlas-only catalog rows.
+  • Removed hand-authored hour/day curves, random noise, random blackout, and
+    simulated continuity as sources of activity counts.
+  • An estimate now requires enough saved Bravo observations for the exact
+    venue/game/weekday/hour context across multiple dates.
+  • Qualified history is mapped to a unique active physical directory venue;
+    ambiguous, orphaned, catalog-only, insufficient, or stale data publishes
+    no count and retires prior modeled rows.
+
 Run:
   # Foreground (shows logs):
   /Users/smarter.poker/.local/share/smarter-poker-venv/bin/python3 \
@@ -96,12 +110,14 @@ Run:
 """
 from __future__ import annotations  # Python 3.9 compat for union type hints
 
+import fcntl
+import html
 import json
 import os
+import re
 import sys
 import time
 import uuid
-import random
 import logging
 import signal
 import traceback
@@ -113,6 +129,13 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Optional
 from dotenv import load_dotenv
+from scraper_data_truth import (
+    OBSERVATION_MODELED,
+    QUALITY_MODELED,
+    classify_persisted_run,
+    is_observed_bravo_row,
+    stable_live_row_id,
+)
 
 # ── PATH SETUP ──────────────────────────────────────────────────
 project_root = Path(__file__).resolve().parent.parent
@@ -175,28 +198,23 @@ def _env_int(name: str, default: int) -> int:
 
 CYCLE_INTERVAL_SECONDS = 900    # 15 minutes — matches real scraper cadence
 MAX_HISTORY_ROWS       = 50000  # Pull up to 50k rows from game_live_history per source
-NOISE_SIGMA_FACTOR     = 0.20   # Gaussian noise = 20% of mean tables
-DARK_VENUE_PROBABILITY = 0.02   # 2% chance a WHOLE venue goes dark in a cycle
-WAITLIST_OVERFLOW_FACTOR = 0.85 # Waitlist appears when tables > 85% of observed max
 
 # History recency. The model must reflect the CURRENT venue landscape, not the
 # oldest rows in the table. Fetch newest-first inside this window...
 HISTORY_WINDOW_DAYS  = _env_int('SIM_HISTORY_WINDOW_DAYS', 90)
 # ...and refuse to publish at all once the newest row we can see is this old.
 MAX_HISTORY_AGE_DAYS = _env_int('SIM_MAX_HISTORY_AGE_DAYS', 14)
-# Sanity floors — a model built from almost nothing must not silently publish.
-MIN_HISTORY_ROWS = _env_int('SIM_MIN_HISTORY_ROWS', 1000)
-MIN_PATTERNS     = _env_int('SIM_MIN_PATTERNS', 50)
+# A single scrape or a single date is not a weekday/hour pattern. Six samples
+# across at least three distinct Central dates is deliberately conservative
+# while still allowing a venue sampled twice per matching hour to qualify after
+# three occurrences of that weekday.
+MIN_CONTEXT_OBSERVATIONS = _env_int('SIM_MIN_CONTEXT_OBSERVATIONS', 6)
+MIN_CONTEXT_DAYS = _env_int('SIM_MIN_CONTEXT_DAYS', 3)
 # Rebuild the pattern model on this cadence so a long-running daemon does not
 # publish a frozen snapshot of the world forever.
 MODEL_REBUILD_SECONDS = _env_int('SIM_MODEL_REBUILD_SECONDS', 24 * 3600)
 # A venue with genuinely scraped rows newer than this is NOT simulated.
 REAL_DATA_FRESH_SECONDS = _env_int('SIM_REAL_DATA_FRESH_SECONDS', 2700)  # 45 min
-# Minimum observations in an hour/day bucket before its historical multiplier is
-# trusted over the hand-written curve.
-MIN_BUCKET_OBSERVATIONS = 5
-# Mean reversion weight for cycle-to-cycle continuity (0 = no memory).
-CONTINUITY_WEIGHT = 0.70
 # Stop inserting after this many consecutive stale-row delete failures, so a
 # broken DELETE cannot grow the table without bound.
 MAX_DELETE_FAILURES = 3
@@ -204,6 +222,7 @@ MAX_DELETE_FAILURES = 3
 LOG_DIR   = project_root / 'data' / 'bravo-logs'
 PID_FILE  = LOG_DIR / 'simulator.pid'
 PID_META  = LOG_DIR / 'simulator-pid-meta.json'
+LOCK_FILE = LOG_DIR / 'simulator.lock'
 HEARTBEAT = LOG_DIR / 'simulator-heartbeat.json'
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -258,77 +277,44 @@ def _is_retryable_http(e: urllib.error.HTTPError) -> bool:
 # fetched. Labelling them 'scraped_verified' told every future consumer that a
 # generated number was a verified scrape. The honest value is 'simulated'.
 #
-# venue_live_tables.data_quality carries a CHECK constraint that historically
-# allowed only ('scraped_verified','stale','expired'). Migration
-# 20260809_widen_live_tables_data_quality.sql adds 'simulated'. Until that runs,
-# writing the honest value would be rejected and the cash-games surface would go
-# dark - so sb_insert detects the CHECK violation (SQLSTATE 23514), downgrades
-# once per process, and logs loudly. Safe to deploy before OR after the
-# migration; it corrects itself either way.
+# venue_live_tables.data_quality historically rejected 'simulated'. Migration
+# 20260906220000_pnm_scraper_data_truth.sql adds the honest quality and the
+# observation_kind discriminator. This daemon deliberately FAILS CLOSED when
+# that contract is absent: a modeled row may never be relabelled as a verified
+# scrape merely to keep a dashboard populated.
 #
 # NOTE: `source` deliberately stays 'bravo'. live-tables.js keys its
 # cross-source slug index on source=='bravo' and derives simulated-ness from
 # scrape_batch_id starting 'sim-' (isSimulatedRow), so changing source would
 # empty that index and break PokerAtlas->Bravo venue merging, while fixing
 # nothing the batch-id check does not already handle.
-SIM_DATA_QUALITY_HONEST   = 'simulated'
-SIM_DATA_QUALITY_FALLBACK = 'scraped_verified'
-_SIM_DQ_STATE = {'value': SIM_DATA_QUALITY_HONEST, 'downgraded': False}
-
-
 def sim_data_quality() -> str:
     """Label to stamp on generated rows this cycle."""
-    return _SIM_DQ_STATE['value']
-
-
-def _downgrade_data_quality_if_needed(detail: str) -> bool:
-    """If a batch was rejected by the data_quality CHECK, fall back once.
-
-    Returns True when the caller should retry the chunk with the old label.
-    """
-    if _SIM_DQ_STATE['downgraded']:
-        return False
-    d = (detail or '').lower()
-    if '23514' in d or ('data_quality' in d and 'check' in d) or 'violates check constraint' in d:
-        _SIM_DQ_STATE['value'] = SIM_DATA_QUALITY_FALLBACK
-        _SIM_DQ_STATE['downgraded'] = True
-        log.error(
-            '  data_quality=%r rejected by the venue_live_tables CHECK constraint. '
-            'Falling back to %r for this process so cash games stay published. '
-            'RUN migration 20260809_widen_live_tables_data_quality.sql to allow the '
-            'honest label - until then these rows remain mislabelled as verified scrapes.',
-            SIM_DATA_QUALITY_HONEST, SIM_DATA_QUALITY_FALLBACK)
-        return True
-    return False
+    return QUALITY_MODELED
 
 
 def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
     """
-    INSERT rows into Supabase (not upsert).
+    Idempotently UPSERT current-feed rows and confirm their deterministic IDs.
     Returns (rows_saved, failed_chunks) — the caller MUST treat any failed chunk
-    as a cycle error; a partial insert is a partial outage.
+    as a cycle error; a partial write is a partial outage.
 
-    FIX: We use plain INSERT (not merge-duplicates) because venue_live_tables
-    has no unique constraint on (bravo_slug, game_name). The prior upsert
-    approach silently fell back to INSERT anyway, causing unbounded row growth.
-    The correct pattern is: INSERT fresh batch → DELETE older sim rows.
+    ``venue_live_tables`` has no natural key on (bravo_slug, game_name), but its
+    primary key can still make transport retries safe. ``generate_snapshot``
+    assigns a stable negative ID scoped to source + batch + venue + game, so a
+    request that commits before its response is lost is merged on retry instead
+    of duplicated. A fresh batch still receives fresh IDs and replaces the old
+    one through the post-write stale-row sweep.
 
     FIX: permanent 4xx responses are no longer retried three times, and the
     PostgREST error body is logged instead of a bare 'HTTP Error 400'.
     """
-    total_saved   = 0
+    confirmed_ids = set()
     failed_chunks = 0
     for i in range(0, len(data), batch_size):
         chunk = data[i:i + batch_size]
-        # If an earlier chunk already tripped the CHECK downgrade, relabel this
-        # one BEFORE sending. Without this, every later chunk would still carry
-        # the honest label, be permanently rejected, and the cycle would lose
-        # most of its rows - the exact partial outage this function warns about.
-        if _SIM_DQ_STATE['downgraded']:
-            for _r in chunk:
-                if _r.get('data_quality') == SIM_DATA_QUALITY_HONEST:
-                    _r['data_quality'] = SIM_DATA_QUALITY_FALLBACK
         body = json.dumps(chunk).encode()
+        expected_ids = {int(row['id']) for row in chunk}
         chunk_no = i // batch_size + 1
         saved = False
         for attempt in range(3):
@@ -337,24 +323,36 @@ def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
             req = urllib.request.Request(
                 f'{SUPABASE_URL}/rest/v1/{table}',
                 data=body, method='POST',
-                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+                headers={
+                    **SB_HEADERS,
+                    'Prefer': 'resolution=merge-duplicates,return=representation',
+                }
             )
             try:
-                urllib.request.urlopen(req, timeout=30)
-                total_saved += len(chunk)
-                saved = True
-                break
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    returned = json.loads(response.read() or b'[]')
+                returned_ids = {
+                    int(row['id']) for row in returned
+                    if isinstance(row, dict) and row.get('id') is not None
+                } if isinstance(returned, list) else set()
+                if returned_ids == expected_ids:
+                    confirmed_ids.update(expected_ids)
+                    saved = True
+                    break
+
+                detail = (
+                    f'persistence mismatch: '
+                    f'{len(returned_ids & expected_ids)}/{len(expected_ids)} '
+                    'deterministic IDs confirmed'
+                )
+                if attempt < 2:
+                    log.warning(f'  Batch {chunk_no}: retry {attempt+1} ({detail})')
+                    time.sleep(2 ** attempt)
+                else:
+                    log.error(f'  Batch {chunk_no} FAILED after 3 retries: {detail}')
             except urllib.error.HTTPError as e:
                 detail = _http_error_detail(e)
                 if not _is_retryable_http(e):
-                    # A data_quality CHECK rejection is recoverable: relabel and
-                    # replay this same chunk rather than losing the cycle.
-                    if _downgrade_data_quality_if_needed(detail):
-                        for _r in chunk:
-                            if _r.get('data_quality') == SIM_DATA_QUALITY_HONEST:
-                                _r['data_quality'] = SIM_DATA_QUALITY_FALLBACK
-                        body = json.dumps(chunk).encode()
-                        continue
                     log.error(f'  Batch {chunk_no} PERMANENTLY REJECTED: {detail}')
                     break
                 if attempt < 2:
@@ -370,7 +368,7 @@ def sb_insert(table: str, data: list, batch_size: int = 200) -> tuple:
                     log.error(f'  Batch {chunk_no} FAILED after 3 retries: {type(e).__name__}: {e}')
         if not saved:
             failed_chunks += 1
-    return total_saved, failed_chunks
+    return len(confirmed_ids), failed_chunks
 
 def sb_delete_simulator_rows(table: str, except_batch_id: Optional[str] = None) -> bool:
     """
@@ -380,8 +378,8 @@ def sb_delete_simulator_rows(table: str, except_batch_id: Optional[str] = None) 
     batch has been written, so readers never see an empty table.
 
     Returns True only when the DELETE actually succeeded; every call site must
-    check it, because an ignored failure means duplicate rows accumulate
-    (venue_live_tables has no unique constraint to protect us).
+    check it, because deterministic IDs protect retries within one batch, not
+    accumulation across distinct batch IDs when stale cleanup fails.
 
     FIX: Previous code used raw & in URL → broken URL. Now uses urlencode.
     FIX: Previous code keyed on source='bravo' which would also delete real
@@ -395,9 +393,30 @@ def sb_delete_simulator_rows(table: str, except_batch_id: Optional[str] = None) 
     if except_batch_id:
         filters.append(('scrape_batch_id', f'neq.{except_batch_id}'))
     url = f'{SUPABASE_URL}/rest/v1/{table}?{urllib.parse.urlencode(filters)}'
-    req = urllib.request.Request(url, method='DELETE', headers=SB_HEADERS)
+    req = urllib.request.Request(url, method='DELETE', headers={
+        **SB_HEADERS,
+        'Prefer': 'return=minimal',
+    })
     try:
-        urllib.request.urlopen(req, timeout=20)
+        with urllib.request.urlopen(req, timeout=20):
+            pass
+
+        # A successful HTTP status only acknowledges the request. Verify the
+        # exact predicate before treating the stale batch as retired.
+        verify_params = [('select', 'id'), ('limit', '1'), *filters]
+        verify_url = (
+            f'{SUPABASE_URL}/rest/v1/{table}?'
+            f'{urllib.parse.urlencode(verify_params)}'
+        )
+        verify_req = urllib.request.Request(verify_url, headers=SB_HEADERS)
+        with urllib.request.urlopen(verify_req, timeout=20) as response:
+            remaining = json.loads(response.read() or b'[]')
+        if not isinstance(remaining, list):
+            log.error('  sim-row cleanup verification returned a non-list payload')
+            return False
+        if remaining:
+            log.error('  sim-row cleanup verification found rows still matching the delete')
+            return False
         return True
     except urllib.error.HTTPError as e:
         log.error(f'  sim-row cleanup FAILED: {_http_error_detail(e)}')
@@ -407,7 +426,16 @@ def sb_delete_simulator_rows(table: str, except_batch_id: Optional[str] = None) 
         return False
 
 
-def fetch_fresh_real_slugs() -> set:
+def retire_unqualified_simulator_rows() -> bool:
+    """Remove all simulator-owned rows when no qualified estimate can replace them.
+
+    The delegated predicate is strictly ``scrape_batch_id like sim-%``. Observed
+    Bravo rows and PokerAtlas catalog rows are outside that ownership boundary.
+    """
+    return sb_delete_simulator_rows('venue_live_tables')
+
+
+def fetch_fresh_real_slugs(model: Optional['PatternModel'] = None) -> set:
     """
     Return the set of bravo_slugs that have GENUINELY SCRAPED rows newer than
     REAL_DATA_FRESH_SECONDS. Those venues must not be simulated: the real
@@ -438,7 +466,7 @@ def fetch_fresh_real_slugs() -> set:
         rows = sb_fetch(
             'venue_live_tables',
             {
-                'select':           'bravo_slug,scrape_batch_id,scrape_timestamp',
+                'select':           'bravo_slug,source,observation_kind,scrape_batch_id,scrape_timestamp',
                 'scrape_timestamp': f'gte.{cutoff}',
                 'order':            'bravo_slug.asc,game_name.asc,scrape_timestamp.desc',
                 'limit':            page_size,
@@ -448,10 +476,11 @@ def fetch_fresh_real_slugs() -> set:
         if not rows:
             break
         for row in rows:
-            batch = row.get('scrape_batch_id') or ''
             slug  = row.get('bravo_slug') or ''
-            if slug and not batch.startswith('sim-'):
-                fresh.add(slug)
+            if slug and is_observed_bravo_row(row):
+                canonical = model.resolve_directory_slug(row) if model else slug
+                if canonical:
+                    fresh.add(canonical)
         if len(rows) < page_size:
             break
         offset += page_size
@@ -472,124 +501,188 @@ def fetch_fresh_real_slugs() -> set:
 # Pulls real historical data and builds a statistical model per venue+game
 # ═════════════════════════════════════════════════════════════════
 
+PHYSICAL_DIRECTORY_VENUE_TYPES = frozenset({
+    'casino', 'poker_club', 'card_room', 'charity',
+})
+
+
+def _identity_slug(value) -> str:
+    """Normalize a saved source slug without guessing a venue identity."""
+    return str(value or '').strip().lower().strip('/')
+
+
+def _normalize_identity(value) -> str:
+    """Exact, punctuation-insensitive venue-name key for fail-closed joins."""
+    text = html.unescape(str(value or '')).lower().replace('&', ' and ')
+    return re.sub(r'[^a-z0-9]+', ' ', text).strip()
+
+
+def _normalize_game_name(value) -> str:
+    """Return a stable human game label, or an empty string for bad input."""
+    return re.sub(r'\s+', ' ', html.unescape(str(value or ''))).strip()
+
+
+def _nonnegative_int(value) -> Optional[int]:
+    """Parse a saved observed count without turning missing data into zero."""
+    if value is None or value == '' or isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
+
+
 class PatternModel:
     """
-    Holds per-(venue, game_type) statistical patterns derived from real data.
+    Holds per-(directory venue, game) context medians from observed Bravo data.
 
     Attributes per entry:
-      baseline_tables  : median tables observed historically
-      mean_tables      : mean tables observed historically — the level the
-                         hour/day multipliers below are normalised against, so
-                         level * multiplier reproduces the observed mean for
-                         that hour/day
-      max_tables       : maximum ever observed (caps noise ceiling)
-      avg_waiting      : average players on waitlist
-      max_waiting      : max ever observed waiting
+      context_baselines: dict[(central_weekday, central_hour)] containing only
+                         contexts with enough observed samples across enough
+                         distinct dates
       stakes           : most common stakes string seen
       buyin_range      : most common buyin_range observed FOR THIS GAME
-      hour_multipliers : dict[0..23] → mean observed tables in that CENTRAL hour
-                         divided by the venue+game's overall mean tables
-                         (None when the bucket has too few observations)
-      dow_multipliers  : dict[0..6] → same, per CENTRAL weekday (Mon=0, Sun=6)
       observed_count   : number of real data points used
-      last_seen_hour   : most recently observed hour (Central) in training data
-      source           : 'bravo' | 'pokeratlas' (source of table-count baseline)
+      observed_days    : distinct Central dates represented
+      source           : always 'bravo'
     """
 
     def __init__(self):
         self._patterns: dict = {}      # {(bravo_slug, game_name): PatternEntry}
         self._venue_names: dict = {}   # {bravo_slug: venue_name}
+        self._directory_identity_index: dict = {}
+        self._directory_name_index: dict = {}
+        self._directory_count: int = 0
         self._is_built: bool = False
-        self._newest_snapshot: Optional[datetime] = None  # freshest history row seen
+        self._newest_snapshot: Optional[datetime] = None
         self._rows_loaded: int = 0
+        self._qualified_rows: int = 0
+        self._qualified_directory_venues: int = 0
+        self._rejected_ambiguous_or_unmatched: int = 0
+        self._rejected_unqualified: int = 0
 
     def build(self):
         """
-        Pull a RECENT window of game_live_history and build the in-memory model.
+        Build a model from observed Bravo history mapped to public venues.
 
-        Raises RuntimeError when the history cannot be fetched, is too small, or
-        is too stale to model from — the caller must NOT publish in that case.
+        Network/schema failures raise. Zero qualified observations is a valid,
+        truthful state: the model remains empty so the cycle can retire legacy
+        simulator rows and publish count-unavailable instead of inventing data.
         """
         log.info('Building pattern model from historical data...')
 
         rows_bravo = self._fetch_history('bravo')
-        rows_pa    = self._fetch_history('pokeratlas')
+        # PokerAtlas can enrich metadata only after a real Bravo pattern
+        # exists. Avoid downloading tens of thousands of catalog rows when
+        # there is no qualified count-bearing source to enrich.
+        rows_pa = self._fetch_history('pokeratlas') if rows_bravo else []
 
         log.info(f'  Bravo rows: {len(rows_bravo):,}  PokerAtlas rows: {len(rows_pa):,}')
 
-        # FIX: Load venue names ONCE from venue_live_tables (not once per source call)
-        self._load_venue_names()
+        # A count is useful to a card only when the saved source identity maps to
+        # one unique active physical venue. The durable directory is required;
+        # transient feed rows are deliberately not treated as identity truth.
+        self._load_directory_venues()
 
-        # Merge: Bravo first (priority for table counts), PA fills in buyin/stakes
+        # Bravo is the only count-bearing source. PokerAtlas may contribute
+        # stakes/buy-in metadata after it maps to the same directory venue/game.
         all_rows = rows_bravo + rows_pa
         self._rows_loaded = len(all_rows)
 
-        if self._rows_loaded < MIN_HISTORY_ROWS:
-            raise RuntimeError(
-                f'history too small to model from: {self._rows_loaded} rows '
-                f'< MIN_HISTORY_ROWS={MIN_HISTORY_ROWS}'
-            )
-
-        # Group by venue+game — process in source order (bravo first)
         raw: dict[tuple, list] = defaultdict(list)
+        rejected_venue_slugs: set[str] = set()
         for r in all_rows:
-            slug   = r.get('bravo_slug', '')
-            game   = r.get('game_type') or r.get('game_name', '')
-            name   = r.get('venue_name', '')
-            tables = int(r.get('tables', 0) or r.get('tables_running', 0))
-            wait   = int(r.get('waiting', 0) or r.get('players_waiting', 0))
-            stakes = r.get('stakes', '') or ''
-            buyin  = r.get('buyin_range', '') or ''
-            snap   = r.get('snapshot_time') or r.get('scrape_timestamp', '')
-            source = r.get('source', 'bravo')
-
-            if not slug or not game:
+            source = str(r.get('source') or '').strip().lower()
+            if source not in ('bravo', 'pokeratlas'):
                 continue
-            if name and slug not in self._venue_names:
-                self._venue_names[slug] = name
 
-            # FIX: bucket by US-CENTRAL hour AND weekday. The activity curves this
-            # model is compared against are Central; using the UTC weekday put
-            # every 18:00–23:59 Central observation (i.e. prime time) on the
-            # following day.
-            hour, dow = _central_hour_dow(snap)
+            qualified = is_observed_bravo_row(r)
+            if source == 'bravo' and not qualified:
+                self._rejected_unqualified += 1
+                continue
 
-            raw[(slug, game)].append({
-                'tables':  tables,
-                'waiting': wait,
-                'hour':    hour,
-                'dow':     dow,
-                'stakes':  stakes,
-                'buyin':   buyin,
-                'source':  source,
-            })
+            source_slug = _identity_slug(r.get('bravo_slug'))
+            source_name = _normalize_game_name(r.get('venue_name'))
+            if _is_noise_venue(source_name, source_slug):
+                self._rejected_ambiguous_or_unmatched += 1
+                rejected_venue_slugs.add(source_slug)
+                continue
+
+            directory_venue = self._resolve_directory_venue(r)
+            if not directory_venue:
+                self._rejected_ambiguous_or_unmatched += 1
+                rejected_venue_slugs.add(_identity_slug(r.get('bravo_slug')))
+                continue
+
+            game = _normalize_game_name(r.get('game_type') or r.get('game_name'))
+            if not game or _is_noise_game(game):
+                continue
+
+            canonical_slug = directory_venue['_feed_slug']
+            game_identity = _normalize_identity(game)
+            if not game_identity:
+                continue
+
+            record = {
+                'game':      game,
+                'stakes':    _normalize_game_name(r.get('stakes')),
+                'buyin':     _normalize_game_name(r.get('buyin_range')),
+                'source':    source,
+                'qualified': qualified,
+            }
+
+            if qualified:
+                tables = _nonnegative_int(
+                    r.get('tables') if 'tables' in r else r.get('tables_running')
+                )
+                waiting_raw = (
+                    r.get('waiting') if 'waiting' in r else r.get('players_waiting')
+                )
+                waiting = 0 if waiting_raw in (None, '') else _nonnegative_int(waiting_raw)
+                snapshot = _parse_utc(
+                    r.get('snapshot_time') or r.get('scrape_timestamp')
+                )
+                if tables is None or waiting is None or snapshot is None:
+                    self._rejected_unqualified += 1
+                    continue
+                central = snapshot + timedelta(
+                    hours=_central_utc_offset_hours(snapshot)
+                )
+                record.update({
+                    'tables':       tables,
+                    'waiting':      waiting,
+                    'hour':         central.hour,
+                    'dow':          central.weekday(),
+                    'central_date': central.date().isoformat(),
+                    'snapshot':     snapshot,
+                })
+                self._qualified_rows += 1
+                if self._newest_snapshot is None or snapshot > self._newest_snapshot:
+                    self._newest_snapshot = snapshot
+
+            raw[(canonical_slug, game_identity)].append(record)
 
         log.info(f'  Unique venue+game combos in history: {len(raw):,}')
-        log.info(f'  Unique venues: {len(self._venue_names):,}')
+        log.info(f'  Active physical directory venues: {self._directory_count:,}')
+        if rejected_venue_slugs:
+            log.warning(
+                f'  Rejected {len(rejected_venue_slugs):,} ambiguous or unmatched '
+                f'history venue identity/identities'
+            )
 
-        for (slug, game), records in raw.items():
-            # Table counts come from Bravo when we have any Bravo observation for
-            # this exact game — PokerAtlas rows are catalog entries whose "tables"
-            # are estimates and would drag the baseline and the curves down.
-            bravo_records = [r for r in records if r['source'] == 'bravo']
-            stat_records  = bravo_records or records
-            stat_source   = 'bravo' if bravo_records else records[0]['source']
+        for (slug, _game_identity), records in raw.items():
+            bravo_records = [r for r in records if r['qualified']]
+            if not bravo_records:
+                # Catalog rows establish game identity only. They can never
+                # establish a table or waiting-count baseline.
+                continue
 
-            tables_list  = [r['tables']  for r in stat_records]
-            waiting_list = [r['waiting'] for r in stat_records]
+            context_baselines = _build_context_baselines(bravo_records)
+            if not context_baselines:
+                continue
 
-            baseline = _median(tables_list)
-            max_t    = max(tables_list)
-            avg_w    = sum(waiting_list) / len(waiting_list)
-            max_w    = max(waiting_list)
-
-            # FIX: multipliers are now the MEAN OBSERVED TABLE COUNT per bucket
-            # relative to this game's overall mean. The previous version counted
-            # history ROWS per bucket, which — with a fixed 15-minute polling
-            # cadence — measured scraper uptime, not poker activity.
-            overall_mean = sum(tables_list) / len(tables_list)
-            hour_mults = _activity_multipliers(stat_records, 'hour', 24, overall_mean)
-            dow_mults  = _activity_multipliers(stat_records, 'dow',   7, overall_mean)
+            game = bravo_records[0]['game']
 
             # Stakes/buy-in are keyed on (slug, game) — NEVER venue-wide — so a
             # 1/2 NLH buy-in range can't be attached to a 5/10 PLO game.
@@ -601,45 +694,24 @@ class PatternModel:
             best_stakes = _most_common(stakes_counts)
             best_buyin  = _most_common(buyin_counts)
 
-            # History is now fetched NEWEST-FIRST, so the most recent record is
-            # element 0. (It was [-1] while the fetch was ordered ascending.)
-            last_hour = stat_records[0]['hour'] if stat_records else 12
-
             self._patterns[(slug, game)] = {
-                'baseline_tables':  baseline,
-                'mean_tables':      overall_mean,
-                'max_tables':       max_t,
-                'avg_waiting':      avg_w,
-                'max_waiting':      max_w,
-                'stakes':           best_stakes,
-                'buyin_range':      best_buyin,
-                'hour_multipliers': hour_mults,
-                'dow_multipliers':  dow_mults,
-                'observed_count':   len(stat_records),
-                'last_seen_hour':   last_hour,
-                'source':           stat_source,
+                'context_baselines': context_baselines,
+                'stakes':            best_stakes,
+                'buyin_range':       best_buyin,
+                'observed_count':    len(bravo_records),
+                'observed_days':     len({r['central_date'] for r in bravo_records}),
+                'source':            'bravo',
             }
 
-        if len(self._patterns) < MIN_PATTERNS:
-            raise RuntimeError(
-                f'pattern model too small to publish: {len(self._patterns)} patterns '
-                f'< MIN_PATTERNS={MIN_PATTERNS}'
-            )
-
+        self._qualified_directory_venues = len(_generatable_venues(self))
         age_days = self.history_age_days()
-        if age_days is None:
-            raise RuntimeError('no parsable snapshot_time in history — cannot judge freshness')
-        if age_days > MAX_HISTORY_AGE_DAYS:
-            raise RuntimeError(
-                f'history is stale: newest row is {age_days:.1f} days old '
-                f'(max {MAX_HISTORY_AGE_DAYS}). Refusing to model from it.'
-            )
-
         self._is_built = True
+        age_label = f'{age_days:.2f} days' if age_days is not None else 'none'
         log.info(
-            f'Pattern model built: {len(self._patterns):,} venue+game patterns '
-            f'across {len(self._venue_names):,} venues | '
-            f'newest history row {age_days:.2f} days old'
+            f'Pattern model built: {len(self._patterns):,} qualified venue+game '
+            f'patterns across {self._qualified_directory_venues:,}/'
+            f'{self._directory_count:,} directory venues | qualified rows '
+            f'{self._qualified_rows:,} | newest qualified history {age_label}'
         )
 
     def history_age_days(self) -> Optional[float]:
@@ -649,11 +721,14 @@ class PatternModel:
         delta = datetime.now(timezone.utc) - self._newest_snapshot
         return delta.total_seconds() / 86400.0
 
-    # Base column list that game_live_history is known to have. buyin_range is
-    # requested opportunistically (see _fetch_history) because it is not present
-    # in every deployment of this table.
-    _HISTORY_SELECT_BASE = 'bravo_slug,game_type,stakes,tables,waiting,snapshot_time,source'
-    _HISTORY_SELECT_RICH = _HISTORY_SELECT_BASE + ',buyin_range'
+    # observation_kind is added by the data-truth migration and buyin_range is
+    # not present in every deployment. Required legacy fields still include the
+    # batch id so a pre-migration simulated source cannot be accepted as Bravo.
+    _HISTORY_REQUIRED_FIELDS = (
+        'bravo_slug', 'venue_name', 'game_type', 'stakes', 'tables', 'waiting',
+        'snapshot_time', 'source', 'batch_id',
+    )
+    _HISTORY_OPTIONAL_FIELDS = ('observation_kind', 'buyin_range')
 
     def _fetch_history(self, source: str) -> list:
         """
@@ -672,10 +747,11 @@ class PatternModel:
         offset    = 0
         window_start = (datetime.now(timezone.utc)
                         - timedelta(days=HISTORY_WINDOW_DAYS)).isoformat()
-        select = self._HISTORY_SELECT_RICH
+        optional_fields = list(self._HISTORY_OPTIONAL_FIELDS)
         log.info(f'  Fetching game_live_history (source={source}, last {HISTORY_WINDOW_DAYS}d)...')
 
         while fetched < MAX_HISTORY_ROWS:
+            select = ','.join((*self._HISTORY_REQUIRED_FIELDS, *optional_fields))
             try:
                 chunk = sb_fetch(
                     'game_live_history',
@@ -689,18 +765,21 @@ class PatternModel:
                     }
                 )
             except urllib.error.HTTPError as e:
-                # A 400 on the FIRST page most likely means buyin_range does not
-                # exist on this table — retry once with the base column list
-                # rather than losing the whole model over an optional column.
-                if e.code == 400 and select == self._HISTORY_SELECT_RICH and offset == 0:
+                detail = _http_error_detail(e)
+                # Strip only the optional field named by PostgREST, one at a
+                # time. Any unknown 400 is a real schema/query failure.
+                rejected_optional = next(
+                    (field for field in optional_fields if field in detail), None
+                )
+                if e.code == 400 and offset == 0 and rejected_optional:
+                    optional_fields.remove(rejected_optional)
                     log.warning(
-                        f'  game_live_history rejected optional column buyin_range '
-                        f'({_http_error_detail(e)}) — refetching without it'
+                        f'  game_live_history rejected optional column '
+                        f'{rejected_optional} ({detail}); refetching without it'
                     )
-                    select = self._HISTORY_SELECT_BASE
                     continue
                 raise RuntimeError(
-                    f'fetching {source} history failed: {_http_error_detail(e)}'
+                    f'fetching {source} history failed: {detail}'
                 ) from e
             except Exception as e:
                 raise RuntimeError(
@@ -717,43 +796,125 @@ class PatternModel:
             if fetched % 10000 == 0:
                 log.info(f'    {fetched:,} rows fetched ({source})...')
 
-        # Track the freshest row we have seen across all sources so the caller
-        # can refuse to publish from stale history.
-        for r in rows[:50]:
-            dt = _parse_utc(r.get('snapshot_time'))
-            if dt and (self._newest_snapshot is None or dt > self._newest_snapshot):
-                self._newest_snapshot = dt
-
         log.info(f'  -> {len(rows):,} {source} rows loaded')
         return rows
 
-    def _load_venue_names(self):
-        """
-        Load venue names ONCE from venue_live_tables.
+    @staticmethod
+    def _add_unique_index(index: dict, key: str, venue: dict) -> None:
+        if not key:
+            return
+        current = index.get(key, '__missing__')
+        if current == '__missing__':
+            index[key] = venue
+        elif current is not venue:
+            index[key] = None
 
-        FIX: this used to also copy a VENUE-level buyin_range onto every pattern
-        for that slug, which would have stamped (say) a 1/2 NLH buy-in range onto
-        a 5/10 PLO game. Buy-in ranges are now only taken from history rows for
-        the exact (slug, game) they were observed on.
-        """
-        try:
-            vlt = sb_fetch(
-                'venue_live_tables',
-                {
-                    'select': 'bravo_slug,venue_name',
-                    'limit':  10000,
-                }
+    def _load_directory_venues(self):
+        """Load and index active physical card identities from poker_venues."""
+        rows = []
+        page_size = 1000
+        max_pages = 10
+        for page in range(max_pages):
+            chunk = sb_fetch('poker_venues', {
+                'select': (
+                    'id,name,slug,pokeratlas_slug,venue_type,is_active,'
+                    'is_suppressed,canonical_venue_id,country,state,city'
+                ),
+                'is_active': 'eq.true',
+                'is_suppressed': 'eq.false',
+                'canonical_venue_id': 'is.null',
+                'id': 'neq.3109',
+                'order': 'id.asc',
+                'limit': page_size,
+                'offset': page * page_size,
+            })
+            if not isinstance(chunk, list):
+                raise RuntimeError('poker_venues returned a non-list payload')
+            rows.extend(chunk)
+            if len(chunk) < page_size:
+                break
+        else:
+            raise RuntimeError(
+                f'poker_venues exceeded the {max_pages * page_size:,}-row '
+                'identity safety ceiling'
             )
-            for row in (vlt or []):
-                slug  = row.get('bravo_slug', '')
-                name  = row.get('venue_name', '')
-                # Skip slug-echo names written by the old title-cased fallback;
-                # ingesting them is what made the corruption self-perpetuating.
-                if slug and name and not self._looks_like_slug_echo(name, slug):
-                    self._venue_names[slug] = name
-        except Exception as e:
-            log.warning(f'  Could not fetch venue names from venue_live_tables: '
-                        f'{type(e).__name__}: {e}')
+
+        eligible = []
+        canonical_counts: dict[str, int] = defaultdict(int)
+        for row in rows:
+            venue_type = str(row.get('venue_type') or '').strip().lower()
+            if (
+                venue_type not in PHYSICAL_DIRECTORY_VENUE_TYPES
+                or row.get('is_active') is False
+                or row.get('is_suppressed') is True
+            ):
+                continue
+            name = _normalize_game_name(row.get('name'))
+            if not name or _is_noise_venue(name):
+                continue
+            slug = _identity_slug(row.get('slug'))
+            pokeratlas_slug = _identity_slug(row.get('pokeratlas_slug'))
+            venue_id = row.get('id')
+            feed_slug = slug or (f'pa-{pokeratlas_slug}' if pokeratlas_slug else '')
+            if not feed_slug and venue_id is not None:
+                feed_slug = f'pnm-venue-{venue_id}'
+            if not feed_slug:
+                continue
+            venue = {
+                **row,
+                '_feed_slug': feed_slug,
+                '_name_key': _normalize_identity(name),
+                '_slug': slug,
+                '_pokeratlas_slug': pokeratlas_slug,
+            }
+            eligible.append(venue)
+            canonical_counts[feed_slug] += 1
+
+        for venue in eligible:
+            if canonical_counts[venue['_feed_slug']] != 1:
+                continue
+            self._directory_count += 1
+            feed_slug = venue['_feed_slug']
+            self._venue_names[feed_slug] = venue['name']
+
+            identity_keys = {
+                feed_slug,
+                venue['_slug'],
+                venue['_pokeratlas_slug'],
+                f"pa-{venue['_slug']}" if venue['_slug'] else '',
+                f"pa-{venue['_pokeratlas_slug']}" if venue['_pokeratlas_slug'] else '',
+            }
+            for key in identity_keys:
+                self._add_unique_index(self._directory_identity_index, key, venue)
+            self._add_unique_index(
+                self._directory_name_index, venue['_name_key'], venue
+            )
+
+        if self._directory_count == 0:
+            raise RuntimeError('no active physical directory venues available for identity mapping')
+
+    def _resolve_directory_venue(self, row: dict) -> Optional[dict]:
+        """Resolve a history row to one unique directory venue, or fail closed."""
+        raw_slug = _identity_slug(row.get('bravo_slug'))
+        slug_candidates = [raw_slug]
+        for prefix in ('pa-', 'bravo-'):
+            if raw_slug.startswith(prefix):
+                slug_candidates.append(raw_slug[len(prefix):])
+
+        for key in slug_candidates:
+            if key not in self._directory_identity_index:
+                continue
+            return self._directory_identity_index[key]
+
+        name_key = _normalize_identity(row.get('venue_name'))
+        if name_key in self._directory_name_index:
+            return self._directory_name_index[name_key]
+        return None
+
+    def resolve_directory_slug(self, row: dict) -> Optional[str]:
+        """Return the canonical feed slug for a uniquely matched current row."""
+        venue = self._resolve_directory_venue(row)
+        return venue['_feed_slug'] if venue else None
 
     def get_venues(self) -> list:
         return sorted(set(slug for (slug, _) in self._patterns.keys()))
@@ -763,6 +924,16 @@ class PatternModel:
 
     def get_pattern(self, slug: str, game: str) -> Optional[dict]:
         return self._patterns.get((slug, game))
+
+    def qualification_summary(self) -> dict:
+        return {
+            'directory_venues': self._directory_count,
+            'qualified_rows': self._qualified_rows,
+            'qualified_patterns': len(self._patterns),
+            'qualified_venues': self._qualified_directory_venues,
+            'unmatched_or_ambiguous_rows': self._rejected_ambiguous_or_unmatched,
+            'unqualified_bravo_rows': self._rejected_unqualified,
+        }
 
     @staticmethod
     def humanize_slug(slug: str) -> str:
@@ -882,98 +1053,48 @@ def _central_hour_dow(value) -> tuple:
 # PHASE 2 — SNAPSHOT GENERATOR
 # ═════════════════════════════════════════════════════════════════
 
-# Time-of-day traffic curve (hour in US Central, 0-23)
-_HOUR_CURVE_CENTRAL = {
-     0: 0.85,   # midnight — still some action
-     1: 0.70,
-     2: 0.55,
-     3: 0.40,
-     4: 0.28,
-     5: 0.20,   # dead zone
-     6: 0.18,
-     7: 0.22,
-     8: 0.28,
-     9: 0.32,
-    10: 0.38,
-    11: 0.45,
-    12: 0.52,   # lunch bump
-    13: 0.55,
-    14: 0.58,
-    15: 0.62,
-    16: 0.68,
-    17: 0.76,
-    18: 0.85,   # after-work surge
-    19: 0.92,
-    20: 1.00,   # peak
-    21: 0.98,
-    22: 0.95,
-    23: 0.90,
-}
+def _build_context_baselines(records: list) -> dict:
+    """Build exact weekday/hour medians from qualified observed rows only."""
+    buckets: dict[tuple, list] = defaultdict(list)
+    for record in records:
+        if not record.get('qualified'):
+            continue
+        buckets[(record['dow'], record['hour'])].append(record)
 
-# Day-of-week multipliers (0=Mon, 6=Sun)
-_DOW_MULTIPLIER = {
-    0: 0.72,   # Monday
-    1: 0.70,   # Tuesday
-    2: 0.75,   # Wednesday
-    3: 0.80,   # Thursday
-    4: 1.10,   # Friday
-    5: 1.35,   # Saturday (peak)
-    6: 1.00,   # Sunday
-}
-
-
-def _mean_normalised(curve: dict) -> dict:
-    """
-    Rescale a curve so its mean is 1.0.
-
-    The curves above are shaped relative to their own peak, but they are applied
-    to an all-hours MEAN table count. Normalising them to mean 1.0 keeps the
-    daily average at the observed mean while letting peak/trough contrast be
-    real: peak lands around 1.8x the mean instead of the ~1.4x ceiling the old
-    damped 60/40 blend could reach, and 6am lands near 0.3x instead of 0.4x.
-    """
-    values = list(curve.values())
-    mean = sum(values) / len(values) if values else 1.0
-    if mean <= 0:
-        return dict(curve)
-    return {k: v / mean for k, v in curve.items()}
-
-
-_HOUR_CURVE_NORM      = _mean_normalised(_HOUR_CURVE_CENTRAL)
-_DOW_MULTIPLIER_NORM  = _mean_normalised(_DOW_MULTIPLIER)
+    baselines = {}
+    for context, samples in buckets.items():
+        distinct_dates = {sample['central_date'] for sample in samples}
+        if (
+            len(samples) < MIN_CONTEXT_OBSERVATIONS
+            or len(distinct_dates) < MIN_CONTEXT_DAYS
+        ):
+            continue
+        baselines[context] = {
+            'tables':         int(round(_median([r['tables'] for r in samples]))),
+            'waiting':        int(round(_median([r['waiting'] for r in samples]))),
+            'sample_count':   len(samples),
+            'distinct_dates': len(distinct_dates),
+            'newest_snapshot': max(r['snapshot'] for r in samples),
+        }
+    return baselines
 
 
 def generate_snapshot(model: PatternModel, now_utc: datetime,
-                      skip_slugs: Optional[set] = None,
-                      continuity: Optional[dict] = None) -> list:
+                      skip_slugs: Optional[set] = None) -> list:
     """
-    Generate one cycle's worth of synthetic live table rows.
-    Returns list of dicts ready to INSERT into venue_live_tables.
+    Generate one cycle's modeled rows from the exact observed time context.
 
     skip_slugs : venues with fresh, genuinely scraped data. They are left alone
                  entirely — the real scraper owns them, including when it says a
                  venue has no games running.
-    continuity : {(slug, game): tables} from the previous cycle. Table counts
-                 mean-revert toward the target instead of being resampled from
-                 scratch every 15 minutes.
     """
     skip_slugs = skip_slugs or set()
-    continuity = continuity if continuity is not None else {}
 
-    # FIX: DST-aware Central time offset, applied to BOTH hour and weekday.
-    # Using now_utc.weekday() misfiled every 18:00–23:59 Central observation
-    # (prime time) under the following day — Saturday 8pm got Sunday's curve.
     central_offset = _central_utc_offset_hours(now_utc)
     central_dt     = now_utc + timedelta(hours=central_offset)
     central_hour   = central_dt.hour
-    dow            = central_dt.weekday()  # 0=Mon, 6=Sun (US Central)
+    dow            = central_dt.weekday()
 
-    tod_mult = _HOUR_CURVE_NORM.get(central_hour, 1.0)
-    dow_mult = _DOW_MULTIPLIER_NORM.get(dow, 1.0)
-
-    # FIX: Prefix batch_id with "sim-" for audit trail
-    # Real Bravo batch_ids are plain UUIDs (e.g. "3f8a1b2c-...")
-    # Simulator IDs are "sim-<uuid>" — safe to DELETE without touching real data
     batch_id = f'sim-{uuid.uuid4()}'
     snap_ts  = now_utc.isoformat()
     rows: list = []
@@ -981,97 +1102,39 @@ def generate_snapshot(model: PatternModel, now_utc: datetime,
     venues_processed = 0
     venues_skipped   = 0
     games_generated  = 0
-    next_continuity: dict = {}
 
     for slug in model.get_venues():
         if slug in skip_slugs:
-            # Real scraped data exists for this venue right now. Do not model it.
             venues_skipped += 1
             continue
 
         venue_name = model.get_venue_name(slug)
         games      = model.get_games_for_venue(slug)
-
         if not games:
             continue
 
-        venues_processed += 1
-
-        # FIX: the blackout roll is per VENUE, not per game — a room closes as a
-        # whole, it does not lose a random 6% of its games every quarter hour.
-        venue_dark = random.random() < DARK_VENUE_PROBABILITY
-
+        venue_generated = False
         for game in games:
             pat = model.get_pattern(slug, game)
             if not pat:
                 continue
-
-            baseline = pat['baseline_tables']
-            max_t    = pat['max_tables']
-            # The multipliers are normalised against the MEAN, so the level they
-            # are applied to must be the mean too — level * multiplier then
-            # reproduces the mean tables actually observed in that bucket. The
-            # median stays the noise scale and the "did we ever see anything"
-            # gate below.
-            level = pat.get('mean_tables')
-            if level is None:
-                level = baseline
-
-            if baseline <= 0 and max_t <= 0:
+            baseline = pat['context_baselines'].get((dow, central_hour))
+            if not baseline:
+                continue
+            context_age_days = (
+                now_utc - baseline['newest_snapshot']
+            ).total_seconds() / 86400.0
+            if context_age_days < 0 or context_age_days > MAX_HISTORY_AGE_DAYS:
+                # Freshness is evaluated for this exact venue/game/context.
+                # A recent sample from another venue or hour cannot make a
+                # stale bucket publishable.
                 continue
 
-            if _is_noise_game(game):
-                continue
-
-            # FIX: the historical curve is applied MULTIPLICATIVELY and is only
-            # used where the venue actually has observations for that bucket;
-            # otherwise the hand-written curve stands on its own. The previous
-            # 60/40 and 50/50 linear blends against a floor of 0.10 dragged every
-            # hour toward ~1.0, which is why closed rooms still showed ~40% of
-            # their median tables at 6am.
-            hist_hour_mult = pat['hour_multipliers'].get(central_hour)
-            hour_factor = tod_mult if hist_hour_mult is None else hist_hour_mult
-
-            hist_dow_mult = pat['dow_multipliers'].get(dow)
-            dow_factor = dow_mult if hist_dow_mult is None else hist_dow_mult
-
-            target_tables = level * hour_factor * dow_factor
-
-            # Noise scales WITH the modelled activity level. A fixed sigma floor
-            # applied to a target of zero re-opened closed rooms: sigma 0.5 on
-            # target 0, clipped at 0 and rounded, put a table on roughly one
-            # game in four at 6am — the exact artifact the observed-activity
-            # multipliers above are meant to remove.
-            activity     = min(1.0, target_tables / level) if level > 0 else 0.0
-            noise_sigma  = max(0.5, baseline * NOISE_SIGMA_FACTOR) * activity
-            noisy_tables = target_tables + random.gauss(0, noise_sigma)
-
-            # FIX: mean-reverting continuity. Real table counts drift by a table
-            # or two per quarter hour; they do not teleport between 2 and 9.
-            prev = continuity.get((slug, game))
-            if prev is not None:
-                noisy_tables = (CONTINUITY_WEIGHT * prev
-                                + (1.0 - CONTINUITY_WEIGHT) * noisy_tables)
-
-            if venue_dark:
-                noisy_tables = 0.0
-
-            # FIX: cap at the maximum ever observed, not max + 1 — a venue must
-            # never report more tables than have ever been seen there.
-            tables_running = max(0, min(int(round(noisy_tables)), int(max_t)))
-            next_continuity[(slug, game)] = tables_running
-
-            players_waiting = 0
-            if tables_running > 0:
-                overflow_threshold = max(1, int(pat['max_tables'] * WAITLIST_OVERFLOW_FACTOR))
-                if tables_running >= overflow_threshold:
-                    overflow = tables_running - overflow_threshold + 1
-                    max_w    = max(1, int(pat['max_waiting']))
-                    players_waiting = random.randint(0, min(max_w, overflow * 3))
-                elif random.random() < 0.03:
-                    players_waiting = random.randint(1, 3)
+            tables_running = max(0, int(baseline['tables']))
+            players_waiting = max(0, int(baseline['waiting']))
 
             rows.append({
+                'id':               stable_live_row_id('bravo', batch_id, slug, game),
                 'bravo_slug':       slug,
                 'venue_name':       venue_name,
                 'game_name':        game,
@@ -1084,23 +1147,24 @@ def generate_snapshot(model: PatternModel, now_utc: datetime,
                 # artifact that made a generated row look like a verified fetch.
                 'scrape_html_hash': None,
                 'scrape_batch_id':  batch_id,
-                # Modelled, not observed - see SIM_DATA_QUALITY_HONEST above.
+                # Modelled, not observed - see the provenance contract above.
                 'data_quality':     sim_data_quality(),
+                'observation_kind': OBSERVATION_MODELED,
                 'source':           'bravo',             # API gives Bravo priority over PA catalog
                 'buyin_range':      pat.get('buyin_range') or None,
                 'runs_schedule':    None,
             })
             games_generated += 1
+            venue_generated = True
 
-    # Only remember venues we actually published this cycle.
-    continuity.clear()
-    continuity.update(next_continuity)
+        if venue_generated:
+            venues_processed += 1
 
     log.info(
         f'  Generated {games_generated:,} game rows across {venues_processed:,} venues '
         f'({venues_skipped:,} skipped: fresh real data) '
-        f'| TOD mult: {tod_mult:.2f} | DOW mult: {dow_mult:.2f} '
-        f'| Central: {central_hour:02d}:xx dow={dow} (UTC{central_offset:+d})'
+        f'| qualified context: Central dow={dow} hour={central_hour:02d} '
+        f'(UTC{central_offset:+d})'
     )
     return rows
 
@@ -1116,26 +1180,31 @@ def _is_noise_game(game_name: str) -> bool:
     return any(p in g for p in noise_patterns)
 
 
+def _is_noise_venue(venue_name: str, venue_slug: str = '') -> bool:
+    """Reject scraper navigation copy accidentally stored as a venue.
+
+    Keep the rule intentionally narrow: legitimate rooms may contain words
+    such as "Live" or "Registration", but PokerAtlas' combined navigation
+    labels use these distinctive phrases. Checking both the saved name and the
+    slug also cleans rows whose bad label was already slugified upstream.
+    """
+    haystack = f'{venue_name} {venue_slug.replace("-", " ")}'.lower()
+    navigation_phrases = (
+        'view live info',
+        'live info wait list',
+        'wait list registration',
+    )
+    return any(phrase in haystack for phrase in navigation_phrases)
+
+
 def _generatable_venues(model: PatternModel) -> set:
     """
-    Venues generate_snapshot() could actually emit rows for: at least one
-    non-noise game with a table count ever observed above zero.
+    Venues with at least one qualified observed weekday/hour context.
 
-    PokerAtlas-sourced venues never qualify — that source publishes no live
-    table count, so their patterns are all-zero and are skipped by the same
-    gates inside generate_snapshot(). They must therefore not be counted when
-    asking "has the real scraper covered everything we model?".
+    Whether a venue can emit in the current cycle still depends on that exact
+    cycle's Central weekday and hour.
     """
-    productive: set = set()
-    for slug in model.get_venues():
-        for game in model.get_games_for_venue(slug):
-            pat = model.get_pattern(slug, game)
-            if not pat or _is_noise_game(game):
-                continue
-            if pat['baseline_tables'] > 0 or pat['max_tables'] > 0:
-                productive.add(slug)
-                break
-    return productive
+    return set(model.get_venues())
 
 
 def _real_data_covers_model(model: PatternModel, skip_slugs: set) -> bool:
@@ -1159,46 +1228,6 @@ def _median(values: list) -> float:
     n = len(s)
     mid = n // 2
     return (s[mid - 1] + s[mid]) / 2.0 if n % 2 == 0 else float(s[mid])
-
-
-def _activity_multipliers(records: list, field: str, num_buckets: int,
-                          overall_mean: float) -> dict:
-    """
-    Build per-bucket activity multipliers from OBSERVED TABLE COUNTS.
-
-    multiplier[b] = mean(tables observed in bucket b) / mean(tables overall)
-
-    Observations with tables == 0 are counted in the denominator, so a room that
-    is genuinely closed between 4am and 8am scores near zero for those hours
-    instead of being floored at 0.10.
-
-    Buckets with fewer than MIN_BUCKET_OBSERVATIONS samples map to None, meaning
-    "no usable signal" — the caller falls back to the hand-written curve rather
-    than inventing one from two data points.
-
-    FIX: the previous implementation divided the NUMBER OF HISTORY ROWS per
-    bucket by the busiest bucket's row count. With a fixed 15-minute polling
-    cadence that is near-uniform by construction, so it encoded scraper uptime,
-    not poker activity, and normalised to ~1.0 nearly everywhere.
-    """
-    sums:   dict = defaultdict(float)
-    counts: dict = defaultdict(int)
-    for r in records:
-        b = r.get(field)
-        if b is None:
-            continue
-        sums[b]   += r['tables']
-        counts[b] += 1
-
-    result: dict = {}
-    for i in range(num_buckets):
-        n = counts.get(i, 0)
-        if n < MIN_BUCKET_OBSERVATIONS or overall_mean <= 0:
-            result[i] = None
-            continue
-        # Clamp the upper end so one freak night cannot make a bucket explode.
-        result[i] = min(3.0, (sums[i] / n) / overall_mean)
-    return result
 
 
 def _most_common(counter: dict) -> str:
@@ -1249,6 +1278,57 @@ def write_heartbeat(status: str, extra: Optional[dict] = None):
             tmp.unlink(missing_ok=True)
         except Exception:
             pass
+
+
+def write_scraper_metric(cycle_start: datetime, outcome: dict,
+                         venues_scraped: int, venues_with_data: int) -> bool:
+    """Persist output-aware health for the admin scraper dashboard.
+
+    The extended fields are introduced by the data-truth migration. A legacy
+    retry keeps pre-migration dashboards observable, but the modeled data write
+    itself never falls back to dishonest provenance.
+    """
+    duration = max(0, int((datetime.now(timezone.utc) - cycle_start).total_seconds()))
+    payload = {
+        'source': 'bravo-simulator',
+        'cycle_start': cycle_start.isoformat(),
+        'duration_seconds': duration,
+        'venues_scraped': max(0, int(venues_scraped or 0)),
+        'venues_with_data': max(0, int(venues_with_data or 0)),
+        **outcome,
+    }
+
+    def _post(row: dict) -> None:
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
+            data=json.dumps(row).encode(), method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'},
+        )
+        urllib.request.urlopen(req, timeout=15)
+
+    try:
+        _post(payload)
+        return True
+    except urllib.error.HTTPError as e:
+        detail = _http_error_detail(e)
+        if e.code == 400 and any(name in detail for name in (
+                'run_status', 'records_attempted', 'records_rejected', 'status_reason')):
+            legacy = {k: payload[k] for k in (
+                'source', 'cycle_start', 'duration_seconds', 'venues_scraped',
+                'venues_with_data', 'errors', 'records_saved')}
+            try:
+                _post(legacy)
+                log.error('  scraper_metrics schema is missing the data-truth columns; '
+                          'legacy metric written, but this run cannot be explicitly classified')
+                return False
+            except Exception as legacy_err:
+                log.error(f'  scraper_metrics legacy retry FAILED: {legacy_err}')
+                return False
+        log.error(f'  scraper_metrics insert FAILED: {detail}')
+        return False
+    except Exception as e:
+        log.error(f'  scraper_metrics insert FAILED: {type(e).__name__}: {e}')
+        return False
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -1348,18 +1428,40 @@ def _write_pid_files():
         log.warning(f'  Could not write PID metadata: {type(e).__name__}: {e}')
 
 
+def _acquire_process_lock():
+    """Acquire the authoritative single-instance guard for this process.
+
+    PID files remain useful operational metadata, but their check/write cycle
+    cannot be atomic. The kernel lock closes that race and is released even
+    after a crash or hard kill.
+    """
+    lock_handle = open(LOCK_FILE, 'a+')
+    try:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock_handle.close()
+        log.error('FATAL: Another simulator instance owns the process lock.')
+        raise SystemExit(1)
+    lock_handle.seek(0)
+    lock_handle.truncate()
+    lock_handle.write(f'{os.getpid()}\n')
+    lock_handle.flush()
+    return lock_handle
+
+
 # ═════════════════════════════════════════════════════════════════
 # MAIN DAEMON LOOP
 # ═════════════════════════════════════════════════════════════════
 
 def run():
-    # FIX: Check for running instance BEFORE writing PID
+    # Take the kernel lock before consulting compatibility PID metadata.
+    process_lock = _acquire_process_lock()
     _check_pid_guard()
 
     _write_pid_files()
 
     log.info('=' * 60)
-    log.info('BRAVO POKER LIVE — SIMULATION DAEMON v1.2')
+    log.info('BRAVO POKER LIVE - OBSERVED-HISTORY ESTIMATOR v1.4')
     log.info(f'PID: {os.getpid()} | Cycle: {CYCLE_INTERVAL_SECONDS}s')
     log.info('=' * 60)
 
@@ -1385,28 +1487,29 @@ def run():
         sys.exit(1)
 
     model_built_at = time.time()
+    initial_age = model.history_age_days()
     write_heartbeat('running', {
         'venues':           len(model.get_venues()),
         'cycle':            0,
-        'history_age_days': round(model.history_age_days() or -1, 2),
+        'history_age_days': round(initial_age, 2) if initial_age is not None else None,
+        **model.qualification_summary(),
     })
 
     cycle                = 0
     consecutive_failures = 0
     delete_failures      = 0
     last_good_batch_id: Optional[str] = None
-    continuity: dict     = {}   # {(slug, game): tables} — cycle-to-cycle continuity
 
-    # NOTE: there is deliberately NO startup purge and NO periodic purge. A
-    # DELETE with no paired INSERT leaves the live-tables surface empty, and
-    # that empty response is CDN-cached. Leftover sim rows from a previous run
-    # are swept away by the stale-row DELETE that follows the first successful
-    # INSERT below.
+    # A normal successful batch still swaps insert-first/delete-second. The one
+    # deliberate unpaired purge is the truth gate below: when there is no
+    # qualified observed context, retaining a legacy catalog-derived estimate
+    # would be worse than publishing an explicitly unavailable count.
 
     while not shutdown[0]:
         cycle += 1
         cycle_start = time.time()
         now_utc = datetime.now(timezone.utc)
+        records_attempted = 0
 
         log.info(f'--- Cycle #{cycle} | {now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")} ---')
         # Keep the heartbeat fresh while the cycle runs, WITHOUT clearing the
@@ -1436,13 +1539,13 @@ def run():
                               f'{type(e).__name__}: {e}')
                     model_built_at = time.time() - MODEL_REBUILD_SECONDS + 3600
 
-            # ── Staleness gate ─────────────────────────────────────────
+            # ── Qualified-history gate ─────────────────────────────────
             age_days = model.history_age_days()
-            if age_days is None or age_days > MAX_HISTORY_AGE_DAYS:
-                raise RuntimeError(
-                    f'model history is stale ({age_days} days > {MAX_HISTORY_AGE_DAYS}) '
-                    f'— refusing to publish modelled rows'
-                )
+            unavailable_reason = None
+            if age_days is None:
+                unavailable_reason = 'no_qualified_observed_bravo_history'
+            elif age_days > MAX_HISTORY_AGE_DAYS:
+                unavailable_reason = 'qualified_observed_bravo_history_stale'
 
             # ── Recover from a broken stale-row DELETE ─────────────────
             if delete_failures >= MAX_DELETE_FAILURES:
@@ -1460,14 +1563,16 @@ def run():
                     )
 
             # ── Never overwrite fresh real data ────────────────────────
-            skip_slugs = fetch_fresh_real_slugs()
-            if skip_slugs:
-                log.info(f'  {len(skip_slugs):,} venues have real scraped data newer than '
-                         f'{REAL_DATA_FRESH_SECONDS // 60}min — not simulating them')
-
-            rows = generate_snapshot(model, now_utc,
-                                     skip_slugs=skip_slugs,
-                                     continuity=continuity)
+            skip_slugs = set()
+            rows = []
+            if unavailable_reason is None:
+                skip_slugs = fetch_fresh_real_slugs(model)
+                if skip_slugs:
+                    log.info(
+                        f'  {len(skip_slugs):,} venues have real scraped data newer '
+                        f'than {REAL_DATA_FRESH_SECONDS // 60}min; not modeling them'
+                    )
+                rows = generate_snapshot(model, now_utc, skip_slugs=skip_slugs)
 
             if not rows and _real_data_covers_model(model, skip_slugs):
                 # NOT a failure: the real Bravo scraper is publishing fresh rows
@@ -1487,48 +1592,101 @@ def run():
                     consecutive_failures = 0
                     delete_failures      = 0
                     last_good_batch_id   = None
+                    outcome = classify_persisted_run(
+                        attempted=0, persisted=0, valid_empty=True,
+                        status_reason='observed_bravo_covers_all_modeled_venues')
                     write_heartbeat('idle', {
                         'cycle':                cycle,
                         'reason':               'real_data_covers_all_venues',
+                        'run_status':           outcome['run_status'],
+                        'valid_empty':          True,
                         'venues_skipped_real':  len(skip_slugs),
                         'records_saved':        0,
                         'history_age_days':     round(age_days, 2),
                         'consecutive_failures': 0,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), len(skip_slugs))
                 else:
                     consecutive_failures += 1
                     log.error('  Leftover sim-row purge FAILED while standing down.')
+                    outcome = classify_persisted_run(
+                        attempted=0, persisted=0, errors=1,
+                        status_reason='stale_modeled_row_delete_failed')
                     write_heartbeat('error', {
                         'cycle':                cycle,
                         'error':                'stale_delete_failed',
+                        'run_status':           outcome['run_status'],
                         'records_saved':        0,
                         'consecutive_failures': consecutive_failures,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), 0)
             elif not rows:
-                # This IS a failure: venues remain uncovered by real data and the
-                # model still produced nothing for them, so the live-tables
-                # surface has nothing behind it.
-                consecutive_failures += 1
-                log.error('  No rows generated — pattern model produced nothing.')
-                write_heartbeat('error', {
-                    'cycle': cycle,
-                    'error': 'no_rows_generated',
-                    'venues_skipped_real': len(skip_slugs),
-                    'consecutive_failures': consecutive_failures,
-                })
+                reason = unavailable_reason or 'no_qualified_context_for_current_weekday_hour'
+                log.warning(
+                    f'  No qualified estimate ({reason}); retiring all simulator-owned '
+                    'rows so cards report count unavailable.'
+                )
+                if retire_unqualified_simulator_rows():
+                    consecutive_failures = 0
+                    delete_failures = 0
+                    last_good_batch_id = None
+                    outcome = classify_persisted_run(
+                        attempted=0, persisted=0, valid_empty=True,
+                        status_reason=reason,
+                    )
+                    write_heartbeat('idle', {
+                        'cycle':                cycle,
+                        'reason':               reason,
+                        'run_status':           outcome['run_status'],
+                        'valid_empty':          True,
+                        'records_saved':        0,
+                        'venues_active':        0,
+                        'tables_running':       0,
+                        'venues_skipped_real':  len(skip_slugs),
+                        'history_age_days':     (
+                            round(age_days, 2) if age_days is not None else None
+                        ),
+                        'consecutive_failures': 0,
+                        **model.qualification_summary(),
+                    })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), 0
+                    )
+                else:
+                    consecutive_failures += 1
+                    outcome = classify_persisted_run(
+                        attempted=0, persisted=0, errors=1,
+                        status_reason='unqualified_modeled_row_cleanup_failed',
+                    )
+                    write_heartbeat('error', {
+                        'cycle': cycle,
+                        'error': 'unqualified_modeled_row_cleanup_failed',
+                        'run_status': outcome['run_status'],
+                        'records_saved': 0,
+                        'consecutive_failures': consecutive_failures,
+                    })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), 0
+                    )
             else:
                 batch_id = rows[0]['scrape_batch_id']
+                records_attempted = len(rows)
 
-                # FIX: INSERT the new batch FIRST, then DELETE the older sim
+                # FIX: UPSERT the new batch FIRST, then DELETE the older sim
                 # rows. The old order (delete → insert) guaranteed a window of
                 # several seconds where the API returned zero live games, and
                 # that empty response was CDN-cached for up to 60s.
-                log.info(f'  Inserting {len(rows):,} rows into venue_live_tables...')
+                log.info(f'  Upserting {len(rows):,} rows into venue_live_tables...')
                 saved, failed_chunks = sb_insert('venue_live_tables', rows)
 
                 live_tables = sum(r['tables_running'] for r in rows)
-                waiting     = sum(r['players_waiting'] for r in rows)
-                venues_live = len(set(r['bravo_slug'] for r in rows if r['tables_running'] > 0))
+                waiting = sum(r['players_waiting'] for r in rows)
+                venues_modeled = len(set(r['bravo_slug'] for r in rows))
+                venues_live = len(set(
+                    r['bravo_slug'] for r in rows if r['tables_running'] > 0
+                ))
 
                 if saved == 0:
                     consecutive_failures += 1
@@ -1537,12 +1695,20 @@ def run():
                         f'check Supabase connection and RLS policies. '
                         f'Previous batch left in place.'
                     )
+                    outcome = classify_persisted_run(
+                        attempted=len(rows), persisted=0, rejected=len(rows),
+                        errors=max(1, failed_chunks), status_reason='modeled_batch_persisted_zero_rows')
                     write_heartbeat('error', {
                         'cycle': cycle,
                         'error': 'zero_rows_saved',
+                        'run_status': outcome['run_status'],
                         'records_saved': 0,
+                        'records_attempted': len(rows),
+                        'records_rejected': len(rows),
                         'consecutive_failures': consecutive_failures,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), 0)
                 elif failed_chunks:
                     # A partial insert is a partial outage. Do NOT delete the
                     # previous batch — its rows still cover the venues this
@@ -1553,18 +1719,26 @@ def run():
                         f'{failed_chunks} chunk(s) failed. Previous batch kept as '
                         f'cover; stale-row cleanup skipped.'
                     )
+                    outcome = classify_persisted_run(
+                        attempted=len(rows), persisted=saved,
+                        rejected=max(0, len(rows) - saved), errors=failed_chunks,
+                        status_reason='modeled_batch_partially_persisted')
                     write_heartbeat('error', {
                         'cycle': cycle,
                         'error': f'partial_write:{failed_chunks}_chunks_failed',
+                        'run_status': outcome['run_status'],
                         'records_saved': saved,
                         'records_expected': len(rows),
                         'batch_id': batch_id,
                         'consecutive_failures': consecutive_failures,
                     })
+                    write_scraper_metric(
+                        now_utc, outcome, len(_generatable_venues(model)), venues_live)
                 else:
                     log.info(f'  Saved {saved:,}/{len(rows):,} rows | Batch: {batch_id}')
                     log.info(
-                        f'  Stats: {venues_live} venues active | '
+                        f'  Stats: {venues_modeled} venues modeled | '
+                        f'{venues_live} venues with running tables | '
                         f'{live_tables} tables running | {waiting} players waiting'
                     )
 
@@ -1574,9 +1748,16 @@ def run():
                         delete_failures = 0
                         consecutive_failures = 0
                         last_good_batch_id = batch_id
+                        outcome = classify_persisted_run(
+                            attempted=len(rows), persisted=saved,
+                            status_reason='modeled_batch_persisted_and_previous_batch_retired')
                         write_heartbeat('running', {
                             'cycle':                cycle,
+                            'run_status':           outcome['run_status'],
                             'records_saved':        saved,
+                            'records_attempted':    len(rows),
+                            'records_rejected':     0,
+                            'venues_modeled':       venues_modeled,
                             'venues_active':        venues_live,
                             'venues_skipped_real':  len(skip_slugs),
                             'tables_running':       live_tables,
@@ -1585,6 +1766,8 @@ def run():
                             'history_age_days':     round(age_days, 2),
                             'consecutive_failures': 0,
                         })
+                        write_scraper_metric(
+                            now_utc, outcome, len(_generatable_venues(model)), venues_modeled)
                     else:
                         # Rows are correct but duplicated with the prior batch.
                         delete_failures      += 1
@@ -1594,23 +1777,40 @@ def run():
                             f'  Stale sim-row DELETE failed ({delete_failures} in a row) — '
                             f'venue_live_tables now holds duplicate sim batches.'
                         )
+                        outcome = classify_persisted_run(
+                            attempted=len(rows), persisted=saved, errors=1,
+                            status_reason='modeled_batch_persisted_but_previous_batch_not_retired')
                         write_heartbeat('error', {
                             'cycle':                cycle,
                             'error':                'stale_delete_failed',
+                            'run_status':           outcome['run_status'],
                             'records_saved':        saved,
+                            'records_attempted':    len(rows),
+                            'records_rejected':     0,
                             'batch_id':             batch_id,
                             'consecutive_failures': consecutive_failures,
                         })
+                        write_scraper_metric(
+                            now_utc, outcome, len(_generatable_venues(model)), venues_live)
 
         except Exception as e:
             consecutive_failures += 1
             log.error(f'  Cycle #{cycle} error: {type(e).__name__}: {e}')
             traceback.print_exc()
+            outcome = classify_persisted_run(
+                attempted=records_attempted, persisted=0,
+                rejected=records_attempted, errors=1,
+                status_reason=f'cycle_exception:{type(e).__name__}')
             write_heartbeat('error', {
                 'cycle': cycle,
                 'error': str(e),
+                'run_status': outcome['run_status'],
+                'records_saved': 0,
+                'records_attempted': records_attempted,
+                'records_rejected': records_attempted,
                 'consecutive_failures': consecutive_failures,
             })
+            write_scraper_metric(now_utc, outcome, 0, 0)
 
         # ── Sleep until next cycle ──────────────────────────────────
         elapsed   = time.time() - cycle_start
@@ -1631,6 +1831,7 @@ def run():
             path.unlink(missing_ok=True)
         except Exception as e:
             log.warning(f'  Could not remove {path.name}: {type(e).__name__}: {e}')
+    process_lock.close()
 
 
 if __name__ == '__main__':

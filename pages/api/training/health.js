@@ -10,7 +10,6 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { isLegacyJwtKey, isModernKey } from '../../../src/lib/supabaseKeys';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -24,6 +23,9 @@ function getSupabase() {
     return _supabase;
 }
 export default async function handler(req, res) {
+    // Health responses, including failures and method errors, must stay live.
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
     try {
       withTiming(res);
         if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -31,9 +33,6 @@ export default async function handler(req, res) {
         if (req.method !== 'GET') {
             return res.status(405).json({ status: 'error', error: 'Method not allowed' });
         }
-
-        // Prevent caching — health checks must be live
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
         const start = Date.now();
         const checks = {};
@@ -46,38 +45,15 @@ export default async function handler(req, res) {
                 .limit(1);
 
             checks.supabase = error ? 'degraded' : 'ok';
-            // `code` is empty for auth/key rejections, so this reported the
-            // literal string "unknown" while error.message held the actual
-            // cause -- during the 2026-08-16 outage it said `supabaseError:
-            // "unknown"` when the server was being told "Legacy API keys are
-            // disabled". Carry the message too; it is the difference between a
-            // five-second diagnosis and an hour of guessing. Bounded so a
-            // health endpoint can never become an information leak.
             if (error) {
-                checks.supabaseError = error.code || 'unknown';
-                if (error.message) checks.supabaseMessage = String(error.message).slice(0, 160);
+                checks.errorCode = 'TRAINING_DATABASE_UNAVAILABLE';
+                console.warn('[TrainingHealth] Database probe failed:', error.code || error.message || error);
             }
         } catch (err) {
             checks.supabase = 'down';
-            if (err && err.message) checks.supabaseMessage = String(err.message).slice(0, 160);
+            checks.errorCode = 'TRAINING_DATABASE_UNAVAILABLE';
+            console.warn('[TrainingHealth] Database probe threw:', err?.message || err);
         }
-
-        // 2. Environment check
-        //
-        // `!!key` only ever proved a variable was SET, which is exactly what
-        // was true and useless during the outage: serviceKey read `true` while
-        // every request using it was rejected. Report the key FORMAT as well --
-        // a legacy JWT is known-disabled on this project, so "set" and
-        // "usable" are different questions. Formats only; no key material.
-        const _svc = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-        const _anon = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
-        const keyFormat = (k) => (!k ? 'missing' : isLegacyJwtKey(k) ? 'legacy-jwt' : isModernKey(k) ? 'modern' : 'other');
-        checks.env = {
-            supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-            serviceKey: !!_svc,
-            serviceKeyFormat: keyFormat(_svc),
-            anonKeyFormat: keyFormat(_anon),
-        };
 
         const latencyMs = Date.now() - start;
         const overallStatus = checks.supabase === 'ok' ? 'ok' : 'degraded';

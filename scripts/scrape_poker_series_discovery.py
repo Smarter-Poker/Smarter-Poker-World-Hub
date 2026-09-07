@@ -419,8 +419,14 @@ def log_audit(inserted: int, deduped: int, found: int) -> bool:
             "action": "series_discovery_v3",
             "batch_id": BATCH_ID,
             "agent_id": SCRIPT,
-            "records_affected": inserted,
-            "notes": f"found={found},inserted={inserted},deduped={deduped}",
+            "record_id": f"batch:{BATCH_ID}",
+            # CORRECTED 2026-09-06. The docstring above is right that the two
+            # writers disagreed and both swallowed the error - but aligning them
+            # to each other aligned them to a schema that does not exist. The
+            # table has no `records_affected` and no `notes`; it has new_data,
+            # which is jsonb.
+            "new_data": {"records_affected": inserted, "found": found,
+                         "deduped": deduped},
             "created_at": STARTED,
         }], on_conflict=None)
         if not n:

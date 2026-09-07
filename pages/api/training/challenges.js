@@ -42,6 +42,8 @@ function getPeriodKeys() {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
       if (req.method === 'POST' || req.method === 'PUT') {
           return res.status(410).json({
@@ -67,8 +69,6 @@ export default async function handler(req, res) {
 
       // GET: Fetch active challenges with user progress
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'private, no-store');
-
           try {
               // Parallel fetch: definitions and user progress are independent
               const [definitionResult, historicalResult] = await Promise.all([

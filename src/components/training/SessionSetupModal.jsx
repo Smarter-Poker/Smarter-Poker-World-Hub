@@ -162,14 +162,20 @@ export default function SessionSetupModal({
   useEffect(() => {
     if (!isOpen || !userId || !gameId) return;
     let cancelled = false;
+    const controller = new AbortController();
+    const deadline = window.setTimeout(() => controller.abort(), 10_000);
     setLoading(true);
     setStats(null);
     setLastSession(null);
     setStatsError(null);
 
     Promise.all([
-      supabase.rpc('training_dashboard_30day_stats',  { p_user_id: userId, p_game_id: gameId }),
-      supabase.rpc('training_dashboard_last_session', { p_user_id: userId, p_game_id: gameId }),
+      supabase
+        .rpc('training_dashboard_30day_stats', { p_user_id: userId, p_game_id: gameId })
+        .abortSignal(controller.signal),
+      supabase
+        .rpc('training_dashboard_last_session', { p_user_id: userId, p_game_id: gameId })
+        .abortSignal(controller.signal),
     ]).then(([statsRes, lastRes]) => {
       if (cancelled) return;
       if (statsRes?.error || lastRes?.error) {
@@ -188,11 +194,20 @@ export default function SessionSetupModal({
       if (cancelled) return;
       setStats(null);
       setLastSession(null);
-      setStatsError(historyError?.message || 'Verified performance history is temporarily unavailable.');
+      setStatsError(controller.signal.aborted
+        ? 'Verified performance history timed out. Please try again.'
+        : historyError?.message || 'Verified performance history is temporarily unavailable.');
     })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .finally(() => {
+        window.clearTimeout(deadline);
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.clearTimeout(deadline);
+      controller.abort();
+    };
   }, [isOpen, userId, gameId]);
 
   // ESC dismisses, Tab is trapped inside the dialog, and focus returns to the

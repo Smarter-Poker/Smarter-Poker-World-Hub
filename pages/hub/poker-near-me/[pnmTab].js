@@ -65,6 +65,13 @@ import { isPokerDiscoveryRouteIndexable } from '../../../src/lib/poker-near-me/s
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 import {
+  buildLiveCashGameIndex,
+  cashGameCountLabel,
+  findLiveCashGameEntry,
+  isModeledCashGameData,
+  liveCashGameEntrySignature,
+} from '../../../src/lib/poker-near-me/liveCashGameData';
+import {
   buildDiscoveryUrl,
   DEFAULT_RADIUS_MILES,
   DIRECTORY_PAGE_SIZE,
@@ -509,12 +516,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     // move off today, and the subtitle used to label every count 'Today'.
     tournamentsDay: null,
   });
+  const [mappedVenueCount, setMappedVenueCount] = useState(0);
 
-  // Live table count for map stats (fetched from live-tables API)
+  // Shared count contract separates public directory, map-ready, observed,
+  // and modeled totals so the header never compares unlike quantities.
   const [liveTableCount, setLiveTableCount] = useState(0);
-  // 'live' | 'mixed' | 'estimated' | 'none' from /api/poker/live-tables.
-  // While the Bravo live scraper is intentionally off, the count is modelled
-  // from weeks of real observed history and must be labelled approximate.
+  // 'live' | 'mixed' | 'estimated' | 'catalog' | 'none' from /api/poker/live-tables.
+  // Modeled counts remain explicitly approximate and separate from observations.
   const [liveDataMode, setLiveDataMode] = useState(null);
   // metadata.data_age_minutes — qualifies the figure in the page subtitle.
   const [liveDataAgeMinutes, setLiveDataAgeMinutes] = useState(null);
@@ -551,9 +559,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // Publish an explicit interactive-state contract for tests and assistive
   // tooling that need to activate controls immediately after navigation.
   useEffect(() => setIsHydrated(true), []);
-
-  // Map fullscreen modal state
-  const [mapFullscreen, setMapFullscreen] = useState(false);
 
   // ─── Batch fetch review stats for venue cards (star ratings) ───
   const [pnmReviewStatsMap, setPnmReviewStatsMap] = useState({});
@@ -639,36 +644,16 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
   const buildLiveDataMap = useCallback(() => {
     fetch('/api/poker/live-tables')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Live table feed returned ${r.status}`);
+        return r.json();
+      })
       .then((json) => {
         if (json && json.metadata && typeof json.metadata.stale_threshold_hours === 'number') {
           liveStaleMsRef.current = json.metadata.stale_threshold_hours * 3600000;
         }
         if (!json.venues) return;
-        const map = {};
-        json.venues.forEach((v) => {
-          const normName = (v.venue_name || '')
-            .toLowerCase()
-            .replace(/&/g, 'and')
-            .replace(/'/g, '')
-            .replace(/-/g, ' ')
-            .replace(/[^a-z0-9 ]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          const totalTables = (v.games || []).reduce((s, g) => s + (g.tables_running || 0), 0);
-          const totalWaiting = (v.games || []).reduce((s, g) => s + (g.players_waiting || 0), 0);
-          const liveEntry = {
-            tables_running: totalTables,
-            players_waiting: totalWaiting,
-            games: v.games || [],
-            last_updated: v.last_updated,
-            is_stale: v.is_stale === true,
-            _seen_at: Date.now(),
-            bravo_slug: v.bravo_slug,
-          };
-          if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
-          if (normName) map[normName] = liveEntry;
-        });
+        const map = buildLiveCashGameIndex(json);
         setLiveDataMap((prev) => {
           // POLICY (retained): a single empty/partial response never wipes good data.
           // GAP FIX: but it can no longer grow forever either. Entries missing from
@@ -717,31 +702,22 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // GAP FIX: the map can now shrink (see pruning above), so this effect must be
   // allowed to run when it empties — that is exactly the case where a card is
   // still advertising tables that are no longer running.
+  const venueLiveMergeRevision = useMemo(() => venues.map((venue) => (
+    `${venue?.id || venue?.slug || ''}:${liveCashGameEntrySignature(venue?.live_data)}`
+  )).join(','), [venues]);
   useEffect(() => {
     setVenues((prev) => {
       if (prev.length === 0) return prev;
       let changed = false;
       const next = prev.map((venue) => {
-        const normName = (venue.name || '')
-          .toLowerCase()
-          .replace(/&/g, 'and')
-          .replace(/'/g, '')
-          .replace(/-/g, ' ')
-          .replace(/[^a-z0-9 ]/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const liveEntry =
-          (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
+        const liveEntry = findLiveCashGameEntry(venue, liveDataMap);
         // POLICY (retained): while the scraper is up but reporting 0 tables we
         // still show the games list (stakes offered, game types). Only an entry
         // with zero games counts as "nothing to show".
         const hasGameData = liveEntry && (liveEntry.games || []).length > 0;
         const newLiveData = hasGameData ? liveEntry : null;
-        // Skip if timestamp hasn't changed (avoid unnecessary object churn)
-        const curTs = venue.live_data?.last_updated;
-        const newTs = newLiveData?.last_updated;
         if (!newLiveData && !venue.live_data) return venue; // no change
-        if (curTs && newTs && curTs === newTs) return venue; // same data
+        if (liveCashGameEntrySignature(venue.live_data) === liveCashGameEntrySignature(newLiveData)) return venue;
         // GAP FIX: the old policy was "never replace existing live_data with
         // null", full stop — so a card kept rendering the last-seen table counts
         // forever once a venue dropped out of the feed. Now a scraper blip is
@@ -758,7 +734,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       });
       return changed ? next : prev; // referential equality guard
     });
-  }, [liveDataMap, isLiveEntryFresh]);
+  }, [liveDataMap, isLiveEntryFresh, venueLiveMergeRevision]);
 
   const [checkinCounts, setCheckinCounts] = useState({});
   useEffect(() => {
@@ -1500,26 +1476,33 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
   const fetchLiveCount = useCallback(async () => {
     try {
-      // FIXED: was cachedFetch — could return 60s-stale data when called via DATA_MUTATED.
-      // Live counts displayed in the map header badge should always be fresh.
-      const res = await fetch('/api/poker/live-tables');
+      const res = await fetch('/api/poker/platform-counts');
       if (!res.ok) return;
       const json = await res.json();
-      if (json && json.metadata) {
-        const meta = json.metadata;
-        if (meta.data_mode) setLiveDataMode(meta.data_mode);
-        if (typeof meta.data_age_minutes === 'number' || meta.data_age_minutes === null) {
-          setLiveDataAgeMinutes(meta.data_age_minutes);
+      const directory = json?.directory;
+      if (directory) {
+        if (Number.isFinite(directory.public_playable)) {
+          setDbStats((previous) => ({ ...previous, total: directory.public_playable }));
         }
-        if (typeof meta.total_tables_running === 'number') {
+        if (Number.isFinite(directory.mapped_public)) setMappedVenueCount(directory.mapped_public);
+      }
+
+      const tableSourceFailed = json?.degraded_sources?.includes('current_tables');
+      const tables = json?.current_tables;
+      if (!tableSourceFailed && tables) {
+        if (tables.data_mode) setLiveDataMode(tables.data_mode);
+        if (typeof tables.age_minutes === 'number' || tables.age_minutes === null) {
+          setLiveDataAgeMinutes(tables.age_minutes);
+        }
+        if (typeof tables.published === 'number') {
           // POLICY (retained): a transient scraper blip does not blank the badge.
-          // BUG FIX: but 'none' / stale data must be allowed to fall to 0 — the old
+          // BUG FIX: but 'none' data must be allowed to fall to 0. The old
           // rule "never decrease to 0" kept a stale non-zero figure on screen under
           // the plain "Live Tables" label indefinitely after the feed had emptied,
           // because setLiveDataMode always overwrote while the count never could.
-          const feedEmpty = meta.data_mode === 'none' || meta.stale === true;
+          const feedEmpty = tables.data_mode === 'none';
           setLiveTableCount((prev) => {
-            if (meta.total_tables_running > 0) return meta.total_tables_running;
+            if (tables.published > 0) return tables.published;
             if (feedEmpty) return 0;
             return prev > 0 ? prev : 0; // transient 0 — keep last known
           });
@@ -2220,8 +2203,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const onMapVenueClick = useCallback(
     (venue) => {
       if (!venue || !venue.id) return;
-      // Close fullscreen map if it's open so the card is visible
-      setMapFullscreen(false);
+      // Keep an expanded map open while the player explores ordinary pins.
+      // The underlying card is still selected and staged for when fullscreen
+      // exits; only the popup's explicit profile action closes the map.
       // The venues section is always on the page (mobile phase 3); name it as
       // the current surface so the URL and the anchor row follow the pin.
       setShowLiveTab(false);
@@ -2459,6 +2443,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const requestGpsLocation = () => {
     haptic('light');
     if (!navigator.geolocation) {
+      window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
       setShowLocationModal(true);
       return;
     }
@@ -2483,6 +2468,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       (highAccErr) => {
         if (highAccErr.code === 1) {
           clearTimeout(gpsTimeoutId);
+          window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
           setShowLocationModal(true);
           setGpsLoading(false);
           setGpsLocationLabel(null);
@@ -2496,6 +2482,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           },
           () => {
             clearTimeout(gpsTimeoutId);
+            window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
             setShowLocationModal(true);
             setGpsLoading(false);
             setGpsLocationLabel(null);
@@ -2733,18 +2720,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
       // Merge live data immediately to prevent extra renders
       filteredData = filteredData.map((venue) => {
-        const normName = (venue.name || '')
-          .toLowerCase()
-          .replace(/&/g, 'and')
-          .replace(/'/g, '')
-          .replace(/-/g, ' ')
-          .replace(/[^a-z0-9 ]/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const liveEntry =
-          (venue.bravo_slug && liveDataMapRef.current[venue.bravo_slug]) ||
-          liveDataMapRef.current[normName] ||
-          null;
+        const liveEntry = findLiveCashGameEntry(venue, liveDataMapRef.current);
         if (liveEntry && (liveEntry.games || []).length > 0) {
           return { ...venue, _liveMerged: true, live_data: liveEntry };
         }
@@ -3059,14 +3035,59 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Content above the landing section grows as the first load resolves
-  // (skeletons become cards), which pushes the target down after the first
-  // scroll. Re-align once when the initial load settles.
+  // Content above a deep-linked section keeps growing after the initial data
+  // request settles: dynamic chunks mount, images acquire dimensions and
+  // near-viewport LazyPanels exchange skeletons for their real content. A
+  // one-shot correction still leaves destinations such as /map several
+  // screens away from the viewport. Keep the requested section anchored for a
+  // short, bounded hydration window, but stop immediately when the visitor
+  // expresses scroll/navigation intent so the page never fights them.
   useEffect(() => {
-    if (loading || !landingSectionRef.current) return;
+    if (loading || !landingSectionRef.current || typeof window === 'undefined') return undefined;
     const key = landingSectionRef.current;
-    landingSectionRef.current = null;
-    scrollToSurface(key, { behavior: 'auto' });
+    let cancelled = false;
+    let resizeTimer = null;
+    let observer = null;
+    const timers = [];
+
+    const cleanup = () => {
+      if (cancelled) return;
+      cancelled = true;
+      if (landingSectionRef.current === key) landingSectionRef.current = null;
+      timers.forEach((timer) => window.clearTimeout(timer));
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+      observer?.disconnect();
+      window.removeEventListener('wheel', cleanup, true);
+      window.removeEventListener('touchstart', cleanup, true);
+      window.removeEventListener('pointerdown', cleanup, true);
+      window.removeEventListener('keydown', cleanup, true);
+    };
+
+    const realign = () => {
+      if (!cancelled && landingSectionRef.current === key) {
+        scrollToSurface(key, { behavior: 'auto' });
+      }
+    };
+
+    [0, 140, 360, 760, 1400, 2400, 3800, 5600].forEach((delay) => {
+      timers.push(window.setTimeout(realign, delay));
+    });
+    timers.push(window.setTimeout(cleanup, 6400));
+
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        if (resizeTimer) window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(realign, 72);
+      });
+      observer.observe(document.querySelector('.pnm-page-container') || document.body);
+    }
+
+    window.addEventListener('wheel', cleanup, { capture: true, passive: true });
+    window.addEventListener('touchstart', cleanup, { capture: true, passive: true });
+    window.addEventListener('pointerdown', cleanup, { capture: true, passive: true });
+    window.addEventListener('keydown', cleanup, true);
+
+    return cleanup;
   }, [loading, scrollToSurface]);
 
   // Native pushState keeps the page mounted, so Next.js does not restore our
@@ -3249,8 +3270,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       getSortedVenues={getSortedVenues}
       displayCount={displayCount}
       loadMore={loadMore}
-      mapFullscreen={mapFullscreen}
-      setMapFullscreen={setMapFullscreen}
       mapCenter={mapCenter}
       userLocation={userLocation}
       isFavorited={isFavorited}
@@ -3290,7 +3309,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         <h2 id="pnm-section-live-title" className="pnm-section__title">Cash Games Near Me</h2>
         <p className="pnm-section__hint">
           {liveDataMode === 'estimated' || liveDataMode === 'mixed'
-            ? 'Table Counts Are Modelled From Weeks Of Observed History, Not A Live Scrape.'
+            ? 'Estimated Counts Use Qualified Saved Observations, Not A Current Live Report.'
+            : liveDataMode === 'catalog'
+              ? 'Listed Games Are Available, But Current Table Counts Are Unknown.'
             : 'Table Counts Come From The Live Games Feed.'}
         </p>
       </div>
@@ -3786,7 +3807,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         )}
 
         <PullToRefresh onRefresh={refreshDiscovery} disabled={anySheetOpen}>
-          <div className="pnm-page" data-pnm-hydrated={isHydrated ? 'true' : 'false'}>
+          <div className="pnm-page" data-pnm-realism="machined-v2" data-pnm-hydrated={isHydrated ? 'true' : 'false'}>
             <div className="space-bg"></div>
             <div className="space-overlay"></div>
 
@@ -3798,17 +3819,21 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                   'Loading Live Data...'
                 ) : (
                   <>
-                    {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Venues &nbsp;&bull;&nbsp;
+                    {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Public Venues &nbsp;&bull;&nbsp;
                     {/* UX FIX: 'mixed' means the published total is real observations
                         PLUS simulator output, so it must carry the approximate label
                         too. Pending and offline feeds cannot prove a zero count, so
                         they render a dash instead of a misleading zero. */}
                     {liveDataMode == null || liveDataMode === 'none'
                       ? '-'
+                      : liveDataMode === 'catalog'
+                        ? 'Unknown'
                       : liveTableCount.toLocaleString()}{' '}
                     {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                       ? 'Tables (Approx.)'
-                      : 'Live Tables'}
+                      : liveDataMode === 'catalog'
+                        ? 'Live Table Count'
+                        : 'Live Tables'}
                     {typeof liveDataAgeMinutes === 'number' && liveDataAgeMinutes > 60 && (
                       <span style={{ opacity: 0.6 }}>
                         {' '}
@@ -3833,6 +3858,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               </p>
               <DiscoveryStatusRail
                 venueCount={dbStats.total}
+                mappedVenueCount={mappedVenueCount}
                 liveTableCount={liveTableCount}
                 liveDataMode={liveDataMode}
                 liveDataAgeMinutes={liveDataAgeMinutes}
@@ -3912,14 +3938,16 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                     aria-current={selected ? 'true' : undefined}
                     className={
                       'pnm-top-tab' +
-                      (tab.live ? ' live' : '') +
+                      (tab.live && (liveDataMode === 'live' || liveDataMode === 'mixed') ? ' live' : '') +
                       (selected ? ' active' : '')
                     }
                     onClick={() => activateTab(tab.key)}
                   >
-                    {tab.live && <span className="pnm-live-dot" aria-hidden="true" />}
+                    {tab.live && (liveDataMode === 'live' || liveDataMode === 'mixed') && (
+                      <span className="pnm-live-dot" aria-hidden="true" />
+                    )}
                     {tab.label}
-                    {tab.key === 'live' && liveTableCount > 0 && (
+                    {tab.key === 'live' && liveTableCount > 0 && ['live', 'mixed', 'estimated'].includes(liveDataMode) && (
                       <span className="pnm-tab-badge">{liveTableCount}</span>
                     )}
                     {tab.key === 'venues' && venues.length > 0 && (
@@ -3939,10 +3967,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 (v) => favIds.has(String(v.id)) && v.live_data && v.live_data.tables_running > 0
               );
               if (liveFavs.length === 0) return null;
+              const estimatedFavorites = liveFavs.filter((venue) => venue.live_data?.data_mode !== 'live');
               const toastMsg =
                 liveFavs.length === 1
-                  ? `${liveFavs[0].name} Has ${liveFavs[0].live_data.tables_running} Table${liveFavs[0].live_data.tables_running !== 1 ? 's' : ''} Running!`
-                  : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
+                  ? `${liveFavs[0].name}: ${cashGameCountLabel(liveFavs[0].live_data)}`
+                  : estimatedFavorites.length > 0
+                    ? `${liveFavs.length} Favorites Have Cash-Game Activity Estimates`
+                    : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
               return (
                 <FavLiveToast
                   message={toastMsg}
@@ -4104,7 +4135,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               >
                 <span className="pnm-live-dot" />
                 Live Games
-                {liveTableCount > 0 && <span className="pnm-tab-badge">{liveTableCount}</span>}
+                {liveTableCount > 0 && ['live', 'mixed', 'estimated'].includes(liveDataMode) && <span className="pnm-tab-badge">{liveTableCount}</span>}
               </button>
             </div>
 

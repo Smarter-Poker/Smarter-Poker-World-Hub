@@ -46,6 +46,11 @@ test('the page is built on the phase 0a foundation', () => {
   const src = read(PAGE);
   assert.match(src, /import HubPageShell from '\.\.\/\.\.\/src\/components\/ui\/HubPageShell'/);
   assert.match(src, /<HubPageShell className="preflop" maxWidth=\{1080\}/);
+  assert.match(
+    src,
+    /<PageTransition disableInitialAnimation>/,
+    'the shell header stays interactive on the first client frame',
+  );
   assert.match(src, /useLoadFailsafe\(memoryDashboardLoading, setMemoryDashboardLoading\)/);
   assert.match(src, /useInitialLoadRef\(\)/);
   assert.match(src, /className="preflop-menu preflop-menu-skeleton"/, 'first-paint skeleton mirrors the menu');

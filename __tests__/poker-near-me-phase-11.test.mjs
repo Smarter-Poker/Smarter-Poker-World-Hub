@@ -21,6 +21,7 @@ const venue = (overrides = {}) => ({
   is_active: true,
   is_suppressed: false,
   trust_score: 88,
+  pokeratlas_slug: 'signal-room-las-vegas',
   email: 'private@example.com',
   search_vector: 'internal search document',
   ...overrides,
@@ -61,9 +62,44 @@ test('snapshot directory preserves filters, integrity, order, and the public pro
   assert.equal(result.data.length, 1);
   assert.equal(result.data[0].id, 1);
   assert.equal(result.data[0].location_quality.mappable, true);
+  assert.equal(result.data[0].pokeratlas_slug, 'signal-room-las-vegas');
   assert.equal(result.data[0].email, undefined);
   assert.equal(result.data[0].search_vector, undefined);
   assert.ok(VENUE_DIRECTORY_FIELD_LIST.every((field) => field !== 'email' && field !== 'search_vector'));
+  assert.ok(VENUE_DIRECTORY_FIELD_LIST.includes('pokeratlas_slug'));
+});
+
+test('checked-in fallback directory retains safe PokerAtlas identity keys', async () => {
+  const snapshot = JSON.parse(await source('data/poker-venue-directory-snapshot.json'));
+  const bellagio = snapshot.venues.find((row) => row.name === 'Bellagio Poker Room');
+  const borgata = snapshot.venues.find((row) => row.name === 'Borgata Hotel Casino');
+  assert.equal(bellagio?.pokeratlas_slug, 'bellagio-poker-room-las-vegas');
+  assert.equal(borgata?.pokeratlas_slug, 'borgata-hotel-casino-atlantic-city');
+});
+
+test('location holds stay searchable but never enter a bounded map result', () => {
+  const traveling = venue({
+    id: 7,
+    name: 'National Charity Tour',
+    venue_type: 'charity',
+    city: 'National',
+    state: 'MULTI',
+  });
+  const list = buildSnapshotVenueDirectory({
+    params: { limit: 20 },
+    venues: [traveling],
+  });
+  assert.equal(list.total, 1);
+  assert.deepEqual(list.data[0].location_quality, {
+    status: 'unverified', mappable: false, reason: 'traveling_entity',
+  });
+
+  const map = buildSnapshotVenueDirectory({
+    params: { north: 40, south: 30, east: -110, west: -120, limit: 20 },
+    venues: [traveling],
+  });
+  assert.equal(map.total, 0);
+  assert.deepEqual(map.data, []);
 });
 
 test('public directory degrades to the projected snapshot without exposing the database error', async () => {

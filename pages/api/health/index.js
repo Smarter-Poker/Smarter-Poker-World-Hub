@@ -122,7 +122,10 @@ export default async function handler(req, res) {
       const health = {
           status: 'ok',
           timestamp: new Date().toISOString(),
-          version: commitSha.substring(0, 8),
+          // Keep the full immutable SHA. Release gates compare this value with
+          // the exact merge commit; an eight-character prefix cannot prove
+          // which build Vercel is actually serving.
+          version: commitSha,
           commitSha,
           deploymentUrl: process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || null,
           deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,

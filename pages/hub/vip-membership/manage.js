@@ -279,7 +279,7 @@ export default function VipManagePage() {
             {membership.recurring && (
               <>
                 <p>Switching Plans Keeps Your Renewal Date. Stripe Applies Unused Paid Time As A Prorated Credit To The Next Invoice.</p>
-                <div className={styles.planGrid} aria-label="VIP recurring plan controls">
+                <div className={styles.planGrid} aria-label="VIP Recurring Plan Controls">
                   <div className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}>
                     <span className={styles.planLabel}>Flexible Access</span>
                     <strong>$19.99 / Month</strong>

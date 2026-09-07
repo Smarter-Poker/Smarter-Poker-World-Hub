@@ -44,6 +44,22 @@ PROJECT_ROOT = Path(__file__).parent.parent
 EVIDENCE_DIR = PROJECT_ROOT / "data" / "scrape-evidence"
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Retired publisher. tour_stealth_scraper.py owns production tour-stop writes.
+# Keep this module for source/parser diagnostics only; its historical bulk
+# replace path could delete a healthy tour before a partial parser result was
+# validated.
+NATIVE_TOUR_WRITES_DISABLED = True
+NATIVE_TOUR_WRITES_REASON = (
+    "retired native publisher; use scripts/tour_stealth_scraper.py"
+)
+US_STATE_CODES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI",
+    "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI",
+    "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC",
+    "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT",
+    "VT", "VA", "WA", "WV", "WI", "WY", "DC",
+}
+
 # ─── Scrapling — MANDATORY (no requests/urllib for scraping) ────────────────────
 try:
     from scrapling.fetchers import Fetcher, StealthySession
@@ -388,6 +404,55 @@ def parse_buyin(s):
         return None
 
 
+def native_event_validation_errors(event, expected_tour_code):
+    """Return fail-closed reasons that make a native event unpublishable."""
+    errors = []
+    if str(event.get("tour_code") or "").upper() != expected_tour_code.upper():
+        errors.append("tour_identity_mismatch")
+
+    name = str(event.get("event_name") or "").strip()
+    if len(name) < 4 or re.search(r'<[a-z/!]|&nbsp;|showpdf\.aspx', name, re.I):
+        errors.append("invalid_event_name")
+
+    start = str(event.get("stop_start_date") or "").strip()
+    end = str(event.get("stop_end_date") or "").strip()
+    if not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", start):
+        errors.append("missing_or_invalid_stop_start_date")
+    if not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", end):
+        errors.append("missing_or_invalid_stop_end_date")
+    if start and end and start > end:
+        errors.append("inverted_stop_range")
+
+    state = str(event.get("stop_state") or "").strip().upper()
+    if state not in US_STATE_CODES:
+        errors.append("invalid_stop_state")
+
+    buy_in = event.get("buy_in")
+    if buy_in is not None and (
+        isinstance(buy_in, bool)
+        or not isinstance(buy_in, (int, float))
+        or buy_in < 50
+        or buy_in > 100000
+    ):
+        errors.append("invalid_buy_in")
+    return errors
+
+
+def filter_publishable_native_events(events, tour_code):
+    """Reject partial/card-shift parses instead of stamping them verified."""
+    accepted = []
+    for event in events:
+        errors = native_event_validation_errors(event, tour_code)
+        if errors:
+            print(
+                f"  [REJECT] native event #{event.get('event_number', '?')}: "
+                f"{','.join(errors)}"
+            )
+            continue
+        accepted.append(event)
+    return accepted
+
+
 def seed_to_supabase(events, tour_code, batch_id, dry_run=False, prov=None):
     """Seed events to tour_stop_events table via PostgREST (triggers fire).
     
@@ -404,64 +469,7 @@ def seed_to_supabase(events, tour_code, batch_id, dry_run=False, prov=None):
         if len(events) > 5:
             print(f"    ... and {len(events)-5} more")
         return 0
-    if not sb:
-        print(f"  [SKIP] No Supabase connection")
-        return 0
-
-    # Build provenance fields to merge into every row
-    prov_fields = {}
-    if prov:
-        for k in ("scrape_url", "scrape_timestamp", "scrape_html_hash", "scrape_byte_count", "scrape_script", "data_quality"):
-            if k in prov:
-                prov_fields[k] = prov[k]
-
-    # Fallback: generate a placeholder hash if still missing
-    if "scrape_html_hash" not in prov_fields:
-        import hashlib
-        prov_fields["scrape_html_hash"] = hashlib.sha256(
-            f"{tour_code}:{batch_id}".encode()
-        ).hexdigest()
-
-    # Delete all existing records for this tour (full idempotency)
-    try:
-        deleted = sb.table("tour_stop_events").delete() \
-            .eq("tour_code", tour_code).execute()
-        if deleted.data:
-            print(f"  [DB] Cleared {len(deleted.data)} stale rows for {tour_code}")
-    except Exception as de:
-        print(f"  [WARN] Delete: {de}")
-
-    # Insert in batches of 50
-    inserted = 0
-    for i in range(0, len(events), 50):
-        chunk = []
-        for e in events[i:i+50]:
-            # Merge event fields + provenance, filter to DB_SAFE_KEYS
-            merged = {**e, **prov_fields}
-            row = {k: v for k, v in merged.items() if k in DB_SAFE_KEYS}
-            chunk.append(row)
-        try:
-            result = sb.table("tour_stop_events").insert(chunk).execute()
-            count = len(result.data) if result.data else len(chunk)
-            inserted += count
-            print(f"  [DB] Inserted {count} events (batch {i//50 + 1})")
-        except Exception as e:
-            print(f"  [DB ERROR] {e}")
-
-    # Audit log
-    try:
-        sb.table("data_audit_log").insert({
-            "table_name": "tour_stop_events",
-            "action": "native_scrape_upsert",
-            "batch_id": batch_id,
-            "records_count": inserted,
-            "tour_code": tour_code,
-            "agent_id": "scrape_tour_native.py",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
-    except Exception:
-        pass
-    return inserted
+    raise RuntimeError(NATIVE_TOUR_WRITES_REASON)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TOUR-SPECIFIC SCRAPERS
@@ -719,8 +727,8 @@ def scrape_mspt(tour_code, batch_id, dry_run):
 
     Each card is ~600 chars before the EVENT SCHEDULE anchor.
     MSPT does NOT publish buy-in amounts on the homepage — only guarantees.
-    We store the guarantee in buy_in as the best available pricing signal.
-    Buy-in amounts are only in the PDF schedule (showpdf.aspx links).
+    A guarantee is never a buy-in. Buy-ins require the source-owned PDF and
+    therefore remain unknown in this homepage diagnostic parser.
     """
     source_url = "https://msptpoker.com/"
     body, status, sha = scrapling_get(source_url, use_cloudflare=False)
@@ -779,10 +787,9 @@ def scrape_mspt(tour_code, batch_id, dry_run):
             venue = simple_m.group(1).strip() if simple_m else ""
             city, state = "", ""
 
-        # Guarantee: "$600,000 Guarantee" — this is the only $ value on the homepage
-        # Store as buy_in since it's the only monetary signal available
-        guarantee_m = re.search(r'\$([0-9,]+)\s*Guarantee', chunk_text, re.I)
-        buy_in = parse_buyin(guarantee_m.group(1)) if guarantee_m else None
+        # The homepage monetary value is a guarantee, not an entry price.
+        # Never coerce it into buy_in.
+        buy_in = None
 
         # Event name: "Minnesota Poker State Championship" or "MSPT500 Series" etc.
         name_m = re.search(
@@ -829,7 +836,12 @@ def scrape_mspt(tour_code, batch_id, dry_run):
             "data_quality": "scraped_verified",
         })
 
-    print(f"  [HTML] Extracted {len(events)} MSPT stops from {len(seen_ids)} eventIDs")
+    parsed_count = len(events)
+    events = filter_publishable_native_events(events, tour_code)
+    print(
+        f"  [HTML] {len(events)}/{parsed_count} MSPT cards passed the "
+        f"publishable diagnostic contract ({len(seen_ids)} eventIDs)"
+    )
     prov = build_provenance(source_url, body, __file__, method="Scrapling/HTML")
     return events, prov, body
 
@@ -1382,6 +1394,10 @@ def main():
     parser.add_argument("--skip-cf", action="store_true", help="Skip Cloudflare-protected tours")
     args = parser.parse_args()
 
+    if not args.dry_run and NATIVE_TOUR_WRITES_DISABLED:
+        print(f"[FATAL] {NATIVE_TOUR_WRITES_REASON}")
+        return 2
+
     batch_id = str(uuid.uuid4())
     started = datetime.now(timezone.utc)
 
@@ -1441,7 +1457,8 @@ def main():
         "source_registry": {k: v['source_url'] for k, v in TOUR_REGISTRY.items()},
     }, indent=2, default=str))
     print(f"\n  Batch report: {report_file.name}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

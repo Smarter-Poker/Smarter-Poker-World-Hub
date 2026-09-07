@@ -27,6 +27,7 @@ const STORE = readFileSync(join(ROOT, 'pages/hub/diamond-store.js'), 'utf8');
 const DATA = readFileSync(join(ROOT, 'src/data/diamondStoreData.js'), 'utf8');
 const CHECKOUT = readFileSync(join(ROOT, 'pages/api/store/create-checkout-session.js'), 'utf8');
 const WEBHOOK = readFileSync(join(ROOT, 'pages/api/store/webhooks/stripe.js'), 'utf8');
+const PUBLIC_CATALOG = readFileSync(join(ROOT, 'pages/api/club-arena/store-catalog.js'), 'utf8');
 
 test('the three plans are actually RENDERED, not merely imported', () => {
   // Dan 2026-09-05: "just vip, monthly, yearly or lifetime". Was
@@ -47,18 +48,26 @@ test('the subscribe control exists and is wired to the handler', () => {
     'the plan-aware caption must render — the button image is a static $19.99/month picture');
 });
 
-test('handleVIPSubscribe reaches BOTH a diamond path and a Stripe path', () => {
+test('handleVIPSubscribe exposes card subscriptions and gates Lifetime to its atomic Diamond path', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
   assert.match(STORE, /await startStripeCheckout\(plan\)/, 'card plans must reach Stripe');
   assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
-  assert.match(DATA, /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*true/,
-    'lifetime must advertise its shipped one-time card checkout');
+  assert.match(DATA, /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*false/,
+    'lifetime must stay Diamond-only until its complete card refund/provenance lifecycle is published');
+  assert.match(PUBLIC_CATALOG, /id:\s*'vip-monthly',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must explicitly advertise the live monthly Card path');
+  assert.match(PUBLIC_CATALOG, /id:\s*'vip-yearly',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must explicitly advertise the live yearly Card path');
+  assert.match(PUBLIC_CATALOG, /id:\s*'vip-lifetime',[\s\S]*?cardCheckoutReady:\s*false/,
+    'the public catalog must not advertise the paused Lifetime Card path');
+  assert.match(CHECKOUT, /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/,
+    'the server must mirror the storefront capability gate');
   assert.match(STORE, /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,
-    'the browser must send lifetime through its one-time checkout type');
+    'the dormant browser card path must remain one-time rather than recurring');
   assert.match(CHECKOUT, /type === 'vip_lifetime'/,
-    'the server must accept and prepare the one-time lifetime checkout');
+    'the server must retain the one-time lifetime recovery implementation behind the gate');
   assert.match(WEBHOOK, /metadata\?\.type === 'vip_lifetime'/,
-    'the webhook must settle a paid lifetime checkout');
+    'the webhook must remain able to settle any already-created lifetime checkout');
 });
 
 test('paying for a membership in diamonds is offered and correctly wired', () => {

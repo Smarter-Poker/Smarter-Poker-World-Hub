@@ -39,9 +39,14 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { v2ToAppMatrix } from '../utils/v2Matrix';
 import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
 import { isSolverRowIdentityValid } from '../lib/training/solverRowIdentity.mjs';
+import {
+    hasUntrustedLegacyFoldChannel,
+    inheritSolverMatrixTrust,
+    selectTrustedLegacySolverMatrix,
+    selectTrustedSolverMatrix,
+} from '../lib/training/solverMatrixTrust';
 
 const CONTINUATION_QUERY_CHUNK_SIZE = 12;
 const MAX_CONTINUATION_RUNOUTS = 47;
@@ -81,7 +86,7 @@ export function prepareSolverScenarioRow(row) {
             row.__invalidV2 = true;
             return null;
         }
-        const m = v2ToAppMatrix(row.strategy_matrix_v2);
+        const m = selectTrustedSolverMatrix(row);
         // A present v2 payload is the rebuilt pipeline's authoritative
         // export. If it fails the strict bridge, reject the row outright;
         // falling back to v1 would conceal a damaged v2 solve.
@@ -235,7 +240,18 @@ function stampSolverProvenance(question, row) {
  * probability distribution; renormalize; delete non-credible hands entirely.
  */
 export function sanitizeStrategyMatrix(matrix) {
-    if (!matrix || SANITIZED_MATRICES.has(matrix)) return matrix;
+    if (!matrix) return matrix;
+    // The legacy V1 `f` channel stores EV/regret data, not Fold frequency.
+    // Only a matrix carrying the process-local trust mark from the validated
+    // V2 bridge may expose it as an action.
+    if (hasUntrustedLegacyFoldChannel(matrix)
+        && !selectTrustedLegacySolverMatrix(matrix)) {
+        matrix.actions = [];
+        matrix.frequencies = {};
+        SANITIZED_MATRICES.add(matrix);
+        return matrix;
+    }
+    if (SANITIZED_MATRICES.has(matrix)) return matrix;
     const actions = matrix.actions || [];
     const frequencies = matrix.frequencies || {};
     if (actions.length === 0) { SANITIZED_MATRICES.add(matrix); return matrix; }
@@ -310,12 +326,16 @@ function pruneScenarioToHand(scenario, hand) {
         const v = frequencies[a]?.[hand];
         pruned[a] = typeof v === 'number' ? { [hand]: v } : {};
     });
+    const prunedMatrix = inheritSolverMatrixTrust(matrix, {
+        ...matrix,
+        frequencies: pruned,
+    });
     return {
         ...scenario,
-        strategy_matrix: {
-            ...matrix,
-            frequencies: pruned,
-        },
+        // Force the core builder to consume the exact one-hand trusted copy,
+        // rather than reconstructing the unpruned V2 source payload.
+        strategy_matrix_v2: null,
+        strategy_matrix: prunedMatrix,
     };
 }
 

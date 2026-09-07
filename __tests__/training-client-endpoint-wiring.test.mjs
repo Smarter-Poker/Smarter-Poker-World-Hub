@@ -61,7 +61,7 @@ test('custom requests carry config while next-street sends only the signed paren
   const nextStreetStart = hook.indexOf('const advanceToNextStreet = useCallback');
   const nextStreetEnd = hook.indexOf('/**\n   * Save progress to database', nextStreetStart);
   const nextStreet = hook.slice(nextStreetStart, nextStreetEnd);
-  assert.match(nextStreet, /authedFetch\('\/api\/training\/next-street', \{/);
+  assert.match(nextStreet, /trainingFetch\('\/api\/training\/next-street', \{/);
   assert.match(nextStreet, /method: 'POST'/);
   assert.match(nextStreet, /JSON\.stringify\(\{ gradingReceipt: activeContext\.receipt \}\)/);
   assert.match(nextStreet, /attemptId: activeContext\.attemptId/);
@@ -337,7 +337,7 @@ test('cache recovery preserves its attempt while deliberate replays remain pract
   const hook = read('src/hooks/useGTOTrainer.js');
   const arena = read('src/components/training/GodModeArena.jsx');
 
-  assert.match(hook, /authedFetch\('\/api\/training\/reissue-questions'/);
+  assert.match(hook, /trainingFetch\('\/api\/training\/reissue-questions'/);
   assert.match(hook, /const reissueBody = \{[\s\S]*questionIds,[\s\S]*sessionId: sessionIdOverride/);
   assert.match(hook, /sessionKind,[\s\S]*parentAttemptId,[\s\S]*requestedHands: questionIds\.length/);
   assert.match(hook, /if \(attemptId\) reissueBody\.attemptId = attemptId/);

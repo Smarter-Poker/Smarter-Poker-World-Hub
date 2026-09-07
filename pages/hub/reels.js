@@ -15,7 +15,6 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -125,6 +124,7 @@ export default function ReelsPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuOpenRef = useRef(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [savedReels, setSavedReels] = useState(new Set());
   const [showHeart, setShowHeart] = useState(false);
@@ -219,16 +219,27 @@ export default function ReelsPage() {
   // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
   const [showOverlay, setShowOverlay] = useState(false);
   const hudTimerRef = useRef(null);
-  const revealOverlay = () => {
-    setShowOverlay(true);
-    setShowReactionPicker(false);
-    setShowMoreMenu(false);
+  const scheduleHudHide = () => {
     clearTimeout(hudTimerRef.current);
     hudTimerRef.current = setTimeout(() => {
+      if (menuOpenRef.current) return;
       setShowOverlay(false);
       setShowReactionPicker(false);
       setShowMoreMenu(false);
     }, 5000);
+  };
+  const revealOverlay = () => {
+    setShowOverlay(true);
+    setShowReactionPicker(false);
+    setShowMoreMenu(false);
+    scheduleHudHide();
+  };
+  const handleCommandMenuOpenChange = (open) => {
+    menuOpenRef.current = open;
+    setMenuOpen(open);
+    clearTimeout(hudTimerRef.current);
+    setShowOverlay(true);
+    if (!open) scheduleHudHide();
   };
   const pullStartY = useRef(null);
 
@@ -2004,7 +2015,18 @@ export default function ReelsPage() {
       }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') slideToPrevRef.current();
-      if (e.key === 'Escape') router.push('/hub/social-media');
+      // The command drawer owns Escape while it is open. Without this guard,
+      // both window listeners run for the same keypress: the drawer closes and
+      // Reels also navigates back to Social Media.
+      if (e.key === 'Escape') {
+        const commandMenu = document.querySelector('[data-world-command-menu="social-media"]');
+        if (
+          e.defaultPrevented
+          || menuOpenRef.current
+          || (commandMenu && window.getComputedStyle(commandMenu).visibility === 'visible')
+        ) return;
+        router.push('/hub/social-media');
+      }
       // BUG FIX: Space bar is the universal play/pause shortcut — was missing
       // NOTE: Uses DOM state (videoRef.current.paused) and iframeRef for YouTube
       // to avoid stale closures since this effect only re-runs on [router]
@@ -2277,8 +2299,7 @@ export default function ReelsPage() {
               autoUnmuteRetryTimersRef.current = [];
             }
             setShowOverlay(true);
-            clearTimeout(hudTimerRef.current);
-            hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
+            scheduleHudHide();
           }
           if (data.info === 2) {
             // Paused
@@ -2696,29 +2717,18 @@ export default function ReelsPage() {
       </Head>
 
       {/* Universal Header */}
-      <div
-        style={{
-          opacity: showOverlay ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-          pointerEvents: showOverlay ? 'auto' : 'none',
-          position: 'relative',
-          zIndex: 200,
-        }}
-      >
-        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-      </div>
-
-      {/* Hamburger Menu */}
-      <HamburgerMenu
-        isOpen={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        direction="left"
-        theme="dark"
-        user={user}
-        showProfile={false}
-        menuItems={menuConfig.menuItems}
-        bottomLinks={menuConfig.bottomLinks}
-      />
+      {showOverlay && (
+        <div style={{ position: 'relative', zIndex: 200 }}>
+          <UniversalHeader
+            pageDepth={1}
+            commandMenuOpen={menuOpen}
+            onCommandMenuOpenChange={handleCommandMenuOpenChange}
+            commandMenuItems={menuConfig.menuItems}
+            commandMenuBottomLinks={menuConfig.bottomLinks}
+            commandMenuShowProfile={false}
+          />
+        </div>
+      )}
 
       {/* Upload Modal */}
       {showUploadModal && (
@@ -2967,6 +2977,7 @@ export default function ReelsPage() {
         {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
         {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}
         <div
+          data-reels-overlay-trigger="true"
           onTouchStart={(e) => {
             // Record swipe start position
             swipeStartRef.current = {
@@ -4022,6 +4033,7 @@ export default function ReelsPage() {
         {/* Keyboard Shortcuts Overlay */}
         {showShortcutsOverlay && (
           <div
+            data-reels-shortcuts-overlay="true"
             onClick={() => setShowShortcutsOverlay(false)}
             style={{
               position: 'absolute',

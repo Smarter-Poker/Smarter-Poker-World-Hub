@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { canonicalPublicUrl } from '../../../../src/lib/publicOrigin.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -596,8 +597,7 @@ export default async function handler(req, res) {
           venue_news: venueNews || [],
           waitlist_stats: waitlistStats,
           links: {
-            smarter_poker: `https://smarter.poker/club/${id}`,
-            poker_near_me: `https://pokernear.me/venue/${id}`,
+            smarter_poker: canonicalPublicUrl(`/hub/venues/${encodeURIComponent(id)}`),
             waitlist_join: venue.commander_enabled ? `/hub/commander/waitlist/${id}` : null
           }
         }

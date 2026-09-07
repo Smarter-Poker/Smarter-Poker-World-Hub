@@ -113,7 +113,36 @@ export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bott
  * which is the same frame the browser was going to paint anyway. Do not add a
  * `transition` here to make it "smoother": smooth is the thing Dan rejected.
  */
-const HIDE_ON_SCROLL_THRESHOLD = 4;
+/**
+ * Pixels of travel in one direction before the bar flips.
+ *
+ * RAISED FROM 4 TO 24 (2026-09-06), and ported here from Club Arena's
+ * `useHideFooterOnScroll`, which this hook's own docblock calls its twin: "the
+ * two apps have to feel like one product, so if the behaviour changes in one it
+ * changes in both." It changed in one this morning and not here, which is the
+ * gap this closes.
+ *
+ * Dan, on the Club Arena side: "THE FOOTER IS NOT STAYING ON THE BOTTOM WHEN
+ * SCROLLING." Four pixels is not a reader travelling down the page - it is a
+ * thumb resting on a momentum scroll, a rubber-band settling, a focus ring
+ * nudging a field into view, an image finishing its load and reflowing the
+ * column underneath. Every one of those took the bar away. 24px is about a line
+ * of text. The behaviour is unchanged and still instant; this only decides what
+ * counts as travelling.
+ */
+const HIDE_ON_SCROLL_THRESHOLD = 24;
+
+/**
+ * A scroller has to be able to go somewhere before it may hide the global bar.
+ *
+ * The listener is on the document's CAPTURE phase so it sees every scroller on
+ * the page, which is what makes it work where the scroll lives on an inner
+ * panel. The cost is that it also sees the small ones: a chat log, a filter
+ * row, a scrollable card. Those are not the reader travelling down the page,
+ * and taking the footer away because a 60px list moved is the other half of the
+ * same report.
+ */
+const MIN_SCROLLER_RANGE = 96;
 
 const isDocumentScroller = (source) =>
   !source ||
@@ -144,6 +173,41 @@ const scrollLimitOf = (source) => {
   return Math.max(0, (source.scrollHeight || 0) - (source.clientHeight || 0));
 };
 
+/**
+ * THE TWIN, AND WHY IT DRIFTED (2026-09-06).
+ *
+ * This is the twin of `useHideFooterOnScroll` in Club Arena
+ * (src/components/club/useHideFooterOnScroll.ts), and that file has said since
+ * it was written that "the two apps have to feel like one product, so if the
+ * behaviour changes in one it changes in both."
+ *
+ * On 2026-09-05 Dan reported "THE FOOTER IS NOT STAYING ON THE BOTTOM WHEN
+ * SCROLLING" on Club Arena, three defects were fixed there - a 4px threshold
+ * that any settling motion cleared, a small inner list able to take the global
+ * bar with it, and a bottom-of-page dead end the bar could not be recovered
+ * from - and this file was not touched. One product, two behaviours, for a day.
+ * The three fixes are ported above and below; the sentence in that file is the
+ * reason, so read it before changing either.
+ */
+
+/**
+ * ONLY A SCROLLER THAT CAN MOVE VERTICALLY MAY STEER A VERTICAL BEHAVIOUR.
+ *
+ * The video library's filter rail (`.vl-type-toggle-row`) is `overflow-x: auto`
+ * with `scroll-snap-type: x mandatory` below 900px, and the page smooth-scrolls
+ * it on mount to keep the pressed button in view. It therefore emits a stream
+ * of scroll events whose `scrollTop` is permanently 0.
+ *
+ * Read as vertical travel, `0` means "the reader is at the top of the page",
+ * which force-revealed the footer; measured against a fresh seed it could as
+ * easily have read as travel downward and force-hidden it. It is neither. A
+ * row of filter chips moving sideways has no opinion about where the reader is,
+ * and a footer that listens to it is a footer steered by the wrong finger.
+ */
+const canScrollVertically = (source) => {
+  if (isDocumentScroller(source)) return true;
+  return (source.scrollHeight || 0) - (source.clientHeight || 0) > 1;
+};
 function useHideOnScroll(enabled, resetKey) {
   const [hidden, setHidden] = useState(false);
   // True once the scroll listener is actually installed. Server-rendered
@@ -176,7 +240,16 @@ function useHideOnScroll(enabled, resetKey) {
     // switching between two panels cannot read as a jump.
     const travel = new Map();
     let frame = 0;
-    let pending = null;
+    // A SET, NOT A SLOT. This used to be one `pending` variable, so when two
+    // different scrollers fired inside one frame the second overwrote the
+    // first and that scroller's travel was never measured at all. The one
+    // that lost was usually the document - the only scroller this footer
+    // actually follows - and losing a single document event leaves
+    // `travel.get(document).last` stale, so the NEXT event is measured from
+    // the wrong place and the bar sticks. That is the shape of the failure
+    // the video library showed on 2026-09-06: the reader scrolled back up,
+    // the rail's snap fired in the same frame, and the footer stayed parked.
+    const pending = new Set();
 
     // THE FIRST FLICK MUST COUNT (2026-09-04). The first scroll event from a
     // scroller used to do nothing but record where it was, so the bar could
@@ -185,23 +258,47 @@ function useHideOnScroll(enabled, resetKey) {
     // burst of scrolling (the footer contract in e2e/global-footer-visual
     // does exactly that, and so does a programmatic jump) never hid at all,
     // and that check has been red on main since it landed. The document's
-    // starting position is known at install, so it is seeded here; any other
-    // scroller is seeded at its top, which is where a panel is when it mounts.
+    // starting position is known at install, so it is seeded here and its
+    // first flick counts. Any other scroller is seeded by settleOne at the
+    // position its first event reports - see the note there; seeding a panel
+    // at 0 when it is already scrolled invents travel nobody performed.
     const seed = (source, y) => {
       travel.set(source, { last: y, anchor: y, direction: 0 });
     };
     seed(document, scrollTopOf(document));
 
-    const settle = () => {
-      frame = 0;
-      const source = pending;
-      pending = null;
+    const settleOne = (source) => {
+      // A sideways-only scroller reports `scrollTop: 0` forever; it is not a
+      // reader travelling the page. See canScrollVertically.
+      if (!canScrollVertically(source)) return;
 
       const y = scrollTopOf(source);
+      const limit = scrollLimitOf(source);
+
+      /* Too small to be "the page" any more - and if the bar is down, PUT IT
+         BACK (2026-09-06, ported from Club Arena). Returning bare here strands
+         the footer: a list that collapses under a filter, images that unload,
+         or a soft keyboard cutting clientHeight can all drop a scroller below
+         this floor WHILE the bar is hidden, and from there no amount of
+         scrolling reveals it - only a route change. The travel entry goes too,
+         so if the scroller grows back the next event starts from a fresh anchor
+         instead of comparing against a stale one. */
+      if (limit < MIN_SCROLLER_RANGE) {
+        travel.delete(source);
+        setHidden(false);
+        return;
+      }
+
       let state = travel.get(source);
       if (!state) {
-        seed(source, 0);
-        state = travel.get(source);
+        // SEED A NEW SCROLLER WHERE IT ACTUALLY IS, and take no decision from
+        // this first event. Seeding at 0 while a panel sits at 120 invents
+        // 120px of downward travel that nobody performed, and hides the bar.
+        // One sample carries no direction. The document does not pay this
+        // cost - it is seeded with its real position when the listener is
+        // installed, so the first flick on the page still counts.
+        seed(source, y);
+        return;
       }
 
       const direction = y > state.last ? 1 : y < state.last ? -1 : 0;
@@ -221,16 +318,38 @@ function useHideOnScroll(enabled, resetKey) {
         setHidden(false);
         return;
       }
-      // Rubber-band overscroll past the end is not a reader travelling further
-      // down, so it must not hide anything.
-      if (y >= scrollLimitOf(source)) return;
+      /* AND AT THE BOTTOM IT COMES BACK (2026-09-06, ported from Club Arena).
+         This returned bare, on the reasoning that rubber-band overscroll past
+         the end is not a reader travelling further down - true, and it still
+         must not HIDE anything. But leaving it hidden is a state the reader
+         cannot get out of: you reach the end of a page, there is nothing below
+         to reveal it with, and the bar is simply gone. Nothing is covered - the
+         clearance under the content is reserved whether the bar is up or not.
+
+         The `- 1` matters and is not cosmetic: `scrollY` is fractional while
+         `scrollHeight` is an integer, so on a fractional-DPR or zoomed phone
+         the true bottom is routinely `limit - 0.5` and an exact `>=` never
+         fires - on precisely the class of device this was written for. */
+      if (y >= limit - 1) {
+        setHidden(false);
+        return;
+      }
 
       if (direction === 1 && y - anchor > HIDE_ON_SCROLL_THRESHOLD) setHidden(true);
       else if (direction === -1 && anchor - y > HIDE_ON_SCROLL_THRESHOLD) setHidden(false);
     };
 
+    const settle = () => {
+      frame = 0;
+      const sources = [...pending];
+      pending.clear();
+      // Every scroller that moved this frame is measured. Coalescing to one
+      // frame is the point; coalescing to one SCROLLER was the bug.
+      for (const source of sources) settleOne(source);
+    };
+
     const onScroll = (event) => {
-      pending = event?.target || null;
+      pending.add(event?.target || document);
       if (frame) return;
       frame = window.requestAnimationFrame(settle);
     };

@@ -116,7 +116,7 @@
       "theme": "dark",
       "accent": "#28c9ff",
       "artwork": { "src": "/images/footers/world-hub/footer-my-clubs-v2.png", "width": 2172, "height": 724, "sha256": "6665fd0c8128c6d6a87c7a6cd9f14b9ac7b560516d545d6b363909c63d180186", "cropToContentBounds": true, "contentBounds": { "x": 29, "y": 221, "width": 2116, "height": 308 } },
-      "routePrefixes": ["/hub/my-clubs", "/hub/my-venues", "/hub/home-games", "/hub/venues"],
+      "routePrefixes": ["/hub/my-clubs", "/hub/my-venues"],
       "items": [
         { "href": "/hub/my-clubs", "label": "Clubs", "title": "My Clubs", "icon": "club" },
         { "href": "/hub/club-arena", "label": "Arena", "title": "Club Arena Lobby", "icon": "spade" },
@@ -212,11 +212,11 @@
       "theme": "dark",
       "accent": "#f4f7fb",
       "artwork": { "src": "/images/footers/world-hub/footer-poker-near-me-v2.png", "width": 2057, "height": 764, "sha256": "c91187465b67035bb853d1c35b31d686176e9b0a27ebf64721a6aa1874799cfb", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 236, "width": 2029, "height": 275 } },
-      "routePrefixes": ["/hub/poker-near-me", "/hub/events-calendar", "/hub/daily-tournaments", "/hub/poker-tours", "/hub/poker-series", "/hub/series", "/hub/tours"],
+      "routePrefixes": ["/hub/poker-near-me", "/hub/venues", "/hub/home-games", "/hub/events-calendar", "/hub/daily-tournaments", "/hub/poker-tours", "/hub/poker-series", "/hub/series", "/hub/tours", "/home-game"],
       "items": [
         { "href": "/hub/poker-near-me/lobby", "label": "Nearby", "title": "Poker Near Me Lobby", "icon": "radar" },
         { "href": "/hub/poker-near-me/venues", "label": "Venues", "title": "Poker Venues", "icon": "map" },
-        { "href": "/hub/poker-near-me/events", "label": "Events", "title": "Nearby Poker Events", "icon": "calendar" },
+        { "href": "/hub/poker-near-me/series", "label": "Events", "title": "Nearby Poker Events", "icon": "calendar" },
         { "href": "/hub/poker-near-me/live-games", "label": "Games", "title": "Live Games", "icon": "cards" },
         { "href": "/hub/poker-near-me/map", "label": "Map", "title": "Map View", "icon": "mapPinned" },
         { "href": "/hub/poker-near-me/saved", "label": "Saved", "title": "Saved Places", "icon": "bookmark" }

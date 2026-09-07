@@ -20,6 +20,8 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import styles from '../../../src/styles/trivia/TriviaHub.module.css';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
+import { isTriviaPvpReleased } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
+import { areTriviaTournamentsReleased } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
 
@@ -35,7 +37,7 @@ function mirrorGamePreference(key, value) {
     }
 }
 
-export default function TriviaHubPage() {
+export default function TriviaHubPage({ modeAvailability }) {
     useTrainingBus('trivia-hub');
     const { user, loading: authLoading } = useAvatar();
     const userId = user?.id;
@@ -207,7 +209,12 @@ export default function TriviaHubPage() {
             <div className={styles.page}>
                 <div className={styles.backgroundOverlay} />
 
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader
+                    pageDepth={1}
+                    commandMenuOpen={menuOpen}
+                    onCommandMenuOpenChange={setMenuOpen}
+                    onMenuClick={() => setMenuOpen(true)}
+                />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
@@ -225,7 +232,7 @@ export default function TriviaHubPage() {
                     <h1 className="sr-only">Smarter Poker Trivia</h1>
                     {isLoading ? (
                         <div className={styles.loading}>
-                            <TriviaSkeleton />
+                            <TriviaSkeleton label="Daily Trivia and Quick Stakes loading; competitive modes are in Maintenance" />
                         </div>
                     ) : (
                         <TriviaLobby
@@ -233,6 +240,7 @@ export default function TriviaHubPage() {
                             isVip={isVip}
                             dailyCompleted={dailyCompleted}
                             currentStreak={currentStreak}
+                            modeAvailability={modeAvailability}
                             onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
                         />
                     )}
@@ -241,4 +249,20 @@ export default function TriviaHubPage() {
 
     </PageTransition>
     );
+}
+
+/**
+ * Keep the lobby capability display on the same server-only controls as the
+ * destination routes. No private environment value is serialized—only the
+ * two resolved booleans required to render an accurate launch state.
+ */
+export function getServerSideProps() {
+    return {
+        props: {
+            modeAvailability: {
+                pvp: isTriviaPvpReleased(process.env),
+                tournaments: areTriviaTournamentsReleased(process.env),
+            },
+        },
+    };
 }

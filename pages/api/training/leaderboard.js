@@ -29,6 +29,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
 
       if (req.method === 'POST') {

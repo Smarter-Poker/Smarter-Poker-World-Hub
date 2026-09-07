@@ -15,6 +15,9 @@ async function auth(req) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
+
   if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
   const user = await auth(req);
   if (!user) return res.status(401).json({ success: false, error: 'Authentication required' });

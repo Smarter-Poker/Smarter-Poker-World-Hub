@@ -1,9 +1,18 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+import {
+  formatWalletDescriptionParts,
+  titleCaseWalletText,
+} from '../src/lib/store/walletDescription.mjs';
 
 const ROOT = new URL('../', import.meta.url);
+const ROOT_PATH = fileURLToPath(ROOT);
 const read = path => readFile(new URL(path, ROOT), 'utf8');
 
 const MARKETPLACE_ROUTE_ROOTS = [
@@ -84,8 +93,69 @@ test('repository title-case enforcement covers Pages Router JavaScript without c
   const gate = await read('scripts/ci/check-title-case.mjs');
 
   assert.match(gate, /const JSX_EXTS = new Set\(\['\.js', '\.jsx', '\.tsx'\]\)/);
+  assert.match(gate, /const USER_VISIBLE_ATTRIBUTES = new Set\(\['placeholder', 'aria-label', 'alt', 'title'\]\)/);
+  assert.match(gate, /const MARKETPLACE_ATTRIBUTE_PATH = \/\^\(\?:pages/);
+  assert.match(gate, /ts\.isJsxAttribute\(node\)/);
+  assert.match(gate, /ts\.isStringLiteral\(initializer\)/);
+  assert.match(gate, /!isNonProseAttributeValue\(text\)/);
   assert.match(gate, /if \(\/\\d\/\.test\(before\)\) return word;/);
   assert.match(gate, /1\.5x, 7d, 24h, GPT-4o/);
+});
+
+test('Marketplace literal placeholders and accessible labels are Title Cased', async () => {
+  const files = await Promise.all([
+    'pages/hub/diamond-store.js',
+    'pages/hub/diamond-store/orders.js',
+    'pages/hub/merch-store/fulfillment.js',
+    'pages/hub/vip-membership/manage.js',
+    'src/components/store/RewardTelemetryConsole.jsx',
+    'src/components/store/DiamondWalletModal.jsx',
+  ].map(read));
+
+  for (const source of files) {
+    for (const gone of [
+      'placeholder="Search items..."',
+      'placeholder="Item name"',
+      'placeholder="Description (optional)"',
+      'placeholder="Image URL (optional)"',
+      'placeholder="Order number, item, or status"',
+      'aria-label="Merchandise fulfillment orders"',
+      'aria-label="Close fulfillment operation"',
+      'aria-label="VIP recurring plan controls"',
+      'aria-label="Reward account signals"',
+      'aria-label="Diamond transactions"',
+    ]) {
+      assert.ok(!source.includes(gone), `${gone} must remain Title Cased`);
+    }
+  }
+});
+
+test('title-case gate catches and safely fixes literal attributes without touching expressions or protocols', async (t) => {
+  const fixtureDir = await mkdtemp(join(tmpdir(), 'marketplace-title-case-'));
+  const fixture = join(fixtureDir, 'fixture.jsx');
+  t.after(() => rm(fixtureDir, { recursive: true, force: true }));
+  await writeFile(fixture, `export default function Fixture() {
+    return <><input placeholder="Search items..." aria-label="Reward account signals" />
+      <input placeholder={'dynamic lowercase'} title="https://" /></>;
+  }\n`);
+
+  const check = spawnSync(process.execPath, [
+    'scripts/ci/check-title-case.mjs', '--scan-file', fixture,
+  ], { cwd: ROOT_PATH, encoding: 'utf8' });
+  assert.equal(check.status, 1);
+  assert.match(check.stderr, /\[placeholder\]: Search items\.\.\./);
+  assert.match(check.stderr, /\[aria-label\]: Reward account signals/);
+  assert.doesNotMatch(check.stderr, /dynamic lowercase|Https:\/\//);
+
+  const fix = spawnSync(process.execPath, [
+    'scripts/ci/check-title-case.mjs', '--fix', '--scan-file', fixture,
+  ], { cwd: ROOT_PATH, encoding: 'utf8' });
+  assert.equal(fix.status, 0, fix.stderr);
+  const corrected = await readFile(fixture, 'utf8');
+  assert.match(corrected, /placeholder="Search Items\.\.\."/);
+  assert.match(corrected, /aria-label="Reward Account Signals"/);
+  assert.match(corrected, /placeholder=\{'dynamic lowercase'\}/);
+  assert.match(corrected, /title="https:\/\/"/);
 });
 
 test('accessible Marketplace shell copy is normalized before rendering or entering metadata', async () => {
@@ -116,12 +186,63 @@ test('remote Marketplace inventory and account telemetry cannot reintroduce bann
     'src/components/store/RewardTelemetryConsole.jsx',
     'src/components/store/ShoppingCart.jsx',
     'src/components/store/StoreCards.js',
+    'src/components/store/StoreToast.jsx',
+    'src/components/store/DiamondWalletModal.jsx',
     'src/components/diamond-store/CheckoutStatusPanel.jsx',
   ].map(read));
 
   boundaries.forEach(source => {
     assert.match(source, /marketplaceCopy/);
   });
+});
+
+test('wallet and toast dynamic prose enforce the copy contract at their render boundaries', async () => {
+  const [wallet, walletCss, toast] = await Promise.all([
+    read('src/components/store/DiamondWalletModal.jsx'),
+    read('src/components/store/DiamondWalletModal.module.css'),
+    read('src/components/store/StoreToast.jsx'),
+  ]);
+
+  assert.match(wallet, /textTransform:\s*'capitalize'/);
+  assert.match(wallet, /className=\{styles\.preserveIdentityScope\}/);
+  assert.match(
+    walletCss,
+    /\.preserveIdentityScope \[data-preserve-case='true'\][\s\S]*?text-transform:\s*none !important;/
+  );
+  assert.match(wallet, /marketplaceCopy\(transferError\)/);
+  assert.match(wallet, /marketplaceCopy\(error\)/);
+  assert.ok(
+    (wallet.match(/data-user-content="true"/g) || []).length >= 7,
+    'every wallet identity surface must keep its authored capitalization'
+  );
+  assert.match(
+    wallet,
+    /data-user-content="true"[\s\S]*?data-preserve-case="true"[\s\S]*?>\s*@\{f\.username\}/,
+    'the secondary friend handle must bypass title-case presentation'
+  );
+  assert.doesNotMatch(wallet, /marketplaceCopy\([^)]*(?:display_name|username)/);
+  assert.match(toast, /const copyMessage = marketplaceCopy\(message\)/);
+  assert.match(toast, /message:\s*copyMessage/);
+});
+
+test('wallet transfer descriptions Title Case system prose without recasing identities', () => {
+  assert.deepEqual(
+    formatWalletDescriptionParts(
+      'Sent 10000 diamonds to mcPokerFan [3b2e74d0-cf27-4bc6-8e55-b04970090c40]'
+    ),
+    { copy: 'Sent 10,000 Diamonds To', identity: 'mcPokerFan' }
+  );
+  assert.deepEqual(
+    formatWalletDescriptionParts(
+      'Received 250 diamonds from iPhoneKing [96bd86ba-4518-42f5-8a32-bde6d98ff21b]'
+    ),
+    { copy: 'Received 250 Diamonds From', identity: 'iPhoneKing' }
+  );
+  assert.deepEqual(formatWalletDescriptionParts('vip reward for WSOP 2026'), {
+    copy: 'VIP Reward For WSOP 2026',
+    identity: null,
+  });
+  assert.equal(titleCaseWalletText('daily vip pass'), 'Daily VIP Pass');
 });
 
 test('private VIP reads reject anonymous requests before database initialization', async () => {

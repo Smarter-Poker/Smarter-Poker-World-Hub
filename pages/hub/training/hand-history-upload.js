@@ -15,6 +15,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import {
   isProvenanceCompleteAuditedDecision,
@@ -24,6 +25,8 @@ import Card from '../../../src/components/training/Card';
 // ── Phase 5 Engines: Hand History Analysis Pipeline ──────────────────────
 import { parseHandHistory as engineParseHandHistory, detectSite } from '../../../src/engines/HandHistoryParser';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+const trainingFetch = createBoundedTrainingFetch(authedFetch);
 // TRAIN-WIRE-EMPTY-7b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1123,7 +1126,7 @@ export default function HandHistoryUploadPage() {
     try {
       const token = await getAccessToken();
       if (!token || parsed.length === 0) return parsed;
-      const response = await authedFetch('/api/training/audit-hand-history', {
+      const response = await trainingFetch('/api/training/audit-hand-history', {
         method: 'POST',
         body: JSON.stringify({ handHistoryText: text }),
       });

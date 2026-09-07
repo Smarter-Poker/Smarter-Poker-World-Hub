@@ -24,6 +24,9 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
+
   try {
     // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
     const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);

@@ -15,6 +15,9 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
+
+const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 // TRAIN-CSS-MOTION-ADOPT-11 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -234,7 +237,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             color: 'var(--sp-accent-green)',
           }}
         >
-          {result.authorityLabel || (result.isEstimate ? 'Modeled Baseline' : 'Audited Solver Result')}
+          {result.authorityLabel || 'Audited Solver Result'}
         </div>
       </div>
 
@@ -411,7 +414,7 @@ export default function CustomSolvePage() {
     try {
       const selectedBoard = boardCards.filter(Boolean);
       if (selectedBoard.length < 3) {
-        const res = await authedFetch(
+        const res = await trainingFetch(
           `/api/training/preflop-ranges?gameType=cash_6max&stackDepth=100&position=${heroPos}&scenario=rfi`,
         );
         const data = await res.json().catch(() => null);
@@ -444,7 +447,7 @@ export default function CustomSolvePage() {
           rangePercent: data.range.stats?.rfiPct || 0,
         });
       } else {
-        const res = await authedFetch('/api/training/solver-api', {
+        const res = await trainingFetch('/api/training/solver-api', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -457,11 +460,18 @@ export default function CustomSolvePage() {
           }),
         });
         const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.solution?.actions) throw new Error(data?.error || `Request failed (${res.status})`);
+        const hasExactSolverResult = data?.source === 'solved_spots_gold'
+          && data?.matchQuality === 'exact_root_node'
+          && data?.solution?.isEstimate === false
+          && data?.solution?.actions
+          && typeof data.solution.actions === 'object';
+        if (!res.ok || !hasExactSolverResult) {
+          throw new Error(data?.error || 'No audited exact solver result is available for this decision.');
+        }
         setResult({
           source: data.source,
-          isEstimate: Boolean(data.solution.isEstimate),
-          authorityLabel: data.solution.isEstimate ? 'Modeled Baseline' : 'Audited Solver Result',
+          isEstimate: false,
+          authorityLabel: 'Audited Solver Result',
           message: data.message,
           actions: Object.entries(data.solution.actions).map(([actionName, frequency]) => ({
             action: actionName.charAt(0).toUpperCase() + actionName.slice(1),
@@ -553,7 +563,7 @@ export default function CustomSolvePage() {
             <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>
               {isPreflopRfi
                 ? 'Before A Complete Flop Is Selected, This Tool Queries Only The Authored 100BB First-In RFI Reference. No Opponent Exists In A First-In Decision.'
-                : 'Postflop Requests Apply Hero, Opponent, Effective Stack, And Every Concrete Board Card. Solver-Exact Output Requires One Audited Root Decision; Otherwise The Result Is Clearly Marked As A Model.'}
+                : 'Postflop Requests Apply Hero, Opponent, Effective Stack, And Every Concrete Board Card. Only An Audited Exact Root Decision Is Displayed. If No Exact Match Exists, The Request Fails Closed And No Modeled Result Is Shown.'}
             </div>
           </div>
 

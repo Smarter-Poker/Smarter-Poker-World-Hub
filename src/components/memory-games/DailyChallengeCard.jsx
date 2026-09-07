@@ -11,7 +11,8 @@ export default function DailyChallengeCard({ challenge, streak, completed, onPla
   if (loading) {
     return (
       <div className="preflop-daily-card is-loading" role="status" data-tutorial="daily">
-        Synchronizing Today's Assignment
+        <span className="preflop-daily-card-scan" aria-hidden="true" />
+        Synchronizing Today’s Assignment
       </div>
     );
   }
@@ -19,9 +20,10 @@ export default function DailyChallengeCard({ challenge, streak, completed, onPla
   if (!challenge) {
     return (
       <section className="preflop-daily-card is-empty" aria-labelledby="preflop-daily-title" data-tutorial="daily">
+        <div className="preflop-daily-card-art" aria-hidden="true" />
         <div className="preflop-daily-card-mark" aria-hidden><CalendarDays size={21} /></div>
         <div className="preflop-daily-card-copy">
-          <span>DAILY RANGE ASSIGNMENT</span>
+          <span>Daily Range Assignment</span>
           <h2 id="preflop-daily-title">No Assignment Posted Yet</h2>
           <p>Today's Challenge Appears Here As Soon As It Is Published. Check Back Soon.</p>
         </div>
@@ -32,9 +34,10 @@ export default function DailyChallengeCard({ challenge, streak, completed, onPla
   const target = accuracyToPercent(challenge.target_accuracy ?? 75);
   return (
     <section className="preflop-daily-card" data-completed={completed || undefined} aria-labelledby="preflop-daily-title" data-tutorial="daily">
+      <div className="preflop-daily-card-art" aria-hidden="true" />
       <div className="preflop-daily-card-mark" aria-hidden>{completed ? <Check size={21} /> : <CalendarDays size={21} />}</div>
       <div className="preflop-daily-card-copy">
-        <span>DAILY RANGE ASSIGNMENT</span>
+        <span>Daily Range Assignment</span>
         <h2 id="preflop-daily-title">{challenge.title || `Level ${challenge.level || 1} Challenge`}</h2>
       </div>
       {streak?.current_streak > 0 && <div className="preflop-daily-card-streak"><strong>{streak.current_streak}</strong><span>Day Streak</span></div>}

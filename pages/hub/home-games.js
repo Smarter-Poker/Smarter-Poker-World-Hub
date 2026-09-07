@@ -477,7 +477,6 @@ export default function HomeGamesPage() {
     const [userLocation, setUserLocation] = useState(null);
     const [gpsLoading, setGpsLoading] = useState(false);
     const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
-    const [mapFullscreen, setMapFullscreen] = useState(false);
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [sortBy, setSortBy] = useState('default');
     const [favorites, setFavorites] = useState({});
@@ -641,7 +640,10 @@ export default function HomeGamesPage() {
         // so the GPS fix acquired below never reached the API.
     }, [userLocation, filters.selectedState, filters.radius, searchQuery]);
 
-    // GPS auto-request
+    // Restore a recent, previously accepted location without prompting. Fresh
+    // geolocation requests are always initiated by the visible Enable GPS
+    // control; never steal focus with a browser prompt or recovery dialog on
+    // page load, including after the user dismissed that prompt before.
     const gpsAutoRef = useRef(false);
     useEffect(() => {
         if (gpsAutoRef.current) return;
@@ -658,10 +660,10 @@ export default function HomeGamesPage() {
                 }
             }
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        // Request fresh GPS
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            setTimeout(() => requestGpsLocation(), 600);
-        }
+        try {
+            if (localStorage.getItem('pnm_location_prompt_dismissed') === '1') return;
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        // No saved location: wait for an explicit Enable GPS action.
     }, []);
 
     const requestGpsLocation = () => {
@@ -692,6 +694,10 @@ export default function HomeGamesPage() {
             (err) => {
                 setGpsLoading(false);
                 if (err && err.code === 1) {
+                    // The location instructions are themselves a modal dialog.
+                    // Retire any expanded discovery map before mounting them so
+                    // focus, Escape and scroll locking always have one owner.
+                    window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
                     setShowLocationModal(true);
                 }
             },
@@ -954,24 +960,16 @@ export default function HomeGamesPage() {
                             ) : (
                                 <>
                                     {/* MAP */}
-                                    <div className={`hg-map-card${mapFullscreen ? ' hg-map-fullscreen' : ''}`}>
-                                        {mapFullscreen && (
-                                            <div className="hg-map-collapse" role="button" tabIndex={0} aria-label="Collapse Map" onClick={() => setMapFullscreen(false)}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
-                                                    <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
-                                                </svg>
-                                                Collapse Map
-                                            </div>
-                                        )}
+                                    <div className="hg-map-card">
                                         <MapErrorBoundary>
                                             <VenueMap
-                                                key={mapFullscreen ? 'hg-fullscreen' : 'hg-preview'}
                                                 venues={sortedVenues}
                                                 userLocation={userLocation}
-                                                fullHeight={mapFullscreen}
                                                 hideLegend={true}
                                                 radiusMiles={filters.radius}
+                                                mapEyebrow="Community game map"
+                                                mapTitle="Home games near you"
+                                                mapDetail={`${sortedVenues.length} privacy-safe locations · exact addresses stay private`}
                                                 onVenueClick={(venue) => {
                                                     // Unified routing: prefer public slug (canonical URL);
                                                     // fall back to club/invite code share page; last resort
@@ -1006,15 +1004,6 @@ export default function HomeGamesPage() {
                                             </select>
                                         </div>
 
-                                        {!mapFullscreen && (
-                                            <button className="hg-expand-map-btn" onClick={() => setMapFullscreen(true)}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
-                                                    <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
-                                                </svg>
-                                                Expand Map
-                                            </button>
-                                        )}
                                     </div>
 
                                     {/* VENUE CARDS */}
@@ -1094,7 +1083,11 @@ export default function HomeGamesPage() {
                     onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
                 />
 
-                <style>{`
+                {/* Raw style text is not hydration-safe when the CSS contains
+                    apostrophes: SSR entity-escapes them inside the style raw
+                    text element while the client creates literal characters.
+                    Emit one identical text payload in both environments. */}
+                <style dangerouslySetInnerHTML={{ __html: `
                     .hg-page {
                         min-height: 100vh;
                         padding-bottom: 70px;
@@ -1342,64 +1335,17 @@ export default function HomeGamesPage() {
                     /* ═══ MAP ═══ */
                     .hg-map-card {
                         position: relative;
-                        border-radius: 14px;
-                        overflow: hidden;
-                        background: linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%);
-                        border: 2px solid rgba(148,163,184,0.16);
-                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.4);
+                        /* Keep the shared fullscreen map's exit chrome below
+                           the device status bar even if the global map theme
+                           is loaded late or overridden by a future page skin. */
+                        --hg-map-safe-area-top: env(safe-area-inset-top, 0px);
+                        border-radius: 3px;
+                        background: #020507;
                         margin-bottom: 2px;
-                        height: clamp(320px, 48dvh, 640px);
-                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                     }
-                    .hg-map-card.hg-map-fullscreen {
-                        position: fixed;
-                        inset: 0;
-                        z-index: 99990;
-                        border-radius: 0;
-                        border: none;
-                        margin: 0;
-                        min-height: 100dvh;
-                        height: 100dvh;
-                    }
-                    .hg-map-card.hg-map-fullscreen .leaflet-container,
-                    .hg-map-card.hg-map-fullscreen > div:last-child {
-                        height: 100vh !important;
-                        min-height: 100vh !important;
-                        pointer-events: auto;
-                    }
-                    .hg-map-card:not(.hg-map-fullscreen) .leaflet-container,
-                    .hg-map-card:not(.hg-map-fullscreen) > div:last-child {
-                        height: 100% !important;
-                        min-height: 100% !important;
-                        pointer-events: none;
-                    }
-                    .hg-map-collapse {
-                        /* Fullscreen map exit: below the status bar, 44px tall (mobile phase 0b). */
-                        position: absolute;
-                        top: calc(env(safe-area-inset-top, 0px) + 12px);
-                        right: 12px;
-                        z-index: 99991;
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        min-height: 44px;
-                        touch-action: manipulation;
-                        -webkit-tap-highlight-color: transparent;
-                        padding: 8px 14px;
-                        background: rgba(10,10,21,0.88);
-                        backdrop-filter: blur(8px);
-                        border: 1px solid rgba(239,68,68,0.4);
-                        border-radius: 8px;
-                        color: #ef4444;
-                        font-size: 12px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-                    }
-                    .hg-map-collapse:hover {
-                        background: rgba(239,68,68,0.15);
-                        border-color: rgba(239,68,68,0.6);
+                    .hg-map-card .pnm-map-surface--fullscreen .pnm-map-surface__header {
+                        min-height: calc(66px + var(--hg-map-safe-area-top));
+                        padding-top: calc(10px + var(--hg-map-safe-area-top));
                     }
 
                     /* ═══ RESULTS BAR — Matches Poker Near Me ═══ */
@@ -1938,12 +1884,9 @@ export default function HomeGamesPage() {
                         .hg-card-grid {
                             grid-template-columns: 1fr !important;
                         }
-                        .hg-map-card:not(.hg-map-fullscreen) {
-                            height: clamp(140px, 25dvh, 260px);
-                            border-radius: 10px;
-                        }
+                        .hg-map-card { border-radius: 3px; }
                     }
-                `}</style>
+                ` }} />
             </div>
         </>
     );

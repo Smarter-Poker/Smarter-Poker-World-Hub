@@ -38,6 +38,10 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+    fixedSpendAmount,
+    validateDiamondSpendReceipt,
+} from '../../../src/lib/diamonds/spendReceiptPolicy.mjs';
 
 /** Upper bound on a single charge. Nothing in the app costs more than this. */
 const MAX_CHARGE = 1000;
@@ -104,6 +108,18 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Unrecognised spend source' });
         }
 
+        // Known products are priced here, never by the browser. In particular,
+        // a Trivia client cannot pre-seed a lifeline reference with a one-
+        // diamond debit and later replay it as the five-diamond purchase.
+        const serverAmount = fixedSpendAmount(source);
+        if (serverAmount !== null && amount !== serverAmount) {
+            return res.status(400).json({
+                success: false,
+                error: 'invalid_spend_amount',
+                expected_amount: serverAmount,
+            });
+        }
+
         const description = typeof body.description === 'string'
             ? body.description.slice(0, 200)
             : source;
@@ -155,17 +171,10 @@ export default async function handler(req, res) {
             });
         }
 
-        if ((profile.diamonds ?? 0) < amount) {
-            return res.status(200).json({
-                success: false,
-                error: 'Insufficient diamonds',
-                balance: profile.diamonds ?? 0,
-                required: amount,
-            });
-        }
-
         // deduct_diamonds is service_role only and does the balance write plus
-        // the ledger row atomically.
+        // the ledger row atomically. It also owns the insufficient-balance
+        // decision: an exact idempotent retry must still be able to recover its
+        // committed receipt after the player's balance changes.
         const { data, error } = await supabase.rpc('deduct_diamonds', {
             p_user_id: userId,
             p_amount: amount,
@@ -181,18 +190,35 @@ export default async function handler(req, res) {
         }
 
         const result = typeof data === 'string' ? JSON.parse(data) : data || {};
-        if (result.success === false) {
-            return res.status(200).json({
+        if (result.success !== true) {
+            const responseStatus = result.error === 'idempotency_conflict' ? 409 : 200;
+            return res.status(responseStatus).json({
                 success: false,
                 error: result.error || 'Insufficient diamonds',
                 balance: result.balance ?? profile.diamonds ?? 0,
             });
         }
 
+        // A success response is not proof by itself. The database receipt must
+        // bind the debit to this exact amount, type, destination and namespaced
+        // idempotency key. Missing or drifted receipt fields fail closed.
+        const receipt = validateDiamondSpendReceipt(result, {
+            amount,
+            transactionType: source,
+            referenceId,
+        });
+        if (!receipt.ok) {
+            const receiptError = new Error(`invalid_charge_receipt:${receipt.error}`);
+            console.error('[Spend] invalid deduct_diamonds receipt:', receipt.error);
+            try { reportApiError(receiptError, req); } catch { /* noop */ }
+            return res.status(502).json({ success: false, error: 'invalid_charge_receipt' });
+        }
+
         return res.status(200).json({
             success: true,
-            charged: amount,
-            balance: result.balance ?? Math.max((profile.diamonds ?? 0) - amount, 0),
+            charged: receipt.charged,
+            balance: receipt.balance,
+            idempotent: receipt.idempotent,
         });
     } catch (err) {
         try { reportApiError(err, req); } catch { /* noop */ }

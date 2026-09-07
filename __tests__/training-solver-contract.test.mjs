@@ -2,7 +2,333 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+
+const RETIRED_SOLVER_RPCS = [
+  'fn_pio_options_from_solver',
+  'fn_chart_options_from_memory',
+];
+
+const RUNTIME_SOURCE_ROOTS = [
+  '.github', 'app', 'config', 'engine', 'lib', 'pages', 'scripts', 'services',
+  'src', 'supabase/functions', 'utils', 'worker',
+];
+
+function stripSqlComments(sql) {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/--[^\r\n]*/g, '');
+}
+
+function solverFunctionOperationPattern(rpc) {
+  return new RegExp(
+    `\\b(CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION|DROP\\s+FUNCTION(?:\\s+IF\\s+EXISTS)?)\\s+(?:public\\.)?${rpc}\\b`,
+    'gi',
+  );
+}
+
+function sourceFiles(directory, files = []) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      sourceFiles(fullPath, files);
+    } else if (/\.(?:c?js|mjs|jsx|ts|tsx|py|sh|sql|ya?ml)$/.test(entry.name)) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+test('legacy client-callable solver extraction RPCs stay retired', () => {
+  const migrationsDirectory = path.resolve('supabase/migrations');
+  const migrations = fs.readdirSync(migrationsDirectory)
+    .filter((filename) => filename.endsWith('.sql'))
+    .sort();
+
+  for (const rpc of RETIRED_SOLVER_RPCS) {
+    let lastOperation = null;
+    const operationPattern = solverFunctionOperationPattern(rpc);
+    assert.match(
+      `CREATE FUNCTION public.${rpc}() RETURNS integer LANGUAGE sql AS 'SELECT 1'`,
+      solverFunctionOperationPattern(rpc),
+      `${rpc} plain CREATE FUNCTION declarations must be detectable`,
+    );
+    assert.doesNotMatch(
+      stripSqlComments(`SELECT 1; -- CREATE FUNCTION public.${rpc}() RETURNS integer`),
+      solverFunctionOperationPattern(rpc),
+      `${rpc} declarations inside trailing line comments must be ignored`,
+    );
+    assert.doesNotMatch(
+      stripSqlComments(`/* CREATE OR REPLACE FUNCTION public.${rpc}() RETURNS integer */`),
+      solverFunctionOperationPattern(rpc),
+      `${rpc} declarations inside block comments must be ignored`,
+    );
+
+    for (const filename of migrations) {
+      const activeSql = stripSqlComments(
+        fs.readFileSync(path.join(migrationsDirectory, filename), 'utf8'),
+      );
+      for (const match of activeSql.matchAll(operationPattern)) {
+        lastOperation = { filename, operation: match[1].toUpperCase() };
+      }
+    }
+
+    assert.ok(lastOperation, `${rpc} has no auditable migration history`);
+    assert.match(
+      lastOperation.operation,
+      /^DROP FUNCTION/,
+      `${rpc} was recreated after its retirement by ${lastOperation.filename}`,
+    );
+    assert.equal(
+      lastOperation.filename,
+      '20260906101500_retire_legacy_solver_option_rpcs.sql',
+      `${rpc} retirement is not pinned to the Phase 1 trust-lockdown migration`,
+    );
+  }
+
+  const runtimeFiles = RUNTIME_SOURCE_ROOTS
+    .filter((directory) => fs.existsSync(directory))
+    .flatMap((directory) => sourceFiles(path.resolve(directory)));
+  const offenders = [];
+  for (const filename of runtimeFiles) {
+    const source = fs.readFileSync(filename, 'utf8');
+    for (const rpc of RETIRED_SOLVER_RPCS) {
+      if (source.includes(rpc)) offenders.push(`${path.relative(process.cwd(), filename)}: ${rpc}`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `runtime source still advertises or calls retired solver RPCs:\n${offenders.join('\n')}`,
+  );
+});
+
+test('legacy V1 f can never become a Fold option at a solver policy boundary', async () => {
+  const {
+    hasUntrustedLegacyFoldChannel,
+    inheritSolverMatrixTrust,
+    selectTrustedLegacySolverMatrix,
+    selectTrustedSolverMatrix,
+  } = await import('../src/lib/training/solverMatrixTrust.js');
+
+  const plausibleButUnsafeV1 = {
+    actions: ['c', 'f'],
+    frequencies: {
+      c: { AKs: 0.6 },
+      f: { AKs: 0.4 },
+    },
+    hand_evs: { AKs: 1.25 },
+  };
+  assert.equal(hasUntrustedLegacyFoldChannel(plausibleButUnsafeV1), true);
+  assert.equal(selectTrustedLegacySolverMatrix(plausibleButUnsafeV1), null);
+  assert.equal(selectTrustedSolverMatrix({ strategy_matrix: plausibleButUnsafeV1 }), null);
+  assert.equal(selectTrustedLegacySolverMatrix({
+    actions: ['c', 'b33'],
+    frequencies: { c: { AKs: 0.6 }, b33: { AKs: 0.4 } },
+  })?.actions[1], 'b33');
+
+  const v2WithRealFoldAction = {
+    actions: ['c', 'f'],
+    frequencies: {
+      c: new Array(1326).fill(0.6),
+      f: new Array(1326).fill(0.4),
+    },
+    hand_evs_bb: new Array(1326).fill(1.25),
+    pot_bb: 5.5,
+    node: 'r:0',
+    hero: 'OOP',
+    position: 'BB',
+    oop_player: 'BB',
+    ip_player: 'BTN',
+  };
+  const selectedV2 = selectTrustedSolverMatrix({
+    strategy_matrix: plausibleButUnsafeV1,
+    strategy_matrix_v2: v2WithRealFoldAction,
+  });
+  assert.ok(selectedV2);
+  assert.equal(
+    selectTrustedSolverMatrix({ strategy_matrix_v2: v2WithRealFoldAction }),
+    selectedV2,
+    'repeated policy reads should reuse the already validated V2 bridge',
+  );
+  assert.deepEqual(selectedV2.actions, ['c', 'f']);
+  assert.equal(selectedV2.source, 'pio_v2');
+  assert.equal(
+    selectTrustedLegacySolverMatrix({ ...selectedV2 }),
+    null,
+    'serialized or copied objects cannot forge process-local V2 trust',
+  );
+  const constrainedV2 = inheritSolverMatrixTrust(selectedV2, {
+    ...selectedV2,
+    frequencies: {
+      c: { AKs: 0.6 },
+      f: { AKs: 0.4 },
+    },
+  });
+  assert.equal(selectTrustedLegacySolverMatrix(constrainedV2), constrainedV2);
+  assert.equal(selectTrustedLegacySolverMatrix({
+    ...plausibleButUnsafeV1,
+    source: 'pio_v2',
+  }), null, 'a JSON source label is not a trust seal');
+  assert.equal(selectTrustedSolverMatrix({
+    strategy_matrix: { actions: ['c', 'b33'], frequencies: {} },
+    strategy_matrix_v2: { actions: ['c', 'f'], frequencies: {} },
+  }), null, 'an invalid authoritative V2 payload must not fall back to V1');
+  assert.equal(selectTrustedSolverMatrix({
+    strategy_matrix: { actions: ['c', 'b33'], frequencies: {} },
+    strategy_matrix_v2: '',
+  }), null, 'a present but malformed V2 payload must fail closed even when falsey');
+});
+
+test('the runtime preserves validated V2 Fold while quarantining legacy V1 f', () => {
+  const output = execFileSync(process.execPath, [
+    '__tests__/solver-matrix-trust-runtime-probe.cjs',
+  ], { cwd: process.cwd(), encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(output), {
+    directCoreV2FoldPreserved: true,
+    validV2FoldPreserved: true,
+    legacyV1FoldQuarantined: true,
+    mutatedLegacyV1FoldQuarantined: true,
+    legacyV1Question: null,
+  });
+});
+
+test('solver consumers are retired or enforce an exact source-aware trust boundary', () => {
+  const retiredRoutes = new Map([
+    ['pages/api/assistant/sandbox/analyze.js', 'SANDBOX_ANALYSIS_REQUIRES_VERIFIED_EVIDENCE'],
+    ['pages/api/god-mode/fetch-hand.js', 'LEGACY_GOD_MODE_HAND_DELIVERY_RETIRED'],
+    ['pages/api/god-mode/submit-action.js', 'LEGACY_GOD_MODE_GRADING_RETIRED'],
+    ['pages/api/gto/gto-analysis.js', 'LEGACY_GTO_ANALYSIS_RETIRED'],
+    ['pages/api/training/aggregate-report.js', 'SOLVER_AGGREGATE_REPORT_REQUIRES_AUDITED_COHORT'],
+    ['pages/api/training/runout-report.js', 'SOLVER_RUNOUT_REPORT_REQUIRES_AUDITED_LINEAGE'],
+    ['pages/api/training/tree-navigate.js', 'SOLVER_TREE_REQUIRES_AUDITED_NODE_LINEAGE'],
+  ]);
+  for (const [filename, retirementCode] of retiredRoutes) {
+    const source = fs.readFileSync(filename, 'utf8');
+    assert.match(source, /res\.status\(410\)\.json\(/, `${filename} is not hard-retired`);
+    assert.match(source, /private, no-store, max-age=0/, `${filename} can cache retirement state`);
+    assert.match(source, new RegExp(retirementCode), `${filename} lacks its explicit retirement code`);
+    assert.doesNotMatch(
+      source,
+      /createClient|SUPABASE_SERVICE_ROLE_KEY|\.from\(|\.rpc\(|SolverPolicyService|Math\.random/,
+      `${filename} still carries a solver/data execution path behind its retirement response`,
+    );
+  }
+
+  const strictWarehouseReaders = [
+    'pages/api/training/browse-solutions.js',
+    'pages/api/training/solver-api.js',
+    'pages/api/training/spot-drill.js',
+    'pages/api/training/custom-train.js',
+    'src/engines/deterministicEnginePatches.js',
+  ];
+  for (const filename of strictWarehouseReaders) {
+    const source = fs.readFileSync(filename, 'utf8');
+    assert.match(source, /\.from\(['"]solved_spots_gold['"]\)/, `${filename} does not use the audited warehouse`);
+    assert.match(source, /strategy_matrix_v2/, `${filename} omits the authoritative matrix`);
+    for (const provenanceField of [
+      'solver_version',
+      'solver_binary_checksum',
+      'pipeline_commit',
+      'manifest_checksum',
+      'source_artifact_checksum',
+      'quality_status',
+      'audited_at',
+    ]) {
+      assert.match(source, new RegExp(provenanceField), `${filename} omits ${provenanceField}`);
+    }
+    assert.doesNotMatch(
+      source,
+      /v2ToAppMatrix\([^)]*strategy_matrix_v2[^)]*\)\s*\|\|\s*[^;\n]*strategy_matrix/,
+      `${filename} can fall back from invalid V2 to legacy V1`,
+    );
+  }
+
+  const solverApi = fs.readFileSync('pages/api/training/solver-api.js', 'utf8');
+  assert.match(solverApi, /\.eq\('scenario_hash', request\.scenarioHash\)/);
+  assert.match(solverApi, /\.eq\('game_type', request\.pioGameType\)/);
+  assert.match(solverApi, /\.eq\('street', request\.street\)/);
+  assert.match(solverApi, /\.eq\('stack_depth', request\.stackDepth\)/);
+  assert.match(solverApi, /customSolverRowMatchesRequest\(row, request\)/);
+  assert.match(solverApi, /exactCandidates\.length > 1[\s\S]*status: 'ambiguous'/);
+  assert.match(solverApi, /source: 'solved_spots_gold'/);
+  assert.match(solverApi, /matchQuality: 'exact_root_node'/);
+  assert.match(solverApi, /isEstimate: false/);
+  assert.match(solverApi, /res\.status\(422\)\.json\(\{[\s\S]*SOLVER_NODE_CONTEXT_REQUIRED/);
+  assert.match(solverApi, /res\.status\(404\)\.json\(\{[\s\S]*AUDITED_SOLVER_ARTIFACT_NOT_FOUND/);
+  assert.doesNotMatch(
+    solverApi,
+    /modeled_baseline|generateBaselineStrategy|\.from\(['"]solver_queue['"]\)|status: 'queued'|queued for precise solving/i,
+  );
+
+  const requiredWiring = new Map([
+    ['scripts/reseed-deterministic-cache.js', /selectTrustedSolverMatrix\(/],
+    ['scripts/trivia-deterministic-seed.js', /selectTrustedSolverMatrix\(/],
+    ['src/engines/deterministicEnginePatches.js', /if\s*\(hasUntrustedLegacyFoldChannel\(matrix\)\s*&&\s*!selectTrustedLegacySolverMatrix\(matrix\)\)/],
+  ]);
+
+  for (const [filename, invariant] of requiredWiring) {
+    const source = fs.readFileSync(filename, 'utf8');
+    assert.match(source, invariant, `${filename} bypasses solver trust`);
+    assert.doesNotMatch(
+      source,
+      /v2ToAppMatrix\([^)]*strategy_matrix_v2[^)]*\)\s*\|\|\s*[^;\n]*strategy_matrix/,
+      `${filename} can fall back from invalid V2 to legacy V1`,
+    );
+  }
+
+  const customTrainer = fs.readFileSync('pages/api/training/custom-train.js', 'utf8');
+  assert.match(customTrainer, /\.in\('game_type', pioGameTypes\)/);
+  assert.match(customTrainer, /\.eq\('stack_depth', parsedStack\)/);
+  assert.match(customTrainer, /query = query\.eq\('street', safeStreet\)/);
+  assert.match(customTrainer, /customTrainingQuestionMatchesConfig\(contractedQuestion, customConfig\)/);
+  assert.match(customTrainer, /prepareTrainingAttemptDelivery\(\{/);
+  assert.match(customTrainer, /requireFullAttempt: true/);
+  assert.match(customTrainer, /exactFiltersApplied: true/);
+
+  const pioQueryService = fs.readFileSync('src/services/PIOQueryService.js', 'utf8');
+  assert.match(pioQueryService, /async queryScenarios\(\)[\s\S]*Direct solver queries are retired[\s\S]*return null;/);
+  assert.doesNotMatch(pioQueryService, /\.from\(|\.rpc\(|createClient|SUPABASE_SERVICE_ROLE_KEY/);
+
+  const deterministicEngine = fs.readFileSync('src/engines/DeterministicGTOEngine.js', 'utf8');
+  assert.match(deterministicEngine, /import \{ SolverPolicyService \}/);
+  assert.match(deterministicEngine, /this\._solverPolicyService = new SolverPolicyService\(\{ db: this\.db \}\)/);
+  assert.doesNotMatch(
+    deterministicEngine,
+    /\.select\(['"][^'"]*\bstrategy_matrix\b(?![^'"]*\bstrategy_matrix_v2\b)[^'"]*['"]\)/,
+    'the base engine has a solved-spots projection that omits authoritative V2 data',
+  );
+  assert.match(
+    deterministicEngine,
+    /getMaxFrequency\(selectTrustedSolverMatrix\(scenario\)\)/,
+    'difficulty filtering must not rank a raw V1 f channel before the trust boundary',
+  );
+
+  const offlineCache = fs.readFileSync('src/lib/training/offlineQuestionCache.js', 'utf8');
+  assert.match(offlineCache, /OFFLINE_QUESTION_CACHE_VERSION = 3/);
+  assert.match(
+    offlineCache,
+    /cached\.version !== OFFLINE_QUESTION_CACHE_VERSION/,
+    'pre-boundary IndexedDB packs must never survive the solver trust release',
+  );
+  assert.match(offlineCache, /version: OFFLINE_QUESTION_CACHE_VERSION/);
+});
+
+test('live schema tombstones reject both retired RPC names on CREATE and ALTER', () => {
+  const migration = fs.readFileSync(
+    'supabase/migrations/20260906160000_guard_retired_solver_option_rpcs.sql',
+    'utf8',
+  );
+  assert.match(migration, /CREATE EVENT TRIGGER trg_reject_retired_solver_option_rpc_ddl/);
+  assert.match(migration, /WHEN TAG IN \('CREATE FUNCTION', 'ALTER FUNCTION'\)/);
+  assert.match(migration, /pg_event_trigger_ddl_commands\(\)/);
+  assert.match(migration, /retired solver option RPC recreation blocked/);
+  assert.match(migration, /FOREACH v_name IN ARRAY ARRAY\[/);
+  for (const rpc of RETIRED_SOLVER_RPCS) assert.match(migration, new RegExp(rpc));
+  assert.doesNotMatch(migration, /\bCASCADE\b/);
+});
 
 test('Training runtime and strict cache reseeder share one 107-game solver contract', () => {
   const stdout = execFileSync(process.execPath, ['scripts/training-solver-contract-audit.js'], {
@@ -277,8 +603,9 @@ test('Training rejects frequency-only legacy rows without real hand EVs', () => 
   const failClosed = "if (!handEVs || typeof handEVs !== 'object' || Object.keys(handEVs).length === 0) return null;";
   assert.ok(runtime.includes(failClosed));
   assert.ok(reseeder.includes(failClosed));
-  assert.match(reseeder, /return v2ToAppMatrix\(scenario\.strategy_matrix_v2\)/);
-  assert.match(reseeder, /return sanitizeLegacyMatrix\(structuredClone\(scenario\.strategy_matrix\)\)/);
+  assert.match(reseeder, /const selected = selectTrustedSolverMatrix\(scenario\)/);
+  assert.match(reseeder, /return sanitizeLegacyMatrix\(structuredClone\(selected\)\)/);
+  assert.match(reseeder, /matrix = selectTrustedLegacySolverMatrix\(matrix\)/);
   assert.match(reseeder, /const pure = !corrupted && maximum >= 0\.98/);
   assert.match(runtime, /&& Number\.isFinite\(handEVs\[h\]\)/);
   assert.match(reseeder, /if \(!Number\.isFinite\(handEVs\[h\]\)\) return false;/);
@@ -336,17 +663,46 @@ test('runtime cannot fall back to legacy when authoritative v2 is invalid', () =
   assert.match(source, /else row\.__invalidV2 = true;/);
 });
 
-test('targeted solver practice fails closed instead of teaching another spot', () => {
+test('targeted solver practice requires exact filters, provenance, and lineage instead of teaching another spot', () => {
   const engine = fs.readFileSync('src/engines/DeterministicGTOEngine.js', 'utf8');
   const patches = fs.readFileSync('src/engines/deterministicEnginePatches.js', 'utf8');
+  const fetchSolverPool = patches.slice(
+    patches.indexOf('engine.fetchSolverPool ='),
+    patches.indexOf('// ●● PATCH 3', patches.indexOf('engine.fetchSolverPool =')),
+  );
   assert.match(engine, /if \(targeted\.length === 0\) return curatedFallback\(\);/);
   assert.match(engine, /questions\.length > 0 \? questions : curatedFallback\(\)/);
   assert.doesNotMatch(engine, /sortedScenarios = \[\.\.\.targeted, \.\.\.others\]/);
   assert.match(engine, /matched 0 scenarios; failing closed/);
   assert.match(engine, /Context filter rejected every action/);
   assert.doesNotMatch(engine, /Context filter removed all actions[\s\S]*restoring originals/);
-  assert.match(patches, /if \(filtered\.length === 0\) return null;/);
-  assert.doesNotMatch(patches, /if \(filtered\.length > 0\) allData = filtered;/);
+  assert.match(fetchSolverPool, /\.from\('solved_spots_gold'\)/);
+  assert.match(fetchSolverPool, /\.eq\('game_type', gameConfig\.pioGameType\)/);
+  assert.match(fetchSolverPool, /\.eq\('stack_depth', depth\)/);
+  assert.match(fetchSolverPool, /if \(street\) q = q\.eq\('street', street\)/);
+  assert.match(fetchSolverPool, /\.not\('strategy_matrix_v2', 'is', null\)/);
+  for (const provenanceField of [
+    'solver_version',
+    'solver_binary_checksum',
+    'machine_id',
+    'pipeline_commit',
+    'manifest_version',
+    'manifest_checksum',
+    'source_artifact_checksum',
+    'audited_at',
+  ]) {
+    assert.match(fetchSolverPool, new RegExp(`\\.not\\('${provenanceField}', 'is', null\\)`));
+  }
+  assert.match(fetchSolverPool, /allData = allData\.map\(row => prepareSolverScenarioRow\(row\)\)\.filter\(Boolean\)/);
+  assert.match(fetchSolverPool, /if \(allData\.length === 0\) return null/);
+  assert.doesNotMatch(
+    fetchSolverPool,
+    /select\(['"][^'"]*\bstrategy_matrix\b(?![^'"]*\bstrategy_matrix_v2\b)[^'"]*['"]\)/,
+    'targeted practice must never select only the unaudited legacy matrix',
+  );
+  assert.match(patches, /function provenanceIsComplete\(row\)/);
+  assert.match(patches, /function rowMatchesContinuationLineage\(row, lineage\)/);
+  assert.match(patches, /exactRows\.length === 1/);
 });
 
 test('multi-street play requires the exact runout and solver sizing copy uses chip geometry', () => {

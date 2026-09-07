@@ -1,6 +1,18 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type Route } from '@playwright/test';
 
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
+const COPY_AUDIT_CLUB_ID = '00000000-0000-4000-8000-000000000093';
+const COPY_AUDIT_CLUB_ITEM_ID = '00000000-0000-4000-8000-000000000094';
+const COPY_AUDIT_CARD_QUOTE = {
+  packageId: 'phase-audit',
+  quantity: 1,
+  cardCharge: 15,
+  cardChargeCents: 1500,
+  diamondsPurchased: 1500,
+  diamondPurchaseBalance: 3500,
+  diamondShortfall: 0,
+  cardPurchaseBalance: 5000,
+} as const;
 
 const ROUTES = [
   { path: '/hub/diamond-store', title: 'Diamond Store: Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
@@ -25,7 +37,66 @@ const MARKETPLACE_COPY_ROUTES = [
   '/hub/smarter-rewards',
   '/hub/smarter-rewards/daily_login',
   '/hub/club-shop',
+  `/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}`,
 ] as const;
+
+async function installMarketplaceAuditSession(page: Page) {
+  // Private cart, order, wishlist, and membership routes need the same
+  // deterministic local session so audits reach their rendered Marketplace
+  // surfaces instead of stopping at the expected authentication boundary.
+  await page.addInitScript(() => {
+    const user = {
+      id: '00000000-0000-4000-8000-000000000022',
+      email: 'phase22-copy@example.test',
+      role: 'authenticated',
+    };
+    window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+      access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMjIiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjQxMDI0NDQ4MDB9.phase22signature',
+      refresh_token: 'phase-22-copy-refresh',
+      expires_at: 4102444800,
+      expires_in: 2147483647,
+      token_type: 'bearer',
+      user,
+    }));
+  });
+
+  // Club Shop detail is owner-scoped. Supply a deterministic item so the
+  // audits exercise the complete subpage instead of a not-found boundary.
+  const fulfillAuditClub = async (route: Route) => {
+    const requestUrl = new URL(route.request().url());
+    const requestedClubId = requestUrl.searchParams.get('clubId');
+    const requestedItemId = requestUrl.searchParams.get('itemId');
+    if ((requestedClubId && requestedClubId !== COPY_AUDIT_CLUB_ID)
+      || (requestedItemId && requestedItemId !== COPY_AUDIT_CLUB_ITEM_ID)) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        clubId: COPY_AUDIT_CLUB_ID,
+        balance: 5000,
+        role: 'owner',
+        purchases: [],
+        items: [{
+          id: COPY_AUDIT_CLUB_ITEM_ID,
+          name: 'Verified Club Detail',
+          description: 'Every Dynamic Word Follows The Marketplace Copy Contract',
+          price: 1500,
+          category: 'Time Banks',
+          available: true,
+          card_quote: COPY_AUDIT_CARD_QUOTE,
+        }],
+      }),
+    });
+  };
+  // The root Club Shop resolves a preferred membership without a query;
+  // detail pages then request the exact club/item pair with a query.
+  await page.route('**/api/club-arena/marketplace-items', fulfillAuditClub);
+  await page.route('**/api/club-arena/marketplace-items?*', fulfillAuditClub);
+}
 
 test.describe('5. Storefront Routes And Design Contract', () => {
   test('raw HTML owns route metadata and primary content before hydration', async ({ request }) => {
@@ -98,25 +169,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   }
 
   test('marketplace copy is title-cased and contains no banned long bars', async ({ page }) => {
-    // The matrix includes private cart, order, wishlist and membership routes.
-    // Seed the same deterministic local session used by the authenticated
-    // commerce tests so this assertion audits the actual page instead of the
-    // correct unauthenticated redirect boundary.
-    await page.addInitScript(() => {
-      const user = {
-        id: '00000000-0000-4000-8000-000000000022',
-        email: 'phase22-copy@example.test',
-        role: 'authenticated',
-      };
-      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMjIiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjQxMDI0NDQ4MDB9.phase22signature',
-        refresh_token: 'phase-22-copy-refresh',
-        expires_at: 4102444800,
-        expires_in: 2147483647,
-        token_type: 'bearer',
-        user,
-      }));
-    });
+    await installMarketplaceAuditSession(page);
 
     for (const path of MARKETPLACE_COPY_ROUTES) {
       await page.goto(path, { waitUntil: 'domcontentloaded' });
@@ -167,8 +220,16 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   });
 
   test('marketplace canvases have no serious automated WCAG A or AA violations', async ({ page }) => {
-    for (const route of ROUTES) {
-      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+    test.setTimeout(180_000);
+    await installMarketplaceAuditSession(page);
+    for (const path of MARKETPLACE_COPY_ROUTES) {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      const main = page.locator('main');
+      await expect(main).toBeVisible();
+      await expect.poll(
+        () => main.evaluate((element) => getComputedStyle(element).textTransform),
+        { message: `${path} should render before its accessibility audit` },
+      ).toBe('capitalize');
       await page.addScriptTag({ path: AXE_PATH });
       const violations = await page.evaluate(async () => {
         const axe = (window as typeof window & {
@@ -194,7 +255,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
             nodes: violation.nodes.map((node) => node.target || []),
           }));
       });
-      expect(violations, `${route.path} accessibility violations`).toEqual([]);
+      expect(violations, `${path} accessibility violations`).toEqual([]);
     }
   });
 
@@ -410,11 +471,27 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
   });
 
-  test('VIP lifetime access offers one-time card and Diamond settlement', async ({ page }) => {
+  /* Lifetime Card settlement remains the explicit high-risk exclusion. This
+     test must fail if a Card control escapes the disabled capability gate;
+     accepting either state would not protect the current release contract. */
+  test('VIP lifetime remains Diamonds-only while card settlement is disabled', async ({
+    page,
+  }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: /Select VIP Lifetime/ }).click();
-    await expect(page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Pay With Diamonds Instead: 49,900/ })).toBeVisible();
+
+    const withCard = page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' });
+    const diamondsPrimary = page.getByRole('button', {
+      name: 'Lifetime VIP Is Bought With Diamonds: 49,900',
+    });
+    const diamondsAlternate = page.getByRole('button', {
+      name: /Pay With Diamonds Instead: 49,900/,
+    });
+
+    await expect(withCard).toHaveCount(0);
+    await expect(diamondsPrimary).toBeVisible();
+    await expect(diamondsAlternate).toHaveCount(0);
+
     await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
   });
 
@@ -582,7 +659,15 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         success: true,
         clubId,
         balance: 5000,
-        items: [{ id: itemId, name: 'Phase 13 Time Bank', description: 'Verified test item', price: 1500, category: 'Time Banks' }],
+        items: [{
+          id: itemId,
+          name: 'Phase 13 Time Bank',
+          description: 'Verified test item',
+          price: 1500,
+          category: 'Time Banks',
+          available: true,
+          card_quote: COPY_AUDIT_CARD_QUOTE,
+        }],
       }),
     }));
     let purchaseRequests = 0;
@@ -598,6 +683,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
 
     await page.goto(`/hub/club-shop/${itemId}?clubId=${clubId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { level: 1, name: 'Phase 13 Time Bank' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Buy With Card: $15.00' })).toBeEnabled();
     await page.getByRole('button', { name: 'Review Diamond Purchase' }).click();
     const reviewTitle = page.getByRole('heading', { name: 'Confirm Diamond Purchase' });
     await expect(reviewTitle).toBeFocused();
@@ -607,6 +693,59 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       page.getByRole('status').getByText('Phase 13 Time Bank is now in your club inventory.'),
     ).toBeVisible();
     expect(purchaseRequests).toBe(1);
+  });
+
+  test('club item detail opens one authoritative card checkout in the same browser surface', async ({ page }) => {
+    await installMarketplaceAuditSession(page);
+    let checkoutRequests = 0;
+    let checkoutBody: Record<string, unknown> | null = null;
+    let checkoutRequestId = '';
+    await page.route('**/api/store/create-checkout-session', async (route) => {
+      checkoutRequests += 1;
+      checkoutBody = await route.request().postDataJSON();
+      checkoutRequestId = route.request().headers()['x-checkout-request-id'] || '';
+      const requestOrigin = new URL(route.request().url()).origin;
+      await new Promise((resolve) => setTimeout(resolve, 75));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            url: `${requestOrigin}/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}&canceled=true`,
+          },
+        }),
+      });
+    });
+
+    await page.goto(
+      `/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    const cardButton = page.getByRole('button', { name: 'Buy With Card: $15.00' });
+    await expect(cardButton).toBeEnabled();
+    await cardButton.evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+    await expect(page).toHaveURL(
+      new RegExp(`/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}\\?clubId=${COPY_AUDIT_CLUB_ID}&canceled=true$`),
+    );
+
+    expect(checkoutRequests).toBe(1);
+    expect(checkoutRequestId).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
+    expect(checkoutBody).toMatchObject({
+      type: 'diamonds',
+      items: [{ packageId: COPY_AUDIT_CARD_QUOTE.packageId, quantity: 1 }],
+      redemptionIntent: {
+        kind: 'club_shop',
+        clubId: COPY_AUDIT_CLUB_ID,
+        itemId: COPY_AUDIT_CLUB_ITEM_ID,
+        expectedPrice: 1500,
+        expectedCardChargeCents: 1500,
+      },
+    });
+    expect(page.context().pages()).toHaveLength(1);
   });
 
   test('marketplace readiness is public, boolean-only, and capability-aware', async ({ request }) => {
@@ -832,23 +971,21 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   });
 
   test('wide authenticated Club Shop controls retain the 44-pixel target', async ({ page }) => {
+    await installMarketplaceAuditSession(page);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/hub/club-shop', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1200);
 
     const clubShopViews = page.getByRole('group', { name: 'Club Shop Views' });
-    // The production-authenticated fixture exposes this surface. If an
-    // environment has no club, the static contract above still guards it.
-    if (await clubShopViews.count()) {
-      const clubShop = clubShopViews.locator('..');
-      const undersized = await clubShop.locator('button, [role="button"]').evaluateAll((elements) =>
-        elements.map((element) => {
-          const rect = element.getBoundingClientRect();
-          return { text: (element.textContent || '').trim(), width: rect.width, height: rect.height };
-        }).filter((item) => item.width > 0 && item.height > 0 && (item.width < 44 || item.height < 44))
-      );
-      expect(undersized).toEqual([]);
-    }
+    await expect(clubShopViews).toBeVisible();
+    const clubShop = clubShopViews.locator('..');
+    const undersized = await clubShop.locator('button, [role="button"]').evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { text: (element.textContent || '').trim(), width: rect.width, height: rect.height };
+      }).filter((item) => item.width > 0 && item.height > 0 && (item.width < 44 || item.height < 44))
+    );
+    expect(undersized).toEqual([]);
   });
 
   test('Club Shop operators delete through one guarded in-page dialog', async ({ page }) => {

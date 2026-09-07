@@ -120,7 +120,10 @@ JOB_TIMEOUTS = {
     '/api/cron/trivia-player-retag':   300,
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
+    '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
     '/api/cron/scrape-sports-clips':   300,
+    '/api/cron/scrape-poker-clips':    300,
+    '/api/cron/revalidate-poker-clips': 120,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
     # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
     # ingestion stops wherever it was. The scraper walks 23 YouTube channels
@@ -415,6 +418,26 @@ ALL_CRONS = [
     # relay returns Commander's status verbatim; two non-200s in a row page
     # (CRITICAL_JOBS).
     ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours
+    # Club Arena table-socket probe (2026-09-06, Realtime Programme phase 6).
+    # A synthetic client that does what a PLAYER does: signs in, opens a real
+    # WebSocket to a table that is dealing, and waits for the first SNAPSHOT.
+    #
+    # It exists because on 2026-09-03 every Club Arena table said "Reconnecting
+    # To The Table" for twenty-two hours while every monitor stayed green -
+    # /api/health (the engine was healthy), the lobby (PostgREST checks a JWT's
+    # signature, not its session) and login-probe (GoTrue was issuing tokens
+    # perfectly; this platform's own cron was revoking them a moment later).
+    # None of them opened a socket, which is the only thing a player does.
+    #
+    # Every 5 minutes, offset off the quarter-hours (login-probe) and off :22
+    # (the login-bridge probe above). It is deliberately NOT paused for the
+    # :55 maintenance break: the engine is genuinely away for two to three
+    # minutes of every hour, and a probe that looks away for exactly that
+    # window is blind to the restart handoff phase 4 exists to protect. The
+    # ONE run that lands inside the break is expected to fail, which is why
+    # CRITICAL_JOBS pages at THREE consecutive failures rather than two - the
+    # break can eat one run, never three.
+    ('/api/cron/table-socket-probe',                dict(minute='3,8,13,18,23,28,33,38,43,48,53,58')),
     # ('/api/cron/union-rakeback', ...) — RETIRED 2026-08-20. Double-payer.
     # The union 90/10 weekly rakeback is paid by the ENGINE:
     # RakebackSettlerService.runUnionWeeklyRakeback() calls
@@ -431,6 +454,9 @@ ALL_CRONS = [
     ('/api/cron/scraper-watchdog',          dict(hour='*/2', minute=0)),
     ('/api/cron/venue-game-alerts',         dict(minute=0)),          # every hour
     ('/api/cron/scraper-data-cleanup',      dict(hour=3, minute=0)),
+    # Personal Assistant lifecycle retention. The normal assistant route is
+    # outside pages/api/cron because that directory has a strict CI file cap.
+    ('/api/assistant/retention-maintenance', dict(hour=3, minute=17)),
     ('/api/clawbot/orchestrator',           dict(hour=7, minute=0)),
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
@@ -569,6 +595,24 @@ ALL_CRONS = [
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
     ('/api/cron/scrape-sports-clips',             dict(hour=4, minute=0)),
+    # ── Phase 4 (2026-09-06) — poker gets the renewing supply sports had ────
+    # Measured over seven live days: sports drew 285 posts from a pool of
+    # 8,271 scraped clips while poker drew 245 from a frozen array of 150,
+    # using 114 of them in one week. The ledger then refused each for thirty
+    # days, so horses fell through to sports and a POKER platform posted 53.8%
+    # sports. Twice a day rather than the sports scraper's once, because the
+    # poker pool starts at 113 live clips and has the further to climb; it
+    # walks 25 channels per run, least-recently-scraped first.
+    ('/api/cron/scrape-poker-clips',              dict(hour='5,17', minute=20)),
+    # Hourly, 40 clips a run: the whole pool is re-asked well inside a week.
+    # Probing the 149 hard-coded clips found 36 dead (22 gone, 14 embedding-
+    # disabled) that had been postable for months, because the only validity
+    # cache was a Map in process memory that died with the container.
+    ('/api/cron/revalidate-poker-clips',          dict(minute=40)),
+    # Both Phase 4 defects were silent for weeks and both were found by a
+    # person reading rows. A queue that stops draining and a pool that stops
+    # growing look exactly like a quiet week.
+    ('/api/cron/content-supply-watchdog',         dict(minute=50)),
     # /api/cron/scrape-venue-info?batch=1..5 RETIRED 2026-04-25 (Phase 2B.3
     # partial cleanup). Superseded by .github/workflows/venue-scraper.yml +
     # daily_venue_scraper.py which has been the actual scraper since
@@ -599,7 +643,9 @@ ALL_CRONS = [
     ('/api/cron/content-health-check',            dict(hour=6, minute=0)),   # self-healing monitor
     # Log / state cleanup
     ('/api/cron/purge-idempotency-keys',          dict(hour=8, minute=30)),
-    ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
+    # RETIRED 2026-09-06: the legacy PvP cleanup made settlement decisions in
+    # a separate worker path. Competitive Trivia remains fail-closed while the
+    # single atomic settlement authority is built and verified.
 
     # ══ WAVE 2 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Horses infrastructure. Fleet Content Programme phase 1 (2026-09-05,
@@ -612,11 +658,14 @@ ALL_CRONS = [
     # :00 pile-up.
     ('/api/cron/horse-posts',                     dict(minute=10)),          # hourly, whole fleet
     ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
+    # Fleet Content Programme Phase 6. The handler and every Phase 6 mode
+    # fail closed; while approval rows are disabled this is a measured no-op.
+    ('/api/cron/phase6-content',                  dict(hour=9, minute=20)),  # daily; Monday emits weekly club window
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
-    # Trivia tournament lifecycle
-    ('/api/cron/trivia-tournaments',              dict(hour=1, minute=0)),
-    ('/api/cron/trivia-tournament-rounds',        dict(minute=0)),           # hourly round advance
+    # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
+    # predate the server-owned nightly engine. Phase 1 keeps competitive play
+    # fail-closed; Phase 6 will add one versioned 8 PM America/Chicago job.
     # User-facing reports / analytics aggregates
     ('/api/cron/training-daily-report',           dict(hour=8, minute=0)),
     ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
@@ -885,12 +934,23 @@ DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
 WORKERS_PREFERRED = {
     # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
     # REMOVED: These must run locally via Python; workers HTTP routes just report status.
+    #
+    # EXCEPT video-library-reels, restored here 2026-09-06. It was a SCRIPT_JOB
+    # not in this map, so `_should_skip_on_secondary` skipped it on the ONLY
+    # host that fires - the library gained 1,573 videos between 2026-04-22 and
+    # today while the reels feed gained none, and the daily job reported itself
+    # as running the whole time. A 2026-09-04 pass corrected the script's flag
+    # from --sync-captions to --limit 100, which was right and changed nothing,
+    # because the script never executes on that host.
+    #
+    # The workers route now does BOTH halves - caption sync and the bridge -
+    # so routing it here is what makes the fix reachable.
+    '/api/cron/video-library-reels':    '/cron/video-library-reels',
     # ─── 2B.2(c) Batch A+B — lowest-risk: scrapers, content gen, log cleanup ───
     # Each verified to return 200 from openclaw via private net before flip.
     # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
     '/api/cron/scraper-data-cleanup':   '/cron/scraper-data-cleanup',
     '/api/cron/purge-idempotency-keys': '/cron/purge-idempotency-keys',
-    '/api/cron/trivia-pvp-cleanup':     '/cron/trivia-pvp-cleanup',
     '/api/cron/refresh-venue-json':     '/cron/refresh-venue-json',
     '/api/cron/content-health-check':   '/cron/content-health-check',
     '/api/cron/trivia-daily-generator': '/cron/trivia-daily-generator',
@@ -949,8 +1009,8 @@ WORKERS_PREFERRED = {
     '/api/cron/scrape-charity-schedules':      '/cron/scrape-charity-schedules',
     '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
-    '/api/cron/trivia-tournament-rounds':      '/cron/trivia-tournament-rounds',
-    '/api/cron/trivia-tournaments':            '/cron/trivia-tournaments',
+    # Legacy Trivia tournament workers retired with their schedules on
+    # 2026-09-06. Direct worker calls return an authenticated 410 tombstone.
     # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04
     # '/api/cron/vip-diamond-stipend' - REMOVED 2026-09-01. Nothing schedules it
     # any more (see the VIP STIPEND note in the schedule block above), and
@@ -966,6 +1026,12 @@ WORKERS_PREFERRED = {
     # (channels_scraped:38, found:100). Dispatcher REQUEST_TIMEOUT=120s
     # easily covers it.
     '/api/cron/scrape-sports-clips':           '/cron/scrape-sports-clips',
+    # ─── Phase 4 (2026-09-06) — poker clip supply, all three workers-side ──
+    # These live in the workers repo beside the sports scraper they are
+    # modelled on; there is no monolith handler for any of them.
+    '/api/cron/scrape-poker-clips':            '/cron/scrape-poker-clips',
+    '/api/cron/revalidate-poker-clips':        '/cron/revalidate-poker-clips',
+    '/api/cron/content-supply-watchdog':       '/cron/content-supply-watchdog',
     # ─── 2B.2(i) — horses-social-friends (parallel session, handler 39) ────
     # Workers repo HEAD b44078b extracted slim HorseSocialEngine.sendFriendRequests +
     # acceptFriendRequests (the handler's only actual deps) so we don't need
@@ -998,6 +1064,7 @@ WORKERS_PREFERRED = {
     # horse-batch/0..9 retired 2026-09-05 (Fleet Content Programme phase 1);
     # the workers routes remain as a hand-over shim until the next cleanup.
     '/api/cron/horse-posts':                   '/cron/horse-posts',
+    '/api/cron/phase6-content':                '/cron/phase6-content',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
@@ -1062,12 +1129,20 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    # 2026-09-06: a synthetic client that cannot hold a Club Arena table is the
+    # 2026-09-03 outage happening again, and that one ran twenty-two hours
+    # because nothing anywhere was watching this. THREE, not two: the probe
+    # runs every 5 minutes and one run per hour lands inside the :55
+    # maintenance break, where a failure is expected. Three in a row is 15
+    # minutes of tables nobody can hold, and the break can never eat three.
+    '/api/cron/table-socket-probe':     3,
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
     '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
 }
 _critical_state = {}
 

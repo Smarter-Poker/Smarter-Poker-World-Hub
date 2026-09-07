@@ -125,6 +125,12 @@ export const TABS = [
   // a name that goes stale the moment the second one lands.
   { id: 'players', label: 'Players', permission: 'players.read',
     load: () => import('./PlayersPanel') },
+
+  // Phase 5. Findings, evidence and human decisions in one operator surface.
+  // The read permission opens the queue; the route separately enforces every
+  // case write and any money-moving sanction. Horses remain in every result.
+  { id: 'integrity', label: 'Integrity', permission: 'players.read',
+    load: () => import('./IntegrityPanel') },
 ];
 
 export const DEFAULT_TAB = 'stable';

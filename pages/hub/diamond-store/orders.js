@@ -355,7 +355,7 @@ export default function OrderHistory() {
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     aria-label="Search Orders"
-                    placeholder="Order number, item, or status"
+                    placeholder="Order Number, Item, Or Status"
                     style={styles.controlInput}
                   />
                 </label>

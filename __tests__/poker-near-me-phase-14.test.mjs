@@ -12,6 +12,7 @@ import {
   createPokerVenueGeographySignature,
   createPokerVenueIcon,
   isPokerTourStop,
+  syncPokerMapKeyboardTargets,
 } from '../src/components/poker-near-me/mapPresentation.js';
 import { createPokerMapSession, createPokerMarkerLayer } from '../src/lib/poker-near-me/mapRuntime.js';
 
@@ -25,13 +26,17 @@ function fakeLeaflet() {
   const L = {
     divIcon: (options) => ({ options }),
     map: (container, options) => {
+      const panes = new Map();
       const map = {
         container,
         options,
+        panes,
         _animatingZoom: true,
         stopCalls: 0,
         offCalls: 0,
         removeCalls: 0,
+        createPane(name) { const pane = { style: {} }; panes.set(name, pane); return pane; },
+        getPane(name) { return panes.get(name); },
         _stop() { this.stopCalls += 1; },
         off() { this.offCalls += 1; },
         remove() { this.removeCalls += 1; },
@@ -62,7 +67,7 @@ test('shared presentation preserves primary and compact marker contracts', () =>
   const primary = createPokerVenueIcon(L, venue);
   const compact = createPokerVenueIcon(L, venue, { variant: 'compact' });
   assert.deepEqual(primary.options.iconSize, [44, 44]);
-  assert.deepEqual(compact.options.iconSize, [40, 40]);
+  assert.deepEqual(compact.options.iconSize, [44, 44]);
   assert.match(primary.options.html, /Signal/);
   assert.match(compact.options.className, /vmp-venue-marker/);
 
@@ -70,7 +75,7 @@ test('shared presentation preserves primary and compact marker contracts', () =>
   assert.equal(isPokerTourStop(tour), true);
   assert.equal(isPokerTourStop(venue), false);
   assert.deepEqual(createPokerTourIcon(L, tour).options.iconSize, [52, 52]);
-  assert.deepEqual(createPokerTourIcon(L, tour, { variant: 'compact' }).options.iconSize, [36, 60]);
+  assert.deepEqual(createPokerTourIcon(L, tour, { variant: 'compact' }).options.iconSize, [44, 74]);
   assert.deepEqual(createPokerUserLocationIcon(L).options.iconAnchor, [20, 40]);
 });
 
@@ -79,10 +84,42 @@ test('shared clusters retain density tiers on both map surfaces', () => {
   const cluster = (count) => ({ getChildCount: () => count });
   assert.deepEqual(createPokerClusterIcon(L, cluster(125)).options.iconSize, [58, 58]);
   assert.deepEqual(createPokerClusterIcon(L, cluster(125), { variant: 'compact' }).options.iconSize, [54, 54]);
-  // Mobile phase 3: the two smallest orbs grew by 2px so their digits could
-  // rise to the 12px text floor and still sit inside the ring.
-  assert.deepEqual(createPokerClusterIcon(L, cluster(4)).options.iconSize, [32, 32]);
-  assert.deepEqual(createPokerClusterIcon(L, cluster(4), { variant: 'compact' }).options.iconSize, [30, 30]);
+  assert.deepEqual(createPokerClusterIcon(L, cluster(4)).options.iconSize, [44, 44]);
+  assert.deepEqual(createPokerClusterIcon(L, cluster(4), { variant: 'compact' }).options.iconSize, [44, 44]);
+  assert.match(createPokerClusterIcon(L, cluster(125)).options.html, /data-pnm-cluster-count="125" aria-hidden="true"/);
+});
+
+test('shared map keyboard reconciliation labels clusters and excludes clipped targets', () => {
+  function target(rect, count = null) {
+    const attributes = new Map([['tabindex', '0']]);
+    const countNode = count == null ? null : {
+      getAttribute: (name) => (name === 'data-pnm-cluster-count' ? String(count) : null),
+    };
+    return {
+      tabIndex: 0,
+      getBoundingClientRect: () => rect,
+      querySelector: () => countNode,
+      getAttribute: (name) => attributes.get(name) ?? null,
+      setAttribute(name, value) { attributes.set(name, String(value)); },
+      attributes,
+    };
+  }
+
+  const visible = target({ left: 10, right: 54, top: 10, bottom: 54 }, 12);
+  const clipped = target({ left: -54, right: -10, top: 10, bottom: 54 });
+  const container = {
+    getBoundingClientRect: () => ({ left: 0, right: 390, top: 0, bottom: 844 }),
+    querySelectorAll: (selector) => {
+      assert.equal(selector, '.leaflet-marker-icon[tabindex]');
+      return [visible, clipped];
+    },
+  };
+
+  assert.deepEqual(syncPokerMapKeyboardTargets(container), { visible: 1, hidden: 1 });
+  assert.equal(visible.tabIndex, 0);
+  assert.equal(visible.attributes.get('aria-label'), 'Zoom to 12 poker locations');
+  assert.equal(visible.attributes.get('title'), 'Zoom to 12 poker locations');
+  assert.equal(clipped.tabIndex, -1);
 });
 
 test('popup builders escape external data and expose only same-origin detail paths', () => {
@@ -159,7 +196,10 @@ test('shared map sessions own tiles, attribution, clustering, and idempotent tea
   const session = createPokerMapSession({ L, container: { id: 'map' }, mapOptions: { zoom: 6 } });
   assert.equal(maps.length, 1);
   assert.equal(layers.length, 1);
-  assert.match(layers[0].url, /dark_nolabels/);
+  assert.match(layers[0].url, /World_Dark_Gray_Base/);
+  assert.doesNotMatch(layers[0].url, /cartocdn/);
+  assert.equal(layers[0].options.maxNativeZoom, 16);
+  assert.match(controls[0].value, /Esri/);
   assert.equal(controls.length, 1);
   assert.equal(createPokerMarkerLayer({ L, map: session.map, clusteringAvailable: true }).clustering, 'available');
   assert.equal(createPokerMarkerLayer({ L, map: session.map, clusteringAvailable: false }).clustering, 'fallback');
@@ -169,6 +209,26 @@ test('shared map sessions own tiles, attribution, clustering, and idempotent tea
   assert.equal(session.map.stopCalls, 1);
   assert.equal(session.map.offCalls, 1);
   assert.equal(session.map.removeCalls, 1);
+});
+
+test('labeled map sessions layer the public reference service above the dark canvas', () => {
+  const { L, layers } = fakeLeaflet();
+  const session = createPokerMapSession({ L, container: { id: 'map' }, tileStyle: 'dark_all' });
+  assert.equal(layers.length, 2);
+  assert.match(layers[0].url, /World_Dark_Gray_Base/);
+  assert.match(layers[1].url, /World_Dark_Gray_Reference/);
+  assert.equal(layers[1].options.pane, 'pnmReferencePane');
+  assert.equal(session.map.getPane('pnmReferencePane').style.zIndex, '350');
+  assert.equal(session.map.getPane('pnmReferencePane').style.pointerEvents, 'none');
+  assert.equal(session.referenceTiles, layers[1]);
+});
+
+test('provider attribution remains visible when optional product branding is disabled', () => {
+  const { L, controls } = fakeLeaflet();
+  createPokerMapSession({ L, container: { id: 'map' }, attribution: false });
+  assert.equal(controls.length, 1);
+  assert.match(controls[0].value, /Esri/);
+  assert.doesNotMatch(controls[0].value, /Smarter\.Poker/);
 });
 
 test('tour API advertises only map artwork that ships in the public build', async () => {
@@ -199,7 +259,7 @@ test('all Poker Near Me map consumers use the shared lifecycle and presentation 
   }
   for (const consumer of [primary, panel, planner]) {
     assert.match(consumer, /createPokerMapSession/);
-    assert.match(consumer, /data-map-foundation="shared-v2"/);
+    assert.match(consumer, /data-map-foundation="shared-v3"/);
     assert.doesNotMatch(consumer, /L\.map\(/);
     assert.doesNotMatch(consumer, /L\.tileLayer\(/);
   }

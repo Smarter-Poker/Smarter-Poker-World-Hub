@@ -19,12 +19,15 @@ import { classifyAllHands, groupByClassification } from '../../../src/utils/poke
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import Card from '../../../src/components/training/Card';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
+
+const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONFIG
@@ -627,7 +630,7 @@ function SolutionsBrowserInner() {
   useEffect(() => {
     async function loadBookmarks() {
       try {
-        const res = await authedFetch('/api/training/bookmark-solution');
+        const res = await trainingFetch('/api/training/bookmark-solution');
         const data = await res.json();
         if (!res.ok || data?.success !== true || !Array.isArray(data.bookmarks)) {
           throw new Error(data?.error || `HTTP error! status: ${res.status}`);
@@ -655,7 +658,7 @@ function SolutionsBrowserInner() {
       const action = isBookmarked ? 'delete' : 'save';
       try {
         setBookmarkError(null);
-        const res = await authedFetch('/api/training/bookmark-solution', {
+        const res = await trainingFetch('/api/training/bookmark-solution', {
           method: 'POST',
           
           body: JSON.stringify({ scenarioHash: hash, spotId: spot.id, action }),
@@ -734,7 +737,7 @@ function SolutionsBrowserInner() {
       });
       if (position) params.set('position', position);
 
-      const res = await authedFetch(`/api/training/browse-solutions?${params}`);
+      const res = await trainingFetch(`/api/training/browse-solutions?${params}`);
       if (res.status === 401) {
         await router.replace('/auth/login?redirect=/hub/training/solutions');
         return;
@@ -772,7 +775,7 @@ function SolutionsBrowserInner() {
     setDetailError(null);
     setActiveTab('grid');
     try {
-      const res = await authedFetch(`/api/training/browse-solutions?spotId=${spotId}`);
+      const res = await trainingFetch(`/api/training/browse-solutions?spotId=${spotId}`);
       if (res.status === 401) {
         await router.replace('/auth/login?redirect=/hub/training/solutions');
         return;

@@ -84,6 +84,14 @@ const MixedStrategyGame = lazyScreen(() => import('../../src/games/MixedStrategy
 import { filterScenarios } from '../../src/games/scenarioFilters';
 import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
 import { getHeaderStats } from '../../src/lib/headerStats';
+import {
+    boundedCommerceFetch,
+    COMMERCE_REQUEST_TIMEOUT_MS,
+} from '../../src/lib/store/boundedCommerceFetch';
+import {
+    clearCommerceRequestId,
+    getOrCreateCommerceRequestId,
+} from '../../src/lib/store/checkoutIntentStore';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
 import PreflopMatrixPrimer from '../../src/components/memory-games/PreflopMatrixPrimer';
 import PreflopSubpageNav from '../../src/components/memory-games/PreflopSubpageNav';
@@ -420,6 +428,13 @@ export default function MemoryGamesPage() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [vipCheckoutPending, setVipCheckoutPending] = useState(false);
     const vipCheckoutRef = useRef(false);
+    const vipCheckoutAbortRef = useRef(null);
+
+    useEffect(() => () => {
+        const activeRequest = vipCheckoutAbortRef.current;
+        vipCheckoutAbortRef.current = null;
+        activeRequest?.abort();
+    }, []);
 
     // Jarvis Explain Modal state
     const [explainModal, setExplainModal] = useState({
@@ -1313,6 +1328,8 @@ export default function MemoryGamesPage() {
         vipCheckoutRef.current = true;
         setVipCheckoutPending(true);
         setGameNotice(null);
+        const requestController = new AbortController();
+        vipCheckoutAbortRef.current = requestController;
         try {
             const token = getAccessToken();
             if (!token) {
@@ -1320,21 +1337,34 @@ export default function MemoryGamesPage() {
                 return;
             }
 
-            const response = await authedFetch('/api/store/create-checkout-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Checkout-Request-ID': `preflop-vip-${crypto.randomUUID()}`,
+            const commerceIntent = {
+                scope: 'preflop-vip-monthly',
+                userId,
+                paymentMethod: 'card',
+                intent: { plan: 'monthly' },
+            };
+            const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
+            const response = await boundedCommerceFetch(
+                '/api/store/create-checkout-session',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Checkout-Request-ID': checkoutRequestId,
+                    },
+                    signal: requestController.signal,
+                    body: JSON.stringify({
+                        type: 'subscription',
+                        // The server owns price resolution; the browser sends only
+                        // the plan key accepted by create-checkout-session.
+                        items: [{ plan: 'monthly' }],
+                        successUrl: `${window.location.origin}/hub/preflop-charts?vip_success=true`,
+                        cancelUrl: `${window.location.origin}/hub/preflop-charts?vip_canceled=true`
+                    })
                 },
-                body: JSON.stringify({
-                    type: 'subscription',
-                    // The server owns price resolution; the browser sends only
-                    // the plan key accepted by create-checkout-session.
-                    items: [{ plan: 'monthly' }],
-                    successUrl: `${window.location.origin}/hub/preflop-charts?vip_success=true`,
-                    cancelUrl: `${window.location.origin}/hub/preflop-charts?vip_canceled=true`
-                })
-            });
+                COMMERCE_REQUEST_TIMEOUT_MS,
+                authedFetch
+            );
 
             const result = await response.json().catch(() => null);
             if (!response.ok || !result?.success) {
@@ -1342,11 +1372,15 @@ export default function MemoryGamesPage() {
             }
 
             if (result.data?.url) {
+                // A definitive response releases the stable request identity.
+                // Ambiguous failures retain it so a retry cannot double-buy.
+                clearCommerceRequestId(commerceIntent);
                 window.location.href = result.data.url;
             } else {
                 throw new Error('Checkout session missing redirect URL');
             }
         } catch (error) {
+            if (error?.name === 'AbortError') return;
             console.warn('[MemoryGames] VIP upgrade error:', error);
             setGameNotice({
                 type: 'warning',
@@ -1354,8 +1388,11 @@ export default function MemoryGamesPage() {
                 message: error?.message || 'VIP checkout could not start. Please try again.',
             });
         } finally {
-            vipCheckoutRef.current = false;
-            setVipCheckoutPending(false);
+            if (vipCheckoutAbortRef.current === requestController) {
+                vipCheckoutAbortRef.current = null;
+                vipCheckoutRef.current = false;
+                setVipCheckoutPending(false);
+            }
         }
     }, [router, userId, requireOnline]);
 
@@ -1430,7 +1467,7 @@ export default function MemoryGamesPage() {
     const leaderboardRows = leaderboardData.map((entry, idx) => ({ ...entry, id: entry.user_id || idx, rank: idx + 1 }));
 
     return (
-        <PageTransition>
+        <PageTransition disableInitialAnimation>
             <SEOHead
                 title="Preflop Range Lab - Authored Local Practice"
                 description="Practice authored preflop reference ranges in free local drills. Results do not change account progress, rank, or rewards."

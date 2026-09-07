@@ -394,21 +394,32 @@ function cleanupMultiTable(tableId, playerId) {
 async function warmGTOCache() {
     try {
         const gto = await getGTOModule();
-        if (!gto?.getPreflopRange) return;
-        const positions = ['BTN', 'CO', 'HJ', 'SB', 'BB', 'UTG', 'MP'];
-        const topologies = ['6-Max'];
-        const depths = ['100BB'];
+        if (!gto?.getPreflopPolicy) return;
+        // memory_charts_gold contains explicit 2-20bb and 25bb push/fold
+        // policies. The old warm-up requested legacy 100BB chart names that
+        // cannot exist, counted the resulting nulls as successes, and warmed
+        // nothing. Prime one real, authoritative depth for every chart node
+        // and game type through the canonical policy service instead.
+        const targets = ['Cash', 'Tournament'].flatMap((gameType) => [
+            ...['UTG', 'MP', 'CO', 'BTN', 'SB'].map((heroPosition) => ({
+                gameType,
+                heroPosition,
+                stackDepth: 10,
+                villainAction: 'fold_to_hero',
+            })),
+            {
+                gameType,
+                heroPosition: 'BB',
+                stackDepth: 10,
+                villainAction: 'sb_push',
+            },
+        ]);
         let loaded = 0;
-        for (const pos of positions) {
-            for (const topo of topologies) {
-                for (const depth of depths) {
-                    const chartName = `${pos}_Open_${depth}_${topo}`;
-                    await gto.getPreflopRange(chartName);
-                    loaded++;
-                }
-            }
+        for (const target of targets) {
+            const policy = await gto.getPreflopPolicy(target);
+            if (policy?.kind === 'chart' && policy?.qualitySeal === 'CHART_AUDITED') loaded++;
         }
-        console.debug(`[HorseBrain] GTO cache warmed: ${loaded} charts pre-loaded`);
+        console.debug(`[HorseBrain] GTO cache warmed: ${loaded}/${targets.length} canonical chart policies`);
     } catch (err) {
         console.warn('[HorseBrain] GTO cache warming failed:', err.message);
     }

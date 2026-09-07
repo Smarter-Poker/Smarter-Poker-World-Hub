@@ -22,6 +22,21 @@ test('live Training inventory has no unresolved marker or function review', () =
   assert.equal(inventory.counts.functionPhaseReview, 0);
 });
 
+test('transport policy prefixes are inventoried separately from callable API routes', () => {
+  assert.deepEqual(inventory.apiReferencePrefixes, [
+    '/api/gto/',
+    '/api/jarvis/',
+    '/api/training/',
+  ]);
+  assert.deepEqual(inventory.gaps.missingApiPrefixDefinitions, []);
+
+  const transport = inventory.sourceFiles.find(
+    (entry) => entry.file === 'src/lib/training/boundedTrainingFetch.js',
+  );
+  assert.deepEqual(transport?.apiReferencePrefixes, inventory.apiReferencePrefixes);
+  assert.deepEqual(transport?.apiReferences, []);
+});
+
 test('framework and audit-harness exports have explicit non-runtime dispositions', () => {
   for (const file of [
     'pages/hub/training/analyzer.js',

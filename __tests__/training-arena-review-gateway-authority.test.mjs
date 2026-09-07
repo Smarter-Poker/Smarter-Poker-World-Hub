@@ -15,12 +15,17 @@ const sessionShareCard = fs.readFileSync(
   path.join(ROOT, 'src/components/training/SessionShareCard.jsx'),
   'utf8'
 );
+const deterministicEngine = fs.readFileSync(
+  path.join(ROOT, 'src/engines/DeterministicGTOEngine.js'),
+  'utf8'
+);
 const ast = parse(arena, {
   sourceType: 'module',
   plugins: ['jsx', 'classProperties', 'optionalChaining', 'nullishCoalescingOperator'],
 });
 
 const RETIRED_FIXTURES = new Set([
+  'EVTreeVisualizer',
   'EVLossTracker',
   'FrequencyTrainer',
   'GTODeviationHeatmap',
@@ -28,9 +33,11 @@ const RETIRED_FIXTURES = new Set([
   'HandNoteTagger',
   'HandReplayViewer',
   'LifetimeStatsCard',
+  'MixedStrategyTrainer',
   'PositionMasteryTracker',
   'PositionStatsPanel',
   'SessionReplayTimeline',
+  'SessionCoachingEngine',
   'FrequencyExploiter',
   'SolverSimplify',
   'SmartPracticeBanner',
@@ -42,12 +49,8 @@ const GATEWAYS = [
   { tab: 'positions', href: '/hub/training/session-dashboard', source: 'Sealed Non-Practice Attempts' },
   { tab: 'concepts', href: '/hub/training/progress', source: 'Sealed Training Attempts' },
   { tab: 'hands', href: '/hub/training/replay-theater', source: 'Authenticated Hand History' },
-  { tab: 'notes', href: '/hub/training/replay-theater', source: 'Authenticated Hand History' },
-  { tab: 'mastery', href: '/hub/training/progress', source: 'Sealed Training Attempts' },
-  { tab: 'replay', href: '/hub/training/replay-theater', source: 'Authenticated Hand History' },
-  { tab: 'exploits', href: '/hub/training/solutions', source: 'Audited PioSOLVER V2 Corpus' },
-  { tab: 'solvsimpl', href: '/hub/training/solutions', source: 'Audited PioSOLVER V2 Corpus' },
-  { tab: 'simpsolve', href: '/hub/training/solutions', source: 'Audited PioSOLVER V2 Corpus' },
+  { tab: 'solver', href: '/hub/training/solutions', source: 'Training Corpus And Solver APIs' },
+  { tab: 'analysis', href: '/hub/training/solutions', source: 'Audited PioSOLVER V2 Corpus' },
 ];
 
 function walk(node, visit) {
@@ -64,8 +67,12 @@ function reviewBranch(tab) {
   const marker = `{reviewTab === '${tab}' && (`;
   const start = arena.indexOf(marker);
   assert.notEqual(start, -1, `missing ${tab} review branch`);
-  const next = arena.indexOf('\n          {reviewTab ===', start + marker.length);
-  return arena.slice(start, next === -1 ? arena.length : next);
+  const possibleEnds = [
+    arena.indexOf('\n          {reviewTab ===', start + marker.length),
+    arena.indexOf('\n          {/* END VISIBLE REVIEW TABS */}', start + marker.length),
+  ].filter((value) => value >= 0);
+  assert.ok(possibleEnds.length > 0, `missing end marker for ${tab} review branch`);
+  return arena.slice(start, Math.min(...possibleEnds));
 }
 
 function renderedComponents(tab) {
@@ -78,10 +85,14 @@ function renderedComponents(tab) {
 
 test('GodModeArena cannot import or render retired demo-backed or inferred review widgets', () => {
   const imported = new Set();
+  const localComponentImports = new Set();
   const rendered = new Set();
 
   walk(ast.program, (node) => {
     if (node.type === 'ImportDeclaration') {
+      if (String(node.source?.value || '').startsWith('./')) {
+        localComponentImports.add(node.source.value);
+      }
       node.specifiers.forEach((specifier) => {
         if (specifier.local?.name) imported.add(specifier.local.name);
       });
@@ -95,9 +106,21 @@ test('GodModeArena cannot import or render retired demo-backed or inferred revie
     assert.equal(imported.has(fixture), false, `${fixture} must not be imported by GodModeArena`);
     assert.equal(rendered.has(fixture), false, `${fixture} must not render inside GodModeArena`);
   }
+
+  assert.deepEqual([...localComponentImports].sort(), [
+    './EVGraph',
+    './GameUIRouter',
+    './LeaderboardPanel',
+    './PerformanceTrends',
+    './SessionHistoryList',
+    './SessionShareCard',
+    './StudyStreakMap',
+    './TrainerConfigModal',
+    './VerifiedToolGateway',
+  ]);
 });
 
-test('each retired review tab fails over to a real authenticated or solver-backed route', () => {
+test('each non-overview visible review tab uses a real authenticated or solver-backed route', () => {
   for (const gateway of GATEWAYS) {
     const branch = reviewBranch(gateway.tab);
     assert.match(branch, /<VerifiedToolGateway\b/, `${gateway.tab} must use the verified gateway`);
@@ -111,15 +134,11 @@ test('each retired review tab fails over to a real authenticated or solver-backe
 
 test('the replacement copy discloses the authoritative source and rejects demo inference', () => {
   assert.match(reviewBranch('hands'), /never derives equity, future runout EV, blocker scores, or game-tree branches/);
-  assert.match(reviewBranch('notes'), /never substitutes sample hands, generated notes, or demo player records/);
-  assert.match(reviewBranch('mastery'), /does not invent mastery percentages or positional sample sizes/);
-  assert.match(reviewBranch('replay'), /No decorative timeline events or fictional outcomes/);
-  assert.match(reviewBranch('exploits'), /does not infer population exploits or generate unsupported frequency targets/);
-  assert.match(reviewBranch('solvsimpl'), /never simplified into invented strategy advice/);
-  assert.match(reviewBranch('simpsolve'), /does not present hardcoded ranges or demo frequencies/);
   assert.match(reviewBranch('mistakes'), /never render a false clean-session result or zero-EV hand/);
   assert.match(reviewBranch('positions'), /does not label an unavailable legacy heatmap as zero-loss play/);
   assert.match(reviewBranch('concepts'), /does not manufacture concept mastery/);
+  assert.match(reviewBranch('solver'), /does not extrapolate missing street actions, opponent responses, range equity, or game-tree branches/);
+  assert.match(reviewBranch('analysis'), /does not pool unrelated decisions into a fabricated frequency-adherence grade/);
 });
 
 test('the visible review tabs expose no inferred solver or faux-lifetime component', () => {
@@ -137,6 +156,9 @@ test('the visible review tabs expose no inferred solver or faux-lifetime compone
     'solver',
     'analysis',
   ]);
+
+  const renderedBranches = [...arena.matchAll(/reviewTab === '([^']+)'/g)].map((match) => match[1]);
+  assert.deepEqual(renderedBranches, visibleTabs, 'only the seven visible review branches may exist');
 
   assert.doesNotMatch(arena, /const gtoCounts = \{|gtoPct=\{\(\(gtoCounts/);
   assert.doesNotMatch(arena, /totalSessions=\{1\}|gamesCompleted=\{1\}/);
@@ -173,7 +195,6 @@ test('the seven visible review branches have a closed rendered-component allowli
     hands: ['VerifiedToolGateway'],
     solver: ['VerifiedToolGateway'],
     analysis: [
-      'AnalysisSection',
       'EVGraph',
       'LeaderboardPanel',
       'SessionHistoryList',
@@ -185,6 +206,16 @@ test('the seven visible review branches have a closed rendered-component allowli
   for (const [tab, components] of Object.entries(expected)) {
     assert.deepEqual(renderedComponents(tab), components, `${tab} review component graph changed`);
   }
+});
+
+test('Deep Analysis is a closed measured/authenticated allowlist with no browser insight calls', () => {
+  const branch = reviewBranch('analysis');
+  assert.doesNotMatch(branch, /\b(?:get|generate|estimate)[A-Z][A-Za-z0-9]*\s*\(/);
+  assert.doesNotMatch(branch, /<AnalysisSection\b/);
+  assert.match(branch, /EVGraph handHistory=\{measuredEVGraphHistory\}/);
+  assert.match(branch, /<StudyStreakMapAuto\b/);
+  assert.match(branch, /<SessionHistoryList\b/);
+  assert.match(branch, /<LeaderboardPanel\b/);
 });
 
 test('authenticated session history preserves the API signed-score contract', () => {
@@ -207,4 +238,19 @@ test('shareable review cards disclose only measured EV evidence', () => {
   assert.match(sessionShareCard, /MEASURED EV\/DECISION/);
   assert.match(sessionShareCard, /const evPerDecision = hasMeasuredEV/);
   assert.doesNotMatch(sessionShareCard, /const evPerHand = totalQuestions/);
+});
+
+test('browser-derived review summaries never claim Daily Challenge, AI, or solver authority', () => {
+  assert.match(arena, /function SessionScoreTarget\(/);
+  assert.match(arena, /Session Score Target Met/);
+  assert.match(arena, /This does not award Daily Challenge progress/);
+  assert.doesNotMatch(arena, /function DailyChallengeBanner\(|Daily Challenge Complete!/);
+
+  assert.match(arena, /Session Answer Debrief/);
+  assert.doesNotMatch(arena, /AI Coach Debrief|>\s*AI Coach\s*</);
+  assert.doesNotMatch(arena, /GTO mastery in action|GTO fundamentals are solid|Core GTO fundamentals need work/);
+
+  assert.match(deterministicEngine, /This is an answer-history summary, not an independent solver or AI/);
+  assert.match(deterministicEngine, /graded-answer accuracy/);
+  assert.doesNotMatch(deterministicEngine, /accuracy shows strong GTO understanding|Biggest leak:|study solver ranges for this seat/);
 });

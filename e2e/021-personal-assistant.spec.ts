@@ -347,6 +347,124 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('Leak Finder coaching workspace exposes evidence, goals, timeline, reporting, and data controls', async ({ page }, testInfo) => {
+    const leakId = '11111111-1111-4111-8111-111111111111';
+    const coachingWrites: Array<{ action?: string; preferences?: { analysisDepth?: string } }> = [];
+    await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, leaks: [{
+        id: leakId,
+        leak_type: 'river_overfold',
+        leak_name: 'River Overfold',
+        situation_class: 'River Overfold',
+        status: 'persistent',
+        confidence: 'high',
+        avg_ev_loss_bb: 0.7,
+        ev_loss_measured: true,
+        occurrence_count: 12,
+        total_samples: 40,
+      }] }),
+    }));
+    await page.route('**/api/assistant/leaks/examples?*', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, examples: [{ id: 'example-1', handId: 'hand-1', evLoss: 0.7, snapshot: { external_id: 'club-hand-1', hero_cards: ['As', 'Kh'], board: ['Qc', '7h', '2s', 'Td', '4c'], street: 'river', pot_size: 18 } }] }),
+    }));
+    await page.route('**/api/assistant/coaching', async route => {
+      if (route.request().method() === 'POST') {
+        coachingWrites.push(route.request().postDataJSON());
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, result: {} }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          snapshot: {
+            receipt: 'pa7-test-receipt',
+            versions: { matcher: 'hand-audit-v3' },
+            summary: { active: 1, resolved: 0, due: 1, measuredEvLoss: 8.4 },
+            coverage: { decisions: 1, verified: 1, partiallyMatched: 0, unpriced: 0, rejected: 0, verifiedPercent: 100 },
+            priorities: [{ id: leakId, title: 'River Overfold', category: 'River', status: 'persistent', reason: '12 Repeated Mistakes With 0.70 BB Measured Loss Per Occurrence', confidence: { score: 96, level: 'high', reasons: ['Measured EV Evidence Is Available'] } }],
+            nextBestAction: { leakId, title: 'River Overfold', action: 'Complete The Due Corrective Review', reason: 'Highest Measured Impact' },
+            timeline: [{ at: '2026-09-06T00:00:00.000Z', leakId, type: 'detected', title: 'River Overfold Detected' }],
+            sessionDebrief: { headline: 'One Active Leak Needs Attention', strongestSignal: 'River Overfold', expensiveMistake: 'River Overfold', coverageNote: 'One Of One Decisions Is Solver Verified' },
+            weeklyReport: { verifiedCoverage: 100, reviewLoad: 1, measuredEvLoss: 8.4, focus: [{ id: leakId, rank: 1, title: 'River Overfold', targetReviews: 3 }] },
+          },
+          decisions: [{ hand_external_id: 'club-hand-1', decision_key: 'decision-1', leak_type: 'river_overfold', solver_verified: true, solver_source: 'hand-audit-v3', classification: 'mistake' }],
+          reviews: [{ leak_id: leakId, due_at: '2026-09-06T00:00:00.000Z' }],
+          goals: [],
+          feedback: [],
+          preferences: { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {} },
+        }),
+      });
+    });
+    await page.route('**/api/assistant/data-controls**', async route => {
+      if (route.request().method() === 'POST') {
+        const request = route.request().postDataJSON();
+        if (request?.action === 'request_deletion') {
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, scope: request.scope, challenge: 'signed-test-challenge', confirmation: 'DELETE MY PERSONAL ASSISTANT DATA', expiresInSeconds: 600 }),
+          });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, preference: { retention_days: 90 } }) });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          counts: { leaks: 1, decisions: 4, reviews: 2, goals: 0, sandboxSessions: 3, savedHands: 1, coachResults: 5, bookmarks: 1, equityHistory: 2, templates: 1, sharedScenarios: 1, solutionBookmarks: 1 },
+          retentionDays: null,
+          lastRetentionRunAt: null,
+          receipts: [],
+          sourceHandsIncludedInDeletion: false,
+        }),
+      });
+    });
+
+    await navigateStable(page, '/hub/personal-assistant/leaks');
+    await activateControl(page.getByRole('button', { name: 'Coaching' }), testInfo.project.name);
+    await expect(page.getByRole('heading', { name: 'Your Evidence-Backed Improvement Plan' })).toBeVisible();
+    await expect(page.getByText('pa7-test-receipt')).toBeVisible();
+    await page.getByLabel('Analysis Depth').selectOption('expert');
+    await expect.poll(() => coachingWrites.some(write => write?.action === 'save_preferences' && write?.preferences?.analysisDepth === 'expert')).toBe(true);
+    await activateControl(page.getByRole('button', { name: 'Evidence', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Source-To-Training Trace')).toBeVisible();
+    await expect(page.getByLabel('Expert Analysis Provenance')).toBeVisible();
+    await expect(page.getByText('Evidence Fingerprint')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Exact Sandbox Spot' })).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Timeline', exact: true }), testInfo.project.name);
+    await expect(page.getByText('From Detection To Real-Play Confirmation')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Goals', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Tie Progress To Measured Evidence')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Report', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Your Next Seven Days')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Data', exact: true }), testInfo.project.name);
+    await expect(page.getByText('Data And Privacy')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Download Verified Export' })).toBeVisible();
+    await expect(page.getByText('Coach Decisions')).toBeVisible();
+    await activateControl(page.getByRole('button', { name: 'Review Permanent Deletion' }), testInfo.project.name);
+    const confirmation = page.getByLabel('Exact Confirmation');
+    await expect(confirmation).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Permanently Remove Selected Records' })).toBeDisabled();
+    await confirmation.fill('DELETE MY PERSONAL ASSISTANT DATA');
+    await expect(page.getByRole('button', { name: 'Permanently Remove Selected Records' })).toBeEnabled();
+    await activateControl(page.getByRole('button', { name: 'Cancel', exact: true }), testInfo.project.name);
+    const coachingControlSizes = await page.locator('#leak-coaching').evaluate(root => [...root.querySelectorAll('button,a[href],input,select,textarea')].filter(element => {
+      const box = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0 && (box.width < 44 || box.height < 44);
+    }).map(element => ({ text: element.textContent?.trim(), tag: element.tagName, box: element.getBoundingClientRect().toJSON() })));
+    expect(coachingControlSizes).toEqual([]);
+    await expectAccessibleMain(page);
+    await expectHealthyLayout(page);
+  });
+
   test('Leak Finder detail sheet exposes every remediation subflow and closes cleanly', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));

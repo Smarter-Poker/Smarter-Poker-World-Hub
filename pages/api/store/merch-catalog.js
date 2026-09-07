@@ -92,6 +92,7 @@ export default async function handler(req, res) {
         if (!applyRateLimit(req, res, LIMITS.read)) return;
 
         const supabase = getSupabase();
+        const strict = req.query?.strict === '1' || req.query?.strict === 'true';
 
         // ── Catalog rows ─────────────────────────────────────────────────────
         // is_active is filtered EXPLICITLY: the service-role key bypasses RLS,
@@ -106,7 +107,10 @@ export default async function handler(req, res) {
                     .eq('is_active', true)
                     .order('sort_order', { ascending: true })
                     .order('name', { ascending: true })
-                    .limit(MAX_ITEMS);
+                    // Strict reads include one sentinel row so a bounded query
+                    // can prove the complete active catalog fit within the
+                    // audited limit instead of silently certifying truncation.
+                    .limit(MAX_ITEMS + (strict ? 1 : 0));
                 if (category) itemQuery = itemQuery.eq('category', category);
 
                 // Variant activity is public catalog data and the read is
@@ -120,7 +124,7 @@ export default async function handler(req, res) {
                         .eq('is_active', true)
                         .order('sort_order', { ascending: true })
                         .order('sku', { ascending: true })
-                        .limit(MAX_VARIANTS),
+                        .limit(MAX_VARIANTS + (strict ? 1 : 0)),
                 ]);
                 if (itemResult.error) throw itemResult.error;
                 return {
@@ -133,6 +137,9 @@ export default async function handler(req, res) {
             if (isMissingTable(itemErr)) {
                 console.warn('[merch-catalog] merchandise_items missing - migration 20260803120000 not applied yet');
                 res.setHeader('Cache-Control', 'no-store');
+                if (strict) {
+                    return res.status(503).json({ success: false, error: 'Current Merchandise Catalog Could Not Be Verified.' });
+                }
                 return res.status(200).json({
                     success: true,
                     data: { items: [], count: 0, currency: 'usd', catalog_available: false }
@@ -143,6 +150,14 @@ export default async function handler(req, res) {
         }
 
         const items = Array.isArray(catalogRows.itemRows) ? catalogRows.itemRows : [];
+        if (strict && items.length > MAX_ITEMS) {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(503).json({ success: false, error: 'The Active Merchandise Catalog Exceeds Its Verified Release Bound.' });
+        }
+        if (strict && items.length === 0) {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(503).json({ success: false, error: 'Current Merchandise Catalog Is Empty.' });
+        }
 
         // ── Variants ─────────────────────────────────────────────────────────
         const variantsByItem = {};
@@ -157,11 +172,25 @@ export default async function handler(req, res) {
                 // still render, they just render without a size picker.
                 variantsAvailable = false;
             } else {
+                if (strict && (variantRows || []).length > MAX_VARIANTS) {
+                    res.setHeader('Cache-Control', 'no-store');
+                    return res.status(503).json({ success: false, error: 'The Active Merchandise Variant Catalog Exceeds Its Verified Release Bound.' });
+                }
                 (variantRows || []).forEach(v => {
                     if (!variantsByItem[v.item_id]) variantsByItem[v.item_id] = [];
                     variantsByItem[v.item_id].push(v);
                 });
             }
+        }
+        if (strict && !variantsAvailable) {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(503).json({ success: false, error: 'Current Merchandise Variants Could Not Be Verified.' });
+        }
+        if (strict && items.some((item) => (
+            item.has_variants === true && (variantsByItem[item.id] || []).length === 0
+        ))) {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(503).json({ success: false, error: 'A Declared Variant Merchandise Item Has No Verified Active Variants.' });
         }
 
         // ── Shape ────────────────────────────────────────────────────────────
@@ -200,7 +229,10 @@ export default async function handler(req, res) {
                     // separately and never makes a purchasable item look sold
                     // out merely because Printful is deliberately deferred.
                     fulfillment_ready: true,
-                    automatic_fulfillment_ready: Boolean(printfulReady && variantMapping)
+                    automatic_fulfillment_ready: Boolean(printfulReady && variantMapping),
+                    card_checkout_ready: true,
+                    diamond_checkout_ready: true,
+                    payment_methods: ['card', 'diamonds']
                 };
             });
 
@@ -246,9 +278,16 @@ export default async function handler(req, res) {
                 fulfillment_ready: fulfillmentReady,
                 automatic_fulfillment_ready: automaticFulfillmentReady,
                 fulfillment_mode: automaticFulfillmentReady ? 'automatic' : 'manual',
-                requires_shipping: requiresShipping
+                requires_shipping: requiresShipping,
+                card_checkout_ready: true,
+                diamond_checkout_ready: true,
+                payment_methods: ['card', 'diamonds']
             };
         });
+        if (strict && payload.some((item) => item.has_variants && item.variants.length === 0)) {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(503).json({ success: false, error: 'A Merchandise Item Has No Verified Active Variants.' });
+        }
 
         // Sold-out items are RETURNED BY DEFAULT and simply flagged in_stock:false
         // so the storefront can grey them out. ?in_stock_only=1 drops them.
@@ -256,7 +295,10 @@ export default async function handler(req, res) {
         const visible = inStockOnly ? payload.filter(i => i.in_stock) : payload;
 
         // Catalog is public and slow-moving — safe to cache at the edge.
-        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        res.setHeader(
+            'Cache-Control',
+            strict ? 'no-store, max-age=0' : 'public, s-maxage=300, stale-while-revalidate=600'
+        );
         res.setHeader('Vary', 'Accept-Encoding');
 
         return res.status(200).json({

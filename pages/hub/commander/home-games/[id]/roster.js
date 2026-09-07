@@ -1,55 +1,69 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
-import { ArrowLeft, Users, Shield, ShieldAlert, BadgeInfo, MessageSquare, Megaphone, Loader2, UserX, X, Send } from 'lucide-react';
+import { ArrowLeft, Users, Shield, ShieldAlert, BadgeInfo, MessageSquare, Megaphone, Loader2, UserX } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
 import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CasinoActionDialog from '../../../../../src/components/poker-near-me/CasinoActionDialog';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeMemberId(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return UUID_PATTERN.test(normalized) ? normalized : null;
+}
+
+function normalizeRosterMember(row) {
+  const memberId = normalizeMemberId(row?.member_id || row?.id);
+  const role = String(row?.role || row?.member_role || '').toLowerCase();
+  const relationship = String(row?.relationship || '').toLowerCase();
+  const canRemove = row?.can_remove === true
+    && Boolean(memberId)
+    && !['follower', 'owner', 'host'].includes(relationship)
+    && !['owner', 'host'].includes(role);
+
+  return {
+    ...row,
+    member_id: memberId,
+    role: row?.role || row?.member_role || (relationship === 'follower' ? 'follower' : 'member'),
+    status: row?.status || row?.member_status || (relationship === 'follower' ? 'following' : null),
+    can_remove: canRemove,
+  };
+}
 
 function AnnounceModal({ isOpen, onClose, onSend, sending }) {
   const [message, setMessage] = useState('');
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) setMessage('');
+  }, [isOpen]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="cmd-panel cmd-corner-lights w-full max-w-lg">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-[#22D3EE]" />
-            Broadcast Announcement
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg transition-colors">
-            <X className="w-5 h-5 text-[#64748B]" />
-          </button>
-        </div>
-        <div className="p-4">
-          <p className="text-sm text-[#64748B] mb-4">
-            This Will Send A Push Notification To All Opted-In Players. Use This For Urgent Updates Like Game Cancellations Or Table Changes.
-          </p>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your announcement here..."
-            rows={4}
-            className="w-full p-3 cmd-input resize-none"
-          />
-        </div>
-        <div className="p-4 border-t border-[#4A5E78] flex justify-end gap-3">
-          <button onClick={onClose} className="cmd-btn cmd-btn-secondary px-4">
-            Cancel
-          </button>
-          <button
-            onClick={() => onSend(message)}
-            disabled={!message.trim() || sending}
-            className="cmd-btn cmd-btn-primary px-6 flex items-center gap-2 disabled:opacity-50"
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Broadcast
-          </button>
-        </div>
-      </div>
-    </div>
+    <CasinoActionDialog
+      open={isOpen}
+      eyebrow="Group communications"
+      title="Broadcast Announcement"
+      message="Send one urgent update to all opted-in players."
+      confirmLabel="Send Broadcast"
+      busy={sending}
+      confirmDisabled={!message.trim()}
+      onClose={onClose}
+      onConfirm={() => onSend(message.trim())}
+    >
+      <label htmlFor="roster-announcement" className="block text-xs font-bold uppercase tracking-wider text-[#9FB3C8] mb-2">
+        Announcement
+      </label>
+      <textarea
+        id="roster-announcement"
+        value={message}
+        onChange={(event) => setMessage(event.target.value)}
+        maxLength={2000}
+        placeholder="Game time, table, or location update..."
+      />
+      <div className="mt-2 text-right text-xs text-[#64748B]">{message.length} / 2000</div>
+    </CasinoActionDialog>
   );
 }
 
@@ -63,6 +77,8 @@ export default function HomeGameRosterPage() {
   const [loading, setLoading] = useState(true);
   const [showAnnounce, setShowAnnounce] = useState(false);
   const [sending, setSending] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removing, setRemoving] = useState(false);
 
   const fetchRoster = useCallback(async () => {
     if (!id) return;
@@ -87,7 +103,7 @@ export default function HomeGameRosterPage() {
       if (data.success) {
         // Sort roster
         const roleWeight = { owner: 4, host: 4, admin: 3, core: 2, member: 1, follower: 0 };
-        const sorted = (data.roster || []).sort((a, b) => {
+        const sorted = (data.roster || []).map(normalizeRosterMember).sort((a, b) => {
           if (a.status !== 'banned' && b.status === 'banned') return -1;
           if (a.status === 'banned' && b.status !== 'banned') return 1;
           
@@ -147,21 +163,40 @@ export default function HomeGameRosterPage() {
   }
 
   async function handleRemove(memberId) {
-    if (!confirm('Are you sure you want to remove this player from the group?')) return;
+    const normalizedMemberId = normalizeMemberId(memberId);
+    if (!normalizedMemberId) {
+      toast.error('This roster entry cannot be removed until its membership ID is available.');
+      return;
+    }
     try {
       const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ member_id: memberId })
+        body: JSON.stringify({ member_id: normalizedMemberId })
       });
       if (res.ok) {
         toast.success('Player removed');
         fetchRoster();
+      } else {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error?.message || data?.error || 'Failed to remove player');
       }
     } catch (err) {
       toast.error('Failed to remove player');
     }
+  }
+
+  function requestRemove(memberId, displayName) {
+    const normalizedMemberId = normalizeMemberId(memberId);
+    if (!normalizedMemberId) {
+      toast.error('This roster entry cannot be removed until its membership ID is available.');
+      return;
+    }
+    setRemoveTarget({
+      id: normalizedMemberId,
+      name: displayName || 'This Player',
+    });
   }
 
   async function handleBroadcast(message) {
@@ -200,14 +235,14 @@ export default function HomeGameRosterPage() {
   }
 
   if (loading || checking) {
-    return <div className="cmd-page flex items-center justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" /></div>;
+    return <div className="cmd-page flex items-center justify-center p-8" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1"><Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" /></div>;
   }
 
   return (
     <CommanderPageShell>
     <>
       <SEOHead title="Roster | Commander" noindex={true} />
-      <div className="cmd-page">
+      <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -244,7 +279,7 @@ export default function HomeGameRosterPage() {
               </thead>
               <tbody className="divide-y divide-[#4A5E78]">
                 {roster.map(p => (
-                  <tr key={p.user_id || p.id} className={`hover:bg-[#132240]/50 transition-colors ${p.status === 'banned' ? 'opacity-50' : ''}`}>
+                  <tr key={p.user_id || p.member_id} className={`hover:bg-[#132240]/50 transition-colors ${p.status === 'banned' ? 'opacity-50' : ''}`}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#1A2C4D] flex items-center justify-center overflow-hidden shrink-0">
@@ -281,8 +316,8 @@ export default function HomeGameRosterPage() {
                             <MessageSquare className="w-4 h-4" />
                           </button>
                         )}
-                        {p.role !== 'owner' && p.role !== 'host' && (
-                          <button onClick={() => handleRemove(p.member_id || p.id)} className="p-2 bg-[#1A2C4D] rounded text-[#EF4444] hover:bg-[#EF4444]/20 transition-colors" title="Remove">
+                        {p.can_remove && p.member_id && (
+                          <button onClick={() => requestRemove(p.member_id, p.display_name)} className="p-2 bg-[#1A2C4D] rounded text-[#EF4444] hover:bg-[#EF4444]/20 transition-colors" title="Remove">
                             <UserX className="w-4 h-4" />
                           </button>
                         )}
@@ -306,6 +341,26 @@ export default function HomeGameRosterPage() {
         onClose={() => setShowAnnounce(false)}
         onSend={handleBroadcast}
         sending={sending}
+      />
+      <CasinoActionDialog
+        open={!!removeTarget}
+        eyebrow="Roster control"
+        title={`Remove ${removeTarget?.name || 'This Player'}?`}
+        message="This player will lose group access until they join again."
+        confirmLabel="Remove Player"
+        destructive
+        busy={removing}
+        onClose={() => { if (!removing) setRemoveTarget(null); }}
+        onConfirm={async () => {
+          if (!removeTarget?.id || removing) return;
+          setRemoving(true);
+          try {
+            await handleRemove(removeTarget.id);
+            setRemoveTarget(null);
+          } finally {
+            setRemoving(false);
+          }
+        }}
       />
     </>
     </CommanderPageShell>

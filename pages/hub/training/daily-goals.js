@@ -1,5 +1,5 @@
 /**
- * DAILY GOALS — Micro-Challenge System
+ * DAILY GOALS - Micro-Challenge System
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Auto-generated daily challenges (volume, accuracy, streaks, diversity)
  * with streak tracking, motivational badges, and Supabase persistence.
@@ -8,7 +8,7 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// TRAIN-CSS-TOKENS-BATCH5-9 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH5-9 - hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -20,6 +20,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import casinoStyles from '../../../src/styles/training/daily-goals-casino.module.css';
 
 
 // BUG FIX (TRAIN-DAILY-GOALS-A11Y-1): SVG icon components replacing the
@@ -150,45 +151,60 @@ export default function DailyGoalsPage() {
   const router = useRouter();
   useTrainingBus('daily-goals');
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ goals: [], completeCount: 0, totalGoals: 5 });
+  // `null` means the authenticated goal history has not been verified. A
+  // generated zero-progress goal set is valid only after a successful empty
+  // session response.
+  const [data, setData] = useState(null);
   const [dailyBonus, setDailyBonus] = useState(null); // { available, totalBonus, streakBonus, alreadyClaimed }
   const [fetchError, setFetchError] = useState(null);
+  const [signedOut, setSignedOut] = useState(false);
+  // This zero is displayed only inside the success-gated branch below; a null
+  // bonus response never reaches that branch.
   const streakDays = Number(dailyBonus?.streakDays) || 0;
 
-  // Fetch daily bonus status
-  useEffect(() => {
-    async function checkBonus() {
-      try {
-        const res = await authedFetch('/api/training/daily-bonus');
-        if (res.ok) {
-          const d = await res.json();
-          if (d.success) setDailyBonus(d);
-        }
-      } catch (e) { console.warn('[App] Handled exception:', e); }
-    }
-    checkBonus();
-  }, []);
-
   const fetchData = useCallback(async () => {
+    setLoading(true);
     setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
+      setSignedOut(true);
+      setData(null);
+      setDailyBonus(null);
       setLoading(false);
       return;
     }
+    setSignedOut(false);
     try {
-      const res = await authedFetch(`/api/training/get-sessions?limit=50`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const d = await res.json();
-      if (d.success && d.sessions) {
-        const result = generateGoals(d.sessions);
-        setData(result);
+      const [sessionsResponse, bonusResponse] = await Promise.all([
+        authedFetch(`/api/training/get-sessions?limit=50`),
+        authedFetch('/api/training/daily-bonus'),
+      ]);
+      if (!sessionsResponse.ok) {
+        throw new Error(`Training history request failed (${sessionsResponse.status})`);
       }
+      if (!bonusResponse.ok) {
+        throw new Error(`Training streak request failed (${bonusResponse.status})`);
+      }
+      const [sessionsPayload, bonusPayload] = await Promise.all([
+        sessionsResponse.json(),
+        bonusResponse.json(),
+      ]);
+      if (sessionsPayload?.success !== true || !Array.isArray(sessionsPayload.sessions)) {
+        throw new Error('Verified Training history was not returned.');
+      }
+      if (bonusPayload?.success !== true || !Number.isFinite(Number(bonusPayload.streakDays))) {
+        throw new Error('Verified Training streak was not returned.');
+      }
+      setData(generateGoals(sessionsPayload.sessions));
+      setDailyBonus(bonusPayload);
     } catch (e) {
       console.warn('[DailyGoals]', e);
-      setFetchError('Unable to load daily goals. Please try again.');
+      setData(null);
+      setDailyBonus(null);
+      setFetchError('Unable To Verify Daily Goals And Streak Data. Please Try Again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -208,7 +224,7 @@ export default function DailyGoalsPage() {
         <title>Daily Goals | Smarter.Poker Training</title>
       </Head>
       <div
-        className="sp-training-journey sp-training-journey--daily-goals"
+        className={`sp-training-journey sp-training-journey--daily-goals ${casinoStyles.shell}`}
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
@@ -217,7 +233,7 @@ export default function DailyGoalsPage() {
         }}
       >
         <div
-          className="sp-journey-header"
+          className={`sp-journey-header ${casinoStyles.header}`}
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -228,7 +244,8 @@ export default function DailyGoalsPage() {
         >
           <button
             type="button"
-            aria-label="Back to training"
+            aria-label="Back To Training"
+            className={casinoStyles.backButton}
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -247,23 +264,47 @@ export default function DailyGoalsPage() {
             {/* TRAIN-DAILY-GOALS-A11Y-1: SVG back arrow */}
             <BackArrowIcon size={18} />
           </button>
-          <div>
+          <div className={casinoStyles.headerCopy}>
             {/* TRAIN-DAILY-GOALS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Daily Goals</h1>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Resets At Midnight</div>
           </div>
         </div>
 
-        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={`sp-journey-main ${casinoStyles.main}`} style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading && (
             <div style={{ padding: '20px 0' }} role="status" aria-label="Loading daily goals">
               <SkeletonLoader variant="rows" rows={4} />
             </div>
           )}
 
-          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
+          {!loading && signedOut && (
+            <div className={casinoStyles.panel} role="status" style={{ padding: '18px 16px', marginBottom: 16 }}>
+              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
+                Sign In To View Daily Goals
+              </strong>
+              <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
+                Goal Progress And Streaks Come From Your Verified Training Sessions.
+              </span>
+              <button
+                type="button"
+                className={casinoStyles.returnButton}
+                onClick={() => router.push('/auth/login?redirect=/hub/training/daily-goals')}
+                style={{ marginTop: 12, padding: '9px 14px' }}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
 
-          {!loading && (
+          {!loading && !signedOut && (fetchError || !data || !dailyBonus) && (
+            <ErrorBanner
+              message={fetchError || 'Verified Daily Goal Data Is Unavailable.'}
+              onRetry={fetchData}
+            />
+          )}
+
+          {!loading && !signedOut && !fetchError && data && dailyBonus && (
             <>
               {/* Daily Bonus Status — currency copy is shown only for a
                   persisted historical settlement receipt. */}
@@ -271,6 +312,7 @@ export default function DailyGoalsPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
+                  className={`${casinoStyles.panel} ${casinoStyles.bonusPanel}`}
                   style={{
                     padding: '14px 16px',
                     borderRadius: 12,
@@ -294,6 +336,7 @@ export default function DailyGoalsPage() {
               )}
               {dailyBonus && dailyBonus.alreadyClaimed && (
                 <div
+                  className={`${casinoStyles.panel} ${casinoStyles.claimedPanel}`}
                   style={{
                     padding: '10px 16px',
                     borderRadius: 10,
@@ -311,8 +354,9 @@ export default function DailyGoalsPage() {
               )}
 
               {/* Header Summary */}
-              <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+              <div className={casinoStyles.summaryGrid} style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
                 <div
+                  className={`${casinoStyles.panel} ${casinoStyles.summaryPanel}`}
                   style={{
                     flex: 1,
                     padding: '20px',
@@ -354,6 +398,7 @@ export default function DailyGoalsPage() {
                 </div>
                 {/* Streak */}
                 <div
+                  className={`${casinoStyles.panel} ${casinoStyles.streakPanel}`}
                   style={{
                     width: 100,
                     padding: '20px 12px',
@@ -393,6 +438,7 @@ export default function DailyGoalsPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  className={`${casinoStyles.panel} ${casinoStyles.completePanel}`}
                   style={{
                     padding: '12px 16px',
                     borderRadius: 10,
@@ -420,6 +466,7 @@ export default function DailyGoalsPage() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.1 }}
+                      className={`${casinoStyles.goalPanel} ${isComplete ? casinoStyles.goalComplete : ''}`}
                       style={{
                         padding: '16px',
                         borderRadius: 16,
@@ -429,6 +476,7 @@ export default function DailyGoalsPage() {
                       }}
                     >
                       <div
+                        className={casinoStyles.goalHeading}
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -467,6 +515,7 @@ export default function DailyGoalsPage() {
                       </div>
                       {/* Progress Bar */}
                       <div
+                        className={casinoStyles.goalProgress}
                         style={{
                           height: 6,
                           borderRadius: 3,
@@ -516,7 +565,8 @@ export default function DailyGoalsPage() {
 
               <motion.button
                 type="button"
-                aria-label="Back to training"
+                aria-label="Back To Training"
+                className={casinoStyles.returnButton}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
                 style={{

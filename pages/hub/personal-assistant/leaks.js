@@ -67,6 +67,11 @@ const QuickSpotDrill = dynamic(
   { ssr: false, loading: () => <DrillSheetSkeleton /> },
 );
 
+const CoachingWorkspace = dynamic(
+  () => import('../../../src/components/personal-assistant/CoachingWorkspace'),
+  { ssr: false, loading: () => <PanelSkeleton label="Loading Coaching Workspace" /> },
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -279,6 +284,19 @@ function PanelCrash({ label, error, onRetry }) {
         <RefreshCw size={18} strokeWidth={2} aria-hidden="true" />
         Retry
       </button>
+    </div>
+  );
+}
+
+/** Stable loading surface for lazily mounted evidence-backed workspaces. */
+function PanelSkeleton({ label = 'Loading' }) {
+  return (
+    <div style={card} aria-busy="true" aria-label={label}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+        <Skeleton h={16} w="45%" />
+        <Skeleton h={44} />
+        <Skeleton h={32} w="78%" />
+      </div>
     </div>
   );
 }
@@ -2228,12 +2246,13 @@ export default function LeakFinderPage() {
             <Segmented
               idPrefix="leaks-tab"
               label="View"
-              columns={2}
+              columns={3}
               value={tab}
               onChange={setTab}
               options={[
                 { value: 'leaks', label: 'Leaks' },
                 { value: 'insights', label: 'Insights' },
+                { value: 'coaching', label: 'Coaching' },
               ]}
             />
           </div>
@@ -2419,7 +2438,7 @@ export default function LeakFinderPage() {
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search leaks or situations"
+                        placeholder="Search Leaks Or Situations"
                         aria-label="Search leaks"
                         style={styles.searchInput}
                       />
@@ -2559,7 +2578,7 @@ export default function LeakFinderPage() {
                 </>
               )}
             </section>
-          ) : (
+          ) : tab === 'insights' ? (
             <section id="leak-insights" aria-label="Insights">
               <h2 style={styles.sectionHeading}>
                 <BarChart3 size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />
@@ -2641,6 +2660,19 @@ export default function LeakFinderPage() {
                 </div>
 
               </div>
+            </section>
+          ) : (
+            <section id="leak-coaching" aria-label="Coaching">
+              <LeakErrorBoundary label="The Coaching Workspace">
+                <CoachingWorkspace
+                  userId={userId}
+                  leaks={selectablePool}
+                  onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
+                  onOpenHandReview={handleOpenHandReview}
+                  onReviewExample={handleReviewExample}
+                  onTrain={handleTrainDrills}
+                />
+              </LeakErrorBoundary>
             </section>
           )}
         </main>

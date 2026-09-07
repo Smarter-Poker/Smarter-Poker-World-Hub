@@ -9,15 +9,15 @@
  *    key is moved to a non-billing project, Google injects a "This page
  *    can't load Google Maps correctly" modal that visually blocks the form.
  *
- *    Poker Near Me (/hub/poker-near-me) uses Leaflet + CartoDB tiles —
- *    same stack, zero billing, no API key, no Google project at all. This
- *    component brings that same stack to the home-games "Approximate
- *    Location" picker.
+ *    Poker Near Me (/hub/poker-near-me) uses the repository-pinned Leaflet
+ *    runtime with a shared credential-free dark basemap. This component uses
+ *    that same runtime and visible map-data attribution for the Home Games
+ *    "Approximate Location" picker.
  *
  *  Library choices:
- *    - Leaflet 1.9.4 loaded from unpkg (same pattern Poker Near Me uses)
- *    - CartoDB dark_all tiles (matches the dark cmd-panel theme; labels
- *      ON because the host needs street/city context to pick a location)
+ *    - Leaflet 1.9.4 from the repository's pinned npm dependency
+ *    - Esri Dark Gray Canvas base + reference labels (labels stay ON because
+ *      the host needs street/city context to choose an approximate location)
  *    - Nominatim (OpenStreetMap) for forward + reverse geocoding —
  *      completely free, no API key. Rate-limited to ~1 req/sec; we
  *      debounce search by 700ms and only reverse-geocode on drag-end.
@@ -30,52 +30,17 @@
  *    />
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import MapSurfaceFrame from '../poker-near-me/MapSurfaceFrame';
+import {
+  createPokerMapSession,
+  loadPokerMapRuntime,
+  resetPokerMapRuntime,
+} from '../../lib/poker-near-me/mapRuntime';
 
 const C = {
   bg: '#0D192E', card: '#0F1C32', text: '#FFFFFF', textSec: '#94A3B8',
   border: '#4A5E78', accent: '#22D3EE',
 };
-
-// Load Leaflet from CDN once across all instances. Returns a promise that
-// resolves when `window.L` is ready. Idempotent and SSR-safe.
-let leafletLoadPromise = null;
-function ensureLeaflet() {
-  if (typeof window === 'undefined') return Promise.reject(new Error('SSR'));
-  if (window.L) return Promise.resolve(window.L);
-  if (leafletLoadPromise) return leafletLoadPromise;
-  leafletLoadPromise = new Promise((resolve, reject) => {
-    // CSS first (Leaflet won't render correctly without it)
-    if (!document.querySelector('link[data-leaflet-css]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-      link.crossOrigin = '';
-      link.setAttribute('data-leaflet-css', 'true');
-      document.head.appendChild(link);
-    }
-    // JS next
-    const existing = document.querySelector('script[data-leaflet-js]');
-    if (existing) {
-      // Another instance is loading it — poll until ready.
-      const check = setInterval(() => {
-        if (window.L) { clearInterval(check); resolve(window.L); }
-      }, 50);
-      // Safety net: bail after 10s of no L
-      setTimeout(() => { clearInterval(check); if (!window.L) reject(new Error('Leaflet load timeout')); }, 10000);
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    s.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
-    s.crossOrigin = '';
-    s.setAttribute('data-leaflet-js', 'true');
-    s.onload = () => resolve(window.L);
-    s.onerror = (e) => reject(new Error('Leaflet load failed'));
-    document.head.appendChild(s);
-  });
-  return leafletLoadPromise;
-}
 
 // Privacy approximation: round lat/lng to ~1.1 km precision so the host's
 // exact address can never be reconstructed from the persisted value.
@@ -148,15 +113,21 @@ async function nominatimReverse(lat, lng) {
 export default function LeafletLocationPicker({ value, onChange, approximateOnly = true, height = 300 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapSessionRef = useRef(null);
+  const mapRuntimeRef = useRef(null);
   const markerRef = useRef(null);
   const circleRef = useRef(null);
   const onChangeRef = useRef(onChange);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
+  const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const searchDebounceRef = useRef(null);
+  const handleMapLayoutChange = useCallback(() => {
+    mapInstance.current?.invalidateSize?.({ pan: false });
+  }, []);
 
   // Keep ref in sync so the long-lived map handlers always call the latest onChange
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
@@ -166,35 +137,44 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     lng: (typeof value?.lng === 'number') ? value.lng : -115.1398,
   };
 
-  // Step 1: load Leaflet
+  // Step 1: load the shared local Leaflet runtime. A failed dynamic import is
+  // retryable; unlike the retired CDN promise, one network/CSP failure cannot
+  // poison every subsequent picker instance for the browser session.
   useEffect(() => {
     let cancelled = false;
-    ensureLeaflet()
-      .then(() => { if (!cancelled) setLoaded(true); })
-      .catch(() => { if (!cancelled) setError('Map could not load'); });
+    setLoaded(false);
+    setError(null);
+    loadPokerMapRuntime()
+      .then((runtime) => {
+        if (cancelled) return;
+        mapRuntimeRef.current = runtime;
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Map could not load');
+      });
     return () => { cancelled = true; };
-  }, []);
+  }, [mapLoadAttempt]);
 
   // Step 2: init map once Leaflet is ready and the container is mounted
   useEffect(() => {
     if (!loaded || !mapRef.current || mapInstance.current) return;
-    const L = window.L;
+    const L = mapRuntimeRef.current?.L;
     if (!L) return;
 
-    const map = L.map(mapRef.current, {
-      center: [defaultCenter.lat, defaultCenter.lng],
-      zoom: 13,
-      zoomControl: true,
-      scrollWheelZoom: true,
-      attributionControl: true,
+    const session = createPokerMapSession({
+      L,
+      container: mapRef.current,
+      tileStyle: 'dark_all',
+      mapOptions: {
+        center: [defaultCenter.lat, defaultCenter.lng],
+        zoom: 13,
+        scrollWheelZoom: true,
+      },
     });
+    mapSessionRef.current = session;
+    const { map } = session;
     mapInstance.current = map;
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 19,
-    }).addTo(map);
 
     const approx = approximateOnly ? approximateLocation(defaultCenter.lat, defaultCenter.lng) : defaultCenter;
 
@@ -213,15 +193,24 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     // Pin (draggable). Lucide-style MapPin SVG embedded as a divIcon so we
     // don't need to ship a separate PNG asset.
     const pinHtml =
-      '<div style="transform: translate(-50%, -100%); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">'
+      '<div aria-hidden="true" style="width:44px;height:44px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));">'
       + '<svg width="28" height="28" viewBox="0 0 24 24" fill="#EF4444" stroke="#fff" stroke-width="1.5">'
       + '<path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 1 1 16 0Z"/>'
       + '<circle cx="12" cy="10" r="3" fill="#fff" stroke="none"/>'
       + '</svg></div>';
     const pinIcon = L.divIcon({
-      html: pinHtml, className: '', iconSize: [28, 28], iconAnchor: [14, 28],
+      html: pinHtml,
+      className: 'pnm-location-picker__marker',
+      iconSize: [44, 44],
+      iconAnchor: [22, 44],
     });
-    markerRef.current = L.marker([approx.lat, approx.lng], { draggable: true, icon: pinIcon }).addTo(map);
+    markerRef.current = L.marker([approx.lat, approx.lng], {
+      draggable: true,
+      keyboard: true,
+      icon: pinIcon,
+      title: 'Approximate home game location',
+      alt: 'Approximate home game location map marker',
+    }).addTo(map);
 
     const propagate = async (lat, lng) => {
       const approxPos = approximateOnly ? approximateLocation(lat, lng) : { lat, lng };
@@ -238,6 +227,34 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
       propagate(lat, lng);
     });
 
+    // Dragging cannot be the only way to position a form control. Keep the
+    // 1-km privacy grid intact while allowing the focused marker to move one
+    // grid step with Arrow keys (five steps while Shift is held).
+    const markerElement = markerRef.current.getElement?.();
+    const markerLabel = 'Approximate home game location. Use Arrow keys to move the pin; hold Shift for a larger step.';
+    markerElement?.setAttribute('aria-label', markerLabel);
+    markerElement?.setAttribute('title', markerLabel);
+    const handleMarkerKeyDown = (event) => {
+      const directions = {
+        ArrowUp: [1, 0],
+        ArrowDown: [-1, 0],
+        ArrowLeft: [0, -1],
+        ArrowRight: [0, 1],
+      };
+      const direction = directions[event.key];
+      if (!direction || !markerRef.current) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      const current = markerRef.current.getLatLng();
+      const baseStep = approximateOnly ? 0.01 : 0.001;
+      const step = baseStep * (event.shiftKey ? 5 : 1);
+      const nextLat = Math.max(-90, Math.min(90, current.lat + direction[0] * step));
+      const nextLng = Math.max(-180, Math.min(180, current.lng + direction[1] * step));
+      propagate(nextLat, nextLng);
+    };
+    markerElement?.addEventListener('keydown', handleMarkerKeyDown);
+
     map.on('click', (e) => {
       const { lat, lng } = e.latlng;
       propagate(lat, lng);
@@ -248,13 +265,22 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     propagate(defaultCenter.lat, defaultCenter.lng);
 
     return () => {
-      try { map.remove(); } catch (_e) {}
+      markerElement?.removeEventListener('keydown', handleMarkerKeyDown);
+      mapSessionRef.current?.destroy();
+      mapSessionRef.current = null;
       mapInstance.current = null;
       markerRef.current = null;
       circleRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, approximateOnly]);
+
+  const retryMap = useCallback(() => {
+    resetPokerMapRuntime();
+    mapRuntimeRef.current = null;
+    setError(null);
+    setLoaded(false);
+    setMapLoadAttempt((attempt) => attempt + 1);
+  }, []);
 
   // Debounced search against Nominatim
   useEffect(() => {
@@ -306,12 +332,19 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
         <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 12px' }}>
           Map Could Not Load. Enter Your City And State Manually Below - Your Home Game Will Save Normally.
         </p>
+        <button
+          type="button"
+          onClick={retryMap}
+          style={{ minHeight: 44, margin: '0 0 12px', padding: '10px 14px', border: `1px solid ${C.accent}`, borderRadius: 3, background: C.bg, color: C.text, font: 'inherit', cursor: 'pointer' }}
+        >
+          Try Map Again
+        </button>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <input type="text" placeholder="City" value={value?.city || ''}
+          <input type="text" aria-label="City" autoComplete="address-level2" placeholder="City" value={value?.city || ''}
             onChange={e => onChangeRef.current?.({ ...value, city: e.target.value })}
             style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
               fontSize: 14, fontFamily: 'inherit', outline: 'none', background: C.bg, color: C.text }} />
-          <input type="text" placeholder="State" value={value?.state || ''}
+          <input type="text" aria-label="State" autoComplete="address-level1" placeholder="State" value={value?.state || ''}
             onChange={e => onChangeRef.current?.({ ...value, state: e.target.value })}
             style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
               fontSize: 14, fontFamily: 'inherit', outline: 'none', background: C.bg, color: C.text }} />
@@ -321,11 +354,19 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
   }
 
   return (
-    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+    <MapSurfaceFrame
+      className="pnm-map-surface--location-picker"
+      eyebrow="Privacy-safe location"
+      title="Home game area map"
+      detail="Only the approximate one-kilometre area is published"
+      onLayoutChange={handleMapLayoutChange}
+    >
+    <div className="pnm-location-picker pnm-map-stage" style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
       {/* Search */}
       <div style={{ padding: '12px 12px 8px', position: 'relative' }}>
         <input
           type="text"
+          aria-label="Search for a home game location"
           placeholder="Search for a city, address, or landmark..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
@@ -369,7 +410,7 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
       </div>
 
       {/* Map container */}
-      <div ref={mapRef} style={{ height, width: '100%' }}>
+      <div ref={mapRef} className="pnm-location-picker__map pnm-leaflet-map" style={{ height, width: '100%' }} role="region" aria-label="Approximate home game location map" tabIndex={0} data-map-foundation="shared-v3" data-map-style-source="local" data-map-ready={loaded ? 'true' : 'false'}>
         {!loaded && (
           <div style={{
             height: '100%', display: 'flex', alignItems: 'center',
@@ -380,5 +421,6 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
         )}
       </div>
     </div>
+    </MapSurfaceFrame>
   );
 }

@@ -80,6 +80,9 @@ test('session comparison fails closed instead of inventing an average-player bas
   assert.match(ENGINE, /previousSessionData\.authority !== 'verified_training_session'/);
   assert.match(ENGINE, /const baseline = previousSessionData;/);
   assert.doesNotMatch(ENGINE, /accuracy: 60, total: 25, correct: 15, streak: 3, evLoss: 8\.5/);
-  assert.match(ARENA, /Vs Previous Verified Session/);
-  assert.doesNotMatch(ARENA, /Vs Average Player/);
+  assert.doesNotMatch(
+    ARENA,
+    /Vs Average Player|Vs Previous Verified Session|ComparisonGauge|getSessionComparison\s*\(/,
+    'GodModeArena must not restore a browser-rendered comparison panel or caller',
+  );
 });

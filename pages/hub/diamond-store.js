@@ -19,6 +19,16 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 import { marketplaceCopy } from '../../src/lib/store/marketplaceCopy';
 import { boundedCommerceFetch } from '../../src/lib/store/boundedCommerceFetch';
+import {
+  getClubDiamondPurchaseProjection,
+  getClubItemEffectivePrice,
+  normalizeClubCardQuote,
+} from '../../src/lib/store/clubCardCheckout.mjs';
+import {
+  DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
+  loadDiamondStorefrontPackages,
+  sameDiamondStorefrontOffer,
+} from '../../src/lib/store/diamondStorefrontCatalog.mjs';
 
 // God-Mode Stack
 import supabase from '../../src/lib/supabase';
@@ -82,7 +92,6 @@ const MerchStore = dynamic(() => import('../../src/components/store/MerchStore')
 import {
   STANDARD_REWARDS,
   EASTER_EGGS,
-  DIAMOND_PACKAGES,
   VIP_MEMBERSHIP,
   VIP_BENEFITS,
   MERCHANDISE,
@@ -134,33 +143,14 @@ export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
 const REWARD_TABS = ['overview', 'diamonds', 'eggs'];
 const CHECKOUT_STATUS_RETRY_DELAYS = [0, 1200, 2400, 4800];
 const CHECKOUT_STATUS_REQUEST_TIMEOUT_MS = 20000;
-const CLUB_CARD_PACKAGE_OPTIONS = [
-  { packageId: 'micro', diamonds: 100, price: 1 },
-  { packageId: 'small', diamonds: 500, price: 5 },
-  { packageId: 'medium', diamonds: 1000, price: 10 },
-  { packageId: 'standard', diamonds: 2500, price: 25 },
-  { packageId: 'large', diamonds: 5000, price: 50 },
-  { packageId: 'value', diamonds: 10500, price: 100 },
-  { packageId: 'premium', diamonds: 26250, price: 250 },
-  { packageId: 'whale', diamonds: 52500, price: 500 },
-];
-
-function clubCardTopUpFor(priceInDiamonds) {
-  const required = Math.max(1, Number(priceInDiamonds) || 0);
-  return (
-    CLUB_CARD_PACKAGE_OPTIONS.map((option) => ({
-      ...option,
-      quantity: Math.ceil(required / option.diamonds),
-    }))
-      .filter((option) => option.quantity <= 10)
-      .sort(
-        (a, b) =>
-          a.price * a.quantity - b.price * b.quantity ||
-          a.diamonds * a.quantity - b.diamonds * b.quantity
-      )[0] || null
-  );
-}
-
+const CLUB_CARD_REFRESH_CODES = new Set([
+  'CHECKOUT_EXPIRED',
+  'CARD_QUOTE_CHANGED',
+  'CLUB_ITEM_PRICE_CHANGED',
+  'CLUB_ITEM_PRICE_CONFIRMATION_REQUIRED',
+  'CLUB_CARD_QUOTE_CONFIRMATION_REQUIRED',
+]);
+const CLUB_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CLUB_PRODUCT_ATLAS = {
   'VIP Rail Seat (7 Days)': '0% 0%',
   'VIP Rail Seat (7 days)': '0% 0%',
@@ -382,14 +372,48 @@ const VIP_FAQ = [
   },
   {
     q: 'What Payment Methods Are Accepted?',
-    a: 'All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. You Can Also Pay Entirely In Diamonds: 1,999 Diamond Monthly, 19,999 Yearly, Or 49,900 Lifetime.',
+    a: 'Monthly And Yearly VIP Accept All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. Every VIP Term Also Accepts Diamonds: 1,999 Diamond Monthly, 19,999 Yearly, Or 49,900 Lifetime. Lifetime Card Checkout Is Paused Until Its Refund And Dispute Protections Match The Diamond Path.',
   },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN DIAMOND STORE PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-export default function DiamondStorePage({ initialTab }) {
+export async function getServerSideProps({ res }) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+
+  const fallbackProps = {
+    initialDiamondPackages: DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
+    initialDiamondCatalogSource: 'fallback',
+  };
+
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return { props: fallbackProps };
+
+    const { createClient } = await import('../../src/lib/supabaseServerClient');
+    const result = await loadDiamondStorefrontPackages(createClient(url, key), {
+      allowFallback: false,
+      cacheMs: 0,
+    });
+    return {
+      props: {
+        initialDiamondPackages: result.packages,
+        initialDiamondCatalogSource: result.source,
+      },
+    };
+  } catch (error) {
+    console.warn('[Diamond Store] Server Catalog Read Failed:', error?.message || error);
+    return { props: fallbackProps };
+  }
+}
+
+export default function DiamondStorePage({
+  initialTab,
+  initialDiamondPackages = DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
+  initialDiamondCatalogSource = 'fallback',
+}) {
   useTrainingBus('diamond-store');
   const router = useRouter();
 
@@ -438,6 +462,14 @@ export default function DiamondStorePage({ initialTab }) {
   const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [busyPackageId, setBusyPackageId] = useState(null);
+  const [diamondPackages, setDiamondPackages] = useState(
+    Array.isArray(initialDiamondPackages) && initialDiamondPackages.length > 0
+      ? initialDiamondPackages
+      : DIAMOND_STOREFRONT_FALLBACK_PACKAGES
+  );
+  const [diamondCatalogState, setDiamondCatalogState] = useState(
+    initialDiamondCatalogSource === 'database' ? 'database' : 'loading'
+  );
   // React state does not update synchronously. This ref closes the few-
   // millisecond double-tap window before a disabled button can render.
   const processingRef = useRef(false);
@@ -491,12 +523,27 @@ export default function DiamondStorePage({ initialTab }) {
   const [clubShopRole, setClubShopRole] = useState('player');
   const [clubShopSuccess, setClubShopSuccess] = useState(null);
   const [clubShopSortMode, setClubShopSortMode] = useState('newest');
+  const rawRouteClubId = Array.isArray(router.query.clubId)
+    ? router.query.clubId[0]
+    : router.query.clubId;
+  const routeClubId = CLUB_ID_RE.test(String(rawRouteClubId || ''))
+    ? String(rawRouteClubId)
+    : null;
+
+  useEffect(() => {
+    if (!router.isReady || activeTab !== 'club-shop' || !routeClubId) return;
+    if (clubShopClubId === routeClubId) return;
+    clubShopLoadingRef.current = false;
+    setClubShopLoaded(false);
+    setClubShopClubId(routeClubId);
+  }, [activeTab, clubShopClubId, routeClubId, router.isReady]);
   // Admin Manage state
   const [clubShopAdminItems, setClubShopAdminItems] = useState([]);
   const [clubShopAdminLoaded, setClubShopAdminLoaded] = useState(false);
   const [clubShopAdminLoading, setClubShopAdminLoading] = useState(false);
   const [clubShopAdminError, setClubShopAdminError] = useState(null);
   const [clubShopAdminReport, setClubShopAdminReport] = useState(null);
+  const [clubShopMaximumCardFundedPrice, setClubShopMaximumCardFundedPrice] = useState(null);
   const [clubShopNewName, setClubShopNewName] = useState('');
   const [clubShopNewPrice, setClubShopNewPrice] = useState('');
   const [clubShopNewDesc, setClubShopNewDesc] = useState('');
@@ -566,7 +613,6 @@ export default function DiamondStorePage({ initialTab }) {
       return;
     }
     router.replace(TAB_ROUTES[tab]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, initialTab, router.query.tab]);
 
   // A Stripe return URL is only a transport signal. `success=true` is never
@@ -577,7 +623,9 @@ export default function DiamondStorePage({ initialTab }) {
     if (!router.isReady) return undefined;
 
     const clearCheckoutTransport = () => {
-      const cleanPath = TAB_ROUTES[activeTab];
+      const cleanPath = activeTab === 'club-shop' && routeClubId
+        ? `${TAB_ROUTES[activeTab]}?clubId=${encodeURIComponent(routeClubId)}`
+        : TAB_ROUTES[activeTab];
       window.history.replaceState(
         { ...window.history.state, as: cleanPath, url: cleanPath },
         '',
@@ -636,34 +684,24 @@ export default function DiamondStorePage({ initialTab }) {
           if (cancelled || controller.signal.aborted) return;
 
           let response;
-          const requestController = new AbortController();
-          const abortRequest = () => requestController.abort();
-          controller.signal.addEventListener('abort', abortRequest, { once: true });
-          let requestTimedOut = false;
-          const requestTimer = window.setTimeout(() => {
-            requestTimedOut = true;
-            requestController.abort();
-          }, CHECKOUT_STATUS_REQUEST_TIMEOUT_MS);
           try {
-            response = await fetch(
+            response = await boundedCommerceFetch(
               `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
-                signal: requestController.signal,
-              }
+                signal: controller.signal,
+              },
+              CHECKOUT_STATUS_REQUEST_TIMEOUT_MS
             );
           } catch (error) {
             if (cancelled || controller.signal.aborted) return;
-            if (error?.name === 'AbortError' && requestTimedOut) {
+            if (error?.code === 'COMMERCE_REQUEST_TIMEOUT') {
               if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
               throw new Error('Checkout Verification Timed Out. Try Verification Again.');
             }
             if (error?.name === 'AbortError') return;
             if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
             throw error;
-          } finally {
-            window.clearTimeout(requestTimer);
-            controller.signal.removeEventListener('abort', abortRequest);
           }
 
           const body = await response.json().catch(() => null);
@@ -676,12 +714,27 @@ export default function DiamondStorePage({ initialTab }) {
             ? body.data.status
             : 'pending';
           const needsRedemptionReview = body.data?.redemptionStatus === 'needs_review';
+          const displayStatus = status === 'complete' && needsRedemptionReview
+            ? 'review'
+            : status;
+          const verifiedWalletBalance = Number(body.data?.walletBalance);
+          if (Number.isFinite(verifiedWalletBalance)) {
+            setClubDiamondBalance(verifiedWalletBalance);
+            window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
+              detail: {
+                balance: verifiedWalletBalance,
+                userId: getAuthUser()?.id,
+                source: 'checkout-status',
+              },
+            }));
+            broadcastSync('smarter_poker_diamond_sync', 'refresh');
+          }
           setCheckoutReturn({
-            status,
+            status: displayStatus,
             sessionId: rawSession,
             receipt: body.data,
             ...(needsRedemptionReview ? {
-              message: 'Your Card Payment And Diamonds Are Recorded, But The Item Was Not Purchased. Your Diamonds Remain Available: Buy The Item Separately Without Paying By Card Again.',
+              message: 'Your Card Payment And Diamond Funding Are Recorded, But The Item Was Not Purchased. Review The Updated Wallet And Current Item Price Before Finishing With Diamonds. Do Not Pay By Card Again.',
             } : {}),
           });
           if (status === 'complete') {
@@ -726,6 +779,7 @@ export default function DiamondStorePage({ initialTab }) {
     router.query.session_id,
     router.query.success,
     checkoutVerificationAttempt,
+    routeClubId,
   ]);
 
   useEffect(() => {
@@ -881,28 +935,88 @@ export default function DiamondStorePage({ initialTab }) {
     };
   }, [user?.id]);
 
+  const refreshDiamondPackageCatalog = useCallback(async ({ signal } = {}) => {
+    const response = await boundedCommerceFetch(
+      '/api/club-arena/store-catalog?strict=true',
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal,
+      },
+      12000
+    );
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body?.success) {
+      throw new Error(
+        body?.error || 'Current Diamond Pricing Could Not Be Verified. Please Try Again.'
+      );
+    }
+    if (body.diamondCatalogSource !== 'database'
+      || !Array.isArray(body.diamondPackages)
+      || body.diamondPackages.length === 0) {
+      throw new Error('Current Diamond Pricing Could Not Be Verified. Please Try Again.');
+    }
+
+    const packages = body.diamondPackages.map((pkg) => ({
+      id: String(pkg.id),
+      name: String(pkg.name),
+      diamonds: Number(pkg.diamonds),
+      bonus: Number(pkg.bonus || 0),
+      price: Number(pkg.price),
+      priceCents: Number(pkg.priceCents),
+      popular: pkg.popular === true,
+      hasDiscount: pkg.hasDiscount === true,
+    }));
+    setDiamondPackages(packages);
+    setDiamondCatalogState('database');
+    return packages;
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'diamonds') return undefined;
+    const controller = new AbortController();
+    refreshDiamondPackageCatalog({ signal: controller.signal }).catch((error) => {
+      if (error?.name !== 'AbortError') setDiamondCatalogState('unavailable');
+    });
+    return () => controller.abort();
+  }, [activeTab, refreshDiamondPackageCatalog]);
+
   const handleDirectCheckout = async (pkg) => {
     if (processingRef.current) return;
+    let commerceIntent = null;
     setBusyPackageId(pkg.id);
     setStoreProcessing(true);
     try {
       const token = getAccessToken();
       if (!token || !user?.id) {
-        showStoreToast('error', 'Please sign in to complete your purchase');
+        showStoreToast('error', 'Please Sign In To Complete Your Purchase');
         setStoreProcessing(false);
         return;
       }
-      const checkoutRequestId = getOrCreateCommerceRequestId({
-        scope: `diamonds-${pkg.id}`,
+
+      // Refresh immediately before payment. If an operator repriced,
+      // deactivated, renamed, or changed the credit since this card rendered,
+      // publish the new rail and require a fresh deliberate click.
+      const currentPackages = await refreshDiamondPackageCatalog();
+      const currentPackage = currentPackages.find((entry) => entry.id === pkg.id);
+      if (!sameDiamondStorefrontOffer(pkg, currentPackage)) {
+        showStoreToast('error', 'Package Details Changed. Review The Current Offer Before Purchasing.');
+        setStoreProcessing(false);
+        return;
+      }
+      commerceIntent = {
+        scope: `diamonds-${currentPackage.id}`,
         userId: user.id,
         paymentMethod: 'card',
-        intent: { packageId: pkg.id, quantity: 1 },
-      });
+        intent: { packageId: currentPackage.id, quantity: 1 },
+      };
+      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       captureStoreEvent('checkout_started', {
         route: 'diamonds',
         type: 'diamonds',
-        product: pkg.id,
-        value_usd: Number(pkg.price || 0),
+        product: currentPackage.id,
+        value_usd: Number(currentPackage.price || 0),
       });
       showStoreToast('success', 'Redirecting to secure checkout...');
       const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
@@ -914,12 +1028,16 @@ export default function DiamondStorePage({ initialTab }) {
         },
         body: JSON.stringify({
           type: 'diamonds',
-          items: [{ packageId: String(pkg.id || '').replace(/^diamond-/, ''), quantity: 1 }],
+          items: [{ packageId: currentPackage.id, quantity: 1 }],
         }),
       });
       if (!response.ok) {
         const errBody = await response.json().catch(() => null);
-        throw new Error(errBody?.error?.message || `Request failed (${response.status})`);
+        const checkoutError = new Error(
+          errBody?.error?.message || `Request Failed (${response.status})`
+        );
+        checkoutError.code = errBody?.error?.code || null;
+        throw checkoutError;
       }
       const data = await response.json();
       if (!data.success)
@@ -928,18 +1046,21 @@ export default function DiamondStorePage({ initialTab }) {
       captureStoreEvent('checkout_session_created', {
         route: 'diamonds',
         type: 'diamonds',
-        product: pkg.id,
+        product: currentPackage.id,
       });
       window.location.href = data.data.url;
     } catch (err) {
+      if (err?.code === 'CHECKOUT_EXPIRED' && commerceIntent) {
+        clearCommerceRequestId(commerceIntent);
+      }
       captureStoreEvent('checkout_failed', { route: 'diamonds', type: 'diamonds' });
       showStoreToast('error', err.message || 'Purchase failed');
       setStoreProcessing(false);
     }
   };
 
-  // Monthly and yearly use Stripe subscriptions. Lifetime uses the one-time
-  // Stripe checkout path. Every term also retains its Diamond settlement path.
+  // Monthly and yearly use Stripe subscriptions. Lifetime remains Diamond-only
+  // until its cross-method refund/provenance state machine is safe to publish.
   const handleVIPSubscribe = async () => {
     if (processingRef.current) return;
     if (vipTier === 'lifetime') {
@@ -953,12 +1074,13 @@ export default function DiamondStorePage({ initialTab }) {
       navigator.vibrate(50);
     }
 
-    /* Kept as a tripwire. It routed lifetime to the diamond purchase while its
-       one-time card path did not exist; that path shipped on 2026-09-05 and
-       cardCheckoutReady is true for every term now. If a future term ever
-       arrives without a card path, this still does the honest thing rather
-       than opening a checkout that refuses. */
-    if (plan?.cardCheckoutReady === false) {
+    /* Capability tripwire: never open a card checkout for a term whose complete
+       settlement, refund, dispute, and cross-method lifecycle is not enabled. */
+    if (plan?.cardCheckoutReady !== true) {
+      if (plan?.interval !== 'lifetime') {
+        showStoreToast('error', 'Card Checkout Is Not Verified For This VIP Plan. Please Try Again.');
+        return;
+      }
       if (!user?.id) {
         showStoreToast('error', 'Please Sign In To Purchase VIP.');
         return;
@@ -1046,11 +1168,13 @@ export default function DiamondStorePage({ initialTab }) {
           'success',
           data.duplicate
             ? 'That Purchase Was Already Applied. Your Membership Is Active.'
-            : `VIP Active. ${Number(data.daysAdded || 0).toLocaleString()} Days Added.`
+            : planKey === 'lifetime'
+              ? 'Lifetime VIP Is Active. Your Membership Never Expires.'
+              : `VIP Active. ${Number(data.daysAdded || 0).toLocaleString()} Days Added.`
         );
         setIsVip(true);
         if (data.tier) setVipTier(data.tier);
-        if (data.expiresAt) setVipExpiresAt(data.expiresAt);
+        setVipExpiresAt(data.expiresAt ?? null);
         if (data.newBalance != null) setDiamondBalance(Number(data.newBalance));
         broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
@@ -1079,14 +1203,15 @@ export default function DiamondStorePage({ initialTab }) {
       return;
     }
 
+    const commerceIntent = {
+      scope: `vip-${plan.id}`,
+      userId: user.id,
+      paymentMethod: 'card',
+      intent: { plan: plan.id },
+    };
     setStoreProcessing(true);
     try {
-      const checkoutRequestId = getOrCreateCommerceRequestId({
-        scope: `vip-${plan.id}`,
-        userId: user.id,
-        paymentMethod: 'card',
-        intent: { plan: plan.id },
-      });
+      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       /* A lifetime term is one payment, so it is its own checkout type - the
          server derives Stripe `mode` from this string and a subscription mode
          would renew a membership that never renews. */
@@ -1112,7 +1237,11 @@ export default function DiamondStorePage({ initialTab }) {
 
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error?.message || `Request failed (${response.status})`);
+        const checkoutError = new Error(
+          data?.error?.message || `Request Failed (${response.status})`
+        );
+        checkoutError.code = data?.error?.code || null;
+        throw checkoutError;
       }
       if (!data.data?.url) {
         throw new Error('Checkout session missing redirect URL');
@@ -1126,6 +1255,12 @@ export default function DiamondStorePage({ initialTab }) {
       // Redirect to Stripe Checkout (isProcessing stays true through nav)
       window.location.href = data.data.url;
     } catch (error) {
+      if (error?.code === 'CHECKOUT_EXPIRED') {
+        /* An expired Stripe session is definitive: no payment can settle under
+           this request anymore. Release only that durable identity so the next
+           click can create a fresh session. Ambiguous failures keep it. */
+        clearCommerceRequestId(commerceIntent);
+      }
       console.warn('VIP subscription error:', error);
       captureStoreEvent('checkout_failed', { route: 'vip', type: 'subscription' });
       showStoreToast('error', error.message || 'Failed to start VIP checkout. Please try again.');
@@ -1184,16 +1319,28 @@ export default function DiamondStorePage({ initialTab }) {
 
         setClubShopError(null);
         setClubShopItems(
-          (data.items || []).map((i) => ({
-            ...i,
-            club_id: targetClub,
-            name: marketplaceCopy(i.name),
-            description: marketplaceCopy(i.description),
-            category: marketplaceCopy(i.category),
-            is_active: true,
-            price: Number(i.price) || 0,
-            purchase_count: i.purchase_count || 0,
-          }))
+          (data.items || []).map((i) => {
+            const listPrice = Number(i.price) || 0;
+            const effectivePrice = Number.isFinite(Number(i.effective_price))
+              ? Number(i.effective_price)
+              : getClubItemEffectivePrice(listPrice, i.sale_price);
+            return {
+              ...i,
+              club_id: targetClub,
+              name: marketplaceCopy(i.name),
+              description: marketplaceCopy(i.description),
+              category: marketplaceCopy(i.category),
+              is_active: true,
+              list_price: listPrice,
+              price: effectivePrice,
+              on_sale: i.on_sale === true || effectivePrice < listPrice,
+              available: i.available === true,
+              availability_reason: i.availability_reason || null,
+              card_checkout_reason: i.card_checkout_reason || null,
+              card_quote: normalizeClubCardQuote(i.card_quote),
+              purchase_count: i.purchase_count || 0,
+            };
+          })
         );
         setClubShopPurchases(data.purchases || []);
         setClubDiamondBalance(data.balance || 0);
@@ -1223,6 +1370,19 @@ export default function DiamondStorePage({ initialTab }) {
   const handleClubPurchase = async (purchaseTarget = clubShopBuyTarget) => {
     const targetClubId = purchaseTarget?.clubId || purchaseTarget?.club_id || clubShopClubId;
     if (!purchaseTarget || !targetClubId || clubShopProcessingRef.current) return;
+    if (purchaseTarget.available !== true) {
+      showStoreToast('error', 'This Item Is Not Available For Purchase.');
+      return;
+    }
+    const diamondProjection = getClubDiamondPurchaseProjection(
+      purchaseTarget.price,
+      clubDiamondBalance
+    );
+    if (Number(purchaseTarget.price) !== 0
+      && (!diamondProjection || diamondProjection.hasDebt || diamondProjection.shortfall > 0)) {
+      showStoreToast('error', 'Your Verified Diamond Balance Cannot Fund This Purchase.');
+      return;
+    }
     setClubProcessing(true);
     try {
       captureStoreEvent('club_purchase_started', {
@@ -1242,12 +1402,24 @@ export default function DiamondStorePage({ initialTab }) {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ clubId: targetClubId, itemId: purchaseTarget.id }),
+        body: JSON.stringify({
+          clubId: targetClubId,
+          itemId: purchaseTarget.id,
+          expectedPrice: Number(purchaseTarget.price),
+        }),
       });
       const responseData = await response
         .json()
         .catch(() => ({ success: false, error: `HTTP ${response.status}` }));
-      if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
+      if (!responseData.success) {
+        if (responseData.reason === 'price_changed') {
+          clearCommerceRequestId(purchaseTarget.commerceIntent);
+          setClubShopBuyTarget(null);
+          clubShopLoadingRef.current = false;
+          await loadClubShop(true);
+        }
+        throw new Error(responseData.error || 'Purchase failed');
+      }
 
       const pricePaid = Number(responseData.pricePaid ?? purchaseTarget.price) || 0;
       clearCommerceRequestId(purchaseTarget.commerceIntent);
@@ -1284,24 +1456,41 @@ export default function DiamondStorePage({ initialTab }) {
       showStoreToast('error', 'Please Sign In To Buy Club Shop Items.');
       return;
     }
-    const topUp = clubCardTopUpFor(item.price);
-    if (!topUp) {
+    if (Number(clubDiamondBalance) < 0) {
+      showStoreToast(
+        'error',
+        'Card Checkout Is Paused Until Your Diamond Wallet Returns To Zero Or Above.'
+      );
+      return;
+    }
+    if (item.available !== true) {
+      showStoreToast('error', 'This Item Is Not Available For Purchase.');
+      return;
+    }
+    const cardQuote = normalizeClubCardQuote(item.card_quote);
+    if (!cardQuote) {
       showStoreToast('error', 'This Item Is Above The Current Card Checkout Limit.');
       return;
     }
-    const checkoutRequestId = getOrCreateCommerceRequestId({
+    const commerceIntent = {
       scope: `club-card-${item.id}`,
       userId: user.id,
       paymentMethod: 'card',
-      intent: { clubId: clubShopClubId, itemId: item.id },
-    });
+      intent: {
+        clubId: clubShopClubId,
+        itemId: item.id,
+        expectedPrice: Number(item.price),
+        expectedCardChargeCents: cardQuote.cardChargeCents,
+      },
+    };
+    const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
     setClubShopCardProcessingId(item.id);
     try {
       captureStoreEvent('checkout_started', {
         route: 'club-shop',
         type: 'card-funded-item',
         product: item.id,
-        value_usd: topUp.price * topUp.quantity,
+        value_usd: cardQuote.cardCharge,
       });
       const origin = window.location.origin;
       const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
@@ -1313,25 +1502,43 @@ export default function DiamondStorePage({ initialTab }) {
         },
         body: JSON.stringify({
           type: 'diamonds',
-          items: [{ packageId: topUp.packageId, quantity: topUp.quantity }],
-          redemptionIntent: { kind: 'club_shop', clubId: clubShopClubId, itemId: item.id },
-          successUrl: `${origin}${TAB_ROUTES['club-shop']}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${origin}${TAB_ROUTES['club-shop']}?canceled=true`,
+          items: [{ packageId: cardQuote.packageId, quantity: cardQuote.quantity }],
+          redemptionIntent: {
+            kind: 'club_shop',
+            clubId: clubShopClubId,
+            itemId: item.id,
+            expectedPrice: Number(item.price),
+            expectedCardChargeCents: cardQuote.cardChargeCents,
+          },
+          successUrl: `${origin}${TAB_ROUTES['club-shop']}?clubId=${encodeURIComponent(clubShopClubId)}&success=true&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${origin}${TAB_ROUTES['club-shop']}?clubId=${encodeURIComponent(clubShopClubId)}&canceled=true`,
         }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success || !data?.data?.url) {
-        throw new Error(data?.error?.message || 'Could Not Start Card Checkout.');
+        const checkoutError = new Error(
+          data?.error?.message || 'Could Not Start Card Checkout.'
+        );
+        checkoutError.code = data?.error?.code || null;
+        throw checkoutError;
       }
       window.location.href = data.data.url;
     } catch (error) {
+      if (CLUB_CARD_REFRESH_CODES.has(error?.code)) {
+        clearCommerceRequestId(commerceIntent);
+        clubShopLoadingRef.current = false;
+        await loadClubShop(true);
+      }
       setClubShopCardProcessingId(null);
       showStoreToast('error', error.message || 'Could Not Start Card Checkout.');
     }
   };
 
   useEffect(() => {
-    if (activeTab !== 'club-shop' || checkoutReturn?.status !== 'complete') return;
+    if (
+      activeTab !== 'club-shop'
+      || !['complete', 'review'].includes(checkoutReturn?.status)
+    ) return;
     loadClubShop(true);
   }, [activeTab, checkoutReturn?.status, loadClubShop]);
 
@@ -1384,6 +1591,12 @@ export default function DiamondStorePage({ initialTab }) {
       }));
       setClubShopAdminItems(itemsWithCounts);
       setClubShopAdminReport(data.report || null);
+      setClubShopMaximumCardFundedPrice(
+        Number.isSafeInteger(data.maximumCardFundedPrice)
+          && data.maximumCardFundedPrice > 0
+          ? data.maximumCardFundedPrice
+          : null
+      );
       setClubShopAdminLoaded(true);
       return true;
     } catch (err) {
@@ -1391,6 +1604,7 @@ export default function DiamondStorePage({ initialTab }) {
       console.warn('[Club Shop Admin]', err);
       setClubShopAdminItems([]);
       setClubShopAdminReport(null);
+      setClubShopMaximumCardFundedPrice(null);
       setClubShopAdminError(
         timedOut
           ? 'The verified sales ledger timed out. Check your connection and retry.'
@@ -1416,6 +1630,7 @@ export default function DiamondStorePage({ initialTab }) {
     setClubShopAdminLoaded(false);
     setClubShopAdminItems([]);
     setClubShopAdminReport(null);
+    setClubShopMaximumCardFundedPrice(null);
     setClubShopAdminError(null);
   }, [clubShopClubId]);
 
@@ -1468,10 +1683,14 @@ export default function DiamondStorePage({ initialTab }) {
   // activeTab is persisted, so a user can land directly on 'club-shop'
   // without ever clicking the tab button (which is the only other trigger).
   useEffect(() => {
-    if (activeTab === 'club-shop' && user?.id && !clubShopLoaded && !clubShopLoadingRef.current) {
+    if (activeTab === 'club-shop'
+      && user?.id
+      && (!routeClubId || clubShopClubId === routeClubId)
+      && !clubShopLoaded
+      && !clubShopLoadingRef.current) {
       loadClubShop();
     }
-  }, [activeTab, clubShopLoaded, loadClubShop, user?.id]);
+  }, [activeTab, clubShopClubId, clubShopLoaded, loadClubShop, routeClubId, user?.id]);
 
   // ═══ Club Shop: Real-time Supabase subscriptions ═══
   useEffect(() => {
@@ -1549,7 +1768,7 @@ export default function DiamondStorePage({ initialTab }) {
         ? VIP_MEMBERSHIP.yearly
         : VIP_MEMBERSHIP.monthly;
   const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
-  const vipCardReady = selectedVIPPlan?.cardCheckoutReady !== false;
+  const vipCardReady = selectedVIPPlan?.cardCheckoutReady === true;
   const vipSubscribeLabel = vipCardReady
     ? lifetimeSelected
       ? `Buy VIP Lifetime With Card: $${Number(selectedVIPPlan?.price || 499).toFixed(2)} Once`
@@ -1657,7 +1876,10 @@ export default function DiamondStorePage({ initialTab }) {
           {/* Header */}
           <UniversalHeader pageDepth={1} />
 
-          <main className={`store-redesign-content ${shellStyles.root}`}>
+          <main
+            className={`store-redesign-content ${shellStyles.root}`}
+            data-marketplace-route={TAB_ROUTES[activeTab]}
+          >
             <CheckoutStatusPanel
               state={checkoutReturn}
               onDismiss={() => setCheckoutReturn(null)}
@@ -1665,8 +1887,9 @@ export default function DiamondStorePage({ initialTab }) {
             />
             <SmarterStoreShowcase
               activeTab={activeTab}
-              packages={DIAMOND_PACKAGES}
-              isProcessing={isProcessing}
+              packages={diamondPackages}
+              catalogState={diamondCatalogState}
+              isProcessing={isProcessing || diamondCatalogState !== 'database'}
               busyPackageId={busyPackageId}
               onBuy={handleDirectCheckout}
             />
@@ -1853,18 +2076,51 @@ export default function DiamondStorePage({ initialTab }) {
                         color: 'inherit',
                       }}
                     >
-                      <img
-                        src="/images/subscribe-button.webp"
-                        width={1249}
-                        height={258}
-                        alt=""
-                        style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
-                        draggable={false}
-                        loading="lazy"
-                      />
-                      {/* The button artwork is a static $19.99/month image, so the
-                        live plan is stated in text beneath it. Without this the
-                        picture contradicts the selected plan. */}
+                      {vipCardReady ? (
+                        <img
+                          src="/images/subscribe-button.webp"
+                          width={1249}
+                          height={258}
+                          alt=""
+                          style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
+                          draggable={false}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 'min(420px, 88vw)',
+                            minHeight: 92,
+                            padding: '16px 30px',
+                            border: '2px solid #8CDFFF',
+                            background:
+                              'linear-gradient(180deg, #173A52 0%, #071827 48%, #03101C 100%)',
+                            boxShadow:
+                              'inset 0 0 0 2px #02080D, inset 0 0 0 3px rgba(140, 223, 255, 0.5), 0 0 28px rgba(0, 180, 255, 0.32)',
+                            clipPath:
+                              'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px)',
+                            color: '#EAF8FF',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 14,
+                          }}
+                        >
+                          <Gem size={30} color="#00D4FF" strokeWidth={2.2} />
+                          <span style={{ display: 'grid', gap: 2, textAlign: 'left' }}>
+                            <strong style={{ fontSize: 18, letterSpacing: '0.04em' }}>
+                              Buy Lifetime VIP
+                            </strong>
+                            <span style={{ color: '#8CDFFF', fontSize: 14, fontWeight: 700 }}>
+                              49,900 Diamonds · One Time
+                            </span>
+                          </span>
+                        </span>
+                      )}
+                      {/* Card-ready terms use the monthly artwork and state the
+                        selected live term below it. Lifetime renders its own
+                        Diamond action so the picture and settlement agree. */}
                       <div
                         style={{
                           textAlign: 'center',
@@ -1879,9 +2135,10 @@ export default function DiamondStorePage({ initialTab }) {
                     </button>
                   </div>
 
-                  {/* Every term can settle in Diamonds at 100 Diamonds per
-                    dollar. Lifetime also has a one-time card checkout. */}
-                  {selectedVIPPlan && (
+                  {/* Card-ready terms also expose Diamonds as the alternate
+                    settlement path. Lifetime's primary action is already the
+                    Diamond purchase, so do not render the same action twice. */}
+                  {selectedVIPPlan && vipCardReady && (
                     <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
                       {(() => {
                         const planKey =
@@ -2134,7 +2391,6 @@ export default function DiamondStorePage({ initialTab }) {
 
                   {/* View in Marketplace Link */}
                   <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
-                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a
                       href={TAB_ROUTES.merch}
                       style={{
@@ -3080,7 +3336,8 @@ export default function DiamondStorePage({ initialTab }) {
                             </div>
                           </div>
                         </div>
-                        {clubDiamondBalance < clubShopBuyTarget.price && (
+                        {clubShopBuyTarget.price > 0
+                          && clubDiamondBalance < clubShopBuyTarget.price && (
                           <div
                             style={{
                               color: '#ff6b6b',
@@ -3119,13 +3376,17 @@ export default function DiamondStorePage({ initialTab }) {
                           <button
                             onClick={handleClubPurchase}
                             disabled={
-                              clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price
+                              clubShopProcessing
+                              || (clubShopBuyTarget.price > 0
+                                && clubDiamondBalance < clubShopBuyTarget.price)
                             }
                             style={{
                               flex: 1,
                               padding: '12px',
                               background:
-                                clubShopProcessing || clubDiamondBalance < clubShopBuyTarget.price
+                                clubShopProcessing
+                                || (clubShopBuyTarget.price > 0
+                                  && clubDiamondBalance < clubShopBuyTarget.price)
                                   ? 'rgba(255,255,255,0.1)'
                                   : 'linear-gradient(135deg, #1877F2, #4285F4)',
                               border: 'none',
@@ -3375,7 +3636,7 @@ export default function DiamondStorePage({ initialTab }) {
                             <input
                               type="text"
                               aria-label="Search Club Shop Items"
-                              placeholder="Search items..."
+                              placeholder="Search Items..."
                               value={clubShopSearch}
                               onChange={(e) => setClubShopSearch(e.target.value)}
                               style={{
@@ -3414,11 +3675,6 @@ export default function DiamondStorePage({ initialTab }) {
 
                           {/* Item Grid */}
                           {(() => {
-                            const activePurchasedIds = new Set(
-                              clubShopPurchases
-                                .filter((purchase) => !purchase.refunded_at)
-                                .map((purchase) => purchase.item_id)
-                            );
                             let filtered = [...clubShopItems];
                             if (clubShopCategory !== 'All') {
                               filtered = filtered.filter(
@@ -3483,22 +3739,38 @@ export default function DiamondStorePage({ initialTab }) {
                                 }}
                               >
                                 {filtered.map((item) => {
-                                  const purchaseLimit = Number(item.per_user_limit) || 0;
-                                  const purchasedCount = Number(item.my_purchase_count) || 0;
-                                  const blocked = item.stackable
-                                    ? purchaseLimit > 0 && purchasedCount >= purchaseLimit
-                                    : activePurchasedIds.has(item.id);
-                                  const blockedLabel = item.stackable ? 'Limit Reached' : 'Owned';
-                                  const cardTopUp = clubCardTopUpFor(item.price);
-                                  const cardCharge = cardTopUp
-                                    ? cardTopUp.price * cardTopUp.quantity
-                                    : null;
-                                  const cardDiamonds = cardTopUp
-                                    ? cardTopUp.diamonds * cardTopUp.quantity
-                                    : null;
-                                  const cardRemainder = cardDiamonds == null
-                                    ? null
-                                    : Math.max(0, cardDiamonds - Number(item.price || 0));
+                                  const blocked = item.available !== true;
+                                  const blockedLabel = blocked
+                                    ? item.availability_reason === 'sold_out'
+                                      ? 'Sold Out'
+                                      : item.availability_reason === 'not_yet_available'
+                                        ? 'Coming Soon'
+                                        : item.availability_reason === 'no_longer_available'
+                                          ? 'Offer Ended'
+                                          : item.availability_reason === 'limit_reached'
+                                            ? 'Limit Reached'
+                                            : item.availability_reason === 'already_owned'
+                                              ? 'Owned'
+                                              : 'Unavailable'
+                                    : 'Available';
+                                  const diamondProjection = getClubDiamondPurchaseProjection(
+                                    item.price,
+                                    clubDiamondBalance
+                                  );
+                                  const cardQuote = normalizeClubCardQuote(item.card_quote);
+                                  const cardCharge = cardQuote?.cardCharge ?? null;
+                                  const diamondPurchaseBalance =
+                                    diamondProjection?.remainingBalance ?? null;
+                                  const diamondShortfall = diamondProjection?.shortfall ?? null;
+                                  const hasDiamondDebt = diamondProjection?.hasDebt === true;
+                                  const cardPurchaseBalance = cardQuote?.cardPurchaseBalance ?? null;
+                                  const isFreeItem = item.available === true && Number(item.price) === 0;
+                                  const canPurchaseWithDiamonds = !blocked && (
+                                    isFreeItem
+                                    || (diamondProjection
+                                      && !diamondProjection.hasDebt
+                                      && diamondProjection.shortfall === 0)
+                                  );
                                   return (
                                     <article
                                       key={item.id}
@@ -3632,10 +3904,26 @@ export default function DiamondStorePage({ initialTab }) {
                                             >
                                               <Gem size={14} /> {item.price.toLocaleString()}
                                             </span>
+                                            {item.on_sale && (
+                                              <span
+                                                style={{
+                                                  display: 'block',
+                                                  color: '#AABAC2',
+                                                  fontSize: 10,
+                                                  textDecoration: 'line-through',
+                                                }}
+                                              >
+                                                Regular {Number(item.list_price || 0).toLocaleString()} Diamonds
+                                              </span>
+                                            )}
                                             <div className={shellStyles.cardEquivalent}>
-                                              {cardCharge == null
-                                                ? 'Card Limit Exceeded'
-                                                : `$${cardCharge.toFixed(2)} Card · ${cardRemainder.toLocaleString()} Diamonds Remain`}
+                                              {hasDiamondDebt
+                                                ? 'Resolve Diamond Balance Before Card Checkout'
+                                                : cardCharge == null
+                                                  ? 'Card Limit Exceeded'
+                                                  : diamondShortfall > 0
+                                                    ? `Need ${diamondShortfall.toLocaleString()} More Diamonds · Card $${cardCharge.toFixed(2)} Leaves ${cardPurchaseBalance.toLocaleString()}`
+                                                    : `Diamonds Leave ${diamondPurchaseBalance.toLocaleString()} · Card $${cardCharge.toFixed(2)} Leaves ${cardPurchaseBalance.toLocaleString()}`}
                                             </div>
                                             {(item.purchase_count || 0) > 0 && (
                                               <div
@@ -3665,6 +3953,7 @@ export default function DiamondStorePage({ initialTab }) {
                                                   intent: {
                                                     clubId: clubShopClubId,
                                                     itemId: item.id,
+                                                    expectedPrice: Number(item.price),
                                                   },
                                                 };
                                                 setClubShopBuyTarget({
@@ -3675,7 +3964,8 @@ export default function DiamondStorePage({ initialTab }) {
                                                 });
                                               }}
                                               disabled={
-                                                blocked || clubShopCardProcessingId === item.id
+                                                !canPurchaseWithDiamonds
+                                                || clubShopCardProcessingId === item.id
                                               }
                                             >
                                               {blocked ? (
@@ -3684,7 +3974,12 @@ export default function DiamondStorePage({ initialTab }) {
                                                 </>
                                               ) : (
                                                 <>
-                                                  <Gem size={12} /> Diamonds
+                                                  <Gem size={12} />
+                                                  {isFreeItem
+                                                    ? 'Claim Free'
+                                                    : canPurchaseWithDiamonds
+                                                      ? 'Diamonds'
+                                                      : 'More Diamonds Needed'}
                                                 </>
                                               )}
                                             </button>
@@ -3692,13 +3987,17 @@ export default function DiamondStorePage({ initialTab }) {
                                               <button
                                                 type="button"
                                                 onClick={() => handleClubCardCheckout(item)}
-                                                disabled={Boolean(clubShopCardProcessingId) || !cardTopUp}
+                                                disabled={Boolean(clubShopCardProcessingId) || !cardQuote}
                                               >
                                                 <CreditCard size={12} />
                                                 {clubShopCardProcessingId === item.id
                                                   ? 'Opening...'
                                                   : cardCharge == null
-                                                    ? 'Card Unavailable'
+                                                    ? isFreeItem
+                                                      ? 'No Card Charge'
+                                                      : hasDiamondDebt
+                                                        ? 'Card Checkout Paused'
+                                                        : 'Card Unavailable'
                                                     : `Card $${cardCharge.toFixed(2)}`}
                                               </button>
                                             )}
@@ -4095,7 +4394,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 aria-label="Item Name"
                                 value={clubShopNewName}
                                 onChange={(e) => setClubShopNewName(e.target.value)}
-                                placeholder="Item name"
+                                placeholder="Item Name"
                                 maxLength={100}
                                 style={{
                                   flex: 2,
@@ -4115,6 +4414,8 @@ export default function DiamondStorePage({ initialTab }) {
                                 onChange={(e) => setClubShopNewPrice(e.target.value)}
                                 placeholder="Price (Diamonds)"
                                 min="1"
+                                max={clubShopMaximumCardFundedPrice || undefined}
+                                step="1"
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',
@@ -4127,11 +4428,25 @@ export default function DiamondStorePage({ initialTab }) {
                                 }}
                               />
                             </div>
+                            <div
+                              role="status"
+                              style={{
+                                color: clubShopMaximumCardFundedPrice
+                                  ? 'rgba(255,255,255,0.62)'
+                                  : '#FFB4B4',
+                                fontSize: 12,
+                                margin: '-2px 0 10px',
+                              }}
+                            >
+                              {clubShopMaximumCardFundedPrice
+                                ? `Current Card-Compatible Price Limit: ${clubShopMaximumCardFundedPrice.toLocaleString()} Diamonds.`
+                                : 'Current Card Price Limit Is Unavailable. Item Creation Is Paused.'}
+                            </div>
                             <input
                               aria-label="Item Description"
                               value={clubShopNewDesc}
                               onChange={(e) => setClubShopNewDesc(e.target.value)}
-                              placeholder="Description (optional)"
+                              placeholder="Description (Optional)"
                               maxLength={500}
                               style={{
                                 width: '100%',
@@ -4183,7 +4498,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 aria-label="Item Image URL"
                                 value={clubShopNewImage}
                                 onChange={(e) => setClubShopNewImage(e.target.value)}
-                                placeholder="Image URL (optional)"
+                                placeholder="Image URL (Optional)"
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',
@@ -4199,7 +4514,10 @@ export default function DiamondStorePage({ initialTab }) {
                             <button
                               type="button"
                               disabled={
-                                clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice
+                                clubShopProcessing
+                                || !clubShopNewName.trim()
+                                || !clubShopNewPrice
+                                || !clubShopMaximumCardFundedPrice
                               }
                               onClick={async () => {
                                 if (clubShopProcessingRef.current) return;
@@ -4211,13 +4529,23 @@ export default function DiamondStorePage({ initialTab }) {
                                   );
                                   return;
                                 }
-                                const price = Math.floor(Number(clubShopNewPrice));
-                                if (!price || price <= 0) {
-                                  showStoreToast('error', 'Price must be a positive number');
+                                const price = Number(clubShopNewPrice);
+                                if (!Number.isSafeInteger(price) || price <= 0) {
+                                  showStoreToast('error', 'Price Must Be A Positive Whole Number.');
                                   return;
                                 }
-                                if (price > 1000000000) {
-                                  showStoreToast('error', 'Price exceeds maximum');
+                                if (!clubShopMaximumCardFundedPrice) {
+                                  showStoreToast(
+                                    'error',
+                                    'Current Card Price Limit Is Unavailable. Please Retry.'
+                                  );
+                                  return;
+                                }
+                                if (price > clubShopMaximumCardFundedPrice) {
+                                  showStoreToast(
+                                    'error',
+                                    `Price Cannot Exceed ${clubShopMaximumCardFundedPrice.toLocaleString()} Diamonds.`
+                                  );
                                   return;
                                 }
                                 setClubProcessing(true);
@@ -4268,7 +4596,12 @@ export default function DiamondStorePage({ initialTab }) {
                                 background: 'linear-gradient(135deg, #1877F2, #4285F4)',
                                 border: 'none',
                                 color: '#fff',
-                                opacity: !clubShopNewName.trim() || !clubShopNewPrice ? 0.5 : 1,
+                                opacity:
+                                  !clubShopNewName.trim()
+                                  || !clubShopNewPrice
+                                  || !clubShopMaximumCardFundedPrice
+                                    ? 0.5
+                                    : 1,
                               }}
                             >
                               {clubShopProcessing ? 'Creating...' : 'Create Item'}
@@ -4513,7 +4846,6 @@ export default function DiamondStorePage({ initialTab }) {
               {/* Legal Note */}
               <p style={styles.legalNote}>
                 Diamonds Are Virtual Currency And Have No Real-World Cash Value.
-                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                 All Purchases Are Final. See our{' '}
                 <a href="/terms" style={styles.link}>
                   Terms Of Service

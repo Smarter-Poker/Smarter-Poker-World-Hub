@@ -33,6 +33,8 @@ import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
+import '../src/styles/worlds/poker-near-me-machined.css';
+import '../src/styles/worlds/poker-near-me-command-surfaces.css';
 import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
 
 const orbitron = Orbitron({
@@ -121,7 +123,6 @@ import {
   advanceScrollLockGeneration,
   sweepStaleScrollLocks,
   clearBodyScrollLockIfUnheld,
-  scrollLockCount,
 } from '../src/lib/scrollLock';
 
 const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommandDock'), {
@@ -433,12 +434,14 @@ function NavigationGuard({ children }) {
   // guarantees a clean scroll state before the page becomes interactive.
   // ═══════════════════════════════════════════════════════════════════════
   useEffect(() => {
-    document.body.style.overflow = '';
+    // Child dialogs can acquire a current lock before this parent effect runs.
+    // The shared guard clears only stranded body/root locks and never stomps a
+    // live registry owner.
+    clearBodyScrollLockIfUnheld();
     document.body.style.position = '';
     document.body.style.width = '';
     document.body.style.touchAction = '';
     document.body.classList.remove('reels-lock');
-    document.documentElement.style.overflow = '';
     document.documentElement.classList.remove('reels-lock');
 
     // SCROLL-TO-TOP ON HARD REFRESH / MOUNT (Platform-wide) - ONCE.
@@ -572,7 +575,7 @@ function NavigationGuard({ children }) {
       document.head.appendChild(style);
     }
 
-    const handleStart = () => {
+    const handleStart = (nextUrl) => {
       // SYNCHRONOUS: Add class immediately (no React state delay)
       document.body.classList.add('page-transitioning');
 
@@ -602,12 +605,17 @@ function NavigationGuard({ children }) {
         }
       });
 
-      // roadmap #47: advance the scroll-lock generation BEFORE the incoming
-      // page mounts, so any lock it takes is stamped with the new generation
-      // and the sweep in handleComplete provably cannot touch it. Everything
-      // still stamped with the OLD generation once navigation finishes belongs
-      // to a page that no longer exists, and is therefore a leak.
-      advanceScrollLockGeneration();
+      // roadmap #47: advance only when the pathname actually changes. Query,
+      // hash, and shallow updates keep the current page mounted; treating them
+      // as a new generation would make handleComplete sweep a dialog that is
+      // still open and unlock the document behind it.
+      let pathnameChanged = true;
+      try {
+        pathnameChanged = new URL(nextUrl, window.location.href).pathname !== window.location.pathname;
+      } catch (_urlError) {
+        // An unparseable target is safest to treat as a real navigation.
+      }
+      if (pathnameChanged) advanceScrollLockGeneration();
 
       // Also set React state (for components that check it)
       setIsNavigating(true);
@@ -641,17 +649,13 @@ function NavigationGuard({ children }) {
       // unconditional.
       // ═══════════════════════════════════════════════════════════════════
       sweepStaleScrollLocks();
-      if (scrollLockCount() === 0) {
-        document.body.style.overflow = '';
-      }
+      clearBodyScrollLockIfUnheld();
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.touchAction = '';
       document.body.classList.remove('reels-lock'); // FIX: clear Reels class lock
-      // `documentElement` is never used as a lock target by the arena — only
-      // Reels sets it — so clearing it unconditionally is safe and is what
-      // frees a page Reels stranded.
-      document.documentElement.style.overflow = '';
+      // The shared registry now locks the document root as well as the body;
+      // the guarded helper above preserves any incoming live lock.
       document.documentElement.classList.remove('reels-lock'); // FIX: clear html lock too
     };
 

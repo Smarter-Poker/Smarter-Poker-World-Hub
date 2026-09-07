@@ -17,10 +17,10 @@ LOG_FILE="/Users/smarter.poker/.smarter-poker/logs/scraper-watchdog.log"
 BRAVO_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/bravo-logs/heartbeat.json"
 PA_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/pokeratlas-logs/heartbeat.json"
 
-# The simulator is the PRIMARY source for "Cash Games Running" while the Bravo
-# live scraper is intentionally not run. It models per-venue/per-game/per-hour
-# activity from weeks of real observed history. Nothing was watching it, so if
-# it died the cash-games surface would go dark with no auto-recovery.
+# The simulator may publish "Cash Games Running" only when exact
+# venue/game/weekday/hour estimates are backed by qualified observed Bravo
+# history. With no such history, a fresh valid-empty heartbeat is healthy and
+# the UI must show counts as unavailable.
 SIM_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/bravo-logs/simulator-heartbeat.json"
 
 BRAVO_PLIST="com.smarter-poker.bravo-daemon"
@@ -310,7 +310,7 @@ check_heartbeat() {
     # and then thrown away. Treat a failing status as down.
     # ─────────────────────────────────────────────────────────────────────
     case "$status" in
-      running|ok|healthy|scraping|idle) : ;;
+      running|ok|healthy|scraping|idle|building_model) : ;;
       *)
         log "  ${name}: UNHEALTHY status='${status}' (${fails} consecutive failures)"
         restart_daemon "$name" "$plist" "status=${status} after ${fails} consecutive failures"
@@ -376,12 +376,23 @@ check_pid_alive "BravoSimulator" "$SIM_HEARTBEAT" "$SIM_PLIST"
 if [ -f "$SIM_HEARTBEAT" ]; then
   sim_venues=$(python3 -c "import json;print(int(json.load(open('$SIM_HEARTBEAT')).get('venues_active',0) or 0))" 2>/dev/null || echo 0)
   sim_tables=$(python3 -c "import json;print(int(json.load(open('$SIM_HEARTBEAT')).get('tables_running',0) or 0))" 2>/dev/null || echo 0)
-  if [ "$sim_venues" -eq 0 ] || [ "$sim_tables" -eq 0 ]; then
-    log "  BravoSimulator: PUBLISHING NOTHING (venues=${sim_venues}, tables=${sim_tables}) - restarting"
-    launchctl stop "$SIM_PLIST" 2>/dev/null
-    sleep 2
-    launchctl start "$SIM_PLIST" 2>/dev/null
-    discord_alert "BravoSimulator: restarted - published 0 venues/0 tables (cash games surface would be empty)"
+  sim_status=$(python3 -c "import json;print(str(json.load(open('$SIM_HEARTBEAT')).get('status','unknown')))" 2>/dev/null || echo unknown)
+  sim_run_status=$(python3 -c "import json;print(str(json.load(open('$SIM_HEARTBEAT')).get('run_status','')))" 2>/dev/null || echo '')
+  sim_valid_empty=$(python3 -c "import json;print('true' if json.load(open('$SIM_HEARTBEAT')).get('valid_empty') is True else 'false')" 2>/dev/null || echo false)
+  sim_records=$(python3 -c "import json;print(int(json.load(open('$SIM_HEARTBEAT')).get('records_saved',0) or 0))" 2>/dev/null || echo 0)
+  sim_modeled=$(python3 -c "import json;print(int(json.load(open('$SIM_HEARTBEAT')).get('venues_modeled',0) or 0))" 2>/dev/null || echo 0)
+  if [ "$sim_status" = "idle" ] && [ "$sim_run_status" = "valid_empty" ] && [ "$sim_valid_empty" = "true" ]; then
+    log "  BravoSimulator: valid empty - no qualified observed history/context; restart suppressed"
+  elif [ "$sim_status" = "building_model" ] || { [ "$sim_status" = "running" ] && [ -z "$sim_run_status" ]; }; then
+    log "  BravoSimulator: cycle/model build in progress; output check deferred"
+  elif [ "$sim_status" = "running" ] && [ "$sim_run_status" = "success" ] && [ "$sim_records" -gt 0 ]; then
+    log "  BravoSimulator: published ${sim_records} qualified rows for ${sim_modeled} modeled venues (${sim_tables} tables across ${sim_venues} active venues)"
+  elif [ "$sim_venues" -eq 0 ] || [ "$sim_tables" -eq 0 ]; then
+    if already_restarted "$SIM_PLIST"; then
+      log "  BravoSimulator: output check skipped - already restarted this run"
+    else
+      restart_daemon "BravoSimulator" "$SIM_PLIST" "unexpected empty output (venues=${sim_venues}, tables=${sim_tables}, records=${sim_records}, run_status=${sim_run_status})"
+    fi
   else
     log "  BravoSimulator: publishing ${sim_tables} tables across ${sim_venues} venues"
   fi

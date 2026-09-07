@@ -50,6 +50,8 @@ function verifiedHistoryAccuracy(row) {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -71,8 +73,6 @@ export default async function handler(req, res) {
       if (authErr || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
-
-      res.setHeader('Cache-Control', 'private, no-store');
 
       const userId = user.id; // From JWT, not query param
 

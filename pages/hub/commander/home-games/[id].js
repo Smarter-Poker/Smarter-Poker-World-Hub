@@ -15,6 +15,7 @@ import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUti
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 
 // Phase 41/bug-hunt-zero: idempotency-token generator. Used on every
 // state-changing POST in this page so a timeout-then-retry doesn't
@@ -28,7 +29,8 @@ function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
   const isPast = eventDate < new Date();
   // B2 fix: use server-authoritative rsvp_yes counter (was rsvp_count before audit)
-  const isFull = (event.rsvp_yes ?? event.rsvp_count ?? 0) >= event.max_players;
+  const occupiedSeats = event.rsvp_seats ?? event.rsvp_yes ?? event.rsvp_count ?? 0;
+  const isFull = occupiedSeats >= event.max_players;
 
   return (
     <div className={`cmd-panel p-4 ${isPast ? 'opacity-60' : ''}`}>
@@ -44,7 +46,7 @@ function EventCard({ event, onRsvp, userRsvp }) {
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-sm text-[#64748B]">
             <Users className="w-4 h-4" />
-            {(event.rsvp_yes ?? event.rsvp_count ?? 0)}/{event.max_players}
+            {occupiedSeats}/{event.max_players}
           </span>
           {isFull && <span className="text-xs text-[#EF4444] font-medium">Full</span>}
         </div>
@@ -58,7 +60,7 @@ function EventCard({ event, onRsvp, userRsvp }) {
       </div>
 
       {!isPast && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {userRsvp === 'yes' ? (
             <>
               <button
@@ -104,6 +106,12 @@ function EventCard({ event, onRsvp, userRsvp }) {
               </button>
             </>
           )}
+          <button
+            onClick={() => onRsvp?.(event)}
+            className="cmd-btn cmd-btn-secondary basis-full h-10"
+          >
+            Guests / Note
+          </button>
         </div>
       )}
     </div>
@@ -177,6 +185,14 @@ export default function HomeGameDetailPage() {
   const reviewIdemRef = useRef(makeIdemKey());
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
+  const rsvpDialog = useAccessibleDialog({
+    open: Boolean(selectedRsvpEvent),
+    onClose: () => setSelectedRsvpEvent(null),
+  });
+  const shareDialog = useAccessibleDialog({
+    open: showShareModal,
+    onClose: () => setShowShareModal(false),
+  });
 
   // Get current user ID from token on mount
   useEffect(() => {
@@ -430,18 +446,28 @@ export default function HomeGameDetailPage() {
   // prevents spam-click races that could trip the rsvp-capacity trigger in
   // weird ways (e.g. simultaneous yes-then-no leaving stale waitlist).
   // X-Idempotency-Key lets the server collapse a timeout-then-retry.
-  async function handleRsvp(event, status) {
+  async function handleRsvp(event, status, details = null) {
     const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
-      return;
+      return false;
     }
 
     const key = String(event.id);
-    if (rsvpingRef.current[key]) return; // already in flight for this event
+    if (rsvpingRef.current[key]) return false; // already in flight for this event
     rsvpingRef.current[key] = true;
 
     try {
+      // Quick-RSVP buttons still send only the response. The full RSVP modal
+      // additionally carries the guest party and host note all the way to the
+      // Commander API instead of silently discarding those fields.
+      const rsvpPayload = { response: status };
+      if (details && typeof details === 'object') {
+        rsvpPayload.bringing_guests = details.bringing_guests;
+        rsvpPayload.guest_names = details.guest_names;
+        rsvpPayload.message = details.message;
+      }
+
       const res = await fetch(`/api/commander/home-games/events/${event.id}/rsvp`, {
         method: 'POST',
         headers: {
@@ -449,7 +475,7 @@ export default function HomeGameDetailPage() {
           Authorization: `Bearer ${token}`,
           'X-Idempotency-Key': makeIdemKey(),
         },
-        body: JSON.stringify({ response: status })
+        body: JSON.stringify(rsvpPayload)
       });
 
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -461,7 +487,10 @@ export default function HomeGameDetailPage() {
       const actualResponse = data.rsvp?.response || null;
 
       if (actualResponse) {
-        setRsvps(prev => ({ ...prev, [event.id]: actualResponse }));
+        setRsvps(prev => ({
+          ...prev,
+          [event.id]: data.rsvp || { response: actualResponse },
+        }));
         if (actualResponse === 'waitlist' && status === 'yes') {
           // B14: game is full - player was auto-waitlisted
           const waitlistPos = data.rsvp?.waitlist_position || '';
@@ -472,6 +501,7 @@ export default function HomeGameDetailPage() {
           );
         }
         fetchGroup();
+        return true;
       } else if (data.error) {
         const errCode = data.error?.code || data.error;
         if (errCode === 'GAME_STARTED') {
@@ -482,13 +512,19 @@ export default function HomeGameDetailPage() {
         } else {
           toast.error(data.error?.message || data.error || 'Failed to RSVP');
         }
+        return false;
       } else {
         // Fallback for older API shape
-        if (data.success !== false) fetchGroup();
+        if (data.success !== false) {
+          fetchGroup();
+          return true;
+        }
+        return false;
       }
     } catch (error) {
       console.warn('RSVP failed:', error);
       toast.error(error.message || 'Failed to RSVP');
+      return false;
     } finally {
       // bug-hunt-zero/B-ID-3: always clear the in-flight marker for this event
       // so subsequent RSVP changes (e.g. yes → no after a server error) work.
@@ -525,12 +561,13 @@ export default function HomeGameDetailPage() {
     }
   }
 
-  // Copy invite code
+  // Copy the share-safe club code. The secret invite_code is intentionally
+  // staff/manage-only and is withheld from member/public group responses.
   // bug-hunt-zero/B-ID-8: was silently failing in non-HTTPS / iframe / no-permission
   // contexts. The async path checks success and falls back to execCommand; total
   // failure shows the code so the user can copy manually.
   async function copyInviteCode() {
-    const code = group?.invite_code;
+    const code = group?.club_code;
     if (!code) return;
     const ok = await safeCopyToClipboard(code);
     if (ok) {
@@ -543,7 +580,7 @@ export default function HomeGameDetailPage() {
 
   if (loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
+      <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
@@ -551,7 +588,7 @@ export default function HomeGameDetailPage() {
 
   if (!group) {
     return (
-      <div className="cmd-page flex items-center justify-center">
+      <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         <div className="text-center">
           <Home className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
           <p className="text-[#64748B]">Group Not Found</p>
@@ -585,14 +622,16 @@ export default function HomeGameDetailPage() {
                 noindex={true}
             />
 
-      <div className="cmd-page">
+      <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => router.push('/hub/commander/home-games')}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Back to Home Games"
               >
                 <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
@@ -604,24 +643,30 @@ export default function HomeGameDetailPage() {
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setShowShareModal(true)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Share home game"
               >
                 <Share2 className="w-5 h-5 text-[#64748B]" />
               </button>
               {isHost && (
                 <button
+                  type="button"
                   onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  aria-label="Manage home game"
                 >
                   <Settings className="w-5 h-5 text-[#64748B]" />
                 </button>
               )}
               {!isHost && isMember && (
                 <button
+                  type="button"
                   onClick={() => handleStartDm(group.owner_id)} // 2026-07-25 audit fix: owner_id, not host_id
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                   title="Message Host"
+                  aria-label="Message host"
                 >
                   <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
                 </button>
@@ -753,7 +798,14 @@ export default function HomeGameDetailPage() {
                           setSelectedRsvpEvent(evt);
                         }
                       }}
-                      userRsvp={rsvps[event.id] || event.user_rsvp}
+                      userRsvp={
+                        (typeof rsvps[event.id] === 'object'
+                          ? rsvps[event.id]?.response
+                          : rsvps[event.id])
+                        || (typeof event.user_rsvp === 'object'
+                          ? event.user_rsvp?.response
+                          : event.user_rsvp)
+                      }
                     />
                   ))}
                 </div>
@@ -977,13 +1029,27 @@ export default function HomeGameDetailPage() {
 
       {/* RSVP Modal */}
       {selectedRsvpEvent && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div
+          ref={rsvpDialog.dialogRef}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          data-pnm-home-games="true"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-game-rsvp-title"
+          tabIndex={-1}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedRsvpEvent(null);
+          }}
+        >
           <div className="cmd-panel cmd-corner-lights w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">RSVP To Game</h3>
+              <h3 id="home-game-rsvp-title" className="text-lg font-semibold text-white">RSVP To Game</h3>
               <button
+                ref={rsvpDialog.initialFocusRef}
+                type="button"
                 onClick={() => setSelectedRsvpEvent(null)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Close RSVP dialog"
               >
                 <X className="w-5 h-5 text-[#64748B]" />
               </button>
@@ -991,14 +1057,24 @@ export default function HomeGameDetailPage() {
             <RsvpForm
               event={{
                 ...selectedRsvpEvent,
-                rsvp_yes: selectedRsvpEvent.rsvp_count || 0,
-                allow_guests: true,
-                guest_limit: 2
+                rsvp_yes: selectedRsvpEvent.rsvp_yes ?? selectedRsvpEvent.rsvp_count ?? 0,
+                allow_guests: selectedRsvpEvent.allow_guests === true,
+                guest_limit: selectedRsvpEvent.guest_limit
               }}
-              currentRsvp={rsvps[selectedRsvpEvent.id] ? { response: rsvps[selectedRsvpEvent.id] } : null}
+              currentRsvp={(() => {
+                const localRsvp = rsvps[selectedRsvpEvent.id];
+                if (localRsvp && typeof localRsvp === 'object') return localRsvp;
+                if (localRsvp) return { response: localRsvp };
+                if (selectedRsvpEvent.user_rsvp && typeof selectedRsvpEvent.user_rsvp === 'object') {
+                  return selectedRsvpEvent.user_rsvp;
+                }
+                return selectedRsvpEvent.user_rsvp
+                  ? { response: selectedRsvpEvent.user_rsvp }
+                  : null;
+              })()}
               onSubmit={async (rsvpData) => {
-                await handleRsvp(selectedRsvpEvent, rsvpData.response);
-                setSelectedRsvpEvent(null);
+                const saved = await handleRsvp(selectedRsvpEvent, rsvpData.response, rsvpData);
+                if (saved) setSelectedRsvpEvent(null);
               }}
               onClose={() => setSelectedRsvpEvent(null)}
             />
@@ -1008,32 +1084,49 @@ export default function HomeGameDetailPage() {
 
       {/* Share Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div
+          ref={shareDialog.dialogRef}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          data-pnm-home-games="true"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-game-share-title"
+          aria-describedby="home-game-share-description"
+          tabIndex={-1}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowShareModal(false);
+          }}
+        >
           <div className="cmd-panel cmd-corner-lights w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Invite Players</h3>
+              <h3 id="home-game-share-title" className="text-lg font-semibold text-white">Share Home Game</h3>
               <button
+                ref={shareDialog.initialFocusRef}
+                type="button"
                 onClick={() => setShowShareModal(false)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                aria-label="Close share dialog"
               >
                 <X className="w-5 h-5 text-[#64748B]" />
               </button>
             </div>
 
-            <p className="text-sm text-[#64748B] mb-4">
-              Share This Code With Players You Want To Invite
+            <p id="home-game-share-description" className="text-sm text-[#64748B] mb-4">
+              Share This Club Code With Players Who Want To Request Access
             </p>
 
-            {/* 2026-07-25 audit fix: no more hardcoded 'ABC123' fallback - when the
-                group has no invite code, explain instead of showing a fake code. */}
-            {group.invite_code ? (
+            {/* club_code is safe for member/public sharing. Never fall back to
+                the staff-only invite_code on this generally visible surface. */}
+            {group.club_code ? (
               <div className="flex items-center gap-2 p-4 bg-[#0D192E] rounded-lg mb-4">
                 <span className="flex-1 text-center text-2xl font-mono font-bold text-white tracking-wider">
-                  {group.invite_code}
+                  {group.club_code}
                 </span>
                 <button
+                  type="button"
                   onClick={copyInviteCode}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  aria-label={copied ? 'Club code copied' : 'Copy club code'}
                 >
                   {copied ? (
                     <Check className="w-5 h-5 text-[#10B981]" />
@@ -1045,12 +1138,13 @@ export default function HomeGameDetailPage() {
             ) : (
               <div className="p-4 bg-[#0D192E] rounded-lg mb-4">
                 <p className="text-sm text-[#64748B] text-center">
-                  This Group Does Not Have An Invite Code Yet. Ask The Host To Generate One From The Manage Page.
+                  This Group Does Not Have A Shareable Club Code Yet. Ask The Host For Access.
                 </p>
               </div>
             )}
 
             <button
+              type="button"
               onClick={() => setShowShareModal(false)}
               className="cmd-btn cmd-btn-secondary w-full h-12"
             >

@@ -309,8 +309,8 @@
       "schedule_last_scraped_at": null,
       "location_quality": {
         "status": "unverified",
-        "mappable": true,
-        "reason": "boundary_unavailable"
+        "mappable": false,
+        "reason": "traveling_entity"
       }
     },
     {
@@ -1156,8 +1156,8 @@
       "schedule_last_scraped_at": null,
       "location_quality": {
         "status": "unverified",
-        "mappable": true,
-        "reason": "boundary_unavailable"
+        "mappable": false,
+        "reason": "traveling_entity"
       }
     },
     {
@@ -12405,10 +12405,11 @@
       "lat": null,
       "lng": null,
       "address": "84-86 Rue de Clichy",
-      "country": "US",
+      "country": "FR",
       "hours_weekday": null,
       "hours_weekend": null,
-      "is_active": true,
+      "is_active": false,
+      "is_suppressed": true,
       "email": null,
       "tournament_schedule": [],
       "last_verified_at": null,
@@ -12461,9 +12462,9 @@
       "schedule_scrape_url": null,
       "schedule_last_scraped_at": null,
       "location_quality": {
-        "status": "unverified",
-        "mappable": true,
-        "reason": "boundary_unavailable"
+        "status": "conflict",
+        "mappable": false,
+        "reason": "country_outside_us"
       }
     },
     {
@@ -30387,8 +30388,8 @@
       "schedule_last_scraped_at": null,
       "location_quality": {
         "status": "unverified",
-        "mappable": true,
-        "reason": "boundary_unavailable"
+        "mappable": false,
+        "reason": "traveling_entity"
       }
     },
     {
@@ -31020,8 +31021,8 @@
       "schedule_last_scraped_at": null,
       "location_quality": {
         "status": "unverified",
-        "mappable": true,
-        "reason": "boundary_unavailable"
+        "mappable": false,
+        "reason": "traveling_entity"
       }
     },
     {
@@ -51868,17 +51869,17 @@
   ],
   "metadata": {
     "total": 658,
-    "active": 657,
+    "active": 656,
     "with_logo": 648,
     "generated_at": "2026-04-08T23:20:07.454Z",
     "data_integrity": {
       "input": 658,
-      "mapped": 645,
+      "mapped": 640,
       "verified": 640,
       "approximate": 0,
-      "unverified": 5,
+      "unverified": 4,
       "missing": 9,
-      "held": 4,
+      "held": 5,
       "duplicate_count": 0,
       "output": 658
     }

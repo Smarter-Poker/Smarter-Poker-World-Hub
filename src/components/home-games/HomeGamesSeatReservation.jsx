@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Loader2, Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SeatGridTable from './SeatGridTable';
+import CasinoActionDialog from '../poker-near-me/CasinoActionDialog';
 import { getAccessToken } from '../../lib/authUtils';
 import { supabase } from '../../lib/supabase';
 
@@ -71,6 +72,7 @@ export default function HomeGamesSeatReservation({
   const [error, setError]             = useState(null);
   const [busy, setBusy]               = useState(null);
   const [refreshing, setRefreshing]   = useState(false);
+  const [startPrompt, setStartPrompt] = useState(null);
   const channelsRef                   = useRef([]);
 
   // ────────────────────────────── data load ───────────────────────────────
@@ -260,11 +262,17 @@ export default function HomeGamesSeatReservation({
       }
     } catch (_e) { /* advisory only — never block the host on it */ }
 
-    if (!window.confirm(
-      `Start this table with ${seated} seated player${seated === 1 ? '' : 's'}?` +
-      `${warning}\n\nThis cannot be undone.`
-    )) return;
+    setStartPrompt({
+      tableId,
+      message:
+        `Start this table with ${seated} seated player${seated === 1 ? '' : 's'}?` +
+        `${warning}\n\nThis cannot be undone.`,
+    });
+  }, [tables]);
 
+  const confirmStartTable = useCallback(async () => {
+    const tableId = startPrompt?.tableId;
+    if (!tableId) return;
     setBusy(`start:${tableId}`);
     try {
       await jsonFetch(`/api/home-games/tables/${tableId}/start`, { method: 'POST' });
@@ -274,8 +282,9 @@ export default function HomeGamesSeatReservation({
       toast.error(err?.message || 'Could not start the table');
     } finally {
       setBusy(null);
+      setStartPrompt(null);
     }
-  }, [tables, load]);
+  }, [startPrompt, load]);
 
   // ───────────────────────────── rendering ────────────────────────────────
   if (loading) {
@@ -342,6 +351,17 @@ export default function HomeGamesSeatReservation({
           Add Another Table
         </button>
       )}
+
+      <CasinoActionDialog
+        open={!!startPrompt}
+        eyebrow="Host table control"
+        title="Start This Table?"
+        message={startPrompt?.message || ''}
+        confirmLabel="Start Table"
+        busy={!!startPrompt && busy === `start:${startPrompt.tableId}`}
+        onConfirm={confirmStartTable}
+        onClose={() => setStartPrompt(null)}
+      />
     </div>
   );
 }

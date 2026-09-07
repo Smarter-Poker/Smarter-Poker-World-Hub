@@ -56,29 +56,42 @@ async function loadAuthorityHelpers() {
 
 async function loadEnginePatchHelpers() {
   const source = read('src/engines/deterministicEnginePatches.js');
+  const bridgeV2Matrix = (v2) => ({
+    actions: ['c', 'b412'],
+    frequencies: { c: { AKo: 0.4 }, b412: { AKo: 0.6 } },
+    hand_evs: { AKo: 1.25 },
+    node: v2.node,
+    board: v2.board,
+    street: v2.street,
+    hero: v2.hero,
+    position: v2.position,
+    oop_player: v2.oop_player,
+    ip_player: v2.ip_player,
+    pot_bb: 13.74,
+    root_pot_bb: v2.pot_bb,
+    eff_stack_bb: 95.88,
+  });
   const dependencies = {
     '../utils/v2Matrix': {
-      v2ToAppMatrix: (v2) => ({
-        actions: ['c', 'b412'],
-        frequencies: { c: { AKo: 0.4 }, b412: { AKo: 0.6 } },
-        hand_evs: { AKo: 1.25 },
-        node: v2.node,
-        board: v2.board,
-        street: v2.street,
-        hero: v2.hero,
-        position: v2.position,
-        oop_player: v2.oop_player,
-        ip_player: v2.ip_player,
-        pot_bb: 13.74,
-        root_pot_bb: v2.pot_bb,
-        eff_stack_bb: 95.88,
-      }),
+      v2ToAppMatrix: bridgeV2Matrix,
     },
     '../lib/training/solverDecisionEvidence': { enforceSolverClaimHonesty: (question) => question },
     '../lib/training/solverRowIdentity.mjs': { isSolverRowIdentityValid: () => true },
   };
+  const v2Module = new SyntheticModule(['v2ToAppMatrix'], function setV2Exports() {
+    this.setExport('v2ToAppMatrix', bridgeV2Matrix);
+  });
+  const solverMatrixTrustModule = new SourceTextModule(
+    read('src/lib/training/solverMatrixTrust.js'),
+    { identifier: 'solverMatrixTrust.js' },
+  );
+  await solverMatrixTrustModule.link(async (specifier) => {
+    assert.equal(specifier, '../../utils/v2Matrix.js');
+    return v2Module;
+  });
   const module = new SourceTextModule(source, { identifier: 'deterministicEnginePatches.js' });
   await module.link(async (specifier) => {
+    if (specifier === '../lib/training/solverMatrixTrust') return solverMatrixTrustModule;
     const exports = dependencies[specifier];
     assert.ok(exports, `unexpected engine-patch dependency: ${specifier}`);
     return new SyntheticModule(Object.keys(exports), function setExports() {
@@ -401,11 +414,11 @@ test('a deterministic first-card miss still selects a later exact solved runout'
       gtoFrequencies: { c: 40, b412: 60 },
       scenario: {
         scenarioHash: scenario.scenario_hash,
-        solverNode: scenario.strategy_matrix_v2.node,
+        solverNode: scenario.strategy_matrix.node,
         street: scenario.street,
-        heroPosition: scenario.strategy_matrix_v2.position,
-        villainPosition: scenario.strategy_matrix_v2.oop_player,
-        boardCards: scenario.strategy_matrix_v2.board.match(/.{2}/g),
+        heroPosition: scenario.strategy_matrix.position,
+        villainPosition: scenario.strategy_matrix.oop_player,
+        boardCards: scenario.strategy_matrix.board.match(/.{2}/g),
       },
     }),
   };

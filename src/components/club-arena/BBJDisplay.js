@@ -402,15 +402,59 @@ export const BBJTicker = ({ clubId, onClick }) => {
   );
 };
 
+/**
+ * THE JACKPOT FIGURE (BBJ build plan phase 3.5, 2026-09-06).
+ *
+ * THREE THINGS WERE WRONG WITH WHAT THIS REPLACES, and each one on its own was
+ * enough to make the number never appear:
+ *
+ *  1. IT RETURNED THE WRONG SHAPE. Its only caller, MultiTableView, reads
+ *     `const { bbjData } = useBBJ(...)` and then guards on
+ *     `bbjData && bbjData.pool?.amount > 0`. This returned `{ amount }`, so
+ *     `bbjData` was `undefined` and the guard was false FOR EVER - the ticker
+ *     has never rendered once.
+ *  2. IT READ A DEAD COLUMN. `bbj_pools.pool_amount` has not been written
+ *     since the triple-bank rework; the engine banks into `main_balance`.
+ *     Measured on production the day this was written: the union pool read
+ *     0.00 against a real balance of 107,092.27.
+ *  3. ITS FILTER COULD NOT MATCH A UNION. A union banks the jackpot on a row
+ *     whose `club_id` IS NULL, so `club_id=eq.<club>` matched nothing for
+ *     every club in a union.
+ *
+ * It now asks the API, which asks `fn_bbj_pool_for_club` - the one place the
+ * union rule lives. A poll, not a subscription: that row is updated on every
+ * raked hand (40,219 times in twenty-four hours, measured), and phase 3.2 took
+ * every other surface off that firehose for the same reason.
+ */
+const BBJ_POLL_MS = 30000;
+
 export const useBBJ = (clubId) => {
-  const [amount, setAmount] = useState(0);
+  const [bbjData, setBbjData] = useState(null);
+
   useEffect(() => {
-    if (!clubId) return;
-    const ch = supabase.channel('bbj_pools_live')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bbj_pools', filter: `club_id=eq.${clubId}` }, (payload) => {
-        setAmount(payload.new.pool_amount);
-      }).subscribe();
-    return () => supabase.removeChannel(ch);
+    if (!clubId) return undefined;
+    let cancelled = false;
+
+    const read = async () => {
+      try {
+        const res = await fetch(`/api/club-arena/bbj?clubId=${clubId}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setBbjData(data);
+      } catch {
+        /* Leave the last known figure up. A zero here reads as "there is no
+           jackpot at this club", which is a lie about money. */
+      }
+    };
+
+    read();
+    const timer = setInterval(read, BBJ_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [clubId]);
-  return { amount };
+
+  /* `amount` is kept for any caller that wants the bare figure. */
+  return { bbjData, amount: Number(bbjData?.pool?.amount || 0) };
 };

@@ -144,7 +144,8 @@ test('scheduled list requests preserve the exact status through the database fil
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body?.success, true);
-  assert.equal(response.headers['Cache-Control'], 'private, no-store');
+  assert.equal(response.headers['Cache-Control'], 'private, no-store, max-age=0');
+  assert.equal(response.headers.Vary, 'Authorization');
   assert.ok(client.calls.some((call) => (
     call[0] === 'training_tournaments'
       && call[1] === 'eq'

@@ -18,6 +18,13 @@ const RETIRED_ENDPOINTS = [
   ['pages/api/training/aggregate-report.js', 'SOLVER_AGGREGATE_REPORT_REQUIRES_AUDITED_COHORT'],
 ];
 
+// SolverPolicyService owns the machine-checkable inventory of retired solver
+// surfaces. Its endpoint strings are declarations, not network callers. Keep
+// that metadata explicit while continuing to scan every executable consumer.
+const AUTHORITY_METADATA_FILES = new Set([
+  path.join(ROOT, 'src/services/SolverPolicyService.js'),
+]);
+
 function walkJavaScript(directory) {
   if (!fs.existsSync(directory)) return [];
   const files = [];
@@ -56,7 +63,7 @@ test('runtime source has no callers for retired authority endpoints', () => {
     ...walkJavaScript(path.join(ROOT, 'pages')),
     ...walkJavaScript(path.join(ROOT, 'src')),
     ...walkJavaScript(path.join(ROOT, 'scripts')),
-  ].filter((file) => !endpointFiles.has(file));
+  ].filter((file) => !endpointFiles.has(file) && !AUTHORITY_METADATA_FILES.has(file));
 
   const offenders = [];
   for (const file of files) {
@@ -66,6 +73,19 @@ test('runtime source has no callers for retired authority endpoints', () => {
     }
   }
   assert.deepEqual(offenders, []);
+});
+
+test('retired endpoint metadata is declarative and cannot perform network calls', () => {
+  const source = read('src/services/SolverPolicyService.js');
+  const solverPolicyRetirements = [
+    'pages/api/training/tree-navigate.js',
+    'pages/api/training/runout-report.js',
+    'pages/api/training/aggregate-report.js',
+  ];
+  for (const relative of solverPolicyRetirements) {
+    assert.match(source, new RegExp(relative.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.doesNotMatch(source, /\b(?:fetch|authedFetch|axios)\s*\(/);
 });
 
 test('manual GTO panel bootstrap and ELO service cannot manufacture evidence', () => {

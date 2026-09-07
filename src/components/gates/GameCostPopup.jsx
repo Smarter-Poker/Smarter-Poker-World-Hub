@@ -1,12 +1,12 @@
 /**
- * GAME COST POPUP — Futuristic Metal Card Design
+ * GAME COST POPUP - Futuristic Metal Card Design
  * One-time notification shown to non-VIP users about per-game diamond costs
  * Dismisses permanently via localStorage + Supabase
  *
  * Uses a pre-rendered metal card PNG (/images/diamond-cost-popup.png)
  * with invisible hit-target overlays on the "Got It!" and "Upgrade To VIP" buttons.
  *
- * 2026-05-07 — VIP-status race fix:
+ * 2026-05-07 - VIP-status race fix:
  *   Treat `isVip == null/undefined` as "not yet known, never show".
  *   Previously, callers that initialised VIP state to `false` while an
  *   async DiamondEngine.isVIP() call was in-flight would mount this
@@ -38,7 +38,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
 
     useEffect(() => {
         // Guard: never show for VIP users, when status is still unknown, or when userId hasn't resolved.
-        // 2026-05-07 — explicit `isVip !== false` fixes the race where callers
+        // 2026-05-07 - explicit `isVip !== false` fixes the race where callers
         // initialise VIP state to `false` while DiamondEngine.isVIP() is still
         // running. We ONLY proceed when isVip is the literal boolean `false`.
         if (isVip !== false || !userId) return;
@@ -85,9 +85,10 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     if (isVip !== false || dismissed || !show) return null;
 
     return (
-        <div style={s.overlay} onClick={handleDismiss}>
-            {/* Metal card container — click inside doesn't dismiss */}
+        <div className="game-cost-popup-overlay" style={s.overlay} onClick={handleDismiss} role="dialog" aria-modal="true" aria-label="Diamond Entry Notice">
+            {/* Metal card container - click inside doesn't dismiss */}
             <div
+                className="game-cost-popup-card"
                 style={s.cardWrap}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -101,27 +102,38 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
 
                 {/* ── Invisible hit-target overlays ────────────────────────── */}
 
-                {/* Close "X" button — top-right of metal card */}
+                {/* Close "X" button - top-right of metal card */}
                 <button
                     onClick={handleDismiss}
                     style={s.closeHit}
                     aria-label="Close"
                 />
 
-                {/* "Got It!" button — bottom-left of metal card */}
+                {/* "Got It!" button - bottom-left of metal card */}
                 <button
                     onClick={handleDismiss}
                     style={s.gotItHit}
                     aria-label="Got It"
                 />
 
-                {/* "Upgrade To VIP" button — bottom-right of metal card */}
+                {/* "Upgrade To VIP" button - bottom-right of metal card */}
                 <button
                     onClick={handleUpgrade}
                     style={s.upgradeHit}
-                    aria-label="Upgrade to VIP"
+                    aria-label="Upgrade To VIP"
                 />
             </div>
+            <style>{`
+                .game-cost-popup-overlay button:focus-visible {
+                    outline: 3px solid #25c8ff !important;
+                    outline-offset: 3px !important;
+                    box-shadow: 0 0 0 2px #020608, 0 0 22px rgba(37, 200, 255, .7);
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .game-cost-popup-overlay,
+                    .game-cost-popup-card { animation: none !important; }
+                }
+            `}</style>
         </div>
     );
 }

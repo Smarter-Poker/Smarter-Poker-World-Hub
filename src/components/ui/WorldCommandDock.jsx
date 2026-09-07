@@ -1,10 +1,51 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Menu } from 'lucide-react';
 import HamburgerMenu from './HamburgerMenu';
 import { getMenuConfigForPath } from '../../config/hamburgerMenus';
 import { sanitizeFallbackMenuConfig } from '../../config/fallbackMenuSafety.mjs';
 import { getWorldMenuStyleVariables, resolveWorldMenu } from '../../config/worldMenuNavigation';
+
+const APPROVED_TRIGGER_SELECTOR = '[data-world-menu-trigger="approved-header"]';
+
+function isTriggerUsable(trigger) {
+  if (
+    !trigger
+    || !trigger.isConnected
+    || trigger.disabled
+    || trigger.getClientRects().length === 0
+    || trigger.closest('[hidden], [inert], [aria-hidden="true"]')
+  ) return false;
+
+  let node = trigger;
+  while (node && node instanceof Element) {
+    const style = window.getComputedStyle(node);
+    if (
+      style.display === 'none'
+      || style.visibility === 'hidden'
+      || Number.parseFloat(style.opacity || '1') < 0.01
+      || style.pointerEvents === 'none'
+    ) {
+      return false;
+    }
+    node = node.parentElement;
+  }
+
+  return true;
+}
+
+function getApprovedTriggers() {
+  return Array.from(document.querySelectorAll(APPROVED_TRIGGER_SELECTOR));
+}
+
+function hasUsableApprovedTrigger(triggers = getApprovedTriggers()) {
+  // The canonical drawer intentionally makes the header branch inert while it
+  // is open. Its expanded trigger still proves ownership; treating it as
+  // absent would remount the fallback and duplicate the open drawer.
+  return triggers.some((trigger) => (
+    trigger.getAttribute('aria-expanded') === 'true' || isTriggerUsable(trigger)
+  ));
+}
 
 /**
  * Route-aware safety net for legacy world pages that do not own a shared
@@ -23,71 +64,195 @@ export default function WorldCommandDock() {
   );
   const [isOpen, setIsOpen] = useState(false);
   const [hasHeaderTrigger, setHasHeaderTrigger] = useState(true);
+  const [isEmbedded, setIsEmbedded] = useState(true);
+  const isOpenRef = useRef(false);
+  const fallbackTriggerRef = useRef(null);
+  const lastFocusedTriggerRef = useRef(null);
+  const restoreFallbackFocusRef = useRef(false);
+  const suppressForRoute = /(?:\?|&)hideHeader=true(?:&|$)/.test(path);
 
-  useEffect(() => {
-    if (!world || typeof document === 'undefined') {
+  useLayoutEffect(() => {
+    setIsEmbedded(window.self !== window.top);
+  }, [path]);
+
+  useLayoutEffect(() => {
+    const claimApprovedOwner = (event) => {
+      if (event.detail?.id !== world?.id) return;
+      if (isOpenRef.current) {
+        queueMicrotask(() => window.dispatchEvent(new CustomEvent('sp:open-approved-world-menu', {
+          detail: { id: world.id },
+        })));
+      }
+      isOpenRef.current = false;
+      setIsOpen(false);
+      setHasHeaderTrigger(true);
+    };
+    window.addEventListener('sp:approved-world-menu-owner', claimApprovedOwner);
+    return () => window.removeEventListener('sp:approved-world-menu-owner', claimApprovedOwner);
+  }, [world?.id]);
+
+  // Mutation delivery and nested React layout effects do not have a stable
+  // cross-root ordering in WebKit. While a fallback is actually open, keep a
+  // tiny bounded ownership watch alive so an approved header that appears in
+  // another React branch cannot leave both drawers mounted. The interval is
+  // torn down as soon as the fallback closes; it does no idle-page polling.
+  useLayoutEffect(() => {
+    if (!isOpen || !world) return undefined;
+    const transferIfApprovedOwnerExists = () => {
+      if (!isOpenRef.current || getApprovedTriggers().length === 0) return;
+      window.dispatchEvent(new CustomEvent('sp:open-approved-world-menu', {
+        detail: { id: world.id },
+      }));
+      isOpenRef.current = false;
+      setIsOpen(false);
+      setHasHeaderTrigger(true);
+    };
+    transferIfApprovedOwnerExists();
+    const ownershipWatch = window.setInterval(transferIfApprovedOwnerExists, 50);
+    return () => window.clearInterval(ownershipWatch);
+  }, [isOpen, world]);
+
+  useLayoutEffect(() => {
+    if (!world || isEmbedded || suppressForRoute || typeof document === 'undefined') {
       setHasHeaderTrigger(true);
       return undefined;
     }
 
     let frame = 0;
     let absenceTimer = 0;
-    const inspect = () => {
+    let visibilityObserver;
+    let observedTriggers = [];
+
+    const reconcile = (force = false) => {
+      const approvedTriggers = getApprovedTriggers();
+      const triggerSetChanged = approvedTriggers.length !== observedTriggers.length
+        || approvedTriggers.some((trigger, index) => trigger !== observedTriggers[index]);
+      if (!force && !triggerSetChanged) return;
+      observedTriggers = approvedTriggers;
+
+      visibilityObserver.disconnect();
+      const observedAncestors = new Set();
+      for (const trigger of approvedTriggers) {
+        for (let node = trigger; node && node instanceof Element; node = node.parentElement) {
+          if (observedAncestors.has(node)) continue;
+          observedAncestors.add(node);
+          visibilityObserver.observe(node, {
+            attributes: true,
+            attributeFilter: ['aria-hidden', 'class', 'hidden', 'inert', 'style'],
+          });
+        }
+      }
+
+      // An open fallback drawer makes every obscured page branch inert. When
+      // an approved header mounts behind that drawer (notably Reels after its
+      // HUD is revealed), the new trigger is intentionally not "usable" yet.
+      // Structural ownership is nevertheless enough to complete the handoff:
+      // close the fallback first, then let the approved owner reopen its one
+      // canonical drawer. Waiting for usability here creates two overlapping
+      // drawers because the fallback itself is what keeps the trigger inert.
+      if (isOpenRef.current && approvedTriggers.length > 0) {
+        queueMicrotask(() => window.dispatchEvent(new CustomEvent('sp:open-approved-world-menu', {
+          detail: { id: world.id },
+        })));
+        isOpenRef.current = false;
+        setIsOpen(false);
+        setHasHeaderTrigger(true);
+        return;
+      }
+
+      if (hasUsableApprovedTrigger(approvedTriggers)) {
+        window.clearTimeout(absenceTimer);
+        setIsOpen(false);
+        setHasHeaderTrigger(true);
+        return;
+      }
+
+      // Per-page headers remount during route hydration. Treat a short DOM
+      // absence as a transition, not proof that the page needs a fallback;
+      // otherwise both controls can coexist after the header returns. A truly
+      // headerless route still receives its dock promptly.
+      window.clearTimeout(absenceTimer);
+      absenceTimer = window.setTimeout(() => {
+        const usable = hasUsableApprovedTrigger();
+        if (usable) setIsOpen(false);
+        if (!usable) {
+          restoreFallbackFocusRef.current = Boolean(
+            lastFocusedTriggerRef.current?.matches?.(
+              '[data-world-menu-trigger="approved-header"]'
+            ) && !lastFocusedTriggerRef.current.isConnected
+          );
+        }
+        setHasHeaderTrigger(usable);
+      }, 750);
+    };
+
+    const inspect = (force = false) => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const approvedTrigger = document.querySelector(
-          '[data-world-menu-trigger="approved-header"]'
-        );
-        if (approvedTrigger) {
-          window.clearTimeout(absenceTimer);
-          setHasHeaderTrigger(true);
-          return;
-        }
-
-        // Per-page headers remount during route hydration. Treat a short DOM
-        // absence as a transition, not proof that the page needs a fallback;
-        // otherwise both controls can coexist for a frame after the header
-        // returns. A truly headerless route still receives its dock promptly.
-        window.clearTimeout(absenceTimer);
-        absenceTimer = window.setTimeout(() => {
-          setHasHeaderTrigger(
-            Boolean(document.querySelector('[data-world-menu-trigger="approved-header"]'))
-          );
-        }, 120);
+        reconcile(force);
       });
     };
-    inspect();
-    const observer = new MutationObserver(inspect);
+    visibilityObserver = new MutationObserver(() => inspect(true));
+    reconcile(true);
+    // Structural ownership changes must reconcile in the mutation microtask.
+    // Deferring them to the next animation frame briefly mounts both the
+    // fallback drawer and a newly arrived approved-header drawer.
+    const observer = new MutationObserver(() => reconcile(false));
     observer.observe(document.body, { childList: true, subtree: true });
+    const inspectViewport = () => inspect(true);
+    const rememberTriggerFocus = (event) => {
+      const trigger = event.target?.closest?.('[data-world-menu-trigger]');
+      if (trigger) lastFocusedTriggerRef.current = trigger;
+    };
+    document.addEventListener('focusin', rememberTriggerFocus);
+    window.addEventListener('resize', inspectViewport);
+    window.visualViewport?.addEventListener('resize', inspectViewport);
     return () => {
       cancelAnimationFrame(frame);
       window.clearTimeout(absenceTimer);
       observer.disconnect();
+      visibilityObserver.disconnect();
+      document.removeEventListener('focusin', rememberTriggerFocus);
+      window.removeEventListener('resize', inspectViewport);
+      window.visualViewport?.removeEventListener('resize', inspectViewport);
     };
-  }, [world, router.pathname]);
+  }, [world, router.pathname, isEmbedded, suppressForRoute]);
+
+  useLayoutEffect(() => {
+    if (hasHeaderTrigger || !restoreFallbackFocusRef.current) return;
+    restoreFallbackFocusRef.current = false;
+    fallbackTriggerRef.current?.focus();
+  }, [hasHeaderTrigger]);
 
   useEffect(() => {
-    const close = () => setIsOpen(false);
+    const close = () => {
+      isOpenRef.current = false;
+      setIsOpen(false);
+    };
     router.events.on('routeChangeStart', close);
     return () => router.events.off('routeChangeStart', close);
   }, [router.events]);
 
-  // Social owns the approved header in both its loading and loaded shells.
-  // Never race that canonical Facebook-styled drawer with a DOM-probed
-  // fallback while the feed swaps skeletons during hydration.
-  if (!world || world.id === 'social-media') return null;
+  if (!world || isEmbedded || suppressForRoute) return null;
 
   return (
     <>
       {!hasHeaderTrigger && (
         <button
+          ref={fallbackTriggerRef}
           type="button"
           className="sp-world-command-trigger"
           data-world-menu-trigger="route-fallback"
           data-menu-symbol="hamburger"
           data-world-menu-scheme={world.menuPalette.scheme}
           aria-label={`Open ${world.label} Command Menu`}
-          onClick={() => setIsOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          aria-controls={`sp-world-command-menu-${world.id}`}
+          onClick={() => {
+            isOpenRef.current = true;
+            setIsOpen(true);
+          }}
           style={worldMenuStyle}
         >
           {/* HAMBURGER, NOT A SIX-NODE GRID (Dan 2026-09-05: "about the dots,
@@ -108,7 +273,10 @@ export default function WorldCommandDock() {
       {!hasHeaderTrigger && (
         <HamburgerMenu
           isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
+          onClose={() => {
+            isOpenRef.current = false;
+            setIsOpen(false);
+          }}
           direction="left"
           theme="dark"
           menuItems={menuConfig.menuItems}

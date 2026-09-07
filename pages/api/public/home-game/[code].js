@@ -9,6 +9,7 @@ import { reportApiError } from '../../../../src/lib/sentryWrap';
 // and it is a club_code enumeration oracle that costs 3 service-role
 // queries per hit.
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { canonicalPublicUrl } from '../../../../src/lib/publicOrigin.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -122,8 +123,7 @@ export default async function handler(req, res) {
             message: 'This is a private group. Request an invite to see details.',
             links: {
               join_request: `/hub/commander/home-games/join?code=${code}`,
-              smarter_poker: `https://smarter.poker/home-game/${code}`,
-              poker_near_me: `https://pokernear.me/home-game/${code}`
+              smarter_poker: canonicalPublicUrl(`/home-game/${encodeURIComponent(code)}`),
             }
           }
         });
@@ -232,8 +232,7 @@ export default async function handler(req, res) {
           },
           links: {
             join_request: `/hub/commander/home-games/join?code=${code}`,
-            smarter_poker: `https://smarter.poker/home-game/${code}`,
-            poker_near_me: `https://pokernear.me/home-game/${code}`
+            smarter_poker: canonicalPublicUrl(`/home-game/${encodeURIComponent(code)}`),
           }
         }
       });

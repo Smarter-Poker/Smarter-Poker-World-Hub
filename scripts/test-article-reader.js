@@ -13,10 +13,17 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 
+const defaultChromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const configuredChromePath = process.env.PUPPETEER_EXECUTABLE_PATH
+    || (fs.existsSync(defaultChromePath) ? defaultChromePath : undefined);
+
 const CONFIG = {
-    URL: 'http://localhost:3000/hub/social-media',
+    URL: process.env.ARTICLE_READER_BASE_URL
+        ? `${process.env.ARTICLE_READER_BASE_URL.replace(/\/$/, '')}/hub/social-media`
+        : 'http://localhost:3000/hub/social-media',
     TIMEOUT: 30000,
     SCREENSHOT_DIR: './test-screenshots',
 };
@@ -26,7 +33,10 @@ async function runTest() {
     console.log('  IN-APP ARTICLE READER - E2E TEST');
     console.log('═══════════════════════════════════════════════════════════════\n');
 
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({
+        headless: 'new',
+        ...(configuredChromePath ? { executablePath: configuredChromePath } : {}),
+    });
     const page = await browser.newPage();
     await page.setViewport({ width: 1024, height: 768 });
 
@@ -145,11 +155,15 @@ async function runTest() {
             const iframe = document.querySelector('iframe[src*="/api/proxy"], iframe[src*="youtube.com/embed"]');
             if (iframe) {
                 try {
-                    // We can't access cross-origin iframe content, but we can check it loaded
-                    return iframe.contentDocument?.body?.innerHTML?.length > 100 || true;
+                    // Same-origin proxied articles must contain a meaningful document.
+                    // Cross-origin embeds cannot be inspected, but a populated src proves
+                    // that the reader mounted the requested external content.
+                    if (iframe.contentDocument) {
+                        return (iframe.contentDocument.body?.innerHTML?.length || 0) > 100;
+                    }
+                    return Boolean(iframe.getAttribute('src'));
                 } catch {
-                    // CORS error means iframe loaded something
-                    return true;
+                    return Boolean(iframe.getAttribute('src'));
                 }
             }
             // Dump the modal HTML if iframe not found
@@ -223,4 +237,7 @@ async function runTest() {
     process.exit(passed === total ? 0 : 1);
 }
 
-runTest().catch(console.error);
+runTest().catch((error) => {
+    console.error('   ❌ Fatal test error:', error.message);
+    process.exitCode = 1;
+});

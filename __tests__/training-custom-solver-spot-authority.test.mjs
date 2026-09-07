@@ -134,6 +134,8 @@ test('Custom Solve API queries exact v2 identity and never upgrades board-only o
   assert.doesNotMatch(api, /SUPABASE_SERVICE_ROLE_KEY \|\| process\.env\.NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.match(page, /Audited Solver Result/);
   assert.match(page, /Action Frequency Reference/);
-  assert.match(page, /Solver-Exact Output Requires One Audited Root Decision/);
+  assert.match(page, /Only An Audited Exact Root Decision Is Displayed/);
+  assert.match(page, /Request Fails Closed And No Modeled Result Is Shown/);
+  assert.doesNotMatch(page, /Result Is Clearly Marked As A Model/);
   assert.doesNotMatch(page, /PRECOMPUTED_RANGES|Optimal Strategy|Exact Board Query/);
 });

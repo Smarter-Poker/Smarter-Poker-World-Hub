@@ -587,9 +587,9 @@ const styles = {
         color: '#9E9E9E',
     },
     rarityUncommon: {
-        background: 'rgba(76, 175, 80, 0.2)',
-        border: '1px solid rgba(76, 175, 80, 0.4)',
-        color: '#4CAF50',
+        background: 'rgba(0, 180, 255, 0.2)',
+        border: '1px solid rgba(0, 180, 255, 0.4)',
+        color: '#58D9FF',
     },
     rarityRare: {
         background: 'rgba(33, 150, 243, 0.2)',
@@ -597,9 +597,9 @@ const styles = {
         color: '#2196F3',
     },
     rarityEpic: {
-        background: 'rgba(156, 39, 176, 0.2)',
-        border: '1px solid rgba(156, 39, 176, 0.4)',
-        color: '#9C27B0',
+        background: 'rgba(0, 212, 255, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.4)',
+        color: '#00D4FF',
     },
     rarityLegendary: {
         background: 'rgba(255, 152, 0, 0.2)',

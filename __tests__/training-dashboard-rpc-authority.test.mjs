@@ -35,6 +35,13 @@ test('every setup-dashboard RPC is replaced by a sealed non-practice projection'
 test('the live Session Setup performance surface calls only remediated RPCs', () => {
   assert.match(modal, /rpc\('training_dashboard_30day_stats'/);
   assert.match(modal, /rpc\('training_dashboard_last_session'/);
+  assert.equal(
+    (modal.match(/\.abortSignal\(controller\.signal\)/g) || []).length,
+    2,
+    'both setup history RPCs must share the visible request deadline',
+  );
+  assert.match(modal, /window\.setTimeout\(\(\) => controller\.abort\(\), 10_000\)/);
+  assert.match(modal, /Verified performance history timed out\. Please try again\./);
   assert.doesNotMatch(modal, /from\('training_sessions'\)/);
   assert.match(modal, /Avg Accuracy/);
   assert.match(modal, /lastSession\?\.accuracy/);

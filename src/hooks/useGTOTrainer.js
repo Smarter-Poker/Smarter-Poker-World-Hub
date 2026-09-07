@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { authedFetch, getAuthUser } from '../lib/authUtils';
+import { createBoundedTrainingFetch } from '../lib/training/boundedTrainingFetch';
 import TRAINING_CONFIG, {
   getRequiredCorrect,
 } from '../config/trainingConfig';
@@ -29,6 +30,8 @@ import {
   getOfflineQuestions,
   setOfflineQuestions,
 } from '../lib/training/offlineQuestionCache';
+
+const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 /**
  * roadmap #3 — GAME MODE.
@@ -578,7 +581,7 @@ export default function useGTOTrainer(
         params.set('targetStreet', trainerConfig.targetStreet);
       }
 
-      const response = await authedFetch(`/api/training/batch-preload?${params}`);
+      const response = await trainingFetch(`/api/training/batch-preload?${params}`);
       if (!isTrainingLeaseActive(requestLease)) return;
 
       const textResponse = await response.text();
@@ -654,7 +657,7 @@ export default function useGTOTrainer(
         params.set('targetStreet', trainerConfig.targetStreet);
       }
 
-      const response = await authedFetch(`/api/training/batch-preload?${params}`);
+      const response = await trainingFetch(`/api/training/batch-preload?${params}`);
       if (!isTrainingLeaseActive(requestLease)) return null;
 
       // Safe JSON parsing
@@ -756,7 +759,7 @@ export default function useGTOTrainer(
     const immutableBody = JSON.stringify(reissueBody);
     let lastError = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const response = await authedFetch('/api/training/reissue-questions', {
+      const response = await trainingFetch('/api/training/reissue-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: immutableBody,
@@ -982,7 +985,7 @@ export default function useGTOTrainer(
         // target. Retry only transient responses; auth/contract failures still
         // fail closed immediately and use the existing recovery path below.
         for (let attempt = 0; attempt < 3; attempt += 1) {
-          response = await authedFetch(apiUrl);
+          response = await trainingFetch(apiUrl);
           if (!isTrainingLeaseActive(requestLease)) return;
           const retryable = response.status === 429 || response.status >= 500;
           if (response.ok || !retryable || attempt === 2) break;
@@ -1221,7 +1224,7 @@ export default function useGTOTrainer(
       const { questionId, selectedAnswer } = submission;
       try {
         for (let attempt = 0; attempt < 3; attempt++) {
-          const response = await authedFetch('/api/training/record-question', {
+          const response = await trainingFetch('/api/training/record-question', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2236,7 +2239,7 @@ export default function useGTOTrainer(
       // attempt field from the immutable signed snapshot. The browser sends
       // only the parent receipt, so it cannot splice a more favourable hand
       // state into a continuation.
-      const response = await authedFetch('/api/training/next-street', {
+      const response = await trainingFetch('/api/training/next-street', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gradingReceipt: activeContext.receipt }),
@@ -2306,7 +2309,7 @@ export default function useGTOTrainer(
     }
 
     const postAttempt = async (endpoint, label) => {
-      const response = await authedFetch(endpoint, {
+      const response = await trainingFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attemptId }),

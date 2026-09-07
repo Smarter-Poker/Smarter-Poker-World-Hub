@@ -17,6 +17,17 @@ import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import {
+  decodeScrapedTournamentText,
+  fetchAllRows,
+} from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import {
+  POKER_SERIES_ROUTE_ID_OFFSET,
+  fromPokerSeriesRouteId,
+  isServableSeriesParentEvidence,
+  reconcileTournamentSeriesEvidence,
+  toPokerSeriesRouteId,
+} from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 
 const primaryBundledSeries = Array.isArray(seriesJson) ? seriesJson : (seriesJson.series_2026 || []);
 const registryBundledSeries = Object.values(seriesSourceRegistry || {}).map((series) => ({
@@ -63,7 +74,88 @@ function getSupabase() {
  * Ids BELOW the offset keep the legacy resolution order, so existing links and
  * follow/activity rows for tournament_series pages are unaffected.
  */
-const POKER_SERIES_ID_OFFSET = 5000000;
+const SERVABLE_EVENT_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
+const SERVABLE_SERIES_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
+const SERIES_EVENT_PAGE_SIZE = 1000;
+const SERIES_EVENT_MAX_ROWS = 50000;
+const SERIES_UID_CHUNK_SIZE = 100;
+
+function decodeSeriesEventPayload(event) {
+  if (!event || typeof event !== 'object') return event;
+  const eventName = decodeScrapedTournamentText(event.event_name);
+  const tournamentName = decodeScrapedTournamentText(event.tournament_name);
+  if (!eventName && !tournamentName) return null;
+  return {
+    ...event,
+    event_name: eventName,
+    tournament_name: tournamentName,
+    venue_name: decodeScrapedTournamentText(event.venue_name),
+  };
+}
+
+function decodeSeriesPayload(series) {
+  if (!series || typeof series !== 'object') return series;
+  const name = decodeScrapedTournamentText(series.name);
+  const seriesName = decodeScrapedTournamentText(series.series_name);
+  if (!name && !seriesName) return null;
+  return {
+    ...series,
+    name,
+    series_name: seriesName,
+    short_name: decodeScrapedTournamentText(series.short_name),
+    venue: decodeScrapedTournamentText(series.venue),
+    venue_name: decodeScrapedTournamentText(series.venue_name),
+    events: Array.isArray(series.events)
+      ? series.events.map(decodeSeriesEventPayload).filter(Boolean)
+      : series.events,
+  };
+}
+
+/**
+ * Fetch every eligible event for the requested series identities. PostgREST
+ * caps one response at 1,000 rows, and production already exceeds the former
+ * five-page ceiling. Any failed or bounded-out chunk returns no rows so a
+ * partial national sample can never be reported as complete event counts.
+ */
+async function fetchPokerEventsForSeries(seriesUids, { includeEvents = false } = {}) {
+  const uniqueUids = [...new Set((seriesUids || []).filter(Boolean).map(String))];
+  const allRows = [];
+  let pagesFetched = 0;
+
+  for (let index = 0; index < uniqueUids.length; index += SERIES_UID_CHUNK_SIZE) {
+    const uidChunk = uniqueUids.slice(index, index + SERIES_UID_CHUNK_SIZE);
+    const result = await fetchAllRows(
+      () => getSupabase()
+        .from('poker_events')
+        .select(includeEvents ? '*' : 'id, series_uid, event_name, venue_name, start_date')
+        .in('series_uid', uidChunk)
+        .in('data_quality', SERVABLE_EVENT_QUALITIES)
+        // Generic dollar-sign HTML scanning cannot prove which currency value
+        // is the buy-in (legacy rows repeatedly promoted guarantees as entry
+        // fees). Keep every generic-fallback path private unless a human
+        // explicitly verified the row; source-bound extractors remain eligible.
+        .or('source.not.in.(html_fallback,cardplayer,venue_subpage,venue_website,bravo_venue,source_url,pdf_fallback),human_verified.eq.true')
+        .order('series_uid', { ascending: true })
+        .order('start_date', { ascending: true })
+        .order('id', { ascending: true }),
+      { pageSize: SERIES_EVENT_PAGE_SIZE, maxRows: SERIES_EVENT_MAX_ROWS },
+    );
+    pagesFetched += result.pagesFetched;
+    if (result.error || result.truncated
+      || allRows.length + result.rows.length > SERIES_EVENT_MAX_ROWS) {
+      return {
+        rows: [],
+        error: result.error,
+        truncated: result.truncated
+          || allRows.length + result.rows.length > SERIES_EVENT_MAX_ROWS,
+        pagesFetched,
+      };
+    }
+    allRows.push(...result.rows);
+  }
+
+  return { rows: allRows, error: null, truncated: false, pagesFetched };
+}
 
 // Map tour codes to their pre-imported event data
 const TOUR_EVENT_DATA = {
@@ -229,11 +321,17 @@ async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Invalid id parameter' });
         }
 
-        // Ids at or above the offset are unambiguously poker_series rows (see
-        // POKER_SERIES_ID_OFFSET). Below it, keep the legacy resolution order so
+        // Namespaced ids are unambiguously poker_series rows (see
+        // POKER_SERIES_ROUTE_ID_OFFSET). Below it, keep the legacy resolution order so
         // links minted before this change still resolve.
-        const isNamespacedPokerSeries = numericId >= POKER_SERIES_ID_OFFSET;
-        const pokerSeriesId = isNamespacedPokerSeries ? numericId - POKER_SERIES_ID_OFFSET : numericId;
+        const decodedPokerSeriesId = fromPokerSeriesRouteId(numericId);
+        const isNamespacedPokerSeries = decodedPokerSeriesId !== null;
+        // The namespace boundary itself is not a valid route because source
+        // primary keys begin at one.
+        if (numericId === POKER_SERIES_ROUTE_ID_OFFSET) {
+          return res.status(404).json({ success: false, error: 'Series not found' });
+        }
+        const pokerSeriesId = isNamespacedPokerSeries ? decodedPokerSeriesId : numericId;
 
         let singleSeries = null;
         try {
@@ -246,11 +344,36 @@ async function handler(req, res) {
                 .eq('id', numericId)
                 .maybeSingle();
 
-          if (!tsErr && ts) {
-            if (ts.is_suppressed) {
+          // A legacy numeric id is ambiguous across tournament_series and
+          // poker_series. If the precedence table cannot be read, continuing
+          // could resolve the same id from poker_series (or the bundled index)
+          // and return an entirely different series. Fail closed instead.
+          if (tsErr) {
+            throw tsErr;
+          }
+
+          if (ts) {
+            if (!isServableSeriesParentEvidence(ts)) {
               return res.status(404).json({ success: false, error: 'Series not found' });
             }
             singleSeries = { ...ts, source_table: 'tournament_series' };
+
+            // The two historical parent tables overlap. Reconcile metadata only
+            // from a newer poker_series observation of the exact same source;
+            // the helper preserves this tournament_series route id.
+            if (ts.series_uid) {
+              const { data: psTwin, error: psTwinError } = await getSupabase()
+                .from('poker_series')
+                .select('*')
+                .eq('series_uid', ts.series_uid)
+                .or('is_suppressed.is.null,is_suppressed.eq.false')
+                .in('data_quality', SERVABLE_SERIES_QUALITIES)
+                .maybeSingle();
+              if (psTwinError) throw psTwinError;
+              if (psTwin && isServableSeriesParentEvidence(psTwin)) {
+                singleSeries = reconcileTournamentSeriesEvidence(singleSeries, psTwin);
+              }
+            }
           }
 
           // If not found in tournament_series, check poker_series
@@ -261,8 +384,12 @@ async function handler(req, res) {
               .eq('id', pokerSeriesId)
               .maybeSingle();
 
-            if (!psErr && ps) {
-              if (ps.is_suppressed) {
+            if (psErr) {
+              throw psErr;
+            }
+
+            if (ps) {
+              if (!isServableSeriesParentEvidence(ps)) {
                 return res.status(404).json({ success: false, error: 'Series not found' });
               }
               // Normalize poker_series fields to match tournament_series shape.
@@ -292,50 +419,93 @@ async function handler(req, res) {
               };
             }
           }
-        } catch (dbErr) { console.warn('[App] Handled exception:', dbErr?.message || dbErr); }
-
-        // Fall back to JSON data (only for legacy index-based IDs)
-        if (!singleSeries) {
-          // ids come from the UNFILTERED array (same as the list path) so a
-          // suppressed entry never shifts the numbering; suppressed rows are
-          // then hidden rather than renumbered.
-          const allSeries = mapSeriesToApi(bundledSeries);
-          const match = allSeries.find((s) => s.id === numericId) || null;
-          singleSeries = match && !match.is_suppressed ? match : null;
+        } catch (dbErr) {
+          console.warn('[App] Handled exception:', dbErr?.message || dbErr);
+          res.setHeader('Cache-Control', 'private, no-store');
+          return res.status(503).json({
+            success: false,
+            error: 'Series catalog is temporarily unavailable',
+          });
         }
 
         if (!singleSeries) {
           return res.status(404).json({ success: false, error: 'Series not found' });
         }
 
-        // Try to load events for this series
-        const events = loadEventsForSeries(singleSeries);
-        if (events) singleSeries.events = events;
+        let detailDegraded = !singleSeries.source_table;
+        const detailWarnings = [];
 
-        // Also try DB events enrichment
-        if (singleSeries.series_uid && (!singleSeries.events || singleSeries.events.length === 0)) {
-          try {
-            const { data: evts } = await getSupabase()
-              .from('poker_events')
-              .select('*')
-              .eq('series_uid', singleSeries.series_uid)
-              .order('start_date', { ascending: true })
-              .limit(200);
-            if (evts && evts.length > 0) {
-              singleSeries.events = evts;
-              singleSeries.events_count = evts.length;
-            }
-          } catch (e) { console.warn('[App] Handled exception:', e); }
+        // Try to load events for this series
+        // Bundled schedules are a fallback for bundled parents only. A
+        // source-bound DB parent must derive its count and children from the
+        // eligible poker_events read below; otherwise a quarantined DB cohort
+        // can be silently revived from an old JSON snapshot.
+        const events = singleSeries.source_table ? null : loadEventsForSeries(singleSeries);
+        if (events) {
+          singleSeries.events = events.map(decodeSeriesEventPayload).filter(Boolean);
+          singleSeries.events_count = singleSeries.events.length;
+          singleSeries.event_count = singleSeries.events.length;
+          singleSeries.total_events = singleSeries.events.length;
+        } else if (singleSeries.source_table) {
+          singleSeries.events = [];
+          singleSeries.events_count = null;
+          singleSeries.event_count = null;
+          singleSeries.total_events = null;
         }
 
+        // Also try DB events enrichment
+        if (singleSeries.series_uid) {
+          try {
+            const eventResult = await fetchPokerEventsForSeries(
+              [singleSeries.series_uid],
+              { includeEvents: true },
+            );
+            if (eventResult.error || eventResult.truncated) {
+              detailDegraded = true;
+              detailWarnings.push('poker_events_read_incomplete');
+              singleSeries.events = [];
+              singleSeries.events_count = null;
+              singleSeries.event_count = null;
+              singleSeries.total_events = null;
+            } else if (singleSeries.source_table || eventResult.rows.length > 0) {
+              const verifiedEvents = eventResult.rows
+                .map(decodeSeriesEventPayload)
+                .filter(Boolean);
+              singleSeries.events = verifiedEvents;
+              // A complete zero-row read is evidence too. Reset every public
+              // count so quarantined children cannot survive through a legacy
+              // parent's cached total_events value.
+              const verifiedEventCount = singleSeries.events.length;
+              singleSeries.events_count = verifiedEventCount;
+              singleSeries.event_count = verifiedEventCount;
+              singleSeries.total_events = verifiedEventCount;
+            }
+          } catch (e) {
+            detailDegraded = true;
+            detailWarnings.push('poker_events_read_failed');
+            singleSeries.events = [];
+            singleSeries.events_count = null;
+            singleSeries.event_count = null;
+            singleSeries.total_events = null;
+            console.warn('[App] Handled exception:', e);
+          }
+        }
+
+        singleSeries = decodeSeriesPayload(singleSeries);
+        if (!singleSeries) {
+          res.setHeader('Cache-Control', 'private, no-store');
+          return res.status(404).json({ success: false, error: 'Series not found' });
+        }
+        if (detailDegraded) res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json({
           success: true,
           data: singleSeries,
           total: 1,
           meta: {
             generatedAt: new Date().toISOString(),
-            degraded: !singleSeries.source_table,
+            degraded: detailDegraded,
             source: singleSeries.source_table || 'static_bundle',
+            warnings: detailWarnings,
           },
         });
       }
@@ -355,6 +525,7 @@ async function handler(req, res) {
           // [S-BUG-1 FIX] .eq('is_suppressed', false) excluded rows where is_suppressed=NULL.
           // Use .or() to match both NULL and false — never serve explicitly suppressed series.
           .or('is_suppressed.is.null,is_suppressed.eq.false')
+          .in('data_quality', SERVABLE_SERIES_QUALITIES)
           .order('start_date', { ascending: true })
           .limit(Math.min(parsedLimit, 999));
 
@@ -404,6 +575,7 @@ async function handler(req, res) {
           .select('*')
           // [S-BUG-1 FIX] Same is_suppressed NULL fix for poker_series
           .or('is_suppressed.is.null,is_suppressed.eq.false')
+          .in('data_quality', SERVABLE_SERIES_QUALITIES)
           .order('start_date', { ascending: true })
           .limit(999);
 
@@ -442,48 +614,51 @@ async function handler(req, res) {
           degraded = true;
           sourceWarnings.push('poker_series_unavailable');
         }
+        if (error || psError) {
+          res.setHeader('Cache-Control', 'private, no-store');
+          return res.status(503).json({
+            success: false,
+            error: 'Series catalog is temporarily unavailable',
+            meta: { degraded: true, warnings: sourceWarnings },
+          });
+        }
         // [B1 FIX] Declare pokerSeriesData here — was missing 'let' causing ReferenceError
         // in strict mode, crashing the try block and falling through to empty JSON fallback.
-        let pokerSeriesData = psData || [];
+        let pokerSeriesData = (psData || []).filter(
+          row => isServableSeriesParentEvidence(row),
+        );
 
-        // Merge: combine both, dedup by series_uid (primary) then name (fallback)
+        // Merge only when the shared UID is backed by exact newer source
+        // evidence. A same-name or mismatched-source row is not proof that two
+        // independently keyed parents are the same event series.
         const mergedMap = new Map();
-        const uidMap = new Map(); // track by series_uid to prevent duplicates
+        const uidMap = new Map();
         if (!error && data) {
-          for (const s of data) {
-            const key = (s.name || s.series_name || '').toLowerCase();
+          for (const s of data.filter(row => isServableSeriesParentEvidence(row))) {
             const entry = { ...s, series_uid: s.series_uid || null, source_table: 'tournament_series' };
-            mergedMap.set(key, entry);
-            if (s.series_uid) uidMap.set(s.series_uid, entry);
+            mergedMap.set(`tournament_series:${s.id}`, entry);
+            if (s.series_uid && !uidMap.has(s.series_uid)) uidMap.set(s.series_uid, entry);
           }
         }
         // Overlay poker_series data (has series_uid for event linking)
         for (const ps of pokerSeriesData) {
           const uid = ps.series_uid;
-          const key = (ps.series_name || ps.name || uid || '').toLowerCase();
-          
-          // If already exists by series_uid, update it
+          // If the UID exists in both tables, reconcile it only when exact
+          // source evidence proves both rows describe the same series.
           if (uid && uidMap.has(uid)) {
             const existing = uidMap.get(uid);
-            existing.series_uid = uid;
-            if (ps.logo_url) existing.logo_url = ps.logo_url;
-            continue;
-          }
-          
-          // If already exists by name, add series_uid
-          if (mergedMap.has(key)) {
-            const existing = mergedMap.get(key);
-            existing.series_uid = existing.series_uid || uid;
-            if (ps.logo_url) existing.logo_url = ps.logo_url;
-            if (uid) uidMap.set(uid, existing);
-            continue;
+            const reconciled = reconcileTournamentSeriesEvidence(existing, ps);
+            if (reconciled !== existing) {
+              Object.assign(existing, reconciled, { series_uid: uid });
+              continue;
+            }
           }
           
           // New series — add it. The id is namespaced (see
-          // POKER_SERIES_ID_OFFSET) so /api/poker/series?id=<this> cannot
+          // POKER_SERIES_ROUTE_ID_OFFSET) so /api/poker/series?id=<this> cannot
           // resolve to an unrelated tournament_series row with the same int4 pk.
           const newEntry = {
-            id: ps.id + POKER_SERIES_ID_OFFSET,
+            id: toPokerSeriesRouteId(ps.id),
             source_table: 'poker_series',
             source_id: ps.id,
             name: ps.series_name || ps.name,
@@ -507,74 +682,38 @@ async function handler(req, res) {
             source_url: ps.source_url,
             logo_url: ps.logo_url || null,
           };
-          mergedMap.set(uid || key, newEntry);
-          if (uid) uidMap.set(uid, newEntry);
+          mergedMap.set(`poker_series:${ps.id}`, newEntry);
+          if (uid && !uidMap.has(uid)) uidMap.set(uid, newEntry);
         }
 
         const merged = [...mergedMap.values()].sort((a, b) =>
           (a.start_date || '').localeCompare(b.start_date || '')
         );
 
-        if (merged.length > 0) {
-          seriesData = merged;
-        }
+        // A complete zero-row read is authoritative. Bundled files are build
+        // snapshots without current provenance and cannot revive parents that
+        // the quality filter intentionally withheld.
+        seriesData = merged;
       } catch (dbErr) {
         degraded = true;
         sourceWarnings.push('database_query_failed');
         console.warn('[App] Handled exception:', dbErr?.message || dbErr);
       }
 
-      // Fall back to JSON data if DB returned nothing
-      if (!seriesData) {
-        seriesSource = 'static_bundle';
-        // Bug fix: JSON fallback also must exclude suppressed series
-        let allSeries = mapSeriesToApi(bundledSeries).filter(s => !s.is_suppressed);
-
-        // Apply filters
-        if (upcoming === 'true') {
-          const today = getTodayCST(); // Phase 77 — CST anchor: "upcoming" filter doesn't drop today's series at 6pm CST
-          allSeries = allSeries.filter((s) => s.start_date >= today);
+      const decodedSeriesData = seriesData.map(decodeSeriesPayload).filter(Boolean);
+      const total = decodedSeriesData.length;
+      const limited = decodedSeriesData.slice(0, parsedLimit);
+      if (seriesSource === 'database') {
+        // Parent-maintained totals are not proof of currently servable child
+        // rows. Keep them unknown until the complete bounded child scan below
+        // establishes an exact count.
+        for (const series of limited) {
+          series.events_count = null;
+          series.event_count = null;
+          series.total_events = null;
+          series.events = [];
         }
-
-        if (type) {
-          allSeries = allSeries.filter((s) => s.series_type === type);
-        }
-
-        if (tour) {
-          const tourLower = tour.toLowerCase();
-          allSeries = allSeries.filter(
-            (s) =>
-              (s.tour && s.tour.toLowerCase().includes(tourLower)) ||
-              (s.tour_code && s.tour_code.toLowerCase().includes(tourLower))
-          );
-        }
-
-        if (search) {
-          const searchLower = search.toLowerCase();
-          allSeries = allSeries.filter(
-            (s) =>
-              (s.name && s.name.toLowerCase().includes(searchLower)) ||
-              (s.short_name && s.short_name.toLowerCase().includes(searchLower)) ||
-              (s.venue && s.venue.toLowerCase().includes(searchLower)) ||
-              (s.city && s.city.toLowerCase().includes(searchLower))
-          );
-        }
-
-        if (start_date) {
-          allSeries = allSeries.filter((s) => s.start_date >= start_date);
-        }
-        if (end_date) {
-          allSeries = allSeries.filter((s) => s.start_date <= end_date);
-        }
-
-        // Sort by start_date ascending
-        allSeries.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
-
-        seriesData = allSeries;
       }
-
-      const total = seriesData.length;
-      const limited = seriesData.slice(0, parsedLimit);
       const sourceLastUpdated = limited.reduce((latest, series) => {
         const candidate = series.updated_at || series.last_scraped || series.created_at || null;
         return candidate && (!latest || candidate > latest) ? candidate : latest;
@@ -596,62 +735,55 @@ async function handler(req, res) {
           .filter(Boolean);
 
         if (seriesUids.length > 0) {
-          // Paginated fetch to bypass Supabase 1000-row limit
-          let allEvents = [];
-          const PAGE = 999;
-          for (let page = 0; page < 5; page++) {
-            const { data: evtPage } = await getSupabase()
-              .from('poker_events')
-              .select(wantEvents ? '*' : 'series_uid')
-              .in('series_uid', seriesUids)
-              .order('start_date', { ascending: true })
-              .range(page * PAGE, (page + 1) * PAGE - 1);
-            if (evtPage && evtPage.length > 0) {
-              allEvents = allEvents.concat(evtPage);
-              if (evtPage.length < PAGE) break; // no more pages
-            } else {
-              break;
-            }
-          }
-
-          if (allEvents && allEvents.length > 0) {
+          const eventResult = await fetchPokerEventsForSeries(
+            seriesUids,
+            { includeEvents: wantEvents },
+          );
+          if (eventResult.error || eventResult.truncated) {
+            degraded = true;
+            sourceWarnings.push(
+              eventResult.truncated
+                ? 'poker_events_scan_truncated'
+                : 'poker_events_read_failed',
+            );
+          } else {
             const eventsBySeries = {};
-            for (const evt of allEvents) {
+            for (const rawEvent of eventResult.rows) {
+              const evt = decodeSeriesEventPayload(rawEvent);
+              if (!evt) continue;
               if (!eventsBySeries[evt.series_uid]) eventsBySeries[evt.series_uid] = [];
               eventsBySeries[evt.series_uid].push(evt);
             }
             for (const s of limited) {
-              if (s.series_uid && eventsBySeries[s.series_uid]) {
-                const rows = eventsBySeries[s.series_uid];
+              if (s.series_uid) {
+                const rows = eventsBySeries[s.series_uid] || [];
                 s.events_count = rows.length;
+                s.event_count = rows.length;
+                s.total_events = rows.length;
                 if (wantEvents) {
                   const seriesVenue = s.venue || s.venue_name || '';
                   const seriesVenueId = s.venue_id || null;
                   // Propagate series venue to events missing venue_name
-                  s.events = rows.map(evt => ({
+                  s.events = rows.map(evt => decodeSeriesEventPayload({
                     ...evt,
                     venue_name: (evt.venue_name && evt.venue_name !== 'Unknown') ? evt.venue_name : seriesVenue,
                     venue_id: evt.venue_id || seriesVenueId,
-                  }));
+                  })).filter(Boolean);
                 }
               }
             }
           }
         }
-      } catch (evtErr) { console.warn('[App] Handled exception:', evtErr?.message || evtErr); }
-
-      // For series without DB events, try JSON fallback
-      for (const s of limited) {
-        if (!s.events_count && (!s.events || s.events.length === 0)) {
-          const jsonEvents = loadEventsForSeries(s);
-          if (jsonEvents && jsonEvents.length > 0) {
-            s.events_count = jsonEvents.length;
-            if (wantEvents) s.events = jsonEvents;
-          }
-        }
+      } catch (evtErr) {
+        degraded = true;
+        sourceWarnings.push('poker_events_read_failed');
+        console.warn('[App] Handled exception:', evtErr?.message || evtErr);
       }
 
-      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
+      res.setHeader(
+        'Cache-Control',
+        degraded ? 'private, no-store' : 'public, s-maxage=900, stale-while-revalidate=86400',
+      );
       return res.status(200).json({
         success: true,
         data: limited,
@@ -666,20 +798,10 @@ async function handler(req, res) {
       });
     } catch (error) {
       console.warn('Series API error:', error);
-      // Last resort: return mapped JSON data unsorted
-      const fallback = mapSeriesToApi(bundledSeries);
-      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
-      return res.status(200).json({
-        success: true,
-        data: fallback,
-        total: fallback.length,
-        meta: {
-          generatedAt: new Date().toISOString(),
-          lastUpdated: null,
-          degraded: true,
-          source: 'static_bundle',
-          warnings: ['database_query_failed'],
-        },
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.status(503).json({
+        success: false,
+        error: 'Series catalog is temporarily unavailable',
       });
     }
 

@@ -26,6 +26,8 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
       if (req.method === 'POST') {
           return res.status(410).json({
@@ -55,8 +57,6 @@ export default async function handler(req, res) {
 
       // GET: Check if daily bonus is available
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'private, no-store');
-
           try {
               const { data: streak, error: streakError } = await supabase
                   .from('training_streaks')

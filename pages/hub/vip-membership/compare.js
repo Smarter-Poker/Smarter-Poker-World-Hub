@@ -33,7 +33,7 @@ export default function VipComparePage() {
         { label: 'VIP Membership', href: '/hub/vip-membership' },
         { label: 'Compare Plans', href: canonical },
       ]}
-      status="All Plans Live"
+      status="All Diamond Plans Live"
       actions={
         <>
           <Link href="/hub/vip-membership"><CreditCard size={16} aria-hidden="true" /> Choose A Plan</Link>
@@ -50,14 +50,20 @@ export default function VipComparePage() {
           const diamondCost = Math.round(Number(plan.price) * 100);
           const cardEquivalent = Number(plan.price).toFixed(2);
           const lifetime = plan.interval === 'lifetime';
+          const cardReady = plan.cardCheckoutReady === true;
           return (
             <section className={detailStyles.detailCard} key={plan.id}>
               <h2>{plan.name}</h2>
-              <p><strong>${cardEquivalent}</strong> By Card Or <strong>{diamondCost.toLocaleString()} Diamonds</strong>.</p>
+              <p>
+                {cardReady ? <><strong>${cardEquivalent}</strong> By Card Or </> : null}
+                <strong>{diamondCost.toLocaleString()} Diamonds</strong>
+                {cardReady ? '.' : ' With The Atomic Diamond Settlement Path.'}
+              </p>
               <ul>
                 <li>{lifetime ? 'Permanent' : plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access</li>
                 {!lifetime && <li>Extends Existing Access Instead Of Replacing It</li>}
                 {lifetime && <li>Never Renews And Never Expires</li>}
+                {lifetime && <li>Lifetime Card Checkout Remains Safely Paused</li>}
                 <li>Includes All {VIP_BENEFITS.length} Currently Enforced VIP Benefits</li>
                 {plan.savings > 0 && <li>Saves ${Number(plan.savings).toFixed(2)} Against Monthly Billing</li>}
               </ul>
@@ -67,7 +73,7 @@ export default function VipComparePage() {
         })}
       </div>
       <div className={detailStyles.assuranceGrid}>
-        <div><strong>Card</strong><span>Stripe Checkout Verifies Every Term, Lifetime Included.</span></div>
+        <div><strong>Card</strong><span>Stripe Checkout Verifies Monthly And Yearly Terms. Lifetime Card Checkout Remains Paused Until Its Full Refund, Dispute, And Cross-Method Lifecycle Is Published.</span></div>
         <div><strong>Diamonds</strong><span>Every Term, Lifetime Included, Settles Against Your Verified Diamond Wallet.</span></div>
         <div><strong>Entitlements</strong><span>Access Expiry, Tier, And Benefits Are Updated From Server-Owned Records.</span></div>
       </div>

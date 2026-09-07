@@ -11,21 +11,26 @@ const MEMORY_CAMPAIGN = read('../src/components/memory/MemoryCampaignView.tsx');
 const LIVE_HELP = read('../src/lib/liveHelp/contextCollector.ts');
 const SUPABASE_TYPES = read('../src/types/supabase.ts');
 const availabilityModule = await import(`data:text/javascript;base64,${Buffer.from(AVAILABILITY).toString('base64')}`);
-const { BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed } = availabilityModule;
+const { BLOCKED_VIDEO_LIBRARY_IDS, VIDEO_LIBRARY_ALLOWED_TYPES, isVideoLibraryVideoAllowed } = availabilityModule;
 
 test('the audited fallback source no longer contains inaccessible embeds', () => {
   const declaredIds = [...DATA.matchAll(/videoId:\s*'([^']+)'/g)].map(match => match[1]);
   const overlap = declaredIds.filter(videoId => BLOCKED_VIDEO_LIBRARY_IDS.includes(videoId));
-  assert.equal(BLOCKED_VIDEO_LIBRARY_IDS.length, 30);
+  assert.equal(BLOCKED_VIDEO_LIBRARY_IDS.length, 32);
   assert.deepEqual(overlap, []);
 });
 
 test('the availability gate rejects fake, blocked, missing, and object-form IDs', () => {
   assert.equal(isVideoLibraryVideoAllowed('524_3UypGkU'), false);
   assert.equal(isVideoLibraryVideoAllowed({ videoId: 'RpU9bwH-2WI' }), false);
+  assert.equal(isVideoLibraryVideoAllowed('dbCLX6WbyJg'), false);
+  assert.equal(isVideoLibraryVideoAllowed({ videoId: 'kiAPXh4jRHo', type: 'cash' }), false);
   assert.equal(isVideoLibraryVideoAllowed('FAKE89dbizc'), false);
   assert.equal(isVideoLibraryVideoAllowed(null), false);
-  assert.equal(isVideoLibraryVideoAllowed({ videoId: 'dQw4w9WgXcQ' }), true);
+  assert.equal(isVideoLibraryVideoAllowed({ videoId: 'dQw4w9WgXcQ', type: 'cash' }), true);
+  assert.equal(isVideoLibraryVideoAllowed({ videoId: 'M7lc1UVf-VE', type: 'tournament' }), true);
+  assert.equal(isVideoLibraryVideoAllowed({ videoId: 'slot-video', type: 'slots' }), false);
+  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament']);
 });
 
 test('live, fallback, bookmark, and player entry points share the availability gate', () => {
@@ -34,6 +39,7 @@ test('live, fallback, bookmark, and player entry points share the availability g
   assert.match(PAGE, /if \(!isVideoLibraryVideoAllowed\(requestedVideoId\)\)/);
   assert.match(PAGE, /if \(!isVideoLibraryVideoAllowed\(video\)\) return;/);
   assert.match(CATALOG, /query\.not\('youtube_video_id', 'in'/);
+  assert.match(CATALOG, /query\.in\('type', VIDEO_LIBRARY_ALLOWED_TYPES\)/);
   assert.match(CATALOG, /map\(normaliseVideo\)\.filter\(isVideoLibraryVideoAllowed\)/);
 });
 

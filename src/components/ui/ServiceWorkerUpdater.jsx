@@ -130,7 +130,22 @@ export default function ServiceWorkerUpdater() {
 
         (async () => {
             try {
-                const reg = await navigator.serviceWorker.getRegistration('/');
+                let reg = await navigator.serviceWorker.getRegistration('/');
+
+                // next-pwa still builds /sw.js, but this component owns its
+                // registration so browsers that refuse Service Workers can
+                // return `undefined` without tripping Workbox Window's
+                // unconditional `registration.waiting` access. Never register
+                // the generated production worker during local development.
+                if (!reg && !cancelled && process.env.NODE_ENV === 'production') {
+                    try {
+                        reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                    } catch {
+                        // Private browsing, policy controls, or an unavailable
+                        // worker must not become an unhandled page rejection.
+                        return;
+                    }
+                }
                 if (!reg || cancelled) return;
 
                 // Anything already waiting from a previous visit.

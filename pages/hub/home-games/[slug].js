@@ -297,6 +297,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // request-a-seat flow instead of an error box with no way forward.
   const [seatRequestBusy, setSeatRequestBusy] = useState(false);
   const [seatRequestNote, setSeatRequestNote] = useState('');
+  const [seatRequestGuestCount, setSeatRequestGuestCount] = useState(0);
+  const [seatRequestGuestNames, setSeatRequestGuestNames] = useState('');
   const [seatRequestResult, setSeatRequestResult] = useState(null); // { response, membership }
 
   // Synchronous locks to prevent rapid-fire race conditions
@@ -304,6 +306,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const vouchLockRef = useRef(false);
   const joinLockRef = useRef(false);
   const friendLockRef = useRef(false);
+  const seatRequestLockRef = useRef(false);
   const trackedHomeGameRef = useRef(null);
 
   useEffect(() => {
@@ -460,7 +463,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
             if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
           }
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Follow-state resync failed:', resyncError);
+        toast.error('Follow status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setFollowBusy(false);
       followLockRef.current = false;
@@ -509,7 +515,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           if (typeof listJson.vouch_count === 'number') setVouchCount(listJson.vouch_count);
           if (Array.isArray(listJson.vouchers)) setVouchers(listJson.vouchers);
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Vouch-state resync failed:', resyncError);
+        toast.error('Vouch status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setVouchBusy(false);
       vouchLockRef.current = false;
@@ -618,6 +627,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
     }
     setSeatRequestResult(null);
     setSeatRequestNote('');
+    setSeatRequestGuestCount(0);
+    setSeatRequestGuestNames('');
     setSeatEvent(gameObj);
   };
 
@@ -625,6 +636,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
     setSeatEvent(null);
     setSeatRequestResult(null);
     setSeatRequestNote('');
+    setSeatRequestGuestCount(0);
+    setSeatRequestGuestNames('');
   };
 
   // Open the seat modal for a tournament card. TournamentList hands back its
@@ -937,7 +950,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           else if (st === 'pending_outgoing' || st === 'pending_incoming') setFriendState('pending');
           else setFriendState('none');
         }
-      } catch (e) {}
+      } catch (resyncError) {
+        console.warn('Friend-state resync failed:', resyncError);
+        toast.error('Friend status could not be confirmed. Refresh this page before retrying.');
+      }
     } finally {
       setFriendBusy(false);
       friendLockRef.current = false;
@@ -954,7 +970,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // creates the RSVP (or waitlists it when the game is full) and notifies the
   // host by push + DM.
   const submitSeatRequest = async () => {
-    if (!seatEvent?.id || seatRequestBusy) return;
+    if (!seatEvent?.id || seatRequestBusy || seatRequestLockRef.current) return;
     const token = await getAccessToken();
     if (!token) {
       const returnTo = typeof window !== 'undefined'
@@ -963,15 +979,35 @@ export default function PublicHomeGamePage({ data, serverError }) {
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
+    seatRequestLockRef.current = true;
     setSeatRequestBusy(true);
     try {
       const note = seatRequestNote.trim().slice(0, 500);
+      const rawGuestLimit = Number(seatEvent.guest_limit);
+      const guestLimit = seatEvent.allow_guests === true
+        ? (seatEvent.guest_limit == null || !Number.isFinite(rawGuestLimit)
+          ? 10
+          : Math.max(0, Math.min(10, Math.trunc(rawGuestLimit))))
+        : 0;
+      const bringingGuests = Math.min(
+        Math.max(0, Math.trunc(Number(seatRequestGuestCount) || 0)),
+        guestLimit
+      );
+      const guestNames = seatRequestGuestNames
+        .split(',')
+        .map((name) => name.trim().slice(0, 80))
+        .filter(Boolean)
+        .slice(0, bringingGuests);
       const res = await fetch(
         `/api/public/home-games/${encodeURIComponent(page.slug)}/events/${encodeURIComponent(seatEvent.id)}/request-seat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(note ? { message: note } : {}),
+          body: JSON.stringify({
+            message: note || null,
+            bringing_guests: bringingGuests,
+            guest_names: guestNames,
+          }),
         }
       );
       const json = await res.json().catch(() => ({}));
@@ -991,6 +1027,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       console.warn('Seat request error:', err);
       toast.error(err.message || 'Could not send your seat request.');
     } finally {
+      seatRequestLockRef.current = false;
       setSeatRequestBusy(false);
     }
   };
@@ -1004,7 +1041,14 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // so gating on memberStatus alone offered the host a "Request a Seat"
   // panel — which would file a pending membership request against their own
   // group — instead of the seat grid they saw before.
-  const canSeeSeatList = isOwnerViewing || memberStatus === 'active' || memberStatus === 'approved';
+  const canSeeSeatList = isOwnerViewing
+    || ['active', 'approved', 'owner', 'host'].includes(memberStatus);
+  const selectedGuestLimitValue = Number(seatEvent?.guest_limit);
+  const selectedGuestLimit = seatEvent?.allow_guests === true
+    ? (seatEvent?.guest_limit == null || !Number.isFinite(selectedGuestLimitValue)
+      ? 10
+      : Math.max(0, Math.min(10, Math.trunc(selectedGuestLimitValue))))
+    : 0;
 
   return (
     <>
@@ -1272,7 +1316,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
               ) : (
                 <div className="hgs-games-list">
                   {(upcoming_games || []).filter((g) => g.format !== 'tournament').map((g) => {
-                    const seatsLeft = g.max_players ? Math.max(0, g.max_players - (g.rsvp_yes || 0)) : null;
+                    const seatsLeft = g.max_players
+                      ? Math.max(0, g.max_players - (g.rsvp_seats ?? g.rsvp_yes ?? 0))
+                      : null;
                     const dparts = formatDate(g.scheduled_date).split(' ');
                     return (
                       <div key={g.id} className="hgs-game-card">
@@ -1615,6 +1661,46 @@ export default function PublicHomeGamePage({ data, serverError }) {
                     Request A Seat And The Host Gets Your Request Straight Away. They&apos;Ll
                     Approve You And Confirm Your Seat - No Need To Join First.
                   </p>
+                  {selectedGuestLimit > 0 && (
+                    <>
+                      <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-guests">
+                        Bringing Guests?
+                      </label>
+                      <select
+                        id="hgs-seat-request-guests"
+                        className="hgs-seat-request-input"
+                        value={seatRequestGuestCount}
+                        onChange={(e) => {
+                          const count = Math.max(0, Math.min(selectedGuestLimit, Number.parseInt(e.target.value, 10) || 0));
+                          setSeatRequestGuestCount(count);
+                          if (count === 0) setSeatRequestGuestNames('');
+                        }}
+                      >
+                        <option value={0}>No Guests</option>
+                        {Array.from({ length: selectedGuestLimit }, (_, index) => (
+                          <option key={index + 1} value={index + 1}>
+                            {index + 1} Guest{index === 0 ? '' : 's'}
+                          </option>
+                        ))}
+                      </select>
+                      {seatRequestGuestCount > 0 && (
+                        <>
+                          <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-guest-names">
+                            Guest Names (Optional, Comma Separated)
+                          </label>
+                          <input
+                            id="hgs-seat-request-guest-names"
+                            className="hgs-seat-request-input"
+                            value={seatRequestGuestNames}
+                            onChange={(e) => setSeatRequestGuestNames(e.target.value.slice(0, 809))}
+                            maxLength={809}
+                            placeholder="Alex, Jamie"
+                            autoComplete="off"
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
                   <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-note">
                     Add A Note For The Host (Optional)
                   </label>
@@ -1688,9 +1774,9 @@ const pageStyles = `
 .hgs-games-list{display:flex;flex-direction:column;gap:10px}
 .hgs-game-card{display:flex;align-items:stretch;gap:14px;padding:14px;background:rgba(0,0,0,.25);border:1px solid rgba(148,163,184,.1);border-radius:10px}
 .hgs-game-date{flex-shrink:0;width:72px;padding:8px;background:linear-gradient(135deg,#0ea5e9,#0369a1);border-radius:8px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.hgs-game-mon{font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
+.hgs-game-mon{font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
 .hgs-game-day{font-size:24px;font-weight:900;line-height:1}
-.hgs-game-dow{font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
+.hgs-game-dow{font-size:12px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
 .hgs-game-body{flex:1;min-width:0}
 .hgs-game-body h3{font-size:16px;font-weight:700;margin:0 0 4px}
 .hgs-game-meta{font-size:13px;color:rgba(255,255,255,.55);display:flex;gap:6px;flex-wrap:wrap}
@@ -1712,13 +1798,15 @@ const pageStyles = `
 .hgs-seat-hint{font-size:13px;color:rgba(255,255,255,.55);margin:0 0 16px !important;line-height:1.5;padding:10px 12px;background:rgba(139,92,246,.08);border-left:3px solid rgba(139,92,246,.5);border-radius:4px}
 .hgs-seat-label{display:block;margin-bottom:14px;font-size:13px;color:rgba(255,255,255,.7);font-weight:600}
 .hgs-seat-label > span{display:block;margin-bottom:6px}
-.hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:11px;color:rgba(255,255,255,.4)}
+.hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:12px;color:rgba(255,255,255,.4)}
 .hgs-seat-textarea{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical;min-height:72px}
 .hgs-seat-request{display:flex;flex-direction:column;gap:12px;padding:4px 0 2px}
 .hgs-seat-request-lead{margin:0;font-size:15px;font-weight:700;color:#fff;line-height:1.4}
 .hgs-seat-request-note{margin:0;font-size:13px;color:rgba(255,255,255,.6);line-height:1.5}
 .hgs-seat-request-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.7)}
 .hgs-seat-request-input{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical}
+.hgs-seat-request select.hgs-seat-request-input{min-height:44px;color-scheme:dark}
+.hgs-seat-request input.hgs-seat-request-input{min-height:44px}
 .hgs-seat-textarea:focus{outline:none;border-color:rgba(139,92,246,.6);background:rgba(0,0,0,.4)}
 .hgs-seat-error{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px}
 .hgs-seat-summary{margin:0 0 20px;padding:12px 14px;background:rgba(0,0,0,.25);border-radius:8px}
@@ -1737,7 +1825,7 @@ const pageStyles = `
 .hgs-post{background:rgba(0,0,0,.2);border:1px solid rgba(148,163,184,.08);border-radius:10px;padding:14px}
 .hgs-post header{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13px;color:rgba(255,255,255,.6)}
 .hgs-post header strong{color:#fff;font-size:14px;font-weight:700}
-.hgs-post-pin{background:rgba(14,165,233,.15);color:#38bdf8;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:auto}
+.hgs-post-pin{background:rgba(14,165,233,.15);color:#38bdf8;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;margin-left:auto}
 .hgs-post p{margin:0 !important;color:rgba(255,255,255,.8) !important}
 .hgs-post footer{margin-top:8px;font-size:12px;color:rgba(255,255,255,.4);display:flex;gap:6px}
 .hgs-kv{margin:0;padding:0}

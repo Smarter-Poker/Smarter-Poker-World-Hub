@@ -110,6 +110,8 @@ function buildPositionLeaks(sessions) {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       const supabase = getSupabase();
 
       if (req.method !== 'GET') {

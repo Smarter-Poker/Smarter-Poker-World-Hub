@@ -17,6 +17,7 @@ function liveFeedLabel(mode) {
 
 export default function DiscoveryStatusRail({
   venueCount = 0,
+  mappedVenueCount = 0,
   liveTableCount = 0,
   liveDataMode = null,
   liveDataAgeMinutes = null,
@@ -29,8 +30,12 @@ export default function DiscoveryStatusRail({
   return (
     <dl className="pnm-status-rail" aria-label="Discovery data status" aria-live="polite">
       <div className="pnm-status-rail__item">
-        <dt>Directory</dt>
-        <dd>{venueCount > 0 ? `${venueCount.toLocaleString()} indexed` : 'Loading'}</dd>
+        <dt>Public Directory</dt>
+        <dd>{venueCount > 0 ? `${venueCount.toLocaleString()} playable` : 'Loading'}</dd>
+      </div>
+      <div className="pnm-status-rail__item">
+        <dt>Map Coverage</dt>
+        <dd>{mappedVenueCount > 0 ? `${mappedVenueCount.toLocaleString()} mapped` : 'Loading'}</dd>
       </div>
       <div className={`pnm-status-rail__item pnm-status-rail__item--${feed.tone}`}>
         <dt>Table Feed</dt>

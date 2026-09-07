@@ -15,16 +15,26 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { SolverPolicyService } from '../../services/SolverPolicyService.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 let supabase = null;
+let solverPolicyService = null;
 function getSupabase() {
     if (!supabase && SUPABASE_URL && SUPABASE_KEY) {
         supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     }
     return supabase;
+}
+
+function getSolverPolicyService(injected = null) {
+    if (injected) return injected;
+    const db = getSupabase();
+    if (!db) return null;
+    if (!solverPolicyService) solverPolicyService = new SolverPolicyService({ db });
+    return solverPolicyService;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -131,15 +141,15 @@ function formatHand(card1, card2) {
  * @param {string|Object} keyOrParams - either legacy chartName string
  *        (parsed as "{position}_Open_{stack}bb_{topology}") or an
  *        object {gameType, heroPosition, stackDepth, villainAction?}.
- * @returns {Object|null} hand_matrix keyed by hand notation, or null
- *        if no matching shell exists.
+ * @returns {Object|null} canonical range distribution keyed by hand notation,
+ *        or null if no matching policy exists.
  */
-export async function getPreflopRange(keyOrParams) {
+export async function getPreflopPolicy(keyOrParams, injectedPolicyService = null) {
     // Accept legacy string form by best-effort parsing for backwards compat
     let gameType, heroPosition, stackDepth, villainAction;
     if (typeof keyOrParams === 'string') {
         // e.g., "BTN_Open_100bb_6Max" → BTN, 100, 6Max-ish (treated as Cash)
-        const m = keyOrParams.match(/^([A-Z]+)_[A-Za-z]+_(\d+)bb/);
+        const m = keyOrParams.match(/^([A-Z]+)_[A-Za-z]+_(\d+)bb/i);
         if (!m) return null;
         heroPosition = m[1];
         stackDepth = parseInt(m[2], 10);
@@ -148,49 +158,141 @@ export async function getPreflopRange(keyOrParams) {
         ({ gameType, heroPosition, stackDepth, villainAction } = keyOrParams || {});
     }
 
-    const cacheKey = `preflop:${gameType}:${heroPosition}:${stackDepth}:${villainAction || '*'}`;
-    const cached = cacheGet(cacheKey);
-    if (cached !== undefined) return cached;
+    gameType = /tournament|mtt|sng|spin/i.test(String(gameType || '')) ? 'Tournament' : 'Cash';
+    heroPosition = String(heroPosition || '').toUpperCase();
+    stackDepth = Number(stackDepth);
+    villainAction = villainAction || (heroPosition === 'BB' ? 'sb_push' : 'fold_to_hero');
+    if (!Number.isFinite(stackDepth) || stackDepth <= 0) return null;
+    if (villainAction === 'sb_push' && heroPosition !== 'BB') return null;
+    if (villainAction === 'fold_to_hero' && !['UTG', 'MP', 'CO', 'BTN', 'SB'].includes(heroPosition)) {
+        return null;
+    }
 
-    const sb = getSupabase();
-    if (!sb) return null;
+    const cacheKey = `preflop-policy:${gameType}:${heroPosition}:${stackDepth}:${villainAction}`;
+    if (!injectedPolicyService) {
+        const cached = cacheGet(cacheKey);
+        if (cached !== undefined) return cached;
+    }
 
-    let q = sb.from('memory_charts_gold')
-        .select('hand_matrix')
-        .eq('game_type', gameType)
-        .eq('hero_position', heroPosition)
-        .eq('stack_depth', stackDepth);
-    if (villainAction) q = q.eq('villain_action', villainAction);
+    const policyService = getSolverPolicyService(injectedPolicyService);
+    if (!policyService) return null;
+    try {
+        const rows = await policyService.readChartRows({
+            gameType,
+            heroPosition,
+            villainAction,
+            minStackDepth: Math.max(2, stackDepth - 5),
+            maxStackDepth: stackDepth + 5,
+            limit: 50,
+        });
+        const chart = [...rows].sort((left, right) =>
+            Math.abs(Number(left.stack_depth) - stackDepth) - Math.abs(Number(right.stack_depth) - stackDepth)
+            || String(left.chart_id || '').localeCompare(String(right.chart_id || ''))
+        )[0];
+        if (!chart) return null;
+        const answer = policyService.answerFromChart(chart, {}, {
+            mode: 'aggregate',
+            approximatedDimensions: Number(chart.stack_depth) === stackDepth ? [] : ['stackDepth'],
+            fallbackReason: Number(chart.stack_depth) === stackDepth ? null : 'nearest_chart_stack_depth',
+        });
+        const envelope = policyService.consumerEnvelope(answer, 'horse-poker-gto');
+        if (!injectedPolicyService) cacheSet(cacheKey, envelope);
+        return envelope;
+    } catch {
+        return null;
+    }
+}
 
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error || !data) return null;
-
-    const matrix = data.hand_matrix || null;
-    cacheSet(cacheKey, matrix);
-    return matrix;
+export async function getPreflopRange(keyOrParams, injectedPolicyService = null) {
+    const policy = await getPreflopPolicy(keyOrParams, injectedPolicyService);
+    return policy?.rangeDistribution || null;
 }
 
 /**
- * Get postflop strategy from solved_spots_gold
+ * Resolve a postflop state through the canonical solver-policy gateway.
  * @param {Object} params - Query parameters
- * @returns {Object} Strategy matrix for all hands
+ * @returns {Object|null} canonical consumer policy envelope, or null when
+ *        the warehouse cannot support the supplied decision state
  */
-export async function getPostflopStrategy(params) {
+export async function getPostflopStrategy(params, injectedPolicyService = null) {
     const { board, street, stackDepth, gameType, topology, mode } = params;
 
     // Check cache first (Phase 3A #9)
-    const cacheKey = `postflop:${street}:${stackDepth}:${gameType}:${topology}:${mode}:${(board || []).join(',')}`;
-    const cached = cacheGet(cacheKey);
-    if (cached !== undefined) return cached;
+    const cacheKey = `postflop:${street}:${stackDepth}:${gameType}:${topology}:${mode}:${JSON.stringify({
+        board: board || [],
+        holding: params.holeCards || [],
+        position: params.position || null,
+        players: params.players || [],
+        legalActions: params.legalActions || [],
+    })}`;
+    if (!injectedPolicyService) {
+        const cached = cacheGet(cacheKey);
+        if (cached !== undefined) return cached;
+    }
+    const policyService = getSolverPolicyService(injectedPolicyService);
+    if (!policyService) return null;
 
-    // 2026-08-15 CHECK 13 fix: solved_spots_gold has no topology/mode/
-    // board_cards/macro_metrics columns — this query 42703'd on every call,
-    // so the postflop-gold path NEVER returned data and callers always used
-    // their fallback logic (which is therefore the real behavior, now
-    // explicit). The gold corpus is keyed by scenario_hash
-    // (street_family_pos_stack_board); integrating postflop lookups against
-    // it is a feature project, not a phantom-column repoint.
-    return null;
+    const tournament = /tournament|mtt|sng|spin/i.test(String(gameType || ''));
+    const topologyKey = String(topology || '').toLowerCase().replace(/[^0-9a-z]/g, '');
+    const gameTypes = tournament
+        ? [
+            `mtt_${topologyKey || '6max'}_${String(mode).toLowerCase() === 'icm' ? 'icm' : 'chipev'}`,
+            'mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev', 'mtt_9max_chipev',
+          ]
+        : ['hu_cash', 'postflop_complete'];
+    const legalActions = (params.legalActions || []).map((entry) => ({
+        action: entry.type || entry.action,
+        minChips: entry.minAmount ?? null,
+        maxChips: entry.maxAmount ?? null,
+        exactChips: entry.amount ?? entry.callAmount ?? null,
+        allIn: (entry.type || entry.action) === 'all_in',
+    }));
+    const key = policyService.createKey({
+        variant: 'nlh',
+        bettingStructure: 'no_limit',
+        tableSize: Number.isInteger(params.numPlayers) ? params.numPlayers : null,
+        positions: {
+            hero: params.position,
+            villains: (params.players || [])
+                .filter((player) => !player.folded && player.position !== params.position)
+                .map((player) => player.position),
+        },
+        stackVector: (params.players || []).map((player, seat) => ({
+            seat,
+            position: player.position,
+            stackChips: player.stack,
+            stackBb: Number.isFinite(player.stack) && Number(params.bb) > 0 ? player.stack / params.bb : null,
+            committedChips: player.invested || 0,
+            active: !player.folded,
+            allIn: player.allIn === true,
+        })),
+        blinds: { bigBlind: params.bb, complete: false },
+        rake: { complete: false },
+        tournamentUtility: { mode: tournament ? (String(mode).toLowerCase() || 'unknown') : 'cash', complete: false },
+        payouts: [],
+        bounties: [],
+        street: String(street || '').toLowerCase(),
+        board: board || [],
+        holding: params.holeCards || [],
+        publicActionHistory: { complete: false, actions: [] },
+        legalActions,
+        sidePotEligibility: { complete: false, pots: [] },
+    });
+    try {
+        const { answer } = await policyService.resolve({
+            key,
+            gameTypes: [...new Set(gameTypes)],
+            mode: 'holding',
+            allowBoardApproximation: false,
+            allowStackApproximation: false,
+            allowStateApproximation: false,
+        });
+        const envelope = policyService.consumerEnvelope(answer, 'horse-poker-gto');
+        if (!injectedPolicyService) cacheSet(cacheKey, envelope);
+        return envelope;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -796,175 +898,155 @@ export function getHeatCheck(profileId) {
  * @param {Object} gameState - Current game state
  * @returns {Object} Decision with action, sizing, and reasoning
  */
-export async function makeGTODecision(profileId, gameState) {
+export async function makeGTODecision(profileId, gameState, injectedPolicyService = null) {
     const {
-        holeCards,
-        board,
-        street,
+        holeCards = [],
+        board = [],
+        street = 'Preflop',
         position,
         stackBB,
         potSize,
-        toCall,
         gameType = 'Cash',
         topology = '6-Max',
         mode = 'ChipEV',
-        tourneyState = null
-    } = gameState;
+        tourneyState = null,
+        players = [],
+        legalActions = [],
+        currentBet = 0,
+        bb = 2,
+    } = gameState || {};
 
+    if (holeCards.length < 2) {
+        return { action: null, sizing: 0, hand: null, reasoning: { solverBased: false, noData: true } };
+    }
     const hand = formatHand(holeCards[0], holeCards[1]);
-    const hash = getHorseHash(profileId);
+    const normalizedStreet = String(street).toLowerCase();
+    const normalizedPosition = String(position || '').toUpperCase();
+    const normalizedPlayers = players.map((player) => ({
+        ...player,
+        position: String(player.position || '').toUpperCase(),
+    }));
+    const activeOpponents = normalizedPlayers.filter(
+        (player) => String(player.id) !== String(profileId) && !player.folded
+    );
+    const hasLiveSeatProof = normalizedPlayers.some(
+        (player) => String(player.id) === String(profileId) && !player.folded
+    ) && activeOpponents.length > 0;
 
-    // 1. Get solver data
-    let solverStrategy = null;
-    let preflopChart = null;
+    let solverPolicy = null;
+    if (board.length === 0 && normalizedStreet === 'preflop') {
+        const openChartEligible =
+            hasLiveSeatProof &&
+            Number(stackBB) > 0 &&
+            Number(stackBB) <= 15 &&
+            ['UTG', 'MP', 'CO', 'BTN', 'SB'].includes(normalizedPosition) &&
+            Number(currentBet) <= Number(bb) &&
+            !activeOpponents.some(
+                (player) => !['SB', 'BB'].includes(player.position) && Number(player.invested) > 0
+            );
+        const sbOpponent = activeOpponents.length === 1 ? activeOpponents[0] : null;
+        const bbVsSbJamEligible =
+            hasLiveSeatProof &&
+            normalizedPosition === 'BB' &&
+            sbOpponent?.position === 'SB' &&
+            sbOpponent?.allIn === true &&
+            Number(currentBet) > Number(bb) &&
+            Number(bb) > 0 &&
+            Number(currentBet) / Number(bb) <= 25 &&
+            legalActions.some((entry) => ['call', 'all_in'].includes(entry.type || entry.action));
 
-    if (board.length === 0) {
-        // PREFLOP: Query memory_charts_gold for position-based opening/defending ranges
-        // Chart name pattern: "{POSITION}_Open_{roundedBB}bb_{topology}"
-        const roundedBB = Math.max(20, Math.round(stackBB / 20) * 20);
-        const chartName = `${position}_Open_${roundedBB}bb_${topology}`;
-        preflopChart = await getPreflopRange(chartName);
-
-        if (!preflopChart) {
-            // Fallback: try without specific stack depth
-            const fallbackChart = `${position}_Open_100bb_${topology}`;
-            preflopChart = await getPreflopRange(fallbackChart);
+        if (openChartEligible || bbVsSbJamEligible) {
+            solverPolicy = await getPreflopPolicy({
+                gameType,
+                heroPosition: normalizedPosition,
+                stackDepth: bbVsSbJamEligible ? Number(currentBet) / Number(bb) : Number(stackBB),
+                villainAction: bbVsSbJamEligible ? 'sb_push' : 'fold_to_hero',
+            }, injectedPolicyService);
         }
     } else if (board.length >= 3) {
-        // POSTFLOP: Query solved_spots_gold
-        solverStrategy = await getPostflopStrategy({
-            board: board.slice(0, 3),
-            street,
-            stackDepth: Math.round(stackBB / 20) * 20, // Round to nearest 20
+        solverPolicy = await getPostflopStrategy({
+            board,
+            holeCards,
+            street: normalizedStreet,
+            stackDepth: Number(stackBB),
             gameType,
             topology,
-            mode
-        });
+            mode,
+            position: normalizedPosition,
+            players: normalizedPlayers,
+            legalActions,
+            numPlayers: normalizedPlayers.filter((player) => !player.folded).length || null,
+            bb,
+        }, injectedPolicyService);
+        // Current warehouse rows do not contain a verified full decision key.
+        // A derived/approximated policy is evidence, not action-clock authority.
+        if (solverPolicy?.kind !== 'exact' || solverPolicy?.qualitySeal !== 'SOLVER_EXACT') {
+            solverPolicy = null;
+        }
     }
 
-    // 2. Analyze board texture
     const texture = board.length >= 3 ? analyzeBoardTexture(board) : null;
-
-    // 3. Check blockers
     const blockers = board.length >= 3 ? analyzeBlockers(holeCards, board) : null;
-
-    // 4. Get position range
-    const positionWidth = getPositionRange(position, 'defending', profileId);
-
-    // 5. Apply ICM if tournament
-    let icmAdjust = null;
-    if (tourneyState) {
-        icmAdjust = getICMAdjustment(tourneyState, profileId);
-    }
-
-    // 6. Get stack depth strategy
-    const stackStrategy = getStackDepthStrategy(stackBB);
-
-    // 7. Get session/meta adjustments
+    const stackStrategy = getStackDepthStrategy(Number(stackBB));
     const sessionAdjust = getSessionAdjustment(profileId);
     const heatCheck = getHeatCheck(profileId);
+    const icmAdjust = tourneyState ? getICMAdjustment(tourneyState, profileId) : null;
 
-    // 8. Get solver recommendation
-    let solverAction = null;
+    let selectedAction = null;
     let solverFreq = null;
-
-    // 8a. PREFLOP: Check preflopChart grid
-    if (preflopChart && !solverAction) {
-        // Chart grid maps hand strings to actions
-        // Formats: { "AKs": "Raise", "72o": "Fold", "TT": "Raise" }
-        // or { "AKs": { action: "Raise", frequency: 0.85 } }
-        const chartEntry = preflopChart[hand];
-        if (chartEntry) {
-            if (typeof chartEntry === 'string') {
-                solverAction = chartEntry; // Direct action string
-            } else if (chartEntry.action) {
-                solverAction = chartEntry.action;
-                solverFreq = chartEntry.frequency;
-
-                // For mixed preflop spots, apply personality bias
-                if (solverFreq && solverFreq < 0.95) {
-                    const bias = hash % 3 === 0 ? 1.15 : hash % 3 === 1 ? 0.85 : 1.0;
-                    const adjustedFreq = Math.min(1, solverFreq * bias);
-                    if (Math.random() > adjustedFreq) {
-                        // Don't take the charted action — use fallback
-                        solverAction = chartEntry.action === 'Raise' ? 'Fold' : 'Call';
-                    }
+    if (solverPolicy) {
+        const frequencies = solverPolicy.rangeDistribution?.[hand] || solverPolicy.distribution || {};
+        const candidates = solverPolicy.actions
+            .filter((action) => action.legal && Number(frequencies[action.id]) > 0)
+            .map((action) => ({ action, frequency: Number(frequencies[action.id]) }));
+        const total = candidates.reduce((sum, candidate) => sum + candidate.frequency, 0);
+        if (total > 0) {
+            let roll = Math.random() * total;
+            selectedAction = candidates[candidates.length - 1].action;
+            solverFreq = candidates[candidates.length - 1].frequency / total;
+            for (const candidate of candidates) {
+                roll -= candidate.frequency;
+                if (roll <= 0) {
+                    selectedAction = candidate.action;
+                    solverFreq = candidate.frequency / total;
+                    break;
                 }
             }
         }
     }
 
-    // 8b. POSTFLOP: Check solverStrategy matrix
-    if (solverStrategy?.strategy_matrix?.[hand]) {
-        const handData = solverStrategy.strategy_matrix[hand];
-        solverAction = handData.best_action;
-
-        // Apply mixed strategy based on personality
-        if (handData.is_mixed) {
-            const biases = {
-                aggressive: { Raise: 1.2, Call: 0.9, Fold: 0.8 },
-                defensive: { Raise: 0.8, Call: 1.15, Fold: 1.0 },
-                balanced: { Raise: 1.0, Call: 1.0, Fold: 1.0 }
-            };
-
-            const bias = hash % 3 === 0 ? 'aggressive' : hash % 3 === 1 ? 'defensive' : 'balanced';
-            const multipliers = biases[bias];
-
-            // Adjust frequencies
-            let adjustedRaise = (handData.actions.Raise?.freq || 0) * multipliers.Raise;
-            let adjustedCall = (handData.actions.Call?.freq || 0) * multipliers.Call;
-            let adjustedFold = (handData.actions.Fold?.freq || 0) * multipliers.Fold;
-
-            // Normalize
-            const total = adjustedRaise + adjustedCall + adjustedFold;
-            adjustedRaise /= total;
-            adjustedCall /= total;
-            adjustedFold /= total;
-
-            // Pick action based on adjusted frequencies
-            const roll = Math.random();
-            if (roll < adjustedRaise) solverAction = 'Raise';
-            else if (roll < adjustedRaise + adjustedCall) solverAction = 'Call';
-            else solverAction = 'Fold';
-        }
+    const actionNames = {
+        fold: 'Fold',
+        check: 'Check',
+        call: 'Call',
+        bet: 'Bet',
+        raise: 'Raise',
+        all_in: 'All-In',
+    };
+    let finalAction = selectedAction ? actionNames[selectedAction.family] : null;
+    if (!finalAction) {
+        return {
+            action: null,
+            sizing: 0,
+            hand,
+            reasoning: { solverBased: false, noData: true },
+        };
     }
 
-    // 9. Apply all adjustments
-    // CRITICAL: If no solver data exists, return null so the fallback heuristic engine handles it
-    if (!solverAction) {
-        return { action: null, sizing: 0, hand, reasoning: { solverBased: false, noData: true } };
-    }
-    let finalAction = solverAction;
-    let sizing = 0.66;
-
-    // ICM adjustment
     if (icmAdjust && icmAdjust.icmPressure > 0.2 && finalAction === 'Raise') {
-        if (Math.random() < icmAdjust.icmPressure) {
-            finalAction = 'Call';
-        }
+        if (Math.random() < icmAdjust.icmPressure) finalAction = 'Call';
     }
-
-    // Heat check adjustment
     if (heatCheck.cooldownActive && finalAction === 'Raise') {
-        if (Math.random() < 0.3) {
-            finalAction = 'Call';
-        }
+        if (Math.random() < 0.3) finalAction = 'Call';
     }
 
-    // Get sizing from solver or geometry
-    if (finalAction === 'Raise') {
-        if (solverStrategy) {
-            const sizingData = getSolverSizing(solverStrategy, hand);
-            sizing = sizingData.size;
-        } else {
-            const geometry = calculatePotGeometry(potSize, stackBB, street);
-            sizing = geometry.geometricSize;
-        }
-
-        // Apply sizing tell
+    let sizing = 0;
+    if (finalAction === 'Raise' || finalAction === 'Bet') {
+        sizing = Number.isFinite(selectedAction?.size?.potFraction)
+            ? selectedAction.size.potFraction
+            : calculatePotGeometry(Number(potSize), Number(stackBB), street).geometricSize;
         const sizingTell = getSizingTell(profileId);
         if (sizingTell.hasTell && Math.random() < 0.3) {
-            // Sometimes reveal tell
             sizing = blockers?.bluffValue > 10 ? sizingTell.bluffSize : sizingTell.valueSize;
         }
     }
@@ -974,18 +1056,23 @@ export async function makeGTODecision(profileId, gameState) {
         sizing: Math.round(sizing * 100) / 100,
         hand,
         reasoning: {
-            solverBased: !!solverStrategy,
+            solverBased: true,
+            policyKind: solverPolicy.kind,
+            qualitySeal: solverPolicy.qualitySeal,
+            sourceArtifact: solverPolicy.sourceArtifact?.scenarioHash || null,
+            solverFrequency: solverFreq,
             texture: texture?.texture,
             blockerValue: blockers?.bluffValue || 0,
             icmPressure: icmAdjust?.icmPressure || 0,
             stackMode: stackStrategy.mode,
-            sessionAdjustment: sessionAdjust.adjustment
-        }
+            sessionAdjustment: sessionAdjust.adjustment,
+        },
     };
 }
 
 export default {
     // Range Construction
+    getPreflopPolicy,
     getPreflopRange,
     getPostflopStrategy,
     constructOpponentRange,
