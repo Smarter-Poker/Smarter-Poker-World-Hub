@@ -231,11 +231,14 @@ test('provider attribution remains visible when optional product branding is dis
   assert.doesNotMatch(controls[0].value, /Smarter\.Poker/);
 });
 
-test('mobile shared maps reserve a separate lane for mandatory provider attribution', async () => {
-  const styles = await source('src/styles/worlds/poker-near-me-machined.css');
+test('mobile shared maps use a layout stack above mandatory provider attribution', async () => {
+  const [styles, venueMap] = await Promise.all([
+    source('src/styles/worlds/poker-near-me-machined.css'),
+    source('src/components/poker-near-me/VenueMap.jsx'),
+  ]);
   assert.match(
     styles,
-    /--pnm-map-mobile-attribution-reserve:\s*calc\(46px \+ env\(safe-area-inset-bottom, 0px\)\)/
+    /--pnm-map-mobile-attribution-reserve:\s*calc\(58px \+ env\(safe-area-inset-bottom, 0px\)\)/
   );
   assert.match(
     styles,
@@ -243,7 +246,15 @@ test('mobile shared maps reserve a separate lane for mandatory provider attribut
   );
   assert.match(
     styles,
-    /\.pnm-map-surface \.venue-map-legend\s*\{[^}]*bottom:\s*calc\(116px \+ var\(--pnm-map-mobile-attribution-reserve\)\)/s
+    /\.pnm-map-overlay-stack\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*8px/s
+  );
+  assert.match(styles, /\.pnm-map-overlay-stack\[data-legend-expanded='true'\] \.pnm-map-coverage\s*\{[^}]*display:\s*none/s);
+  assert.match(venueMap, /className="pnm-map-overlay-stack"/);
+  assert.match(venueMap, /data-legend-expanded=\{!legendCollapsed && !hideLegend \? 'true' : 'false'\}/);
+  assert.ok(
+    venueMap.indexOf('className="venue-map-legend venue-map-legend--coverage"')
+      < venueMap.indexOf('<MapCoverageReadout'),
+    'legend and coverage remain ordered in the shared mobile stack'
   );
 });
 

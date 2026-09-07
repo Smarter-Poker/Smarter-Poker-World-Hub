@@ -979,49 +979,55 @@ export default function VenueMap({
       <p id={mapInstructionsId} className="sr-only">
         Interactive Poker Venue Map. Use Arrow Keys To Pan, Plus And Minus To Zoom, And Tab To Move Between Venue Markers.
       </p>
-      {/* ═══ VENUE TYPE LEGEND ═══ */}
-      {mapReady && !hideLegend && (
-        // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
-        // stop and keyboard activation. Kept as a div (not a button) so the existing
-        // .venue-map-legend layout and its block-level children stay valid.
-        <div className="venue-map-legend venue-map-legend--coverage" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={!legendCollapsed}
-          aria-label="Toggle venue type legend"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-              e.preventDefault();
-              e.stopPropagation();
-              setLegendCollapsed(!legendCollapsed);
-            }
-          }}
-          onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
-          <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
-          {!legendCollapsed && legendItems.map(item => (
-            <div key={item.type} className="venue-map-legend-item">
-              <div className="venue-map-legend-dot" style={{ background: item.color, boxShadow: `0 0 6px ${item.color}55` }} />
-              <span className="venue-map-legend-label">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div
+        className="pnm-map-overlay-stack"
+        data-legend-expanded={!legendCollapsed && !hideLegend ? 'true' : 'false'}
+      >
+        {/* ═══ VENUE TYPE LEGEND ═══ */}
+        {mapReady && !hideLegend && (
+          // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
+          // stop and keyboard activation. Kept as a div (not a button) so the existing
+          // .venue-map-legend layout and its block-level children stay valid.
+          <div className="venue-map-legend venue-map-legend--coverage" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
+            role="button"
+            tabIndex={0}
+            aria-expanded={!legendCollapsed}
+            aria-label="Toggle venue type legend"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                e.stopPropagation();
+                setLegendCollapsed(!legendCollapsed);
+              }
+            }}
+            onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
+            <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
+            {!legendCollapsed && legendItems.map(item => (
+              <div key={item.type} className="venue-map-legend-item">
+                <div className="venue-map-legend-dot" style={{ background: item.color, boxShadow: `0 0 6px ${item.color}55` }} />
+                <span className="venue-map-legend-label">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <MapCoverageReadout
+          total={visibleCount}
+          visible={viewportCount}
+          zoom={zoomLevel}
+          ready={mapReady}
+          clustering={!disableClustering && clusteringAvailable && visibleCount >= 20}
+          gps={!!userLocation}
+          verified={integritySummary.verified}
+          approximate={integritySummary.approximate}
+          held={integritySummary.held}
+        />
+      </div>
+
       {/* Map Preference Chooser — gear icon */}
       {mapReady && (
         <MapPreferenceChooser position="top-right" />
       )}
-
-      <MapCoverageReadout
-        total={visibleCount}
-        visible={viewportCount}
-        zoom={zoomLevel}
-        ready={mapReady}
-        clustering={!disableClustering && clusteringAvailable && visibleCount >= 20}
-        gps={!!userLocation}
-        verified={integritySummary.verified}
-        approximate={integritySummary.approximate}
-        held={integritySummary.held}
-      />
     </div>
     </MapSurfaceFrame>
   );

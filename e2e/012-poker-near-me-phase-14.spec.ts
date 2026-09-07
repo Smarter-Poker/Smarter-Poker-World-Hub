@@ -111,6 +111,58 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
+  test('mobile fullscreen map keeps telemetry, legend, and attribution in separate lanes', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
+    expect(response?.status()).toBe(200);
+
+    const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready="true"]').first();
+    await expect(map).toBeVisible({ timeout: 60_000 });
+    const surface = map.locator('xpath=ancestor::*[@data-pnm-map-surface="true"][1]');
+    await surface.locator('[data-map-fullscreen-control="true"]').click();
+    await expect(surface).toHaveAttribute('data-map-fullscreen', 'true');
+
+    const coverage = surface.locator('[data-map-coverage="true"]');
+    const legend = surface.locator('.venue-map-legend');
+    const attribution = surface.locator('.leaflet-control-attribution');
+    await expect(coverage).toBeVisible();
+    await expect(legend).toHaveAttribute('aria-expanded', 'false');
+    await expect(attribution).toBeVisible();
+
+    const collapsedCoverageBox = await coverage.boundingBox();
+    const collapsedLegendBox = await legend.boundingBox();
+    const attributionBox = await attribution.boundingBox();
+    expect(collapsedCoverageBox).not.toBeNull();
+    expect(collapsedLegendBox).not.toBeNull();
+    expect(attributionBox).not.toBeNull();
+    expect(collapsedLegendBox!.y + collapsedLegendBox!.height).toBeLessThanOrEqual(collapsedCoverageBox!.y - 4);
+    expect(collapsedCoverageBox!.y + collapsedCoverageBox!.height).toBeLessThanOrEqual(attributionBox!.y - 4);
+
+    await legend.click();
+    await expect(legend).toHaveAttribute('aria-expanded', 'true');
+    await expect(coverage).toBeHidden();
+
+    // 489px leaves approximately a 360px map viewport beneath the mobile
+    // command header and reproduces the short landscape collision boundary.
+    await page.setViewportSize({ width: 390, height: 489 });
+    await page.waitForTimeout(100);
+    const expandedLegendBox = await legend.boundingBox();
+    const resizedAttributionBox = await attribution.boundingBox();
+    const zoomBox = await surface.locator('.leaflet-control-zoom').boundingBox();
+    expect(expandedLegendBox).not.toBeNull();
+    expect(resizedAttributionBox).not.toBeNull();
+    expect(zoomBox).not.toBeNull();
+    expect(expandedLegendBox!.y + expandedLegendBox!.height).toBeLessThanOrEqual(resizedAttributionBox!.y - 4);
+    const legendOverlapsZoom = !(
+      expandedLegendBox!.x + expandedLegendBox!.width <= zoomBox!.x
+      || zoomBox!.x + zoomBox!.width <= expandedLegendBox!.x
+      || expandedLegendBox!.y + expandedLegendBox!.height <= zoomBox!.y
+      || zoomBox!.y + zoomBox!.height <= expandedLegendBox!.y
+    );
+    expect(legendOverlapsZoom).toBe(false);
+    await expectNoOverflow(page, 'mobile fullscreen map HUD');
+  });
+
   test('lobby map survives rapid pod teardown and recreation', async ({ page }) => {
     const runtimeErrors = collectMapRuntimeErrors(page);
     await page.addInitScript(() => {
