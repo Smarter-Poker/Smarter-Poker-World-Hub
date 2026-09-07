@@ -2,8 +2,7 @@
 
 Date: 2026-09-06
 
-Status: Production Schema Applied; Source Publication And Exact Deployment
-Certification Pending
+Status: Complete; Production Schema, Source, And Exact Deployment Certified
 
 ## Scope
 
@@ -133,15 +132,18 @@ Completed local, rollback-only, and production-schema evidence:
 
 - Canonical Marketplace contract suite: 308 passed, 0 failed after the final
   Stripe Price, ambiguous-recovery, webhook-race, and readiness corrections.
-- Focused Phase 7 suites: 24 passed, 0 failed, including execution of the real
+- Focused Phase 7 suites: 30 passed, 0 failed, including execution of the real
   webhook admission, terminal reconciliation, historical-invoice rejection,
-  compensation-race, and exact Checkout Session claim paths.
-- Title Case and banned long-bar repository gates passed across 2,771 UI files.
-- Full repository ESLint passed across 4,010 source and test files in 106
+  compensation-race, exact Checkout Session claim paths, server-rendered route
+  identities, and the retired Daily VIP terminal contract.
+- Title Case and banned long-bar repository gates passed across 2,785 UI files
+  in the final guarded publication run.
+- Full repository ESLint passed across 4,011 source and test files in 106
   bounded batches. Changed-source syntax checks and `git diff --check` passed.
 - The complete optimized production build passed, including all prerequisite
-  suites, 399 generated pages, Marketplace dynamic and SSG routes, and the
-  Personal Assistant postbuild performance budget.
+  suites, 397 generated static pages, the two parameterized Marketplace routes
+  rendered on demand with their exact route identities, and the Personal
+  Assistant postbuild performance budget.
 - PostgreSQL 17 executed the exact migration, its postcheck, its documented
   rollback, and the exact forward migration again. Behavioral probes covered
   exact-session admission, projection/finalization, valid Card reactivation,
@@ -160,17 +162,38 @@ Completed local, rollback-only, and production-schema evidence:
 - Supabase advisors remained unchanged across the migration: 681 security
   findings and 51 performance findings, with zero new findings introduced.
 
-Still required before this phase can be declared complete:
-
-- Sanctioned branch publication, protected checks, pull-request merge, and exact
-  Vercel production deployment.
-- Strict live production verifier with commerce, checkout, performance, and
-  production-truth requirements enabled against the exact deployed SHA.
-- Final live confirmation that current manual merchandise fulfillment is
-  reported truthfully and Card and Diamond capability matrices match every
-  production catalog.
-
 ## Publication Evidence
 
-Pending. Commit, pull request, merge SHA, Vercel deployment, and strict live
-verification results must be recorded here before Phase 7 is declared complete.
+- The initial Phase 7 source was published as commit
+  `0a35efd2215fa81aa9797b4c2d4eac26a879d29b` through pull request 1515 and
+  squash-merged as `6da9a94357adc7062818e50359f756ba52c6c8ea`.
+- Exact-SHA production verification on that first release deliberately did not
+  accept a partial success. It passed 46 probes and exposed four remaining
+  release gaps: the Cart loading response lacked its route marker, receipt and
+  Club item SSR responses emitted their base-route markers, and the removed
+  Daily VIP API path returned custom HTML with HTTP 200.
+- The release repair was published as commit
+  `60a3dcd8a8896956f67e8569b82348ad9a3e0ae7` through pull request 1517 and
+  squash-merged as `38dd4c8aed37d508fd79ec50bad73f8fef861672`.
+- Vercel production deployment `dpl_G5hqLkausSNtpoouGJosZGt8snEH` completed at
+  `hub-vanguard-8muoon5hq-smarter-poker.vercel.app` and received the
+  `smarter.poker` production alias. `/api/health` reported healthy application
+  and database state with the exact repair merge SHA.
+- The strict live verifier passed all 50 production probes with commerce,
+  checkout, performance, and production-truth requirements enabled. All fifteen
+  HTML routes returned their exact markers; all five hero assets passed their
+  binary contracts; every private API failed closed with the required status,
+  JSON, cache, and authorization variance; the Marketplace redirect remained a
+  permanent 308; legacy Chip purchase and Daily VIP returned 410; and every
+  measured request stayed below the 8,000 ms ceiling.
+- Production readiness reported Supabase, Stripe, and the deliberate Printful
+  manual-mode check healthy. The exact schema marker was
+  `marketplace_phase7_vip_acquisition_mutex:v1`; Stripe was live-mode and fully
+  configured; Printful was wholly absent rather than partially configured.
+  Capabilities were Card checkout true, Diamond checkout true, manual
+  merchandise fulfillment true, and automatic fulfillment false.
+- Production catalogs reported 25 merchandise items in manual fulfillment, 8
+  database-backed Diamond packages, and 3 database-backed VIP plans. No
+  fallback catalog or automatic-fulfillment claim was accepted.
+- The publication branch and `origin/main` were clean and synchronized after
+  merge. No Phase 7 code, migration, test, or wiring item remains unpublished.
