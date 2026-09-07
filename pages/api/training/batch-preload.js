@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { randomUUID } from 'node:crypto';
 /**
  * BATCH QUESTION PRE-LOADER — API Endpoint
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -31,6 +32,13 @@ import {
     trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
 import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import {
+    buildTrainingCacheRow,
+    cacheQuestionFromRow,
+    cacheRowIsServingEligible,
+    recordTrainingQuestionsServed,
+    withPersistedCacheReceipt,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
 function hashSeed(str) {
@@ -123,9 +131,10 @@ export default async function handler(req, res) {
           // Fetch questions from cache (over-fetch so seen-filtering has room)
           const { data: questions, error } = await getSupabase()
               .from('training_question_cache')
-              .select('id, question_data, engine_type')
+              .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
               .eq('game_id', gameId)
               .eq('level', gameLevel)
+              .in('quality_status', ['active', 'active_fallback'])
               .limit(Math.max(100, questionCount * 3));
 
           if (error) {
@@ -146,8 +155,11 @@ export default async function handler(req, res) {
           // rows per level, 25 > the 20 a session asks for, and the engine
           // branch below never ran. Games that declare no street are untouched.
           const declaredCfg = pioQueryService.getGameConfig(gameId);
+          const hydratedCacheRows = (questions || [])
+              .map((row) => ({ ...row, question_data: cacheQuestionFromRow(row) }))
+              .filter((row) => cacheRowIsServingEligible(row));
           const contractedRows = filterCachedRowsForGame(
-              (questions || []).slice(0, questionCount * 3),
+              hydratedCacheRows.slice(0, questionCount * 3),
               declaredCfg,
           );
           // An explicit street target is a hard training contract, not a hint.
@@ -283,9 +295,16 @@ export default async function handler(req, res) {
 
           // ●●● ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ●●●
           const policyService = new SolverPolicyService({ db: getSupabase() });
+          const originalCacheRowByQuestionId = new Map(cachedQuestions.flatMap((row) => {
+              const ids = [row?.question_id, row?.question_data?.id]
+                  .filter(Boolean)
+                  .map(String);
+              return ids.map((id) => [id, row]);
+          }));
           const enrichedBatch = batch.map(q => {
               const qData = q.question_data;
               if (!qData) return null; // Skip null entries
+              if (q.question_id) qData.id = q.question_id;
 
               // The payload type is authoritative here. Some historical chart
               // rows were stored under the generic PIO engine label, so
@@ -502,50 +521,74 @@ export default async function handler(req, res) {
           // reader sanitizes and discloses them in memory, so leaving the old
           // unsanitized row untouched made record-question reject the answer as
           // expired even though this endpoint had just served it.
-          const generatedIds = new Set(solverQuestions
-              .map(q => q?.question_data?.id)
-              .filter(Boolean)
-              .map(id => String(id).slice(0, 180)));
+          if (enrichedBatch.some((question) => !question?.id)) {
+              return res.status(422).json({
+                  success: false,
+                  error: 'A canonical identifier is required for every training question.',
+              });
+          }
+          const uniqueQuestionIds = new Set(enrichedBatch.map((question) => String(question.id)));
+          if (uniqueQuestionIds.size !== enrichedBatch.length) {
+              return res.status(422).json({
+                  success: false,
+                  error: 'Duplicate canonical question identifiers were generated for this batch.',
+              });
+          }
           const canonicalRows = Array.from(new Map(enrichedBatch
-                  .filter(q => q?.id)
-                  .map(q => [String(q.id).slice(0, 180), {
-                      question_id: String(q.id).slice(0, 180),
-                      game_id: gameId,
-                      engine_type: String(gameId).startsWith('psy-') ? 'SCENARIO'
-                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
-                      game_type: String(gameId).startsWith('mtt-') ? 'tournament'
-                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
-                      level: gameLevel,
-                      question_data: q,
-                  }])).values());
-              const cachedCanonicalRows = canonicalRows.filter(row => !generatedIds.has(row.question_id));
-              const generatedCanonicalRows = canonicalRows
-                  .filter(row => generatedIds.has(row.question_id))
-                  .map(row => ({ ...row, times_used: 1 }));
+                  .map(q => {
+                      const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
+                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
+                      const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
+                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
+                      const original = originalCacheRowByQuestionId.get(String(q.id));
+                      const row = buildTrainingCacheRow({
+                          question: q,
+                          questionId: original?.question_id || q.id,
+                          gameId,
+                          questionKind,
+                          gameType,
+                          level: gameLevel,
+                          generatedAt: original?.generated_at || new Date().toISOString(),
+                          id: original?.id || null,
+                      });
+                      return [row.question_id, row];
+                  })).values());
+              let servedBatch = enrichedBatch;
               if (canonicalRows.length > 0) {
                   try {
-                    await Promise.all([
-                      cachedCanonicalRows.length > 0
-                          ? runTrainingPersistenceQuery(
-                              () => getSupabase().from('training_question_cache')
-                                  .upsert(cachedCanonicalRows, {
-                                      onConflict: 'question_id',
-                                      defaultToNull: false,
-                                  }),
-                              { label: 'BatchPreload:canonicalize-cached' },
-                            )
-                          : Promise.resolve({ error: null }),
-                      generatedCanonicalRows.length > 0
-                          ? runTrainingPersistenceQuery(
-                              () => getSupabase().from('training_question_cache')
-                                  .upsert(generatedCanonicalRows, {
-                                      onConflict: 'question_id',
-                                      defaultToNull: false,
-                                  }),
-                              { label: 'BatchPreload:canonicalize-generated' },
-                            )
-                          : Promise.resolve({ error: null }),
-                    ]);
+                    const persisted = await runTrainingPersistenceQuery(
+                        () => getSupabase().from('training_question_cache')
+                            .upsert(canonicalRows, {
+                                onConflict: 'question_id',
+                                defaultToNull: false,
+                            })
+                            .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
+                        { label: 'BatchPreload:canonicalize' },
+                    );
+                    const receiptByQuestionId = new Map(
+                        (persisted.data || []).map((row) => [row.question_id, row]),
+                    );
+                    if (receiptByQuestionId.size !== canonicalRows.length) {
+                        throw new Error('Database did not return one canonical receipt per question');
+                    }
+                    const canonicalByQuestionId = new Map(
+                        canonicalRows.map((row) => [row.question_id, row.question_data]),
+                    );
+                    servedBatch = enrichedBatch.map((question) => {
+                        const questionId = String(question.id);
+                        return withPersistedCacheReceipt(
+                            canonicalByQuestionId.get(questionId),
+                            receiptByQuestionId.get(questionId),
+                        );
+                    });
+                    await recordTrainingQuestionsServed(getSupabase(), {
+                        requestId: randomUUID(),
+                        userId: _authUser.id,
+                        receipts: canonicalRows.map((row) => ({
+                            questionId: row.question_id,
+                            policyChecksum: receiptByQuestionId.get(row.question_id)?.policy_checksum,
+                        })),
+                    });
                   } catch (canonicalizeError) {
                       console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
                       return res.status(503).json(trainingPersistenceUnavailableBody());
@@ -557,8 +600,8 @@ export default async function handler(req, res) {
               success: true,
               gameId,
               level: gameLevel,
-              count: enrichedBatch.length,
-              questions: enrichedBatch
+              count: servedBatch.length,
+              questions: servedBatch
           });
 
       } catch (err) {

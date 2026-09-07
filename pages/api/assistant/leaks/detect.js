@@ -12,7 +12,12 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
-import { aggregateSolverLeaks, canResolveSolverLeakScope, gradeSolverDecision, solverDecisionGroupKey, summarizeSolverDecisionGroups } from '../../../../src/lib/training/solverDecisionEvidence';
+import { aggregateSolverLeaks, canResolveSolverLeakScope, solverDecisionGroupKey, summarizeSolverDecisionGroups } from '../../../../src/lib/training/solverDecisionEvidence';
+import { gradeCanonicalPolicyDecision } from '../../../../src/lib/training/cacheTruthContract.mjs';
+import {
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+} from '../../../../src/lib/training/cacheTruthPersistence.mjs';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
 import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
 import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
@@ -680,13 +685,22 @@ async function fetchCanonicalQuestionMap(db, rows) {
     const batch = ids.slice(i, i + 100);
     const { data, error } = await db
       .from('training_question_cache')
-      .select('question_id, game_id, question_data')
+      .select('question_id, game_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
       .in('question_id', batch)
+      .in('quality_status', ['active', 'active_fallback'])
       .limit(100);
     if (error) throw error;
     for (const row of data || []) {
-      map.set(String(row.question_id), { question: row.question_data, gameId: row.game_id });
-      if (row.question_data?.id) map.set(String(row.question_data.id), { question: row.question_data, gameId: row.game_id });
+      const hydrated = { ...row, question_data: cacheQuestionFromRow(row) };
+      if (!cacheRowIsServingEligible(hydrated)) continue;
+      const entry = {
+        question: hydrated.question_data,
+        policy: row.canonical_policy,
+        policyChecksum: row.policy_checksum,
+        gameId: row.game_id,
+      };
+      map.set(String(row.question_id), entry);
+      if (hydrated.question_data?.id) map.set(String(hydrated.question_data.id), entry);
     }
   }
   return map;
@@ -711,7 +725,7 @@ async function fetchPagedRows(buildQuery, { pageSize = 1000, maxRows = 10000 } =
 
 async function getSolverTrainingEvidence(db, userId) {
   const evidenceSnapshot = new Date().toISOString();
-  const modernColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured';
+  const modernColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured, evidence_metadata';
   const legacyColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at';
   const readTraining = columns => fetchPagedRows((from, to) => db
       .from('training_answers')
@@ -757,7 +771,15 @@ async function getSolverTrainingEvidence(db, userId) {
         trainingComplete = false;
         continue;
       }
-      const grade = gradeSolverDecision(cached.question, row.answer_id);
+      if (
+        String(row?.evidence_metadata?.policyChecksum || '').toLowerCase()
+        !== String(cached.policyChecksum || '').toLowerCase()
+      ) {
+        canonicalMisses += 1;
+        trainingComplete = false;
+        continue;
+      }
+      const grade = gradeCanonicalPolicyDecision(cached.policy, row.answer_id);
       if (!grade.solverVerified) continue;
       const scenario = cached.question.scenario || {};
       const gameId = cached.gameId || row.game_id;

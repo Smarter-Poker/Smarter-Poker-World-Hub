@@ -27,6 +27,7 @@ export async function fetchQuestionBatch(params) {
     if (trainerConfig) {
         // CUSTOM TRAINER MODE — use custom-train API with detailed config
         queryParams = new URLSearchParams({
+            gameId,
             gameType: trainerConfig.gameType || 'cash',
             stackDepth: (trainerConfig.stackDepth || 100).toString(),
             count: (trainerConfig.questionsCount || count).toString(),

@@ -24,6 +24,7 @@
  *   verdict       'correct' | 'incorrect' | 'mixed'
  *   userAction    string — what the user chose
  *   solverAction  string — solver-optimal
+ *   referenceLabel string — evidence label shown before solverAction
  *   evLoss        number  — bb lost (0 for perfect)
  *   evUnit        string  — default 'bb'
  *   whyShort      string  — under-50-words explanation
@@ -112,6 +113,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
   verdict = 'correct',
   userAction,
   solverAction,
+  referenceLabel = 'Reference',
   evLoss,
   evUnit = 'bb',
   whyShort,
@@ -263,7 +265,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
           <span style={actionLineStyle}>
             {userAction ? <span style={{ color: theme.text }}>{userAction}</span> : null}
             {userAction && solverAction ? <span style={{ color: 'var(--sp-fg-dim)' }}> · </span> : null}
-            {solverAction ? <span>Solver: <strong style={{ color: '#fff' }}>{solverAction}</strong></span> : null}
+            {solverAction ? <span>{referenceLabel}: <strong style={{ color: '#fff' }}>{solverAction}</strong></span> : null}
           </span>
         ) : null}
       </div>

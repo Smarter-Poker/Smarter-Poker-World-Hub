@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { createHash, randomUUID } from 'node:crypto';
 /**
  * GET /api/training/custom-train
  * Fetches training questions based on custom trainer configuration.
@@ -24,6 +25,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 import { analyzeBoard, FLUSH_TEXTURE, PAIR_TEXTURE, CONNECTIVITY } from '../../../src/engines/BoardTextureEngine';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import { trainingPersistenceUnavailableBody } from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -134,6 +137,7 @@ export default async function handler(req, res) {
       }
 
       const {
+          gameId: rawGameId,
           gameType = 'cash',
           position,
           villainPosition,
@@ -145,9 +149,17 @@ export default async function handler(req, res) {
           count = '25',
       } = req.query;
 
+      const gameId = sanitizeParam(rawGameId, 100);
+      if (!gameId) {
+          return res.status(400).json({ success: false, error: 'gameId is required' });
+      }
+
+      const normalizedGameType = ['cash', 'mtt', 'spins'].includes(String(gameType))
+          ? String(gameType)
+          : 'cash';
       const parsedStack = parseInt(stackDepth, 10) || 100;
       const parsedCount = Math.min(parseInt(count, 10) || 25, 100);
-      const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
+      const pioGameTypes = GAME_TYPE_TO_PIO[normalizedGameType];
 
       // #8 — only act on a texture this build actually knows how to test.
       // An unknown value is treated as "any board", which is what the player
@@ -159,7 +171,7 @@ export default async function handler(req, res) {
       const textureRequested = Object.prototype.hasOwnProperty.call(BOARD_TEXTURE_PREDICATES, textureId);
 
       try {
-          console.debug(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${parsedCount} hands`);
+          console.debug(`[CustomTrain] Config: ${normalizedGameType} | ${position || 'any'} | ${parsedStack}BB | ${parsedCount} hands`);
 
           const policyService = new SolverPolicyService({ db: getSupabase() });
           const safePosition = position && position !== 'any' ? sanitizeParam(position, 10) : null;
@@ -212,9 +224,10 @@ export default async function handler(req, res) {
               });
           }
 
-          return buildAndReturnQuestions(
+          return await buildAndReturnQuestions(
               res, scenarios, parsedCount, position, parsedStack, street, handClass,
               textureRequested ? textureId : null,
+              { gameId, gameType: normalizedGameType, userId: user.id },
           );
       } catch (err) {
           console.warn('[CustomTrain] Error:', err);
@@ -231,7 +244,17 @@ export default async function handler(req, res) {
 /**
  * Build questions from scenarios and return response
  */
-function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, street, handClass, boardTexture = null) {
+async function buildAndReturnQuestions(
+    res,
+    scenarios,
+    count,
+    position,
+    stackDepth,
+    street,
+    handClass,
+    boardTexture = null,
+    { gameId, gameType, userId },
+) {
     const engine = new DeterministicGTOEngine();
     engine.setSupabaseClient(getSupabase());
     applyDeterministicEnginePatches(engine);
@@ -257,18 +280,24 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
 
         const question = engine.buildQuestionFromScenario(scenario, gameConfig, 5, i);
         if (question && !usedIds.has(question.id)) {
-            // Override position if specified
-            if (position && position !== 'any') {
-                question.scenario.heroPosition = position;
-            }
-            question.scenario.stackDepth = stackDepth;
-            question.scenario.heroStack = stackDepth;
-            question.scenario.villainStack = stackDepth;
+            // Never rewrite a solved row's position or stack to resemble the
+            // requested filter. The bounded fallback above may intentionally
+            // relax a filter; transplanting the original policy onto that new
+            // context would turn an honest fallback into fabricated solver
+            // evidence. The response config still reports what was requested,
+            // while every question reports the exact source context it uses.
+            const sourceQuestionId = String(question.id);
+            question.id = `custom:${createHash('sha256').update(JSON.stringify({
+                gameId,
+                sourceQuestionId,
+                boardTexture,
+                handClass: handClass || null,
+            })).digest('hex')}`;
 
             const contractedQuestion = enforceTrainingQuestionContract(question);
             if (isTrainingQuestionValid(contractedQuestion)) {
                 questions.push(policyService.attachToQuestion(contractedQuestion, 'custom-trainer'));
-                usedIds.add(contractedQuestion.id);
+                usedIds.add(sourceQuestionId);
             }
         }
 
@@ -277,9 +306,35 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
 
     console.debug(`[CustomTrain] Generated ${questions.length}/${count} questions from ${scenarios.length} scenarios`);
 
+    if (questions.length === 0) {
+        return res.status(422).json({
+            success: false,
+            questions: [],
+            error: 'No questions passed the canonical policy and integrity contracts.',
+        });
+    }
+
+    let servedQuestions;
+    try {
+        servedQuestions = await persistCanonicalTrainingQuestions(getSupabase(), {
+            questions,
+            gameId,
+            questionKind: 'PIO',
+            gameType: gameType === 'mtt' ? 'tournament'
+                : gameType === 'spins' ? 'sng' : 'cash',
+            level: 5,
+            userId,
+            requestId: randomUUID(),
+            label: 'CustomTrain:canonicalize',
+        });
+    } catch (canonicalizeError) {
+        console.warn('[CustomTrain] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+    }
+
     return res.status(200).json({
         success: true,
-        questions,
+        questions: servedQuestions,
         totalAvailable: scenarios.length,
         // #8: every caller that reaches this point has had its rows filtered
         // already, so `boardTextureApplied` is true whenever a texture was

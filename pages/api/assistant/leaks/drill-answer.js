@@ -52,13 +52,20 @@ export default async function handler(req, res) {
 
     const { data: question, error: questionError } = await supabase
       .from('training_question_cache')
-      .select('id, question_data')
+      .select('id, question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
       .eq('id', questionId)
+      .in('quality_status', ['active', 'active_fallback'])
       .maybeSingle();
     if (questionError || !question?.question_data) {
       return res.status(503).json({ success: false, error: 'Solver question is temporarily unavailable' });
     }
-    const graded = gradeDrillAnswer(question.question_data, selectedAnswer, timedOut);
+    if (
+      String(batch.policyChecksums?.[questionId] || '').toLowerCase()
+      !== String(question.policy_checksum || '').toLowerCase()
+    ) {
+      return res.status(409).json({ success: false, error: 'This drill policy changed. Start a new drill.' });
+    }
+    const graded = gradeDrillAnswer(question, selectedAnswer, timedOut);
     if (!graded.ok) return res.status(422).json({ success: false, error: 'Question is not solver verified' });
 
     // Session creation is deliberately deferred until the first locked answer.
@@ -90,6 +97,25 @@ export default async function handler(req, res) {
     if (error || data?.success !== true) {
       console.warn('[leaks/drill-answer] ledger write failed:', error?.message || data?.error);
       return res.status(503).json({ success: false, error: 'Could not lock this answer. Please retry.' });
+    }
+
+    const { error: eventError } = await supabase.rpc('fn_training_cache_record_event', {
+      p_event_type: 'answered',
+      p_event_key: `leak-drill:${batch.batchId}:${questionId}`,
+      p_question_id: question.question_id,
+      p_user_id: user.id,
+      p_is_correct: graded.correct,
+      p_metadata: {
+        consumer: 'verified-leak-drill',
+        batchId: batch.batchId,
+        policyChecksum: question.policy_checksum,
+      },
+      p_occurred_at: new Date().toISOString(),
+      p_expected_policy_checksum: question.policy_checksum,
+    });
+    if (eventError) {
+      console.warn('[leaks/drill-answer] cache event write failed:', eventError.message);
+      return res.status(503).json({ success: false, error: 'Could not finalize this answer. Please retry.' });
     }
 
     const answer = data.answer || {};

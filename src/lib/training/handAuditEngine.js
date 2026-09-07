@@ -1,5 +1,9 @@
 import { getHeroDecisionPoints } from '../../engines/HandHistoryParser.js';
-import { gradeSolverDecision } from './solverDecisionEvidence.js';
+import { gradeCanonicalPolicyDecision } from './cacheTruthContract.mjs';
+import {
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+} from './cacheTruthPersistence.mjs';
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
@@ -423,6 +427,10 @@ function fingerprint(question) {
   return JSON.stringify({ frequencies, options, correct: String(question?.correctAnswer || '') });
 }
 
+function canonicalFingerprint(row) {
+  return String(row?.policy_checksum || '') || fingerprint(row?.question_data);
+}
+
 function exactIdentityCompatible(question, hand, point) {
   if (!isSupportedHoldemHand(hand)) return false;
   const scenario = question?.scenario || {};
@@ -470,8 +478,9 @@ async function findQuestion(db, hand, point) {
   const prefix = hand.format === 'tournament' ? 'mtt-%' : 'cash-%';
   const { data, error } = await db
     .from('training_question_cache')
-    .select('question_id, game_id, question_data')
+    .select('question_id, game_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
     .like('game_id', prefix)
+    .in('quality_status', ['active', 'active_fallback'])
     .eq('question_data->scenario->>street', point.street)
     .eq('question_data->scenario->>heroPosition', point.position)
     // Filter on the indexed solver signature BEFORE the candidate cap. With
@@ -481,7 +490,10 @@ async function findQuestion(db, hand, point) {
     .limit(250);
   if (error) throw error;
   const requestedBoard = canonicalBoard(point.board);
-  const candidates = (data || []).filter(row => {
+  const candidates = (data || []).map((row) => ({
+    ...row,
+    question_data: cacheQuestionFromRow(row),
+  })).filter((row) => cacheRowIsServingEligible(row)).filter(row => {
     const question = row.question_data || {};
     const heroHand = question?.scenario?.heroHand || question?.heroHand;
     return String(heroHand || '').toUpperCase() === notation.toUpperCase() && nodeCompatible(question, point);
@@ -494,7 +506,7 @@ async function findQuestion(db, hand, point) {
   }).sort((a, b) => a.matchTier - b.matchTier || String(a.question_id).localeCompare(String(b.question_id)));
   if (candidates.length === 0) return null;
   const best = candidates.filter(candidate => candidate.matchTier === candidates[0].matchTier);
-  return new Set(best.map(candidate => fingerprint(candidate.question_data))).size === 1 ? best[0] : null;
+  return new Set(best.map(canonicalFingerprint)).size === 1 ? best[0] : null;
 }
 
 function summary(row) {
@@ -616,7 +628,9 @@ export async function auditParsedHands(db, userId, hands, {
       const candidate = !lookupFailed && cached ? cached : null;
       if (lookupFailed) solverLookupFailures += 1;
       const answer = candidate ? mapPlayedAction(candidate.question_data, point) : null;
-      const grade = answer ? gradeSolverDecision(candidate.question_data, answer) : null;
+      const grade = answer
+        ? gradeCanonicalPolicyDecision(candidate.canonical_policy, answer)
+        : null;
       const solverVerified = !!(grade?.solverVerified && candidate?.matchTier === 1);
       if (candidate) matched++;
       if (solverVerified) verified++;

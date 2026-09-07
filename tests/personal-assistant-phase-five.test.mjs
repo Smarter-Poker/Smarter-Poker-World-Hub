@@ -11,6 +11,10 @@ import './personal-assistant-analysis-contract.test.mjs';
 import { sealDrillBatch, openDrillBatch, gradeDrillAnswer, gradeDrillRows }
   from '../src/lib/personal-assistant/drillTelemetry.js';
 import { lockedDrillResult } from '../src/lib/personal-assistant/lockedDrillResult.js';
+import {
+  canonicalCacheRowFixture,
+  sealCanonicalTrainingQuestion,
+} from './helpers/canonicalTrainingPolicyFixture.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = path => readFileSync(resolve(here, path), 'utf8');
@@ -25,7 +29,7 @@ const secret = 'phase-five-test-secret-that-is-long-enough';
 const now = Date.parse('2026-08-30T19:30:00.000Z');
 
 function solverQuestion() {
-  return {
+  return sealCanonicalTrainingQuestion({
     source: 'DETERMINISTIC_SOLVER',
     solverProvenance: {
       verified: true,
@@ -42,17 +46,28 @@ function solverQuestion() {
     },
     gtoFrequencies: { raise: 80, call: 20, fold: 0 },
     correctAnswer: 'raise',
+    heroHand: 'AKo',
+    scenario: {
+      street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB',
+      heroHand: 'AKo', stackDepth: 100, villainStack: 100,
+      potSize: 1.5, nodeType: 'hero_faces_bet', actionHistory: [],
+    },
     options: [
       { id: 'raise', text: 'Raise' }, { id: 'call', text: 'Call' }, { id: 'fold', text: 'Fold' },
     ],
     explanation: 'Raise is the primary solver action.',
-  };
+  });
+}
+
+function solverRow(id = 'q1') {
+  return canonicalCacheRowFixture(solverQuestion(), { id, questionId: id });
 }
 
 test('verified sessions enforce five-question minimum and bind identity plus expiry', () => {
-  assert.equal(sealDrillBatch({ leakId: 'leak-1', questionIds: ['q1', 'q2', 'q3', 'q4'] }, 'user-1', { secret, now }), null);
+  const receipts = ['q1', 'q2', 'q3', 'q4', 'q5'].map((id) => ({ id, policyChecksum: 'e'.repeat(64) }));
+  assert.equal(sealDrillBatch({ leakId: 'leak-1', receipts: receipts.slice(0, 4) }, 'user-1', { secret, now }), null);
   const ids = ['q1', 'q2', 'q3', 'q4', 'q5'];
-  const token = sealDrillBatch({ leakId: 'leak-1', questionIds: ids }, 'user-1', { secret, now });
+  const token = sealDrillBatch({ leakId: 'leak-1', receipts }, 'user-1', { secret, now });
   assert.deepEqual(openDrillBatch(token, 'user-1', 'leak-1', { secret, now: now + 1000 }).questionIds, ids);
   assert.throws(() => openDrillBatch(token, 'user-2', 'leak-1', { secret, now }), /invalid_drill_token/);
   assert.throws(() => openDrillBatch(token, 'user-1', 'leak-2', { secret, now }), /invalid_drill_token/);
@@ -61,12 +76,12 @@ test('verified sessions enforce five-question minimum and bind identity plus exp
 });
 
 test('canonical grading uses the same verified solver frequencies as training', () => {
-  assert.equal(gradeDrillAnswer(solverQuestion(), 'Raise').correct, true);
-  assert.equal(gradeDrillAnswer(solverQuestion(), 'Call').correct, true, 'mixed action in solver range is valid');
-  assert.equal(gradeDrillAnswer(solverQuestion(), 'Fold').correct, false);
+  assert.equal(gradeDrillAnswer(solverRow(), 'Raise').correct, true);
+  assert.equal(gradeDrillAnswer(solverRow(), 'Call').correct, true, 'mixed action in solver range is valid');
+  assert.equal(gradeDrillAnswer(solverRow(), 'Fold').correct, false);
   assert.equal(gradeDrillAnswer({ correctAnswer: 'Raise', options: ['Raise', 'Fold'] }, 'Raise').reason, 'question_not_solver_verified');
 
-  const rows = ['q1', 'q2', 'q3'].map(id => ({ id, question_data: solverQuestion() }));
+  const rows = ['q1', 'q2', 'q3'].map(solverRow);
   const graded = gradeDrillRows(rows, ['q1', 'q2', 'q3'], [
     { questionId: 'q1', selectedAnswer: 'Raise' },
     { questionId: 'q2', selectedAnswer: 'Fold' },
@@ -104,7 +119,7 @@ test('corrective drills resolve hyphen and underscore aliases without weakening 
   assert.match(drillApi, /function gameIdAliases/);
   assert.match(drillApi, /raw\.replace\(\/-\/g, '_'\)/);
   assert.match(drillApi, /query\.in\('game_id', gameIds\)/);
-  assert.match(drillApi, /matchesExactSolverScope\(row\.question_data, ownedDrillParams\.leak\)/);
+  assert.match(drillApi, /matchesExactSolverScope\(hydratedQuestion, ownedDrillParams\.leak\)/);
 });
 
 test('verified answer metadata comes from the canonical solver question, not the browser', () => {
@@ -161,13 +176,13 @@ test('The Optimizer fails closed until Club Arena recovery is recorder-attested'
   assert.match(rewards, /the_optimizer: 'needs immutable server-recorder-attested Club Arena recovery evidence'/);
 });
 
-test('source-less verified compatibility questions receive a lockable canonical provenance label', () => {
-  const question = solverQuestion();
-  delete question.source;
-  question.solverProvenance = { ...question.solverProvenance, verified: true };
-  const graded = gradeDrillAnswer(question, 'Raise');
+test('source-less display data retains the canonical policy source', () => {
+  const row = solverRow();
+  delete row.question_data.source;
+  delete row.question_data.solverProvenance;
+  const graded = gradeDrillAnswer(row, 'Raise');
   assert.equal(graded.ok, true);
-  assert.equal(graded.solverSource, 'SOLVER_PROVENANCE_VERIFIED');
+  assert.equal(graded.solverSource, 'DETERMINISTIC_SOLVER');
 });
 
 test('lost choice response remains the locked choice when retry arrives as a timeout', () => {

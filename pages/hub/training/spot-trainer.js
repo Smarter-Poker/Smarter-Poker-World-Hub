@@ -22,13 +22,23 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
+import {
+  gradeCanonicalPolicyDecision,
+  trainingSourcePresentation,
+} from '../../../src/lib/training/cacheTruthContract.mjs';
 // TRAIN-WIRE-FX-4a — adoption: feedback hook for spot-trainer.fresh.js
 
-function saveSession(payload) {
-  authedFetch('/api/training/save-session', {
+async function saveSession(payload) {
+  const response = await authedFetch('/api/training/save-session', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Session persistence failed (${response.status})`);
+  }
+  return response;
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -84,6 +94,7 @@ export default function SpotTrainerPage() {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [answerPending, setAnswerPending] = useState(false);
 
   // Filters
   const [format, setFormat] = useState('');
@@ -137,15 +148,57 @@ export default function SpotTrainerPage() {
 
   // Handle answer selection
   const handleAnswer = useCallback(
-    (action) => {
-      if (showResult || !spot) return;
+    async (action) => {
+      if (showResult || answerPending || !spot) return;
+
+      const answerId = spot.actionIdByLabel?.[action];
+      const canonicalGrade = gradeCanonicalPolicyDecision(spot.solverPolicy, answerId);
+      if (!canonicalGrade.valid || !spot.policyChecksum) {
+        setError('This policy receipt is no longer gradeable. Load a new spot.');
+        return;
+      }
+
+      setAnswerPending(true);
+      let persistedEvidence;
+      try {
+        const submissionId = globalThis.crypto?.randomUUID?.()
+          || `${spot.id}:${Date.now()}:${answerId}`;
+        const response = await authedFetch('/api/training/record-question', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: 'spot-trainer',
+            questionId: spot.id,
+            policyChecksum: spot.policyChecksum,
+            submissionId,
+            selectedAnswer: answerId,
+            level: 1,
+            heroPosition: spot.heroPosition,
+            street: String(spot.street || '').toLowerCase(),
+            classification: canonicalGrade.classification,
+            evLoss: canonicalGrade.evLoss || 0,
+            spotType: 'spot-drill',
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `Answer persistence failed (${response.status})`);
+        persistedEvidence = payload.evidence;
+        if (
+          persistedEvidence?.classification !== canonicalGrade.classification
+          || persistedEvidence?.isCorrect !== canonicalGrade.isCorrect
+        ) throw new Error('The server grade did not match the canonical policy shown.');
+      } catch (answerError) {
+        setError(answerError.message || 'Answer could not be recorded.');
+        setAnswerPending(false);
+        return;
+      }
 
       const responseTimeMs = Date.now() - questionStartRef.current;
       setSelected(action);
       setShowResult(true);
       setTotalDrills((prev) => prev + 1);
 
-      const isCorrect = action === spot.gtoAction;
+      const isCorrect = persistedEvidence.isCorrect;
       if (isCorrect) fb.correct(); else fb.incorrect();
 
       // Record per-question detail for session granularity
@@ -159,6 +212,9 @@ export default function SpotTrainerPage() {
         response_time_ms: responseTimeMs,
         street: spot.street,
         stack_depth: spot.stackDepth,
+        questionId: spot.id,
+        policyChecksum: spot.policyChecksum,
+        sourceClassification: spot.sourceClassification,
       });
 
       if (isCorrect) {
@@ -188,14 +244,18 @@ export default function SpotTrainerPage() {
       if (bus?.emitCardViewed) bus.emitCardViewed(spot.board);
 
       // Save session with per-question detail
-      saveSession({
-        game_id: 'spot-trainer',
-        hands_played: 1,
-        accuracy: isCorrect ? 100 : 0,
-        correct_answers: isCorrect ? 1 : 0,
-        total_questions: 1,
-        handHistory: sessionHandHistory.current.slice(-100),
-      });
+      try {
+        await saveSession({
+          game_id: 'spot-trainer',
+          hands_played: 1,
+          accuracy: isCorrect ? 100 : 0,
+          correct_answers: isCorrect ? 1 : 0,
+          total_questions: 1,
+          handHistory: sessionHandHistory.current.slice(-100),
+        });
+      } catch (sessionError) {
+        setError(`Answer recorded, but completion receipt failed: ${sessionError.message}`);
+      }
 
       // Emit bus event for cross-page sync (session-dashboard, position-mastery)
       try {
@@ -213,20 +273,27 @@ export default function SpotTrainerPage() {
         eventBus?.emit?.('training:drill-complete', {}, 'SpotTrainer');
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
+      setAnswerPending(false);
+
     },
-    [showResult, spot, bus, fb]
+    [showResult, answerPending, spot, bus, fb]
   );
 
   const accuracy = totalDrills > 0 ? Math.round((correctDrills / totalDrills) * 100) : 0;
   const elapsed = Math.floor((Date.now() - sessionStart) / 60000);
+  const sourceBadge = trainingSourcePresentation(spot?.sourceClassification);
+  const selectedGrade = selected
+    ? gradeCanonicalPolicyDecision(spot?.solverPolicy, spot?.actionIdByLabel?.[selected])
+    : null;
+  const selectedIsCorrect = selectedGrade?.valid === true && selectedGrade.isCorrect === true;
 
   return (
     <>
       <Head>
-        <title>Spot Trainer | Smarter.Poker GTO Training</title>
+        <title>Spot Trainer | Smarter.Poker Policy Training</title>
         <meta
           name="description"
-          content="Drill postflop GTO decisions with solver-verified spots. Test your skills with rapid-fire action selection."
+          content="Drill postflop decisions with source-labeled policy spots and canonical grading."
         />
       </Head>
 
@@ -597,6 +664,23 @@ export default function SpotTrainerPage() {
 
                 {/* Question */}
                 <div
+                  title={sourceBadge.title}
+                  style={{
+                    width: 'fit-content',
+                    margin: '0 auto 10px',
+                    padding: '4px 9px',
+                    borderRadius: 999,
+                    border: `1px solid ${sourceBadge.border}`,
+                    background: sourceBadge.bg,
+                    color: sourceBadge.fg,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: 0.8,
+                  }}
+                >
+                  {sourceBadge.label}
+                </div>
+                <div
                   style={{
                     fontSize: 14,
                     fontWeight: 700,
@@ -605,7 +689,7 @@ export default function SpotTrainerPage() {
                     marginBottom: 14,
                   }}
                 >
-                  What Is The GTO Play?
+                  What Is The Best Policy Play?
                 </div>
 
                 {/* Action Buttons */}
@@ -624,9 +708,13 @@ export default function SpotTrainerPage() {
                       label={action}
                       shortcut={i + 1}
                       selected={selected === action}
-                      correct={action === spot.gtoAction}
+                      correct={gradeCanonicalPolicyDecision(
+                        spot.solverPolicy,
+                        spot.actionIdByLabel?.[action],
+                      ).isCorrect === true}
                       show={showResult}
                       onClick={() => handleAnswer(action)}
+                      disabled={answerPending}
                       ariaLabel={`Choose ${action}`}
                       size="md"
                       fullWidth
@@ -647,10 +735,10 @@ export default function SpotTrainerPage() {
                       exit={{ opacity: 0 }}
                       style={{
                         background:
-                          selected === spot.gtoAction
+                          selectedIsCorrect
                             ? 'rgba(34,197,94,0.1)'
                             : 'rgba(239,68,68,0.1)',
-                        border: `1px solid ${selected === spot.gtoAction ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                        border: `1px solid ${selectedIsCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                         borderRadius: 10,
                         padding: '12px 16px',
                         marginBottom: 14,
@@ -659,11 +747,12 @@ export default function SpotTrainerPage() {
                       {/* TRAIN-WIRE-FEEDBACK-V2-5 — verdict via FeedbackCard compact */}
                       <div style={{ marginBottom: 8 }}>
                         <FeedbackCard
-                          verdict={selected === spot.gtoAction ? 'correct' : 'incorrect'}
+                          verdict={selectedIsCorrect ? 'correct' : 'incorrect'}
                           userAction={selected || ''}
                           solverAction={spot.gtoAction}
+                          referenceLabel={sourceBadge.label}
                           evLoss={0}
-                          whyShort={selected === spot.gtoAction ? 'Optimal play.' : `Solver prefers ${spot.gtoAction}.`}
+                          whyShort={selectedIsCorrect ? 'Policy-correct.' : `The canonical policy prefers ${spot.gtoAction}.`}
                           compact
                         />
                       </div>
@@ -679,7 +768,7 @@ export default function SpotTrainerPage() {
                           letterSpacing: 1,
                         }}
                       >
-                        GTO Frequencies
+                        Policy Frequencies
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {Object.entries(spot.actionBreakdown || {})
