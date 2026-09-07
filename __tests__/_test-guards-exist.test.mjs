@@ -230,6 +230,12 @@ import './alertmanager-page.test.mjs';
 // never asks Vercel to decrypt, never carries a value, and exits 2 rather
 // than 0 when it cannot see.
 import './an-env-var-cannot-change-unseen.law.test.mjs';
+// 2026-09-07: `env(safe-area-inset-top)` was applied on BOTH <body> and the
+// sticky header, so on an installed PWA the header sat one whole status bar too
+// low (118px of dead space on a Dynamic Island phone, where 59 is correct). It
+// is invisible in a browser tab, where the inset is 0, which is precisely why
+// it needs a test rather than an eye.
+import './the-status-bar-inset-has-one-owner.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
