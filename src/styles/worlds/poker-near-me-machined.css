@@ -402,6 +402,12 @@ body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__signal {
   background-image: none !important;
 }
 
+/* On desktop the wrapper has no box, preserving the established opposing
+   corners. Mobile turns it into one layout-owned HUD stack below. */
+body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
+  display: contents;
+}
+
 body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom a {
   width: 44px !important;
   height: 44px !important;
@@ -1073,7 +1079,7 @@ body.world-poker-near-me :is(
      coverage console and legend remain separate physical instruments instead
      of stacking underneath the attribution strip. */
   body.world-poker-near-me .pnm-map-surface {
-    --pnm-map-mobile-attribution-reserve: calc(46px + env(safe-area-inset-bottom, 0px));
+    --pnm-map-mobile-attribution-reserve: calc(58px + env(safe-area-inset-bottom, 0px));
   }
 
   body.world-poker-near-me .pnm-map-surface .leaflet-control-attribution {
@@ -1082,6 +1088,38 @@ body.world-poker-near-me :is(
 
   body.world-poker-near-me .pnm-map-surface .pnm-map-coverage--overlay {
     bottom: calc(8px + var(--pnm-map-mobile-attribution-reserve));
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
+    position: absolute;
+    right: 8px;
+    bottom: calc(8px + var(--pnm-map-mobile-attribution-reserve));
+    left: 8px;
+    z-index: 800;
+    display: flex;
+    max-height: calc(100% - 16px - var(--pnm-map-mobile-attribution-reserve));
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack > * {
+    pointer-events: auto;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .pnm-map-coverage--overlay {
+    position: static;
+    width: 100%;
+    max-width: none;
+    flex: none;
+  }
+
+  /* An expanded key and the telemetry card cannot both fit beside the zoom
+     rail on a short mobile map. The key temporarily owns this same HUD lane;
+     one tap collapses it and restores the live coverage card. */
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack[data-legend-expanded='true'] .pnm-map-coverage {
+    display: none;
   }
 
   /* Poker Tours previously compressed its search input to ~3px because two
@@ -1180,10 +1218,12 @@ body.world-poker-near-me :is(
     display: none;
   }
 
-  body.world-poker-near-me .pnm-map-surface .venue-map-legend {
-    left: 8px;
-    bottom: calc(116px + var(--pnm-map-mobile-attribution-reserve));
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack .venue-map-legend {
+    position: static;
     max-width: 138px;
+    max-height: 100%;
+    flex: 0 1 auto;
+    overflow-y: auto;
     padding: 8px 9px;
   }
 
