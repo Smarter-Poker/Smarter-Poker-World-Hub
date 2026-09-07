@@ -270,9 +270,12 @@ export default async function handler(req, res) {
                 defaultToNull: false,
               })
               .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
-              .single(),
+              .maybeSingle(),
             { label: 'GetQuestion:canonicalize' },
           );
+          if (!persisted.data?.question_id || !persisted.data?.policy_checksum) {
+            throw new Error('Canonical cache persistence returned no verifiable receipt');
+          }
           question = withPersistedCacheReceipt(canonicalPayload.question_data, persisted.data);
           await recordTrainingQuestionsServed(getSupabase(), {
             requestId: randomUUID(),
