@@ -32,18 +32,21 @@ async function setupWebhook() {
         const existing = existingWebhooks.data.find(wh => wh.url === WEBHOOK_URL);
 
         if (existing) {
-            console.log('⚠️  Webhook endpoint already exists!');
-            console.log(`   ID: ${existing.id}`);
-            console.log(`   URL: ${existing.url}`);
-            console.log(`   Secret: ${existing.secret}\n`);
-
-            console.log('Would you like to:');
-            console.log('1. Keep existing webhook');
-            console.log('2. Delete and recreate\n');
-
-            // For now, just show the existing secret
-            console.log('✅ Use this webhook secret in your .env.local:');
-            console.log(`STRIPE_WEBHOOK_SECRET="${existing.secret}"`);
+            // 2026-09-07 (Diamond Accounting Standard D10): an existing endpoint is brought up to
+            // the full event list instead of being left as it was. Before this, the three
+            // charge.dispute.* events could never reach a live endpoint that already existed.
+            const have = new Set(existing.enabled_events || []);
+            const missing = have.has('*') ? [] : WEBHOOK_EVENTS.filter((e) => !have.has(e));
+            console.log(`Webhook endpoint exists: ${existing.id} (${existing.url}, ${existing.enabled_events.length} events)`);
+            if (missing.length === 0) {
+                console.log('Every required event is already enabled. Nothing to change.');
+                return;
+            }
+            const updated = await stripe.webhookEndpoints.update(existing.id, {
+                enabled_events: Array.from(new Set([...(existing.enabled_events || []), ...missing]))
+            });
+            console.log(`Added ${missing.length} event(s): ${missing.join(', ')}`);
+            console.log(`Endpoint now enables ${updated.enabled_events.length} events. The signing secret is unchanged.`);
             return;
         }
 
