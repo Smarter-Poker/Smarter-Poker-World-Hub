@@ -20,6 +20,10 @@ const SOURCE_CLASSIFICATIONS = [
   'HEURISTIC',
   'LEGACY_UNVERIFIED',
 ];
+const AUDIT_STATEMENT_TIMEOUT_MS = Math.min(
+  900_000,
+  Math.max(180_000, Number(process.env.TRAINING_PROVENANCE_AUDIT_TIMEOUT_MS) || 600_000),
+);
 
 function databaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -66,7 +70,9 @@ async function main() {
     await client.connect();
   try {
     await client.query('SET default_transaction_read_only = on');
-    await client.query("SET statement_timeout = '180s'");
+    await client.query("SELECT set_config('statement_timeout', $1, false)", [
+      `${AUDIT_STATEMENT_TIMEOUT_MS}ms`,
+    ]);
     const phaseThreeColumns = [
       'canonical_policy', 'source_classification', 'quality_status', 'scenario_hash',
       'exact_node', 'public_action_history', 'policy_version', 'solver_version',
@@ -232,17 +238,18 @@ async function main() {
     `);
     const quarantineAudit = await client.query(`
       SELECT
-        count(DISTINCT c.id) FILTER (
+        (SELECT count(*) FROM public.training_question_cache
+          WHERE quality_status IN ('quarantined', 'drifted'))::bigint AS cache_rows,
+        (SELECT count(*) FROM public.training_question_cache_quarantine)::bigint
+          AS snapshot_rows,
+        (SELECT count(*) FROM public.training_question_cache c
           WHERE c.quality_status IN ('quarantined', 'drifted')
-        )::bigint AS cache_rows,
-        count(DISTINCT q.question_id)::bigint AS snapshot_rows,
-        count(DISTINCT c.id) FILTER (
-          WHERE c.quality_status IN ('quarantined', 'drifted')
-            AND q.question_id IS NULL
-        )::bigint AS missing_snapshots
-      FROM public.training_question_cache c
-      LEFT JOIN public.training_question_cache_quarantine q
-        ON q.question_id = c.question_id
+            AND NOT EXISTS (
+              SELECT 1 FROM public.training_question_cache_quarantine q
+              WHERE q.original_id = c.id
+            ))::bigint AS missing_snapshots,
+        (SELECT count(*) FROM public.training_question_cache_quarantine
+          WHERE original_row IS NULL)::bigint AS invalid_snapshots
     `);
     const latestDriftAudit = await client.query(`
       SELECT run_date, status, metrics, findings, started_at, completed_at
@@ -329,6 +336,9 @@ async function main() {
     }
     if (quarantine.missing_snapshots > 0) {
       failures.push(`${quarantine.missing_snapshots} quarantined rows have no recovery snapshot`);
+    }
+    if (quarantine.invalid_snapshots > 0) {
+      failures.push(`${quarantine.invalid_snapshots} recovery snapshots have no original row`);
     }
     const result = {
       schemaVersion: 2,

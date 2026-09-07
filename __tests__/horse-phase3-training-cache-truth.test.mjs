@@ -189,11 +189,34 @@ test('legacy cache writers are fail-closed and cannot mutate the cache', () => {
 
 test('database expansion installs quarantine, atomic events, and daily drift audit compatibly', () => {
   const expansion = read('supabase/migrations/20260907060000_training_cache_truth_contract.sql');
+  const driftAttestation = read(
+    'supabase/migrations/20260907065000_training_cache_drift_audit_performance.sql',
+  );
+  const boundedAudit = read(
+    'supabase/migrations/20260907066000_training_cache_drift_audit_bounded_execution.sql',
+  );
   assert.match(expansion, /training_question_cache_quarantine/);
   assert.match(expansion, /fn_training_cache_record_event/);
   assert.match(expansion, /ON CONFLICT \(event_type, event_key\) DO NOTHING/);
   assert.match(expansion, /fn_training_cache_run_drift_audit/);
   assert.doesNotMatch(expansion, /ALTER COLUMN canonical_policy SET NOT NULL/);
+  assert.match(driftAttestation, /contract_stamped_at/);
+  assert.match(driftAttestation, /zy_training_question_cache_contract_dirty/);
+  assert.match(driftAttestation, /fn_training_cache_attested_classification/);
+  assert.match(boundedAudit, /'auditShardCount', 32/);
+  assert.match(boundedAudit, /'counterRowsInspected'/);
+  assert.match(boundedAudit, /AND i\.is_dirty/);
+  assert.doesNotMatch(boundedAudit, /SELECT c\.\*/);
+});
+
+test('the production backfill supports transactional Postgres transport and bounded resume ranges', () => {
+  const backfill = read('scripts/backfill-training-cache-truth.mjs');
+  assert.match(backfill, /--direct-db/);
+  assert.match(backfill, /jsonb_to_recordset/);
+  assert.match(backfill, /BEGIN/);
+  assert.match(backfill, /ROLLBACK/);
+  assert.match(backfill, /--from-id/);
+  assert.match(backfill, /--before-id/);
 });
 
 test('static solver contract audit still passes after mutation retirement', () => {
