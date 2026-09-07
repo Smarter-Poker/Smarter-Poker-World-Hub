@@ -972,16 +972,32 @@ def insert_new_series(items: list) -> int:
     records = [{
         "series_uid": series_uid_for(item["name"]),
         "series_name": item["name"],
-        # `data_quality` is the only other NOT NULL column on poker_series.
-        # "discovered" is deliberately weaker than the scraper's
-        # "scraped_verified": this pass has seen a NAME and a URL, and has
-        # confirmed nothing about dates, venue or events.
-        "data_quality": "discovered",
+        # `data_quality` is the only other NOT NULL column on poker_series, and
+        # it carries a CHECK constraint — `chk_poker_series_data_quality` allows
+        # exactly {scraped_verified, scraped_inferred, manual_research, stale,
+        # expired}. A first draft of this used "discovered", which would have
+        # been rejected on every row and simply replaced the 42P10 with a 23514.
+        #
+        # `scraped_inferred` is the honest member of that set for this pass: it
+        # has seen a NAME and a URL and INFERRED that a series exists, having
+        # confirmed nothing about dates, venue or events. `scraped_verified` is
+        # what poker_series_scraper.py writes once it has actually read them,
+        # and it must stay stronger than this.
+        "data_quality": "scraped_inferred",
         "source": item.get("scrape_source", "discovery_v3"),
         "source_url": item.get("source_url"),
         "scrape_url": item.get("source_url"),
         "scrape_status": "pending",
         "events_scraped": False,
+        # NOT OPTIONAL. `enforce_scrape_provenance()` is a BEFORE trigger on
+        # poker_series and raises P0001 - "CRITICAL VIOLATION: Cannot
+        # insert/update without scrape_html_hash and scrape_timestamp
+        # (15-Layer Scrapling Web Scraper Integrity Standard)" - on any row
+        # missing either. Both columns are NOT NULL besides. The original
+        # payload carried them; a first draft of this rewrite dropped them and
+        # would have traded the 42P10 for a P0001 on every row.
+        "scrape_html_hash": item.get("scrape_html_hash", ""),
+        "scrape_timestamp": item.get("scrape_timestamp", STARTED),
     } for item in items]
     return sb_upsert("poker_series", records, on_conflict="series_uid")
 
