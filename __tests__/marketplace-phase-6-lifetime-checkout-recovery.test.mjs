@@ -96,12 +96,15 @@ test('checkout configuration is private and evaluated only after authentication 
   const source = await read('pages/api/store/create-checkout-session.js');
   const auth = source.indexOf('getServerUserWithFallback(req, getSupabase())');
   const requestValidation = source.indexOf("if (type === 'subscription' && !checkoutRequestId)");
-  const stripeReadiness = source.indexOf('const stripeSecretKey = process.env.STRIPE_SECRET_KEY');
+  const redemptionValidation = source.indexOf('redemptionIntent = normalizeRedemptionIntent(type, rawRedemptionIntent)');
+  const stripeReadiness = source.indexOf('const stripeRuntime = inspectStripeRuntime(process.env');
   const catalogPreparation = source.indexOf('preparedCheckout = await prepareCheckout(type, items, {');
 
   assert.ok(auth > -1 && auth < stripeReadiness, 'authentication must precede Stripe readiness');
   assert.ok(requestValidation > auth && requestValidation < stripeReadiness,
     'request validation must precede Stripe readiness');
+  assert.ok(redemptionValidation > requestValidation && redemptionValidation < stripeReadiness,
+    'redemption intent validation must precede Stripe readiness');
   assert.ok(stripeReadiness < catalogPreparation,
     'Stripe readiness must precede catalog/database side effects');
   assert.doesNotMatch(

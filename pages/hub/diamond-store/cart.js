@@ -1312,7 +1312,7 @@ const styles = {
     display: 'inline-block',
     padding: '12px 32px',
     background: '#00E0FF',
-    color: '#FFFFFF',
+    color: '#06131a',
     borderRadius: 0,
     textDecoration: 'none',
     fontWeight: 600,
