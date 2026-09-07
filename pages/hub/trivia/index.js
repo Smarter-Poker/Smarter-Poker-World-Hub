@@ -209,7 +209,12 @@ export default function TriviaHubPage({ modeAvailability }) {
             <div className={styles.page}>
                 <div className={styles.backgroundOverlay} />
 
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader
+                    pageDepth={1}
+                    commandMenuOpen={menuOpen}
+                    onCommandMenuOpenChange={setMenuOpen}
+                    onMenuClick={() => setMenuOpen(true)}
+                />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
