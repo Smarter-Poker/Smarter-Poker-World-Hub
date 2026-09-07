@@ -98,7 +98,14 @@ const buildCommitSha = (() => {
 
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
-  register: true,
+  // Registration is owned by ServiceWorkerUpdater. Workbox Window assumes
+  // register() always returns a ServiceWorkerRegistration, but Safari privacy
+  // modes (and embedded WebKit with workers disabled) may resolve without one,
+  // causing an unhandled `registration.waiting` rejection on every page. The
+  // app-owned path below uses the native API, validates the result, and keeps
+  // the same root worker/update lifecycle without allowing that rejection to
+  // escape into the page.
+  register: false,
   skipWaiting: true,
   disable: !process.env.VERCEL, // Only active in production Vercel builds
   // NOTE: fallbacks removed — next-pwa@5.6.0 crashes with 'precacheFallback' TypeError
