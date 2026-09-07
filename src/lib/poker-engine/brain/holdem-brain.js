@@ -13,7 +13,7 @@
  *   - anti-exploit.js: selectCounterStrategy, detectReverseImplied, getOpponentSessionRead,
  *                       recordStreetAction, getStreetMemory, analyzeStreetNarrative
  *   - session-analytics.js: getAdaptiveStrategy, getPerformanceStats
- *   - Legacy (live observer): getLiveRead (not yet extracted)
+ *   - live-observer.js: getLiveRead (injected by brain/index.js through the router)
  *
  * Bug fixes applied: #46, #57, #77, #80, #93, #114, #124, #127, #130, #140
  */
@@ -25,7 +25,8 @@ const { getAdaptiveStrategy, getPerformanceStats } = require('./session-analytic
 // Alias: monolith used RANKS, core.js exports RANK_ORDER — they are identical arrays
 const RANKS = RANK_ORDER;
 
-// Live observer is not yet extracted — stub with safe fallback
+// Live-observer dependency injection. brain/index.js installs the production
+// observer through router.setRouterLiveReadFn(); direct imports fail closed.
 let _getLiveRead = null;
 function setLiveReadFn(fn) { _getLiveRead = fn; }
 function getLiveRead(horseId, tableId, opponentId) {

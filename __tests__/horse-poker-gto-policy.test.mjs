@@ -116,6 +116,7 @@ test('horse cache warm-up requests real canonical chart nodes, not nonexistent l
 test('brain barrel wires the production live observer before exporting the router', () => {
   const indexSource = fs.readFileSync('src/lib/poker-engine/brain/index.js', 'utf8');
   const routerSource = fs.readFileSync('src/lib/poker-engine/brain/router.js', 'utf8');
+  const holdemSource = fs.readFileSync('src/lib/poker-engine/brain/holdem-brain.js', 'utf8');
   const injection = indexSource.indexOf(
     'router.setRouterLiveReadFn(liveObserver.getLiveRead);',
   );
@@ -124,4 +125,5 @@ test('brain barrel wires the production live observer before exporting the route
   assert.ok(injection >= 0, 'the brain barrel must inject liveObserver.getLiveRead');
   assert.ok(exportsStart > injection, 'observer injection must happen before barrel exports');
   assert.doesNotMatch(routerSource, /not yet extracted|safe fallback/i);
+  assert.doesNotMatch(holdemSource, /not yet extracted|\bstub\b/i);
 });
