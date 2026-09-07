@@ -134,10 +134,11 @@ export default async function handler(req, res) {
         }
         const { error: bbjSeedErr } = await getSupabase()
           .from('bbj_pools')
-          .insert({
-            union_id: union.id, status: 'active', pool_amount: 0,
-            main_balance: 0, backup_balance: 0, promo_balance: 0,
-          })
+          // The balances are the table's defaults (0). A route never names a
+          // balance column, not even to write a zero: every chip moves through
+          // a registered door, and the second-writer audit reads this file
+          // (Club Arena scripts/ci/audit-second-writer.mjs, 2026-09-07).
+          .insert({ union_id: union.id, status: 'active', pool_amount: 0 })
           .select('id')
           .maybeSingle();
         if (bbjSeedErr && bbjSeedErr.code !== '23505') {
