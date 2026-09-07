@@ -907,26 +907,43 @@ test('every declared consumer receives byte-identical canonical semantics', () =
   }
 });
 
-test('all required runtime consumers import the service and no Training route reads the warehouse', () => {
-  const consumers = [
-    'pages/api/training/get-question.js',
-    'pages/api/training/preflop-ranges.js',
-    'pages/api/training/batch-preload.js',
-    'pages/api/training/spot-drill.js',
-    'pages/api/training/custom-train.js',
-    'pages/api/training/solver-api.js',
-    'pages/api/training/tree-navigate.js',
-    'pages/api/training/browse-solutions.js',
-    'pages/api/training/runout-report.js',
-    'pages/api/training/aggregate-report.js',
-    'pages/api/assistant/sandbox/analyze.js',
-    'pages/api/admin/inspect-pio-data.js',
-    'src/engines/DeterministicGTOEngine.js',
-    'src/services/PIOQueryService.js',
-    'src/content-engine/services/HorsePokerGTO.js',
-  ];
-  for (const filename of consumers) {
-    assert.match(fs.readFileSync(filename, 'utf8'), /SolverPolicyService/, filename);
+test('all required runtime consumers invoke the service and no Training route reads the warehouse', () => {
+  const localConsumers = new Map([
+    ['get-question', 'pages/api/training/get-question.js'],
+    ['preflop-ranges', 'pages/api/training/preflop-ranges.js'],
+    ['batch-preload', 'pages/api/training/batch-preload.js'],
+    ['spot-drill', 'pages/api/training/spot-drill.js'],
+    ['custom-trainer', 'pages/api/training/custom-train.js'],
+    ['solver-api', 'pages/api/training/solver-api.js'],
+    ['tree-navigation', 'pages/api/training/tree-navigate.js'],
+    ['browse-solutions', 'pages/api/training/browse-solutions.js'],
+    ['runout-report', 'pages/api/training/runout-report.js'],
+    ['aggregate-report', 'pages/api/training/aggregate-report.js'],
+    ['post-session-analysis', 'pages/api/assistant/sandbox/analyze.js'],
+    ['admin-inspection', 'pages/api/admin/inspect-pio-data.js'],
+    ['god-mode', 'pages/api/god-mode/submit-action.js'],
+    ['gto-analysis', 'pages/api/gto/gto-analysis.js'],
+    ['horse-poker-gto', 'src/content-engine/services/HorsePokerGTO.js'],
+  ]);
+  const externalConsumers = new Set(['solver-agreement']);
+  assert.deepEqual(
+    [...SOLVER_POLICY_CONSUMERS].sort(),
+    [...localConsumers.keys(), ...externalConsumers].sort(),
+    'every declared consumer must be assigned to a proved runtime'
+  );
+  for (const [consumer, filename] of localConsumers) {
+    const source = fs
+      .readFileSync(filename, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    assert.match(source, /SolverPolicyService/, `${consumer}: ${filename} imports the service`);
+    assert.match(
+      source,
+      new RegExp(
+        `\\.(?:attachToQuestion|consumerEnvelope)\\([\\s\\S]{0,800}['\"]${consumer}['\"]`
+      ),
+      `${consumer}: ${filename} invokes the service with its declared consumer id`
+    );
   }
   const trainingRoutes = fs
     .readdirSync('pages/api/training')
