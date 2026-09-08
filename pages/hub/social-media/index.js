@@ -23,7 +23,7 @@
  * ║     - StoriesBar component with stories fetch                            ║
  * ║                                                                           ║
  * ║   Reels Carousel (Lines ~2510)                                          ║
- * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
+ * ║     - ONE ReelsFeedCarousel, after the 3rd post (or the last, if fewer)  ║
  * ║                                                                           ║
  * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
  * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
@@ -7662,11 +7662,60 @@ function SocialMediaPage() {
 
 
 
+                  {/* ITEM 10: the club-posts filter used to be unreachable -
+                      setShowClubPostsOnly(true) was never called anywhere, so both
+                      filter expressions below and the "No Club Posts Yet" empty
+                      state were dead code. This is the switch. It only appears for
+                      someone who actually has a club page. */}
+                  {user && (hasClubPage || ownedPages.length > 0) && (
+                    <div
+                      role="group"
+                      aria-label="Filter the feed"
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        padding: '10px 12px',
+                        background: C.card,
+                        borderRadius: 8,
+                        marginBottom: 2,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      {[
+                        { on: false, label: 'All Posts' },
+                        { on: true, label: `${clubPage?.name || 'Club'} Only` },
+                      ].map((opt) => {
+                        const active = showClubPostsOnly === opt.on;
+                        return (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            onClick={() => setShowClubPostsOnly(opt.on)}
+                            aria-pressed={active}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 20,
+                              fontSize: 13,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              border: `1px solid ${active ? C.blue : C.border}`,
+                              background: active ? '#E7F3FF' : 'transparent',
+                              color: active ? C.blue : C.textSec,
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Posts Feed. Test the FILTERED array: if every loaded post
                       is from a blocked author, `posts.length` is non-zero but
                       the feed body renders nothing - an empty region with no
                       message and no call to action. */}
-                  {posts.filter((p) => !blockedUserIds.has(p.authorId)).length === 0 ? (
+                  {posts.filter((p) => !blockedUserIds.has(p.authorId)).length === 0 &&
+                  !showClubPostsOnly ? (
                     <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
                       <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
                       <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>
@@ -7725,7 +7774,8 @@ function SocialMediaPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Render posts with Reels carousel inserted after every 3 posts */}
+                      {/* Render posts, with one Reels carousel and one Trending Venues
+                          card injected near the top - see the insertion points below. */}
                       {(() => {
                         const filteredPosts = posts
                           .filter((p) => !blockedUserIds.has(p.authorId))
@@ -7800,8 +7850,21 @@ function SocialMediaPage() {
                               }}
                               horseProfileIds={horseProfileIds}
                             />
-                            {/* Insert Reels carousel after 3rd post */}
-                            {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
+                            {/* ONE carousel, after the 3rd post - or after the last
+                                post when the feed is shorter than that, which used to
+                                mean no carousel appeared at all.
+
+                                Deliberately NOT "every 3 posts", which is what the file
+                                header claimed for months: each instance runs its own
+                                50-row fetch AND opens its own realtime channel, so
+                                periodic injection multiplies both. If that ever becomes
+                                the product decision, hoist the fetch and the
+                                subscription out of the component first. */}
+                            {(index === 2 ||
+                              (filteredPosts.length < 3 &&
+                                index === filteredPosts.length - 1)) && (
+                              <ReelsFeedCarousel key="reels-carousel" />
+                            )}
                             {/* Insert Trending Venues after 1st post */}
                             {index === 0 && (
                               <TrendingVenues

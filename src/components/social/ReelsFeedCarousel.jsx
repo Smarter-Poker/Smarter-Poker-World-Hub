@@ -351,6 +351,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
     }
     return new Set();
   });
+  /*
+   * ITEM 11 (2026-09-08): loadReels is a useCallback([]) whose dep array also
+   * drives the realtime reload debounce, so it cannot take notInterestedIds as
+   * a dependency without changing that behaviour. A ref gives the filter the
+   * current Set with no dep change - the same shape feedCycleRef uses on the
+   * feed page for exactly this reason.
+   */
+  const notInterestedIdsRef = useRef(notInterestedIds);
+  useEffect(() => {
+    notInterestedIdsRef.current = notInterestedIds;
+  }, [notInterestedIds]);
+
   // #6 Comment Pagination
   const [commentPage, setCommentPage] = useState(0);
   const [hasMoreComments, setHasMoreComments] = useState(false);
@@ -967,6 +979,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
             localStorage.setItem('reels-not-interested', JSON.stringify([...n]));
           return n;
         });
+        /*
+         * Move off it. The load filter above keeps it away on every future
+         * load, but without this the reel you just said you did not want stays
+         * on screen until a reload - which reads as the button doing nothing,
+         * which is how this feature looked for its whole life. goNext is
+         * bounds-safe and stops at the last reel.
+         */
+        goNext();
       }
     } catch (err) {
       console.warn('Reel dislike persistence failed:', err.message);
@@ -4036,7 +4056,13 @@ export function ReelsFeedCarousel() {
       // trigger. Without this filter the carousel renders the same clip
       // up to 169 times in a row.
       const seenUrls = new Set();
+      const notInterested = notInterestedIdsRef.current;
       const allReels = rawReels
+        // ITEM 11: honour Not Interested here, the way Reels.jsx:1017 and
+        // pages/hub/reels.js:754 already do. Without it the Set was written on
+        // every dislike and read by nobody, so a reel dismissed in the feed
+        // disappeared from /hub/reels and kept showing in the feed.
+        .filter((r) => !notInterested.has(r.id))
         .filter((r) => {
           if (!r.video_url) return true;
           if (seenUrls.has(r.video_url)) return false;
