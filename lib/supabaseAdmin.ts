@@ -16,7 +16,7 @@
  *
  * Usage
  * -----
- *   import { getSupabaseAdmin } from '../../../lib/supabaseAdmin';
+ *   Import getSupabaseAdmin from the shared lib/supabaseAdmin helper.
  *   const supabase = getSupabaseAdmin();
  *
  * The helper is intentionally tiny — it wraps src/lib/supabaseServerClient
@@ -29,38 +29,35 @@ import { createClient } from '../src/lib/supabaseServerClient';
 let _client: any = null;
 
 export function getSupabaseAdmin() {
-    if (_client) return _client;
+  if (_client) return _client;
 
-    const url =
-        process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        process.env.SUPABASE_URL ||
-        'https://kuklfnapbkmacvwxktbh.supabase.co';
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    'https://kuklfnapbkmacvwxktbh.supabase.co';
 
-    const key =
-        process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!key) {
-        throw new Error(
-            '[supabaseAdmin] No Supabase key found. Set SUPABASE_SERVICE_ROLE_KEY or ' +
-                'NEXT_PUBLIC_SUPABASE_ANON_KEY in the Vercel environment.'
-        );
-    }
+  if (!key) {
+    throw new Error(
+      '[supabaseAdmin] SUPABASE_SERVICE_ROLE_KEY is required in the Vercel environment.'
+    );
+  }
 
-    _client = createClient(url, key, {
-        auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-        },
-    });
+  _client = createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
 
-    return _client;
+  return _client;
 }
 
 /** True when the helper will return a service-role (RLS-bypassing) client. */
 export function isServiceRole(): boolean {
-    return !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
 export default getSupabaseAdmin;

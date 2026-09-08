@@ -13405,7 +13405,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 7
         },
@@ -13416,7 +13417,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 7
         },
@@ -13427,7 +13429,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 15
         },
@@ -13438,7 +13441,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 15
         },
@@ -13451,7 +13455,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "stale": {
@@ -13461,7 +13466,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 8
         },
@@ -13472,7 +13478,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 15
         },
@@ -13483,7 +13490,8 @@
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-surface-inventory-classifier.test.mjs"
+            "__tests__/training-surface-inventory-classifier.test.mjs",
+            "e2e/global-footer-visual.spec.ts"
           ],
           "followUpPhase": 8
         }
@@ -13492,7 +13500,8 @@
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-question-integrity.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
-        "__tests__/training-surface-inventory-classifier.test.mjs"
+        "__tests__/training-surface-inventory-classifier.test.mjs",
+        "e2e/global-footer-visual.spec.ts"
       ],
       "uncoveredStates": [
         "loading",
