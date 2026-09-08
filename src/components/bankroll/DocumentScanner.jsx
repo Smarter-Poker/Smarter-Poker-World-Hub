@@ -23,6 +23,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Camera, Upload, X, Check, Loader2, RefreshCw, Maximize2, AlertTriangle,
     RotateCw, Image as ImageIcon,
@@ -992,7 +993,23 @@ export default function DocumentScanner({
         startCamera(cameras[next] && cameras[next].deviceId);
     }, [canSwitchCamera, cameraIndex, cameras, startCamera]);
 
-    return (
+    /**
+     * Rendered into document.body, not in place.
+     *
+     * A z-index only competes inside its own stacking context. This scanner is
+     * mounted from ReceiptScanner, which sits inside `.bankroll-modal-overlay`
+     * at z-index 9000, and that container IS a stacking context: every z-index
+     * underneath it, however large, is still resolved as "somewhere within
+     * 9000". So the global header at 10050 painted over the scanner and its
+     * close button could not be clicked at all. Raising the number does not
+     * fix that, and did not - measured twice on production. Escaping the
+     * context does.
+     *
+     * This also makes the component immune to a future ancestor growing a
+     * transform or a filter, either of which would trap a fixed overlay the
+     * same way. It is mounted from four surfaces now, so that matters.
+     */
+    const tree = (
         <div style={S.overlay} role="dialog" aria-modal="true" aria-label={title}>
             <div style={S.header}>
                 <button type="button" onClick={handleClose} style={S.iconBtn} aria-label="Close scanner">
@@ -1264,6 +1281,11 @@ export default function DocumentScanner({
             `}</style>
         </div>
     );
+
+    // Rendered in place while there is no document, which only happens if this
+    // is ever pulled into a server render. Every current caller loads it with
+    // ssr: false, so the portal is what actually runs.
+    return typeof document === 'undefined' ? tree : createPortal(tree, document.body);
 }
 
 // ---------------------------------------------------------------------------

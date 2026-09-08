@@ -611,6 +611,28 @@ test('the review screen offers the required corrections', () => {
     assert.match(src, /View Original Photo|Original Photo/, 'the source photograph must be viewable for comparison');
 });
 
+test('the overlay escapes its parent stacking context, because a z-index alone cannot', () => {
+    // Measured on production, twice. ReceiptScanner sits inside
+    // `.bankroll-modal-overlay`, which is `position: fixed; z-index: 9000` and
+    // therefore a stacking context. Every z-index below it resolves as
+    // "somewhere within 9000", so the global header at 10050 painted over the
+    // scanner and elementFromPoint on the close button returned the header's
+    // hamburger. Raising the scanner to 99999 changed nothing, which is the
+    // whole point of this test: the number is not the mechanism.
+    const src = read(SCANNER);
+    assert.match(src, /import \{ createPortal \} from 'react-dom';/, 'the overlay must be portalled');
+    assert.match(
+        src,
+        /createPortal\(tree, document\.body\)/,
+        'it must land on document.body, outside every app stacking context',
+    );
+    assert.match(
+        src,
+        /typeof document === 'undefined' \? tree : createPortal/,
+        'and must not explode if it is ever server-rendered',
+    );
+});
+
 test('the overlay outranks the global header, or its close button is unclickable', () => {
     // Measured on production: the header is `position: sticky; z-index: 10050`
     // and the scanner sat at 10001, so elementFromPoint over the X returned
