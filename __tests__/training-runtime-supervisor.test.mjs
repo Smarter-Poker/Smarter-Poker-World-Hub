@@ -206,16 +206,21 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     packageJson.scripts['test:training:phase6-authority'],
   ].flatMap((command) => [...command.matchAll(/__tests__\/[^ ]+\.test\.mjs/g)]
     .map(([testPath]) => `/${testPath}`));
-  const testReincludes = vercelIgnore
+  const phase6TransitiveInputs = [
+    '/__tests__/solver-matrix-trust-runtime-probe.cjs',
+    '/e2e/03-training-gto.spec.ts',
+    '/tests/helpers/canonicalTrainingPolicyFixture.mjs',
+  ];
+  const deploymentReincludes = vercelIgnore
     .split(/\r?\n/)
-    .filter((line) => line.startsWith('!/__tests__/'))
+    .filter((line) => line.startsWith('!/'))
     .map((line) => new RegExp(`^${line.slice(1)
       .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
       .replaceAll('*', '[^/]*')}$`));
   assert.ok(phase6BuildTests.length > 0, 'expected Phase 6 deployment test inputs');
-  for (const testPath of phase6BuildTests) {
+  for (const testPath of [...phase6BuildTests, ...phase6TransitiveInputs]) {
     assert.ok(
-      testReincludes.some((pattern) => pattern.test(testPath)),
+      deploymentReincludes.some((pattern) => pattern.test(testPath)),
       `${testPath} must survive .vercelignore for the Vercel authority gate`,
     );
   }
