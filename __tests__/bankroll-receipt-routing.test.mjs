@@ -219,12 +219,15 @@ test('the scanner classifies, shows the type, and lets a person correct it', () 
 });
 
 test('the page files a buy-in as a session and an expense as an expense', () => {
-    const page = read('pages/hub/bankroll-manager.js');
-    assert.match(
-        page,
-        /setDefaultReceiptCategory\(kind === 'session' \? 'session' : 'expense'\)/,
-        'the destination decides the entry kind',
-    );
+    // 2026-09-08: the sheet's choices now come from receiptInbox.receiptActions,
+    // so the destination picks the ACTION and the action picks the entry kind.
+    // A session route can only ever reach LogEntryModal as a session.
+    const page = code('pages/hub/bankroll-manager.js');
+    const session = page.slice(page.indexOf('actionId === RECEIPT_ACTIONS.LOG_SESSION'), page.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
+    assert.match(session, /openEntryForReceipt\(ledgerCategoryFor\(scannerRoute\)\)/, 'a buy-in or cash out opens a REAL ledger category');
+    assert.doesNotMatch(session, /'session'/, "'session' is not a bankroll_ledger category; the insert refused it with 23514");
+    assert.doesNotMatch(session, /'expense'/, 'and never an expense');
+    assert.match(page, /actionId === RECEIPT_ACTIONS\.NEW_EXPENSE\) \{ openEntryForReceipt\('expense'\)/, 'an expense is an expense');
     assert.match(page, /\.\.\.\(scannerRoute \? scannerRoute\.prefill : \{\}\)/, 'and the routed fields are applied');
 });
 

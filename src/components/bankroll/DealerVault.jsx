@@ -9,6 +9,7 @@
 import { memo,  useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
 import DocumentCropper from './DocumentCropper';
@@ -285,17 +286,11 @@ function DealerVault({ userId, completedGigs = [] }) {
         }
         setIsUploading(true);
         try {
-            const ext = pendingFile.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-            const storagePath = `dealer-docs/${userId}/${activeTab}/${fileName}`;
-
-            const { error: storageError } = await supabase.storage
-                .from('images')
-                .upload(storagePath, pendingFile, { upsert: false });
-            if (storageError) throw storageError;
-
-            const { data: urlData } = supabase.storage.from('images').getPublicUrl(storagePath);
-            const fileUrl = urlData?.publicUrl;
+            // The upload goes through the one module that knows the bucket.
+            // `images` has no INSERT policy, so writing there was refused 403
+            // for every dealer document. Existing objects stay where they are;
+            // reads and deletes below still point at them.
+            const fileUrl = await uploadBankrollFile(supabase, userId, pendingFile);
 
             const insertPayload = {
                 user_id: userId,
@@ -336,12 +331,9 @@ function DealerVault({ userId, completedGigs = [] }) {
     const handleDelete = async (doc) => {
         if (!confirm(`Delete "${doc.label || doc.file_name}"?`)) return;
         try {
-            // Extract path from URL
-            const url = new URL(doc.file_url);
-            const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/images\/(.+)/);
-            if (pathMatch) {
-                await supabase.storage.from('images').remove([pathMatch[1]]);
-            }
+            // Old objects live in `images`, new ones in the bankroll bucket;
+            // the remover reads the bucket from the URL.
+            await removeBankrollObject(supabase, doc.file_url);
             const { error: err_dealer_documents_akm0s } = await supabase.from('dealer_documents').delete().eq('id', doc.id);
             if (err_dealer_documents_akm0s) console.warn('[Supabase] Silent mutation failed in dealer_documents:', err_dealer_documents_akm0s.message);
             toast.success('Document deleted');

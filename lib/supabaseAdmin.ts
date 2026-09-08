@@ -16,7 +16,7 @@
  *
  * Usage
  * -----
- *   import { getSupabaseAdmin } from '../../../lib/supabaseAdmin';
+ *   Import getSupabaseAdmin from the shared lib/supabaseAdmin helper.
  *   const supabase = getSupabaseAdmin();
  *
  * The helper is intentionally tiny — it wraps src/lib/supabaseServerClient
