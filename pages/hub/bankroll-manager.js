@@ -32,9 +32,10 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip } from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchLedgerEntries, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
+  matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
   RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
 import toast from '../../src/stores/toastStore';
@@ -43,6 +44,7 @@ import toast from '../../src/stores/toastStore';
 const RECEIPT_TONE_COLORS = {
   VAULT: '#fbbf24',
   TRIP: '#4ade80',
+  CLOSE: '#34d399',
   EXPENSE: '#f87171',
   ATTACH: '#60a5fa',
   LATER: '#a1a1aa',
@@ -985,7 +987,12 @@ export default function BankrollManagerPage() {
         // and assigns the session to it on its own.
         setReceiptBusy(true);
         try {
-          const trip = await createTrip(userId, tripFromReceipt(scannerRoute));
+          const draft = tripFromReceipt(scannerRoute);
+          // The venue the receipt printed, matched to a saved location so the
+          // trip carries its id (and GPS) rather than a bare name.
+          const venue = scannerRoute && scannerRoute.prefill && (scannerRoute.prefill.location_name || scannerRoute.prefill.vendor);
+          const match = matchLocationByName(locations, venue);
+          const trip = await createTrip(userId, { ...draft, location_id: match ? match.id : null });
           toast.success(`Trip Started: ${trip.name}`);
           await loadData();
         } catch (err) {
@@ -998,6 +1005,37 @@ export default function BankrollManagerPage() {
       // A real ledger category, or the picker when the scan did not say
       // which. 'session' is not a category and the insert refused it.
       openEntryForReceipt(ledgerCategoryFor(scannerRoute));
+      return;
+    }
+
+    if (actionId === RECEIPT_ACTIONS.CLOSE_SESSION) {
+      if (!requireOnline()) return;
+      const open = findOpenSessionFor(scannerRoute, entries);
+      if (!open) { toast.error('That Session Is No Longer Open. Log The Cash Out As A New Session.'); return; }
+      const prefill = (scannerRoute && scannerRoute.prefill) || {};
+      const cashOut = Number(prefill.gross_out ?? prefill.amount);
+      if (!Number.isFinite(cashOut)) { toast.error('No Cash Out Amount Was Read. Attach It Instead.'); setScannerStep('pick-entry'); return; }
+      setReceiptBusy(true);
+      try {
+        const updates = {
+          gross_out: cashOut,
+          media_urls: [...(open.media_urls || []), scannerImageUrl],
+        };
+        if (open.category === 'poker_mtt' && prefill.finish_position !== null && prefill.finish_position !== undefined) {
+          updates.finish_position = prefill.finish_position;
+        }
+        const saved = await updateLedgerEntry(userId, open.id, updates);
+        await markReceiptAssigned(scannerReceiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bankroll-updated'));
+        toast.success(`Session Closed: Cashed Out $${cashOut.toLocaleString()}`);
+        closeScannerAfterChoice();
+        await loadData();
+      } catch (err) {
+        console.warn('[bankroll] close session failed:', err?.message || err);
+        toast.error('Could Not Close The Session. It Is Kept In Receipts Waiting.');
+      } finally {
+        setReceiptBusy(false);
+      }
       return;
     }
 
@@ -1025,7 +1063,7 @@ export default function BankrollManagerPage() {
         setReceiptBusy(false);
       }
     }
-  }, [receiptBusy, closeScannerAfterChoice, loadPendingReceipts, openEntryForReceipt, requireOnline, trips, userId, scannerRoute, scannerImageUrl, scannerReceiptId, markReceiptAssigned, loadData]);
+  }, [receiptBusy, closeScannerAfterChoice, loadPendingReceipts, openEntryForReceipt, requireOnline, trips, entries, locations, userId, scannerRoute, scannerImageUrl, scannerReceiptId, markReceiptAssigned, loadData]);
 
   const handleSidebarClick = (sectionId) => {
     haptic('light');
@@ -2345,6 +2383,7 @@ export default function BankrollManagerPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {receiptActions(scannerRoute, {
                       activeTrip: trips.find(t => t.status === 'active' && t.trip_type !== 'series') || null,
+                      openSession: findOpenSessionFor(scannerRoute, entries),
                     }).map((action) => (
                       <button
                         key={action.id}
@@ -2384,7 +2423,7 @@ export default function BankrollManagerPage() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
-                      {entries.slice(0, 20).map((entry) => {
+                      {rankEntriesForReceipt(entries, scannerRoute).slice(0, 20).map((entry) => {
                         const isPositive = entry.net_result >= 0;
                         const dateStr = entry.entry_date
                           ? new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })

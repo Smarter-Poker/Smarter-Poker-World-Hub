@@ -233,7 +233,8 @@ test('rule 2: with no active trip the page starts one before logging the session
     const src = code(PAGE);
     const block = src.slice(src.indexOf('actionId === RECEIPT_ACTIONS.LOG_SESSION'), src.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
     assert.match(block, /if \(!activeTrip\)/);
-    assert.match(block, /await createTrip\(userId, tripFromReceipt\(scannerRoute\)\)/);
+    assert.match(block, /const draft = tripFromReceipt\(scannerRoute\);/);
+    assert.match(block, /await createTrip\(userId, \{ \.\.\.draft, location_id: match \? match\.id : null \}\)/, 'and the trip carries the matched venue');
     assert.match(block, /openEntryForReceipt\(ledgerCategoryFor\(scannerRoute\)\)/, 'and it is logged as a SESSION, under a real ledger category');
     assert.doesNotMatch(block, /openEntryForReceipt\('expense'\)/);
 });
