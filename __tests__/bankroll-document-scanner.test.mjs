@@ -561,10 +561,18 @@ test('nothing uploads before the user approves the scan', () => {
     const useScanIndex = src.indexOf('handleScanApproved');
     assert.ok(useScanIndex > 0, 'there must be an explicit approval handler');
     // The storage upload must be reachable only from the approval path and the
-    // retry path, never from the capture path.
-    const uploadCalls = src.match(/storage\s*\n?\s*\.from\(/g) || [];
-    assert.ok(uploadCalls.length >= 1, 'sanity: the component still uploads');
+    // retry path, never from the capture path. It now lives in the shared
+    // uploader, so that is what to look for.
+    assert.match(src, /uploadBankrollImage\(/, 'sanity: the component still uploads');
     assert.match(src, /uploadApprovedScan/, 'upload must be a named step taken after approval');
+    const approvalIdx = src.indexOf('const handleScanApproved');
+    const uploadIdx = src.indexOf('uploadBankrollImage(supabase');
+    assert.ok(approvalIdx > 0 && uploadIdx > 0, 'both steps must exist');
+    assert.match(
+        src.slice(approvalIdx, approvalIdx + 700),
+        /await uploadApprovedScan\(approved\)/,
+        'the only route to an upload is an approved scan',
+    );
 });
 
 test('the scanner releases the camera and its buffers', () => {
@@ -664,6 +672,106 @@ test('a worker that dies after the handshake falls back instead of throwing', ()
         /return readyPromise\.then\(\(ok\) => ok && Boolean\(worker\)\);/,
         'a cached yes must be re-checked against the live worker, or postMessage runs on null',
     );
+});
+
+// ---------------------------------------------------------------------------
+// SAVING THE SCAN
+// The scan itself always worked. Everything below is why pressing Use Scan
+// ended at a red "UPLOAD FAILED" box.
+// ---------------------------------------------------------------------------
+
+const STORAGE = 'src/lib/bankroll/receiptStorage.js';
+const SERVER_GATE = 'src/lib/gates/serverFeatureGate.js';
+const OCR_ROUTE = 'pages/api/bankroll/scan-receipt.js';
+const LOG_MODAL = 'src/components/bankroll/LogEntryModal.jsx';
+
+test('bankroll images go to a bucket the storage policy actually allows', () => {
+    // Storage RLS allows INSERT only for
+    // ['avatars','live-recordings','messenger_media','social-media','stories',
+    //  'uploads','user-media']. `images` is not on it and has no policy of its
+    // own, so every upload was refused 403 "new row violates row-level
+    // security policy". The bucket's 117 objects predate the allowlist.
+    const src = read(STORAGE);
+    assert.match(src, /export const BANKROLL_BUCKET = 'user-media';/, 'must target an allowlisted bucket');
+    assert.doesNotMatch(code(STORAGE), /from\('images'\)/, 'the refused bucket must not come back');
+
+    // The policy is foldername(name)[1] = auth.uid(), so the path must lead
+    // with the user id or the insert is refused however good the bucket is.
+    assert.match(src, /return `\$\{userId\}\/bankroll\//, 'object path must start with the user id');
+
+    for (const rel of [RECEIPT, LOG_MODAL]) {
+        assert.doesNotMatch(code(rel), /storage\s*\n?\s*\.from\('images'\)/, `${rel} must not upload to images`);
+        assert.match(read(rel), /uploadBankrollImage/, `${rel} must go through the shared uploader`);
+    }
+});
+
+test('a refused upload is not retried, a flaky one is', () => {
+    const src = read(STORAGE);
+    assert.match(src, /export function isRetryableUploadError/, 'retry must be a decision, not a loop');
+    // Proven against the shape of the real failure.
+    const rls = { message: 'new row violates row-level security policy', statusCode: '403' };
+    assert.equal(evalRetryable(src, rls), false, 'a policy refusal will fail identically every time');
+    assert.equal(evalRetryable(src, { message: 'Failed to fetch' }), true, 'a network blip deserves another go');
+    assert.equal(evalRetryable(src, { message: 'Payload too large', statusCode: 413 }), false);
+});
+
+/** Run the shipped predicate rather than a paraphrase of it. */
+function evalRetryable(src, error) {
+    const body = src.slice(src.indexOf('export function isRetryableUploadError'));
+    const fn = new Function(`${body.replace('export function', 'return function')}`)();
+    return fn(error);
+}
+
+test('the OCR route checks entitlement server-side, not with the browser gate', () => {
+    // checkFeatureAccess reads localStorage, queries with the anon client whose
+    // RLS refuses `profiles`, then recovers by fetching a RELATIVE url. None of
+    // that works in an API route, so the route answered 403 to everyone,
+    // including a VIP account with 494,455 diamonds.
+    const route = read(OCR_ROUTE);
+    assert.match(route, /checkServerFeatureAccess/, 'the route must use the server gate');
+    assert.doesNotMatch(code(OCR_ROUTE), /checkFeatureAccess\(/, 'the browser gate must not be called here');
+    assert.match(route, /checkServerFeatureAccess\(getSupabase\(\)/, 'it must use the service-role client');
+
+    const gate = read(SERVER_GATE);
+    assert.match(gate, /is_vip/, 'VIP is the first question');
+    assert.match(gate, /daily_unlock_all/, 'then the universal day pass');
+    assert.match(gate, /premium_feature_access/, 'then a pass for this feature');
+    assert.match(gate, /return deny\('profile-unavailable'\)/, 'a database error must deny, not grant');
+});
+
+test('OCR runs alongside the upload so its result survives a retry', () => {
+    const src = read(RECEIPT);
+    const idx = src.indexOf('const uploadApprovedScan');
+    const body = src.slice(idx, idx + 2600);
+    assert.match(body, /const ocrPromise = runOcr\(/, 'OCR must start before the upload loop');
+    assert.ok(
+        body.indexOf('const ocrPromise') < body.indexOf('for (let attempt'),
+        'reading the receipt must not be queued behind storage succeeding',
+    );
+    assert.match(body, /ensureAuthReady\(supabase\)/, 'the SDK session must be live or storage RLS refuses anon');
+});
+
+test('an unsaved scan cannot be thrown away by accident', () => {
+    const src = read(RECEIPT);
+    assert.match(src, /const hasUnsavedScan = Boolean\(approvedScan\) && !uploadedUrl;/, 'pending must be defined');
+    assert.match(src, /const confirmDiscard = useCallback/, 'discarding must ask');
+    assert.match(src, /window\.addEventListener\('beforeunload', warn\)/, 'a reload must warn too');
+    assert.match(src, /onClick=\{requestReset\}/, 'NEW SCAN must go through the guard');
+    assert.match(src, /onPendingChange/, 'the page has to know, because its close button is outside this component');
+
+    const page = read('pages/hub/bankroll-manager.js');
+    assert.match(page, /onPendingChange=\{setScannerHasUnsaved\}/, 'the page must subscribe');
+    assert.match(page, /if \(scannerHasUnsaved && typeof window !== 'undefined'\)/, 'and guard its own close');
+});
+
+test('a failed save keeps the scan on screen instead of dead-ending', () => {
+    const src = read(RECEIPT);
+    const idx = src.indexOf('{error && !isUploading && (');
+    const body = src.slice(idx, idx + 1400);
+    assert.match(body, /approvedScan\.previewUrl/, 'the user must still see the scan they took');
+    assert.match(body, /RETRY SAVE/, 'retry must be the primary action');
+    assert.match(body, /Your Scan Is Still Here\. It Is Not Saved Yet\./, 'and be told it is not lost');
+    assert.match(body, /onClick=\{requestReset\}/, 'discarding from here must also confirm');
 });
 
 test('scanner surfaces carry no emoji and no em dashes', () => {
