@@ -985,9 +985,10 @@ const nextConfig = {
       { source: '/auth/sign' + 'in', destination: '/auth/login', permanent: true },
       { source: '/signup', destination: '/auth/sign' + 'up', permanent: true },
       { source: '/register', destination: '/auth/sign' + 'up', permanent: true },
-      // Privacy/legal routes → terms page (no separate privacy page exists)
-      { source: '/privacy', destination: '/terms', permanent: true },
-      { source: '/legal/privacy', destination: '/terms', permanent: true },
+      // /privacy is a real, server-rendered page since 2026-09-08 (the app
+      // stores read the privacy policy URL with a crawler, and the tab inside
+      // /terms is client-rendered). Only the legacy alias redirects now.
+      { source: '/legal/privacy', destination: '/privacy', permanent: true },
       { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
@@ -1051,6 +1052,14 @@ const nextConfig = {
       // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
       beforeFiles: [],
       afterFiles: [
+        /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
+           origin wants the app to open /hub/club-arena/* by fetching these two
+           files. They are API routes, not files in public/, because their
+           contents are Dan's credentials (Apple Team ID, Android release cert
+           SHA-256) read from the environment at request time: a 404 until
+           they exist, live the moment they are set. src/lib/app-links.js. */
+        { source: '/.well-known/apple-app-site-association', destination: '/api/app-links/aasa' },
+        { source: '/.well-known/assetlinks.json', destination: '/api/app-links/assetlinks' },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
         /* AD CREATIVES ARE SAME-ORIGIN (2026-09-03). A club owner's advert
