@@ -91,11 +91,19 @@ class PioProcess:
         expected_hand_order: tuple[str, ...],
         startup_timeout_seconds: float = 30.0,
     ):
-        if not str(expected_solver_version).strip():
-            raise PioError("approved PioSOLVER version is empty")
+        if (
+            not isinstance(expected_solver_version, str)
+            or not expected_solver_version
+            or expected_solver_version != expected_solver_version.strip()
+            or any(
+                ord(character) < 32 or ord(character) == 127
+                for character in expected_solver_version
+            )
+        ):
+            raise PioError("approved PioSOLVER version is not canonical printable text")
         if len(expected_hand_order) != 1326:
             raise PioError("approved PioSOLVER hand order is incomplete")
-        self._expected_solver_version = str(expected_solver_version).strip()
+        self._expected_solver_version = expected_solver_version
         self._expected_hand_order = tuple(expected_hand_order)
         self._pio_to_canonical: tuple[int, ...] = ()
         self._process = subprocess.Popen(
@@ -520,6 +528,11 @@ def analyze_node(
             raise PioError("node wager exceeds the effective stack")
         kind = "raise" if wager else "bet"
         pot_before = pot
+        raise_pot_after_call = (
+            pot + current_target - contributions[actor] if wager else None
+        )
+        if wager and (raise_pot_after_call is None or raise_pot_after_call <= 0):
+            raise PioError("node raise has no positive pot after call")
         delta = target - contributions[actor]
         contributions[actor] = target
         total_spent[actor] += delta
@@ -532,6 +545,7 @@ def analyze_node(
             "actor_total_target": actor_total_target,
             "all_in": target == actor_total_target,
             "pot_before": pot_before,
+            "raise_pot_after_call": raise_pot_after_call,
         }
         current_actions.append(dict(last_aggressive))
         current_target = target
@@ -567,7 +581,10 @@ def analyze_node(
             ]
             if not prior_hero:
                 raise PioError("raise-facing node has no prior hero aggression")
-            hero_index, hero_action = prior_hero[0]
+            # The response subtype is defined by the hero's immediately prior
+            # aggression.  In a multi-raise branch the first aggression can be
+            # a bet even though the hero most recently re-raised.
+            hero_index, hero_action = prior_hero[-1]
             if hero_action["kind"] == "raise":
                 role = "facing_raise"
             elif any(
@@ -578,9 +595,17 @@ def analyze_node(
             else:
                 role = "bet_raise"
             facing_kind = "raise"
-            to_call = current_target - contributions[actor]
-            denominator = pot + to_call
-            fraction = (last_aggressive["target"] - last_aggressive["prior_target"]) / denominator
+            # Classify the raise using the pot after the *raiser* called the
+            # previous wager, which is the same denominator used when action
+            # specs express a raise as pot_after_call_fraction.  The pot after
+            # the current actor calls is larger and incorrectly understates
+            # every raise faced by the next player.
+            denominator = last_aggressive["raise_pot_after_call"]
+            if denominator is None or denominator <= 0:
+                raise PioError("facing-raise denominator is not positive")
+            fraction = (
+                last_aggressive["target"] - last_aggressive["prior_target"]
+            ) / denominator
             facing_bucket = _bucket(fraction)
         facing_target = int(last_aggressive["target"])
         facing_actor_total = int(last_aggressive["actor_total_target"])
@@ -755,8 +780,15 @@ def setup_commands(
         for line in scenario["tree_lines"]
     )
     if scenario.get("objective") == "icm":
+        # Pio keeps the EV model in global state across trees.  Explicitly
+        # disable rake before installing an ICM model so a prior cash tree can
+        # never leak its rake into this solve.
+        commands.append("set_rake 0 0")
         commands.extend(_icm_setup_commands(scenario, icm_model))
     else:
+        # Likewise, clear every prior ICM interpolation table before selecting
+        # the cash/chip-EV rake model for this tree.
+        commands.append("reset_icm_tables")
         rake = scenario.get("rake")
         if (
             not isinstance(rake, list)
@@ -788,15 +820,23 @@ def setup_commands(
         )
     )
     rake_commands = [command for command in commands if command.startswith("set_rake ")]
-    icm_commands = [
+    icm_resets = [command for command in commands if command == "reset_icm_tables"]
+    active_icm_commands = [
         command
         for command in commands
-        if command == "reset_icm_tables"
-        or command.startswith(("set_icm ", "set_icm_point "))
+        if command.startswith(("set_icm ", "set_icm_point "))
     ]
-    if bool(rake_commands) == bool(icm_commands):
-        raise PioError("a scenario must use exactly one of rake or ICM")
-    if any(commands.index(command) > commands.index("build_tree") for command in rake_commands + icm_commands):
+    if len(icm_resets) != 1:
+        raise PioError("every scenario must clear inherited ICM state exactly once")
+    if scenario.get("objective") == "icm":
+        if rake_commands != ["set_rake 0 0"] or not active_icm_commands:
+            raise PioError("an ICM scenario must disable rake and install one ICM model")
+    elif len(rake_commands) != 1 or active_icm_commands:
+        raise PioError("a cash/chip-EV scenario must clear ICM and install one rake model")
+    if any(
+        commands.index(command) > commands.index("build_tree")
+        for command in rake_commands + icm_resets + active_icm_commands
+    ):
         raise PioError("the EV model must be configured before build_tree")
     return commands
 

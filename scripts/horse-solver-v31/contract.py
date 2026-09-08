@@ -144,6 +144,18 @@ def _nonzero_hex(value: Any, length: int, label: str) -> str:
     return text
 
 
+def _canonical_identity_text(value: Any, max_length: int, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or len(value) > max_length
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise ContractError(f"{label} must be canonical printable text")
+    return value
+
+
 def _safe_relative_path(value: Any, label: str) -> str:
     text = str(value or "")
     if (
@@ -671,12 +683,7 @@ def load_manifest(
         return ApprovedManifest(manifest_path, Path(input_root).resolve(), manifest, checksum)
     if not DATASET_KEY.fullmatch(str(manifest["dataset_key"] or "")):
         raise ContractError("dataset_key is invalid")
-    if (
-        not isinstance(manifest["manifest_version"], str)
-        or not manifest["manifest_version"].strip()
-        or len(manifest["manifest_version"]) > 160
-    ):
-        raise ContractError("manifest_version is required")
+    _canonical_identity_text(manifest["manifest_version"], 160, "manifest_version")
     _nonzero_hex(manifest["pipeline_commit"], 40, "pipeline_commit")
     _nonzero_hex(manifest["pipeline_bundle_checksum"], 64, "pipeline_bundle_checksum")
     _nonzero_hex(manifest["solver_binary_checksum"], 64, "solver_binary_checksum")
@@ -686,12 +693,7 @@ def load_manifest(
     _nonzero_hex(manifest["input_bundle_checksum"], 64, "input_bundle_checksum")
     if not UUID.fullmatch(str(manifest["input_bundle_id"] or "").lower()):
         raise ContractError("input_bundle_id is invalid")
-    if (
-        not isinstance(manifest["solver_version"], str)
-        or not manifest["solver_version"].strip()
-        or len(manifest["solver_version"]) > 120
-    ):
-        raise ContractError("solver_version is required")
+    _canonical_identity_text(manifest["solver_version"], 120, "solver_version")
     _validate_quality_gates(manifest["quality_gates"])
     root = Path(input_root).resolve()
     range_receipts = _range_bundle(root, manifest) if verify_inputs else {}

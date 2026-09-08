@@ -16,10 +16,33 @@ from gateway import GatewayClient, GatewayError, canonical_json
 from pio_upi import PioError, target_context, validate_pipeline_imports
 
 
+def board_rank_signature(board: str) -> str:
+    """Return a suit-agnostic, flop-order-agnostic runout signature.
+
+    A holdout that merely changes suits is the same game tree under Pio's suit
+    isomorphism and cannot measure generalization of a texture-level compact
+    cell.  Keeping the turn and river ranks ordered preserves street identity,
+    while sorting the three flop ranks removes presentation-only card order.
+    """
+
+    if not isinstance(board, str) or len(board) not in (6, 8, 10):
+        raise ContractError("holdout board has no canonical rank signature")
+    cards = [board[index : index + 2] for index in range(0, len(board), 2)]
+    ranks = "23456789TJQKA"
+    suits = "cdhs"
+    if len(set(cards)) != len(cards) or any(
+        len(card) != 2 or card[0] not in ranks or card[1] not in suits for card in cards
+    ):
+        raise ContractError("holdout board has no canonical rank signature")
+    flop = "".join(sorted((card[0] for card in cards[:3]), key=ranks.index))
+    runout = "".join(card[0] for card in cards[3:])
+    return f"{len(cards)}:{flop}:{runout}"
+
+
 def declared_coverage(manifest: ApprovedManifest) -> list[dict[str, Any]]:
     unique: dict[bytes, dict[str, Any]] = {}
     machines: dict[bytes, set[str]] = {}
-    boards: dict[bytes, dict[str, set[str]]] = {}
+    board_ranks: dict[bytes, dict[str, set[str]]] = {}
     for scenario in manifest.raw["scenarios"]:
         for target in scenario["targets"]:
             context = target_context(scenario, target)
@@ -27,8 +50,8 @@ def declared_coverage(manifest: ApprovedManifest) -> list[dict[str, Any]]:
             unique[key] = context
             machine = target["machine_id"]
             machines.setdefault(key, set()).add(machine)
-            boards.setdefault(key, {"M1": set(), "M2": set()})[machine].add(
-                target["board"]
+            board_ranks.setdefault(key, {"M1": set(), "M2": set()})[machine].add(
+                board_rank_signature(target["board"])
             )
     if not unique:
         raise ContractError("manifest contains no compact-cell coverage")
@@ -37,9 +60,9 @@ def declared_coverage(manifest: ApprovedManifest) -> list[dict[str, Any]]:
             raise ContractError(
                 "every compact context needs independently assigned M1 and M2 targets"
             )
-        if boards[key]["M1"] & boards[key]["M2"]:
+        if board_ranks[key]["M1"] & board_ranks[key]["M2"]:
             raise ContractError(
-                "M1 training and M2 holdout targets must use disjoint exact boards"
+                "M1 training and M2 holdout targets must use rank-disjoint boards"
             )
     return [unique[key] for key in sorted(unique)]
 

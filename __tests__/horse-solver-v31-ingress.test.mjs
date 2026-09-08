@@ -67,6 +67,16 @@ test('M1 and M2 cannot use compactor operations', () => {
   assert.equal(v31IngressEnvelopeIsValid(envelope('COMPACTOR', 'ingest_artifact'), 'COMPACTOR'), false);
 });
 
+test('provenance identity text is canonical before it reaches the database', () => {
+  const spacedSolver = envelope('M1', 'dataset_contract');
+  spacedSolver.provenance.solver_version = ' PioSOLVER-edge-3.0';
+  assert.equal(v31IngressEnvelopeIsValid(spacedSolver, 'M1'), false);
+
+  const newlineManifest = envelope('M1', 'dataset_contract');
+  newlineManifest.provenance.manifest_version = 'v31\n1';
+  assert.equal(v31IngressEnvelopeIsValid(newlineManifest, 'M1'), false);
+});
+
 test('a shared principal secret fails closed', () => {
   const environment = {
     HORSE_SOLVER_V31_M1_HMAC_SECRET: HEX('a'),

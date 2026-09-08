@@ -39,9 +39,10 @@ Create one immutable input directory containing:
 4. A complete enabled scenario manifest. Each target declares its exact Pio
    node, board, role, facing kind, size bucket, ordered child topology, and
    owning `machine_id`. M1 is the training split and M2 is the holdout split;
-   every compact context must have targets on both hosts, and their exact
-   boards must be disjoint. Solving the same board twice is reproducibility
-   evidence, not held-out evidence, and is rejected by the compactor.
+   every compact context must have targets on both hosts, and their board-rank
+   signatures must be disjoint. Changing only suits or flop-card order produces
+   the same strategic board under suit isomorphism, so it is reproducibility
+   evidence rather than held-out evidence and is rejected by the compactor.
 
 The input bundle approved through `ca_gto_v31_approve_input_bundle` must include
 file receipts for the range bundle, combo-order file, ICM model, and the exact
@@ -98,8 +99,10 @@ scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
 
 - Startup must acknowledge `set_end_string END` and `is_ready`; `show_version`
   and `show_hand_order` must exactly match the approved manifest and pinned
-  order file. State-changing commands require their exact UPI acknowledgement,
-  and asynchronous `SOLVER:` updates cannot consume a command response.
+  order file. Solver and manifest identity text must already be canonical; the
+  worker never trims one identity for attestation while publishing another.
+  State-changing commands require their exact UPI acknowledgement, and
+  asynchronous `SOLVER:` updates cannot consume a command response.
 - `show_children`, `show_strategy`, `show_range`, and both vectors from
   `calc_ev` must all return complete 1,326-combo data.
 - Policy EV comes from `calc_ev PLAYER node`; every action EV comes from
@@ -111,8 +114,10 @@ scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
   pot-after-call, matching Club Arena's live sizing contract.
 - All-in identity is proven against remaining effective stack, not inferred
   from a large size label.
-- A non-ICM tree uses exactly `set_rake <fraction> <integer-cap>`. An ICM tree
-  uses the complete pinned ICM table and no rake; Pio does not permit both.
+- Every tree clears inherited ICM state before a cash/chip-EV rake model is
+  installed. An ICM tree explicitly uses `set_rake 0 0` to disable inherited
+  rake before resetting and installing its complete pinned ICM table; Pio does
+  not permit active rake and ICM at the same time.
 - Convergence is `set_accuracy <fraction> fraction`, then argument-free `go`
   and `wait_for_solver`. `go <accuracy>` would mean seconds/steps, not an
   accuracy target. `calc_results` is parsed as named fields and the approved

@@ -113,6 +113,10 @@ class NodeLineTests(unittest.TestCase):
         self.assertEqual(self.line("r:0:b50:b150:b300").node_role, "facing_raise")
         self.assertEqual(self.line("r:0:c:b50:b150").node_role, "check_raise")
         self.assertEqual(self.line("r:0:b50:b150").node_role, "bet_raise")
+        self.assertEqual(
+            self.line("r:0:b50:b150:b300:b600").node_role,
+            "facing_raise",
+        )
         self.assertEqual(self.line("r:0:b1000").node_role, "all_in")
         with self.assertRaises(PioError):
             self.line("r:0", 1)
@@ -124,6 +128,14 @@ class NodeLineTests(unittest.TestCase):
         self.assertEqual(facing_raise.facing_size_bucket, "small")
         self.assertEqual(facing_raise.facing_target_chips, 150)
         self.assertEqual(facing_raise.facing_actor_total_chips, 1000)
+        # A raise to 250 after a 50-chip bet is a 200-chip raise over a
+        # 200-chip pot after the raiser calls: exactly 100%, therefore mid.
+        # Dividing by the pot after the *next* player calls incorrectly makes
+        # this 33% and routes the policy into the small bucket.
+        self.assertEqual(
+            self.line("r:0:b50:b250").facing_size_bucket,
+            "mid",
+        )
 
     def test_target_cannot_relabel_a_proven_line(self):
         scenario = base_scenario()
@@ -211,6 +223,7 @@ class PioHarvestTests(unittest.TestCase):
     def test_rake_and_exactly_one_icm_mode_precede_tree_build(self):
         scenario = base_scenario()
         commands = setup_commands(scenario, [1.0] * 1326, [1.0] * 1326)
+        self.assertLess(commands.index("reset_icm_tables"), commands.index("set_rake 0 0"))
         self.assertLess(commands.index("set_rake 0 0"), commands.index("build_tree"))
         self.assertFalse(any(command.startswith("set_icm") for command in commands))
         self.assertIn("set_accuracy 0.005 fraction", commands)
@@ -232,7 +245,7 @@ class PioHarvestTests(unittest.TestCase):
         commands = setup_commands(
             scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model
         )
-        self.assertNotIn("set_rake 0 0", commands)
+        self.assertLess(commands.index("set_rake 0 0"), commands.index("reset_icm_tables"))
         self.assertLess(commands.index("reset_icm_tables"), commands.index("build_tree"))
         self.assertEqual(sum(command.startswith("set_icm ") for command in commands), 1)
         self.assertLess(commands.index("set_icm 1000 1400"), commands.index("build_tree"))
@@ -374,13 +387,13 @@ class ManifestAndGatewayTests(unittest.TestCase):
     def test_solver_hosts_own_disjoint_targets_and_every_context_has_a_real_holdout(self):
         train = base_scenario()
         holdout = json.loads(json.dumps(train))
-        holdout["scenario_id"] = "cash.srp.sb.bb.10.AhKc7d"
-        holdout["flop_board"] = "AhKc7d"
+        holdout["scenario_id"] = "cash.srp.sb.bb.10.AhQc6d"
+        holdout["flop_board"] = "AhQc6d"
         holdout["targets"][0].update(
             {
                 "target_id": "cash.open.flop.holdout",
                 "machine_id": "M2",
-                "board": "AhKc7d",
+                "board": "AhQc6d",
             }
         )
         manifest = ApprovedManifest(
@@ -397,9 +410,10 @@ class ManifestAndGatewayTests(unittest.TestCase):
             compactor.declared_coverage(missing_holdout)
 
         duplicated_board = json.loads(json.dumps(holdout))
-        duplicated_board["flop_board"] = train["flop_board"]
-        duplicated_board["targets"][0]["board"] = train["targets"][0]["board"]
-        with self.assertRaisesRegex(ContractError, "disjoint exact boards"):
+        duplicated_board["scenario_id"] = "cash.srp.sb.bb.10.AhKc7d"
+        duplicated_board["flop_board"] = "AhKc7d"
+        duplicated_board["targets"][0]["board"] = "AhKc7d"
+        with self.assertRaisesRegex(ContractError, "rank-disjoint boards"):
             compactor.declared_coverage(
                 ApprovedManifest(
                     Path("manifest.json"),
@@ -408,6 +422,14 @@ class ManifestAndGatewayTests(unittest.TestCase):
                     "a" * 64,
                 )
             )
+        self.assertEqual(
+            compactor.board_rank_signature("AsKd7c"),
+            compactor.board_rank_signature("7hAcKd"),
+        )
+        self.assertNotEqual(
+            compactor.board_rank_signature("AsKd7c"),
+            compactor.board_rank_signature("AhQc6d"),
+        )
 
     def test_source_receipt_requires_the_exact_id_and_nonzero_lowercase_sha256(self):
         artifact = {"id": "11111111-1111-4111-8111-111111111111"}
@@ -530,6 +552,24 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(loaded.provenance["manifest_checksum"], digest(manifest_bytes))
             self.assertEqual(loaded.source_combo_order, canonical_hand_order_tokens())
             self.assertEqual(loaded.icm_models["satellite.1000"]["ip_stack_chips"], 1400)
+            for field, invalid in (
+                ("solver_version", " PioSOLVER-test"),
+                ("manifest_version", "1\nforged"),
+            ):
+                invalid_manifest = json.loads(json.dumps(manifest))
+                invalid_manifest[field] = invalid
+                invalid_bytes = canonical_json(invalid_manifest)
+                manifest_path.write_bytes(invalid_bytes)
+                with self.assertRaisesRegex(ContractError, "canonical printable text"):
+                    load_manifest(
+                        manifest_path,
+                        expected_checksum=digest(invalid_bytes),
+                        input_root=input_root,
+                        pipeline_root=pipeline_root,
+                        verify_inputs=False,
+                        verify_pipeline=False,
+                    )
+            manifest_path.write_bytes(manifest_bytes)
             (input_root / "ranges" / "oop.txt").write_text("0 " * 1326, encoding="utf-8")
             with self.assertRaises(ContractError):
                 load_manifest(

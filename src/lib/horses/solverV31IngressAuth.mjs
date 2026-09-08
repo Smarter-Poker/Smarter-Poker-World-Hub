@@ -55,6 +55,15 @@ function exactKeys(value, expected) {
   return actual.length === expected.length
     && expected.every((key) => Object.prototype.hasOwnProperty.call(value, key));
 }
+
+function canonicalIdentityText(value, maxLength) {
+  return typeof value === 'string'
+    && value.length > 0
+    && value.length <= maxLength
+    && value === value.trim()
+    && !/[\u0000-\u001f\u007f]/u.test(value);
+}
+
 export function v31IngressSecretEnvName(principal) {
   return PRINCIPAL_SET.has(principal) ? `HORSE_SOLVER_V31_${principal}_HMAC_SECRET` : null;
 }
@@ -139,15 +148,11 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
   if (!allowed.has(envelope.operation)) return false;
   const provenance = envelope.provenance;
   return DATASET_KEY.test(provenance.dataset_key)
-    && typeof provenance.solver_version === 'string'
-    && provenance.solver_version.trim().length > 0
-    && provenance.solver_version.length <= 120
+    && canonicalIdentityText(provenance.solver_version, 120)
     && HEX_64.test(provenance.solver_binary_checksum)
     && HEX_40.test(provenance.pipeline_commit)
     && HEX_64.test(provenance.pipeline_bundle_checksum)
-    && typeof provenance.manifest_version === 'string'
-    && provenance.manifest_version.trim().length > 0
-    && provenance.manifest_version.length <= 160
+    && canonicalIdentityText(provenance.manifest_version, 160)
     && HEX_64.test(provenance.manifest_checksum)
     && HEX_64.test(provenance.range_bundle_checksum)
     && HEX_64.test(provenance.source_combo_order_checksum)
