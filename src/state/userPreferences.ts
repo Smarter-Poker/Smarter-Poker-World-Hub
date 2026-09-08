@@ -213,7 +213,7 @@ export function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'medium'): vo
     }
 }
 
-// ── Card Visibility Toggles ──────────────────────────────────────────────
+// ── Card Visibility Toggles ─────────────────────────────────────────────────
 // Get the list of card IDs the user has hidden
 export function getHiddenCardIds(): string[] {
     if (typeof window === 'undefined') return [];
