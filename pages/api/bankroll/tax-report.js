@@ -4,21 +4,12 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Generate IRS-ready session logs with W2-G tracking
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
 
 // W2-G thresholds
 const W2G_THRESHOLDS = {
@@ -85,7 +76,7 @@ export default async function handler(req, res) {
           // Fetch uploaded W-2G forms for the year
           const { data: uploadedW2g } = await getSupabase()
               .from('w2g_forms')
-              .select('*')
+              .select('upload_date, created_at, form_type, source_description, file_name, gross_amount, withholding_amount, file_url')
               .eq('user_id', user.id)
               .eq('tax_year', parseInt(year))
               .order('upload_date', { ascending: true })

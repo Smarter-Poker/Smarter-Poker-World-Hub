@@ -147,7 +147,7 @@ export default async function handler(req, res) {
           grokMessages.push({ role: 'user', content: message });
 
           const response = await grok.chat.completions.create({
-              model: 'grok-beta',
+              model: 'grok-3',
               messages: grokMessages,
               temperature: 0.7,
               max_tokens: 800,

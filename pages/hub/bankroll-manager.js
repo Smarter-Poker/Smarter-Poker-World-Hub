@@ -112,7 +112,8 @@ const SIDEBAR_SECTIONS = [
 ];
 
 // Accounting-only categories: NEVER count as sessions, never affect win rate, projections, or stats
-const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal', 'receipt'];
+// 'receipt' was listed here for years; bankroll_ledger_category_check has never allowed it.
+const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal'];
 
 // Map URL ?type= values to database category IDs
 const TYPE_TO_CATEGORY = {

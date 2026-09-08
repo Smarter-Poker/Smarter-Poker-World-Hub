@@ -42,7 +42,7 @@ RULES:
                 'Authorization': `Bearer ${XAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'grok-2-latest',
+                model: 'grok-3',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.9,
                 max_tokens: 80
