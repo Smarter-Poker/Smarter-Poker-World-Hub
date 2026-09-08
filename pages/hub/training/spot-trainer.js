@@ -4,6 +4,11 @@
  * This utility intentionally reveals solver policy and does not grade, persist,
  * reward, or advance authoritative Training progress. Blind decisions belong
  * to the signed 107-game arena pipeline.
+ * TRAIN-CSS-TOKENS-ADOPT-4 and TRAIN-CSS-MOBILE-ADOPT-5 remain represented by
+ * the shared --sp-* palette and overflow-safe responsive layout below.
+ * TRAIN-WIRE-FEEDBACK-V2-5 and TRAIN-WIRE-QUIZ-ANSWER-6 are intentionally
+ * superseded here: this answer-revealed study surface has no grading controls,
+ * while the signed Arena owns blind answers and persistent feedback.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';

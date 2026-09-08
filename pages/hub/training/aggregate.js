@@ -5,6 +5,8 @@
  * cohort carries complete identity, lineage, and weighting evidence. The old
  * page called a legacy endpoint and presented an unaudited average as truth.
  * Keep the route discoverable, but never manufacture or fetch that evidence.
+ * TRAIN-AGGREGATE-A11Y-1 remains enforced on this replacement surface: the
+ * navigation control has a visible label and a currentColor SVG icon.
  */
 import React from 'react';
 import Head from 'next/head';
@@ -16,6 +18,15 @@ function ShieldIcon() {
     <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M12 3 20 6v5c0 5.2-3.2 8.4-8 10-4.8-1.6-8-4.8-8-10V6l8-3Z" />
       <path d="m8.8 12 2 2 4.5-4.5" />
+    </svg>
+  );
+}
+
+function BackArrowIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
     </svg>
   );
 }
@@ -37,7 +48,8 @@ export default function AggregateReports() {
       <main className="aggregate-boundary">
         <section className="aggregate-panel" aria-labelledby="aggregate-title">
           <button type="button" className="aggregate-back" onClick={() => router.push('/hub/training')}>
-            ← Training Hub
+            <BackArrowIcon />
+            <span>Training Hub</span>
           </button>
 
           <div className="aggregate-seal">

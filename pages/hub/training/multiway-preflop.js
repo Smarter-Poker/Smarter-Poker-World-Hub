@@ -3,6 +3,9 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * These hand sets are authored teaching references. They are not sealed solver
  * exports and must not be used for scored grading, GTO claims, or EV claims.
+ * TRAIN-WIRE-FEEDBACK-HOOK-2 and TRAIN-WIRE-QUIZ-ANSWER-5 are intentionally
+ * superseded on this ungraded reference surface; signed Arena questions own
+ * answer submission and persistent feedback instead of browser-authored truth.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 

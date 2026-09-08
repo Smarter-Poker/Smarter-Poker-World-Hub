@@ -22979,8 +22979,8 @@
       "ctas": [
         {
           "element": "button",
-          "name": "← Training Hub",
-          "line": 39,
+          "name": "Training Hub",
+          "line": 50,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -22990,7 +22990,7 @@
         {
           "element": "button",
           "name": "Open Audited Solutions",
-          "line": 79,
+          "line": 91,
           "handler": "() => router.push('/hub/training/solutions')",
           "destination": null,
           "type": "button",
@@ -23000,7 +23000,7 @@
         {
           "element": "button",
           "name": "Return To Training Hub",
-          "line": 82,
+          "line": 94,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -23040,7 +23040,15 @@
       "functions": [
         {
           "name": "ShieldIcon",
-          "line": 14,
+          "line": 16,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "BackArrowIcon",
+          "line": 25,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -23048,7 +23056,7 @@
         },
         {
           "name": "AggregateReports",
-          "line": 23,
+          "line": 34,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -23455,7 +23463,7 @@
       "functions": [
         {
           "name": "BankrollCoachPage",
-          "line": 9,
+          "line": 11,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -25273,7 +25281,7 @@
         {
           "element": "button",
           "name": "Back To Training Hub",
-          "line": 59,
+          "line": 61,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -25283,7 +25291,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 142,
+          "line": 144,
           "handler": "() => router.push(route.href)",
           "destination": null,
           "type": "button",
@@ -25323,7 +25331,7 @@
       "functions": [
         {
           "name": "FamousFinalsArchivePage",
-          "line": 30,
+          "line": 32,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -28598,7 +28606,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 323,
+          "line": 326,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -28608,7 +28616,7 @@
         {
           "element": "button",
           "name": "How Multiway Preflop works",
-          "line": 338,
+          "line": 341,
           "handler": "() => setInfoOpen(true)",
           "destination": null,
           "type": null,
@@ -28648,7 +28656,7 @@
       "functions": [
         {
           "name": "parseRangeToSet",
-          "line": 118,
+          "line": 121,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28656,7 +28664,7 @@
         },
         {
           "name": "isInRange",
-          "line": 165,
+          "line": 168,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28664,7 +28672,7 @@
         },
         {
           "name": "RangeGrid",
-          "line": 179,
+          "line": 182,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28672,7 +28680,7 @@
         },
         {
           "name": "MultiwayPreflopPage",
-          "line": 253,
+          "line": 256,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -30192,7 +30200,7 @@
       "functions": [
         {
           "name": "getServerSideProps",
-          "line": 10,
+          "line": 13,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -30200,7 +30208,7 @@
         },
         {
           "name": "LegacyQuizGauntletRedirect",
-          "line": 19,
+          "line": 22,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -30749,7 +30757,7 @@
         {
           "element": "button",
           "name": "Return To Training Hub",
-          "line": 167,
+          "line": 178,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -30759,7 +30767,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 182,
+          "line": 194,
           "handler": "() => setPeriod(option.value)",
           "destination": null,
           "type": "button",
@@ -30798,8 +30806,16 @@
       },
       "functions": [
         {
+          "name": "BackArrowIcon",
+          "line": 29,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "isFiniteNumber",
-          "line": 27,
+          "line": 38,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -30807,7 +30823,7 @@
         },
         {
           "name": "formatMetric",
-          "line": 31,
+          "line": 42,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -30815,7 +30831,7 @@
         },
         {
           "name": "formatEv",
-          "line": 35,
+          "line": 46,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -30823,7 +30839,7 @@
         },
         {
           "name": "panelStyle",
-          "line": 39,
+          "line": 50,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -30831,7 +30847,7 @@
         },
         {
           "name": "MetricCard",
-          "line": 50,
+          "line": 61,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -30839,7 +30855,7 @@
         },
         {
           "name": "AccuracyBar",
-          "line": 64,
+          "line": 75,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -30847,7 +30863,7 @@
         },
         {
           "name": "ClassificationStrip",
-          "line": 75,
+          "line": 86,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -30855,7 +30871,7 @@
         },
         {
           "name": "VerifiedTrainingReports",
-          "line": 101,
+          "line": 112,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -30866,7 +30882,7 @@
       "markers": [
         {
           "kind": "SIMULATED",
-          "line": 162,
+          "line": 173,
           "excerpt": "<meta name=\"description\" content=\"Review sealed Training results and measured solver evidence without inferred or simulated player statistics.\" />",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -32346,7 +32362,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 160,
+          "line": 165,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32356,7 +32372,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 227,
+          "line": 232,
           "handler": "() => setFormat(option.value)",
           "destination": null,
           "type": "button",
@@ -32366,7 +32382,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 239,
+          "line": 244,
           "handler": "() => setPosition(option.value)",
           "destination": null,
           "type": "button",
@@ -32376,7 +32392,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 266,
+          "line": 271,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -32386,7 +32402,7 @@
         {
           "element": "button",
           "name": "Load Another",
-          "line": 308,
+          "line": 313,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -32396,7 +32412,7 @@
         {
           "element": "button",
           "name": "Load Another Audited Spot",
-          "line": 434,
+          "line": 439,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -32436,7 +32452,7 @@
       "functions": [
         {
           "name": "waitForRetry",
-          "line": 35,
+          "line": 40,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32444,7 +32460,7 @@
         },
         {
           "name": "HandBadge",
-          "line": 48,
+          "line": 53,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32452,7 +32468,7 @@
         },
         {
           "name": "SpotTrainerPage",
-          "line": 78,
+          "line": 83,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -32460,7 +32476,7 @@
         },
         {
           "name": "finish",
-          "line": 38,
+          "line": 43,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -32468,7 +32484,7 @@
         },
         {
           "name": "filterButtonStyle",
-          "line": 64,
+          "line": 69,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -61536,11 +61552,11 @@
       "effectRef": "pages/hub/training/achievements.js"
     },
     {
-      "id": "pages/hub/training/aggregate.js:39:1",
+      "id": "pages/hub/training/aggregate.js:50:1",
       "file": "pages/hub/training/aggregate.js",
       "element": "button",
-      "name": "← Training Hub",
-      "line": 39,
+      "name": "Training Hub",
+      "line": 50,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -61549,11 +61565,11 @@
       "effectRef": "pages/hub/training/aggregate.js"
     },
     {
-      "id": "pages/hub/training/aggregate.js:79:2",
+      "id": "pages/hub/training/aggregate.js:91:2",
       "file": "pages/hub/training/aggregate.js",
       "element": "button",
       "name": "Open Audited Solutions",
-      "line": 79,
+      "line": 91,
       "handler": "() => router.push('/hub/training/solutions')",
       "destination": null,
       "type": "button",
@@ -61562,11 +61578,11 @@
       "effectRef": "pages/hub/training/aggregate.js"
     },
     {
-      "id": "pages/hub/training/aggregate.js:82:3",
+      "id": "pages/hub/training/aggregate.js:94:3",
       "file": "pages/hub/training/aggregate.js",
       "element": "button",
       "name": "Return To Training Hub",
-      "line": 82,
+      "line": 94,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -62004,11 +62020,11 @@
       "effectRef": "pages/hub/training/ev-heatmap.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:59:1",
+      "id": "pages/hub/training/famous-finals.js:61:1",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "Back To Training Hub",
-      "line": 59,
+      "line": 61,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -62017,11 +62033,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:142:2",
+      "id": "pages/hub/training/famous-finals.js:144:2",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 142,
+      "line": 144,
       "handler": "() => router.push(route.href)",
       "destination": null,
       "type": "button",
@@ -62758,11 +62774,11 @@
       "effectRef": "pages/hub/training/multiway-postflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:323:1",
+      "id": "pages/hub/training/multiway-preflop.js:326:1",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "← Training",
-      "line": 323,
+      "line": 326,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -62771,11 +62787,11 @@
       "effectRef": "pages/hub/training/multiway-preflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:338:2",
+      "id": "pages/hub/training/multiway-preflop.js:341:2",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "How Multiway Preflop works",
-      "line": 338,
+      "line": 341,
       "handler": "() => setInfoOpen(true)",
       "destination": null,
       "type": null,
@@ -63239,11 +63255,11 @@
       "effectRef": "pages/hub/training/replay-theater.js"
     },
     {
-      "id": "pages/hub/training/reports.js:167:1",
+      "id": "pages/hub/training/reports.js:178:1",
       "file": "pages/hub/training/reports.js",
       "element": "button",
       "name": "Return To Training Hub",
-      "line": 167,
+      "line": 178,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -63252,11 +63268,11 @@
       "effectRef": "pages/hub/training/reports.js"
     },
     {
-      "id": "pages/hub/training/reports.js:182:2",
+      "id": "pages/hub/training/reports.js:194:2",
       "file": "pages/hub/training/reports.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 182,
+      "line": 194,
       "handler": "() => setPeriod(option.value)",
       "destination": null,
       "type": "button",
@@ -63694,11 +63710,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:160:1",
+      "id": "pages/hub/training/spot-trainer.js:165:1",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "← Training",
-      "line": 160,
+      "line": 165,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -63707,11 +63723,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:227:2",
+      "id": "pages/hub/training/spot-trainer.js:232:2",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 227,
+      "line": 232,
       "handler": "() => setFormat(option.value)",
       "destination": null,
       "type": "button",
@@ -63720,11 +63736,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:239:3",
+      "id": "pages/hub/training/spot-trainer.js:244:3",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 239,
+      "line": 244,
       "handler": "() => setPosition(option.value)",
       "destination": null,
       "type": "button",
@@ -63733,11 +63749,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:266:4",
+      "id": "pages/hub/training/spot-trainer.js:271:4",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Retry",
-      "line": 266,
+      "line": 271,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -63746,11 +63762,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:308:5",
+      "id": "pages/hub/training/spot-trainer.js:313:5",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another",
-      "line": 308,
+      "line": 313,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -63759,11 +63775,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:434:6",
+      "id": "pages/hub/training/spot-trainer.js:439:6",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another Audited Spot",
-      "line": 434,
+      "line": 439,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -82944,7 +82960,7 @@
       {
         "file": "pages/hub/training/reports.js",
         "kind": "SIMULATED",
-        "line": 162,
+        "line": 173,
         "excerpt": "<meta name=\"description\" content=\"Review sealed Training results and measured solver evidence without inferred or simulated player statistics.\" />",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86214,7 +86230,7 @@
       {
         "file": "pages/hub/training/aggregate.js",
         "name": "AggregateReports",
-        "line": 23,
+        "line": 34,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -86279,7 +86295,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "BankrollCoachPage",
-        "line": 9,
+        "line": 11,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -86500,7 +86516,7 @@
       {
         "file": "pages/hub/training/famous-finals.js",
         "name": "FamousFinalsArchivePage",
-        "line": 30,
+        "line": 32,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -86812,7 +86828,7 @@
       {
         "file": "pages/hub/training/multiway-preflop.js",
         "name": "MultiwayPreflopPage",
-        "line": 253,
+        "line": 256,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -87007,7 +87023,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "getServerSideProps",
-        "line": 10,
+        "line": 13,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -87020,7 +87036,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "LegacyQuizGauntletRedirect",
-        "line": 19,
+        "line": 22,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -87176,7 +87192,7 @@
       {
         "file": "pages/hub/training/spot-trainer.js",
         "name": "SpotTrainerPage",
-        "line": 78,
+        "line": 83,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -91471,7 +91487,7 @@
       {
         "file": "pages/hub/training/reports.js",
         "kind": "SIMULATED",
-        "line": 162,
+        "line": 173,
         "excerpt": "<meta name=\"description\" content=\"Review sealed Training results and measured solver evidence without inferred or simulated player statistics.\" />",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -94741,7 +94757,7 @@
       {
         "file": "pages/hub/training/aggregate.js",
         "name": "AggregateReports",
-        "line": 23,
+        "line": 34,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94806,7 +94822,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "BankrollCoachPage",
-        "line": 9,
+        "line": 11,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95027,7 +95043,7 @@
       {
         "file": "pages/hub/training/famous-finals.js",
         "name": "FamousFinalsArchivePage",
-        "line": 30,
+        "line": 32,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95339,7 +95355,7 @@
       {
         "file": "pages/hub/training/multiway-preflop.js",
         "name": "MultiwayPreflopPage",
-        "line": 253,
+        "line": 256,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95534,7 +95550,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "getServerSideProps",
-        "line": 10,
+        "line": 13,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95547,7 +95563,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "LegacyQuizGauntletRedirect",
-        "line": 19,
+        "line": 22,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95703,7 +95719,7 @@
       {
         "file": "pages/hub/training/spot-trainer.js",
         "name": "SpotTrainerPage",
-        "line": 78,
+        "line": 83,
         "references": 1,
         "exported": true,
         "defaultExport": true,

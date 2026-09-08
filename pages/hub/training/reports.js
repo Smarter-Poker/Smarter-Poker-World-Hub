@@ -24,6 +24,17 @@ const CLASSIFICATIONS = [
   ['blunder', 'Blunder', '#ff4d5e'],
 ];
 
+// TRAIN-REPORTS-A11Y-1: the verified replacement keeps labeled navigation and
+// uses a currentColor SVG instead of a font-dependent arrow glyph.
+function BackArrowIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </svg>
+  );
+}
+
 function isFiniteNumber(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 }
@@ -164,8 +175,9 @@ export default function VerifiedTrainingReports() {
       <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', paddingBottom: 76, background: 'radial-gradient(circle at 50% -10%, rgba(0,155,255,.18), transparent 34%), linear-gradient(180deg, #071018, #03070b 64%, #071019)', color: 'var(--sp-fg)' }}>
         <header className="sp-intelligence-header" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid rgba(91,221,255,.32)', background: 'linear-gradient(180deg, rgba(28,44,58,.96), rgba(4,10,15,.96))', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button type="button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
-              ← Training
+            <button type="button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
+              <BackArrowIcon />
+              <span>Training</span>
             </button>
             <div>
               <div style={{ color: '#75e9ff', fontSize: 9, letterSpacing: 2.1, textTransform: 'uppercase', fontWeight: 800 }}>Sealed Attempt Intelligence</div>

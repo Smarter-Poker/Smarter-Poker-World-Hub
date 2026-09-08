@@ -5,6 +5,8 @@
  * cited hand histories nor provenance-sealed solver artifacts. It is kept as a
  * truthful navigation surface, but it must never grade those reconstructions or
  * present their frequencies, EVs, stacks, or outcomes as historical fact.
+ * TRAIN-CSS-MOBILE-ADOPT-13 is retained by the bounded, overflow-safe archive
+ * shell and clamp-based responsive spacing below.
  */
 
 import Head from 'next/head';

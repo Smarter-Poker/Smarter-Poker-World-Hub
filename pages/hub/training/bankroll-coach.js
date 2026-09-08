@@ -5,6 +5,8 @@ import CanonicalTrainingRedirect from '../../../src/components/training/Canonica
  * into guaranteed hourly and monthly bankroll savings. Those projections did
  * not have enough evidence to be product truth. Preserve the route, but send
  * the player to the sealed-attempt report that owns the actual measurements.
+ * TRAIN-BANKROLL-A11Y-1 is retained by CanonicalTrainingRedirect through its
+ * semantic h1 and visible, keyboard-reachable destination link.
  */
 export default function BankrollCoachPage() {
   return (
