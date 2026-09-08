@@ -10,6 +10,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 let _supabase = null;
 function getSupabase() {
@@ -83,12 +84,6 @@ export default async function handler(req, res) {
 }
 
 async function analyzeDocument(imageBase64) {
-    const GROK_API_KEY = (process.env.XAI_API_KEY || process.env.GROK_API_KEY || '').trim();
-
-    if (!GROK_API_KEY) {
-        throw new Error('Document scanning is not configured. Missing API key.');
-    }
-
     const prompt = `Analyze this employment/tax document or gaming license and extract the following information in JSON format:
 
 {
@@ -106,43 +101,35 @@ async function analyzeDocument(imageBase64) {
 
 If any field is not visible or not relevant to the document type, use null. Be sure to look for expiration dates on licenses to populate expiry_date. For paystubs look for 'Gross Pay' or 'Net Pay'. For tax forms like W-2s, look for Box 1 Wages. Format dates as YYYY-MM-DD.`;
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${GROK_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: 'grok-2-vision-latest',
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: imageBase64.startsWith('data:')
-                                    ? imageBase64
-                                    : `data:image/jpeg;base64,${imageBase64}`,
-                            },
+    // Through the shared Grok client, never a raw fetch with a model name
+    // found in a file. This route posted `grok-2-vision-latest` to api.x.ai
+    // directly; on 2026-09-08 that name answered "Model not found", so every
+    // dealer-document scan failed after passing the gate. The client resolves
+    // the model in ONE place (grok-3 reads images today), so the next model
+    // change is one edit for every route instead of a production repro each.
+    const grok = getGrokClient();
+    const completion = await grok.chat.completions.create({
+        model: 'grok-3',
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: imageBase64.startsWith('data:')
+                                ? imageBase64
+                                : `data:image/jpeg;base64,${imageBase64}`,
                         },
-                        {
-                            type: 'text',
-                            text: prompt,
-                        },
-                    ],
-                },
-            ],
-            temperature: 0.1,
-        }),
+                    },
+                    { type: 'text', text: prompt },
+                ],
+            },
+        ],
+        temperature: 0.1,
     });
 
-    if (!response.ok) {
-        throw new Error(`OCR API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const content = completion?.choices?.[0]?.message?.content;
 
     // Parse JSON from response string
     const jsonMatch = content?.match(/\{[\s\S]*\}/);
