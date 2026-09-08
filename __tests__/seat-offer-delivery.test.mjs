@@ -85,7 +85,7 @@ test('a seat offer is sent with a TTL near its own three-minute life', () => {
     assert.match(DISPATCH, /waitlist_seat_open: 3 \* 60 \+ 30/);
     // And it is actually PASSED to the sender. A constant nobody forwards is
     // the quiet version of this bug.
-    assert.match(DISPATCH, /sendWebPush\(sub, payload, typeof ttl === 'number' \? \{ ttl \} : undefined\)/);
+    assert.match(DISPATCH, /sendPush\(sub, payload, typeof ttl === 'number' \? \{ ttl \} : undefined\)/);
 });
 
 test('web-push honours a caller ttl rather than always defaulting to a day', () => {
