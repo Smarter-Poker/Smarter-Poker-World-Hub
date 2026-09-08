@@ -151,3 +151,31 @@ every page load and paint nothing. It is not deleted here: it was written to
 replace six divergent table implementations and that is a design call, not a
 silent one. The status is now recorded in the file's own header so the next
 reader is not misled by it.
+
+## 8. And then I broke the deployment explaining the fix
+
+Deployment `2d79fd9` for #1632 went to ERROR on `main`. Not the cache change —
+the comment beside it. `vercel.json` is strict JSON and Vercel validates it
+against a schema that allows only `source`, `headers`, `has` and `missing` in a
+headers entry, so the `"_comment"` I added to explain why the TTL dropped from 30
+days to 1 was an unknown key and the build was refused.
+
+**Every gate upstream was green.** A config error fails before anything compiles:
+`npm run build` does not read `vercel.json`, no test read it, and the pre-push
+hooks read source rather than config. The only place it appeared was a red row on
+the Vercel dashboard, and it was found because Dan looked at it.
+
+`__tests__/vercel-json-is-schema-valid.test.mjs` now reads that file, in CHECK 8:
+
+- every `headers` / `redirects` / `rewrites` / `crons` entry carries only keys the
+  schema allows, so a comment or a typo cannot reach a deployment again;
+- `/avatars/(.*)` stays at a TTL of a day or less, which is what the comment was
+  trying to say and now cannot be lost by deleting a comment.
+
+Verified against the exact broken config: 2 failures, one per assertion, and 5
+passes once restored.
+
+The lesson is narrower than "do not comment JSON". It is that the reasoning
+wanted to be a check, not a comment — a comment in a file nothing validates
+cannot stop the thing it warns about, and this one could not even survive being
+written down.
