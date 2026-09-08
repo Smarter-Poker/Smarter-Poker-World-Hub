@@ -493,7 +493,21 @@ export default function UniversalHeader({
                 if (username) {
                   const directHref = `/hub/user/${username.toLowerCase()}`;
                   setProfileHref(directHref);
-                  router.prefetch(directHref);
+                  // Idle, not immediate: this is the signed-in user's own
+                  // profile route (159KB) and it was prefetched on EVERY page
+                  // load the moment the username resolved, competing with
+                  // whatever that page was still fetching. The header avatar is
+                  // a likely click, so keep the warm-up - just not in the way.
+                  if (typeof window !== 'undefined') {
+                    const warm = () => {
+                      try { router.prefetch(directHref); } catch (_) { /* best effort */ }
+                    };
+                    if (typeof window.requestIdleCallback === 'function') {
+                      window.requestIdleCallback(warm, { timeout: 5000 });
+                    } else {
+                      setTimeout(warm, 3000);
+                    }
+                  }
                 }
                 return true; // Success
               }
@@ -606,7 +620,21 @@ export default function UniversalHeader({
                 if (normalizedFallbackUsername) {
                   const directHref = `/hub/user/${normalizedFallbackUsername}`;
                   setProfileHref(directHref);
-                  router.prefetch(directHref);
+                  // Idle, not immediate: this is the signed-in user's own
+                  // profile route (159KB) and it was prefetched on EVERY page
+                  // load the moment the username resolved, competing with
+                  // whatever that page was still fetching. The header avatar is
+                  // a likely click, so keep the warm-up - just not in the way.
+                  if (typeof window !== 'undefined') {
+                    const warm = () => {
+                      try { router.prefetch(directHref); } catch (_) { /* best effort */ }
+                    };
+                    if (typeof window.requestIdleCallback === 'function') {
+                      window.requestIdleCallback(warm, { timeout: 5000 });
+                    } else {
+                      setTimeout(warm, 3000);
+                    }
+                  }
                 }
                 console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {
                   diamonds: profile.diamonds,

@@ -3699,11 +3699,36 @@ function SocialMediaPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Route prefetch — preload likely navigation targets during idle time
+  /*
+   * Route prefetch, during idle time - which is what this comment always
+   * claimed and the code never did. Three router.prefetch calls fired
+   * synchronously in a useEffect on mount, so /hub/notifications,
+   * /hub/friends and /hub/messenger came down WHILE the feed was still
+   * fetching its own posts and images: measured at ~310KB of neighbouring
+   * page chunks on a feed whose own chunk is 252KB.
+   *
+   * requestIdleCallback runs it when the main thread is actually free.
+   * Safari has no requestIdleCallback, hence the timeout fallback, and both
+   * paths are cancelled on unmount so a fast navigation does not leave the
+   * prefetch running for a page nobody is on.
+   */
   useEffect(() => {
-    router.prefetch('/hub/notifications');
-    router.prefetch('/hub/friends');
-    router.prefetch('/hub/messenger');
+    const warmNeighbours = () => {
+      for (const href of ['/hub/notifications', '/hub/friends', '/hub/messenger']) {
+        try {
+          router.prefetch(href);
+        } catch (_) {
+          // Prefetch is best-effort; the Links themselves still navigate.
+        }
+      }
+    };
+    if (typeof window === 'undefined') return undefined;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warmNeighbours, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(warmNeighbours, 2500);
+    return () => clearTimeout(t);
   }, [router]);
 
   // ═══════════════════════════════════════════════════════════════════════════
