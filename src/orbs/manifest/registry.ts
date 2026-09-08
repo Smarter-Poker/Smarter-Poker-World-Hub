@@ -111,21 +111,6 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     description: 'HIGH STAKES ACTION - PLAY FOR DIAMONDS AGAINST ELITE COMPETITION',
   },
   {
-    id: 'my-clubs',
-    scale: [1.149, 1.016],
-    color: '#00bfff',
-    label: 'My Clubs',
-    gradient: ['#4dd0e1', '#00838f'],
-    imageUrl: '/cards/my-clubs.png?v=splash1',
-    // The old copy promised waitlists and live games. The page behind this
-    // card never delivered either: its venue filter tested for a venue_type
-    // this platform does not emit, so it rendered nothing, for anyone, ever.
-    // /hub/my-clubs is a redirect to Social Pages Managed now (2026-09-08),
-    // so the card keeps its place in the carousel and lands somewhere real.
-    // Audit: .agent/audits/2026-09-08-my-clubs-page-audit.md
-    description: 'EVERY CLUB, UNION AND HOME GAME YOU OWN OR BELONG TO',
-  },
-  {
     id: 'video-library',
     scale: [1.123, 1.018],
     color: '#ff4444',
