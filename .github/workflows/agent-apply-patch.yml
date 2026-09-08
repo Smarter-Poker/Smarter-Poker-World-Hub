@@ -18,6 +18,22 @@ on:
 
 permissions:
   contents: write
+  # WORKFLOWS TOO (2026-09-08). Without this, a patch that touches
+  # .github/workflows/** applies perfectly and then cannot be pushed:
+  #
+  #   applied (unidiff-zero)
+  #   [patch/... 60dd205861] agent-patch: apply pipeline-wave-1.patch
+  #    5 files changed, 123 insertions(+), 191 deletions(-)
+  #   ! [remote rejected] ... (refusing to allow a GitHub App to create
+  #     or update workflow `.github/workflows/e2e-tests.yml` without
+  #     `workflows` permission)
+  #
+  # The job then exits 1 with the patch still queued. It is not a
+  # required check, so autopilot squash-merges the branch anyway and
+  # main takes the .patch FILE and none of its changes - which is
+  # exactly what happened to PR #1621. Every earlier patch through this
+  # bridge touched only scripts/ and src/, so nothing had exercised it.
+  workflows: write
 
 jobs:
   apply:
