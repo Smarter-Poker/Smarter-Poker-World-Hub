@@ -14,6 +14,7 @@ import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { SOCIAL_COLORS, timeAgo } from '../../../src/lib/socialHelpers';
+import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 
 const C = SOCIAL_COLORS;
 
@@ -519,7 +520,10 @@ export default function SocialPagesHub() {
                                 {trendingPages.map((tp, idx) => {
                                     const tColor = { venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange };
                                     return (
-                                        <div key={tp.id} onClick={() => router.push(`/hub/social-pages/${tp.slug || tp.id}`)} style={{
+                                        <div
+                                          role="button"
+                                          tabIndex={0}
+                                          onKeyDown={spKeyActivate} key={tp.id} onClick={() => router.push(`/hub/social-pages/${tp.slug || tp.id}`)} style={{
                                             flexShrink: 0, width: 180, background: C.card, borderRadius: 12,
                                             border: `1px solid ${C.border}`, overflow: 'hidden', cursor: 'pointer',
                                             transition: 'transform 0.15s', position: 'relative',

@@ -163,6 +163,11 @@ test('no fixed file carries a close control smaller than 44px', () => {
  * treatment and belongs back in FIXED_FILES.
  */
 const NO_LONGER_OVERLAY = [
+  // ChatWindow.jsx was deleted on 2026-09-08. It had been stripped from 3,651
+  // lines to 177 when its copied feed-page prefix went, and its only importer -
+  // a dynamic() that never rendered - went in the same pass, so the file was
+  // unreachable. A deleted file is handled below rather than dropped from this
+  // list silently.
   'src/components/social/ChatWindow.jsx',
   'src/components/social/ClubPageDashboard.jsx',
   'src/components/social/ClubPagesView.jsx',
@@ -171,7 +176,12 @@ const NO_LONGER_OVERLAY = [
 
 test('the files removed from FIXED_FILES really have no full-screen overlay', () => {
   const offenders = [];
+  let checked = 0;
   for (const f of NO_LONGER_OVERLAY) {
+    // A file that no longer exists cannot grow an overlay. That is the honest
+    // pass condition, not an excuse to stop looking at the ones that remain.
+    if (!fs.existsSync(path.join(ROOT, f))) continue;
+    checked++;
     const src = read(f);
     for (const m of src.matchAll(/position:\s*'fixed'/g)) {
       const block = src.slice(m.index, m.index + 400);
@@ -186,6 +196,9 @@ test('the files removed from FIXED_FILES really have no full-screen overlay', ()
       }
     }
   }
+  // Control: if every entry vanished, this test would pass while checking
+  // nothing. Three of the four still exist and must still be examined.
+  assert.ok(checked >= 3, `only ${checked} of the removed files still exist - re-check this list`);
   assert.deepEqual(
     offenders,
     [],

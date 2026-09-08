@@ -48,9 +48,7 @@
 let sharpPromise = null;
 export function getSharp() {
   if (!sharpPromise) {
-    sharpPromise = import('sharp')
-      .then((m) => m.default)
-      .catch(() => null);
+    sharpPromise = import('sharp').then((m) => m.default).catch(() => null);
   }
   return sharpPromise;
 }
@@ -60,6 +58,21 @@ export const OPAQUE = 250;
 
 /** Wall thickness, in px, that separates a punched hole from a strand gap. */
 export const MIN_WALL_AT_340 = 5;
+
+/**
+ * Below this a hole is a speck nobody can resolve at seat size. Scaled by AREA,
+ * so a 12px speck on a 340px bust stays a speck on the 1024px gallery tile
+ * rather than becoming a 12px hole nobody would have filled.
+ *
+ * The repair and the guard read it from here for the obvious reason: two copies
+ * of a threshold is two thresholds, and the day they differ the guard starts
+ * failing on art the repair says is finished.
+ */
+export const MIN_HOLE_PX_AT_340 = 12;
+
+export function minHoleFor(height) {
+  return Math.max(4, Math.round((MIN_HOLE_PX_AT_340 * height * height) / (340 * 340)));
+}
 
 export function minWallFor(height) {
   return Math.max(3, Math.round((MIN_WALL_AT_340 * height) / 340));
@@ -268,8 +281,7 @@ export function inpaint(value, known, domain, width, height, channels) {
       }
     if (w === 0) return;
     for (let i = 0; i < n; i += 1)
-      if (domain[i])
-        for (let c = 0; c < channels; c += 1) value[i * channels + c] = acc[c] / w;
+      if (domain[i]) for (let c = 0; c < channels; c += 1) value[i * channels + c] = acc[c] / w;
   }
 
   const sweeps = width > 16 && height > 16 ? 48 : 200;

@@ -25,7 +25,7 @@
  * bust has a gallery tile, that no two tiles are byte-identical, and that the
  * retired generator still has its guard. **It never looks at a pixel.** So the
  * one fault of the three that lives in the art itself has had no detector at all
- * since the day it was written, and 40 busts are still holed.
+ * since the day it was written, and 86 of the 100 busts are holed again.
  *
  * That is fixed here too: the same classifier this repair uses is what the
  * checker now runs, so the guard and the repair cannot disagree.
@@ -49,9 +49,9 @@
  *     node scripts/repair-avatar-mattes.mjs           # report only
  *     node scripts/repair-avatar-mattes.mjs --write   # repair
  *
- * A repaired @2x bust is re-derived down to its 125x170 .webp and .png, because
- * those are downscales of it — alpha differs by 0.00 across the family, measured
- * — and leaving them behind would ship a bust whose two halves disagree.
+ * A repaired @2x bust is re-derived down to its 125x170 .webp, because that file
+ * is a downscale of it — alpha differs by 0.00 across the family, measured — and
+ * leaving it behind would ship a bust whose two halves disagree.
  *
  * Idempotent: a second --write finds nothing.
  */
@@ -59,13 +59,14 @@
 import { readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import sharp from 'sharp';
 
 import {
   classifyMatte,
   dropKeepers,
+  getSharp,
   inpaint,
   largestBlob,
+  minHoleFor,
   minWallFor,
   KEEP_SEE_THROUGH,
 } from './lib/avatarMatte.mjs';
@@ -82,11 +83,6 @@ const ONLY_BUSTS = process.argv.includes('--busts');
 const ONLY_GALLERY = process.argv.includes('--gallery');
 const DO_BUSTS = !ONLY_GALLERY;
 const DO_GALLERY = !ONLY_BUSTS;
-
-/** Below this a hole is a speck the eye cannot resolve at seat size. */
-const MIN_HOLE_PX_AT_340 = 12;
-
-
 
 /**
  * The library is WebP end to end — a `.png` beside these files in a working clone
@@ -124,7 +120,7 @@ async function encodeWithin(sharp, pipeline, budget) {
 const BUST_W = 125;
 const BUST_H = 170;
 
-async function readRaw(file) {
+async function readRaw(sharp, file) {
   const { data, info } = await sharp(file)
     .ensureAlpha()
     .raw()
@@ -141,15 +137,12 @@ function repair({ data, width, height }, keeps = []) {
   const alpha = new Uint8Array(n);
   for (let i = 0; i < n; i += 1) alpha[i] = data[i * 4 + 3];
 
-  const minWall = minWallFor(height);
-  const { deep } = classifyMatte(alpha, width, height, minWall);
+  const { deep, thinCount } = classifyMatte(alpha, width, height, minWallFor(height));
   const kept = dropKeepers(deep, width, height, keeps);
   let deepCount = 0;
   for (let i = 0; i < n; i += 1) if (deep[i]) deepCount += 1;
   if (!deepCount) return null;
-
-  const floor = Math.max(4, Math.round((MIN_HOLE_PX_AT_340 * height * height) / (340 * 340)));
-  if (largestBlob(deep, width, height) < floor) return null;
+  if (largestBlob(deep, width, height) < minHoleFor(height)) return null;
 
   // Solve on the holes, with the surrounding subject as the fixed boundary.
   const value = new Float32Array(n * 3);
@@ -172,10 +165,15 @@ function repair({ data, width, height }, keeps = []) {
     out[i * 4 + 2] = Math.max(0, Math.min(255, Math.round(value[i * 3 + 2])));
     out[i * 4 + 3] = 255;
   }
-  return { buffer: out, filled, kept, width, height };
+  return { buffer: out, filled, kept, thin: thinCount, width, height };
 }
 
 async function main() {
+  const sharp = await getSharp();
+  if (!sharp) {
+    console.error('[repair-avatar-mattes] sharp unavailable - nothing measured, nothing written.');
+    process.exit(1);
+  }
   const table = path.join(AVATARS, 'table');
   const busts = (await readdir(table)).filter((f) => f.endsWith('@2x.webp')).sort();
 
@@ -192,15 +190,19 @@ async function main() {
 
   for (const file of DO_BUSTS ? busts : []) {
     const full = path.join(table, file);
-    const img = await readRaw(full);
+    const img = await readRaw(sharp, full);
     const rel = `table/${file}`;
-    const fixed = repair(img, KEEP_SEE_THROUGH.filter(([f]) => f === rel).map(([, x, y]) => [x, y]));
+    const fixed = repair(
+      img,
+      KEEP_SEE_THROUGH.filter(([f]) => f === rel).map(([, x, y]) => [x, y])
+    );
     const slug = file.replace('@2x.webp', '');
     if (!fixed) continue;
     touched += 1;
     console.log(
       `bust     ${slug.padEnd(26)} filled ${String(fixed.filled).padStart(5)} px` +
-        (fixed.kept ? `   kept ${fixed.kept} see-through` : '')
+        `  thin ${String(fixed.thin).padStart(4)}` +
+        (fixed.kept ? `  kept ${fixed.kept} see-through` : '')
     );
     if (!WRITE) continue;
 
@@ -222,14 +224,18 @@ async function main() {
   }
 
   for (const full of DO_GALLERY ? gallery : []) {
-    const img = await readRaw(full);
+    const img = await readRaw(sharp, full);
     const rel = path.relative(AVATARS, full);
-    const fixed = repair(img, KEEP_SEE_THROUGH.filter(([f]) => f === rel).map(([, x, y]) => [x, y]));
+    const fixed = repair(
+      img,
+      KEEP_SEE_THROUGH.filter(([f]) => f === rel).map(([, x, y]) => [x, y])
+    );
     if (!fixed) continue;
     touched += 1;
     console.log(
       `gallery  ${rel.padEnd(26)} filled ${String(fixed.filled).padStart(5)} px` +
-        (fixed.kept ? `   kept ${fixed.kept} see-through` : '')
+        `  thin ${String(fixed.thin).padStart(4)}` +
+        (fixed.kept ? `  kept ${fixed.kept} see-through` : '')
     );
     if (!WRITE) continue;
     const budget = (await stat(full)).size;

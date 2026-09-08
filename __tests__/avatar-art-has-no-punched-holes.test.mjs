@@ -42,13 +42,6 @@ const AVATARS = join(ROOT, 'public/avatars');
 const matte = await import('../scripts/lib/avatarMatte.mjs');
 const sharp = await matte.getSharp();
 
-/** A hole this small is a speck nobody can resolve at seat size. */
-const MAX_HOLE_PX_AT_340 = 12;
-
-function budget(height) {
-  return Math.max(4, Math.round((MAX_HOLE_PX_AT_340 * height * height) / (340 * 340)));
-}
-
 function subjects() {
   const out = [];
   for (const [dir, match] of [
@@ -62,6 +55,21 @@ function subjects() {
   }
   return out.sort();
 }
+
+/**
+ * A SKIP IS NOT A PASS. Locally, someone without sharp should not have a red
+ * build over a missing image codec. In CI it is the opposite: this job does not
+ * `npm ci`, so a silent skip is precisely how the guard this replaces became
+ * decorative — it claimed to stop holes coming back and never opened an image.
+ * The workflow installs sharp before running this; if that failed, say so.
+ */
+test('the image codec this guard needs is present in CI', { skip: !process.env.CI }, () => {
+  assert.ok(
+    sharp,
+    'sharp is unavailable, so the hole check below SKIPPED rather than ran. ' +
+      'See the "Restore the image codec CHECK 8 needs" step in build-safety-gate.yml.'
+  );
+});
 
 test('the avatar library is present', () => {
   const files = subjects();
@@ -89,7 +97,7 @@ test('no avatar has a hole punched through the subject', { skip: !sharp }, async
     if (mine.length) matte.dropKeepers(deep, width, height, mine);
 
     const largest = matte.largestBlob(deep, width, height);
-    if (largest >= budget(height)) broken.push(`${rel} (${largest}px)`);
+    if (largest >= matte.minHoleFor(height)) broken.push(`${rel} (${largest}px)`);
   }
 
   assert.deepEqual(
