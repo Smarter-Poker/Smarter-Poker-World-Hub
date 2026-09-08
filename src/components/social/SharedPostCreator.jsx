@@ -97,7 +97,6 @@ export function SharedPostCreator({
       sessionStorage.setItem('sp-upload-timings', JSON.stringify(_timingsRef.current));
     } catch (_) {}
   };
-  const [mentionQuery, setMentionQuery] = useState('');
   const [mentionResults, setMentionResults] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -795,7 +794,9 @@ export function SharedPostCreator({
 
     if (mentionMatch) {
       const query = mentionMatch[1];
-      setMentionQuery(query);
+      // ITEM 28: setMentionQuery(query) used to be here. `query` is used
+      // directly below for the lookup and showMentions is what the UI reads,
+      // so the state was written on every keystroke and read by nobody.
       setShowMentions(true);
 
       if (mentionTimeout.current) clearTimeout(mentionTimeout.current);

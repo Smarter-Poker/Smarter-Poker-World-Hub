@@ -23,7 +23,14 @@ const SPNavBar = ({
     notifications = [],
     unreadNotifCount = 0,
     onSearch,
-    onNavigate
+    onNavigate,
+    // 2026-09-08: these two used to be absent, and the handlers below reached
+    // straight for setNotifications, setUnreadCount and authUser - state that
+    // lives in SmarterPokerLayout, a different component. Both handlers threw
+    // ReferenceError on the first click. Found by a no-undef pass; neither tsc
+    // nor the parse gate can see it.
+    onNotificationRead = () => {},
+    onMarkAllNotificationsRead = () => {},
 }) => {
     const [showNotifs, setShowNotifs] = useState(false);
     const [showMessenger, setShowMessenger] = useState(false);
@@ -125,10 +132,7 @@ const SPNavBar = ({
                                                 .update({ read: true, is_read: true })
                                                 .eq('id', notif.id);
                                             if (error) throw error;
-                                            setNotifications(prev => prev.map(n =>
-                                                n.id === notif.id ? { ...n, read: true } : n
-                                            ));
-                                            setUnreadCount(prev => Math.max(0, prev - 1));
+                                            onNotificationRead(notif.id);
                                         } catch { /* silent */ }
                                     }
                                     // Navigate based on type
@@ -140,24 +144,7 @@ const SPNavBar = ({
                                     }
                                     setShowNotifs(false);
                                 }}
-                                onMarkAllRead={async () => {
-                                    if (!authUser?.id) return;
-                                    try {
-                                        const { error } = await supabase
-                                            .from('notifications')
-                                            // BUGFIX (header-audit #1): mark-all must write BOTH legacy flags,
-                                            // otherwise the next poll re-counts every row it just cleared.
-                                            .update({ read: true, is_read: true })
-                                            .eq('user_id', authUser.id)
-                                            .eq('read', false);
-                                        if (error) throw error;
-                                        // Update local state immediately
-                                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                                        setUnreadCount(0);
-                                    } catch (e) {
-                                        console.warn('Mark all read failed:', e.message);
-                                    }
-                                }}
+                                onMarkAllRead={onMarkAllNotificationsRead}
                             />
                         </div>
                     )}
@@ -520,6 +507,30 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
                 unreadNotifCount={unreadCount}
                 notifications={notifications}
                 onNavigate={onNavigate}
+                onNotificationRead={(id) => {
+                    setNotifications((prev) =>
+                        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+                    );
+                    setUnreadCount((prev) => Math.max(0, prev - 1));
+                }}
+                onMarkAllNotificationsRead={async () => {
+                    if (!authUser?.id) return;
+                    try {
+                        const { error } = await supabase
+                            .from('notifications')
+                            // Both legacy flags: writing only `read` leaves is_read
+                            // NULL, and the unread filter counts a NULL is_read as
+                            // unread - so the badge comes straight back.
+                            .update({ read: true, is_read: true })
+                            .eq('user_id', authUser.id)
+                            .eq('read', false);
+                        if (error) throw error;
+                        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+                        setUnreadCount(0);
+                    } catch (e) {
+                        console.warn('Mark all read failed:', e.message);
+                    }
+                }}
             />
 
             <main className="sp-content-area">

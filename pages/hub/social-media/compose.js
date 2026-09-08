@@ -21,4 +21,7 @@ export default function ComposeRedirect() {
     return null;
 }
 
-ComposeRedirect.getLayout = (page) => page;
+// ITEM 36 (2026-09-08): `ComposeRedirect.getLayout = (page) => page;` used to
+// be here. pages/_app.js has no getLayout support at all, so it did nothing -
+// the stub still rendered the header and footer for the instant it existed.
+// Left as a plain page; the footer's Create control no longer routes here.

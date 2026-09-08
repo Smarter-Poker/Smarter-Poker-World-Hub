@@ -72,7 +72,13 @@ export default function GhostPostCard({ user }) {
                 // Brief "complete" flash then fade out
                 setLabel('Upload Complete!');
                 setProgress(100);
-                setTimeout(() => { if (mountedRef.current) setVisible(false); }, 2000);
+                // Captured like its sibling below: an uncaptured timer is not
+                // cleared on unmount. Guarded by mountedRef either way, so this
+                // was latent rather than live - but the two branches disagreeing
+                // is how the next person learns the wrong pattern.
+                errorTimerRef.current = setTimeout(() => {
+                    if (mountedRef.current) setVisible(false);
+                }, 2000);
             },
             onError: ({ error }) => {
                 if (!mountedRef.current) return;
