@@ -174,15 +174,27 @@ export function getLastCarouselIndex(): number {
     try {
         const stored = localStorage.getItem('hub-carousel-index');
         const parsed = stored ? parseInt(stored, 10) : 0;
+
+        // Guard garbage only. A corrupt value (parseInt('abc') === NaN) used to
+        // flow straight through to CarouselEngine's scrollPosition, and NaN
+        // defeats its own normaliser - `Math.abs(NaN - NaN) > 0.01` is false -
+        // so the carousel would sit on NaN forever and never paint a card.
         if (!Number.isFinite(parsed)) return 0;
-        // Clamp to the registry this index is about to address. The carousel
-        // wraps with modulo so an out-of-range value does not crash, but it
-        // does silently park the reader on a different card than the one they
-        // left. That happens whenever the registry shrinks - removing the My
-        // Clubs card on 2026-09-08 took it from 14 entries to 13, so anyone
-        // whose stored index was 13 came back to a different card.
-        const max = Math.max(0, POKER_IQ_ORBS.length - 1);
-        return Math.min(Math.max(parsed, 0), max);
+
+        // DO NOT clamp to POKER_IQ_ORBS.length. This module cannot know how
+        // long the rendered list is: WorldHub builds the carousel as the
+        // registry PLUS Toke Tracker, PLUS Club Commander for accounts that
+        // have one, MINUS every card the reader has hidden. That is 14 or 15
+        // entries against a 13-entry registry, so an upper clamp here throws
+        // away legitimate positions - a reader parked on card 13 or 14 would
+        // be dropped back to 12.
+        //
+        // CarouselEngine already owns this, correctly, because it is the only
+        // place that knows TOTAL_ORBS: it normalises with
+        // ((scrollPosition % TOTAL_ORBS) + TOTAL_ORBS) % TOTAL_ORBS in an
+        // effect keyed on TOTAL_ORBS, which runs on mount and again whenever
+        // a card is hidden or shown. Bounds are its job, not this function's.
+        return Math.max(parsed, 0);
     } catch {
         return 0;
     }
