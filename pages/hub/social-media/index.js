@@ -44,7 +44,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useFeedPrefetchObserver } from '../../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
