@@ -87,7 +87,7 @@ function question(handOrdinal = 1, decisionOrdinal = 1, suffix = '') {
         decisionOrdinal,
         countsTowardCompletion: decisionOrdinal === 1,
         practiceOnly: false,
-        difficultyMode: 'standard',
+        difficultyMode: 'grouped',
         iat: 1_800_000_000,
         exp: 1_800_003_600,
       }),
@@ -101,7 +101,7 @@ function question(handOrdinal = 1, decisionOrdinal = 1, suffix = '') {
       decisionOrdinal,
       countsTowardCompletion: decisionOrdinal === 1,
       practiceOnly: false,
-      difficultyMode: 'standard',
+      difficultyMode: 'grouped',
     },
   };
 }
@@ -220,7 +220,8 @@ function publicCloseoutEvidence(attemptId = ATTEMPT) {
       initialAttempt: {
         gameId: 'cash-002',
         level: 8,
-        difficultyMode: 'standard',
+        requestedDifficultyTier: 'standard',
+        difficultyMode: 'grouped',
         sessionId: 'phase6-attestation-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         attemptId,
         targetHands: 20,

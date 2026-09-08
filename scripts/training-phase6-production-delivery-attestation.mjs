@@ -34,7 +34,8 @@ const GAME_ID = 'cash-002';
 const LEVEL = 8;
 const TARGET_HANDS = 20;
 const MAX_PARENT_CANDIDATES = 20;
-const EXPECTED_DIFFICULTY_MODE = 'standard';
+const REQUESTED_DIFFICULTY_TIER = 'standard';
+const EXPECTED_DIFFICULTY_MODE = 'grouped';
 const RECORD_QUESTION_WINDOW_MAX = 28;
 const RECORD_QUESTION_WINDOW_MS = 60_000;
 const ERROR_SETTLE_WINDOW_MS = 15_000;
@@ -46,7 +47,7 @@ const CONTROLLED_REHEARSAL_ACKNOWLEDGEMENT = 'I_ACKNOWLEDGE_CONTROLLED_REHEARSAL
 const AUTHENTIC_PREDECESSOR_KIND = 'phase6-authentic-predecessor-artifact-v1';
 const AUTHENTIC_PREDECESSOR_ALGORITHM = 'Ed25519';
 const ADMIN_LOG_LIMIT = 10_000;
-const PERSISTED_DIFFICULTY_MODE = 'grouped';
+const PERSISTED_DIFFICULTY_MODE = EXPECTED_DIFFICULTY_MODE;
 const MACHINE_COLLECTOR_PROOF = Symbol('phase6-machine-admin-collector-proof');
 const FINALIZED_RELEASE_PROOF = Symbol('phase6-finalized-release-proof');
 const ADMIN_NEGATIVE_PROBES = [
@@ -925,6 +926,7 @@ export function validateCompletePublicAttestation(publicEvidence) {
   const initial = api?.initialAttempt;
   assert.equal(initial?.gameId, GAME_ID, 'public evidence game mismatch');
   assert.equal(initial?.level, LEVEL, 'public evidence level mismatch');
+  assert.equal(initial?.requestedDifficultyTier, REQUESTED_DIFFICULTY_TIER, 'public evidence requested difficulty tier mismatch');
   assert.equal(initial?.difficultyMode, EXPECTED_DIFFICULTY_MODE, 'public evidence difficulty mismatch');
   assert.match(String(initial?.sessionId || ''), /^phase6-attestation-[0-9a-f-]{36}$/, 'public evidence session id is invalid');
   assert.match(String(initial?.attemptId || ''), UUID_V4_RE, 'public evidence attempt id is invalid');
@@ -2656,7 +2658,7 @@ export async function runProductionDeliveryAttestation(config = readAttestationC
       gameId: GAME_ID,
       level: String(LEVEL),
       count: String(TARGET_HANDS),
-      difficulty: EXPECTED_DIFFICULTY_MODE,
+      difficulty: REQUESTED_DIFFICULTY_TIER,
       sessionId,
       gameMode: 'street',
       handSelection: 'all',
@@ -2676,6 +2678,7 @@ export async function runProductionDeliveryAttestation(config = readAttestationC
       initialAttempt: {
         gameId: GAME_ID,
         level: LEVEL,
+        requestedDifficultyTier: REQUESTED_DIFFICULTY_TIER,
         difficultyMode: EXPECTED_DIFFICULTY_MODE,
         sessionId,
         attemptId: initial.attemptId,
