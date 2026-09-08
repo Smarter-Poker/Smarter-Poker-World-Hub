@@ -628,6 +628,24 @@ html.reels-lock {
   flex-shrink: 0 !important;
 }
 
+/* sp-avatar-ring: any wrapper that draws a ring/border around an .sp-avatar.
+   A block-level wrapper puts the inline-block avatar on a text baseline, and the
+   descender space under that baseline made the ring taller than it is wide —
+   a circle rendered as an oval (measured 44x51 on the "Post As <club>" composer).
+   inline-flex + line-height:0 removes the baseline gap on every surface. */
+.sp-avatar-ring {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 0 !important;
+  min-height: unset !important;
+  flex-shrink: 0 !important;
+  text-decoration: none;
+  /* No padding rule here on purpose: the leaderboard podium ring sets its own
+     2px inset between the medal border and the avatar, and an !important zero
+     would silently eat it. */
+}
+
 /* sp-icon-btn: square button — stays square, no min-height oval distortion */
 /* Use this class on X close buttons, icon-only buttons */
 .sp-icon-btn {
@@ -665,6 +683,21 @@ button[style*='borderRadius:"50%"'],
 button[style*="borderRadius: 50"] {
   min-height: unset !important;
   aspect-ratio: 1 / 1;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Inline-style circle links/wrappers — same protection the buttons above get.
+   Without this, the mobile `a { min-height: 44px }` rule plus the inline-block
+   baseline gap stretches a ringed avatar link into an oval. */
+a[style*="border-radius: 50%"],
+a[style*="borderRadius: '50%'"],
+a[style*='borderRadius:"50%"'],
+a[style*="borderRadius:50%"] {
+  min-height: unset !important;
+  line-height: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;

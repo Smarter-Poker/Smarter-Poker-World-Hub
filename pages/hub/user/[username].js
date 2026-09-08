@@ -2020,7 +2020,11 @@ export default function UserProfilePage() {
                 id: key,
                 name: fav.venue_name || 'Venue',
                 avatar_url: avatarUrl,
-                href: `/hub/poker-near-me/${fav.venue_id}`,
+                // /hub/venues/<id> is the venue detail page. /hub/poker-near-me/<id>
+                // hits [pnmTab].js, which only recognises tab slugs and silently
+                // renders the lobby for a UUID. This file already uses the right
+                // route for club venue shortcuts further down.
+                href: `/hub/venues/${fav.venue_id}`,
                 isArena: false,
                 page: null,
               });

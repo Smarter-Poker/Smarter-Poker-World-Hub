@@ -1185,9 +1185,23 @@ export function GoLiveModal({
     }
   };
 
+  const MAX_THUMBNAIL_BYTES = 4.5 * 1024 * 1024;
+
   const handleThumbnailSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // accept="image/*" on the input is only a hint - "All Files" bypasses it.
+    // SharedPostCreator enforces the same 4.5MB ceiling on its uploads.
+    if (!file.type.startsWith('image/')) {
+      setError('That file is not an image. Pick a JPG, PNG or WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > MAX_THUMBNAIL_BYTES) {
+      setError('That thumbnail is over 4.5MB. Pick a smaller image.');
+      e.target.value = '';
+      return;
+    }
     setThumbnailFile(file);
     // FIX: revoke previous blob URL to prevent memory leak
     if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);

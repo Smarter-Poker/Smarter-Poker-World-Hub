@@ -21,10 +21,11 @@ export default async function handler(req, res) {
     const { user } = await getServerUserWithFallback(req, supabase);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { reel_id, video_url, caption, user_description } = req.body;
-    if (!reel_id) return res.status(400).json({ error: 'reel_id required' });
-
     try {
+        // Destructure inside the try - see share-to-feed.js. An unparseable body
+        // threw outside every handler and surfaced as a 500, not a 400.
+        const { reel_id, video_url, caption, user_description } = req.body || {};
+        if (!reel_id) return res.status(400).json({ error: 'reel_id required' });
         const reelLink = `https://smarter.poker/hub/reels?id=${reel_id}`;
 
         // Duplicate guard
