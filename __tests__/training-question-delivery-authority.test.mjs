@@ -11,7 +11,11 @@ import {
   validateSolverPolicyAnswer,
 } from '../src/lib/training/solverPolicyContract.js';
 import {
+  buildTrainingQuestionSnapshot,
   prepareTrainingAttemptDelivery,
+  recoverTrainingAttemptHand,
+  registerTrainingAttemptContinuation,
+  recordTrainingQuestionsServedForAttempt,
   trainingQuestionCampaignEligibility,
   TrainingAttemptDeliveryError,
 } from '../src/lib/training/trainingAttemptDelivery.mjs';
@@ -242,6 +246,192 @@ test('only structurally valid canonical source families cross the progress-beari
   const chart = auditedChart();
   assert.deepEqual(chart.options.map((option) => option.id), ['all_in', 'fold']);
   assert.equal(chart.options[0].text, 'Push All-In');
+});
+
+test('attempt serve auditing records one stable batch and rejects duplicate manifest identities', async () => {
+  const calls = [];
+  const db = {
+    rpc(name, args) {
+      calls.push({ name, args });
+      return {
+        abortSignal: async () => ({
+          data: { questionCount: args.p_deliveries.length },
+          error: null,
+        }),
+      };
+    },
+  };
+  const delivery = {
+    attemptId: '22222222-2222-4222-8222-222222222222',
+    questions: [
+      {
+        id: 'question-1',
+        policyChecksum: 'a'.repeat(64),
+        _gradingContext: {
+          attemptId: '22222222-2222-4222-8222-222222222222',
+          handOrdinal: 1,
+          decisionOrdinal: 1,
+          snapshotKey: 'c'.repeat(64),
+        },
+      },
+      {
+        id: 'question-2',
+        policyChecksum: 'b'.repeat(64),
+        _gradingContext: {
+          attemptId: '22222222-2222-4222-8222-222222222222',
+          handOrdinal: 2,
+          decisionOrdinal: 1,
+          snapshotKey: 'd'.repeat(64),
+        },
+      },
+    ],
+  };
+
+  const result = await recordTrainingQuestionsServedForAttempt(db, {
+    userId: '11111111-1111-4111-8111-111111111111',
+    delivery,
+  });
+  assert.deepEqual(result, { questionCount: 2 });
+  assert.equal(calls.length, 1, 'one attempt must use one atomic batch receipt');
+  assert.equal(calls[0].name, 'fn_training_attempt_record_served_batch_v1');
+  assert.equal(calls[0].args.p_attempt_id, '22222222-2222-4222-8222-222222222222');
+  assert.deepEqual(calls[0].args.p_deliveries, [
+    {
+      handOrdinal: 1,
+      decisionOrdinal: 1,
+      snapshotKey: 'c'.repeat(64),
+      questionId: 'question-1',
+      policyChecksum: 'a'.repeat(64),
+    },
+    {
+      handOrdinal: 2,
+      decisionOrdinal: 1,
+      snapshotKey: 'd'.repeat(64),
+      questionId: 'question-2',
+      policyChecksum: 'b'.repeat(64),
+    },
+  ]);
+
+  for (const malformed of [
+    {
+      ...delivery,
+      questions: [
+        delivery.questions[0],
+        {
+          ...delivery.questions[1],
+          _gradingContext: { ...delivery.questions[1]._gradingContext, handOrdinal: 1 },
+        },
+      ],
+    },
+    {
+      ...delivery,
+      questions: [{
+        ...delivery.questions[0],
+        _gradingContext: { ...delivery.questions[0]._gradingContext, snapshotKey: 'invalid' },
+      }],
+    },
+  ]) {
+    await assert.rejects(
+      recordTrainingQuestionsServedForAttempt(db, {
+        userId: '11111111-1111-4111-8111-111111111111',
+        delivery: malformed,
+      }),
+      (error) => error?.code === 'TRAINING_ATTEMPT_SERVE_AUDIT_INVALID',
+    );
+  }
+  assert.equal(calls.length, 1, 'invalid manifests must fail before the database receipt call');
+});
+
+test('attempt serve auditing covers a supported 100-hand custom manifest in bounded stable chunks', async () => {
+  const calls = [];
+  const db = {
+    rpc(name, args) {
+      calls.push({ name, args });
+      return {
+        abortSignal: async () => ({
+          data: { questionCount: args.p_deliveries.length },
+          error: null,
+        }),
+      };
+    },
+  };
+  const attemptId = '22222222-2222-4222-8222-222222222222';
+  const questions = Array.from({ length: 100 }, (_, index) => ({
+    id: `custom-question-${index + 1}`,
+    policyChecksum: 'a'.repeat(64),
+    _gradingContext: {
+      attemptId,
+      handOrdinal: index + 1,
+      decisionOrdinal: 1,
+      snapshotKey: (index + 1).toString(16).padStart(64, '0'),
+    },
+  }));
+  const result = await recordTrainingQuestionsServedForAttempt(db, {
+    userId: '11111111-1111-4111-8111-111111111111',
+    delivery: { attemptId, questions },
+  });
+  assert.deepEqual(result, { questionCount: 100 });
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map((call) => call.args.p_deliveries.length), [50, 50]);
+  assert.deepEqual(
+    calls.flatMap((call) => call.args.p_deliveries).map((delivery) => delivery.handOrdinal),
+    Array.from({ length: 100 }, (_, index) => index + 1),
+  );
+});
+
+test('continuation registration rejects every forged RPC winner binding before reading it', async () => {
+  const requested = Object.freeze({
+    userId: '11111111-1111-4111-8111-111111111111',
+    attemptId: '22222222-2222-4222-8222-222222222222',
+    handOrdinal: 7,
+    decisionOrdinal: 2,
+    snapshotKey: 'a'.repeat(64),
+    parentSnapshotKey: 'b'.repeat(64),
+    parentSubmissionId: 'training-attempt:parent:decision:1',
+    gameId: 'cash-001',
+    level: 1,
+  });
+  const genuine = Object.freeze({
+    attemptId: requested.attemptId,
+    handOrdinal: requested.handOrdinal,
+    decisionOrdinal: requested.decisionOrdinal,
+    snapshotKey: requested.snapshotKey,
+    parentSnapshotKey: requested.parentSnapshotKey,
+    parentSubmissionId: requested.parentSubmissionId,
+  });
+  const forgeries = [
+    { ...genuine, attemptId: '33333333-3333-4333-8333-333333333333' },
+    { ...genuine, handOrdinal: 8 },
+    { ...genuine, decisionOrdinal: 3 },
+    { ...genuine, snapshotKey: 'c'.repeat(64) },
+    { ...genuine, parentSnapshotKey: 'd'.repeat(64) },
+    { ...genuine, parentSubmissionId: 'different-parent-submission' },
+  ];
+
+  for (const forged of forgeries) {
+    let readAttempted = false;
+    const supabase = {
+      rpc(name, args) {
+        assert.equal(name, 'fn_training_register_continuation_slot_v1');
+        assert.equal(args.p_snapshot_key, requested.snapshotKey);
+        return {
+          abortSignal: async () => ({ data: forged, error: null }),
+        };
+      },
+      from() {
+        readAttempted = true;
+        throw new Error('a forged continuation registration must fail before any read');
+      },
+    };
+
+    await assert.rejects(
+      registerTrainingAttemptContinuation({ supabase, ...requested }),
+      (error) => error instanceof TrainingAttemptDeliveryError
+        && error.code === 'TRAINING_CONTINUATION_SLOT_BINDING_MISMATCH'
+        && error.status === 503,
+    );
+    assert.equal(readAttempted, false);
+  }
 });
 
 test('derived solver authority rejects every cross-binding and lineage tamper', () => {
@@ -494,6 +684,11 @@ test('a resumed attempt cannot swap an eligible candidate for an ineligible pers
     dataQuality: 'LEGACY_UNVERIFIED',
     solverProvenance: { verified: false, source: 'solved_spots_gold_legacy' },
   });
+  const legacySnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: legacy,
+    gameId: 'cash-001',
+    level: 1,
+  });
   const query = (result) => {
     const builder = {
       select() { return builder; },
@@ -517,12 +712,7 @@ test('a resumed attempt cannot swap an eligible candidate for an ineligible pers
           ? query({ data: null, error: null })
           : query({
               data: [{
-                snapshot_key: 'legacy-snapshot',
-                source_question_id: legacy.id,
-                game_id: 'cash-001',
-                level: 1,
-                content_digest: trainingQuestionDigest(legacy),
-                question_data: legacy,
+                ...legacySnapshot,
               }],
               error: null,
             });
@@ -532,7 +722,7 @@ test('a resumed attempt cannot swap an eligible candidate for an ineligible pers
         return attemptHandCall === 1
           ? query({ data: null, error: null })
           : query({
-              data: [{ hand_ordinal: 1, snapshot_key: 'legacy-snapshot' }],
+              data: [{ hand_ordinal: 1, snapshot_key: legacySnapshot.snapshot_key }],
               error: null,
             });
       }
@@ -559,6 +749,208 @@ test('a resumed attempt cannot swap an eligible candidate for an ineligible pers
       && error.code === 'TRAINING_ATTEMPT_MANIFEST_AUTHORITY_INELIGIBLE'
       && error.status === 422,
   );
+});
+
+test('single-hand recovery reconstructs the registered manifest hand without a mutable cache candidate', async () => {
+  const priorReceiptSecret = process.env.TRAINING_GRADING_RECEIPT_SECRET;
+  process.env.TRAINING_GRADING_RECEIPT_SECRET = 'phase6-test-secret-that-is-at-least-32-bytes';
+  const winner = verifiedPostflop({ id: 'manifest-winner-7' });
+  const winnerSnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: winner,
+    gameId: 'cash-001',
+    level: 1,
+  });
+  const calls = [];
+  const query = (result) => {
+    const builder = {
+      select() { return builder; },
+      eq() { return builder; },
+      maybeSingle() { return builder; },
+      abortSignal() { return Promise.resolve(result); },
+    };
+    return builder;
+  };
+  const supabase = {
+    rpc(name, args) {
+      calls.push({ name, args });
+      return query({ data: { success: true, attemptId: 'attempt-1' }, error: null });
+    },
+    from(table) {
+      if (table === 'training_attempt_hands') {
+        return query({
+          data: { hand_ordinal: 7, snapshot_key: winnerSnapshot.snapshot_key, status: 'allocated' },
+          error: null,
+        });
+      }
+      if (table === 'training_question_snapshots') {
+        return query({
+          data: winnerSnapshot,
+          error: null,
+        });
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+
+  let delivery;
+  try {
+    delivery = await recoverTrainingAttemptHand({
+      supabase,
+      userId: 'user-1',
+      clientSessionId: 'session-1',
+      gameId: 'cash-001',
+      level: 1,
+      sessionKind: 'campaign',
+      difficultyMode: 'exact',
+      requestedHands: 20,
+      handOrdinal: 7,
+      config: { gameMode: 'street', handSelection: 'close', targetStreet: 'flop' },
+      questionSelection: { gameMode: 'street', handSelection: 'all', targetStreet: 'flop' },
+    });
+    await assert.rejects(
+      recoverTrainingAttemptHand({
+        supabase,
+        userId: 'user-1',
+        clientSessionId: 'session-1',
+        gameId: 'cash-001',
+        level: 1,
+        sessionKind: 'campaign',
+        difficultyMode: 'exact',
+        requestedHands: 20,
+        handOrdinal: 7,
+        config: { engineType: 'PIO' },
+        questionSelection: { gameMode: 'street', handSelection: 'all', targetStreet: 'turn' },
+      }),
+      (error) => error instanceof TrainingAttemptDeliveryError
+        && error.code === 'TRAINING_ATTEMPT_SELECTION_MISMATCH'
+        && error.status === 409,
+    );
+  } finally {
+    if (priorReceiptSecret === undefined) delete process.env.TRAINING_GRADING_RECEIPT_SECRET;
+    else process.env.TRAINING_GRADING_RECEIPT_SECRET = priorReceiptSecret;
+  }
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].name, 'fn_start_training_attempt_v2');
+  assert.equal(calls[0].args.p_expected_hands, 20);
+  assert.equal(delivery.questions.length, 1);
+  assert.equal(delivery.questions[0].id, 'manifest-winner-7');
+  assert.equal(delivery.questions[0]._gradingContext.handOrdinal, 7);
+  assert.equal(delivery.questions[0]._gradingContext.attemptId, 'attempt-1');
+  assert.equal(delivery.questions[0]._gradingContext.sessionTargetHands, 20);
+  assert.equal(
+    delivery.questions[0]._gradingContext.submissionId,
+    'training-attempt:attempt-1:hand:7:decision:1',
+  );
+});
+
+test('single-hand recovery refuses an already-scored manifest hand before signing a receipt', async () => {
+  const query = (result) => {
+    const builder = {
+      select() { return builder; },
+      eq() { return builder; },
+      maybeSingle() { return builder; },
+      abortSignal() { return Promise.resolve(result); },
+    };
+    return builder;
+  };
+  let snapshotRead = false;
+  const supabase = {
+    rpc() {
+      return query({ data: { success: true, attemptId: 'attempt-1' }, error: null });
+    },
+    from(table) {
+      if (table === 'training_attempt_hands') {
+        return query({
+          data: { hand_ordinal: 7, snapshot_key: 'a'.repeat(64), status: 'scored' },
+          error: null,
+        });
+      }
+      if (table === 'training_question_snapshots') snapshotRead = true;
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+
+  await assert.rejects(
+    recoverTrainingAttemptHand({
+      supabase,
+      userId: 'user-1',
+      clientSessionId: 'session-1',
+      gameId: 'cash-001',
+      level: 1,
+      sessionKind: 'campaign',
+      difficultyMode: 'exact',
+      requestedHands: 20,
+      handOrdinal: 7,
+    }),
+    (error) => error instanceof TrainingAttemptDeliveryError
+      && error.code === 'TRAINING_ATTEMPT_DECISION_ALREADY_ANSWERED'
+      && error.status === 409,
+  );
+  assert.equal(snapshotRead, false);
+});
+
+test('single-hand recovery rejects digest-valid snapshots with forged deterministic identity', async () => {
+  const winner = verifiedPostflop({ id: 'manifest-winner-forgery' });
+  const canonicalSnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: winner,
+    gameId: 'cash-001',
+    level: 1,
+  });
+  const corruptions = [
+    { ...canonicalSnapshot, snapshot_key: 'f'.repeat(64) },
+    { ...canonicalSnapshot, source_question_id: 'different-question-id' },
+  ];
+
+  for (const corruptedSnapshot of corruptions) {
+    const query = (result) => {
+      const builder = {
+        select() { return builder; },
+        eq() { return builder; },
+        maybeSingle() { return builder; },
+        abortSignal() { return Promise.resolve(result); },
+      };
+      return builder;
+    };
+    const supabase = {
+      rpc() {
+        return query({ data: { success: true, attemptId: 'attempt-1' }, error: null });
+      },
+      from(table) {
+        if (table === 'training_attempt_hands') {
+          return query({
+            data: {
+              hand_ordinal: 7,
+              snapshot_key: corruptedSnapshot.snapshot_key,
+              status: 'allocated',
+            },
+            error: null,
+          });
+        }
+        if (table === 'training_question_snapshots') {
+          return query({ data: corruptedSnapshot, error: null });
+        }
+        throw new Error(`unexpected table ${table}`);
+      },
+    };
+
+    await assert.rejects(
+      recoverTrainingAttemptHand({
+        supabase,
+        userId: 'user-1',
+        clientSessionId: 'session-1',
+        gameId: 'cash-001',
+        level: 1,
+        sessionKind: 'campaign',
+        difficultyMode: 'exact',
+        requestedHands: 20,
+        handOrdinal: 7,
+      }),
+      (error) => error instanceof TrainingAttemptDeliveryError
+        && error.code === 'TRAINING_QUESTION_SNAPSHOT_MISMATCH'
+        && error.status === 503,
+    );
+  }
 });
 
 test('both serving paths removed fabricated poker-state fallbacks before persistence', () => {

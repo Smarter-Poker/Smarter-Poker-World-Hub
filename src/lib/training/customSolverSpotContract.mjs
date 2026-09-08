@@ -1,3 +1,4 @@
+import { v2ArtifactEnvelopeIsExact } from '../../utils/v2Matrix.js';
 import { validateSolverRowIdentity } from './solverRowIdentity.mjs';
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/;
@@ -102,14 +103,12 @@ export function customSolverProvenanceIsComplete(row) {
   const effectiveStackBb = Number(v2?.eff_stack_bb);
   return Boolean(
     validateSolverRowIdentity(row).ok
+    && v2ArtifactEnvelopeIsExact(v2)
     && Number.isFinite(rootPotBb)
     && rootPotBb > 0
     && Number.isFinite(effectiveStackBb)
     && effectiveStackBb > 0
     && effectiveStackBb <= Number(row?.stack_depth)
-    && /^\d+(?:\.\d+)?(?: \d+(?:\.\d+)?){3}$/.test(String(v2?.rake || ''))
-    && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(v2?.tree_geometry || ''))
-    && v2?.solver === 'PioSOLVER'
     && row?.quality_status === 'validated'
     && row?.solver_version
     && /^[0-9a-f]{64}$/i.test(String(row?.solver_binary_checksum || ''))

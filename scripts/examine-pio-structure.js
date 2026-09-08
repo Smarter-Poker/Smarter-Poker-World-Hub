@@ -4,40 +4,41 @@
  * Query a complete scenario to understand the exact data format
  */
 
-const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
+const { createSolverOperatorPool } = require('./lib/solver-operator-db');
 require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 async function examineFullStructure() {
+    const pool = createSolverOperatorPool({ statementTimeout: 120_000 });
+    try {
     console.log('🔬 EXAMINING FULL PIO SCENARIO STRUCTURE\n');
     console.log('═'.repeat(80));
 
     // Get one complete scenario
-    const { data: scenario, error } = await supabase
-        .from('solved_spots_gold')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
-
-    if (error) {
-        console.error('❌ Error:', error.message);
-        return;
+    const scenarioResult = await pool.query(
+        'SELECT * FROM public.solved_spots_gold ORDER BY id LIMIT 1',
+    );
+    const scenario = scenarioResult.rows[0] || null;
+    if (!scenario) {
+        throw new Error('solved_spots_gold is empty; there is no scenario to examine.');
     }
 
     console.log('\n📋 FULL SCENARIO DATA:');
     console.log('─'.repeat(80));
     console.log(JSON.stringify(scenario, null, 2));
 
-    // Save to file for detailed analysis
-    const outputPath = path.join(__dirname, '../.gemini/antigravity/brain/8224c3c2-82c2-4505-ade7-9c8033b1a8c6/sample_pio_scenario.json');
-    fs.writeFileSync(outputPath, JSON.stringify(scenario, null, 2));
-    console.log(`\n💾 Saved full scenario to: ${outputPath}`);
+    // Persist only when an operator explicitly selects an output path. The
+    // old machine-specific .gemini path failed on every other checkout and
+    // made a successful database inspection look like a query failure.
+    if (process.env.PIO_STRUCTURE_OUTPUT) {
+        const outputPath = path.resolve(process.env.PIO_STRUCTURE_OUTPUT);
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        fs.writeFileSync(outputPath, JSON.stringify(scenario, null, 2));
+        console.log(`\n💾 Saved full scenario to: ${outputPath}`);
+    } else {
+        console.log('\nℹ️ Full scenario was not persisted; set PIO_STRUCTURE_OUTPUT to save it.');
+    }
 
     // Analyze strategy matrix
     if (scenario.strategy_matrix) {
@@ -63,27 +64,14 @@ async function examineFullStructure() {
         }
     }
 
-    // Try to parse board cards from scenario_hash
-    if (scenario.scenario_hash) {
+    // Use the structured artifact board rather than guessing at one of the
+    // historical scenario-hash layouts.
+    const structuredBoard = scenario.strategy_matrix_v2?.board || scenario.board_cards;
+    if (Array.isArray(structuredBoard)) {
         console.log('\n🃏 BOARD CARD PARSING:');
         console.log('─'.repeat(80));
         console.log(`Scenario Hash: ${scenario.scenario_hash}`);
-
-        // Extract board cards (e.g., "AsKs7d" from "AsKs7d.csv_Cash_100bb_Flop")
-        const match = scenario.scenario_hash.match(/^([A-K0-9][shdc]+)/);
-        if (match) {
-            const boardString = match[1];
-            console.log(`Board String: ${boardString}`);
-
-            // Parse into individual cards
-            const cards = [];
-            for (let i = 0; i < boardString.length; i += 2) {
-                if (i + 1 < boardString.length) {
-                    cards.push(boardString.substr(i, 2));
-                }
-            }
-            console.log(`Parsed Board: ${cards.join(' ')}`);
-        }
+        console.log(`Structured Board: ${structuredBoard.join(' ')}`);
     }
 
     // Query data coverage
@@ -91,62 +79,51 @@ async function examineFullStructure() {
     console.log('═'.repeat(80));
 
     // By game_type
-    const { data: byGameType } = await supabase
-        .from('solved_spots_gold')
-        .select('game_type');
+    const { rows: byGameType } = await pool.query(
+        'SELECT game_type, count(*)::integer AS count FROM public.solved_spots_gold GROUP BY game_type ORDER BY game_type',
+    );
 
     if (byGameType) {
-        const gameTypeCounts = {};
-        byGameType.forEach(row => {
-            gameTypeCounts[row.game_type] = (gameTypeCounts[row.game_type] || 0) + 1;
-        });
-
         console.log('\n📊 By Game Type:');
-        Object.entries(gameTypeCounts).forEach(([type, count]) => {
-            const percentage = ((count / byGameType.length) * 100).toFixed(1);
-            console.log(`  ${type}: ${count.toLocaleString()} (${percentage}%)`);
+        const total = byGameType.reduce((sum, row) => sum + Number(row.count), 0);
+        byGameType.forEach(row => {
+            const percentage = ((Number(row.count) / total) * 100).toFixed(1);
+            console.log(`  ${row.game_type}: ${Number(row.count).toLocaleString()} (${percentage}%)`);
         });
     }
 
     // By stack_depth
-    const { data: byStack } = await supabase
-        .from('solved_spots_gold')
-        .select('stack_depth');
+    const { rows: byStack } = await pool.query(
+        'SELECT stack_depth, count(*)::integer AS count FROM public.solved_spots_gold GROUP BY stack_depth ORDER BY stack_depth',
+    );
 
     if (byStack) {
-        const stackCounts = {};
-        byStack.forEach(row => {
-            stackCounts[row.stack_depth] = (stackCounts[row.stack_depth] || 0) + 1;
-        });
-
         console.log('\n📊 By Stack Depth:');
-        Object.entries(stackCounts)
-            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-            .forEach(([stack, count]) => {
-                const percentage = ((count / byStack.length) * 100).toFixed(1);
-                console.log(`  ${stack}BB: ${count.toLocaleString()} (${percentage}%)`);
-            });
+        const total = byStack.reduce((sum, row) => sum + Number(row.count), 0);
+        byStack.forEach(row => {
+            const percentage = ((Number(row.count) / total) * 100).toFixed(1);
+            console.log(`  ${row.stack_depth}BB: ${Number(row.count).toLocaleString()} (${percentage}%)`);
+        });
     }
 
     // By street
-    const { data: byStreet } = await supabase
-        .from('solved_spots_gold')
-        .select('street');
+    const { rows: byStreet } = await pool.query(
+        'SELECT street, count(*)::integer AS count FROM public.solved_spots_gold GROUP BY street ORDER BY street',
+    );
 
     if (byStreet) {
-        const streetCounts = {};
-        byStreet.forEach(row => {
-            streetCounts[row.street] = (streetCounts[row.street] || 0) + 1;
-        });
-
         console.log('\n📊 By Street:');
-        Object.entries(streetCounts).forEach(([street, count]) => {
-            const percentage = ((count / byStreet.length) * 100).toFixed(1);
-            console.log(`  ${street}: ${count.toLocaleString()} (${percentage}%)`);
+        const total = byStreet.reduce((sum, row) => sum + Number(row.count), 0);
+        byStreet.forEach(row => {
+            const percentage = ((Number(row.count) / total) * 100).toFixed(1);
+            console.log(`  ${row.street}: ${Number(row.count).toLocaleString()} (${percentage}%)`);
         });
     }
 
     console.log('\n' + '═'.repeat(80));
+    } finally {
+        await pool.end();
+    }
 }
 
 examineFullStructure()

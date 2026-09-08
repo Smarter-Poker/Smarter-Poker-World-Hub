@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { AnimatePresence, motion } from 'framer-motion';
-import Card, { parseCards } from '../../../src/components/training/Card';
+import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 
@@ -45,14 +45,17 @@ function waitForRetry(delayMs, signal) {
   });
 }
 
-function HandBadge({ hand }) {
-  if (!hand) return null;
-  const cards = parseCards(hand);
-  if (!cards?.length) return null;
+function HandBadge({ cards }) {
+  const physicalCards = Array.isArray(cards)
+    && cards.length === 2
+    && cards.every((card) => /^[2-9TJQKA][cdhs]$/.test(String(card || '')))
+    ? cards
+    : null;
+  if (!physicalCards) return null;
   return (
     <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-      {cards.map((card, index) => (
-        <Card key={`${card.rank}-${card.suit}-${index}`} rank={card.rank} suit={card.suit} size="small" />
+      {physicalCards.map((card, index) => (
+        <Card key={`${card}-${index}`} rank={card[0]} suit={card[1]} size="small" />
       ))}
     </div>
   );
@@ -329,7 +332,7 @@ export default function SpotTrainerPage() {
                   <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 8 }}>
                     Your Hand
                   </div>
-                  <HandBadge hand={spot.heroHand} />
+                  <HandBadge cards={spot.heroCards} />
                 </div>
 
                 <div

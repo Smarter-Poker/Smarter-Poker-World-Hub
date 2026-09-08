@@ -109,19 +109,32 @@ export class MultiStreetContinuationError extends Error {
  * @param {string} action - Action code like 'c', 'b33', 'f'
  * @returns {number} New pot size
  */
-function computePotAfterAction(currentPot, action, { actionUnits = 'percent', facingBet = 0 } = {}) {
+function computePotAfterAction(currentPot, action, {
+    actionUnits = 'percent',
+    facingBet = 0,
+    exactIncrementBb = null,
+} = {}) {
     if (!action) return currentPot;
     if (action === 'c' || action === 'x') return currentPot; // check
     if (action === 'call') return currentPot + Math.max(0, Number(facingBet) || 0);
     if (action === 'f') return currentPot; // fold
 
-    // Parse bet/raise percentage
-    const betMatch = action.match(/^[br](\d+)$/);
+    // A trusted Pio continuation uses raw NodeID units and therefore accepts
+    // only bNNN (Pio uses `b` for both Bet and Raise). Authored percentage
+    // actions retain the application's separate bNNN/rNNN convention.
+    const betMatch = actionUnits === 'chips'
+        ? action.match(/^b([1-9]\d*)$/)
+        : action.match(/^[br]([1-9]\d*)$/);
     if (betMatch) {
         const encodedAmount = parseInt(betMatch[1]);
         const betSize = actionUnits === 'chips'
-            ? encodedAmount / 100
+            // Pio bNNN tokens are cumulative postflop contribution targets,
+            // not the amount added at this node (official UPI NodeID contract:
+            // https://piosolver.com/docs/upi/). The canonical solver policy
+            // has already reconstructed the actor's exact increment.
+            ? Number(exactIncrementBb)
             : currentPot * (encodedAmount / 100);
+        if (!Number.isFinite(betSize) || betSize <= 0) return null;
         // The model here is "hero bets X, villain calls" -- its own comment said
         // so -- but only ONE bet was ever added. A called bet puts X in from BOTH
         // players, so the pot grows by 2X. Understating it compounds: the turn is
@@ -274,6 +287,55 @@ export class MultiStreetHand {
                 'TRAINING_CONTINUATION_DUPLICATE_DECISION',
             );
         }
+        const scenario = this.currentQuestion?.scenario || {};
+        const continuationAction = scenario.nextStreetContinuationAction || null;
+        const continuesExactLine = recordedStreet !== 'river'
+            && continuationAction
+            && String(actionCode) === String(continuationAction);
+        let projectedPot = this.pot;
+        if (continuesExactLine) {
+            const sourceActionCode = scenario.nextStreetContinuationSourceAction || actionCode;
+            const actionUnits = scenario.solverActionUnits || 'percent';
+            let exactIncrementBb = null;
+            if (actionUnits === 'chips') {
+                if (!/^b[1-9]\d*$/.test(String(sourceActionCode))) {
+                    throw new MultiStreetContinuationError(
+                        'The signed continuation carries a non-canonical Pio action token.',
+                        'TRAINING_CONTINUATION_ACTION_SIZE_INVALID',
+                    );
+                }
+                const matchingPolicyActions = (this.currentQuestion?.solverPolicy?.actions || [])
+                    .filter((action) => action?.legal !== false
+                        && String(action?.id || '') === String(continuationAction)
+                        && String(action?.sourceCode || '') === String(sourceActionCode));
+                const policyAction = matchingPolicyActions.length === 1
+                    ? matchingPolicyActions[0]
+                    : null;
+                exactIncrementBb = Number(policyAction?.size?.bigBlinds);
+                if (policyAction?.size?.exact !== true
+                    || !Number.isFinite(exactIncrementBb)
+                    || exactIncrementBb <= 0) {
+                    throw new MultiStreetContinuationError(
+                        'The signed continuation is missing its exact action increment.',
+                        'TRAINING_CONTINUATION_ACTION_SIZE_MISSING',
+                    );
+                }
+            }
+            projectedPot = computePotAfterAction(this.pot, sourceActionCode, {
+                actionUnits,
+                facingBet: scenario.villainBet,
+                exactIncrementBb,
+            });
+            if (!Number.isFinite(projectedPot) || projectedPot <= 0) {
+                throw new MultiStreetContinuationError(
+                    'The signed continuation action cannot produce an exact pot.',
+                    'TRAINING_CONTINUATION_ACTION_SIZE_INVALID',
+                );
+            }
+        }
+
+        // Validate the exact continuation projection before mutating history.
+        // A corrupt size must not leave a half-recorded client hand.
         this.streetActions.push({
             street: recordedStreet,
             action: actionCode,
@@ -293,25 +355,16 @@ export class MultiStreetHand {
             return true;
         }
 
-        const scenario = this.currentQuestion?.scenario || {};
-        const continuationAction = scenario.nextStreetContinuationAction || null;
         // A solved next street is valid only for the exact action line that
         // produced it. If this node has no certified continuation, or the user
         // chose another action, finish the hand instead of skipping hidden
         // decisions and transplanting a different solve.
-        if (!continuationAction || String(actionCode) !== String(continuationAction)) {
+        if (!continuesExactLine) {
             this.currentStreet = 'done';
             return true;
         }
 
-        // The supervised Pio export uses chip-denominated b/r tokens. Older
-        // authored scenarios use percentages. Respect the explicit unit tag
-        // so b412 means 4.12 BB here, never 412% of the pot.
-        const sourceActionCode = scenario.nextStreetContinuationSourceAction || actionCode;
-        this.pot = computePotAfterAction(this.pot, sourceActionCode, {
-            actionUnits: scenario.solverActionUnits || 'percent',
-            facingBet: scenario.villainBet,
-        });
+        this.pot = projectedPot;
         return true;
     }
 

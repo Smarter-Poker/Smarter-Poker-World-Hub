@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
@@ -11,20 +9,30 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { sourceClassificationForQuestion } from '../../../src/lib/training/cacheTruthContract.mjs';
 import { normalizeBoard, normalizeHolding } from '../../../src/lib/training/solverPolicyContract.js';
+import { isExactPioRake } from '../../../src/utils/v2Matrix.js';
 import {
   prepareTrainingQuestionForDelivery,
   TrainingGradingReceiptError,
-  trainingQuestionDigest,
   verifyTrainingGradingReceipt,
   verifyTrainingGradingReceiptEnvelope,
 } from '../../../src/lib/training/gradingReceipt.mjs';
-import { buildTrainingQuestionSnapshot } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  buildTrainingQuestionSnapshot,
+  readTrainingAttemptContinuation,
+  recordTrainingQuestionsServedForAttempt,
+  registerTrainingAttemptContinuation,
+  trainingAttemptDecisionServeKey,
+  trainingQuestionSnapshotMatchesIdentity,
+} from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
   isTrainingPersistenceUnavailable,
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
-import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import {
+  buildTrainingCacheRow,
+  withPersistedCacheReceipt,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 applyDeterministicEnginePatches(deterministicEngine);
 
@@ -47,7 +55,7 @@ const RANK_VALUES = Object.freeze({
   T: 10, J: 11, Q: 12, K: 13, A: 14,
 });
 const POSITIONS = new Set(['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
-const SOLVER_PATH_TOKEN_RE = /^(?:c|[br][1-9]\d*|[2-9TJQKA][cdhs])$/;
+const SOLVER_PATH_TOKEN_RE = /^(?:c|b[1-9]\d*|[2-9TJQKA][cdhs])$/;
 const CONTINUATION_ACTION_RE = /^b[1-9]\d*$/;
 const SHA256_RE = /^[0-9a-f]{64}$/i;
 const GIT_SHA_RE = /^[0-9a-f]{40}$/i;
@@ -350,7 +358,7 @@ export function buildExactContinuationLineage({
     && Number.isFinite(Number(solverLineage.effectiveStackBb))
     && Number(solverLineage.effectiveStackBb) > 0
     && Number(solverLineage.effectiveStackBb) <= state.stackDepth
-    && /^\d+(?:\.\d+)?(?: \d+(?:\.\d+)?){3}$/.test(String(solverLineage.rake || ''))
+    && isExactPioRake(solverLineage.rake)
     && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(solverLineage.treeGeometry || ''))
     && solverLineage.ipPosition === state.heroPosition
     && solverLineage.oopPosition === state.villainPosition
@@ -561,10 +569,10 @@ export default async function handler(req, res) {
     }
 
     const parentSnapshot = await readSnapshot(receiptPayload.snapshotKey);
-    if (!parentSnapshot?.question_data
-      || String(parentSnapshot.game_id) !== String(receiptPayload.gameId)
-      || Number(parentSnapshot.level) !== Number(receiptPayload.level)
-      || trainingQuestionDigest(parentSnapshot.question_data) !== String(parentSnapshot.content_digest)) {
+    if (!trainingQuestionSnapshotMatchesIdentity(parentSnapshot, {
+      gameId: receiptPayload.gameId,
+      level: receiptPayload.level,
+    })) {
       return res.status(409).json({
         success: false,
         error: 'The signed parent hand is no longer available. Reload the Arena.',
@@ -610,6 +618,84 @@ export default async function handler(req, res) {
         success: false,
         error: 'This hand has reached its maximum decision depth.',
         code: 'TRAINING_CONTINUATION_DEPTH_EXCEEDED',
+      });
+    }
+    const nextDecisionOrdinal = Number(receiptPayload.decisionOrdinal) + 1;
+    const existingContinuation = await readTrainingAttemptContinuation({
+      supabase: getSupabase(),
+      attemptId: receiptPayload.attemptId,
+      handOrdinal: receiptPayload.handOrdinal,
+      decisionOrdinal: nextDecisionOrdinal,
+      gameId: receiptPayload.gameId,
+      level: receiptPayload.level,
+    });
+    if (existingContinuation) {
+      const { slot, snapshot } = existingContinuation;
+      if (String(slot.parent_snapshot_key) !== String(receiptPayload.snapshotKey)
+        || String(slot.parent_submission_id) !== String(precedingResult.data.submission_id)) {
+        return res.status(409).json({
+          success: false,
+          error: 'The saved continuation does not match the preceding decision.',
+          code: 'TRAINING_CONTINUATION_SLOT_PARENT_MISMATCH',
+        });
+      }
+      const existingAnswerResult = await runTrainingPersistenceQuery(
+        () => getSupabase().from('training_answers')
+          .select('submission_id')
+          .eq('user_id', user.id)
+          .eq('attempt_id', receiptPayload.attemptId)
+          .eq('hand_ordinal', receiptPayload.handOrdinal)
+          .eq('decision_ordinal', nextDecisionOrdinal)
+          .maybeSingle(),
+        { label: 'NextStreet:existing-continuation-answer-read' },
+      );
+      if (existingAnswerResult.data) {
+        return res.status(409).json({
+          success: false,
+          error: 'This continuation decision was already answered and cannot receive a new receipt.',
+          code: 'TRAINING_CONTINUATION_ALREADY_ANSWERED',
+        });
+      }
+      const servedQuestion = prepareTrainingQuestionForDelivery({
+        canonicalQuestion: snapshot.question_data,
+        userId: user.id,
+        gameId: receiptPayload.gameId,
+        level: receiptPayload.level,
+        sessionId: receiptPayload.sessionId,
+        attemptId: receiptPayload.attemptId,
+        snapshotKey: snapshot.snapshot_key,
+        sessionKind: receiptPayload.sessionKind,
+        sessionTargetHands: receiptPayload.sessionTargetHands,
+        handOrdinal: receiptPayload.handOrdinal,
+        decisionOrdinal: nextDecisionOrdinal,
+        countsTowardCompletion: false,
+        practiceOnly: receiptPayload.practiceOnly,
+        difficultyMode: receiptPayload.difficultyMode,
+        receiptId: trainingAttemptDecisionServeKey(
+          receiptPayload.attemptId,
+          receiptPayload.handOrdinal,
+          nextDecisionOrdinal,
+        ),
+      });
+      await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+        userId: user.id,
+        delivery: { attemptId: receiptPayload.attemptId, questions: [servedQuestion] },
+      });
+      const boardCards = firstCardSet(
+        snapshot.question_data?.scenario?.boardCards,
+        snapshot.question_data?.boardCards,
+      );
+      return res.status(200).json({
+        success: true,
+        recoveredExistingContinuation: true,
+        question: servedQuestion,
+        newCard: boardCards.at(-1),
+        boardCards,
+        street: String(snapshot.question_data?.scenario?.street || snapshot.question_data?.street || ''),
+        sessionId: receiptPayload.sessionId,
+        attemptId: receiptPayload.attemptId,
+        handOrdinal: receiptPayload.handOrdinal,
+        decisionOrdinal: nextDecisionOrdinal,
       });
     }
 
@@ -687,7 +773,6 @@ export default async function handler(req, res) {
       });
     }
     const nextBoard = continuationLineage.boardCards;
-    const newCard = nextBoard.at(-1);
 
     const exactContinuation = bindExactContinuationQuestion(generated, {
       state,
@@ -712,17 +797,23 @@ export default async function handler(req, res) {
 
     let persistedCanonicalQuestion;
     try {
-      [persistedCanonicalQuestion] = await persistCanonicalTrainingQuestions(getSupabase(), {
-        questions: [canonicalQuestion],
+      const cacheRow = buildTrainingCacheRow({
+        question: canonicalQuestion,
+        questionId: canonicalQuestion.id,
         gameId: receiptPayload.gameId,
         questionKind: 'PIO',
         gameType: String(receiptPayload.gameId).startsWith('mtt-') ? 'tournament'
           : String(receiptPayload.gameId).startsWith('spins-') ? 'sng' : 'cash',
         level: receiptPayload.level,
-        userId: user.id,
-        requestId: randomUUID(),
-        label: 'NextStreet:canonicalize',
       });
+      const persisted = await runTrainingPersistenceQuery(
+        () => getSupabase().from('training_question_cache')
+          .upsert(cacheRow, { onConflict: 'question_id', defaultToNull: false })
+          .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+          .single(),
+        { label: 'NextStreet:canonicalize' },
+      );
+      persistedCanonicalQuestion = withPersistedCacheReceipt(cacheRow.question_data, persisted.data);
     } catch (canonicalizeError) {
       console.warn('[NextStreet] Refusing to serve an uncanonicalized continuation:', canonicalizeError?.message || canonicalizeError);
       return res.status(503).json(trainingPersistenceUnavailableBody());
@@ -741,15 +832,27 @@ export default async function handler(req, res) {
       }),
       { label: 'NextStreet:snapshot-write' },
     );
-    const storedSnapshot = await readSnapshot(candidateSnapshot.snapshot_key);
-    if (!storedSnapshot?.question_data
-      || trainingQuestionDigest(storedSnapshot.question_data) !== String(storedSnapshot.content_digest)
-      || String(storedSnapshot.game_id) !== String(receiptPayload.gameId)
-      || Number(storedSnapshot.level) !== Number(receiptPayload.level)) {
+    const candidateStoredSnapshot = await readSnapshot(candidateSnapshot.snapshot_key);
+    if (!trainingQuestionSnapshotMatchesIdentity(candidateStoredSnapshot, {
+      gameId: receiptPayload.gameId,
+      level: receiptPayload.level,
+    })) {
       return res.status(503).json(trainingPersistenceUnavailableBody());
     }
 
-    const nextDecisionOrdinal = Number(receiptPayload.decisionOrdinal) + 1;
+    const registeredContinuation = await registerTrainingAttemptContinuation({
+      supabase: getSupabase(),
+      userId: user.id,
+      attemptId: receiptPayload.attemptId,
+      handOrdinal: receiptPayload.handOrdinal,
+      decisionOrdinal: nextDecisionOrdinal,
+      snapshotKey: candidateStoredSnapshot.snapshot_key,
+      parentSnapshotKey: receiptPayload.snapshotKey,
+      parentSubmissionId: precedingResult.data.submission_id,
+      gameId: receiptPayload.gameId,
+      level: receiptPayload.level,
+    });
+    const storedSnapshot = registeredContinuation.snapshot;
     const servedQuestion = prepareTrainingQuestionForDelivery({
       canonicalQuestion: storedSnapshot.question_data,
       userId: user.id,
@@ -765,14 +868,28 @@ export default async function handler(req, res) {
       countsTowardCompletion: false,
       practiceOnly: receiptPayload.practiceOnly,
       difficultyMode: receiptPayload.difficultyMode,
+      receiptId: trainingAttemptDecisionServeKey(
+        receiptPayload.attemptId,
+        receiptPayload.handOrdinal,
+        nextDecisionOrdinal,
+      ),
     });
+    await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+      userId: user.id,
+      delivery: { attemptId: receiptPayload.attemptId, questions: [servedQuestion] },
+    });
+
+    const winningBoard = firstCardSet(
+      storedSnapshot.question_data?.scenario?.boardCards,
+      storedSnapshot.question_data?.boardCards,
+    );
 
     return res.status(200).json({
       success: true,
       question: servedQuestion,
-      newCard,
-      boardCards: nextBoard,
-      street: state.nextStreet,
+      newCard: winningBoard.at(-1),
+      boardCards: winningBoard,
+      street: String(storedSnapshot.question_data?.scenario?.street || storedSnapshot.question_data?.street || ''),
       sessionId: receiptPayload.sessionId,
       attemptId: receiptPayload.attemptId,
       handOrdinal: receiptPayload.handOrdinal,

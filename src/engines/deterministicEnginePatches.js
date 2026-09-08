@@ -10,7 +10,7 @@
  * reingest.md and .agent/audits/2026-07-19-training-engine-phase3-*.md).
  *
  * 2026-07-24: the rebuilt PioSOLVER pipeline writes clean per-combo data to
- * solved_spots_gold.strategy_matrix_v2. fetchSolverPool + queryNextStreet now
+ * the active catalog's strategy_matrix_v2 artifacts. fetchSolverPool + queryNextStreet now
  * PREFER strategy_matrix_v2 (converted to the legacy per-class shape via
  * v2ToAppMatrix) when present, and fall back to the sanitized v1 otherwise.
  *
@@ -42,6 +42,7 @@
 import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
 import { isSolverRowIdentityValid } from '../lib/training/solverRowIdentity.mjs';
 import { normalizeSolvedPolicyRecord } from '../services/SolverPolicyService.js';
+import { isExactPioRake, v2ArtifactEnvelopeIsExact } from '../utils/v2Matrix.js';
 import {
     alignQuestionToCanonicalPolicy,
     sourceClassificationForQuestion,
@@ -56,6 +57,133 @@ import {
 const CONTINUATION_QUERY_CHUNK_SIZE = 12;
 const MAX_CONTINUATION_RUNOUTS = 47;
 const CONTINUATION_BOARD_CARD_RE = /^[2-9TJQKA][cdhs]$/;
+const SOLVER_CANDIDATE_RPC = 'training_solver_spot_candidates_v1';
+const SOLVER_CANDIDATE_PAGE_SIZE = 128;
+const MAX_SOLVER_CANDIDATE_PAGES = 32;
+
+function rowMatchesCandidateRequest(row, {
+    familyStackKeys,
+    position,
+    street,
+    artifactId,
+    scenarioHash,
+}) {
+    const rowPosition = String(row?.strategy_matrix_v2?.position || '').toUpperCase();
+    return Boolean(
+        row
+        && typeof row.id === 'string'
+        && familyStackKeys.has(`${row.game_type}|${Number(row.stack_depth)}`)
+        && (!position || rowPosition === position)
+        && (!street || row.street === street)
+        && (!artifactId || row.id === artifactId)
+        && (!scenarioHash || row.scenario_hash === scenarioHash)
+    );
+}
+
+async function fetchAdmittedSolverCandidates(db, {
+    familyStacks,
+    position = null,
+    street = null,
+    artifactId = null,
+    scenarioHash = null,
+    limit = SOLVER_CANDIDATE_PAGE_SIZE,
+    accept = null,
+}) {
+    if (!db || typeof db.rpc !== 'function' || !Array.isArray(familyStacks)
+        || familyStacks.length === 0 || familyStacks.length > 32) return null;
+    const normalizedPosition = position ? String(position).trim().toUpperCase() : null;
+    const normalizedStreet = street ? String(street).trim().toLowerCase() : null;
+    const normalizedArtifactId = artifactId ? String(artifactId).trim() : null;
+    const normalizedScenarioHash = scenarioHash ? String(scenarioHash).trim() : null;
+    const familyStackKeys = new Set();
+    const normalizedFamilyStacks = [];
+    for (const familyStack of familyStacks) {
+        const gameType = String(familyStack?.game_type || '').trim();
+        const stackDepth = Number(familyStack?.stack_depth);
+        if (!/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(gameType)
+            || !Number.isSafeInteger(stackDepth) || stackDepth <= 0) return null;
+        const key = `${gameType}|${stackDepth}`;
+        if (familyStackKeys.has(key)) continue;
+        familyStackKeys.add(key);
+        normalizedFamilyStacks.push({ game_type: gameType, stack_depth: stackDepth });
+    }
+    if (normalizedFamilyStacks.length === 0) return null;
+    const wanted = Math.max(1, Math.min(Number(limit) || 1, 500));
+    const accepted = [];
+    let lowerExclusive = null;
+
+    for (let page = 0; page < MAX_SOLVER_CANDIDATE_PAGES && accepted.length < wanted; page++) {
+        // When a purpose-specific local predicate remains (currently only
+        // authored spot tags), scan full bounded catalog pages so a sparse
+        // match cannot be starved by the first handful of unrelated rows.
+        const pageLimit = typeof accept === 'function'
+            ? SOLVER_CANDIDATE_PAGE_SIZE
+            : Math.min(SOLVER_CANDIDATE_PAGE_SIZE, wanted - accepted.length);
+        const { data, error } = await db.rpc(SOLVER_CANDIDATE_RPC, {
+            p_family_stacks: normalizedFamilyStacks,
+            p_position: normalizedPosition,
+            p_lower_inclusive: null,
+            p_lower_exclusive: lowerExclusive,
+            p_upper_exclusive: null,
+            p_limit: pageLimit,
+            p_artifact_id: normalizedArtifactId,
+            p_scenario_hash: normalizedScenarioHash,
+            p_street: normalizedStreet,
+            p_offset: 0,
+        });
+        if (error || !Array.isArray(data) || data.length > pageLimit) return null;
+        if (data.length === 0) break;
+
+        let previous = lowerExclusive;
+        for (const row of data) {
+            if (typeof row?.id !== 'string' || !row.id || (previous && row.id <= previous)) {
+                return null;
+            }
+            previous = row.id;
+            if (!rowMatchesCandidateRequest(row, {
+                familyStackKeys,
+                position: normalizedPosition,
+                street: normalizedStreet,
+                artifactId: normalizedArtifactId,
+                scenarioHash: normalizedScenarioHash,
+            })) return null;
+            const record = normalizeSolvedPolicyRecord(row);
+            if (!record.valid || !record.sourceV2 || record.provenanceComplete !== true) return null;
+            if (!accept || accept(row)) accepted.push(row);
+            if (accepted.length >= wanted) break;
+        }
+        const nextCursor = data.at(-1)?.id;
+        if (!nextCursor || nextCursor === lowerExclusive) return null;
+        lowerExclusive = nextCursor;
+        if (data.length < pageLimit) break;
+    }
+    return accepted;
+}
+
+async function fetchExactAdmittedArtifact(db, {
+    artifactId = null,
+    scenarioHash = null,
+    familyStack,
+    position,
+    street,
+}) {
+    if ((!artifactId && !scenarioHash) || !familyStack) return null;
+    const data = await fetchAdmittedSolverCandidates(db, {
+        familyStacks: [familyStack],
+        position,
+        street,
+        artifactId,
+        scenarioHash,
+        // Ask for two so a broken uniqueness constraint can never be hidden
+        // behind LIMIT 1 and silently treated as an exact solver identity.
+        limit: 2,
+    });
+    if (data === null || data.length > 1) return null;
+    // `undefined` means the exact admitted identity is absent. `null` above
+    // means the authority/shape/uniqueness contract failed. Continuation
+    // callers may skip an absent runout but fail the whole request on null.
+    return data[0];
+}
 
 function exactContinuationScenarioHash(street, gameType, heroPosition, stackDepth, boardCards) {
     const prefix = street === 'flop' ? '' : `${street}_`;
@@ -109,14 +237,12 @@ function provenanceIsComplete(row) {
     return Boolean(
         v2
         && isSolverRowIdentityValid(row)
+        && v2ArtifactEnvelopeIsExact(v2)
         && Number.isFinite(rootPotBb)
         && rootPotBb > 0
         && Number.isFinite(effectiveStackBb)
         && effectiveStackBb > 0
         && effectiveStackBb <= Number(row?.stack_depth)
-        && /^\d+(?:\.\d+)?(?: \d+(?:\.\d+)?){3}$/.test(String(v2?.rake || ''))
-        && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(v2?.tree_geometry || ''))
-        && v2?.solver === 'PioSOLVER'
         && row?.quality_status === 'validated'
         && row?.solver_version
         && /^[0-9a-f]{64}$/i.test(String(row?.solver_binary_checksum || ''))
@@ -239,6 +365,80 @@ function stampSolverProvenance(question, row) {
     return enforceSolverClaimHonesty(question);
 }
 
+function canonicalRangeActionSignature(action) {
+    return JSON.stringify({
+        family: String(action?.family || '').toLowerCase(),
+        label: String(action?.label || ''),
+        legal: action?.legal !== false,
+        size: {
+            unit: String(action?.size?.unit || ''),
+            chips: action?.size?.chips ?? null,
+            bigBlinds: action?.size?.bigBlinds ?? null,
+            potFraction: action?.size?.potFraction ?? null,
+            exact: action?.size?.exact === true,
+        },
+    });
+}
+
+/**
+ * Re-key an action-first range matrix from Pio source tokens to canonical
+ * policy action ids. UI code must never infer that b1442 means 1,442%: only
+ * the policy owns the action's current-node size and player-facing label.
+ *
+ * Multiple source tokens may merge only when the policy explicitly maps them
+ * to the same id with byte-equivalent family/label/size semantics. Any
+ * missing, conflicting, or numerically invalid mapping fails the optional
+ * range view closed without weakening the decision itself.
+ */
+export function rebindRawFrequenciesToCanonicalPolicy(rawFrequencies, policyActions) {
+    if (!rawFrequencies || typeof rawFrequencies !== 'object' || Array.isArray(rawFrequencies)) {
+        return null;
+    }
+    if (!Array.isArray(policyActions) || policyActions.length === 0) return null;
+
+    const sourceToCanonical = new Map();
+    const canonicalSignatures = new Map();
+    for (const action of policyActions) {
+        const id = String(action?.id || '').trim().toLowerCase();
+        const sourceCode = String(action?.sourceCode || '').trim().toLowerCase();
+        if (!id || action?.legal === false) continue;
+        const signature = canonicalRangeActionSignature(action);
+        const priorSignature = canonicalSignatures.get(id);
+        if (priorSignature && priorSignature !== signature) return null;
+        canonicalSignatures.set(id, signature);
+
+        for (const key of [id, sourceCode].filter(Boolean)) {
+            const priorId = sourceToCanonical.get(key);
+            if (priorId && priorId !== id) return null;
+            sourceToCanonical.set(key, id);
+        }
+    }
+    if (canonicalSignatures.size === 0) return null;
+
+    const rebound = {};
+    for (const [sourceKey, handFrequencies] of Object.entries(rawFrequencies)) {
+        const canonicalId = sourceToCanonical.get(String(sourceKey).trim().toLowerCase());
+        if (!canonicalId
+            || !handFrequencies
+            || typeof handFrequencies !== 'object'
+            || Array.isArray(handFrequencies)) return null;
+        if (!rebound[canonicalId]) rebound[canonicalId] = {};
+        for (const [hand, rawFrequency] of Object.entries(handFrequencies)) {
+            const frequency = Number(rawFrequency);
+            if (!Number.isFinite(frequency) || frequency < 0 || frequency > 1.000001) return null;
+            const merged = (rebound[canonicalId][hand] || 0) + frequency;
+            if (merged > 1.000001) return null;
+            rebound[canonicalId][hand] = merged;
+        }
+    }
+
+    return Object.fromEntries(
+        [...canonicalSignatures.keys()]
+            .filter((id) => rebound[id])
+            .map((id) => [id, rebound[id]]),
+    );
+}
+
 function synchronizeCanonicalPolicyQuestion(question) {
     if (!question?.solverPolicy) return question;
     const sourceOptions = Array.isArray(question.options) ? question.options : [];
@@ -263,9 +463,16 @@ function synchronizeCanonicalPolicyQuestion(question) {
             frequency: Math.round(Number(action.frequency || 0) * 1000000) / 10000,
         };
     });
+    const canonicalRawFrequencies = question.rawFrequencies
+        ? rebindRawFrequenciesToCanonicalPolicy(
+            question.rawFrequencies,
+            question.solverPolicy.actions,
+        )
+        : question.rawFrequencies;
     const aligned = alignQuestionToCanonicalPolicy({
         ...question,
         options: canonicalOptions,
+        rawFrequencies: canonicalRawFrequencies,
     });
     const classification = sourceClassificationForQuestion(aligned);
     if (!['SOLVER_EXACT', 'SOLVER_DERIVED_RESPONSE'].includes(classification)) {
@@ -416,14 +623,13 @@ export function applyDeterministicEnginePatches(engine) {
     // never reaches through the engine's internal service locator.
     engine.canonicalPolicyForValidatedSolvedRow = function canonicalPolicyForValidatedSolvedRow(
         row,
-        holdingClass,
+        holding,
     ) {
         const record = normalizeSolvedPolicyRecord(row);
         if (!record.valid || !record.provenanceComplete || !record.sourceV2) return null;
         const policy = this.solverPolicyService.answerFromRecord(
             record,
-            this.solverPolicyService.keyForRecord(record),
-            { holdingClass },
+            this.solverPolicyService.keyForRecord(record, { holding }),
         );
         return policy?.kind === 'unavailable'
             ? null
@@ -442,32 +648,19 @@ export function applyDeterministicEnginePatches(engine) {
                 : [gameConfig.pioStackDepth];
             const fetchLimit = Math.min(limit * 4, 500);
 
-            let allData = [];
-            for (const depth of effectiveStackDepths) {
-                const run = () => {
-                    let q = this.db
-                        .from('solved_spots_gold')
-                        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at')
-                        .eq('game_type', gameConfig.pioGameType)
-                        .eq('stack_depth', depth)
-                        .not('strategy_matrix_v2', 'is', null)
-                        .eq('quality_status', 'validated')
-                        .not('solver_version', 'is', null)
-                        .not('solver_binary_checksum', 'is', null)
-                        .not('machine_id', 'is', null)
-                        .not('pipeline_commit', 'is', null)
-                        .not('manifest_version', 'is', null)
-                        .not('manifest_checksum', 'is', null)
-                        .not('source_artifact_checksum', 'is', null)
-                        .not('audited_at', 'is', null);
-                    if (street) q = q.eq('street', street); // FIX: never .eq('street', null)
-                    return q.limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
-                };
-                const { data, error } = await run();
-                if (!error && data && data.length > 0) allData = allData.concat(data);
-            }
-
-            if (allData.length === 0) return null;
+            // The serving catalog is the admission authority. Never fall back
+            // to a direct warehouse read when the RPC is absent or unavailable:
+            // a quality_status string alone does not prove legal actions or an
+            // active provenance tuple.
+            let allData = await fetchAdmittedSolverCandidates(this.db, {
+                familyStacks: effectiveStackDepths.map((depth) => ({
+                    game_type: gameConfig.pioGameType,
+                    stack_depth: depth,
+                })),
+                street,
+                limit: fetchLimit,
+            });
+            if (!Array.isArray(allData) || allData.length === 0) return null;
 
             if (spotTypes && spotTypes.length > 0) {
                 // (^|_) anchors: \b never matches inside underscore-delimited
@@ -638,7 +831,7 @@ export function applyDeterministicEnginePatches(engine) {
                 && Number.isFinite(Number(release.effectiveStackBb))
                 && Number(release.effectiveStackBb) > 0
                 && Number(release.effectiveStackBb) <= requestedStack
-                && /^\d+(?:\.\d+)?(?: \d+(?:\.\d+)?){3}$/.test(String(release.rake || ''))
+                && isExactPioRake(release.rake)
                 && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(release.treeGeometry || ''))
                 && release.ipPosition === requestedHero
                 && release.oopPosition === requestedVillain
@@ -684,40 +877,36 @@ export function applyDeterministicEnginePatches(engine) {
                 || uniqueCandidateIdentities.size !== continuationLineages.length) return null;
 
             const data = [];
+            const selectedArtifactIds = new Set();
             for (let start = 0; start < continuationLineages.length; start += CONTINUATION_QUERY_CHUNK_SIZE) {
                 const lineageChunk = continuationLineages.slice(
                     start,
                     start + CONTINUATION_QUERY_CHUNK_SIZE,
                 );
-                const result = await this.db
-                    .from('solved_spots_gold')
-                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at')
-                    .in('scenario_hash', lineageChunk.map(({ childScenarioHash }) => childScenarioHash))
-                    .eq('game_type', gameConfig.pioGameType)
-                    .eq('stack_depth', requestedStack)
-                    .eq('street', street)
-                    .in('strategy_matrix_v2->>node', lineageChunk.map(({ childNode }) => childNode))
-                    .in('strategy_matrix_v2->>board', lineageChunk.map(({ boardCards }) => boardCards.join('')))
-                    .eq('strategy_matrix_v2->>position', requestedHero)
-                    .eq('strategy_matrix_v2->>pot_bb', String(release.rootPotBb))
-                    .eq('strategy_matrix_v2->>eff_stack_bb', String(release.effectiveStackBb))
-                    .eq('strategy_matrix_v2->>rake', release.rake)
-                    .eq('strategy_matrix_v2->>tree_geometry', release.treeGeometry)
-                    .eq('strategy_matrix_v2->>oop_player', release.oopPosition)
-                    .eq('strategy_matrix_v2->>ip_player', release.ipPosition)
-                    .not('strategy_matrix_v2', 'is', null)
-                    .eq('quality_status', 'validated')
-                    .eq('solver_version', release.solverVersion)
-                    .eq('solver_binary_checksum', release.solverBinaryChecksum)
-                    .eq('pipeline_commit', release.pipelineCommit)
-                    .eq('manifest_version', release.manifestVersion)
-                    .eq('manifest_checksum', release.manifestChecksum)
-                    .not('machine_id', 'is', null)
-                    .not('source_artifact_checksum', 'is', null)
-                    .not('audited_at', 'is', null)
-                    .limit(100);
-                if (result.error || !Array.isArray(result.data)) return null;
-                data.push(...result.data);
+                const results = await Promise.all(lineageChunk.map(async (lineage) => ({
+                    lineage,
+                    row: await fetchExactAdmittedArtifact(this.db, {
+                        scenarioHash: lineage.childScenarioHash,
+                        familyStack: {
+                            game_type: lineage.gameType,
+                            stack_depth: lineage.solverStackDepth,
+                        },
+                        position: lineage.heroPosition,
+                        street: lineage.childStreet,
+                    }),
+                })));
+                for (const result of results) {
+                    // Missing runouts are expected while a manifest is being
+                    // filled; later exact runouts remain eligible. A malformed,
+                    // stale-authority, or ambiguous response returns null and
+                    // fails the whole continuation request closed.
+                    if (result.row === null) return null;
+                    if (!result.row) continue;
+                    if (!rowMatchesContinuationLineage(result.row, result.lineage)
+                        || selectedArtifactIds.has(result.row.id)) return null;
+                    selectedArtifactIds.add(result.row.id);
+                    data.push(result.row);
+                }
             }
 
             const orderedCandidates = orderedExactContinuationCandidates(data, continuationLineages);

@@ -69,6 +69,38 @@ function signPayload(encodedPayload, secret) {
   return createHmac('sha256', secret).update(encodedPayload).digest('base64url');
 }
 
+function deterministicReceiptRoll({ receiptId, questionDigest, mode, secret }) {
+  const unbiasedCeiling = 0x1_0000_0000 - (0x1_0000_0000 % 100);
+  for (let counter = 0; counter < 32; counter += 1) {
+    const digest = createHmac('sha256', secret)
+      .update('training-grading-rng-v1\0')
+      .update(String(receiptId))
+      .update('\0')
+      .update(String(questionDigest))
+      .update('\0')
+      .update(String(mode))
+      .update('\0')
+      .update(String(counter))
+      .digest();
+    const sample = digest.readUInt32BE(0);
+    if (sample < unbiasedCeiling) return (sample % 100) + 1;
+  }
+  throw new TrainingGradingReceiptError(
+    'Training RNG derivation failed.',
+    'TRAINING_GRADING_RECEIPT_RNG_INVALID',
+    500,
+  );
+}
+
+function receiptRngRolls({ receiptId, questionDigest, rngRolls, secret }) {
+  if (rngRolls) return { low: rngRolls.low, high: rngRolls.high };
+  if (!receiptId) return { low: randomInt(1, 101), high: randomInt(1, 101) };
+  return {
+    low: deterministicReceiptRoll({ receiptId, questionDigest, mode: 'low', secret }),
+    high: deterministicReceiptRoll({ receiptId, questionDigest, mode: 'high', secret }),
+  };
+}
+
 function safeSignatureMatch(left, right) {
   try {
     const leftBytes = Buffer.from(String(left || ''), 'base64url');
@@ -267,11 +299,17 @@ export function prepareTrainingQuestionForDelivery({
 
   const nowSeconds = Math.floor(Number(nowMs) / 1000);
   const safeTtl = Math.max(60, Math.min(MAX_TTL_SECONDS, Math.floor(Number(ttlSeconds) || DEFAULT_TTL_SECONDS)));
-  const rolls = {
-    low: Number.isInteger(rngRolls?.low) ? rngRolls.low : randomInt(1, 101),
-    high: Number.isInteger(rngRolls?.high) ? rngRolls.high : randomInt(1, 101),
-  };
-  if (![rolls.low, rolls.high].every((roll) => roll >= 1 && roll <= 100)) {
+  const signingSecret = receiptSecret(secret);
+  const servedQuestionDigest = trainingQuestionDigest(servedQuestion);
+  const rolls = receiptRngRolls({
+    receiptId,
+    questionDigest: servedQuestionDigest,
+    rngRolls,
+    secret: signingSecret,
+  });
+  if (![rolls.low, rolls.high].every((roll) => (
+    Number.isInteger(roll) && roll >= 1 && roll <= 100
+  ))) {
     receiptFailure('Randomizer rolls must be integers from 1 to 100.', 'TRAINING_GRADING_RECEIPT_RNG_INVALID', 500);
   }
 
@@ -286,14 +324,14 @@ export function prepareTrainingQuestionForDelivery({
     questionId,
     level: Math.min(12, Math.max(1, Number(level) || 1)),
     difficultyMode: normalizedDifficulty,
-    questionDigest: trainingQuestionDigest(servedQuestion),
+    questionDigest: servedQuestionDigest,
     rngRolls: rolls,
     ...attemptFields,
     iat: nowSeconds,
     exp: nowSeconds + safeTtl,
   };
   const encodedPayload = encodePayload(payload);
-  const receipt = `${encodedPayload}.${signPayload(encodedPayload, receiptSecret(secret))}`;
+  const receipt = `${encodedPayload}.${signPayload(encodedPayload, signingSecret)}`;
 
   const solverEvidenceAvailable = isVerifiedSolverQuestion(servedQuestion);
 
@@ -328,6 +366,7 @@ export function verifyTrainingGradingReceiptEnvelope(receipt, {
   snapshotKey,
   nowMs = Date.now(),
   secret,
+  allowExpired = false,
 } = {}) {
   if (typeof receipt !== 'string' || receipt.length > 8192) {
     receiptFailure('A valid grading receipt is required.', 'TRAINING_GRADING_RECEIPT_REQUIRED');
@@ -359,10 +398,16 @@ export function verifyTrainingGradingReceiptEnvelope(receipt, {
   }
 
   const nowSeconds = Math.floor(Number(nowMs) / 1000);
-  if (!Number.isInteger(payload.iat) || !Number.isInteger(payload.exp) || payload.iat > nowSeconds + 60) {
+  if (
+    !Number.isInteger(payload.iat)
+    || !Number.isInteger(payload.exp)
+    || payload.iat > nowSeconds + 60
+    || payload.exp < payload.iat + 60
+    || payload.exp > payload.iat + MAX_TTL_SECONDS
+  ) {
     receiptFailure('The grading receipt timestamp is invalid.', 'TRAINING_GRADING_RECEIPT_TIME_INVALID');
   }
-  if (payload.exp <= nowSeconds) {
+  if (!allowExpired && payload.exp <= nowSeconds) {
     receiptFailure('This training hand has expired. Load a fresh hand.', 'TRAINING_GRADING_RECEIPT_EXPIRED', 409);
   }
   if (String(payload.sub) !== String(userId || '')) {
@@ -386,7 +431,10 @@ export function verifyTrainingGradingReceiptEnvelope(receipt, {
   }
 
   const attemptFields = normalizeTrainingAttemptReceiptFields(payload);
-  return { payload: { ...payload, ...attemptFields } };
+  return {
+    payload: { ...payload, ...attemptFields },
+    expired: payload.exp <= nowSeconds,
+  };
 }
 
 export function verifyTrainingGradingReceipt(receipt, {
@@ -399,8 +447,9 @@ export function verifyTrainingGradingReceipt(receipt, {
   canonicalQuestion,
   nowMs = Date.now(),
   secret,
+  allowExpired = false,
 } = {}) {
-  const { payload } = verifyTrainingGradingReceiptEnvelope(receipt, {
+  const { payload, expired } = verifyTrainingGradingReceiptEnvelope(receipt, {
     userId,
     gameId,
     questionId,
@@ -409,6 +458,7 @@ export function verifyTrainingGradingReceipt(receipt, {
     snapshotKey,
     nowMs,
     secret,
+    allowExpired,
   });
 
   const servedQuestion = applyDifficultyToQuestion(canonicalQuestion, payload.difficultyMode);
@@ -419,7 +469,7 @@ export function verifyTrainingGradingReceipt(receipt, {
       409,
     );
   }
-  return { payload, servedQuestion };
+  return { payload, servedQuestion, expired };
 }
 
 /**

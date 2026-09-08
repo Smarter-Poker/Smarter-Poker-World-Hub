@@ -24,6 +24,14 @@ const SESSION_EVIDENCE_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260907010400_training_session_evidence_projection_followup.sql',
 );
+const DAILY_RECOVERY_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260907193000_training_daily_immutable_snapshot_and_midnight_recovery.sql',
+);
+const STREAK_OUT_OF_ORDER_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260907202000_training_streak_out_of_order_completion.sql',
+);
 
 function command(binary, args, { input, quiet = false } = {}) {
   const result = spawnSync(binary, args, {
@@ -456,8 +464,12 @@ BEGIN
     p_game,
     1,
     md5(p_nonce || ':' || i::text) || md5('snapshot:' || p_nonce || ':' || i::text),
-    jsonb_build_object('id', p_nonce || '-q-' || i::text)
-  FROM generate_series(1, p_expected) i;
+    jsonb_build_object(
+      'id', p_nonce || '-q-' || i::text,
+      'policyChecksum', repeat('a', 64)
+    )
+  FROM generate_series(1, p_expected) i
+  ON CONFLICT (snapshot_key) DO NOTHING;
 
   INSERT INTO public.training_attempt_hands(attempt_id, hand_ordinal, snapshot_key)
   SELECT
@@ -710,16 +722,28 @@ BEGIN
   END;
   IF NOT immutable_failed THEN RAISE EXCEPTION 'persisted answer was mutable'; END IF;
 
-  UPDATE public.training_streaks
-  SET current_streak = 4,
-      longest_streak = 6,
-      last_training_date = timezone('America/Chicago', now())::date - 1,
-      streak_start_date = timezone('America/Chicago', now())::date - 4,
-      authority_current_streak = 4,
-      authority_longest_streak = 6,
-      authority_last_training_date = timezone('America/Chicago', now())::date - 1,
-      authority_streak_start_date = timezone('America/Chicago', now())::date - 4
-  WHERE user_id = '11111111-1111-4111-8111-111111111111';
+  -- Seed authoritative day evidence rather than mutating the materialized
+  -- streak projection. Four preceding days join today's existing activity into
+  -- a five-day current island; a disconnected six-day island preserves longest.
+  INSERT INTO public.training_streak_activity_days (user_id, activity_date)
+  SELECT
+    '11111111-1111-4111-8111-111111111111'::uuid,
+    generated.activity_date::date
+  FROM generate_series(
+    (timezone('America/Chicago', now())::date - 4)::timestamp,
+    (timezone('America/Chicago', now())::date - 1)::timestamp,
+    interval '1 day'
+  ) AS generated(activity_date)
+  UNION ALL
+  SELECT
+    '11111111-1111-4111-8111-111111111111'::uuid,
+    generated.activity_date::date
+  FROM generate_series(
+    (timezone('America/Chicago', now())::date - 20)::timestamp,
+    (timezone('America/Chicago', now())::date - 15)::timestamp,
+    interval '1 day'
+  ) AS generated(activity_date)
+  ON CONFLICT (user_id, activity_date) DO NOTHING;
   attempt_two := public.phase6_seed_attempt('adv-011', 'phase6-run-two', 20);
   completion := public.fn_complete_training_attempt_v2(
     '11111111-1111-4111-8111-111111111111', attempt_two
@@ -1122,6 +1146,478 @@ SELECT jsonb_build_object(
 ) AS phase6_authority_evidence;
 `;
 
+const PRE_DAILY_RECOVERY_SQL = String.raw`
+INSERT INTO auth.users(id) VALUES
+  ('33333333-3333-4333-8333-333333333333'),
+  ('44444444-4444-4444-8444-444444444444'),
+  ('55555555-5555-4555-8555-555555555555'),
+  ('66666666-6666-4666-8666-666666666666'),
+  ('77777777-7777-4777-8777-777777777777'),
+  ('88888888-8888-4888-8888-888888888888'),
+  ('99999999-9999-4999-8999-999999999999'),
+  ('12121212-1212-4212-8212-121212121212');
+INSERT INTO public.profiles(id) VALUES
+  ('33333333-3333-4333-8333-333333333333'),
+  ('44444444-4444-4444-8444-444444444444'),
+  ('55555555-5555-4555-8555-555555555555'),
+  ('66666666-6666-4666-8666-666666666666'),
+  ('77777777-7777-4777-8777-777777777777'),
+  ('88888888-8888-4888-8888-888888888888'),
+  ('99999999-9999-4999-8999-999999999999'),
+  ('12121212-1212-4212-8212-121212121212');
+
+CREATE FUNCTION public.phase6_seed_legacy_daily(
+  p_user uuid,
+  p_attempt uuid,
+  p_snapshot text,
+  p_question text,
+  p_product_date date,
+  p_final_status text DEFAULT 'open'
+) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE
+  started timestamptz := (p_product_date::timestamp + interval '12 hours')
+    AT TIME ZONE 'America/Chicago';
+  nonce text := 'daily-' || p_product_date::text;
+BEGIN
+  INSERT INTO public.training_attempts (
+    id, user_id, client_nonce, game_id, level, session_kind, difficulty,
+    expected_hands, config_hash, practice_only, status, started_at, expires_at
+  ) VALUES (
+    p_attempt, p_user, nonce, 'daily-challenge', 1, 'daily', 'grouped',
+    1, repeat('a', 64), false, 'open', started, now() + interval '2 hours'
+  );
+  INSERT INTO public.training_question_snapshots (
+    snapshot_key, source_question_id, game_id, level, content_digest, question_data
+  ) VALUES (
+    p_snapshot, p_question, 'daily-challenge', 1, p_snapshot,
+    jsonb_build_object('id', p_question, 'policyChecksum', repeat('a', 64))
+  ) ON CONFLICT (snapshot_key) DO NOTHING;
+  INSERT INTO public.training_attempt_hands (
+    attempt_id, hand_ordinal, snapshot_key
+  ) VALUES (p_attempt, 1, p_snapshot);
+  INSERT INTO public.training_answers (
+    user_id, game_id, question_id, answer_id, is_correct, level, answered_at,
+    submission_id, solver_verified, ev_loss, ev_loss_measured, evidence_metadata,
+    session_id, attempt_id, hand_ordinal, decision_ordinal, snapshot_key
+  ) VALUES (
+    p_user, 'daily-challenge', p_question, 'check', true, 1, started + interval '1 minute',
+    p_attempt::text, true, 0, true, jsonb_build_object('difficultyMode', 'grouped'),
+    nonce, p_attempt, 1, 1, p_snapshot
+  );
+  IF p_final_status <> 'open' THEN
+    UPDATE public.training_attempts SET status = p_final_status WHERE id = p_attempt;
+  END IF;
+END $$;
+
+SELECT public.phase6_seed_legacy_daily(
+  '33333333-3333-4333-8333-333333333333',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+  repeat('1', 64), 'singleton-yesterday',
+  timezone('America/Chicago', now())::date - 1, 'expired'
+);
+SELECT public.phase6_seed_legacy_daily(
+  '44444444-4444-4444-8444-444444444444',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+  repeat('2', 64), 'conflict-left',
+  timezone('America/Chicago', now())::date - 2, 'expired'
+);
+SELECT public.phase6_seed_legacy_daily(
+  '55555555-5555-4555-8555-555555555555',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
+  repeat('3', 64), 'conflict-right',
+  timezone('America/Chicago', now())::date - 2, 'open'
+);
+SELECT public.phase6_seed_legacy_daily(
+  '66666666-6666-4666-8666-666666666666',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4',
+  repeat('4', 64), 'old-product-date',
+  timezone('America/Chicago', now())::date - 40, 'expired'
+);
+
+-- Emulate pre-trigger history containing a distinct snapshot whose metadata
+-- does not match the Daily attempt. Conflict discovery must count this served
+-- hand before validating whether either snapshot is sealable.
+SELECT public.phase6_seed_legacy_daily(
+  '88888888-8888-4888-8888-888888888888',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa9',
+  repeat('7', 64), 'metadata-conflict-valid',
+  timezone('America/Chicago', now())::date - 3, 'open'
+);
+INSERT INTO public.training_attempts (
+  id, user_id, client_nonce, game_id, level, session_kind, difficulty,
+  expected_hands, config_hash, practice_only, status, started_at, expires_at
+) VALUES (
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',
+  '99999999-9999-4999-8999-999999999999',
+  'daily-' || (timezone('America/Chicago', now())::date - 3)::text,
+  'daily-challenge', 1, 'daily', 'grouped', 1, repeat('b', 64), false,
+  'open', ((timezone('America/Chicago', now())::date - 3)::timestamp + interval '12 hours')
+    AT TIME ZONE 'America/Chicago',
+  now() + interval '2 hours'
+);
+INSERT INTO public.training_question_snapshots (
+  snapshot_key, source_question_id, game_id, level, content_digest, question_data
+) VALUES (
+  repeat('8', 64), 'metadata-conflict-invalid', 'cash-001', 1, repeat('8', 64),
+  jsonb_build_object('id', 'metadata-conflict-invalid', 'policyChecksum', repeat('b', 64))
+);
+ALTER TABLE public.training_attempt_hands
+  DISABLE TRIGGER training_attempt_hands_validate_v2;
+INSERT INTO public.training_attempt_hands (
+  attempt_id, hand_ordinal, snapshot_key
+) VALUES (
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1', 1, repeat('8', 64)
+);
+ALTER TABLE public.training_attempt_hands
+  ENABLE TRIGGER training_attempt_hands_validate_v2;
+`;
+
+const PRE_STREAK_LEDGER_SQL = String.raw`
+DO $$
+DECLARE
+  day_one date := timezone('America/Chicago', now())::date - 12;
+  day_two date := timezone('America/Chicago', now())::date - 11;
+  day_three date := timezone('America/Chicago', now())::date - 10;
+BEGIN
+  PERFORM public.phase6_seed_legacy_daily(
+    '12121212-1212-4212-8212-121212121212',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc3',
+    md5('daily-' || day_three::text || ':1')
+      || md5('snapshot:daily-' || day_three::text || ':1'),
+    'daily-' || day_three::text || '-q-1', day_three, 'open'
+  );
+  PERFORM public.fn_complete_training_attempt_v2(
+    '12121212-1212-4212-8212-121212121212',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'
+  );
+  PERFORM public.phase6_seed_legacy_daily(
+    '12121212-1212-4212-8212-121212121212',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',
+    md5('daily-' || day_one::text || ':1')
+      || md5('snapshot:daily-' || day_one::text || ':1'),
+    'daily-' || day_one::text || '-q-1', day_one, 'open'
+  );
+  PERFORM public.fn_complete_training_attempt_v2(
+    '12121212-1212-4212-8212-121212121212',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc1'
+  );
+  PERFORM public.phase6_seed_legacy_daily(
+    '12121212-1212-4212-8212-121212121212',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc2',
+    md5('daily-' || day_two::text || ':1')
+      || md5('snapshot:daily-' || day_two::text || ':1'),
+    'daily-' || day_two::text || '-q-1', day_two, 'open'
+  );
+  PERFORM public.fn_complete_training_attempt_v2(
+    '12121212-1212-4212-8212-121212121212',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc2'
+  );
+END $$;
+`;
+
+const DAILY_RECOVERY_BEHAVIOR_SQL = String.raw`
+DO $$
+DECLARE
+  result jsonb;
+  replay jsonb;
+  old_result jsonb;
+  current_result jsonb;
+  expired_result jsonb;
+  completed_conflict_replay jsonb;
+  out_of_order_current_result jsonb;
+  out_of_order_oldest_result jsonb;
+  out_of_order_prior_result jsonb;
+  yesterday date := timezone('America/Chicago', now())::date - 1;
+  old_product_date date := timezone('America/Chicago', now())::date - 40;
+  current_product_date date := timezone('America/Chicago', now())::date;
+  out_of_order_day_one date := timezone('America/Chicago', now())::date - 12;
+  out_of_order_day_two date := timezone('America/Chicago', now())::date - 11;
+  out_of_order_day_three date := timezone('America/Chicago', now())::date - 10;
+  current_attempt uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5';
+  out_of_order_current_attempt uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa7';
+  out_of_order_prior_attempt uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8';
+  out_of_order_oldest_attempt uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa0';
+  blocked boolean := false;
+BEGIN
+  IF (SELECT authority_current_streak FROM public.training_streaks
+      WHERE user_id = '12121212-1212-4212-8212-121212121212') <> 3
+     OR (SELECT authority_longest_streak FROM public.training_streaks
+         WHERE user_id = '12121212-1212-4212-8212-121212121212') <> 3
+     OR (SELECT authority_streak_start_date FROM public.training_streaks
+         WHERE user_id = '12121212-1212-4212-8212-121212121212') <> out_of_order_day_one
+     OR (SELECT authority_last_training_date FROM public.training_streaks
+         WHERE user_id = '12121212-1212-4212-8212-121212121212') <> out_of_order_day_three
+     OR (SELECT count(*) FROM public.training_streak_activity_days
+         WHERE user_id = '12121212-1212-4212-8212-121212121212') <> 3 THEN
+    RAISE EXCEPTION 'streak migration did not repair preexisting day 3, day 1, day 2 evidence';
+  END IF;
+  IF (SELECT count(*) FROM public.training_daily_question_seals
+      WHERE daily_id = 'daily-' || yesterday::text) <> 1
+     OR (SELECT status FROM public.training_attempts
+         WHERE id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1') <> 'open' THEN
+    RAISE EXCEPTION 'singleton historical daily was not sealed and reopened';
+  END IF;
+  IF (SELECT count(*) FROM public.training_daily_question_conflicts
+      WHERE daily_id = 'daily-' || (current_product_date - 2)::text) <> 2
+     OR EXISTS (
+       SELECT 1 FROM public.training_daily_question_seals
+       WHERE daily_id = 'daily-' || (current_product_date - 2)::text
+     )
+     OR (SELECT status FROM public.training_attempts
+         WHERE id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2') <> 'expired' THEN
+    RAISE EXCEPTION 'multi-snapshot history was crowned or reopened';
+  END IF;
+  IF (SELECT count(*) FROM public.training_daily_question_conflicts
+      WHERE daily_id = 'daily-' || (current_product_date - 3)::text) <> 2
+     OR EXISTS (
+       SELECT 1 FROM public.training_daily_question_seals
+       WHERE daily_id = 'daily-' || (current_product_date - 3)::text
+     ) THEN
+    RAISE EXCEPTION 'metadata-invalid historical snapshot escaped product-day quarantine';
+  END IF;
+
+  result := public.fn_complete_training_attempt_v2(
+    '33333333-3333-4333-8333-333333333333',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+  );
+  replay := public.fn_complete_training_attempt_v2(
+    '33333333-3333-4333-8333-333333333333',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+  );
+  IF result ->> 'success' <> 'true'
+     OR result ->> 'newCompletion' <> 'true'
+     OR replay ->> 'newCompletion' <> 'false'
+     OR (SELECT count(*) FROM public.diamond_transactions
+         WHERE reference_id = 'training_attempt:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1') <> 1
+     OR (SELECT authority_last_training_date FROM public.training_streaks
+         WHERE user_id = '33333333-3333-4333-8333-333333333333') <> yesterday
+     OR NOT EXISTS (
+       SELECT 1 FROM public.training_verified_leaderboard
+       WHERE user_id = '33333333-3333-4333-8333-333333333333'
+         AND period_type = 'daily' AND period_key = to_char(yesterday, 'YYYY-MM-DD')
+     ) THEN
+    RAISE EXCEPTION 'midnight recovery attribution or replay failed: %, %', result, replay;
+  END IF;
+
+  old_result := public.fn_complete_training_attempt_v2(
+    '66666666-6666-4666-8666-666666666666',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4'
+  );
+  IF old_result ->> 'success' <> 'true'
+     OR NOT EXISTS (
+       SELECT 1 FROM public.training_verified_leaderboard
+       WHERE user_id = '66666666-6666-4666-8666-666666666666'
+         AND period_type = 'daily'
+         AND period_key = to_char(old_product_date, 'YYYY-MM-DD')
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM public.training_verified_leaderboard
+       WHERE user_id = '66666666-6666-4666-8666-666666666666'
+         AND period_type = 'weekly'
+         AND period_key = to_char(old_product_date, 'IYYY-"W"IW')
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM public.training_verified_leaderboard
+       WHERE user_id = '66666666-6666-4666-8666-666666666666'
+         AND period_type = 'monthly'
+         AND period_key = to_char(old_product_date, 'YYYY-MM')
+     ) THEN
+    RAISE EXCEPTION 'old daily period keys used completion time: %', old_result;
+  END IF;
+
+  current_result := public.fn_complete_training_attempt_v2(
+    '55555555-5555-4555-8555-555555555555',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3'
+  );
+  IF current_result ->> 'code' <> 'TRAINING_DAILY_SNAPSHOT_CONFLICT'
+     OR EXISTS (
+       SELECT 1 FROM public.training_daily_challenge
+       WHERE attempt_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3'
+     ) THEN
+    RAISE EXCEPTION 'quarantined conflict did not fail closed: %', current_result;
+  END IF;
+  expired_result := public.fn_complete_training_attempt_v2(
+    '44444444-4444-4444-8444-444444444444',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'
+  );
+  IF expired_result ->> 'code' <> 'TRAINING_ATTEMPT_NOT_OPEN'
+     OR (SELECT count(*) FROM public.training_answers
+         WHERE attempt_id IN (
+           'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+           'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3'
+         )) <> 2 THEN
+    RAISE EXCEPTION 'expired conflict changed or lost its scored evidence: %', expired_result;
+  END IF;
+
+  PERFORM public.phase6_seed_legacy_daily(
+    '33333333-3333-4333-8333-333333333333', current_attempt,
+    md5('daily-' || current_product_date::text || ':1')
+      || md5('snapshot:daily-' || current_product_date::text || ':1'),
+    'daily-' || current_product_date::text || '-q-1',
+    current_product_date, 'open'
+  );
+  current_result := public.fn_complete_training_attempt_v2(
+    '33333333-3333-4333-8333-333333333333', current_attempt
+  );
+  IF current_result ->> 'success' <> 'true'
+     OR (SELECT authority_current_streak FROM public.training_streaks
+         WHERE user_id = '33333333-3333-4333-8333-333333333333') <> 2
+     OR (SELECT authority_last_training_date FROM public.training_streaks
+         WHERE user_id = '33333333-3333-4333-8333-333333333333') <> current_product_date THEN
+    RAISE EXCEPTION 'two product days did not form a two-day streak: %', current_result;
+  END IF;
+
+  -- Arrival order must not matter. Settle day 3, then disconnected day 1, then
+  -- the bridging day 2. The immutable day ledger must converge to one three-day
+  -- island rather than permanently discarding day 1.
+  PERFORM public.phase6_seed_legacy_daily(
+    '77777777-7777-4777-8777-777777777777', out_of_order_current_attempt,
+    md5('daily-' || out_of_order_day_three::text || ':1')
+      || md5('snapshot:daily-' || out_of_order_day_three::text || ':1'),
+    'daily-' || out_of_order_day_three::text || '-q-1',
+    out_of_order_day_three, 'open'
+  );
+  out_of_order_current_result := public.fn_complete_training_attempt_v2(
+    '77777777-7777-4777-8777-777777777777', out_of_order_current_attempt
+  );
+  PERFORM public.phase6_seed_legacy_daily(
+    '77777777-7777-4777-8777-777777777777', out_of_order_oldest_attempt,
+    md5('daily-' || out_of_order_day_one::text || ':1')
+      || md5('snapshot:daily-' || out_of_order_day_one::text || ':1'),
+    'daily-' || out_of_order_day_one::text || '-q-1',
+    out_of_order_day_one, 'open'
+  );
+  out_of_order_oldest_result := public.fn_complete_training_attempt_v2(
+    '77777777-7777-4777-8777-777777777777', out_of_order_oldest_attempt
+  );
+  PERFORM public.phase6_seed_legacy_daily(
+    '77777777-7777-4777-8777-777777777777', out_of_order_prior_attempt,
+    md5('daily-' || out_of_order_day_two::text || ':1')
+      || md5('snapshot:daily-' || out_of_order_day_two::text || ':1'),
+    'daily-' || out_of_order_day_two::text || '-q-1',
+    out_of_order_day_two, 'open'
+  );
+  out_of_order_prior_result := public.fn_complete_training_attempt_v2(
+    '77777777-7777-4777-8777-777777777777', out_of_order_prior_attempt
+  );
+  IF out_of_order_current_result ->> 'success' <> 'true'
+     OR out_of_order_oldest_result ->> 'success' <> 'true'
+     OR out_of_order_prior_result ->> 'success' <> 'true'
+     OR (SELECT authority_current_streak FROM public.training_streaks
+         WHERE user_id = '77777777-7777-4777-8777-777777777777') <> 3
+     OR (SELECT authority_longest_streak FROM public.training_streaks
+         WHERE user_id = '77777777-7777-4777-8777-777777777777') <> 3
+     OR (SELECT authority_streak_start_date FROM public.training_streaks
+         WHERE user_id = '77777777-7777-4777-8777-777777777777') <> out_of_order_day_one
+     OR (SELECT authority_last_training_date FROM public.training_streaks
+         WHERE user_id = '77777777-7777-4777-8777-777777777777') <> out_of_order_day_three
+     OR (SELECT count(*) FROM public.training_streak_activity_days
+         WHERE user_id = '77777777-7777-4777-8777-777777777777') <> 3
+     OR EXISTS (
+       SELECT 1 FROM public.training_streaks
+       WHERE user_id = '77777777-7777-4777-8777-777777777777'
+         AND (current_streak, longest_streak, streak_start_date, last_training_date)
+           IS DISTINCT FROM (
+             authority_current_streak, authority_longest_streak,
+             authority_streak_start_date, authority_last_training_date
+           )
+     ) THEN
+    RAISE EXCEPTION 'day 3, day 1, day 2 settlement did not converge: %, %, %',
+      out_of_order_current_result, out_of_order_oldest_result, out_of_order_prior_result;
+  END IF;
+
+  blocked := false;
+  BEGIN
+    PERFORM public.phase6_seed_legacy_daily(
+      '44444444-4444-4444-8444-444444444444',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6',
+      repeat('6', 64), 'concurrent-loser', current_product_date, 'open'
+    );
+  EXCEPTION WHEN check_violation THEN
+    blocked := position('TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH' IN SQLERRM) > 0;
+  END;
+  IF NOT blocked THEN
+    RAISE EXCEPTION 'a competing old-server hand bypassed the first-writer seal';
+  END IF;
+
+  blocked := false;
+  BEGIN
+    UPDATE public.training_daily_question_seals SET sealed_at = now();
+  EXCEPTION WHEN check_violation THEN
+    blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'daily seals were mutable'; END IF;
+
+  blocked := false;
+  BEGIN
+    UPDATE public.training_streak_activity_days
+    SET recorded_at = recorded_at
+    WHERE user_id = '77777777-7777-4777-8777-777777777777'
+      AND activity_date = out_of_order_day_one;
+  EXCEPTION WHEN check_violation THEN
+    blocked := position('TRAINING_STREAK_ACTIVITY_DAY_IMMUTABLE' IN SQLERRM) > 0;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'streak activity evidence was mutable'; END IF;
+
+  blocked := false;
+  BEGIN
+    DELETE FROM public.training_streak_activity_days
+    WHERE user_id = '77777777-7777-4777-8777-777777777777'
+      AND activity_date = out_of_order_day_one;
+  EXCEPTION WHEN check_violation THEN
+    blocked := position('TRAINING_STREAK_ACTIVITY_DAY_IMMUTABLE' IN SQLERRM) > 0;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'streak activity evidence was deletable'; END IF;
+
+  -- A completion replay must revalidate immutable Daily identity before the
+  -- function's ordinary idempotent-success return. Simulate a conflict that
+  -- is discovered after settlement and prove replay cannot launder it.
+  INSERT INTO public.training_daily_question_conflicts (
+    attempt_id, daily_id, snapshot_key, distinct_snapshot_count,
+    hand_status, scored_at
+  )
+  SELECT
+    attempts.id, attempts.client_nonce, hands.snapshot_key, 2,
+    hands.status, hands.scored_at
+  FROM public.training_attempts attempts
+  JOIN public.training_attempt_hands hands
+    ON hands.attempt_id = attempts.id
+   AND hands.hand_ordinal = 1
+  WHERE attempts.id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4';
+
+  completed_conflict_replay := public.fn_complete_training_attempt_v2(
+    '66666666-6666-4666-8666-666666666666',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4'
+  );
+  IF completed_conflict_replay ->> 'success' <> 'false'
+     OR completed_conflict_replay ->> 'code' <> 'TRAINING_DAILY_SNAPSHOT_CONFLICT'
+     OR (SELECT count(*) FROM public.diamond_transactions
+         WHERE reference_id = 'training_attempt:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4') <> 1 THEN
+    RAISE EXCEPTION 'completed Daily replay bypassed later conflict evidence: %',
+      completed_conflict_replay;
+  END IF;
+END $$;
+
+SET ROLE authenticated;
+DO $$
+DECLARE
+  blocked boolean := false;
+  ledger_blocked boolean := false;
+BEGIN
+  BEGIN
+    PERFORM 1 FROM public.training_daily_question_conflicts LIMIT 1;
+  EXCEPTION WHEN insufficient_privilege THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'authenticated could read quarantined daily evidence'; END IF;
+  BEGIN
+    PERFORM 1 FROM public.training_streak_activity_days LIMIT 1;
+  EXCEPTION WHEN insufficient_privilege THEN ledger_blocked := true;
+  END;
+  IF NOT ledger_blocked THEN RAISE EXCEPTION 'authenticated could read streak activity authority'; END IF;
+END $$;
+RESET ROLE;
+`;
+
 const postgresBin = resolvePostgresBin();
 const tempRoot = mkdtempSync(path.join(tmpdir(), 'sp-training-authority-'));
 const dataDir = path.join(tempRoot, 'data');
@@ -1152,10 +1648,34 @@ try {
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', MIGRATION], {
     quiet: true,
   });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: PRE_DAILY_RECOVERY_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', DAILY_RECOVERY_MIGRATION], {
+    quiet: true,
+  });
+  command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', DAILY_RECOVERY_MIGRATION], {
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: PRE_STREAK_LEDGER_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', STREAK_OUT_OF_ORDER_MIGRATION], {
+    quiet: true,
+  });
+  command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', STREAK_OUT_OF_ORDER_MIGRATION], {
+    quiet: true,
+  });
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', SESSION_EVIDENCE_MIGRATION], {
     quiet: true,
   });
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', MEMORY_AUTHORITY_MIGRATION], {
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: DAILY_RECOVERY_BEHAVIOR_SQL,
     quiet: true,
   });
   const evidence = command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {

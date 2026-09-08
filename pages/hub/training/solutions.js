@@ -36,14 +36,12 @@ const trainingFetch = createBoundedTrainingFetch(authedFetch);
 const GAME_TYPES = [
   { value: 'hu_cash', label: 'Cash HU', icon: '●', description: 'Heads-Up Cash Game' },
   { value: 'postflop_complete', label: 'Cash 6-Max', icon: '◇', description: '6-Max Postflop' },
-  { value: 'mtt_6max_icm', label: 'MTT ICM', icon: '★', description: 'MTT 6-Max ICM' },
   { value: 'mtt_6max_chipev', label: 'MTT ChipEV', icon: '■', description: 'MTT ChipEV' },
 ];
 
 const STACK_DEPTHS = {
   hu_cash: [40, 100, 200],
   postflop_complete: [100],
-  mtt_6max_icm: [20, 40],
   mtt_6max_chipev: [10, 20, 40, 100],
 };
 

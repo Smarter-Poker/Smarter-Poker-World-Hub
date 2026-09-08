@@ -4,8 +4,11 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, sanitizeParam, VALID_STREETS, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
-import { customSolverProvenanceIsComplete } from '../../../src/lib/training/customSolverSpotContract.mjs';
-import { parseSolverScenarioHash, SOLVER_POSITIONS } from '../../../src/lib/training/solverRowIdentity.mjs';
+import {
+    parseSolverScenarioHash,
+    SOLVER_POSITIONS,
+    validateSolverRowIdentity,
+} from '../../../src/lib/training/solverRowIdentity.mjs';
 
 /**
  * Browse only provenance-complete PioSOLVER v2 artifacts.
@@ -21,34 +24,21 @@ const TRAINING_SOLVER_CONTRACTS = new Map(Object.entries({
     hu_cash: [40, 100, 200],
     mtt_3max_chipev: [20],
     mtt_6max_chipev: [10, 20, 40, 100],
-    mtt_6max_icm: [20, 40],
     mtt_9max_chipev: [20, 40, 80, 100],
-    mtt_9max_icm: [40, 60],
     mtt_hu_chipev: [40],
     postflop_complete: [100],
     spin_3max_chipev: [20, 25],
-    spin_3max_icm: [20, 25],
     spin_hu_chipev: [10, 20],
-    spin_hu_icm: [10],
 }).map(([family, stacks]) => [family, new Set(stacks)]));
 const POSITION_SET = new Set(SOLVER_POSITIONS);
-const SOLVER_ROW_PROJECTION = [
-    'id',
-    'scenario_hash',
-    'game_type',
-    'stack_depth',
-    'street',
-    'strategy_matrix_v2',
-    'solver_version',
-    'solver_binary_checksum',
-    'machine_id',
-    'pipeline_commit',
-    'manifest_version',
-    'manifest_checksum',
-    'source_artifact_checksum',
-    'quality_status',
-    'audited_at',
-].join(', ');
+const FAMILY_STACK_PAIRS = [...TRAINING_SOLVER_CONTRACTS.entries()].flatMap(
+    ([gameType, stacks]) => [...stacks].map((stackDepth) => ({
+        game_type: gameType,
+        stack_depth: stackDepth,
+    })),
+);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SOLVER_QUERY_TIMEOUT_MS = 8_000;
 
 let _supabase = null;
 function getSupabase() {
@@ -65,9 +55,8 @@ function getSupabase() {
 }
 
 function verifiedIdentity(row) {
-    if (!customSolverProvenanceIsComplete(row)) return null;
-    const parsed = parseSolverScenarioHash(row.scenario_hash);
-    return parsed.ok ? parsed.identity : null;
+    const validation = validateSolverRowIdentity(row);
+    return validation.ok ? validation.identity : null;
 }
 
 function listSpot(row) {
@@ -153,18 +142,18 @@ function fullSpot(row) {
     };
 }
 
-function addProvenanceFilters(query) {
-    return query
-        .not('strategy_matrix_v2', 'is', null)
-        .eq('quality_status', 'validated')
-        .not('solver_version', 'is', null)
-        .not('solver_binary_checksum', 'is', null)
-        .not('machine_id', 'is', null)
-        .not('pipeline_commit', 'is', null)
-        .not('manifest_version', 'is', null)
-        .not('manifest_checksum', 'is', null)
-        .not('source_artifact_checksum', 'is', null)
-        .not('audited_at', 'is', null);
+async function catalogCandidates(args) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SOLVER_QUERY_TIMEOUT_MS);
+    try {
+        const query = getSupabase().rpc('training_solver_spot_candidates_v1', args);
+        if (typeof query?.abortSignal !== 'function') {
+            throw new Error('Solver catalog query does not support cancellation');
+        }
+        return await query.abortSignal(controller.signal);
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 async function requireUser(req) {
@@ -192,21 +181,40 @@ export default async function handler(req, res) {
         const scenarioHash = req.query.scenarioHash ? sanitizeParam(req.query.scenarioHash, 200) : null;
 
         if (spotId || scenarioHash) {
-            if (scenarioHash && !parseSolverScenarioHash(scenarioHash).ok) {
+            const parsedScenario = scenarioHash ? parseSolverScenarioHash(scenarioHash) : null;
+            if (scenarioHash && !parsedScenario.ok) {
                 return res.status(400).json({
                     success: false,
                     code: 'SOLVER_SCENARIO_IDENTITY_INVALID',
                     error: 'scenarioHash is not a canonical solver identity',
                 });
             }
+            if (spotId && !UUID.test(spotId)) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'SOLVER_ARTIFACT_ID_INVALID',
+                    error: 'spotId is not a canonical artifact identifier',
+                });
+            }
 
-            let query = addProvenanceFilters(
-                getSupabase().from('solved_spots_gold').select(SOLVER_ROW_PROJECTION),
-            );
-            query = spotId
-                ? query.eq('id', spotId)
-                : query.eq('scenario_hash', scenarioHash);
-            const { data, error } = await query.limit(3);
+            const familyStacks = parsedScenario?.ok
+                ? [{
+                    game_type: parsedScenario.identity.gameType,
+                    stack_depth: parsedScenario.identity.stackDepth,
+                }]
+                : FAMILY_STACK_PAIRS;
+            const { data, error } = await catalogCandidates({
+                p_family_stacks: familyStacks,
+                p_position: null,
+                p_lower_inclusive: null,
+                p_lower_exclusive: null,
+                p_upper_exclusive: null,
+                p_limit: 3,
+                p_artifact_id: spotId,
+                p_scenario_hash: scenarioHash,
+                p_street: parsedScenario?.identity?.street || null,
+                p_offset: 0,
+            });
             if (error) {
                 console.warn('[BrowseSolutions] Exact lookup failed:', error.message);
                 return res.status(503).json({
@@ -241,6 +249,7 @@ export default async function handler(req, res) {
         const position = req.query.position ? sanitizeParam(req.query.position, 10).toUpperCase() : null;
         const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
         const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+        const offset = (page - 1) * limit;
 
         if (!TRAINING_SOLVER_CONTRACTS.has(gameType)
             || !Number.isSafeInteger(stackDepth)
@@ -248,7 +257,8 @@ export default async function handler(req, res) {
             || stackDepth > 1000
             || !TRAINING_SOLVER_CONTRACTS.get(gameType)?.has(stackDepth)
             || !VALID_STREETS.includes(street)
-            || (position && !POSITION_SET.has(position))) {
+            || (position && !POSITION_SET.has(position))
+            || offset > 4096) {
             return res.status(400).json({
                 success: false,
                 code: 'SOLVER_BROWSE_FILTER_INVALID',
@@ -256,19 +266,18 @@ export default async function handler(req, res) {
             });
         }
 
-        const offset = (page - 1) * limit;
-        let query = addProvenanceFilters(
-            getSupabase()
-                .from('solved_spots_gold')
-                .select(SOLVER_ROW_PROJECTION)
-                .eq('game_type', gameType)
-                .eq('stack_depth', stackDepth)
-                .eq('street', street),
-        );
-        if (position) query = query.eq('strategy_matrix_v2->>position', position);
-        const { data, error } = await query
-            .order('scenario_hash', { ascending: true })
-            .range(offset, offset + limit);
+        const { data, error } = await catalogCandidates({
+            p_family_stacks: [{ game_type: gameType, stack_depth: stackDepth }],
+            p_position: position,
+            p_lower_inclusive: null,
+            p_lower_exclusive: null,
+            p_upper_exclusive: null,
+            p_limit: limit + 1,
+            p_artifact_id: null,
+            p_scenario_hash: null,
+            p_street: street,
+            p_offset: offset,
+        });
 
         if (error) {
             console.warn('[BrowseSolutions] Catalog lookup failed:', error.message);

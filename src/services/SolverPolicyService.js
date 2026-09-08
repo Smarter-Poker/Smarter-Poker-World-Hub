@@ -33,7 +33,6 @@ export const SOLVER_POLICY_ROW_PROJECTION = [
   'street',
   'stack_depth',
   'game_type',
-  'strategy_matrix',
   'strategy_matrix_v2',
   'solver_version',
   'solver_binary_checksum',
@@ -45,6 +44,25 @@ export const SOLVER_POLICY_ROW_PROJECTION = [
   'quality_status',
   'audited_at',
 ].join(', ');
+
+export const SOLVER_POLICY_CATALOG_RPC = 'training_solver_spot_candidates_v1';
+
+// This is deliberately the same chip-EV-only allowlist enforced by the
+// serving catalog and the Pio worker. ICM families require their own audited
+// objective/payout authority and can never enter this Pio reader by name.
+export const SOLVER_POLICY_FAMILY_STACKS = Object.freeze({
+  hu_cash: Object.freeze([40, 100, 200]),
+  mtt_3max_chipev: Object.freeze([20]),
+  mtt_6max_chipev: Object.freeze([10, 20, 40, 100]),
+  mtt_9max_chipev: Object.freeze([20, 40, 80, 100]),
+  mtt_hu_chipev: Object.freeze([40]),
+  postflop_complete: Object.freeze([100]),
+  spin_3max_chipev: Object.freeze([20, 25]),
+  spin_hu_chipev: Object.freeze([10, 20]),
+});
+
+const SOLVER_POLICY_CATALOG_PAGE_LIMIT = 128;
+const SOLVER_POLICY_CATALOG_MAX_OFFSET = 4096;
 
 export const SOLVER_POLICY_METADATA_PROJECTION = [
   'id',
@@ -147,9 +165,9 @@ export const SOLVER_POLICY_SURFACES = Object.freeze([
   ),
   policySurface(
     'custom-trainer',
-    SOLVER_POLICY_INTEGRATION.STRICT_DIRECT_READER,
+    SOLVER_POLICY_INTEGRATION.DELEGATED_SERVICE,
     'pages/api/training/custom-train.js',
-    { authority: 'v2_gate_via_deterministic_engine_patch' },
+    { authority: 'catalog_via_solver_policy_service_then_deterministic_engine' },
   ),
   policySurface(
     'solver-api',
@@ -375,6 +393,29 @@ function boardStringVariants(board) {
   return [...new Set([canonical, raw].filter(Boolean))];
 }
 
+function canonicalBoardStringVariants(board) {
+  return boardStringVariants(board).map((boardString) => (
+    boardString.match(/.{2}/g)?.map((card) => (
+      `${card[0].toUpperCase()}${card[1].toLowerCase()}`
+    )).join('') || ''
+  )).filter(Boolean);
+}
+
+function exactScenarioHashesForKey(key, gameTypes, stackDepth) {
+  const street = lower(key?.street);
+  const hero = clean(key?.positions?.hero).toUpperCase();
+  const stack = finite(stackDepth);
+  if (!['flop', 'turn', 'river'].includes(street)
+    || !hero || hero === 'UNKNOWN'
+    || !Number.isSafeInteger(stack) || stack <= 0) return [];
+  const prefix = street === 'flop' ? '' : `${street}_`;
+  return [...new Set((gameTypes || []).flatMap((gameType) => (
+    canonicalBoardStringVariants(key?.board).map((boardString) => (
+      `${prefix}${clean(gameType)}_${hero}_${stack}bb_${boardString}`
+    ))
+  )))].filter((scenarioHash) => parseSolverScenarioHash(scenarioHash).ok);
+}
+
 function solverIdentityFromHash(scenarioHash) {
   const parsed = parseSolverScenarioHash(scenarioHash);
   return parsed.ok ? parsed.identity : null;
@@ -432,7 +473,60 @@ function inferNodeSemantics(record, key) {
   return NODE_SEMANTICS.UNKNOWN;
 }
 
-function actionFamily(code, semantics) {
+function v2ActionTarget(entry, record) {
+  if (!record?.sourceV2) return null;
+  const codeAmount = lower(entry?.code).match(/^b(\d+(?:\.\d+)?)$/);
+  const metadataChips = finite(entry?.metadata?.size_chips);
+  const tokenChips = codeAmount ? Number(codeAmount[1]) : null;
+  if (metadataChips !== null && tokenChips !== null
+    && Math.abs(metadataChips - tokenChips) > 1e-9) return null;
+  const targetChips = metadataChips ?? tokenChips;
+  const actorContributionChips = finite(record?.matrix?.actor_contribution_chips);
+  const opponentContributionChips = finite(record?.matrix?.opponent_contribution_chips);
+  const streetBaselineChips = finite(record?.matrix?.street_baseline_chips);
+  const facingBetChips = finite(record?.matrix?.facing_bet_bb) === null
+    ? null
+    : finite(record?.matrix?.facing_bet_bb) * V2_CHIPS_PER_BB;
+  const lastFullRaiseSizeChips = finite(record?.matrix?.last_full_raise_size_chips);
+  const raiseReopened = record?.matrix?.raise_reopened;
+  const wagerIsAllIn = record?.matrix?.wager_is_all_in;
+  const effectiveStackChips = finite(record?.sourceV2?.eff_stack_bb) === null
+    ? null
+    : finite(record?.sourceV2?.eff_stack_bb) * V2_CHIPS_PER_BB;
+  if (targetChips === null || targetChips <= 0
+    || actorContributionChips === null || actorContributionChips < 0
+    || opponentContributionChips === null || opponentContributionChips < 0
+    || streetBaselineChips === null || streetBaselineChips < 0
+    || facingBetChips === null || facingBetChips < 0
+    || lastFullRaiseSizeChips === null || lastFullRaiseSizeChips < 0
+    || typeof raiseReopened !== 'boolean'
+    || typeof wagerIsAllIn !== 'boolean'
+    || effectiveStackChips === null || effectiveStackChips <= 0) return null;
+  const amountFacedChips = Math.max(actorContributionChips, opponentContributionChips);
+  const incrementChips = targetChips - actorContributionChips;
+  const raiseIncrementChips = targetChips - amountFacedChips;
+  const streetTargetChips = targetChips - streetBaselineChips;
+  const targetBigBlinds = targetChips / V2_CHIPS_PER_BB;
+  const incrementBigBlinds = incrementChips / V2_CHIPS_PER_BB;
+  const streetTargetBigBlinds = streetTargetChips / V2_CHIPS_PER_BB;
+  const isAllIn = Math.abs(targetChips - effectiveStackChips) <= 1e-9;
+  if (!(incrementChips > 0)
+    || !(streetTargetChips > 0)
+    || !(targetChips > amountFacedChips)
+    || targetChips > effectiveStackChips
+    || (facingBetChips > 0 && (!raiseReopened || wagerIsAllIn))
+    || (facingBetChips > 0 && raiseIncrementChips < lastFullRaiseSizeChips && !isAllIn)
+    || (facingBetChips === 0 && incrementChips < V2_CHIPS_PER_BB && !isAllIn)) return null;
+  return {
+    targetChips,
+    targetBigBlinds,
+    streetTargetBigBlinds,
+    incrementChips,
+    incrementBigBlinds,
+  };
+}
+
+function actionFamily(code, semantics, record = null, target = null) {
   const value = lower(code);
   if (value === 'f' || value === 'fold') return 'fold';
   if (value === 'x' || value === 'k' || value === 'check') return 'check';
@@ -443,36 +537,52 @@ function actionFamily(code, semantics) {
       : 'check';
   }
   if (/all.?in|^ai$|^jam$|^push$/.test(value)) return 'all_in';
-  if (value.startsWith('r') || value === 'raise') return 'raise';
-  if (value.startsWith('b') || value === 'bet') {
+  const v2Target = target || v2ActionTarget({ code: value }, record);
+  const effectiveStackBb = finite(record?.sourceV2?.eff_stack_bb);
+  if (v2Target && effectiveStackBb !== null
+    && Math.abs(v2Target.targetBigBlinds - effectiveStackBb) <= 1e-9) return 'all_in';
+  if (/^[br]/.test(value) || value === 'bet' || value === 'raise') {
     return semantics === NODE_SEMANTICS.FACING_WAGER ? 'raise' : 'bet';
   }
   return value || 'unknown';
 }
 
-function actionSize(entry, record, family) {
+function actionSize(entry, record, family, target = null) {
   if (!['bet', 'raise', 'all_in'].includes(family)) {
     return { unit: 'none', chips: null, bigBlinds: null, potFraction: null, exact: false };
   }
-  if (family === 'all_in') {
-    return { unit: 'all_in', chips: null, bigBlinds: null, potFraction: null, exact: true };
-  }
-  const sizePct = finite(entry?.metadata?.size_pct);
-  const codeAmount = lower(entry?.code).match(/^[br](\d+(?:\.\d+)?)$/);
   const isV2 = Boolean(record?.sourceV2);
-  if (isV2 && sizePct !== null) {
-    const solverChips = codeAmount ? Number(codeAmount[1]) : null;
+  if (isV2) {
+    // V2 bNNN tokens are cumulative postflop contribution targets. Preserve
+    // that raw target in sourceCode/labels, but the canonical action-size units
+    // describe what hero adds now. Historical size_pct was measured against
+    // the root pot and is deliberately ignored.
+    const actionTarget = target || v2ActionTarget(entry, record);
+    const nodePotBb = finite(record?.matrix?.pot_bb);
+    if (!actionTarget || nodePotBb === null || nodePotBb <= 0) {
+      return { unit: 'unknown', chips: null, bigBlinds: null, potFraction: null, exact: false };
+    }
     return {
-      unit: 'pot_fraction',
-      // V2 action tokens are cumulative solver-chip targets. The warehouse
-      // scale is measured at 100 chips per big blind; exposing both units
-      // avoids making each consumer rediscover or guess that conversion.
-      chips: solverChips,
-      bigBlinds: solverChips === null ? null : solverChips / V2_CHIPS_PER_BB,
-      potFraction: sizePct / 100,
+      unit: family === 'all_in' ? 'all_in' : 'pot_fraction',
+      chips: actionTarget.incrementChips,
+      bigBlinds: actionTarget.incrementBigBlinds,
+      potFraction: actionTarget.incrementBigBlinds / nodePotBb,
       exact: true,
+      // Internal presentation fields. createSolverPolicyAnswer keeps the
+      // versioned public size contract stable, while actionLabel uses these to
+      // render an exact current-street Raise-To target.
+      targetChips: actionTarget.targetChips,
+      targetBigBlinds: actionTarget.targetBigBlinds,
+      streetTargetBigBlinds: actionTarget.streetTargetBigBlinds,
     };
   }
+  if (family === 'all_in') {
+    // A legacy all-in token does not encode an exact amount. Preserve the
+    // historical display unit for derived/chart policies, but never invent
+    // chips, BB, or pot fraction that could satisfy the exact-policy gate.
+    return { unit: 'all_in', chips: null, bigBlinds: null, potFraction: null, exact: false };
+  }
+  const codeAmount = lower(entry?.code).match(/^[br](\d+(?:\.\d+)?)$/);
   if (!isV2 && codeAmount) {
     return {
       unit: 'pot_fraction',
@@ -486,8 +596,9 @@ function actionSize(entry, record, family) {
 }
 
 function actionId(entry, record, semantics) {
-  const family = actionFamily(entry.code, semantics);
-  const size = actionSize(entry, record, family);
+  const target = v2ActionTarget(entry, record);
+  const family = actionFamily(entry.code, semantics, record, target);
+  const size = actionSize(entry, record, family, target);
   if (family === 'all_in') return 'all_in';
   if (!['bet', 'raise'].includes(family) || size.potFraction === null) return family;
   const pct = Math.round(size.potFraction * 10000) / 100;
@@ -500,6 +611,10 @@ function actionLabel(family, size) {
   if (family === 'call') return 'Call';
   if (family === 'all_in') return 'All-In';
   const verb = family === 'raise' ? 'Raise' : 'Bet';
+  if (family === 'raise' && Number.isFinite(size.streetTargetBigBlinds)) {
+    const target = Math.round(size.streetTargetBigBlinds * 100) / 100;
+    return `Raise To ${target} BB`;
+  }
   if (size.potFraction !== null) return `${verb} ${Math.round(size.potFraction * 1000) / 10}% Pot`;
   return verb;
 }
@@ -572,15 +687,26 @@ function actionsForHolding(record, key, { aggregate = false, requestedHoldingCla
       frequency =
         values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     }
-    const family = actionFamily(entry.code, semantics);
-    const size = actionSize(entry, record, family);
+    const target = v2ActionTarget(entry, record);
+    const family = actionFamily(entry.code, semantics, record, target);
+    const size = actionSize(entry, record, family, target);
+    const facingNode = semantics === NODE_SEMANTICS.FACING_WAGER
+      || semantics === NODE_SEMANTICS.PREFLOP_FACING_WAGER;
+    const legal = !record.sourceV2
+      || (family === 'fold' && facingNode)
+      || (family === 'call' && facingNode)
+      || (family === 'check' && !facingNode)
+      || (['bet', 'raise', 'all_in'].includes(family)
+        && size.exact === true
+        && ((facingNode && ['raise', 'all_in'].includes(family))
+          || (!facingNode && ['bet', 'all_in'].includes(family))));
     return {
       id: actionId(entry, record, semantics),
       sourceCode: entry.code,
       family,
       label: actionLabel(family, size),
       frequency: frequency ?? 0,
-      legal: true,
+      legal,
       size,
       chipEvBb: null,
       tournamentUtilityEv: null,
@@ -589,9 +715,24 @@ function actionsForHolding(record, key, { aggregate = false, requestedHoldingCla
 
   // Defensive merge if two source codes normalize to the same action id.
   const merged = new Map();
+  let incompatibleActionCollision = false;
   for (const action of raw) {
     if (!merged.has(action.id)) merged.set(action.id, action);
-    else merged.get(action.id).frequency += action.frequency;
+    else {
+      const prior = merged.get(action.id);
+      const samePolicy = prior.family === action.family
+        && prior.label === action.label
+        && prior.legal === action.legal
+        && JSON.stringify(prior.size) === JSON.stringify(action.size);
+      if (!samePolicy) {
+        incompatibleActionCollision = true;
+        break;
+      }
+      prior.frequency += action.frequency;
+    }
+  }
+  if (incompatibleActionCollision) {
+    return { actions: [], semantics, range: {}, handClass: hand, comboIndex: index };
   }
 
   for (const name of hands) {
@@ -827,42 +968,102 @@ function chartActions(chart, key, { aggregate = false, requestedHoldingClass = n
 }
 
 function normalizeFilters(filters = {}) {
+  const range = Array.isArray(filters.range) && filters.range.length === 2
+    ? filters.range.map(Number)
+    : null;
+  const rangeIsValid = range
+    && range.every(Number.isSafeInteger)
+    && range[0] >= 0
+    && range[1] >= range[0]
+    && range[1] <= SOLVER_POLICY_CATALOG_MAX_OFFSET + 2000;
+  if (range && !rangeIsValid) throw new Error('solver_policy_read_invalid_range');
   return {
     ...filters,
-    limit: Math.max(1, Math.min(2000, Number(filters.limit) || 25)),
+    range: rangeIsValid ? range : null,
+    limit: rangeIsValid
+      ? Math.min(2000, range[1] - range[0] + 1)
+      : Math.max(1, Math.min(2000, Number(filters.limit) || 25)),
   };
 }
 
-function applySolvedFilters(query, filters) {
-  if (filters.id) query = query.eq('id', filters.id);
-  if (filters.scenarioHash) query = query.eq('scenario_hash', filters.scenarioHash);
-  if (filters.scenarioHashLike) query = query.ilike('scenario_hash', filters.scenarioHashLike);
-  if (filters.idGte) query = query.gte('id', filters.idGte);
-  if (filters.gameTypeLike) query = query.ilike('game_type', filters.gameTypeLike);
-  if (filters.gameType) query = query.eq('game_type', filters.gameType);
-  if (Array.isArray(filters.gameTypes) && filters.gameTypes.length > 0)
-    query = query.in('game_type', filters.gameTypes);
-  if (filters.street) query = query.eq('street', filters.street);
-  if (finite(filters.stackDepth) !== null)
-    query = query.eq('stack_depth', finite(filters.stackDepth));
-  if (Array.isArray(filters.stackDepths) && filters.stackDepths.length > 0)
-    query = query.in('stack_depth', filters.stackDepths);
-  if (finite(filters.minStackDepth) !== null)
-    query = query.gte('stack_depth', finite(filters.minStackDepth));
-  if (finite(filters.maxStackDepth) !== null)
-    query = query.lte('stack_depth', finite(filters.maxStackDepth));
-  if (filters.position) query = query.ilike('scenario_hash', `%_${clean(filters.position)}_%`);
-  if (filters.villainPosition)
-    query = query.ilike('scenario_hash', `%_${clean(filters.villainPosition)}_%`);
-  if (filters.actionTag) query = query.ilike('scenario_hash', `%${clean(filters.actionTag)}%`);
-  if (filters.orderBy)
-    query = query.order(filters.orderBy, { ascending: filters.ascending !== false });
-  if (Array.isArray(filters.range) && filters.range.length === 2) {
-    query = query.range(filters.range[0], filters.range[1]);
-  } else {
-    query = query.limit(filters.limit);
+function sqlLikePattern(pattern) {
+  const escaped = clean(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped.replaceAll('%', '.*').replaceAll('_', '.')}$`, 'i');
+}
+
+function catalogFamilyStacks(filters) {
+  const requestedFamilies = new Set(
+    [filters.gameType, ...(Array.isArray(filters.gameTypes) ? filters.gameTypes : [])]
+      .map((value) => clean(value))
+      .filter(Boolean),
+  );
+  const gameTypePattern = filters.gameTypeLike ? sqlLikePattern(filters.gameTypeLike) : null;
+  const requestedStacks = new Set(
+    [filters.stackDepth, ...(Array.isArray(filters.stackDepths) ? filters.stackDepths : [])]
+      .map(finite)
+      .filter((value) => value !== null),
+  );
+  const exactFamily = clean(filters.gameType);
+  const explicitFamilies = Array.isArray(filters.gameTypes)
+    ? new Set(filters.gameTypes.map(clean).filter(Boolean))
+    : null;
+  const exactStack = finite(filters.stackDepth);
+  const explicitStacks = Array.isArray(filters.stackDepths)
+    ? new Set(filters.stackDepths.map(finite).filter((value) => value !== null))
+    : null;
+  const minimumStack = finite(filters.minStackDepth);
+  const maximumStack = finite(filters.maxStackDepth);
+
+  return Object.entries(SOLVER_POLICY_FAMILY_STACKS).flatMap(([gameType, stacks]) => {
+    if (requestedFamilies.size > 0 && !requestedFamilies.has(gameType)) return [];
+    if (exactFamily && gameType !== exactFamily) return [];
+    if (explicitFamilies && explicitFamilies.size > 0 && !explicitFamilies.has(gameType)) return [];
+    if (gameTypePattern && !gameTypePattern.test(gameType)) return [];
+    return stacks
+      .filter((stackDepth) => (
+        (requestedStacks.size === 0 || requestedStacks.has(stackDepth))
+        && (exactStack === null || stackDepth === exactStack)
+        && (!explicitStacks || explicitStacks.size === 0 || explicitStacks.has(stackDepth))
+        && (minimumStack === null || stackDepth >= minimumStack)
+        && (maximumStack === null || stackDepth <= maximumStack)
+      ))
+      .map((stackDepth) => ({ game_type: gameType, stack_depth: stackDepth }));
+  });
+}
+
+function catalogRowMatchesRead(row, filters, familyStackKeys) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+  if (!familyStackKeys.has(`${row.game_type}|${row.stack_depth}`)) return false;
+  if (filters.id && clean(row.id) !== clean(filters.id)) return false;
+  if (filters.scenarioHash && row.scenario_hash !== filters.scenarioHash) return false;
+  if (filters.street && lower(row.street) !== lower(filters.street)) return false;
+  if (filters.position
+    && clean(row.strategy_matrix_v2?.position).toUpperCase() !== clean(filters.position).toUpperCase()) {
+    return false;
   }
-  return query;
+  return true;
+}
+
+function catalogRowMatchesLocalFilters(row, filters) {
+  if (filters.scenarioHashLike
+    && !sqlLikePattern(filters.scenarioHashLike).test(clean(row.scenario_hash))) return false;
+  if (filters.villainPosition) {
+    const hero = clean(row.strategy_matrix_v2?.position).toUpperCase();
+    const oop = clean(row.strategy_matrix_v2?.oop_player).toUpperCase();
+    const ip = clean(row.strategy_matrix_v2?.ip_player).toUpperCase();
+    const villain = hero === oop ? ip : hero === ip ? oop : '';
+    if (villain !== clean(filters.villainPosition).toUpperCase()) return false;
+  }
+  if (filters.actionTag
+    && !lower(row.scenario_hash).includes(lower(filters.actionTag))) return false;
+  return true;
+}
+
+function solverMetadataRow(row) {
+  return Object.fromEntries(
+    ['id', 'scenario_hash', 'street', 'stack_depth', 'game_type']
+      .map((field) => [field, row[field]]),
+  );
 }
 
 export class SolverPolicyService {
@@ -883,15 +1084,108 @@ export class SolverPolicyService {
       const result = await this.solvedRowReader(normalized, { metadataOnly, count });
       return Array.isArray(result) ? { rows: result, count: result.length } : result;
     }
-    const projection = metadataOnly
-      ? SOLVER_POLICY_METADATA_PROJECTION
-      : SOLVER_POLICY_ROW_PROJECTION;
-    const table = this.requireDb().from('solved_spots_gold');
-    let query = count ? table.select(projection, { count: 'exact' }) : table.select(projection);
-    query = applySolvedFilters(query, normalized);
-    const { data, error, count: total } = await query;
-    if (error) throw new Error(`solver_policy_read_failed:${error.message}`);
-    return { rows: data || [], count: total ?? (data || []).length };
+    if (normalized.ascending === false) {
+      throw new Error('solver_policy_read_descending_order_unsupported');
+    }
+    if (normalized.orderBy
+      && !['id', 'scenario_hash', 'street', 'stack_depth', 'game_type'].includes(normalized.orderBy)) {
+      throw new Error('solver_policy_read_order_unsupported');
+    }
+
+    const familyStacks = catalogFamilyStacks(normalized);
+    if (familyStacks.length === 0) {
+      return { rows: [], count: count ? 0 : 0, hasMore: false, nextCursor: null };
+    }
+    const familyStackKeys = new Set(
+      familyStacks.map(({ game_type: gameType, stack_depth: stackDepth }) => (
+        `${gameType}|${stackDepth}`
+      )),
+    );
+    const requestedLimit = normalized.limit;
+    const fetchTarget = requestedLimit + 1;
+    const initialOffset = normalized.range?.[0] || 0;
+    if (initialOffset > SOLVER_POLICY_CATALOG_MAX_OFFSET) {
+      throw new Error('solver_policy_read_offset_exceeds_catalog_bound');
+    }
+    if (initialOffset > 0 && familyStacks.length !== 1) {
+      throw new Error('solver_policy_read_multi_family_offset_unsupported');
+    }
+    const hasLocalPostFilter = Boolean(
+      normalized.scenarioHashLike || normalized.villainPosition || normalized.actionTag,
+    );
+
+    const rows = [];
+    let cursor = clean(normalized.idGt) || null;
+    let firstPage = true;
+    let exhausted = false;
+    let pages = 0;
+    while (rows.length < fetchTarget && !exhausted) {
+      pages += 1;
+      if (pages > 32) throw new Error('solver_policy_read_filter_scan_exceeds_catalog_bound');
+      const pageLimit = hasLocalPostFilter
+        ? SOLVER_POLICY_CATALOG_PAGE_LIMIT
+        : Math.min(SOLVER_POLICY_CATALOG_PAGE_LIMIT, fetchTarget - rows.length);
+      const { data, error } = await this.requireDb().rpc(SOLVER_POLICY_CATALOG_RPC, {
+        p_family_stacks: familyStacks,
+        p_position: normalized.position ? clean(normalized.position).toUpperCase() : null,
+        p_lower_inclusive: firstPage && normalized.idGte ? normalized.idGte : null,
+        p_lower_exclusive: cursor,
+        p_upper_exclusive: normalized.idLt || null,
+        p_limit: pageLimit,
+        p_artifact_id: normalized.id || null,
+        p_scenario_hash: normalized.scenarioHash || null,
+        p_street: normalized.street ? lower(normalized.street) : null,
+        p_offset: firstPage ? initialOffset : 0,
+      });
+      if (error) throw new Error(`solver_policy_catalog_read_failed:${error.message}`);
+      if (!Array.isArray(data) || data.length > pageLimit) {
+        throw new Error('solver_policy_catalog_response_invalid');
+      }
+      if (data.length === 0) {
+        exhausted = true;
+        break;
+      }
+
+      let priorId = cursor;
+      for (const row of data) {
+        const rowId = clean(row?.id);
+        if (!rowId || (priorId && rowId <= priorId)) {
+          throw new Error('solver_policy_catalog_order_invalid');
+        }
+        priorId = rowId;
+        if (!catalogRowMatchesRead(row, normalized, familyStackKeys)) {
+          throw new Error('solver_policy_catalog_filter_contract_broken');
+        }
+        const record = normalizeSolvedPolicyRecord(row);
+        if (!record.valid || record.provenanceComplete !== true) {
+          throw new Error('solver_policy_catalog_returned_untrusted_artifact');
+        }
+        if (catalogRowMatchesLocalFilters(row, normalized)) rows.push(row);
+      }
+      cursor = priorId;
+      firstPage = false;
+      exhausted = data.length < pageLimit;
+    }
+
+    const hasMore = rows.length > requestedLimit;
+    const selected = rows.slice(0, requestedLimit);
+    if (normalized.orderBy && normalized.orderBy !== 'id') {
+      selected.sort((left, right) => {
+        const a = left[normalized.orderBy];
+        const b = right[normalized.orderBy];
+        return typeof a === 'number' && typeof b === 'number'
+          ? a - b
+          : clean(a).localeCompare(clean(b));
+      });
+    }
+    const returnedRows = metadataOnly ? selected.map(solverMetadataRow) : selected;
+    const exactCount = exhausted && initialOffset === 0 ? rows.length : null;
+    return {
+      rows: returnedRows,
+      count: count ? exactCount : returnedRows.length,
+      hasMore,
+      nextCursor: hasMore ? clean(selected.at(-1)?.id) || null : null,
+    };
   }
 
   async listSolvedRecords(filters = {}) {
@@ -1524,10 +1818,10 @@ export class SolverPolicyService {
         };
       }
     }
-    for (const boardString of boardStringVariants(key.board)) {
+    for (const exactScenarioHash of exactScenarioHashesForKey(key, gameTypes, stackDepth)) {
       const { records } = await this.listSolvedRecords({
         ...base,
-        scenarioHashLike: `%${boardString}%`,
+        scenarioHash: exactScenarioHash,
       });
       const ordered = records
         .filter((record) => boardMatchesRecord(record, key.board))
@@ -1545,24 +1839,19 @@ export class SolverPolicyService {
       }
     }
     if (allowBoardApproximation && key.board.length > 3) {
-      for (const flopString of boardStringVariants(key.board.slice(0, 3))) {
-        const { records } = await this.listSolvedRecords({
-          ...base,
-          scenarioHashLike: `%${flopString}%`,
+      const { records } = await this.listSolvedRecords(base);
+      for (const record of records.filter((candidate) =>
+        flopMatchesRecord(candidate, key.board)
+      )) {
+        const answer = this.answerFromRecord(record, key, {
+          mode,
+          holdingClass: requestedHoldingClass,
+          match: 'approximate',
+          fallbackReason: 'flop_only_board_match',
+          exactMatchDimensions: [...exactDimensions, 'gameType', 'stackDepth', 'flop'],
+          approximatedDimensions: ['turnRiverRunout'],
         });
-        for (const record of records.filter((candidate) =>
-          flopMatchesRecord(candidate, key.board)
-        )) {
-          const answer = this.answerFromRecord(record, key, {
-            mode,
-            holdingClass: requestedHoldingClass,
-            match: 'approximate',
-            fallbackReason: 'flop_only_board_match',
-            exactMatchDimensions: [...exactDimensions, 'gameType', 'stackDepth', 'flop'],
-            approximatedDimensions: ['turnRiverRunout'],
-          });
-          if (answer.kind !== POLICY_KIND.UNAVAILABLE) return { answer, record, chart: null };
-        }
+        if (answer.kind !== POLICY_KIND.UNAVAILABLE) return { answer, record, chart: null };
       }
     }
     if (allowStateApproximation || key.board.length === 0) {

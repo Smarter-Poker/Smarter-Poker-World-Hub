@@ -113,23 +113,21 @@ function aggregateSolverActions(strategyMatrix) {
     return result;
 }
 
-const SOLVER_ROW_PROJECTION = [
-    'id',
-    'scenario_hash',
-    'game_type',
-    'stack_depth',
-    'street',
-    'strategy_matrix_v2',
-    'solver_version',
-    'solver_binary_checksum',
-    'machine_id',
-    'pipeline_commit',
-    'manifest_version',
-    'manifest_checksum',
-    'source_artifact_checksum',
-    'quality_status',
-    'audited_at',
-].join(', ');
+const SOLVER_QUERY_TIMEOUT_MS = 8_000;
+
+async function catalogCandidates(args) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SOLVER_QUERY_TIMEOUT_MS);
+    try {
+        const query = getSupabase().rpc('training_solver_spot_candidates_v1', args);
+        if (typeof query?.abortSignal !== 'function') {
+            throw new Error('Solver catalog query does not support cancellation');
+        }
+        return await query.abortSignal(controller.signal);
+    } finally {
+        clearTimeout(timeout);
+    }
+}
 
 async function findExactSolverStrategy(request) {
     // A hero who acts second needs the first actor's action in order to
@@ -139,16 +137,21 @@ async function findExactSolverStrategy(request) {
         return { status: 'node_context_required' };
     }
 
-    const { data, error } = await getSupabase()
-        .from('solved_spots_gold')
-        .select(SOLVER_ROW_PROJECTION)
-        .eq('scenario_hash', request.scenarioHash)
-        .eq('game_type', request.pioGameType)
-        .eq('street', request.street)
-        .eq('stack_depth', request.stackDepth)
-        .not('strategy_matrix_v2', 'is', null)
-        .eq('quality_status', 'validated')
-        .limit(3);
+    const { data, error } = await catalogCandidates({
+        p_family_stacks: [{
+            game_type: request.pioGameType,
+            stack_depth: request.stackDepth,
+        }],
+        p_position: request.heroPosition,
+        p_lower_inclusive: null,
+        p_lower_exclusive: null,
+        p_upper_exclusive: null,
+        p_limit: 3,
+        p_artifact_id: null,
+        p_scenario_hash: request.scenarioHash,
+        p_street: request.street,
+        p_offset: 0,
+    });
     if (error) return { status: 'unavailable', error };
     if (!Array.isArray(data) || data.length === 0) return { status: 'missing' };
 
@@ -227,7 +230,7 @@ export default async function handler(req, res) {
               return res.status(200).json({
                   success: true,
                   status: 'solved',
-                  source: 'solved_spots_gold',
+                  source: 'training_solver_artifact_catalog',
                   matchQuality: 'exact_root_node',
                   scenarioHash: exact.row.scenario_hash,
                   message: 'Aggregated frequencies from one identity-validated, provenance-audited root decision.',

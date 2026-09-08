@@ -19,6 +19,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
+import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -29,6 +30,7 @@ import {
 import {
     isTrainingAttemptContractError,
     prepareTrainingAttemptDelivery,
+    recordTrainingQuestionsServedForAttempt,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
     trainingQuestionMatchesSelection,
@@ -46,23 +48,6 @@ import {
     normalizeCustomTrainingConfig,
 } from '../../../src/lib/training/customTrainerConfigContract.mjs';
 
-const SOLVER_ROW_PROJECTION = [
-    'id',
-    'scenario_hash',
-    'street',
-    'stack_depth',
-    'game_type',
-    'strategy_matrix_v2',
-    'solver_version',
-    'solver_binary_checksum',
-    'machine_id',
-    'pipeline_commit',
-    'manifest_version',
-    'manifest_checksum',
-    'source_artifact_checksum',
-    'quality_status',
-    'audited_at',
-].join(', ');
 import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -79,10 +64,10 @@ function getSupabase() {
 // ═══════════════════════════════════════════════════════════════════════════
 // BOARD TEXTURE TARGETING (GTOW parity #8)
 // ═══════════════════════════════════════════════════════════════════════════
-// `solved_spots_gold` has no board-texture column, so this cannot be a SQL
-// filter. It does not need to be: the board is encoded in the last underscore
-// segment of `scenario_hash` ("hu_cash_BTN_100bb_3h7c7s"), so a row's texture
-// is knowable without touching the solver payload or building the question.
+// The authority-joining catalog RPC has no board-texture parameter. The board
+// is encoded in the last underscore segment of `scenario_hash`
+// ("hu_cash_BTN_100bb_3h7c7s"), so an admitted row's texture is knowable
+// without touching the solver payload or building the question.
 // Filtering here — on rows, before DeterministicGTOEngine runs — is both
 // cheaper than filtering built questions and keeps `buildAndReturnQuestions`
 // unaware that texture exists.
@@ -227,59 +212,32 @@ export default async function handler(req, res) {
       try {
           console.debug(`[CustomTrain] Config: ${safeGameType} | ${safePosition} | ${parsedStack}BB | ${parsedCount} hands`);
 
-          // Build query filters
-          let query = getSupabase()
-              .from('solved_spots_gold')
-              .select(SOLVER_ROW_PROJECTION)
-              .in('game_type', pioGameTypes)
-              .eq('stack_depth', parsedStack)
-              .not('strategy_matrix_v2', 'is', null)
-              .eq('quality_status', 'validated')
-              .not('solver_version', 'is', null)
-              .not('solver_binary_checksum', 'is', null)
-              .not('machine_id', 'is', null)
-              .not('pipeline_commit', 'is', null)
-              .not('manifest_version', 'is', null)
-              .not('manifest_checksum', 'is', null)
-              .not('source_artifact_checksum', 'is', null)
-              .not('audited_at', 'is', null);
-
-          // Filter by street if specified
-          if (safeStreet !== 'all') {
-              query = query.eq('street', safeStreet);
-          }
-
-          // Filter by position if specified (position is in scenario_hash)
-          if (safePosition !== 'any') {
-              query = query.ilike('scenario_hash', `%_${safePosition}_${parsedStack}bb_%`);
-          }
-          // Villain position is not encoded in the canonical scenario hash.
-          // It is validated from the checksummed v2 payload after building;
-          // applying an ILIKE here falsely removes every legitimate match.
-
           // Fetch pool.
           // #8: a texture filter throws rows away AFTER the database has
           // returned them, so the pre-filter pool has to be much larger or the
           // filter starves the session. Monotone flops are roughly 5% of all
           // flops, so a 3x pool would routinely yield one or two questions for
           // a 25-hand request. 12x, capped at 600, keeps a monotone request
-          // viable while staying a bounded single query.
+          // viable while staying within the service's bounded catalog scan.
           const poolSize = textureRequested
               ? Math.min(parsedCount * 12, 600)
               : Math.min(parsedCount * 3, 150);
-          query = query.limit(poolSize);
-
-          const { data: rawScenarios, error: dbErr } = await query;
+          const policyService = new SolverPolicyService({ db: getSupabase() });
+          const { rows: rawScenarios } = await policyService.readSolvedRows({
+              gameTypes: pioGameTypes,
+              stackDepth: parsedStack,
+              street: safeStreet === 'all' ? undefined : safeStreet,
+              position: safePosition === 'any' ? undefined : safePosition,
+              villainPosition: customConfig.villainPosition === 'any'
+                  ? undefined
+                  : customConfig.villainPosition,
+              limit: poolSize,
+          });
           // Board texture is an exact part of the requested drill. It may
           // reduce the candidate pool, but it is never silently relaxed.
           const scenarios = textureRequested
               ? filterScenariosByTexture(rawScenarios, safeBoardTexture)
               : rawScenarios;
-
-          if (dbErr) {
-              console.warn('[CustomTrain] DB error:', dbErr.message);
-              return res.status(500).json({ success: false, error: 'Database query failed' });
-          }
 
           if (!scenarios || scenarios.length === 0) {
               return res.status(422).json({
@@ -297,7 +255,12 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try {
+          reportApiError(err, req);
+      } catch (_sentryErr) {
+          console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+          void _sentryErr;
+      }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -401,6 +364,7 @@ async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryCon
             level: deliveryContext.level,
             userId: deliveryContext.userId,
             requestId: randomUUID(),
+            recordServed: false,
             label: 'CustomTrain:canonicalize',
         });
     } catch (canonicalizeError) {
@@ -432,6 +396,15 @@ async function buildAndReturnQuestions(res, scenarios, customConfig, deliveryCon
                 code: deliveryError.code,
             });
         }
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+    }
+    try {
+        await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+            userId: deliveryContext.userId,
+            delivery,
+        });
+    } catch (servedAuditError) {
+        console.warn('[CustomTrain] Delivered question audit failed:', servedAuditError?.message || servedAuditError);
         return res.status(503).json(trainingPersistenceUnavailableBody());
     }
 

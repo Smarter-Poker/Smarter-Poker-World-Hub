@@ -33,6 +33,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+    alignQuestionToCanonicalPolicy,
+    gradeCanonicalPolicyDecision,
+} from '../src/lib/training/cacheTruthContract.mjs';
+import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ENGINE = path.join(ROOT, 'src/engines/DeterministicGTOEngine.js');
 
@@ -59,11 +65,13 @@ function loadChartBuilder() {
 }
 
 const PUSH_CHART = {
-    chart_id: 'c1', hero_position: 'UTG', stack_depth: 10, villain_action: 'fold_to_hero',
+    chart_id: 'c1', game_type: 'Cash', created_at: '2026-09-07T00:00:00.000Z',
+    hero_position: 'UTG', stack_depth: 10, villain_action: 'fold_to_hero',
     hand_matrix: { AA: { push: 1.0, fold: 0.0 }, '72o': { push: 0.0, fold: 1.0 } },
 };
 const CALL_CHART = {
-    chart_id: 'c2', hero_position: 'BB', stack_depth: 10, villain_action: 'sb_push',
+    chart_id: 'c2', game_type: 'Cash', created_at: '2026-09-07T00:00:00.000Z',
+    hero_position: 'BB', stack_depth: 10, villain_action: 'sb_push',
     hand_matrix: { AA: { call: 1.0, fold: 0.0 }, '83o': { call: 0.0, fold: 1.0 } },
 };
 
@@ -73,6 +81,13 @@ function build(buildChartQuestion, chart, hand) {
     const orig = Math.random;
     Math.random = () => hands.indexOf(hand) / hands.length;
     try { return buildChartQuestion(chart, 1); } finally { Math.random = orig; }
+}
+
+function alignWithChartPolicy(question, chart) {
+    const solverPolicy = new SolverPolicyService().answerFromChart(chart, {
+        holding: question.heroCards,
+    });
+    return alignQuestionToCanonicalPolicy({ ...question, solverPolicy });
 }
 
 test('push-node charts grade from the push frequency', () => {
@@ -131,4 +146,50 @@ test('mixed-frequency hands stay answerable and self-consistent', () => {
     assert.equal(a5.scenario.isMixedStrategy, true);
     const kt = build(b, chart, 'KTo');
     assert.equal(kt.correctAnswer, 'fold');
+});
+
+test('an exact 50/50 Push/Fold chart mix remains tied through builder, alignment, explanation, and grading', () => {
+    const b = loadChartBuilder();
+    const chart = {
+        ...PUSH_CHART,
+        hand_matrix: { A5s: { push: 0.5, fold: 0.5 } },
+    };
+    const built = build(b, chart, 'A5s');
+    const aligned = alignWithChartPolicy(built, chart);
+
+    assert.equal(built.correctAnswer, aligned.correctAnswer);
+    assert.match(aligned.explanation, /Push All-In and Fold[^.]*equally represented/i);
+    assert.doesNotMatch(aligned.explanation, /primary action/i);
+    assert.equal(aligned.correctAnswerText, aligned.correctAnswer === 'all_in' ? 'Push All-In' : 'Fold');
+
+    for (const action of ['all_in', 'fold']) {
+        const grade = gradeCanonicalPolicyDecision(aligned.solverPolicy, action);
+        assert.equal(grade.valid, true);
+        assert.equal(grade.classification, 'best');
+        assert.equal(grade.isCorrect, true);
+        assert.equal(grade.selectedFrequency, 50);
+    }
+});
+
+test('an exact 50/50 Call/Fold chart mix remains tied through builder, alignment, explanation, and grading', () => {
+    const b = loadChartBuilder();
+    const chart = {
+        ...CALL_CHART,
+        hand_matrix: { AKo: { call: 0.5, fold: 0.5 } },
+    };
+    const built = build(b, chart, 'AKo');
+    const aligned = alignWithChartPolicy(built, chart);
+
+    assert.equal(built.correctAnswer, aligned.correctAnswer);
+    assert.match(aligned.explanation, /Call and Fold[^.]*equally represented/i);
+    assert.doesNotMatch(aligned.explanation, /primary action/i);
+    assert.equal(aligned.correctAnswerText, aligned.correctAnswer === 'call' ? 'Yes' : 'No');
+
+    for (const action of ['call', 'fold']) {
+        const grade = gradeCanonicalPolicyDecision(aligned.solverPolicy, action);
+        assert.equal(grade.valid, true);
+        assert.equal(grade.classification, 'best');
+        assert.equal(grade.isCorrect, true);
+        assert.equal(grade.selectedFrequency, 50);
+    }
 });

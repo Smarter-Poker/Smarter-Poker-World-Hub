@@ -81,6 +81,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   const expectedAuthorityTests = [
     'action-button-style-contract',
     'award-diamonds-v2-concurrency',
+    'chart-question-node',
     'leak-engine-wiring',
     'preflop-local-practice-authority',
     'training-advisor-followup-migration',
@@ -91,6 +92,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-authored-model-honesty',
     'training-authored-surface-authority',
     'training-auxiliary-launch-wiring',
+    'training-batch-canonical-replacement',
     'training-blind-grading-boundary',
     'training-bookmark-authority',
     'training-client-endpoint-wiring',
@@ -155,10 +157,12 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-server-authority-migration',
     'training-session-attempt-contract',
     'training-session-config-contract',
+    'training-single-question-recovery-contract',
     'training-skill-tree-zero-xp-authority',
     'training-solutions-v2-authority',
     'training-solver-contract',
     'training-solver-row-identity',
+    'training-solver-worker-ingestion',
     'training-spot-study-authority',
     'training-spot-trainer-launcher-authority',
     'training-streak-authority-read',
@@ -178,7 +182,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   assert.match(packageJson.scripts.build, /npm run test:training:phase6-authority/);
   assert.equal(
     packageJson.scripts['audit:training:phase6-db'],
-    'npm run audit:training:award-db && npm run audit:training:authority-db && npm run audit:training:cross-rpc-db',
+    'npm run audit:training:award-db && npm run audit:training:authority-db && npm run audit:training:cross-rpc-db && npm run audit:training:delivery-db && npm run audit:training:solver-catalog-db',
   );
 
   const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));

@@ -34,6 +34,7 @@ langchain>=0.0.350
 flask>=3.0.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
+psycopg2-binary>=2.9.9  # read-only solver warehouse diagnostics
 
 # Utilities
 python-dotenv>=1.0.0

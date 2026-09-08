@@ -139,9 +139,25 @@ function v2Row(overrides = {}) {
       oop_player: 'BB',
       ip_player: 'BTN',
       eff_stack_bb: 100,
-      rake: '5 2 0.5 1',
+      rake: '0.05 200',
       tree_geometry: 'hu_cash_100bb_standard',
       solver: 'PioSOLVER',
+      combo_order: 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
+      range_combo_order: 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
+      source_combo_order_schema: 'piosolver.show_hand_order.v1',
+      source_combo_order_sha256: '1'.repeat(64),
+      oop_range_checksum: '2'.repeat(64),
+      ip_range_checksum: '3'.repeat(64),
+      training_game_contracts_sha256: '4'.repeat(64),
+      exploitability_pct: 0.05,
+      convergence: {
+        schema: 'piosolver.calc-results.v1',
+        source_command: 'calc_results',
+        accuracy_fraction: 0.001,
+        starting_pot_chips: 700,
+        achieved_exploitability_chips: 0.35,
+        achieved_exploitability_fraction: 0.0005,
+      },
     },
     solver_version: 'PioSOLVER 3.0',
     solver_binary_checksum: SHA256,
@@ -221,6 +237,215 @@ test('a complete exact V2 decision exposes canonical semantics, mix, size, EV, a
     fs.readFileSync('contracts/solver-policy/fixtures/exact-policy.v1.json', 'utf8')
   );
   assert.equal(stablePolicyJson(answer), stablePolicyJson(fixture));
+});
+
+test('real V2 chip targets ignore stale root percentages and preserve every sizing', () => {
+  const service = new SolverPolicyService();
+  const row = v2Row();
+  row.strategy_matrix_v2.actions = [
+    { key: 'check', code: 'c', size_pct: 0 },
+    { key: 'bet_chips_231', code: 'b231', size_chips: 231, size_pct: null },
+    // Deliberately stale metadata from the old harvester. The current-node
+    // geometry, not this value, is authoritative.
+    { key: 'bet_chips_525', code: 'b525', size_chips: 525, size_pct: 999 },
+  ];
+  row.strategy_matrix_v2.frequencies = {
+    c: new Array(1326).fill(0.3),
+    b231: new Array(1326).fill(0.25),
+    b525: new Array(1326).fill(0.45),
+  };
+
+  const record = normalizeSolvedPolicyRecord(row);
+  const answer = service.answerFromRecord(
+    record,
+    service.keyForRecord(record, { holding: ['As', 'Ks'] }),
+  );
+
+  assert.deepEqual(answer.actions.map(({ id, sourceCode, frequency }) => [
+    id, sourceCode, frequency,
+  ]), [
+    ['check', 'c', 0.3],
+    ['bet_33pct', 'b231', 0.25],
+    ['bet_75pct', 'b525', 0.45],
+  ]);
+  assert.deepEqual(answer.actions[1].size, {
+    unit: 'pot_fraction',
+    chips: 231,
+    bigBlinds: 2.31,
+    potFraction: 0.33,
+    exact: true,
+  });
+  assert.deepEqual(answer.actions[2].size, {
+    unit: 'pot_fraction',
+    chips: 525,
+    bigBlinds: 5.25,
+    potFraction: 0.75,
+    exact: true,
+  });
+});
+
+test('later-street V2 sizing is derived from the reconstructed current-node pot', () => {
+  const service = new SolverPolicyService();
+  const row = v2Row({
+    scenario_hash: 'hu_cash_BB_100bb_2c3c5c2d',
+    street: 'turn',
+  });
+  row.strategy_matrix_v2 = {
+    ...row.strategy_matrix_v2,
+    actions: [
+      { key: 'check', code: 'c', size_pct: 0 },
+      { key: 'bet_chips_1442', code: 'b1442', size_chips: 1442, size_pct: 262 },
+    ],
+    frequencies: {
+      c: new Array(1326).fill(0.4),
+      b1442: new Array(1326).fill(0.6),
+    },
+    pot_bb: 5.5,
+    convergence: {
+      ...row.strategy_matrix_v2.convergence,
+      starting_pot_chips: 550,
+      achieved_exploitability_chips: 0.275,
+    },
+    node: 'r:0:c:b412:c:2d',
+    board: ['2c', '3c', '5c', '2d'],
+    street: 'turn',
+  };
+
+  const record = normalizeSolvedPolicyRecord(row);
+  assert.equal(record.matrix.pot_bb, 13.74);
+  const answer = service.answerFromRecord(
+    record,
+    service.keyForRecord(record, { holding: ['As', 'Ks'] }),
+  );
+  const bet = answer.actions.find(({ sourceCode }) => sourceCode === 'b1442');
+  assert.equal(answer.actions.find(({ sourceCode }) => sourceCode === 'c').family, 'check');
+  assert.equal(record.matrix.actor_contribution_bb, 4.12);
+  assert.equal(record.matrix.street_baseline_bb, 4.12);
+  assert.equal(bet.size.chips, 1030);
+  assert.equal(bet.size.bigBlinds, 10.3);
+  assert.ok(Math.abs(bet.size.potFraction - (10.3 / 13.74)) < 1e-12);
+  assert.equal(bet.label, 'Bet 75% Pot');
+  assert.notEqual(bet.size.potFraction, 2.62);
+});
+
+test('later-street facing nodes preserve exact Raise-To targets and recognize Pio all-ins', () => {
+  const service = new SolverPolicyService();
+  const row = v2Row({
+    scenario_hash: 'turn_hu_cash_BTN_100bb_2c3c5c2d',
+    street: 'turn',
+  });
+  row.strategy_matrix_v2 = {
+    ...row.strategy_matrix_v2,
+    actions: [
+      { key: 'fold', code: 'f', size_pct: 0 },
+      { key: 'call', code: 'c', size_pct: 0 },
+      { key: 'raise_chips_3502', code: 'b3502', size_chips: 3502, size_pct: null },
+      { key: 'all_in_chips_9750', code: 'b9750', size_chips: 9750, size_pct: null },
+    ],
+    frequencies: {
+      f: new Array(1326).fill(0.1),
+      c: new Array(1326).fill(0.1),
+      b3502: new Array(1326).fill(0.5),
+      b9750: new Array(1326).fill(0.3),
+    },
+    pot_bb: 5.5,
+    convergence: {
+      ...row.strategy_matrix_v2.convergence,
+      starting_pot_chips: 550,
+      achieved_exploitability_chips: 0.275,
+    },
+    eff_stack_bb: 97.5,
+    node: 'r:0:c:b412:c:2d:b1442',
+    board: ['2c', '3c', '5c', '2d'],
+    street: 'turn',
+    hero: 'IP',
+    position: 'BTN',
+    oop_player: 'BB',
+    ip_player: 'BTN',
+  };
+
+  const record = normalizeSolvedPolicyRecord(row);
+  assert.equal(record.matrix.pot_bb, 24.04);
+  assert.equal(record.matrix.facing_bet_bb, 10.3);
+  assert.equal(record.matrix.actor_contribution_bb, 4.12);
+  assert.equal(record.matrix.street_baseline_bb, 4.12);
+  const answer = service.answerFromRecord(
+    record,
+    service.keyForRecord(record, { holding: ['As', 'Ks'] }),
+  );
+  const raise = answer.actions.find(({ sourceCode }) => sourceCode === 'b3502');
+  const allIn = answer.actions.find(({ sourceCode }) => sourceCode === 'b9750');
+  const call = answer.actions.find(({ sourceCode }) => sourceCode === 'c');
+  assert.equal(call.family, 'call');
+  assert.equal(call.label, 'Call');
+  assert.equal(raise.family, 'raise');
+  assert.equal(raise.label, 'Raise To 30.9 BB');
+  assert.equal(raise.size.chips, 3090);
+  assert.equal(raise.size.bigBlinds, 30.9);
+  assert.ok(Math.abs(raise.size.potFraction - (30.9 / 24.04)) < 1e-12);
+  assert.equal(allIn.id, 'all_in');
+  assert.equal(allIn.family, 'all_in');
+  assert.equal(allIn.label, 'All-In');
+  assert.equal(allIn.size.chips, 9338);
+  assert.equal(allIn.size.bigBlinds, 93.38);
+  assert.ok(Math.abs(allIn.size.potFraction - (93.38 / 24.04)) < 1e-12);
+  assert.equal(allIn.size.unit, 'all_in');
+  assert.equal(allIn.size.exact, true);
+  assert.deepEqual(validateSolverPolicyAnswer(answer), { valid: true, errors: [] });
+});
+
+test('a facing re-raise keeps current-street Raise-To separate from the actor increment', () => {
+  const service = new SolverPolicyService();
+  const row = v2Row({
+    scenario_hash: 'turn_hu_cash_BB_100bb_2c3c5c2d',
+    street: 'turn',
+  });
+  row.strategy_matrix_v2 = {
+    ...row.strategy_matrix_v2,
+    actions: [
+      { key: 'fold', code: 'f', size_pct: 0 },
+      { key: 'call', code: 'c', size_pct: 0 },
+      { key: 'raise_chips_6000', code: 'b6000', size_chips: 6000, size_pct: null },
+      { key: 'all_in_chips_9750', code: 'b9750', size_chips: 9750, size_pct: null },
+    ],
+    frequencies: {
+      f: new Array(1326).fill(0.1),
+      c: new Array(1326).fill(0.1),
+      b6000: new Array(1326).fill(0.5),
+      b9750: new Array(1326).fill(0.3),
+    },
+    pot_bb: 5.5,
+    convergence: {
+      ...row.strategy_matrix_v2.convergence,
+      starting_pot_chips: 550,
+      achieved_exploitability_chips: 0.275,
+    },
+    eff_stack_bb: 97.5,
+    node: 'r:0:c:b412:c:2d:b1442:b3502',
+    board: ['2c', '3c', '5c', '2d'],
+    street: 'turn',
+    hero: 'OOP',
+    position: 'BB',
+    oop_player: 'BB',
+    ip_player: 'BTN',
+  };
+
+  const record = normalizeSolvedPolicyRecord(row);
+  assert.equal(record.matrix.pot_bb, 54.94);
+  assert.equal(record.matrix.facing_bet_bb, 20.6);
+  assert.equal(record.matrix.actor_contribution_bb, 14.42);
+  assert.equal(record.matrix.street_baseline_bb, 4.12);
+  const answer = service.answerFromRecord(
+    record,
+    service.keyForRecord(record, { holding: ['As', 'Ks'] }),
+  );
+  const raise = answer.actions.find(({ sourceCode }) => sourceCode === 'b6000');
+  assert.equal(raise.id, 'raise_82_96pct');
+  assert.equal(raise.label, 'Raise To 55.88 BB');
+  assert.equal(raise.size.chips, 4558, 'size.chips is what the actor adds at this node');
+  assert.equal(raise.size.bigBlinds, 45.58);
+  assert.ok(Math.abs(raise.size.potFraction - (45.58 / 54.94)) < 1e-12);
+  assert.equal(answer.actions.find(({ sourceCode }) => sourceCode === 'b9750').id, 'all_in');
 });
 
 test('missing provenance or a missing decision dimension can never be exact', () => {
@@ -733,57 +958,106 @@ test('World Hub publishes the exact versioned artifact envelope consumed by Club
   );
 });
 
-test('omitted numeric filters never become a stack-depth-zero warehouse predicate', async () => {
+test('catalog reader never invents stack zero and sends every exact RPC filter', async () => {
   const calls = [];
-  const result = { data: [], error: null, count: 0 };
-  const query = {
-    select() {
-      calls.push(['select']);
-      return this;
-    },
-    eq(...args) {
-      calls.push(['eq', ...args]);
-      return this;
-    },
-    in(...args) {
-      calls.push(['in', ...args]);
-      return this;
-    },
-    ilike(...args) {
-      calls.push(['ilike', ...args]);
-      return this;
-    },
-    gte(...args) {
-      calls.push(['gte', ...args]);
-      return this;
-    },
-    lte(...args) {
-      calls.push(['lte', ...args]);
-      return this;
-    },
-    order(...args) {
-      calls.push(['order', ...args]);
-      return this;
-    },
-    limit(...args) {
-      calls.push(['limit', ...args]);
-      return this;
-    },
-    then(resolve) {
-      resolve(result);
-    },
-  };
   const db = {
-    from(table) {
-      calls.push(['from', table]);
-      return query;
+    async rpc(name, args) {
+      calls.push([name, args]);
+      return { data: [], error: null };
     },
   };
   await new SolverPolicyService({ db }).readSolvedRows({ gameTypes: ['hu_cash'] });
-  assert.equal(
-    calls.some((call) => call[0] === 'eq' && call[1] === 'stack_depth'),
-    false
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'training_solver_spot_candidates_v1');
+  assert.deepEqual(calls[0][1].p_family_stacks, [
+    { game_type: 'hu_cash', stack_depth: 40 },
+    { game_type: 'hu_cash', stack_depth: 100 },
+    { game_type: 'hu_cash', stack_depth: 200 },
+  ]);
+  assert.equal(calls[0][1].p_family_stacks.some(({ stack_depth }) => stack_depth === 0), false);
+  for (const name of ['p_position', 'p_artifact_id', 'p_scenario_hash', 'p_street']) {
+    assert.equal(calls[0][1][name], null);
+  }
+});
+
+test('catalog reader binds exact artifact/scenario/street/position and rejects an untrusted response', async () => {
+  const row = v2Row();
+  const calls = [];
+  const db = {
+    async rpc(name, args) {
+      calls.push([name, args]);
+      return { data: [row], error: null };
+    },
+  };
+  const service = new SolverPolicyService({ db });
+  const result = await service.readSolvedRows({
+    id: row.id,
+    scenarioHash: row.scenario_hash,
+    gameType: row.game_type,
+    stackDepth: row.stack_depth,
+    street: row.street,
+    position: 'bb',
+    limit: 1,
+  });
+  assert.deepEqual(result.rows, [row]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], ['training_solver_spot_candidates_v1', {
+    p_family_stacks: [{ game_type: 'hu_cash', stack_depth: 100 }],
+    p_position: 'BB',
+    p_lower_inclusive: null,
+    p_lower_exclusive: null,
+    p_upper_exclusive: null,
+    p_limit: 2,
+    p_artifact_id: row.id,
+    p_scenario_hash: row.scenario_hash,
+    p_street: 'flop',
+    p_offset: 0,
+  }]);
+
+  const retiredOrForged = v2Row({ quality_status: 'quarantined' });
+  const untrustedService = new SolverPolicyService({
+    db: { rpc: async () => ({ data: [retiredOrForged], error: null }) },
+  });
+  await assert.rejects(
+    () => untrustedService.readSolvedRows({ gameType: 'hu_cash', stackDepth: 100 }),
+    /solver_policy_catalog_returned_untrusted_artifact/,
   );
+});
+
+test('sparse local filtering scans full bounded keyset pages without street starvation', async () => {
+  const makeId = (index) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
+  const firstPage = Array.from({ length: 128 }, (_, index) => v2Row({ id: makeId(index + 1) }));
+  const match = v2Row({
+    id: makeId(129),
+    strategy_matrix_v2: {
+      ...v2Row().strategy_matrix_v2,
+      ip_player: 'SB',
+    },
+  });
+  const calls = [];
+  const service = new SolverPolicyService({
+    db: {
+      async rpc(_name, args) {
+        calls.push(args);
+        return args.p_lower_exclusive
+          ? { data: [match], error: null }
+          : { data: firstPage, error: null };
+      },
+    },
+  });
+  const result = await service.readSolvedRows({
+    gameType: 'hu_cash',
+    stackDepth: 100,
+    street: 'flop',
+    position: 'BB',
+    villainPosition: 'SB',
+    limit: 1,
+  });
+  assert.deepEqual(result.rows.map(({ id }) => id), [match.id]);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].p_limit, 128);
+  assert.equal(calls[0].p_street, 'flop');
+  assert.equal(calls[1].p_lower_exclusive, firstPage.at(-1).id);
 });
 
 test('policy resolution uses the hero stack and requires a proved in-scope chart node', async () => {
@@ -958,7 +1232,7 @@ test('runtime surface registry matches the real service, strict-reader, delegate
     ['next-street', 'delegated_service', 'pages/api/training/next-street.js', null],
     ['get-question-exact-reader', 'strict_direct_reader', 'src/engines/deterministicEnginePatches.js', null],
     ['spot-drill', 'strict_direct_reader', 'pages/api/training/spot-drill.js', null],
-    ['custom-trainer', 'strict_direct_reader', 'pages/api/training/custom-train.js', null],
+    ['custom-trainer', 'delegated_service', 'pages/api/training/custom-train.js', null],
     ['solver-api', 'strict_direct_reader', 'pages/api/training/solver-api.js', null],
     ['browse-solutions', 'strict_direct_reader', 'pages/api/training/browse-solutions.js', null],
     ['preflop-ranges', 'authored_reference', 'pages/api/training/preflop-ranges.js', null],
@@ -990,7 +1264,7 @@ test('runtime surface registry matches the real service, strict-reader, delegate
       .filter(({ integration }) => integration === SOLVER_POLICY_INTEGRATION.DELEGATED_SERVICE)
       .map(({ id }) => id)
       .sort(),
-    ['batch-preload', 'get-question-route', 'next-street'],
+    ['batch-preload', 'custom-trainer', 'get-question-route', 'next-street'],
     'every API route that delegates canonical policy authority is registered',
   );
 });
@@ -1029,7 +1303,11 @@ test('only proved direct consumers can request a canonical service envelope', ()
       fs.readFileSync(file, 'utf8'),
     );
   });
-  assert.deepEqual(discovered.sort(), direct.map(({ file }) => file).sort());
+  const registeredServiceImporters = [
+    ...direct.map(({ file }) => file),
+    'pages/api/training/custom-train.js',
+  ];
+  assert.deepEqual(discovered.sort(), registeredServiceImporters.sort());
 
   const pageServiceLocators = walk('pages').filter((file) => (
     /\.solverPolicyService\b/.test(fs.readFileSync(file, 'utf8'))
@@ -1053,11 +1331,22 @@ test('only proved direct consumers can request a canonical service envelope', ()
 
 test('strict direct readers prove v2 identity and provenance; retired surfaces fail closed', () => {
   const strictProofs = new Map([
-    ['get-question-exact-reader', [/isSolverRowIdentityValid/, /provenanceIsComplete/]],
-    ['spot-drill', [/customSolverProvenanceIsComplete/, /parseSolverScenarioHash/]],
-    ['custom-trainer', [/applyDeterministicEnginePatches/, /solverProvenance\?\.verified\s*===\s*true/]],
-    ['solver-api', [/customSolverRowMatchesRequest/, /status:\s*'ambiguous'/]],
-    ['browse-solutions', [/customSolverProvenanceIsComplete/, /parseSolverScenarioHash/]],
+    ['get-question-exact-reader', {
+      catalogRpc: true,
+      proofs: [/isSolverRowIdentityValid/, /provenanceIsComplete/],
+    }],
+    ['spot-drill', {
+      catalogRpc: true,
+      proofs: [/customSolverProvenanceIsComplete/, /parseSolverScenarioHash/],
+    }],
+    ['solver-api', {
+      catalogRpc: true,
+      proofs: [/customSolverRowMatchesRequest/, /status:\s*'ambiguous'/],
+    }],
+    ['browse-solutions', {
+      catalogRpc: true,
+      proofs: [/validateSolverRowIdentity/, /parseSolverScenarioHash/],
+    }],
   ]);
   const strict = SOLVER_POLICY_SURFACES.filter(
     ({ integration }) => integration === SOLVER_POLICY_INTEGRATION.STRICT_DIRECT_READER,
@@ -1065,9 +1354,14 @@ test('strict direct readers prove v2 identity and provenance; retired surfaces f
   assert.deepEqual(strict.map(({ id }) => id).sort(), [...strictProofs.keys()].sort());
   for (const { id, file } of strict) {
     const source = fs.readFileSync(file, 'utf8');
-    assert.match(source, /\.from\(['"]solved_spots_gold['"]\)/, id + ': direct read is explicit');
+    const contract = strictProofs.get(id);
+    assert.equal(contract.catalogRpc, true);
+    assert.match(source, /training_solver_spot_candidates_v1/,
+      id + ': reads only admitted solver artifacts through the catalog RPC');
+    assert.doesNotMatch(source, /\.from\(['"]solved_spots_gold['"]\)/,
+      id + ': cannot bypass catalog admission with a warehouse read');
     assert.match(source, /strategy_matrix_v2/, id + ': reads v2 only');
-    for (const proof of strictProofs.get(id)) assert.match(source, proof, id + ': ' + proof);
+    for (const proof of contract.proofs) assert.match(source, proof, id + ': ' + proof);
   }
 
   const delegated = SOLVER_POLICY_SURFACES.filter(
@@ -1078,6 +1372,9 @@ test('strict direct readers prove v2 identity and provenance; retired surfaces f
     assert.match(source, /deterministicEngine/i, id + ': delegates to the canonical engine');
     assert.doesNotMatch(source, /\.from\(['"]solved_spots_gold['"]\)/, id + ': no hidden direct read');
   }
+  const customTrainerSource = fs.readFileSync('pages/api/training/custom-train.js', 'utf8');
+  assert.match(customTrainerSource, /new SolverPolicyService\(\{ db: getSupabase\(\) \}\)/);
+  assert.match(customTrainerSource, /readSolvedRows\(\{/);
 
   const retired = SOLVER_POLICY_SURFACES.filter(
     ({ integration }) => integration === SOLVER_POLICY_INTEGRATION.RETIRED_ENDPOINT,

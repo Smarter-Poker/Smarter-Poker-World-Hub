@@ -47,7 +47,7 @@ function createApiResponse() {
   };
 }
 
-function loadTrainingDeliveryHandler(relativePath) {
+function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } = {}) {
   const babel = nodeRequire('@babel/core');
   const transformModulesCommonJs = nodeRequire('@babel/plugin-transform-modules-commonjs');
   const source = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -59,8 +59,10 @@ function loadTrainingDeliveryHandler(relativePath) {
     sourceType: 'module',
   }).code;
 
+  const captured = { recoveryInputs: [], sourceTables: [] };
   const neverSettlingClient = {
-    from() {
+    from(table) {
+      captured.sourceTables.push(table);
       const query = {
         select() { return query; },
         eq() { return query; },
@@ -92,7 +94,10 @@ function loadTrainingDeliveryHandler(relativePath) {
       }),
     },
     '../../../src/lib/supabaseServerClient': { createClient: () => neverSettlingClient },
-    '../../../src/config/trainingConfig': { __esModule: true, default: {} },
+    '../../../src/config/trainingConfig': {
+      __esModule: true,
+      default: { passThresholds: { 1: 85 } },
+    },
     '../../../src/config/gameConfigs': {
       getGameConfig: () => gameConfig,
       getStackDepthNumber: () => 100,
@@ -157,6 +162,11 @@ function loadTrainingDeliveryHandler(relativePath) {
     '../../../src/lib/training/trainingAttemptDelivery.mjs': {
       isTrainingAttemptContractError: () => false,
       isTrainingQuestionCampaignEligible: () => true,
+      recordTrainingQuestionsServedForAttempt: async () => ({ questionCount: 1 }),
+      recoverTrainingAttemptHand: async (input) => {
+        captured.recoveryInputs.push(input);
+        return recoveredDelivery;
+      },
       prepareTrainingAttemptDelivery: async () => {
         throw new Error('attempt delivery should not run after a failed canonical read');
       },
@@ -165,6 +175,7 @@ function loadTrainingDeliveryHandler(relativePath) {
       filterTrainingQuestionsForAttempt: (questions) => questions,
       normalizeTrainingGameMode: () => 'full',
       normalizeTrainingHandSelection: () => 'all',
+      trainingQuestionMatchesSelection: () => true,
     },
     '../../../src/lib/training/questionOrderContract.mjs': {
       shuffleBalancedQuestionOrder: (questions) => questions,
@@ -188,16 +199,21 @@ function loadTrainingDeliveryHandler(relativePath) {
     assert.ok(dependencies[specifier], `unexpected ${relativePath} dependency: ${specifier}`);
     return dependencies[specifier];
   }, routeModule, routeModule.exports);
-  return routeModule.exports.default;
+  return { handler: routeModule.exports.default, captured };
 }
 
 async function assertNeverSettlingDeliveryReadFailsClosed(relativePath) {
-  const handler = loadTrainingDeliveryHandler(relativePath);
+  const { handler, captured } = loadTrainingDeliveryHandler(relativePath);
   const response = createApiResponse();
   const request = {
     method: 'GET',
     headers: { authorization: 'Bearer test-token' },
-    query: { gameId: 'cash-001', level: '1', count: '1' },
+    query: {
+      gameId: 'cash-001',
+      level: '1',
+      count: '1',
+      sessionId: '33333333-3333-4333-8333-333333333333',
+    },
   };
   const timeoutMarker = Symbol('route did not settle');
   const outcome = await Promise.race([
@@ -207,6 +223,8 @@ async function assertNeverSettlingDeliveryReadFailsClosed(relativePath) {
   assert.notEqual(outcome, timeoutMarker, `${relativePath} hung on a never-settling delivery read`);
   assert.equal(response.statusCode, 503);
   assert.deepEqual(response.body, trainingPersistenceUnavailableBody());
+  assert.equal(captured.recoveryInputs.length, 1);
+  assert.ok(captured.sourceTables.length > 0, 'mutable-source read must follow a manifest recovery miss');
 }
 
 test('session preferences do not replace catalog drills with custom cash spots', () => {
@@ -347,7 +365,8 @@ test('answers are graded only from the checksum-bound canonical policy', () => {
   assert.match(record, /TRAINING_QUESTION_REFRESH_REQUIRED/);
   assert.match(record, /const persistedEVLoss = verified && canonicalGrade\.evLossMeasured[\s\S]*:\s*0;/);
   assert.doesNotMatch(record, /req\.body\.(?:isCorrect|evLoss|correctAnswer|question)/);
-  assert.match(reseeder, /q\.dataQuality !== 'LEGACY_UNVERIFIED'/);
+  assert.match(reseeder, /Pio cache question construction is permanently retired/);
+  assert.match(reseeder, /throw new Error\('Legacy cache mutation is permanently retired\.'\)/);
 });
 
 test('only a fully contracted sanitized legacy envelope is grade-eligible', () => {
@@ -469,10 +488,16 @@ test('both question endpoints persist the exact post-contract envelope used for 
   assert.match(single, /recordTrainingQuestionsServed/);
   assert.match(single, /Refusing to serve an uncanonicalized question/);
   assert.match(single, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
-  assert.match(batch, /const canonicalRows = Array\.from\(new Map\(enrichedBatch/);
+  assert.match(batch, /for \(const question of configuredCandidates\)/);
+  assert.match(batch, /canonicalPairs\.length >= questionCount/);
+  assert.match(batch, /canonicalPairs\.push\(\{ question, row \}\)/);
+  assert.match(batch, /const canonicalRows = canonicalPairs\.map\(\(\{ row \}\) => row\)/);
+  assert.match(batch, /canonicalRows\.length !== questionCount/);
+  assert.match(batch, /TRAINING_ATTEMPT_QUESTION_SHORTFALL/);
   assert.match(batch, /buildTrainingCacheRow\(\{/);
   assert.match(batch, /\.upsert\(canonicalRows, \{[\s\S]*defaultToNull: false/);
   assert.match(batch, /withPersistedCacheReceipt/);
+  assert.match(batch, /servedBatch = canonicalPairs\.map/);
   assert.match(batch, /recordTrainingQuestionsServed/);
   assert.match(batch, /Refusing to serve uncanonicalized questions/);
   assert.match(batch, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
@@ -583,6 +608,49 @@ test('batch-preload fails closed when its delivery reads never settle', async ()
   await assertNeverSettlingDeliveryReadFailsClosed('pages/api/training/batch-preload.js');
 });
 
+test('both delivery routes return an immutable recovery winner before touching mutable sources', async () => {
+  for (const relativePath of [
+    'pages/api/training/get-question.js',
+    'pages/api/training/batch-preload.js',
+  ]) {
+    const recoveredQuestion = {
+      id: `winner-${relativePath.includes('batch') ? 'batch' : 'single'}`,
+      policyChecksum: 'a'.repeat(64),
+      _gradingContext: { handOrdinal: 7 },
+    };
+    const { handler, captured } = loadTrainingDeliveryHandler(relativePath, {
+      recoveredDelivery: {
+        attemptId: 'attempt-1',
+        sessionKind: 'campaign',
+        targetHands: 20,
+        questions: [recoveredQuestion],
+      },
+    });
+    const response = createApiResponse();
+    await handler({
+      method: 'GET',
+      headers: { authorization: 'Bearer test-token' },
+      query: {
+        gameId: 'cash-001',
+        level: '1',
+        count: '1',
+        sessionId: 'session-1',
+        handOrdinal: '7',
+        handOrdinalStart: '7',
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 200, relativePath);
+    assert.equal(captured.recoveryInputs.length, 1, relativePath);
+    assert.equal(captured.recoveryInputs[0].handOrdinal, 7, relativePath);
+    assert.deepEqual(captured.sourceTables, [], `${relativePath} read mutable source data before recovery`);
+    const served = relativePath.includes('batch')
+      ? response.body.questions[0]
+      : response.body.question;
+    assert.equal(served.id, recoveredQuestion.id, relativePath);
+  }
+});
+
 test('an explicit street target filters warm cache rows before generation', () => {
   const batch = fs.readFileSync(path.join(ROOT, 'pages/api/training/batch-preload.js'), 'utf8');
   assert.match(batch, /import \{ streetOfCachedRow \} from '[^']+declaredStreet'/);
@@ -637,6 +705,12 @@ test('multi-street progression follows only the exact exported continuation', as
   const { MultiStreetHand } = await import('../src/engines/MultiStreetHandManager.js');
   const exactQuestion = {
     heroHand: 'AKs', heroCards: ['As', 'Ks'],
+    solverPolicy: {
+      actions: [{
+        id: 'b412', sourceCode: 'b412', family: 'bet', legal: true,
+        size: { unit: 'pot_fraction', bigBlinds: 4.12, exact: true },
+      }],
+    },
     scenario: {
       board: 'Qh 7d 2c', street: 'flop', pot: 5.5, stackDepth: 100,
       heroPosition: 'BTN', villainPosition: 'BB',
@@ -665,7 +739,13 @@ test('multi-street progression follows only the exact exported continuation', as
   assert.match(trainer, /multiStreetHandRef\.current = new MultiStreetHand\(currentQuestion\)/);
   assert.match(trainer, /hand\.applyServerContinuation\(data\)/);
   assert.match(trainer, /multiStreetHandRef\.current !== hand/);
-  assert.match(trainer, /multiStreetHandRef\.current\?\.isComplete[\s\S]*setHandSummary\(finishedHand\.getHandSummary\(\)\)/);
+  assert.match(trainer, /multiStreetHandRef\.current\?\.isComplete[\s\S]*completedHandSummary = finishedHand\.getHandSummary\(\)/);
+  assert.match(trainer, /await saveProgress[\s\S]*if \(completedHandSummary\) setHandSummary\(completedHandSummary\)[\s\S]*setIsMultiStreetActive\(false\)/);
+  assert.ok(
+    trainer.indexOf('await saveProgress(attemptId, transitionLease)')
+      < trainer.indexOf('setIsMultiStreetActive(false)', trainer.indexOf('const nextQuestion = useCallback')),
+    'completion retries must retain the active multi-street hand until settlement succeeds',
+  );
 });
 
 test('curated fallback honors the exact game stack and excludes cached identities', async () => {
@@ -1019,16 +1099,19 @@ test('reports and custom solve do not manufacture successful activity', () => {
   assert.match(sharedReports, /No Verified Training Data Yet/);
   assert.match(sharedReports, /No Sample Or Estimated Player Statistics Are Displayed/);
   assert.doesNotMatch(sharedReports, /Demo data for illustration|Sample data is being displayed|label:\s*['"]GTO Proximity/);
-  assert.match(customSolve, /data\?\.source === 'solved_spots_gold'/);
+  assert.match(customSolve, /data\?\.source === 'training_solver_artifact_catalog'/);
   assert.match(customSolve, /data\?\.matchQuality === 'exact_root_node'/);
   assert.match(customSolve, /data\?\.solution\?\.isEstimate === false/);
   assert.match(customSolve, /authorityLabel: 'Audited Solver Result'/);
   assert.doesNotMatch(customSolve, /Modeled Baseline/);
   assert.doesNotMatch(customSolve, /gameId: 'custom-solve'|accuracy: 100/);
-  assert.match(solverApi, /\.from\('solved_spots_gold'\)/);
-  assert.match(solverApi, /\.eq\('scenario_hash', request\.scenarioHash\)/);
-  assert.match(solverApi, /\.eq\('quality_status', 'validated'\)/);
-  assert.match(solverApi, /source: 'solved_spots_gold'/);
+  assert.match(solverApi, /training_solver_spot_candidates_v1/);
+  assert.match(solverApi, /p_scenario_hash: request\.scenarioHash/);
+  assert.match(solverApi, /p_street: request\.street/);
+  assert.match(solverApi, /p_position: request\.heroPosition/);
+  assert.match(solverApi, /customSolverRowMatchesRequest\(row, request\)/);
+  assert.doesNotMatch(solverApi, /\.from\(['"]solved_spots_gold['"]\)/);
+  assert.match(solverApi, /source: 'training_solver_artifact_catalog'/);
   assert.match(solverApi, /matchQuality: 'exact_root_node'/);
   assert.match(solverApi, /isEstimate: false/);
   assert.match(solverApi, /res\.status\(422\)\.json\(\{[\s\S]*code: 'SOLVER_NODE_CONTEXT_REQUIRED'/);

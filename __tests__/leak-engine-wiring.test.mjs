@@ -225,13 +225,32 @@ test('answer persistence regrades against a server-owned canonical question', ()
   assert.match(record, /cacheRowIsServingEligible\(cacheRow\)/);
   assert.match(record, /stablePolicyJson\(canonicalQuestion\?\.solverPolicy\) === stablePolicyJson\(cacheRow\?\.canonical_policy\)/);
   assert.match(record, /submittedChecksum: req\.body\.policyChecksum/);
-  assert.match(record, /policyChecksum: canonicalCacheRow\.policy_checksum/);
+  assert.match(record, /const snapshotPolicyChecksum = String\(canonicalQuestion\?\.policyChecksum/);
+  assert.match(record, /submittedPolicyChecksum !== snapshotPolicyChecksum/);
+  assert.match(record, /const decisionAuthority = \{[\s\S]*policyChecksum: snapshotPolicyChecksum/);
+  assert.match(record, /const currentCacheMatches = canonicalPolicyReceiptMatches\(\{/);
+  assert.match(record, /const evidencePolicy = currentCacheMatches[\s\S]*\? canonicalCacheRow[\s\S]*policy_checksum: snapshotPolicyChecksum/);
+  assert.match(record, /policyChecksum: evidencePolicy\.policy_checksum/);
   assert.match(record, /solver_verified: verified/);
   assert.match(record, /ev_loss_measured/);
   assert.match(record, /submission_id: String\(receiptPayload\.jti\)/);
   assert.match(record, /from\('training_answers'\)\.insert\(evidenceRow\)/);
   assert.match(record, /insertError\?\.cause\?\.code !== '23505'/);
-  assert.match(record, /eq\('submission_id', String\(receiptPayload\.jti\)/);
+  assert.match(record, /eq\('submission_id', String\(submissionId\)\.slice\(0, 180\)\)/);
+  assert.match(record, /getExistingAnswerSubmission\(userId, receiptPayload\.jti\)/);
+  const snapshotRead = record.indexOf('const snapshot = await getImmutableQuestionSnapshot');
+  const replayRead = record.indexOf('let persistedAnswer = await getExistingAnswerSubmission', snapshotRead);
+  const authorityRead = record.indexOf('const decisionAuthority = {', replayRead);
+  const gradeRead = record.indexOf('answerContract = gradeTrainingAnswer({', authorityRead);
+  const currentCacheRead = record.indexOf('canonicalCacheRow = await getCanonicalQuestion', replayRead);
+  assert.ok(
+    snapshotRead >= 0
+      && replayRead > snapshotRead
+      && authorityRead > replayRead
+      && gradeRead > authorityRead
+      && currentCacheRead > gradeRead,
+    'verify snapshot, replay, delivery authority, and grade before consulting mutable cache freshness',
+  );
   assert.match(read('src/hooks/useGTOTrainer.js'), /for \(let attempt = 0; attempt < 3; attempt\+\+\)/);
 });
 

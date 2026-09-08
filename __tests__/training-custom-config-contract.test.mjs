@@ -188,13 +188,21 @@ test('custom API applies exact filters without solver-state relabeling or broad 
   assert.match(source, /customTrainingQuestionMatchesConfig\(contractedQuestion, customConfig\)/);
   assert.match(source, /customTrainingAttemptConfig\(customConfig, deliveryContext\)/);
   assert.match(source, /applyDeterministicEnginePatches\(engine\)/);
-  assert.match(source, /strategy_matrix_v2/);
-  assert.doesNotMatch(source, /'strategy_matrix',/);
+  assert.match(source, /new SolverPolicyService\(\{ db: getSupabase\(\) \}\)/);
+  assert.match(source, /readSolvedRows\(\{/);
+  assert.doesNotMatch(source, /\.from\(['"]solved_spots_gold['"]\)/);
   assert.doesNotMatch(source, /%_\$\{safeVillainPosition\}_%/);
   assert.match(source, /usedDecisionKeys/);
   assert.match(source, /question\?\.solverProvenance\?\.verified === true/);
   assert.match(source, /TRAINING_CUSTOM_EXACT_MATCH_UNAVAILABLE/);
   assert.match(source, /TRAINING_CUSTOM_EXACT_MATCH_SHORTFALL/);
+  assert.match(source, /recordServed: false/);
+  assert.match(source, /recordTrainingQuestionsServedForAttempt\(getSupabase\(\)/);
+  assert.ok(
+    source.indexOf('recordTrainingQuestionsServedForAttempt(getSupabase()')
+      < source.indexOf('return res.status(200).json({'),
+    'the signed custom manifest must be audited before it is returned',
+  );
   assert.doesNotMatch(source, /trying broader search/i);
   assert.doesNotMatch(source, /question\.scenario\.heroPosition\s*=/);
   assert.doesNotMatch(source, /question\.scenario\.(?:stackDepth|heroStack|villainStack)\s*=/);

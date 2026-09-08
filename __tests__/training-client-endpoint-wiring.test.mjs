@@ -85,7 +85,16 @@ test('custom requests carry config while next-street sends only the signed paren
   assert.match(nextQuestion, /const advanced = await advanceToNextStreet\(\)/);
   assert.match(nextQuestion, /if \(advanced === true\) return/);
   assert.match(nextQuestion, /advanced === null \|\| advanced === false[\s\S]*setShowFeedback\(true\)[\s\S]*return/);
-  assert.match(nextQuestion, /advanced === 'solver-boundary'[\s\S]*setHandSummary\(finishedHand\.getHandSummary\(\)\)[\s\S]*setIsMultiStreetActive\(false\)/);
+  assert.match(nextQuestion, /advanced === 'solver-boundary'[\s\S]*completedHandSummary = finishedHand\.getHandSummary\(\)/);
+  assert.match(nextQuestion, /await saveProgress[\s\S]*if \(completedHandSummary\) setHandSummary\(completedHandSummary\)[\s\S]*setIsMultiStreetActive\(false\)/);
+  assert.doesNotMatch(
+    nextQuestion.slice(
+      nextQuestion.indexOf("if (advanced === 'solver-boundary')"),
+      nextQuestion.indexOf('if (questionNumber >= effectiveQuestionsPerLevel)'),
+    ),
+    /setIsMultiStreetActive\(false\)|multiStreetHandRef\.current = null/,
+    'a failed completion retry must retain the exact completed hand',
+  );
 });
 
 test('configuration changes rotate the attempt and reset it before refetching', () => {
@@ -159,6 +168,47 @@ test('an expired signed hand has an explicit fresh-hand recovery and never retri
   assert.match(arena, /answerSaveRequiresRefresh \? 'Hand Expired'/);
   assert.match(arena, /answerSaveRequiresRefresh \? 'Load Fresh Hand' : 'Retry Save'/);
   assert.match(arena, /No Result Was Recorded\. Load A Fresh Signed Hand To Continue\./);
+});
+
+test('failed manual transitions keep answer persistence and initial-load errors in separate retry channels', () => {
+  const hook = read('src/hooks/useGTOTrainer.js');
+  const arena = read('src/components/training/GodModeArena.jsx');
+  const fetchStart = hook.indexOf('const fetchSingleQuestion = useCallback');
+  const fetchEnd = hook.indexOf('const reissueSignedQuestions = useCallback', fetchStart);
+  const singleFetch = hook.slice(fetchStart, fetchEnd);
+  const nextStart = hook.indexOf('const nextQuestion = useCallback');
+  const nextEnd = hook.indexOf('/**\n   * Start next level', nextStart);
+  const next = hook.slice(nextStart, nextEnd);
+
+  assert.match(singleFetch, /if \(!throwOnError\) setError\(null\)/);
+  assert.match(singleFetch, /if \(!throwOnError\) setError\(err\.message\);\s*if \(throwOnError\) throw err/);
+  assert.match(hook, /kind: 'continuation'/);
+  assert.match(next, /kind: 'completion'/);
+  assert.match(next, /kind: 'next-hand'/);
+  assert.match(next, /fetchSingleQuestion\([\s\S]*questionNumber \+ 1,[\s\S]*throwOnError: true/);
+  assert.match(next, /setQuestionNumber\(\(prev\) => prev \+ 1\)/);
+  assert.ok(
+    next.indexOf('setQuestionNumber((prev) => prev + 1)') > next.indexOf('await fetchSingleQuestion'),
+    'the hand ordinal must advance only after the same-ordinal recovery succeeds',
+  );
+  assert.match(hook, /retryTransition: nextQuestion/);
+  assert.match(arena, /data-testid="training-transition-error"/);
+  assert.match(arena, /data-testid="training-transition-retry"/);
+  assert.match(arena, /onClick=\{retryTransition\}/);
+  assert.match(arena, /Retry Next Street/);
+  assert.match(arena, /Retry Completion/);
+  assert.match(arena, /Retry Next Hand/);
+  assert.match(arena, /onNextHand=\{answerSaveError \? null : handleNextQuestion\}/);
+});
+
+test('lobby readiness is derived from the active question and resets after invalidation', () => {
+  const arena = read('src/components/training/GodModeArena.jsx');
+
+  assert.match(arena, /const splashReady = gamePhase === 'splash' && Boolean\(currentQuestion\) && !loading && !error/);
+  assert.doesNotMatch(arena, /const \[splashReady, setSplashReady\]/);
+  assert.match(arena, /const loadFailed = gamePhase === 'splash' && !currentQuestion && !loading && Boolean\(error\)/);
+  assert.match(arena, /onClick=\{loadFailed \? handleRetryLoad : handleStartTraining\}/);
+  assert.match(arena, /disabled=\{!splashReady && !loadFailed\}/);
 });
 
 test('optional browser projections cannot suppress a persisted server verdict', () => {

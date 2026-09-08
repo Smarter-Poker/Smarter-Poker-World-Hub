@@ -271,6 +271,7 @@ export async function persistCanonicalTrainingQuestions(db, {
   level = 1,
   userId = null,
   requestId,
+  recordServed = true,
   label = 'TrainingCache:canonicalize',
 }) {
   const list = Array.isArray(questions) ? questions : [];
@@ -304,18 +305,20 @@ export async function persistCanonicalTrainingQuestions(db, {
     receipts.get(String(row.question_id)),
   ));
 
-  const baseRequestId = text(requestId, 170);
-  if (!baseRequestId) throw new Error('Canonical training persistence requires a request ID');
-  for (let offset = 0; offset < rows.length; offset += 50) {
-    const slice = rows.slice(offset, offset + 50);
-    await recordTrainingQuestionsServed(db, {
-      requestId: `${baseRequestId}:${Math.floor(offset / 50)}`,
-      userId,
-      receipts: slice.map((row) => ({
-        questionId: row.question_id,
-        policyChecksum: receipts.get(String(row.question_id))?.policy_checksum,
-      })),
-    });
+  if (recordServed) {
+    const baseRequestId = text(requestId, 170);
+    if (!baseRequestId) throw new Error('Canonical training persistence requires a request ID');
+    for (let offset = 0; offset < rows.length; offset += 50) {
+      const slice = rows.slice(offset, offset + 50);
+      await recordTrainingQuestionsServed(db, {
+        requestId: `${baseRequestId}:${Math.floor(offset / 50)}`,
+        userId,
+        receipts: slice.map((row) => ({
+          questionId: row.question_id,
+          policyChecksum: receipts.get(String(row.question_id))?.policy_checksum,
+        })),
+      });
+    }
   }
   return served;
 }

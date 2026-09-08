@@ -195,6 +195,10 @@ test('derives node actor and rejects malformed or actor-inconsistent decision pa
   terminalNode.strategy_matrix_v2.node = 'r:0:allin';
   assertRejected(terminalNode, 'V2_NODE_INVALID');
 
+  const nonPioRaiseToken = makeRow();
+  nonPioRaiseToken.strategy_matrix_v2.node = 'r:0:r500';
+  assertRejected(nonPioRaiseToken, 'V2_NODE_INVALID');
+
   const duplicateRunout = makeRow({ street: 'river', board: 'AsKdQcJh2s', hero: 'OOP', position: 'BB' });
   duplicateRunout.strategy_matrix_v2.node = 'r:0:Jh:Jh';
   assertRejected(duplicateRunout, 'V2_NODE_DUPLICATE_CARD');

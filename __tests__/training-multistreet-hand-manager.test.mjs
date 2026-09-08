@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -282,6 +283,15 @@ test('semantic continuation identity uses the raw source token only for exact po
   });
   semanticQuestion.scenario.solverActionUnits = 'chips';
   semanticQuestion.scenario.nextStreetContinuationSourceAction = 'b412';
+  semanticQuestion.solverPolicy = {
+    actions: [{
+      id: 'bet_75pct',
+      sourceCode: 'b412',
+      family: 'bet',
+      legal: true,
+      size: { unit: 'pot_fraction', bigBlinds: 4.12, exact: true },
+    }],
+  };
 
   const hand = new MultiStreetHand(semanticQuestion);
   assert.equal(hand.recordAction('bet_75pct', 'best', 0), true);
@@ -294,6 +304,114 @@ test('semantic continuation identity uses the raw source token only for exact po
   assert.equal(rawTokenIsNotAnswerIdentity.currentStreet, 'done');
   assert.equal(rawTokenIsNotAnswerIdentity.pot, 5.5);
   assert.equal(rawTokenIsNotAnswerIdentity.streetActions[0].action, 'b412');
+});
+
+test('later-street Pio targets use the signed actor increment and fail closed without it', () => {
+  const turnQuestion = makeQuestion({
+    id: 'turn-cumulative-source-action',
+    street: 'turn',
+    board: TURN,
+    pot: 13.74,
+    nextStreetContinuationAction: 'bet_75pct',
+  });
+  turnQuestion.scenario.solverActionUnits = 'chips';
+  turnQuestion.scenario.nextStreetContinuationSourceAction = 'b1442';
+  turnQuestion.solverPolicy = {
+    actions: [{
+      id: 'bet_75pct',
+      sourceCode: 'b1442',
+      family: 'bet',
+      legal: true,
+      // b1442 is a 14.42 BB cumulative contribution target. The actor
+      // already contributed 4.12 BB on the Flop, so only 10.30 BB is added.
+      size: { unit: 'pot_fraction', bigBlinds: 10.3, exact: true },
+    }],
+  };
+
+  const hand = new MultiStreetHand(turnQuestion);
+  assert.equal(hand.recordAction('bet_75pct', 'best', 0), true);
+  assert.ok(Math.abs(hand.pot - 34.34) < 1e-12);
+
+  const missingSize = structuredClone(turnQuestion);
+  delete missingSize.solverPolicy;
+  const rejected = new MultiStreetHand(missingSize);
+  assert.throws(
+    () => rejected.recordAction('bet_75pct', 'best', 0),
+    (error) => error instanceof MultiStreetContinuationError
+      && error.code === 'TRAINING_CONTINUATION_ACTION_SIZE_MISSING',
+  );
+  assert.equal(rejected.pot, 13.74);
+  assert.deepEqual(rejected.streetActions, []);
+  assert.deepEqual(rejected.evHistory, []);
+});
+
+test('a retired Pio rNNN continuation token fails closed before mutating the hand', () => {
+  const question = makeQuestion({
+    id: 'flop-retired-r-token',
+    street: 'flop',
+    board: FLOP,
+    pot: 5.5,
+    nextStreetContinuationAction: 'raise_75pct',
+  });
+  question.scenario.solverActionUnits = 'chips';
+  question.scenario.nextStreetContinuationSourceAction = 'r412';
+  question.solverPolicy = {
+    actions: [{
+      id: 'raise_75pct',
+      sourceCode: 'r412',
+      family: 'raise',
+      legal: true,
+      size: { unit: 'pot_fraction', bigBlinds: 4.12, exact: true },
+    }],
+  };
+
+  const hand = new MultiStreetHand(question);
+  assert.throws(
+    () => hand.recordAction('raise_75pct', 'best', 0),
+    (error) => error instanceof MultiStreetContinuationError
+      && error.code === 'TRAINING_CONTINUATION_ACTION_SIZE_INVALID',
+  );
+  assert.equal(hand.pot, 5.5);
+  assert.equal(hand.currentStreet, 'flop');
+  assert.deepEqual(hand.streetActions, []);
+  assert.deepEqual(hand.evHistory, []);
+});
+
+test('authored percentage actions retain the application rNNN convention', () => {
+  const question = makeQuestion({
+    id: 'flop-authored-r-action',
+    street: 'flop',
+    board: FLOP,
+    pot: 6,
+    nextStreetContinuationAction: 'r50',
+  });
+
+  const hand = new MultiStreetHand(question);
+  assert.equal(hand.recordAction('r50', 'best', 0), true);
+  assert.equal(hand.pot, 12);
+  assert.equal(hand.currentStreet, 'flop');
+  assert.deepEqual(hand.streetActions, [{ street: 'flop', action: 'r50', pot: 6 }]);
+});
+
+test('the deterministic engine keeps a second bNNN-only postflop Pio boundary', () => {
+  const source = fs.readFileSync(
+    new URL('../src/engines/DeterministicGTOEngine.js', import.meta.url),
+    'utf8',
+  );
+  const boundary = source.slice(
+    source.indexOf('// Raw Pio NodeID actions use `bNNN`'),
+    source.indexOf('// ═══ EXTRACT BOARD & POSITION DATA'),
+  );
+  const descriptions = source.slice(
+    source.indexOf('buildActionDescription(solverActions'),
+    source.indexOf('buildQuestionText(heroHand'),
+  );
+
+  assert.ok(boundary.length > 0, 'the raw Pio action boundary must remain reachable');
+  assert.match(boundary, /\^b\[1-9\]\\d\*\$/);
+  assert.doesNotMatch(boundary, /\[br\]/);
+  assert.match(descriptions, /raiseActions = solverActions\.filter\(a => \/\^b\[1-9\]\\d\*\$\//);
+  assert.doesNotMatch(descriptions, /startsWith\(['"]r['"]\)/);
 });
 
 test('declared street and board length must describe the same initial state', () => {

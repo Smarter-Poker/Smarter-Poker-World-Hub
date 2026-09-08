@@ -122,7 +122,7 @@ test('every live Training producer persists and receipts canonical questions bef
     'pages/api/training/spot-drill.js',
   ]) {
     const source = read(file);
-    assert.match(source, /policyChecksum|persistCanonicalTrainingQuestions/);
+    assert.match(source, /policyChecksum|persistCanonicalTrainingQuestions|withPersistedCacheReceipt/);
     assert.match(source, /recordTrainingQuestionsServed|persistCanonicalTrainingQuestions/);
   }
   for (const file of [

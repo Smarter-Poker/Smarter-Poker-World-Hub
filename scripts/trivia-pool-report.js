@@ -11,7 +11,9 @@
  *   node scripts/trivia-pool-report.js --json
  *   node scripts/trivia-pool-report.js --window=60 --headroom=1.25
  *
- * Env: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * Env: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (trivia_questions
+ * counts only). The deterministic solver seeder additionally requires
+ * SUPABASE_DB_PASSWORD because Phase 6 revoked service_role warehouse reads.
  * No node_modules required — it talks to PostgREST over fetch.
  *
  * ─── THE MATH ──────────────────────────────────────────────────────────────
@@ -207,7 +209,8 @@ async function main() {
                 console.log(`    # ${r.id}: ${r.usable}/${r.required} usable, short ${r.shortfall}`);
                 console.log(`    ${cmd}`);
             }
-            console.log('\n    Env required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, XAI_API_KEY');
+            console.log('\n    Env required for the selected fill: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+            console.log('    Deterministic solver fills also require SUPABASE_DB_PASSWORD (read-only warehouse operator connection).');
         }
         if (!summary.survival.meetsGuarantee) {
             console.log(`\n  Survival needs ${survivalRequired} usable pool-wide; there are ${totalUsable} ` +

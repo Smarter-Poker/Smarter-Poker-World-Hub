@@ -460,7 +460,7 @@ export default function CustomSolvePage() {
           }),
         });
         const data = await res.json().catch(() => null);
-        const hasExactSolverResult = data?.source === 'solved_spots_gold'
+        const hasExactSolverResult = data?.source === 'training_solver_artifact_catalog'
           && data?.matchQuality === 'exact_root_node'
           && data?.solution?.isEstimate === false
           && data?.solution?.actions

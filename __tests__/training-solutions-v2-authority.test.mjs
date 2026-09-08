@@ -8,7 +8,6 @@ const api = fs.readFileSync('pages/api/training/browse-solutions.js', 'utf8');
 const EXPECTED_EXPOSED_CONTRACTS = Object.freeze({
   hu_cash: [40, 100, 200],
   postflop_complete: [100],
-  mtt_6max_icm: [20, 40],
   mtt_6max_chipev: [10, 20, 40, 100],
 });
 
@@ -30,6 +29,8 @@ test('Solutions exposes only real Training family/stack contracts and requests f
   assert.deepEqual(exposedStackDepths(page), EXPECTED_EXPOSED_CONTRACTS);
   assert.match(page, /const BROWSE_STREET = 'flop'/);
   assert.match(page, /street: BROWSE_STREET/);
+  assert.doesNotMatch(page, /_icm/,
+    'the chip-EV Solutions catalog must not expose unsealed ICM filters');
 
   for (const [family, stacks] of Object.entries(EXPECTED_EXPOSED_CONTRACTS)) {
     assert.match(
@@ -39,6 +40,16 @@ test('Solutions exposes only real Training family/stack contracts and requests f
     );
   }
   assert.doesNotMatch(page, /turn_spin|river_mtt|spin_3max|spin_hu/);
+});
+
+test('Solutions reads only the active serving catalog in one bounded RPC', () => {
+  assert.match(api, /training_solver_spot_candidates_v1/);
+  assert.match(api, /validateSolverRowIdentity/);
+  assert.match(api, /const SOLVER_QUERY_TIMEOUT_MS = 8_000/);
+  assert.match(api, /query\.abortSignal\(controller\.signal\)/);
+  assert.doesNotMatch(api, /\.from\(['"]solved_spots_gold['"]\)/);
+  assert.doesNotMatch(api, /customSolverProvenanceIsComplete/,
+    'field-shaped provenance is not a serving-authority check');
 });
 
 test('Solutions renders only fields backed by the provenance-complete v2 response', () => {

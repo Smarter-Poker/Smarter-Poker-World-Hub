@@ -1,5 +1,4 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { randomUUID } from 'node:crypto';
 /**
  * GET /api/training/get-question
  * Fetches next question for a training game session
@@ -41,12 +40,18 @@ import {
   isTrainingAttemptContractError,
   isTrainingQuestionCampaignEligible,
   prepareTrainingAttemptDelivery,
+  recordTrainingQuestionsServedForAttempt,
+  recoverTrainingAttemptHand,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  normalizeTrainingGameMode,
+  normalizeTrainingHandSelection,
+  trainingQuestionMatchesSelection,
+} from '../../../src/lib/training/questionSelectionContract.mjs';
 import {
   buildTrainingCacheRow,
   cacheQuestionFromRow,
   cacheRowIsServingEligible,
-  recordTrainingQuestionsServed,
   withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
@@ -89,6 +94,9 @@ export default async function handler(req, res) {
       difficulty: rawDifficulty = 'standard',
       sessionId: rawSessionId,
       handOrdinal: rawHandOrdinal = '1',
+      gameMode: rawGameMode,
+      handSelection: rawHandSelection,
+      targetStreet: rawTargetStreet,
     } = req.query;
     const gameId = sanitizeParam(rawGameId, 100);
     const level = Math.min(12, Math.max(1, parseInt(rawLevel, 10) || 1));
@@ -96,7 +104,24 @@ export default async function handler(req, res) {
     const difficulty = ['beginner', 'standard', 'expert', 'simple', 'grouped', 'exact'].includes(String(rawDifficulty).toLowerCase())
       ? String(rawDifficulty).toLowerCase()
       : 'standard';
-    const trainingSessionId = sanitizeParam(rawSessionId, 180) || createTrainingSessionId();
+    const requestedSessionId = sanitizeParam(rawSessionId, 180);
+    const hasExplicitSessionId = Boolean(requestedSessionId);
+    const trainingSessionId = requestedSessionId || createTrainingSessionId();
+    const gameMode = normalizeTrainingGameMode(rawGameMode);
+    const handSelection = normalizeTrainingHandSelection(rawHandSelection);
+    const validStreets = new Set(['preflop', 'flop', 'turn', 'river']);
+    const requestedStreet = String(rawTargetStreet || '').trim().toLowerCase();
+    const targetStreet = gameMode === 'street' && validStreets.has(requestedStreet)
+      ? requestedStreet
+      : null;
+    if (gameMode === 'street' && !targetStreet) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid targetStreet is required for street training.',
+        code: 'TRAINING_ATTEMPT_SELECTION_INVALID',
+      });
+    }
+    const attemptSelection = { gameMode, handSelection, targetStreet };
     const handOrdinal = Math.min(
       trainingMasteryMinimum(level),
       Math.max(1, Number.parseInt(rawHandOrdinal, 10) || 1),
@@ -123,6 +148,92 @@ export default async function handler(req, res) {
       const gameConfig = getGameConfig(gameId);
       const gameType = gameConfig.gameType; // 'cash', 'tournament', or 'sng'
       const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
+      const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
+      const buildCanonicalCandidate = (candidate, sourceRow = null) => buildTrainingCacheRow({
+        question: candidate,
+        questionId: sourceRow?.question_id || candidate?.id,
+        gameId,
+        questionKind: preferredEngine === 'SCENARIO' ? 'SCENARIO'
+          : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
+        gameType: String(gameId).startsWith('mtt-') ? 'tournament'
+          : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
+        level,
+        generatedAt: sourceRow?.generated_at || new Date().toISOString(),
+        id: sourceRow?.id || null,
+      });
+
+      // Retry an already-registered ordinal from its immutable attempt
+      // manifest before consulting the mutable serving cache. A refresh may
+      // remove or replace the source row, but it cannot erase a hand that won
+      // the original registration race.
+      let attemptConfig = attemptSelection;
+      let recovered = null;
+      let recoveryFailure = null;
+      const recoverWithConfig = (config) => recoverTrainingAttemptHand({
+        supabase: getSupabase(),
+        userId,
+        clientSessionId: trainingSessionId,
+        gameId,
+        level,
+        sessionKind: 'campaign',
+        difficultyMode: difficulty,
+        requestedHands: trainingMasteryMinimum(level),
+        handOrdinal,
+        config,
+        questionSelection: attemptSelection,
+      });
+      if (hasExplicitSessionId) {
+        try {
+          recovered = await recoverWithConfig(attemptConfig);
+        } catch (initialRecoveryError) {
+          const canResumePredecessorConfig = initialRecoveryError?.code === 'TRAINING_ATTEMPT_NONCE_CONFLICT'
+            && attemptSelection.gameMode === 'full'
+            && attemptSelection.handSelection === 'all'
+            && attemptSelection.targetStreet === null;
+          if (canResumePredecessorConfig) {
+            // The immediately preceding release bound this nonce to
+            // { engineType }. Open attempts expire after 24 hours, so this exact
+            // compatibility retry is bounded. Constrained drills never use it.
+            attemptConfig = { engineType };
+            try {
+              recovered = await recoverWithConfig(attemptConfig);
+            } catch (legacyRecoveryError) {
+              recoveryFailure = legacyRecoveryError;
+            }
+          } else {
+            recoveryFailure = initialRecoveryError;
+          }
+        }
+      }
+      if (recoveryFailure) {
+        console.warn('[Training] Attempt recovery failed:', recoveryFailure?.message || recoveryFailure);
+        if (isTrainingAttemptContractError(recoveryFailure)) {
+          return res.status(recoveryFailure.status || 409).json({
+            success: false,
+            error: recoveryFailure.message,
+            code: recoveryFailure.code,
+          });
+        }
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+      }
+      if (recovered?.questions?.length === 1) {
+        await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+          userId,
+          delivery: recovered,
+        });
+        return res.status(200).json({
+          success: true,
+          question: recovered.questions[0],
+          level,
+          sessionId: trainingSessionId,
+          attemptId: recovered.attemptId,
+          sessionKind: recovered.sessionKind,
+          targetHands: recovered.targetHands,
+          passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
+          gameType,
+          engineType,
+        });
+      }
 
       // ═══════════════════════════════════════════════════════════════════
       // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
@@ -156,7 +267,7 @@ export default async function handler(req, res) {
       // Fresh-from-solver regeneration loses all of that pedagogical work, so
       // we try cache FIRST and fall back to engines only on cache miss.
       let question = null;
-      let selectedCacheRow = null;
+      let canonicalPayload = null;
 
       {
         let cachedQuestions;
@@ -192,13 +303,34 @@ export default async function handler(req, res) {
         ).map((row) => ({
           ...row,
           question_data: normalizeCampaignQuestionWithoutFabrication(row?.question_data),
-        })).filter((row) => row.question_data);
+        })).filter((row) => (
+          row.question_data
+          && trainingQuestionMatchesSelection(row.question_data, attemptSelection)
+        ));
 
         if (eligibleCached && eligibleCached.length > 0) {
           const randomIndex = Math.floor(Math.random() * eligibleCached.length);
-          selectedCacheRow = eligibleCached[randomIndex];
-          question = selectedCacheRow.question_data;
-          if (question) question.id = selectedCacheRow.question_id || question.id;
+          const randomizedCandidates = [
+            ...eligibleCached.slice(randomIndex),
+            ...eligibleCached.slice(0, randomIndex),
+          ];
+          for (const candidateRow of randomizedCandidates) {
+            const candidateQuestion = candidateRow.question_data;
+            if (candidateQuestion) {
+              candidateQuestion.id = candidateRow.question_id || candidateQuestion.id;
+            }
+            try {
+              const candidatePayload = buildCanonicalCandidate(candidateQuestion, candidateRow);
+              question = candidateQuestion;
+              canonicalPayload = candidatePayload;
+              break;
+            } catch (candidateError) {
+              console.warn(
+                `[Training] Skipping an uncanonicalizable cached candidate ${String(candidateRow.question_id || candidateQuestion?.id || 'unknown')}:`,
+                candidateError?.message || candidateError,
+              );
+            }
+          }
         }
       }
 
@@ -215,15 +347,33 @@ export default async function handler(req, res) {
           const generated = await deterministicEngine.generateBatch({
             gameId,
             level: parseInt(level, 10),
-            count: 1,
+            count: gameMode === 'street' || handSelection !== 'all'
+              ? Math.min(50, trainingMasteryMinimum(level) * 2)
+              : 1,
             seenIds: seenQuestionIds,
             gameConfig: pioConfig,
+            targetStreet: targetStreet || undefined,
             targetPositions: scenarioConfig?.positions || undefined,
             scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
             spotTypes: scenarioConfig?.spotTypes || undefined,
             stackDepths: scenarioConfig?.stackDepths || undefined,
           });
-          question = generated?.[0] || null;
+          const generatedCandidates = (generated || [])
+            .map((candidate) => normalizeCampaignQuestionWithoutFabrication(candidate))
+            .filter((candidate) => candidate && trainingQuestionMatchesSelection(candidate, attemptSelection));
+          for (const candidate of generatedCandidates) {
+            try {
+              const candidatePayload = buildCanonicalCandidate(candidate);
+              question = candidate;
+              canonicalPayload = candidatePayload;
+              break;
+            } catch (candidateError) {
+              console.warn(
+                `[Training] Skipping an uncanonicalizable generated candidate ${String(candidate?.id || 'unknown')}:`,
+                candidateError?.message || candidateError,
+              );
+            }
+          }
           if (question) {
             console.debug(
               `[Training] Deterministic engine served (cache miss): ${question.source}`
@@ -255,10 +405,14 @@ export default async function handler(req, res) {
       }
 
       if (!question) {
-        return res.status(404).json({
+        const constrainedAttempt = gameMode === 'street' || handSelection !== 'all';
+        return res.status(constrainedAttempt ? 422 : 404).json({
           success: false,
-          error: 'No questions available',
-          message: 'All questions for this game have been completed',
+          error: constrainedAttempt
+            ? 'No canonical question satisfies this immutable drill configuration.'
+            : 'No questions available',
+          code: constrainedAttempt ? 'TRAINING_ATTEMPT_QUESTION_SHORTFALL' : undefined,
+          message: constrainedAttempt ? undefined : 'All questions for this game have been completed',
         });
       }
 
@@ -276,19 +430,13 @@ export default async function handler(req, res) {
       // API can independently regrade the same question. Authority-ineligible
       // legacy, heuristic, simulated, and incomplete rows cannot reach here.
       if (question?.id) {
-        const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
-        const canonicalPayload = buildTrainingCacheRow({
-          question,
-          questionId: question.id,
-          gameId,
-          questionKind: preferredEngine === 'SCENARIO' ? 'SCENARIO'
-            : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
-          gameType: String(gameId).startsWith('mtt-') ? 'tournament'
-            : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
-          level,
-          generatedAt: selectedCacheRow?.generated_at || new Date().toISOString(),
-          id: selectedCacheRow?.id || null,
-        });
+        if (!canonicalPayload) {
+          return res.status(422).json({
+            success: false,
+            error: 'This question did not pass canonical persistence validation.',
+            code: 'TRAINING_ATTEMPT_QUESTION_AUTHORITY_INELIGIBLE',
+          });
+        }
         try {
           const persisted = await runTrainingPersistenceQuery(
             () => getSupabase()
@@ -305,14 +453,6 @@ export default async function handler(req, res) {
             throw new Error('Canonical cache persistence returned no verifiable receipt');
           }
           question = withPersistedCacheReceipt(canonicalPayload.question_data, persisted.data);
-          await recordTrainingQuestionsServed(getSupabase(), {
-            requestId: randomUUID(),
-            userId,
-            receipts: [{
-              questionId: canonicalPayload.question_id,
-              policyChecksum: persisted.data.policy_checksum,
-            }],
-          });
         } catch (canonicalizeError) {
           console.warn('[Training] Refusing to serve an uncanonicalized question:', canonicalizeError.message);
           return res.status(503).json(trainingPersistenceUnavailableBody());
@@ -338,7 +478,7 @@ export default async function handler(req, res) {
           questions: [question],
           handOrdinalStart: handOrdinal,
           requireFullAttempt: false,
-          config: { engineType },
+          config: attemptConfig,
         });
       } catch (deliveryError) {
         console.warn('[Training] Attempt delivery failed:', deliveryError?.message || deliveryError);
@@ -352,6 +492,15 @@ export default async function handler(req, res) {
         return res.status(503).json(trainingPersistenceUnavailableBody());
       }
       const servedQuestion = delivery.questions[0];
+      try {
+        await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+          userId,
+          delivery,
+        });
+      } catch (servedAuditError) {
+        console.warn('[Training] Delivered question audit failed:', servedAuditError?.message || servedAuditError);
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+      }
 
       return res.status(200).json({
         success: true,
@@ -363,6 +512,7 @@ export default async function handler(req, res) {
         targetHands: delivery.targetHands,
         passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
         gameType, // Return game type for debugging
+        engineType,
       });
     } catch (error) {
       console.warn('[Training] ✕ Get question error:', error);

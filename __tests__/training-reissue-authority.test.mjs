@@ -110,6 +110,7 @@ function loadHandler(fixtures = {}) {
     '../../../src/lib/training/questionContract.mjs': { isTrainingQuestionValid: () => true },
     '../../../src/lib/training/trainingAttemptDelivery.mjs': {
       isTrainingAttemptContractError: () => false,
+      trainingQuestionSnapshotMatchesIdentity: () => true,
       trainingQuestionCampaignEligibility: (question) => ({
         eligible: question?.authorityEligible !== false,
         reason: question?.authorityEligible === false ? 'authority_unverified' : 'test_fixture',
@@ -123,6 +124,13 @@ function loadHandler(fixtures = {}) {
           questions: input.questions.map((question) => ({ id: question.id })),
         };
       },
+      recordTrainingQuestionsServedForAttempt: async (_db, input) => {
+        calls.servedDelivery = input;
+        return { questionCount: input.delivery.questions.length };
+      },
+      trainingAttemptDecisionServeKey: (attemptId, handOrdinal, decisionOrdinal) => (
+        `training-attempt:${attemptId}:hand:${handOrdinal}:decision:${decisionOrdinal}`
+      ),
     },
     '../../../src/lib/training/sessionAttemptContract.mjs': {
       normalizeTrainingSessionKind: (value) => String(value || 'campaign').toLowerCase(),
@@ -246,12 +254,24 @@ test('campaign recovery requires the exact untouched manifest and preserves atte
   assert.deepEqual(exactResponse.body.questions.map(({ id }) => id), ['q-1', 'q-2']);
   assert.equal(exact.calls.attemptDeliveries.length, 0);
   assert.equal(exact.calls.receiptDeliveries.length, 2);
+  assert.equal(exact.calls.servedDelivery.delivery.attemptId, 'attempt-1');
+  assert.deepEqual(
+    exact.calls.servedDelivery.delivery.questions.map(({ id }) => id),
+    ['q-1', 'q-2'],
+  );
   assert.ok(exact.calls.receiptDeliveries.every((delivery) => (
     delivery.attemptId === 'attempt-1'
     && delivery.sessionId === 'session-1'
     && delivery.practiceOnly === false
     && delivery.difficultyMode === 'grouped'
   )));
+  assert.deepEqual(
+    exact.calls.receiptDeliveries.map((delivery) => delivery.receiptId),
+    [
+      'training-attempt:attempt-1:hand:1:decision:1',
+      'training-attempt:attempt-1:hand:2:decision:1',
+    ],
+  );
 });
 
 test('a started campaign cannot refresh receipts for already allocated hands', async () => {
@@ -348,4 +368,6 @@ test('mistake replay accepts only incorrect parent hands and remains practice-on
   assert.equal(accepted.calls.attemptDeliveries[0].requestedHands, 1);
   assert.equal(accepted.calls.attemptDeliveries[0].difficultyMode, 'grouped');
   assert.equal(accepted.calls.attemptDeliveries[0].parentAttemptId, 'attempt-1');
+  assert.equal(accepted.calls.servedDelivery.delivery.attemptId, 'replay-attempt');
+  assert.deepEqual(accepted.calls.servedDelivery.delivery.questions.map(({ id }) => id), ['q-2']);
 });

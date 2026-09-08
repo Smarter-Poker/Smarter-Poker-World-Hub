@@ -2,12 +2,12 @@
  * 🐴 HORSE POKER GTO - PioSolver-Integrated AI
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Uses solved_spots_gold and memory_charts_gold from Supabase to make
+ * Uses the active solver artifact catalog and memory_charts_gold to make
  * GTO-informed decisions. Each horse has personality traits that affect
  * how they interpret and deviate from solver output.
  * 
  * Tables Used:
- * - solved_spots_gold: Postflop GTO solutions with strategy_matrix
+ * - active solver catalog: admitted postflop V2 policies only
  * - memory_charts_gold: Preflop/PushFold/Nash charts
  * - horse_personality: GTO traits per horse
  * 
@@ -511,7 +511,7 @@ export function getPositionRange(position, scenario, profileId = null) {
 
 /**
  * Get solver-recommended bet size
- * @param {Object} strategyData - From solved_spots_gold
+ * @param {Object} strategyData - From the admitted solver policy service
  * @param {string} hand - Hand string (e.g., "AKs")
  * @returns {Object} Sizing recommendation
  */

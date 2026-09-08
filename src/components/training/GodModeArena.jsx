@@ -1067,6 +1067,8 @@ function GodModeArenaInner({
     answerSaveError,
     answerSaveRetrying,
     answerSaveRequiresRefresh,
+    transitionError,
+    transitionRetrying,
     correctCount,
     streak,
     bestStreak,
@@ -1114,6 +1116,7 @@ function GodModeArenaInner({
     submitAnswer,
     nextQuestion,
     retryAnswerPersistence,
+    retryTransition,
     startNextLevel,
     retryLevel,
     retrainMistakes,
@@ -1466,17 +1469,13 @@ function GodModeArenaInner({
   );
 
   // ●●● PHASE 18: Splash stays until user clicks Start (no auto-transition) ●●●
-  const [splashReady, setSplashReady] = useState(false);
-  useEffect(() => {
-    if (gamePhase === 'splash' && currentQuestion && !loading) {
-      setSplashReady(true);
-    }
-  }, [gamePhase, currentQuestion, loading]);
+  const splashReady = gamePhase === 'splash' && Boolean(currentQuestion) && !loading && !error;
 
   /**
    * THE LOBBY MUST BE ABLE TO SAY "THIS FAILED" (2026-09-07).
    *
-   * `splashReady` only ever goes true, and the Start button's label was a
+   * A sticky `splashReady` flag used to stay true after session/config
+   * invalidation, and the Start button's label was a
    * two-way choice between it and `Loading Solver Data...`. So a failed
    * question fetch — which sets `error` and leaves `currentQuestion` null —
    * rendered as a permanently disabled button that claimed to still be
@@ -1485,7 +1484,7 @@ function GodModeArenaInner({
    * timeout on `toBeEnabled()`, which reads like flakiness rather than an
    * outage.
    */
-  const loadFailed = !splashReady && !loading && Boolean(error);
+  const loadFailed = gamePhase === 'splash' && !currentQuestion && !loading && Boolean(error);
   const handleRetryLoad = useCallback(() => {
     reloadQuestions?.();
   }, [reloadQuestions]);
@@ -4215,6 +4214,67 @@ function GodModeArenaInner({
       </button>
     </div>
   ) : null;
+  const transitionKind = transitionError?.kind || 'next-hand';
+  const transitionTitle = transitionKind === 'continuation'
+    ? 'Next Street Failed'
+    : transitionKind === 'completion'
+      ? 'Completion Failed'
+      : 'Next Hand Failed';
+  const transitionRetryLabel = transitionKind === 'continuation'
+    ? 'Retry Next Street'
+    : transitionKind === 'completion'
+      ? 'Retry Completion'
+      : 'Retry Next Hand';
+  const transitionNotice = transitionError ? (
+    <div
+      role="alert"
+      data-testid="training-transition-error"
+      style={{
+        position: 'absolute',
+        left: '50%',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)',
+        transform: 'translateX(-50%)',
+        zIndex: 500,
+        width: 'min(92vw, 560px)',
+        padding: '14px 16px',
+        background: 'linear-gradient(180deg, rgba(54,35,12,.98), rgba(13,9,5,.98))',
+        border: '1px solid rgba(251,191,36,.72)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.16), 0 14px 36px rgba(0,0,0,.62)',
+        color: '#fef3c7',
+        display: 'flex',
+        gap: 14,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      <div>
+        <div style={{ color: '#fbbf24', fontSize: 13, fontWeight: 900, letterSpacing: '.06em' }}>
+          {transitionTitle}
+        </div>
+        <div style={{ marginTop: 3, fontSize: 11, lineHeight: 1.45 }}>
+          {transitionError.message || 'The answered hand is still on screen. Retry this transition to continue.'}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={retryTransition}
+        disabled={transitionRetrying}
+        data-testid="training-transition-retry"
+        style={{
+          minWidth: 136,
+          minHeight: 44,
+          border: '1px solid rgba(253,230,138,.72)',
+          background: 'linear-gradient(180deg, #92400e, #451a03)',
+          color: '#fff',
+          fontWeight: 850,
+          cursor: transitionRetrying ? 'wait' : 'pointer',
+          opacity: transitionRetrying ? .7 : 1,
+        }}
+      >
+        {transitionRetrying ? 'Retrying…' : transitionRetryLabel}
+      </button>
+    </div>
+  ) : null;
 
   if (hasFullScreenUI) {
     return (
@@ -4585,13 +4645,13 @@ function GodModeArenaInner({
                       padding: '16px 0',
                       borderRadius: 12,
                       border: 'none',
-                      background: splashReady
+                      background: splashReady || loadFailed
                         ? 'linear-gradient(135deg, #00d4ff, #0891b2)'
                         : 'rgba(100,116,139,0.2)',
-                      color: splashReady ? '#fff' : '#64748b',
+                      color: splashReady || loadFailed ? '#fff' : '#64748b',
                       fontSize: 16,
                       fontWeight: 800,
-                      cursor: splashReady ? 'pointer' : 'default',
+                      cursor: splashReady || loadFailed ? 'pointer' : 'default',
                       letterSpacing: 0.5,
                       transition: 'all 0.2s',
                       fontFamily: "'Inter', -apple-system, sans-serif",
@@ -4741,6 +4801,7 @@ function GodModeArenaInner({
                   trainerConfig={resolvedTrainerConfig}
                 />
                 {answerSaveNotice}
+                {transitionNotice}
                 </>
               ) : null}
             </motion.div>
@@ -4819,6 +4880,7 @@ function GodModeArenaInner({
             trainerConfig={resolvedTrainerConfig}
           />
           {answerSaveNotice}
+          {transitionNotice}
           </>
         ) : null}
       </div>

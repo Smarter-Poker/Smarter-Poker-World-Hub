@@ -123,9 +123,11 @@ function parseNodeIdentity(node) {
       continue;
     }
 
-    // A decision path can contain checks/calls or positive Pio b/r targets.
-    // Fold/all-in paths are terminal and cannot identify another decision.
-    if (token === 'c' || /^[br][1-9]\d*$/.test(token)) {
+    // A decision path can contain checks/calls or positive Pio b targets.
+    // Official UPI uses bNNN for both bets and raises; rNNN is not a NodeID
+    // action token. Fold/all-in paths are terminal and cannot identify another
+    // decision.
+    if (token === 'c' || /^b[1-9]\d*$/.test(token)) {
       actor = actor === 'OOP' ? 'IP' : 'OOP';
       continue;
     }

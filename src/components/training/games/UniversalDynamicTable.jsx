@@ -27,7 +27,13 @@ import ActionButton from '../../poker/ActionButton';
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
 import { toEngineDifficulty } from '../../../engines/DifficultyEngine';
 import { formatSignedScore } from '../../../engines/GTOScoreEngine';
-import { buildRangeGridData, rangeGridActions, handNotationFromCards } from '../rangeGridData';
+import {
+    buildRangeActionPresentation,
+    buildRangeGridData,
+    rangeGridActions,
+    rangeFrequencyPercentMultiplier,
+    handNotationFromCards,
+} from '../rangeGridData';
 import { aggregateByHandClass, buildClassificationData } from '../../../lib/training/handClassStrategy';
 import { committedFor, computeDisplayPot } from './potMath';
 import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars';
@@ -341,39 +347,22 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
  *   Check = Blue, Call = Green, Bet sizes = Red spectrum,
  *   Raise = Purple, Fold = Gray, All-in = Dark Red
  */
-const RANGE_ACTION_COLORS = {
-    'c': 'var(--sp-accent-blue)', 'x': 'var(--sp-accent-blue)', 'check': 'var(--sp-accent-blue)',
-    'call': 'var(--sp-accent-green)',
-    'f': 'var(--sp-fg-faint)', 'fold': 'var(--sp-fg-faint)',
-    'allin': 'var(--sp-accent-red)',
-    'b16': 'var(--sp-accent-emerald)', 'b20': 'var(--sp-accent-emerald)', 'b25': 'var(--sp-accent-emerald)', 'b33': 'var(--sp-accent-emerald)',
-    'b40': 'var(--sp-accent-cyan)', 'b45': 'var(--sp-accent-cyan)', 'b50': 'var(--sp-accent-cyan)', 'b55': 'var(--sp-accent-cyan)',
-    'b60': 'var(--sp-accent-blue)', 'b66': 'var(--sp-accent-blue)', 'b75': 'var(--sp-accent-blue)', 'b80': 'var(--sp-accent-blue)',
-    'b100': 'var(--sp-accent-red)',
-    'b125': 'var(--sp-accent-orange)', 'b150': 'var(--sp-accent-amber)', 'b200': 'var(--sp-accent-amber)', 'b300': 'var(--sp-accent-amber)',
-    'r50': 'var(--sp-accent-purple)', 'r75': 'var(--sp-accent-purple)', 'r100': 'var(--sp-accent-purple)', 'r200': 'var(--sp-accent-purple)', 'r300': 'var(--sp-accent-purple)',
-    'r': 'var(--sp-accent-purple)', 'b': 'var(--sp-accent-red)',
-};
-
-function getRangeActionColor(action) {
-    if (!action) return 'var(--sp-bg-elev2)';
-    const a = action.toLowerCase();
-    if (RANGE_ACTION_COLORS[a]) return RANGE_ACTION_COLORS[a];
-    if (a.startsWith('b')) {
-        const m = a.match(/^b(\d+)$/);
-        if (m) { const p = parseInt(m[1]); return p <= 33 ? 'var(--sp-accent-emerald)' : p <= 66 ? 'var(--sp-accent-blue)' : p <= 100 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)'; }
-        return 'var(--sp-accent-red)';
-    }
-    if (a.startsWith('r')) return 'var(--sp-accent-purple)';
-    return 'var(--sp-fg-faint)';
+function rangeActionMetadata(action, actionPresentation) {
+    return actionPresentation?.[String(action || '').toLowerCase()] || null;
 }
 
-function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
+function RangeMatrixViewer({ rawFrequencies, actionPresentation, show, heroHand }) {
     // Build multi-action 13x13 matrix
     const { matrix, actionLegend } = useMemo(() => {
-        if (!rawFrequencies) return { matrix: [], actionLegend: [] };
+        if (!rawFrequencies || !actionPresentation) return { matrix: [], actionLegend: [] };
         const grid = [];
-        const actions = Object.keys(rawFrequencies || {});
+        const actions = Object.keys(rawFrequencies || {}).filter(
+            (action) => rangeActionMetadata(action, actionPresentation),
+        );
+        if (actions.length !== Object.keys(rawFrequencies || {}).length) {
+            return { matrix: [], actionLegend: [] };
+        }
+        const fractionMultiplier = rangeFrequencyPercentMultiplier(rawFrequencies) / 100;
         const actionSet = new Set();
 
         for (let r = 0; r < 13; r++) {
@@ -391,7 +380,10 @@ function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
                 const handActions = {};
 
                 for (const action of actions) {
-                    const freq = rawFrequencies[action]?.[hand] || 0;
+                    const rawFrequency = Number(rawFrequencies[action]?.[hand]);
+                    const freq = Number.isFinite(rawFrequency) && rawFrequency >= 0
+                        ? Math.min(1, rawFrequency * fractionMultiplier)
+                        : 0;
                     if (freq > 0.005) { // Skip noise
                         handActions[action] = freq;
                         totalFreq += freq;
@@ -413,16 +405,16 @@ function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
 
         // Build legend from actions actually present
         const legend = [...actionSet].sort((a, b) => {
-            const order = { 'f': 0, 'c': 1, 'x': 1, 'call': 2 };
-            const aOrd = order[a.toLowerCase()] ?? (a.startsWith('b') ? 3 : a.startsWith('r') ? 4 : 5);
-            const bOrd = order[b.toLowerCase()] ?? (b.startsWith('b') ? 3 : b.startsWith('r') ? 4 : 5);
+            const order = { fold: 0, check: 1, call: 2, bet: 3, raise: 4, all_in: 5 };
+            const aOrd = order[rangeActionMetadata(a, actionPresentation)?.family] ?? 6;
+            const bOrd = order[rangeActionMetadata(b, actionPresentation)?.family] ?? 6;
             return aOrd - bOrd;
         });
 
         return { matrix: grid, actionLegend: legend };
-    }, [rawFrequencies, heroHand]);
+    }, [rawFrequencies, actionPresentation, heroHand]);
 
-    if (!show || !rawFrequencies || matrix.length === 0) return null;
+    if (!show || !rawFrequencies || !actionPresentation || matrix.length === 0) return null;
 
     return (
         <motion.div
@@ -436,15 +428,17 @@ function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, maxWidth: 300, margin: '0 auto' }}>
                 {matrix.flat().map((cell, i) => {
-                    const bgColor = cell.bestAction ? getRangeActionColor(cell.bestAction) : 'rgba(255,255,255,0.03)';
+                    const bgColor = cell.bestAction
+                        ? rangeActionMetadata(cell.bestAction, actionPresentation)?.color
+                        : 'rgba(255,255,255,0.03)';
                     const opacity = cell.bestFreq > 0 ? Math.max(0.3, cell.bestFreq) : 0.08;
                     // Mixed strategy: show gradient between top 2 actions
                     let background = bgColor;
                     if (cell.isMixed) {
                         const sorted = Object.entries(cell.handActions || {}).sort((a, b) => b[1] - a[1]);
                         if (sorted.length >= 2) {
-                            const c1 = getRangeActionColor(sorted[0][0]);
-                            const c2 = getRangeActionColor(sorted[1][0]);
+                            const c1 = rangeActionMetadata(sorted[0][0], actionPresentation)?.color;
+                            const c2 = rangeActionMetadata(sorted[1][0], actionPresentation)?.color;
                             const pct = Math.round(sorted[0][1] * 100);
                             background = `linear-gradient(135deg, ${c1} ${pct}%, ${c2} ${pct}%)`;
                         }
@@ -452,7 +446,7 @@ function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
 
                     // Build tooltip with all actions
                     const tip = cell.bestAction
-                        ? `${cell.hand}: ${Object.entries(cell.handActions || {}).sort((a, b) => b[1] - a[1]).map(([a, f]) => `${a} ${(f * 100).toFixed(0)}%`).join(', ')}`
+                        ? `${cell.hand}: ${Object.entries(cell.handActions || {}).sort((a, b) => b[1] - a[1]).map(([a, f]) => `${rangeActionMetadata(a, actionPresentation)?.displayLabel} ${(f * 100).toFixed(0)}%`).join(', ')}`
                         : `${cell.hand}: not in range`;
 
                     return (
@@ -485,11 +479,11 @@ function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
             {/* Action color legend */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                 {actionLegend.slice(0, 6).map(action => {
-                    const label = ACTION_LABELS_SHORT[action.toLowerCase()] || action;
+                    const presentation = rangeActionMetadata(action, actionPresentation);
                     return (
                         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 7, color: 'var(--sp-fg-muted)' }}>
-                            <div style={{ width: 7, height: 7, borderRadius: 2, background: getRangeActionColor(action) }} />
-                            {label}
+                            <div style={{ width: 7, height: 7, borderRadius: 2, background: presentation.color }} />
+                            {presentation.displayLabel}
                         </div>
                     );
                 })}
@@ -2359,9 +2353,10 @@ function UniversalDynamicTable({
             // reads `amount` first and only then falls back to the first number
             // in the action text; `action` is prose ("CO bets into BTN") and has
             // no number in it, so without this every seat committed 0 and the
-            // chip badge never drew. `villainBet` is the number the engine
-            // already printed to the player in the question text.
-            const bet = Number(scen.villainBet) || 0;
+            // chip badge never drew. Facing amount and chips already committed
+            // diverge after a re-raise: committedFor consumes TOTALS-TO, so use
+            // the exact current-street total when the solver supplies it.
+            const bet = Number(scen.villainCommittedTotal ?? scen.villainBet) || 0;
             built.push(bet > 0
                 ? { position: villainPosition, action: villainAction, amount: bet }
                 : { position: villainPosition, action: villainAction });
@@ -2426,13 +2421,18 @@ function UniversalDynamicTable({
             || infoPanelQuestion?.gtoData?.rawFrequencies
             || null;
         const gridData = buildRangeGridData(raw);
-        if (!gridData) return null;
+        const actionPresentation = buildRangeActionPresentation(
+            infoPanelQuestion?.solverPolicy,
+            raw,
+        );
+        if (!gridData || !actionPresentation) return null;
         const cards = infoPanelQuestion?.heroCards
             || infoPanelQuestion?.cards
             || heroCards;
         return {
             gridData,
             actions: rangeGridActions(raw),
+            actionPresentation,
             heroHand: handNotationFromCards(cards),
             // Per-hand EVs for the Range tab's overlay. RangeGrid has accepted
             // `handEVs` / `showEVOverlay` since it was written and this call
@@ -4872,6 +4872,7 @@ function UniversalDynamicTable({
                                     handEVs={rangeModeGrid.handEVs}
                                     showEVOverlay={Boolean(rangeModeGrid.handEVs)}
                                     classificationData={rangeClassification}
+                                    actionPresentation={rangeModeGrid.actionPresentation}
                                 />
                             ) : (
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textAlign: 'center', padding: '12px 8px', lineHeight: 1.5 }}>
@@ -5671,7 +5672,7 @@ function UniversalDynamicTable({
                                     >
                                         {showWhyDrawer ? 'Hide Details' : 'Why?'}
                                     </button>
-                                    {fq?.rawFrequencies && (
+                                    {fq?.rawFrequencies && rangeModeGrid?.actionPresentation && (
                                         <button
                                             onClick={() => setShowRangeGrid(!showRangeGrid)}
                                             style={{
@@ -5688,9 +5689,10 @@ function UniversalDynamicTable({
                                 </div>
                                 {/* Phase 33: Range Matrix Viewer */}
                                 <AnimatePresence>
-                                    {showRangeGrid && fq?.rawFrequencies && (
+                                    {showRangeGrid && fq?.rawFrequencies && rangeModeGrid?.actionPresentation && (
                                         <RangeMatrixViewer
                                             rawFrequencies={fq.rawFrequencies}
+                                            actionPresentation={rangeModeGrid?.actionPresentation}
                                             show={showRangeGrid}
                                             heroHand={fq?.heroHand || fScenario.heroHand}
                                         />
@@ -6160,7 +6162,11 @@ function UniversalDynamicTable({
                                 // owner and also normalizes 0-1 vs 0-100 scale.
                                 const actions = rangeGridActions(fq.rawFrequencies);
                                 const gridData = buildRangeGridData(fq.rawFrequencies);
-                                if (!gridData) return null;
+                                const actionPresentation = buildRangeActionPresentation(
+                                    fq?.solverPolicy,
+                                    fq.rawFrequencies,
+                                );
+                                if (!gridData || !actionPresentation) return null;
                                 const heroHand = handNotationFromCards(fq?.heroCards || fq?.cards);
                                 return (
                                     <motion.div
@@ -6182,6 +6188,7 @@ function UniversalDynamicTable({
                                             cellSize={20}
                                             heroHand={heroHand}
                                             compact={true}
+                                            actionPresentation={actionPresentation}
                                         />
                                     </motion.div>
                                 );

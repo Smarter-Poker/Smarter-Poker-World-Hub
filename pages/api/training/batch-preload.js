@@ -1,5 +1,4 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { randomUUID } from 'node:crypto';
 /**
  * BATCH QUESTION PRE-LOADER — API Endpoint
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -35,18 +34,20 @@ import {
     isTrainingAttemptContractError,
     isTrainingQuestionCampaignEligible,
     prepareTrainingAttemptDelivery,
+    recordTrainingQuestionsServedForAttempt,
+    recoverTrainingAttemptHand,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
     filterTrainingQuestionsForAttempt,
     normalizeTrainingGameMode,
     normalizeTrainingHandSelection,
+    trainingQuestionMatchesSelection,
 } from '../../../src/lib/training/questionSelectionContract.mjs';
 import { shuffleBalancedQuestionOrder } from '../../../src/lib/training/questionOrderContract.mjs';
 import {
     buildTrainingCacheRow,
     cacheQuestionFromRow,
     cacheRowIsServingEligible,
-    recordTrainingQuestionsServed,
     withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
@@ -144,8 +145,14 @@ export default async function handler(req, res) {
           // Selection happens before the immutable attempt manifest is signed.
           // Pull a larger candidate pool for selective drills so the browser
           // still receives the attempt's complete 20/25/30-hand contract.
-          const candidateQuestionCount = isSingleHandRecovery || handSelection === 'all'
-              ? questionCount
+          // Always retain a bounded surplus until canonical persistence has
+          // succeeded. `buildTrainingCacheRow` is deliberately stricter than
+          // the source normalization pass, so selecting exactly N candidates
+          // here lets one malformed row turn an otherwise healthy N-hand
+          // attempt into an outage. Selective drills need a wider pool because
+          // their street/frequency filter runs before canonical construction.
+          const candidateQuestionCount = handSelection === 'all'
+              ? Math.min(100, Math.max(questionCount + 5, questionCount * 2))
               : Math.min(100, questionCount * 4);
           const handOrdinalStart = isSingleHandRecovery
               ? Math.min(attemptTargetHands, Math.max(1, parseInt(rawHandOrdinalStart, 10) || 1))
@@ -164,7 +171,63 @@ export default async function handler(req, res) {
           const difficulty = rawDifficulty && validDifficulties.includes(rawDifficulty.toLowerCase())
               ? rawDifficulty.toLowerCase()
               : 'standard';
-          const trainingSessionId = sanitizeParam(rawSessionId, 180) || createTrainingSessionId();
+          const requestedSessionId = sanitizeParam(rawSessionId, 180);
+          const hasExplicitSessionId = Boolean(requestedSessionId);
+          const trainingSessionId = requestedSessionId || createTrainingSessionId();
+          const enforcedTargetStreet = gameMode === 'street' ? targetStreet : null;
+          const attemptSelection = {
+              gameMode,
+              handSelection,
+              targetStreet: enforcedTargetStreet,
+          };
+
+          // A one-hand request is recovery, not a request to replace an
+          // already-registered ordinal with whatever happens to be in today's
+          // mutable cache. Resume the manifest winner before reading any source.
+          if (isSingleHandRecovery && hasExplicitSessionId) {
+              try {
+                  const recovered = await recoverTrainingAttemptHand({
+                      supabase: getSupabase(),
+                      userId: _authUser.id,
+                      clientSessionId: trainingSessionId,
+                      gameId,
+                      level: gameLevel,
+                      sessionKind: 'campaign',
+                      difficultyMode: difficulty,
+                      requestedHands: attemptTargetHands,
+                      handOrdinal: handOrdinalStart,
+                      config: attemptSelection,
+                      questionSelection: attemptSelection,
+                  });
+                  if (recovered?.questions?.length === 1) {
+                      await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+                          userId: _authUser.id,
+                          delivery: recovered,
+                      });
+                      return res.status(200).json({
+                          success: true,
+                          gameId,
+                          level: gameLevel,
+                          sessionId: trainingSessionId,
+                          attemptId: recovered.attemptId,
+                          sessionKind: recovered.sessionKind,
+                          targetHands: recovered.targetHands,
+                          count: recovered.questions.length,
+                          questions: recovered.questions,
+                      });
+                  }
+              } catch (recoveryError) {
+                  console.warn('[BatchPreload] Attempt recovery failed:', recoveryError?.message || recoveryError);
+                  if (isTrainingAttemptContractError(recoveryError)) {
+                      return res.status(recoveryError.status || 409).json({
+                          success: false,
+                          error: recoveryError.message,
+                          code: recoveryError.code,
+                      });
+                  }
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+          }
 
 
           // Fetch questions from cache
@@ -245,16 +308,23 @@ export default async function handler(req, res) {
           const rows = targetStreet
               ? authorityEligibleRows.filter((row) => streetOfCachedRow(row) === targetStreet)
               : authorityEligibleRows;
+          const selectableRows = rows.filter((row) => (
+              trainingQuestionMatchesSelection(row?.question_data, attemptSelection)
+          ));
           const fresh = seenIds.size > 0
-              ? rows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
-              : rows;
-          const usable = [...(fresh.length >= candidateQuestionCount ? fresh : rows)];
+              ? selectableRows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
+              : selectableRows;
+          const usable = [...(fresh.length >= candidateQuestionCount ? fresh : selectableRows)];
           // Shuffle BEFORE slicing so the same first-N cache rows are not
           // served on every call (2026-07-19 engine-audit intent preserved)
           for (let i = usable.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [usable[i], usable[j]] = [usable[j], usable[i]];
           }
+          // Apply the immutable drill selection to the complete bounded cache
+          // pool before slicing. Sampling four arbitrary rows for a one-hand
+          // close-spot recovery can otherwise miss a valid fifth row and claim
+          // a false shortfall without ever reaching generation.
           const cachedQuestions = usable.slice(0, candidateQuestionCount);
           let solverQuestions = [];
 
@@ -402,17 +472,15 @@ export default async function handler(req, res) {
                   && isTrainingQuestionCampaignEligible(question)
               ));
 
-          const enforcedTargetStreet = gameMode === 'street' ? targetStreet : null;
-          const enrichedBatch = filterTrainingQuestionsForAttempt(enrichedCandidates, {
-              gameMode,
-              targetStreet: enforcedTargetStreet,
-              handSelection,
-          }).slice(0, questionCount);
+          const configuredCandidates = filterTrainingQuestionsForAttempt(
+              enrichedCandidates,
+              attemptSelection,
+          );
 
-          if (enrichedBatch.length !== questionCount) {
+          if (configuredCandidates.length < questionCount) {
               return res.status(422).json({
                   success: false,
-                  error: `Only ${enrichedBatch.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
+                  error: `Only ${configuredCandidates.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
                   code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
               });
           }
@@ -421,19 +489,6 @@ export default async function handler(req, res) {
           // envelope the player receives. Authority-ineligible legacy,
           // heuristic, simulated, and incomplete rows were already rejected
           // above and therefore can never be laundered by this write.
-          if (enrichedBatch.some((question) => !question?.id)) {
-              return res.status(422).json({
-                  success: false,
-                  error: 'A canonical identifier is required for every training question.',
-              });
-          }
-          const uniqueQuestionIds = new Set(enrichedBatch.map((question) => String(question.id)));
-          if (uniqueQuestionIds.size !== enrichedBatch.length) {
-              return res.status(422).json({
-                  success: false,
-                  error: 'Duplicate canonical question identifiers were generated for this batch.',
-              });
-          }
           /* ═══ ONE UNBUILDABLE QUESTION MUST NOT 500 THE WHOLE BATCH ══════
            *
            * (2026-09-07) `buildTrainingCacheRow` throws on six separate
@@ -449,91 +504,93 @@ export default async function handler(req, res) {
            * bricked the whole GTO arena until a page reload, showing
            * `Loading Solver Data...` on a permanently disabled button.
            *
-           * A question that cannot be canonicalised is dropped from the
-           * PERSISTENCE pass and reported, not served silently and not allowed
-           * to take the other twenty-four with it. It is still excluded from
-           * `servedBatch` below by the existing quality gate, so nothing
-           * unverified reaches a player — this only stops one bad row being
-           * an outage.
+           * A question that cannot be canonicalised is reported and skipped.
+           * A later candidate replaces it; only successfully built rows may
+           * enter persistence or delivery. If the bounded surplus is still
+           * insufficient, the route returns an honest 422 before either write.
            */
           const canonicalizeFailures = [];
-          const canonicalRows = Array.from(new Map(enrichedBatch
-                  .map(q => {
-                      const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
-                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
-                      const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
-                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
-                      const original = originalCacheRowByQuestionId.get(String(q.id));
-                      try {
-                          const row = buildTrainingCacheRow({
-                              question: q,
-                              questionId: original?.question_id || q.id,
-                              gameId,
-                              questionKind,
-                              gameType,
-                              level: gameLevel,
-                              generatedAt: original?.generated_at || new Date().toISOString(),
-                              id: original?.id || null,
-                          });
-                          return [row.question_id, row];
-                      } catch (rowError) {
-                          canonicalizeFailures.push({
-                              questionId: String(original?.question_id || q.id),
-                              reason: String(rowError?.message || rowError).slice(0, 200),
-                          });
-                          return null;
-                      }
-                  })
-                  .filter(Boolean)).values());
+          const canonicalPairs = [];
+          const canonicalQuestionIds = new Set();
+          const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
+              : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
+          const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
+              : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
+          for (const question of configuredCandidates) {
+              if (canonicalPairs.length >= questionCount) break;
+              const original = originalCacheRowByQuestionId.get(String(question?.id));
+              const questionId = String(original?.question_id || question?.id || '');
+              try {
+                  const row = buildTrainingCacheRow({
+                      question,
+                      questionId,
+                      gameId,
+                      questionKind,
+                      gameType,
+                      level: gameLevel,
+                      generatedAt: original?.generated_at || new Date().toISOString(),
+                      id: original?.id || null,
+                  });
+                  const canonicalQuestionId = String(row?.question_id || '');
+                  if (!canonicalQuestionId || canonicalQuestionIds.has(canonicalQuestionId)) {
+                      throw new Error(canonicalQuestionId
+                          ? 'Duplicate canonical question identifier'
+                          : 'Canonical question identifier is missing');
+                  }
+                  canonicalQuestionIds.add(canonicalQuestionId);
+                  canonicalPairs.push({ question, row });
+              } catch (rowError) {
+                  canonicalizeFailures.push({
+                      questionId,
+                      reason: String(rowError?.message || rowError).slice(0, 200),
+                  });
+              }
+          }
+          const canonicalRows = canonicalPairs.map(({ row }) => row);
 
           if (canonicalizeFailures.length > 0) {
               console.warn(
-                  `[BatchPreload] ${canonicalizeFailures.length} of ${enrichedBatch.length} ` +
-                  `question(s) could not be canonicalised and were dropped from the persistence ` +
-                  `pass: ${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
+                  `[BatchPreload] ${canonicalizeFailures.length} of ${configuredCandidates.length} ` +
+                  `candidate question(s) could not be canonicalised and were skipped: ` +
+                  `${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
               );
           }
-              let servedBatch = enrichedBatch;
-              if (canonicalRows.length > 0) {
-                  try {
-                    const persisted = await runTrainingPersistenceQuery(
-                        () => getSupabase().from('training_question_cache')
-                            .upsert(canonicalRows, {
-                                onConflict: 'question_id',
-                                defaultToNull: false,
-                            })
-                            .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
-                        { label: 'BatchPreload:canonicalize' },
-                    );
-                    const receiptByQuestionId = new Map(
-                        (persisted.data || []).map((row) => [row.question_id, row]),
-                    );
-                    if (receiptByQuestionId.size !== canonicalRows.length) {
-                        throw new Error('Database did not return one canonical receipt per question');
-                    }
-                    const canonicalByQuestionId = new Map(
-                        canonicalRows.map((row) => [row.question_id, row.question_data]),
-                    );
-                    servedBatch = enrichedBatch.map((question) => {
-                        const questionId = String(question.id);
-                        return withPersistedCacheReceipt(
-                            canonicalByQuestionId.get(questionId),
-                            receiptByQuestionId.get(questionId),
-                        );
-                    });
-                    await recordTrainingQuestionsServed(getSupabase(), {
-                        requestId: randomUUID(),
-                        userId: _authUser.id,
-                        receipts: canonicalRows.map((row) => ({
-                            questionId: row.question_id,
-                            policyChecksum: receiptByQuestionId.get(row.question_id)?.policy_checksum,
-                        })),
-                    });
-                  } catch (canonicalizeError) {
-                      console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
-                      return res.status(503).json(trainingPersistenceUnavailableBody());
-                  }
+          if (canonicalRows.length !== questionCount) {
+              return res.status(422).json({
+                  success: false,
+                  error: `Only ${canonicalRows.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
+                  code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
+              });
+          }
+
+          let servedBatch;
+          try {
+              const persisted = await runTrainingPersistenceQuery(
+                  () => getSupabase().from('training_question_cache')
+                      .upsert(canonicalRows, {
+                          onConflict: 'question_id',
+                          defaultToNull: false,
+                      })
+                      .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
+                  { label: 'BatchPreload:canonicalize' },
+              );
+              const receiptByQuestionId = new Map(
+                  (persisted.data || []).map((row) => [row.question_id, row]),
+              );
+              if (receiptByQuestionId.size !== canonicalRows.length) {
+                  throw new Error('Database did not return one canonical receipt per question');
               }
+              servedBatch = canonicalPairs.map(({ row }) => {
+                  const questionId = String(row.question_id);
+                  return withPersistedCacheReceipt(
+                      row.question_data,
+                      receiptByQuestionId.get(questionId),
+                  );
+              });
+          } catch (canonicalizeError) {
+              console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
           let delivery;
           try {
               delivery = await prepareTrainingAttemptDelivery({
@@ -545,14 +602,10 @@ export default async function handler(req, res) {
                   sessionKind: 'campaign',
                   difficultyMode: difficulty,
                   requestedHands: attemptTargetHands,
-                      questions: servedBatch,
+                  questions: servedBatch,
                   handOrdinalStart,
                   requireFullAttempt: !isSingleHandRecovery,
-                  config: {
-                      gameMode,
-                      handSelection,
-                      targetStreet: enforcedTargetStreet,
-                  },
+                  config: attemptSelection,
               });
           } catch (deliveryError) {
               console.warn('[BatchPreload] Attempt delivery failed:', deliveryError?.message || deliveryError);
@@ -563,6 +616,15 @@ export default async function handler(req, res) {
                       code: deliveryError.code,
                   });
               }
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
+          try {
+              await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+                  userId: _authUser.id,
+                  delivery,
+              });
+          } catch (servedAuditError) {
+              console.warn('[BatchPreload] Delivered question audit failed:', servedAuditError?.message || servedAuditError);
               return res.status(503).json(trainingPersistenceUnavailableBody());
           }
 

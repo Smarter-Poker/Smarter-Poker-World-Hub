@@ -396,6 +396,12 @@ export default function useGTOTrainer(
   const [answerSaveError, setAnswerSaveError] = useState(null);
   const [answerSaveRetrying, setAnswerSaveRetrying] = useState(false);
   const [answerSaveRequiresRefresh, setAnswerSaveRequiresRefresh] = useState(false);
+  // A persisted verdict and the transition that follows it have different
+  // retry semantics. Keep transition failures out of the answer-save channel
+  // so the current feedback/table remains available and manual Next can retry
+  // the same ordinal, continuation, or completion operation.
+  const [transitionError, setTransitionError] = useState(null);
+  const [transitionRetrying, setTransitionRetrying] = useState(false);
   const trainingSessionIdRef = useRef(null);
   const trainingSessionGameIdRef = useRef(null);
   const externalSessionIdRef = useRef(null);
@@ -664,7 +670,7 @@ export default function useGTOTrainer(
     const requestSessionId = requestLease.sessionId;
     if (!isTrainingLeaseActive(requestLease) || trainingSessionId !== requestSessionId) return null;
     setLoading(true);
-    setError(null);
+    if (!throwOnError) setError(null);
 
     try {
       const params = new URLSearchParams({
@@ -735,7 +741,7 @@ export default function useGTOTrainer(
         return null;
       }
       console.warn('[GTOTrainer] Fetch error:', err);
-      setError(err.message);
+      if (!throwOnError) setError(err.message);
       if (throwOnError) throw err;
       return null;
     } finally {
@@ -1390,10 +1396,10 @@ export default function useGTOTrainer(
     if (entry.result?.refreshRequired) {
       setAnswerSaveRetrying(true);
       try {
-        setShowFeedback(false);
-        setLastGTOFrequencies(null);
         const replacement = await fetchSingleQuestion(selectedLevel, questionNumber, { throwOnError: true });
         if (!replacement || !isPendingAnswerEntryActive(entry)) return false;
+        setShowFeedback(false);
+        setLastGTOFrequencies(null);
         refreshRequiredQuestionIdsRef.current.delete(String(entry.submission?.questionId || ''));
         pendingAnswerPersistenceRef.current = null;
         setAnswerSaveRequiresRefresh(false);
@@ -2266,15 +2272,15 @@ export default function useGTOTrainer(
       || !Number.isInteger(Number(activeContext?.handOrdinal))
       || !Number.isInteger(Number(activeContext?.decisionOrdinal))
     ) {
-      setError('This hand cannot continue without its signed attempt context. Reload the Arena.');
+      setTransitionError({
+        kind: 'continuation',
+        message: 'This hand cannot continue without its signed attempt context. Reload the Arena.',
+      });
       return false;
     }
 
     try {
       setLoading(true);
-      // A street is a decision (roadmap #49). The flop's graded mix must not
-      // survive into the turn -- RNG grades against these bands.
-      setLastGTOFrequencies(null);
 
       // The server reconstructs every card, position, street, stack, pot and
       // attempt field from the immutable signed snapshot. The browser sends
@@ -2302,6 +2308,10 @@ export default function useGTOTrainer(
           const nextQ = hand.applyServerContinuation(data);
 
           if (!isTrainingLeaseActive(requestLease) || multiStreetHandRef.current !== hand) return null;
+          // A street is a decision (roadmap #49). Clear the prior solver mix
+          // only once the signed continuation has been accepted. On failure,
+          // it remains part of the visible verdict being retried.
+          setLastGTOFrequencies(null);
           setCurrentQuestion(nextQ);
           setCurrentStreet(data.street || hand.currentStreet);
           setShowFeedback(false);
@@ -2316,19 +2326,21 @@ export default function useGTOTrainer(
         return 'solver-boundary';
       }
 
-      setAnswerSaveError(
-        data?.error
-          || `The next street could not be dealt (${response.status}). Your completed decision is still saved; try Next again.`
-      );
+      setTransitionError({
+        kind: 'continuation',
+        message: data?.error
+          || `The next street could not be dealt (${response.status}). Your completed decision is still saved; try Next again.`,
+      });
       setLoading(false);
       return false;
     } catch (err) {
       if (!isTrainingLeaseActive(requestLease) || multiStreetHandRef.current !== hand) return null;
       console.warn('[GTOTrainer] Multi-street advance error:', err);
-      setAnswerSaveError(
-        err?.message
-          || 'The next street could not be dealt. Your completed decision is still saved; try Next again.'
-      );
+      setTransitionError({
+        kind: 'continuation',
+        message: err?.message
+          || 'The next street could not be dealt. Your completed decision is still saved; try Next again.',
+      });
       setLoading(false);
       return false;
     }
@@ -2426,6 +2438,8 @@ export default function useGTOTrainer(
     if (!isTrainingLeaseActive(transitionLease)) return;
     const transitionToken = { lease: transitionLease };
     nextQuestionInFlightRef.current = transitionToken;
+    setTransitionRetrying(true);
+    setTransitionError(null);
     try {
     // Do not outrun the canonical answer recorder. A refresh-required response
     // means this browser question is no longer trustworthy, so explicit Next
@@ -2439,11 +2453,11 @@ export default function useGTOTrainer(
 
     const answeredQuestionId = String(currentQuestion?.id || '');
     if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.has(answeredQuestionId)) {
-      setShowFeedback(false);
-      setLastGTOFrequencies(null);
       try {
         const replacement = await fetchSingleQuestion(selectedLevel, questionNumber, { throwOnError: true });
         if (!replacement || !isTrainingLeaseActive(transitionLease)) return;
+        setShowFeedback(false);
+        setLastGTOFrequencies(null);
         refreshRequiredQuestionIdsRef.current.delete(answeredQuestionId);
         pendingAnswerPersistenceRef.current = null;
         setAnswerSaveRequiresRefresh(false);
@@ -2479,12 +2493,7 @@ export default function useGTOTrainer(
     }
     pendingAnswerPersistenceRef.current = null;
     setAnswerSaveError(null);
-    if (!pendingConfigContract || !isFinalRequiredHand) setShowFeedback(false);
-    // The graded mix belongs to the decision just finished. Leaving it set
-    // meant the felt served it as the NEXT spot's solver output until that one
-    // was graded too -- see the note on `computedFrequencies` in
-    // UniversalDynamicTable.jsx.
-    setLastGTOFrequencies(null);
+    let completedHandSummary = null;
 
     // ═══ MULTI-STREET: Try advancing street first ═══
     if (
@@ -2508,10 +2517,8 @@ export default function useGTOTrainer(
         if (advanced === 'solver-boundary') {
           const finishedHand = multiStreetHandRef.current;
           if (finishedHand && typeof finishedHand.getHandSummary === 'function') {
-            setHandSummary(finishedHand.getHandSummary());
+            completedHandSummary = finishedHand.getHandSummary();
           }
-          setIsMultiStreetActive(false);
-          multiStreetHandRef.current = null;
         }
       }
 
@@ -2522,34 +2529,14 @@ export default function useGTOTrainer(
       // unhandled TypeError 19 times in one live session. Re-check the ref.
       const finishedHand = multiStreetHandRef.current;
       if (finishedHand && typeof finishedHand.getHandSummary === 'function') {
-        setHandSummary(finishedHand.getHandSummary());
+        completedHandSummary = finishedHand.getHandSummary();
       }
-      setIsMultiStreetActive(false);
-      multiStreetHandRef.current = null;
     } else if (multiStreetHandRef.current?.isComplete) {
       const finishedHand = multiStreetHandRef.current;
       if (typeof finishedHand.getHandSummary === 'function') {
-        setHandSummary(finishedHand.getHandSummary());
-      }
-      setIsMultiStreetActive(false);
-      multiStreetHandRef.current = null;
-    } else {
-      // Only clear hand summary when starting a fresh hand (not when finishing multi-street)
-      setHandSummary(null);
-      // A continuation-free or off-tree answer marks MultiStreetHand complete
-      // inside recordAction(). That completed hand used to miss the cleanup
-      // branch above, leaving isMultiStreetActive true while the next authored
-      // question loaded. A River question was then labelled River but its five
-      // cards were clamped through the stale Flop state to three. Completed
-      // hands never own the next decision.
-      if (isMultiStreetActive || multiStreetHandRef.current) {
-        setIsMultiStreetActive(false);
-        multiStreetHandRef.current = null;
+        completedHandSummary = finishedHand.getHandSummary();
       }
     }
-
-    // Reset street state for new hand
-    setCurrentStreet('flop');
 
     if (questionNumber >= effectiveQuestionsPerLevel) {
       // The browser never declares a level complete. It supplies only the
@@ -2560,6 +2547,9 @@ export default function useGTOTrainer(
         if (!isTrainingLeaseActive(transitionLease)) return;
         const passed = Boolean(completion.passed);
         const accuracy = Number(completion.accuracy) || 0;
+        if (completedHandSummary) setHandSummary(completedHandSummary);
+        setIsMultiStreetActive(false);
+        multiStreetHandRef.current = null;
         setDiamondsEarned(Number(completion.diamondsEarned) || 0);
         setLevelPassed(passed);
         setGameComplete(true);
@@ -2581,18 +2571,32 @@ export default function useGTOTrainer(
         // idempotent, so the same button safely retries both completion and
         // analytics without duplicating progress or rewards.
         setShowFeedback(true);
-        setAnswerSaveError(
-          completionError?.message || 'Training completion could not be verified. Try Next again.'
-        );
+        setTransitionError({
+          kind: 'completion',
+          message: completionError?.message || 'Training completion could not be verified. Try Next again.',
+        });
         return;
       }
     } else {
       if (preloadComplete && preloadedQuestions[questionNumber]) {
-        // Serve the already transformed and signed next question (INSTANT).
-        const nextQ = preloadedQuestions[questionNumber];
-        if (!isTrainingLeaseActive(transitionLease)) return;
-        activateNewTrainingQuestion(nextQ);
-        setQuestionNumber((prev) => prev + 1);
+        try {
+          // Serve the already transformed and signed next question (INSTANT).
+          // Activation is inside the same recovery boundary as a network load:
+          // no verdict state is cleared until it succeeds.
+          const nextQ = preloadedQuestions[questionNumber];
+          if (!isTrainingLeaseActive(transitionLease)) return;
+          activateNewTrainingQuestion(nextQ);
+          setHandSummary(completedHandSummary);
+          setShowFeedback(false);
+          setLastGTOFrequencies(null);
+          setQuestionNumber((prev) => prev + 1);
+        } catch (activationError) {
+          setTransitionError({
+            kind: 'next-hand',
+            message: activationError?.message || 'The next Training hand could not be activated. Try Next again.',
+          });
+          return;
+        }
       } else {
         // Fallback to single-question mode
         try {
@@ -2602,14 +2606,17 @@ export default function useGTOTrainer(
             { throwOnError: true },
           );
           if (!loadedQuestion || !isTrainingLeaseActive(transitionLease)) return;
+          setHandSummary(completedHandSummary);
+          setShowFeedback(false);
+          setLastGTOFrequencies(null);
           setQuestionNumber((prev) => prev + 1);
         } catch (loadError) {
-          // Keep the just-persisted verdict and explicit Next visible. The
-          // ordinal advances only after a new signed hand is actually active.
-          setShowFeedback(true);
-          setAnswerSaveError(
-            loadError?.message || 'The next Training hand could not be loaded. Try Next again.',
-          );
+          // Nothing about the prior verdict, street, solver mix, hand summary,
+          // or table is mutated before a new signed hand becomes active.
+          setTransitionError({
+            kind: 'next-hand',
+            message: loadError?.message || 'The next Training hand could not be loaded. Try Next again.',
+          });
           return;
         }
       }
@@ -2617,6 +2624,7 @@ export default function useGTOTrainer(
     } finally {
       if (nextQuestionInFlightRef.current === transitionToken) {
         nextQuestionInFlightRef.current = null;
+        setTransitionRetrying(false);
       }
     }
   }, [
@@ -2905,6 +2913,8 @@ export default function useGTOTrainer(
     setAnswerSaveError(null);
     setAnswerSaveRetrying(false);
     setAnswerSaveRequiresRefresh(false);
+    setTransitionError(null);
+    setTransitionRetrying(false);
     setShowFeedback(false);
     setFeedbackResult(null);
     setExplanation('');
@@ -3010,6 +3020,8 @@ export default function useGTOTrainer(
     answerSaveError,
     answerSaveRetrying,
     answerSaveRequiresRefresh,
+    transitionError,
+    transitionRetrying,
 
     // Pre-load state
     preloadComplete,
@@ -4418,6 +4430,7 @@ export default function useGTOTrainer(
     submitAnswer,
     nextQuestion,
     retryAnswerPersistence,
+    retryTransition: nextQuestion,
     startNextLevel,
     retryLevel,
     retrainMistakes,

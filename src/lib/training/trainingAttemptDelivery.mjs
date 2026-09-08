@@ -16,6 +16,7 @@ import { sourceClassificationForQuestion } from './cacheTruthContract.mjs';
 import { isVerifiedSolverQuestion } from './solverDecisionEvidence.js';
 import { normalizeBoard, normalizeHolding } from './solverPolicyContract.js';
 import { runTrainingPersistenceQuery } from './trainingPersistence.mjs';
+import { trainingQuestionMatchesSelection } from './questionSelectionContract.mjs';
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
 const BOARD_CARDS_BY_STREET = Object.freeze({
@@ -399,10 +400,487 @@ export function buildTrainingQuestionSnapshot({ canonicalQuestion, gameId, level
   });
 }
 
+/**
+ * Verify the complete deterministic identity of a persisted immutable
+ * question snapshot. A matching content digest alone is not sufficient: a
+ * malformed service-role write could otherwise bind valid question JSON to a
+ * different source id or snapshot key and later mint a signed receipt for the
+ * wrong manifest identity.
+ */
+export function trainingQuestionSnapshotMatchesIdentity(snapshot, { gameId, level } = {}) {
+  if (!snapshot?.question_data || gameId === undefined || level === undefined) return false;
+  const safeGameId = String(gameId);
+  const safeLevel = normalizedLevel(level);
+  if (String(snapshot.game_id) !== safeGameId || Number(snapshot.level) !== safeLevel) return false;
+  try {
+    const rebuilt = buildTrainingQuestionSnapshot({
+      canonicalQuestion: snapshot.question_data,
+      gameId: safeGameId,
+      level: safeLevel,
+    });
+    return String(snapshot.snapshot_key) === rebuilt.snapshot_key
+      && String(snapshot.source_question_id) === rebuilt.source_question_id
+      && String(snapshot.content_digest) === rebuilt.content_digest;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function unwrapRpcData(result) {
   const data = result?.data;
   if (Array.isArray(data)) return data[0] || null;
   return data || null;
+}
+
+export function trainingAttemptDecisionServeKey(attemptId, handOrdinal, decisionOrdinal) {
+  return `training-attempt:${String(attemptId)}:hand:${Number(handOrdinal)}:decision:${Number(decisionOrdinal)}`;
+}
+
+export async function authorizeTrainingAttemptDecisionAnswer(supabase, {
+  userId,
+  attemptId,
+  handOrdinal,
+  decisionOrdinal,
+  snapshotKey,
+  questionId,
+  policyChecksum,
+}) {
+  const result = await runTrainingPersistenceQuery(
+    () => supabase.rpc('fn_training_authorize_attempt_decision_v1', {
+      p_attempt_id: attemptId,
+      p_user_id: userId,
+      p_hand_ordinal: handOrdinal,
+      p_decision_ordinal: decisionOrdinal,
+      p_snapshot_key: snapshotKey,
+      p_question_id: questionId,
+      p_policy_checksum: policyChecksum,
+    }),
+    { label: 'TrainingAttempt:answer-delivery-authority' },
+  );
+  const authority = unwrapRpcData(result);
+  return authority?.authorized === true;
+}
+
+/**
+ * Bridge a receipt minted by the immediately preceding release into the
+ * decision-scoped authority ledger. Callers must invoke this only after the
+ * complete grading receipt HMAC, immutable snapshot, and content digest have
+ * been verified. The database independently requires the predecessor's real
+ * random-key served event and enforces a short, immutable rollout window.
+ */
+export async function promoteLegacySignedTrainingAttemptDecision(supabase, {
+  userId,
+  attemptId,
+  handOrdinal,
+  decisionOrdinal,
+  snapshotKey,
+  questionId,
+  policyChecksum,
+  receiptId,
+  receiptIssuedAt,
+  receiptExpiresAt,
+}) {
+  const result = await runTrainingPersistenceQuery(
+    () => supabase.rpc('fn_training_promote_legacy_signed_decision_v1', {
+      p_attempt_id: attemptId,
+      p_user_id: userId,
+      p_hand_ordinal: handOrdinal,
+      p_decision_ordinal: decisionOrdinal,
+      p_snapshot_key: snapshotKey,
+      p_question_id: questionId,
+      p_policy_checksum: policyChecksum,
+      p_receipt_id: receiptId,
+      p_receipt_issued_at: receiptIssuedAt,
+      p_receipt_expires_at: receiptExpiresAt,
+    }),
+    { label: 'TrainingAttempt:legacy-signed-delivery-promotion' },
+  );
+  const promotion = unwrapRpcData(result);
+  return promotion?.authorized === true;
+}
+
+function normalizedAttemptIdentity({
+  gameId,
+  level,
+  sessionKind,
+  difficultyMode,
+  requestedHands,
+  config,
+}) {
+  const safeLevel = normalizedLevel(level);
+  const kind = normalizeTrainingSessionKind(sessionKind);
+  const targetHands = resolveTrainingSessionTarget({
+    level: safeLevel,
+    sessionKind: kind,
+    requestedHands,
+  });
+  const safeDifficulty = normalizeTrainingDifficultyMode(difficultyMode);
+  const configHash = trainingAttemptConfigHash({
+    ...config,
+    gameId: String(gameId),
+    level: safeLevel,
+    sessionKind: kind,
+    difficultyMode: safeDifficulty,
+    targetHands,
+  });
+  return { safeLevel, kind, targetHands, safeDifficulty, configHash };
+}
+
+async function startTrainingAttempt({
+  supabase,
+  userId,
+  clientSessionId,
+  gameId,
+  parentAttemptId,
+  identity,
+}) {
+  const startResult = await runTrainingPersistenceQuery(
+    () => supabase.rpc('fn_start_training_attempt_v2', {
+      p_user_id: userId,
+      p_client_nonce: String(clientSessionId).slice(0, 180),
+      p_game_id: String(gameId).slice(0, 100),
+      p_level: identity.safeLevel,
+      p_session_kind: identity.kind,
+      p_difficulty: identity.safeDifficulty,
+      p_expected_hands: identity.targetHands,
+      p_config_hash: identity.configHash,
+      p_parent_attempt_id: parentAttemptId || null,
+    }),
+    { label: 'TrainingAttempt:start' },
+  );
+  const started = unwrapRpcData(startResult);
+  if (!started?.success || !started?.attemptId) {
+    throw new TrainingAttemptDeliveryError(
+      started?.error || 'The Training attempt could not be created.',
+      started?.code || 'TRAINING_ATTEMPT_START_FAILED',
+      started?.status || 409,
+    );
+  }
+  return String(started.attemptId);
+}
+
+function assertManifestSnapshots({ manifested, gameId, identity, handOrdinalStart }) {
+  if (manifested.some((snapshot) => !trainingQuestionSnapshotMatchesIdentity(snapshot, {
+    gameId,
+    level: identity.safeLevel,
+  }))) {
+    throw new TrainingAttemptDeliveryError(
+      'The Training question snapshot failed its integrity check.',
+      'TRAINING_QUESTION_SNAPSHOT_MISMATCH',
+      503,
+    );
+  }
+  if (identity.kind !== 'replay') {
+    const rejectedManifest = manifested
+      .map((snapshot, index) => ({
+        index,
+        result: trainingQuestionCampaignEligibility(snapshot.question_data),
+      }))
+      .find(({ result }) => !result.eligible);
+    if (rejectedManifest) {
+      throw new TrainingAttemptDeliveryError(
+        `The persisted question in hand ${handOrdinalStart + rejectedManifest.index} is not eligible for a progress-bearing Training attempt (${rejectedManifest.result.reason}).`,
+        'TRAINING_ATTEMPT_MANIFEST_AUTHORITY_INELIGIBLE',
+        422,
+      );
+    }
+  }
+}
+
+function deliverManifestSnapshots({
+  manifested,
+  userId,
+  clientSessionId,
+  gameId,
+  attemptId,
+  handOrdinalStart,
+  identity,
+}) {
+  const servedQuestions = manifested.map((snapshot, index) => {
+    const handOrdinal = handOrdinalStart + index;
+    return prepareTrainingQuestionForDelivery({
+      canonicalQuestion: snapshot.question_data,
+      userId,
+      gameId,
+      level: identity.safeLevel,
+      sessionId: clientSessionId,
+      attemptId,
+      snapshotKey: snapshot.snapshot_key,
+      sessionKind: identity.kind,
+      sessionTargetHands: identity.targetHands,
+      handOrdinal,
+      decisionOrdinal: 1,
+      countsTowardCompletion: true,
+      practiceOnly: identity.kind === 'replay',
+      difficultyMode: identity.safeDifficulty,
+      receiptId: trainingAttemptDecisionServeKey(attemptId, handOrdinal, 1),
+    });
+  });
+  return Object.freeze({
+    attemptId,
+    clientSessionId: String(clientSessionId),
+    sessionKind: identity.kind,
+    targetHands: identity.targetHands,
+    handOrdinalStart,
+    configHash: identity.configHash,
+    questions: servedQuestions,
+  });
+}
+
+/**
+ * Record a delivered manifest slot under a stable attempt/ordinal event key.
+ * A recovery can replay that exact key after the mutable cache row changes;
+ * the database accepts it only when the original durable receipt proves the
+ * same question/checksum binding. A never-audited delivery still fails closed.
+ */
+export async function recordTrainingQuestionsServedForAttempt(
+  supabase,
+  { userId, delivery },
+) {
+  const attemptId = String(delivery?.attemptId || '');
+  const questions = Array.isArray(delivery?.questions) ? delivery.questions : [];
+  if (!supabase || !userId || !attemptId || questions.length < 1) {
+    throw new TrainingAttemptDeliveryError(
+      'Training attempt serve audit input is incomplete.',
+      'TRAINING_ATTEMPT_SERVE_AUDIT_INVALID',
+      500,
+    );
+  }
+  const decisionSlots = new Set();
+  const deliveries = [];
+  for (const question of questions) {
+    const context = question?._gradingContext || {};
+    const handOrdinal = Number(context.handOrdinal);
+    const decisionOrdinal = Number(context.decisionOrdinal);
+    const questionId = String(question?.id || '');
+    const snapshotKey = String(context.snapshotKey || '');
+    const decisionSlot = `${handOrdinal}:${decisionOrdinal}`;
+    if (
+      String(context.attemptId || '') !== attemptId
+      || !Number.isInteger(handOrdinal)
+      || handOrdinal < 1
+      || handOrdinal > 100
+      || !Number.isInteger(decisionOrdinal)
+      || decisionOrdinal < 1
+      || decisionOrdinal > 8
+      || !questionId
+      || !/^[0-9a-f]{64}$/i.test(snapshotKey)
+      || !/^[0-9a-f]{64}$/i.test(String(question.policyChecksum || ''))
+      || decisionSlots.has(decisionSlot)
+    ) {
+      throw new TrainingAttemptDeliveryError(
+        'A delivered question does not match its attempt manifest slot.',
+        'TRAINING_ATTEMPT_SERVE_AUDIT_INVALID',
+        500,
+      );
+    }
+    decisionSlots.add(decisionSlot);
+    deliveries.push({
+      handOrdinal,
+      decisionOrdinal,
+      snapshotKey,
+      questionId,
+      policyChecksum: String(question.policyChecksum).toLowerCase(),
+    });
+  }
+  let recordedCount = 0;
+  for (let offset = 0; offset < deliveries.length; offset += 50) {
+    const batch = deliveries.slice(offset, offset + 50);
+    const { data } = await runTrainingPersistenceQuery(
+      () => supabase.rpc('fn_training_attempt_record_served_batch_v1', {
+        p_attempt_id: attemptId,
+        p_user_id: userId,
+        p_deliveries: batch,
+      }),
+      { label: `TrainingAttempt:serve-audit:${Math.floor(offset / 50)}` },
+    );
+    if (Number(data?.questionCount) !== batch.length) {
+      throw new Error('training_attempt_serve_receipt_count_mismatch');
+    }
+    recordedCount += batch.length;
+  }
+  return Object.freeze({ questionCount: recordedCount });
+}
+
+export async function readTrainingAttemptContinuation({
+  supabase,
+  attemptId,
+  handOrdinal,
+  decisionOrdinal,
+  gameId,
+  level,
+}) {
+  const slotResult = await runTrainingPersistenceQuery(
+    () => supabase.from('training_attempt_decision_slots')
+      .select('attempt_id, hand_ordinal, decision_ordinal, snapshot_key, parent_snapshot_key, parent_submission_id')
+      .eq('attempt_id', attemptId)
+      .eq('hand_ordinal', handOrdinal)
+      .eq('decision_ordinal', decisionOrdinal)
+      .maybeSingle(),
+    { label: 'TrainingAttempt:continuation-slot-read' },
+  );
+  const slot = slotResult.data || null;
+  if (!slot?.snapshot_key) return null;
+  const snapshotResult = await runTrainingPersistenceQuery(
+    () => supabase.from('training_question_snapshots')
+      .select('snapshot_key, source_question_id, game_id, level, content_digest, question_data')
+      .eq('snapshot_key', slot.snapshot_key)
+      .maybeSingle(),
+    { label: 'TrainingAttempt:continuation-snapshot-read' },
+  );
+  const snapshot = snapshotResult.data || null;
+  if (!trainingQuestionSnapshotMatchesIdentity(snapshot, { gameId, level })) {
+    throw new TrainingAttemptDeliveryError(
+      'The Training continuation snapshot failed its integrity check.',
+      'TRAINING_CONTINUATION_SNAPSHOT_MISMATCH',
+      503,
+    );
+  }
+  return Object.freeze({ slot, snapshot });
+}
+
+export async function registerTrainingAttemptContinuation({
+  supabase,
+  userId,
+  attemptId,
+  handOrdinal,
+  decisionOrdinal,
+  snapshotKey,
+  parentSnapshotKey,
+  parentSubmissionId,
+  gameId,
+  level,
+}) {
+  const result = await runTrainingPersistenceQuery(
+    () => supabase.rpc('fn_training_register_continuation_slot_v1', {
+      p_attempt_id: attemptId,
+      p_user_id: userId,
+      p_hand_ordinal: handOrdinal,
+      p_decision_ordinal: decisionOrdinal,
+      p_snapshot_key: snapshotKey,
+      p_parent_snapshot_key: parentSnapshotKey,
+      p_parent_submission_id: parentSubmissionId,
+    }),
+    { label: 'TrainingAttempt:continuation-slot-register' },
+  );
+  const registered = unwrapRpcData(result);
+  const registrationMatchesRequest = registered
+    && String(registered.attemptId) === String(attemptId)
+    && Number.isInteger(registered.handOrdinal)
+    && registered.handOrdinal === Number(handOrdinal)
+    && Number.isInteger(registered.decisionOrdinal)
+    && registered.decisionOrdinal === Number(decisionOrdinal)
+    && registered.snapshotKey === snapshotKey
+    && registered.parentSnapshotKey === parentSnapshotKey
+    && registered.parentSubmissionId === parentSubmissionId;
+  if (!registrationMatchesRequest) {
+    throw new TrainingAttemptDeliveryError(
+      'The Training continuation slot did not match the requested immutable decision.',
+      'TRAINING_CONTINUATION_SLOT_BINDING_MISMATCH',
+      503,
+    );
+  }
+  return readTrainingAttemptContinuation({
+    supabase,
+    attemptId,
+    handOrdinal,
+    decisionOrdinal,
+    gameId,
+    level,
+  });
+}
+
+/**
+ * Resume one immutable hand before consulting mutable question sources.
+ * Starting the attempt RPC is idempotent for the client nonce/config; when the
+ * requested slot has already won a prior registration race, its snapshot is
+ * sufficient to reconstruct a fresh signed delivery even if the cache changed.
+ */
+export async function recoverTrainingAttemptHand({
+  supabase,
+  userId,
+  clientSessionId,
+  gameId,
+  level,
+  sessionKind = 'campaign',
+  difficultyMode = 'standard',
+  requestedHands,
+  handOrdinal,
+  parentAttemptId = null,
+  config = {},
+  questionSelection = null,
+}) {
+  if (!supabase || !userId || !clientSessionId || !gameId) {
+    throw new TrainingAttemptDeliveryError('Training attempt recovery input is incomplete.', undefined, 500);
+  }
+  const identity = normalizedAttemptIdentity({
+    gameId,
+    level,
+    sessionKind,
+    difficultyMode,
+    requestedHands,
+    config,
+  });
+  const ordinal = Number.parseInt(handOrdinal, 10) || 1;
+  if (ordinal < 1 || ordinal > identity.targetHands) {
+    throw new TrainingAttemptDeliveryError(
+      'The requested recovery hand does not fit the configured attempt.',
+      'TRAINING_ATTEMPT_HAND_RANGE_INVALID',
+    );
+  }
+  const attemptId = await startTrainingAttempt({
+    supabase,
+    userId,
+    clientSessionId,
+    gameId,
+    parentAttemptId,
+    identity,
+  });
+  const handResult = await runTrainingPersistenceQuery(
+    () => supabase.from('training_attempt_hands')
+      .select('hand_ordinal, snapshot_key, status')
+      .eq('attempt_id', attemptId)
+      .eq('hand_ordinal', ordinal)
+      .maybeSingle(),
+    { label: 'TrainingAttempt:recovery-hand-read' },
+  );
+  const hand = handResult.data || null;
+  if (!hand?.snapshot_key) return null;
+  if (hand.status !== 'allocated') {
+    throw new TrainingAttemptDeliveryError(
+      'This Training hand was already answered and cannot receive a new decision receipt.',
+      'TRAINING_ATTEMPT_DECISION_ALREADY_ANSWERED',
+      409,
+    );
+  }
+  const snapshotResult = await runTrainingPersistenceQuery(
+    () => supabase.from('training_question_snapshots')
+      .select('snapshot_key, source_question_id, game_id, level, content_digest, question_data')
+      .eq('snapshot_key', hand.snapshot_key)
+      .maybeSingle(),
+    { label: 'TrainingAttempt:recovery-snapshot-read' },
+  );
+  const manifested = [snapshotResult.data || null];
+  assertManifestSnapshots({ manifested, gameId, identity, handOrdinalStart: ordinal });
+  if (
+    questionSelection
+    && !trainingQuestionMatchesSelection(manifested[0]?.question_data, questionSelection)
+  ) {
+    throw new TrainingAttemptDeliveryError(
+      'The persisted Training hand does not match this drill selection.',
+      'TRAINING_ATTEMPT_SELECTION_MISMATCH',
+      409,
+    );
+  }
+  return deliverManifestSnapshots({
+    manifested,
+    userId,
+    clientSessionId,
+    gameId,
+    attemptId,
+    handOrdinalStart: ordinal,
+    identity,
+  });
 }
 
 /**
@@ -429,13 +907,21 @@ export async function prepareTrainingAttemptDelivery({
     throw new TrainingAttemptDeliveryError('Training attempt delivery input is incomplete.', undefined, 500);
   }
 
-  const safeLevel = normalizedLevel(level);
-  const kind = normalizeTrainingSessionKind(sessionKind);
-  const targetHands = resolveTrainingSessionTarget({
-    level: safeLevel,
-    sessionKind: kind,
+  const identity = normalizedAttemptIdentity({
+    gameId,
+    level,
+    sessionKind,
+    difficultyMode,
     requestedHands,
+    config,
   });
+  const {
+    safeLevel,
+    kind,
+    targetHands,
+    safeDifficulty,
+    configHash,
+  } = identity;
   const start = Number.parseInt(handOrdinalStart, 10) || 1;
   if (questions.length < 1 || start < 1 || start + questions.length - 1 > targetHands) {
     throw new TrainingAttemptDeliveryError(
@@ -464,15 +950,6 @@ export async function prepareTrainingAttemptDelivery({
     }
   }
 
-  const safeDifficulty = normalizeTrainingDifficultyMode(difficultyMode);
-  const configHash = trainingAttemptConfigHash({
-    ...config,
-    gameId: String(gameId),
-    level: safeLevel,
-    sessionKind: kind,
-    difficultyMode: safeDifficulty,
-    targetHands,
-  });
   const candidateSnapshots = questions.map((canonicalQuestion) => buildTrainingQuestionSnapshot({
     canonicalQuestion,
     gameId,
@@ -488,29 +965,14 @@ export async function prepareTrainingAttemptDelivery({
     { label: 'TrainingAttempt:snapshot-write' },
   );
 
-  const startResult = await runTrainingPersistenceQuery(
-    () => supabase.rpc('fn_start_training_attempt_v2', {
-      p_user_id: userId,
-      p_client_nonce: String(clientSessionId).slice(0, 180),
-      p_game_id: String(gameId).slice(0, 100),
-      p_level: safeLevel,
-      p_session_kind: kind,
-      p_difficulty: safeDifficulty,
-      p_expected_hands: targetHands,
-      p_config_hash: configHash,
-      p_parent_attempt_id: parentAttemptId || null,
-    }),
-    { label: 'TrainingAttempt:start' },
-  );
-  const started = unwrapRpcData(startResult);
-  if (!started?.success || !started?.attemptId) {
-    throw new TrainingAttemptDeliveryError(
-      started?.error || 'The Training attempt could not be created.',
-      started?.code || 'TRAINING_ATTEMPT_START_FAILED',
-      started?.status || 409,
-    );
-  }
-  const attemptId = String(started.attemptId);
+  const attemptId = await startTrainingAttempt({
+    supabase,
+    userId,
+    clientSessionId,
+    gameId,
+    parentAttemptId,
+    identity,
+  });
   const handRows = candidateSnapshots.map((snapshot, index) => ({
     attempt_id: attemptId,
     hand_ordinal: start + index,
@@ -552,59 +1014,15 @@ export async function prepareTrainingAttemptDelivery({
   );
   const snapshotByKey = new Map((snapshotResult.data || []).map((row) => [row.snapshot_key, row]));
   const manifested = manifestHands.map((hand) => snapshotByKey.get(hand.snapshot_key));
-  if (manifested.some((snapshot) => (
-    !snapshot
-    || String(snapshot.game_id) !== String(gameId)
-    || Number(snapshot.level) !== safeLevel
-    || trainingQuestionDigest(snapshot.question_data) !== String(snapshot.content_digest)
-  ))) {
-    throw new TrainingAttemptDeliveryError(
-      'The Training question snapshot failed its integrity check.',
-      'TRAINING_QUESTION_SNAPSHOT_MISMATCH',
-      503,
-    );
-  }
-  if (kind !== 'replay') {
-    const rejectedManifest = manifested
-      .map((snapshot, index) => ({
-        index,
-        result: trainingQuestionCampaignEligibility(snapshot.question_data),
-      }))
-      .find(({ result }) => !result.eligible);
-    if (rejectedManifest) {
-      throw new TrainingAttemptDeliveryError(
-        `The persisted question in hand ${start + rejectedManifest.index} is not eligible for a progress-bearing Training attempt (${rejectedManifest.result.reason}).`,
-        'TRAINING_ATTEMPT_MANIFEST_AUTHORITY_INELIGIBLE',
-        422,
-      );
-    }
-  }
-
-  const servedQuestions = manifested.map((snapshot, index) => prepareTrainingQuestionForDelivery({
-    canonicalQuestion: snapshot.question_data,
+  assertManifestSnapshots({ manifested, gameId, identity, handOrdinalStart: start });
+  return deliverManifestSnapshots({
+    manifested,
     userId,
+    clientSessionId,
     gameId,
-    level: safeLevel,
-    sessionId: clientSessionId,
     attemptId,
-    snapshotKey: snapshot.snapshot_key,
-    sessionKind: kind,
-    sessionTargetHands: targetHands,
-    handOrdinal: start + index,
-    decisionOrdinal: 1,
-    countsTowardCompletion: true,
-    practiceOnly: kind === 'replay',
-    difficultyMode: safeDifficulty,
-  }));
-
-  return Object.freeze({
-    attemptId,
-    clientSessionId: String(clientSessionId),
-    sessionKind: kind,
-    targetHands,
     handOrdinalStart: start,
-    configHash,
-    questions: servedQuestions,
+    identity,
   });
 }
 

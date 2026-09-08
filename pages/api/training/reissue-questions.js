@@ -5,13 +5,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   prepareTrainingQuestionForDelivery,
-  trainingQuestionDigest,
 } from '../../../src/lib/training/gradingReceipt.mjs';
 import { isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import {
   isTrainingAttemptContractError,
   prepareTrainingAttemptDelivery,
+  recordTrainingQuestionsServedForAttempt,
+  trainingAttemptDecisionServeKey,
   trainingQuestionCampaignEligibility,
+  trainingQuestionSnapshotMatchesIdentity,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import { normalizeTrainingSessionKind } from '../../../src/lib/training/sessionAttemptContract.mjs';
 import {
@@ -155,10 +157,7 @@ export default async function handler(req, res) {
             )
           : { data: [] };
         const eligibleSnapshots = (snapshotResult.data || []).filter((row) => (
-          row?.question_data
-          && String(row.game_id) === String(gameId)
-          && Number(row.level) === level
-          && trainingQuestionDigest(row.question_data) === String(row.content_digest)
+          trainingQuestionSnapshotMatchesIdentity(row, { gameId, level })
           && isTrainingQuestionValid(row.question_data)
         ));
         const byId = new Map(eligibleSnapshots.map((row) => [
@@ -189,6 +188,10 @@ export default async function handler(req, res) {
           parentAttemptId,
           requireFullAttempt: true,
           config: { replayParentAttemptId: parentAttemptId },
+        });
+        await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+          userId: user.id,
+          delivery,
         });
 
         return res.status(200).json({
@@ -276,10 +279,7 @@ export default async function handler(req, res) {
       );
       const snapshots = hands.map((hand) => snapshotByKey.get(String(hand.snapshot_key)));
       if (snapshots.some((snapshot) => (
-        !snapshot?.question_data
-        || String(snapshot.game_id) !== String(gameId)
-        || Number(snapshot.level) !== level
-        || trainingQuestionDigest(snapshot.question_data) !== String(snapshot.content_digest)
+        !trainingQuestionSnapshotMatchesIdentity(snapshot, { gameId, level })
         || !isTrainingQuestionValid(snapshot.question_data)
       ))) {
         return res.status(409).json({
@@ -332,7 +332,12 @@ export default async function handler(req, res) {
         difficultyMode: attempt.difficulty,
         nowMs: reissueNowMs,
         ttlSeconds,
+        receiptId: trainingAttemptDecisionServeKey(attemptId, index + 1, 1),
       }));
+      await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+        userId: user.id,
+        delivery: { attemptId, questions },
+      });
       return res.status(200).json({
         success: true,
         gameId,

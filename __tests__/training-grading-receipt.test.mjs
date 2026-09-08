@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import test from 'node:test';
 
 import {
@@ -83,6 +84,32 @@ test('receipt binds user, game, question, difficulty, digest, and server RNG rol
   assert.equal(verified.servedQuestion._gradingContext, undefined);
 });
 
+test('a recovered stable decision receipt cannot reroll its server RNG', () => {
+  const first = issue({ rngRolls: undefined, nowMs: NOW });
+  const recovered = issue({ rngRolls: undefined, nowMs: NOW + 60_000 });
+
+  assert.deepEqual(
+    recovered._gradingContext.rngRolls,
+    first._gradingContext.rngRolls,
+    'the same attempt/hand/decision and immutable question must retain its RNG rolls',
+  );
+  assert.notEqual(
+    recovered._gradingContext.receipt,
+    first._gradingContext.receipt,
+    'recovery may refresh receipt timestamps without changing the sealed decision RNG',
+  );
+  assert.ok(first._gradingContext.rngRolls.low >= 1 && first._gradingContext.rngRolls.low <= 100);
+  assert.ok(first._gradingContext.rngRolls.high >= 1 && first._gradingContext.rngRolls.high <= 100);
+});
+
+test('explicit server RNG rolls must be whole numbers', () => {
+  assert.throws(
+    () => issue({ rngRolls: { low: 1.5, high: 100 } }),
+    (error) => error instanceof TrainingGradingReceiptError
+      && error.code === 'TRAINING_GRADING_RECEIPT_RNG_INVALID',
+  );
+});
+
 test('receipt signing fails closed without a dedicated secret and never reuses the Supabase service key', () => {
   const originalReceiptSecret = process.env.TRAINING_GRADING_RECEIPT_SECRET;
   const originalServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -153,9 +180,33 @@ test('tampering, wrong identity, wrong game, wrong question, and expiry all fail
   );
   expectCode(
     () => verifyTrainingGradingReceipt(receipt, {
-      userId: 'user-1', gameId: 'cash-001', questionId: 'q-receipt-1', canonicalQuestion: question, nowMs: NOW + (13 * 60 * 60 * 1000), secret: SECRET,
+      userId: 'user-1', gameId: 'cash-001', questionId: 'q-receipt-1', canonicalQuestion: question, nowMs: NOW + (12 * 60 * 60 * 1000) + 1000, secret: SECRET,
     }),
     'TRAINING_GRADING_RECEIPT_EXPIRED',
+  );
+  const expiredReplayEnvelope = verifyTrainingGradingReceipt(receipt, {
+    userId: 'user-1',
+    gameId: 'cash-001',
+    questionId: 'q-receipt-1',
+    canonicalQuestion: question,
+    nowMs: NOW + (12 * 60 * 60 * 1000) + 1000,
+    secret: SECRET,
+    allowExpired: true,
+  });
+  assert.equal(expiredReplayEnvelope.payload.questionId, 'q-receipt-1');
+
+  const [encodedPayload] = receipt.split('.');
+  const overlongPayload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+  overlongPayload.exp = overlongPayload.iat + (24 * 60 * 60) + 1;
+  const overlongEncoded = Buffer.from(JSON.stringify(overlongPayload), 'utf8').toString('base64url');
+  const overlongSignature = createHmac('sha256', SECRET)
+    .update(overlongEncoded)
+    .digest('base64url');
+  expectCode(
+    () => verifyTrainingGradingReceipt(`${overlongEncoded}.${overlongSignature}`, {
+      userId: 'user-1', gameId: 'cash-001', questionId: 'q-receipt-1', canonicalQuestion: question, nowMs: NOW, secret: SECRET,
+    }),
+    'TRAINING_GRADING_RECEIPT_TIME_INVALID',
   );
 });
 

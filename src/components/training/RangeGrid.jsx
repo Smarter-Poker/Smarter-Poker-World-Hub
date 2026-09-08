@@ -46,7 +46,13 @@ const BET_SIZE_COLORS = {
  * Get GTOW-style color for any action code.
  * Bet sizes get unique colors by percentage bucket.
  */
-function getActionColor(action) {
+function getActionColor(action, actionPresentation = null) {
+    const hasOwnedPresentation = actionPresentation !== null
+        && typeof actionPresentation === 'object'
+        && !Array.isArray(actionPresentation);
+    const ownedColor = actionPresentation?.[String(action || '').trim().toLowerCase()]?.color;
+    if (typeof ownedColor === 'string' && ownedColor.trim()) return ownedColor;
+    if (hasOwnedPresentation) return 'var(--sp-fg-dim)';
     if (typeof action !== 'string') return 'var(--sp-fg-dim)';
     const a = action.toLowerCase();
     if (!a) return 'var(--sp-fg-dim)';
@@ -94,13 +100,22 @@ function getActionColor(action) {
     return 'var(--sp-fg-dim)';
 }
 
-// Backwards-compatible lookup (used by getDominantAction)
-const ACTION_COLORS = new Proxy({}, {
-    get: (_, prop) => getActionColor(prop)
-});
-
 // Get action display info with GTOW-style colors
-function getActionDisplay(action) {
+function getActionDisplay(action, actionPresentation = null) {
+    const hasOwnedPresentation = actionPresentation !== null
+        && typeof actionPresentation === 'object'
+        && !Array.isArray(actionPresentation);
+    const owned = actionPresentation?.[String(action || '').trim().toLowerCase()];
+    if (owned && typeof owned.label === 'string' && typeof owned.short === 'string') {
+        return {
+            label: owned.displayLabel || owned.label,
+            short: owned.short,
+            color: getActionColor(action, actionPresentation),
+        };
+    }
+    if (hasOwnedPresentation) {
+        return { label: 'Unavailable', short: '?', color: 'var(--sp-fg-dim)' };
+    }
     if (typeof action !== 'string') return { label: '?', short: '?', color: 'var(--sp-fg-dim)' };
     const a = action.toLowerCase();
     const color = getActionColor(action);
@@ -149,11 +164,6 @@ function getActionDisplay(action) {
     return { label: action, short: action?.slice(0, 3) || '?', color };
 }
 
-// Backwards-compatible ACTION_DISPLAY (used by tooltip and frequency bars)
-const ACTION_DISPLAY = new Proxy({}, {
-    get: (_, prop) => getActionDisplay(prop)
-});
-
 function getHandNotation(row, col) {
     if (row === col) return `${RANKS[row]}${RANKS[col]}`;           // Pairs (diagonal)
     if (row < col) return `${RANKS[row]}${RANKS[col]}s`;           // Suited (above diagonal)
@@ -167,7 +177,7 @@ function getHandType(row, col) {
 }
 
 // Get the dominant action and its blended color for a hand's frequency data
-function getDominantAction(handFreqs) {
+function getDominantAction(handFreqs, actionPresentation = null) {
     if (!handFreqs) return { action: null, color: '#1a1a2e', opacity: 0.3 };
 
     let maxFreq = 0;
@@ -185,16 +195,16 @@ function getDominantAction(handFreqs) {
 
     // Determine if it's a mixed strategy (no single action > 80%)
     const isMixed = maxFreq < 80 && entries.length > 1;
-    const color = ACTION_COLORS[maxAction] || ACTION_COLORS[maxAction?.toLowerCase()] || 'var(--sp-fg-dim)';
+    const color = getActionColor(maxAction, actionPresentation);
     const opacity = Math.max(0.3, maxFreq / 100);
 
     return { action: maxAction, color, opacity, isMixed, maxFreq };
 }
 
 // Cell component with hover tooltip
-const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode, handEV, isLocked, showEVOverlay, blockerScore }) => {
+const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode, handEV, isLocked, showEVOverlay, blockerScore, actionPresentation }) => {
     const [hovered, setHovered] = React.useState(false);
-    const { color: actionColor, opacity: actionOpacity, isMixed, maxFreq } = getDominantAction(freqs);
+    const { color: actionColor, opacity: actionOpacity, isMixed, maxFreq } = getDominantAction(freqs, actionPresentation);
     const hasData = freqs !== null && freqs !== undefined;
 
     // Mode handling
@@ -314,7 +324,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     {freqs && !useBlocker && (
                         <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 3 }}>
                             {Object.entries(freqs || {}).filter(([_, f]) => f > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([act, freq]) => {
-                                const d = ACTION_DISPLAY[act] || { label: act, short: act, color: '#888' };
+                                const d = getActionDisplay(act, actionPresentation);
                                 return (
                                     <div key={act} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, gap: 6 }}>
                                         <span style={{ color: d.color, fontWeight: 700 }}>{d.short}</span>
@@ -332,8 +342,8 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
 GridCell.displayName = 'GridCell';
 
 // Frequency bar for the detail panel
-function FrequencyBar({ action, frequency, color }) {
-    const display = ACTION_DISPLAY[action] || { label: action, short: action, color: '#888' };
+function FrequencyBar({ action, frequency, actionPresentation }) {
+    const display = getActionDisplay(action, actionPresentation);
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <div style={{
@@ -373,7 +383,7 @@ function FrequencyBar({ action, frequency, color }) {
 }
 
 // Hand detail popover with EV + classification
-function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
+function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPresentation }) {
     if (!hand || !freqs) return null;
 
     // Sort frequencies by value descending
@@ -383,7 +393,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
 
     const isMixed = sorted.length > 1 && sorted[0][1] < 80;
     const bestAction = sorted[0];
-    const bestDisplay = bestAction ? (ACTION_DISPLAY[bestAction[0]] || { label: bestAction[0], color: '#888' }) : null;
+    const bestDisplay = bestAction ? getActionDisplay(bestAction[0], actionPresentation) : null;
 
     return (
         <motion.div
@@ -476,7 +486,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                             <FrequencyBar
                                 action={action}
                                 frequency={freq}
-                                color={ACTION_COLORS[action] || '#888'}
+                                actionPresentation={actionPresentation}
                             />
                             {index === 0 && handEV !== undefined && handEV !== null && sorted.length > 1 && (
                                 <div style={{
@@ -507,7 +517,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
 // MAIN COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null, showEVOverlay = false, heldCardsForBlockers = null }) {
+export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null, showEVOverlay = false, heldCardsForBlockers = null, actionPresentation = null }) {
     const [selectedHand, setSelectedHand] = useState(null);
     const [actionFilter, setActionFilter] = useState(null); // null = show all, 'b33' = highlight that action
 
@@ -622,22 +632,23 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         isLocked={actionFilter ? filterLocked : isLocked}
                         showEVOverlay={showEVOverlay}
                         blockerScore={blockerScore}
+                        actionPresentation={actionPresentation}
                     />
                 );
             }
             rows.push(cells);
         }
         return rows;
-    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications, actionFilter, heldCardsForBlockers, showEVOverlay]);
+    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications, actionFilter, heldCardsForBlockers, showEVOverlay, actionPresentation]);
 
     // Get action legend
     const activeActions = useMemo(() => {
         if (!actions || actions.length === 0) return [];
         return actions.map(a => ({
             code: a,
-            ...(ACTION_DISPLAY[a] || { label: a, short: a, color: '#888' }),
+            ...getActionDisplay(a, actionPresentation),
         }));
-    }, [actions]);
+    }, [actions, actionPresentation]);
 
     const selectedFreqs = selectedHand && gridData ? gridData[selectedHand] : null;
 
@@ -738,6 +749,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                             onClose={() => setSelectedHand(null)}
                             classificationInfo={classificationData?.[selectedHand]}
                             handEV={handEVs?.[selectedHand]}
+                            actionPresentation={actionPresentation}
                         />
                     )}
                 </AnimatePresence>

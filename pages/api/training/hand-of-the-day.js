@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -14,9 +12,11 @@ import {
 import { toPublicTrainingQuestion } from '../../../src/lib/training/gradingReceipt.mjs';
 import { applyDifficultyToQuestion } from '../../../src/lib/training/difficultyQuestionContract.mjs';
 import {
+  buildTrainingQuestionSnapshot,
   isTrainingAttemptContractError,
   isTrainingQuestionCampaignEligible,
   prepareTrainingAttemptDelivery,
+  recordTrainingQuestionsServedForAttempt,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
   isTrainingPersistenceUnavailable,
@@ -25,7 +25,6 @@ import {
 } from '../../../src/lib/training/trainingPersistence.mjs';
 import {
   cacheRowIsServingEligible,
-  recordTrainingQuestionsServed,
   withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
@@ -33,6 +32,8 @@ const DAILY_GAME_ID = 'daily-challenge';
 const DAILY_LEVEL = 1;
 const DAILY_ENGINE_TYPES = Object.freeze(['PIO', 'CHART']);
 const CANDIDATE_BATCH_SIZE = 64;
+const RECOVERY_PAGE_SIZE = 16;
+const RECOVERY_MAX_PAGES = 4;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let _supabase = null;
@@ -150,6 +151,141 @@ async function selectDailyCanonicalQuestion(today) {
   return null;
 }
 
+function sealedDailyCandidate(seal, snapshot) {
+  if (
+    !seal
+    || !snapshot
+    || String(seal.snapshot_key || '') !== String(snapshot.snapshot_key || '')
+    || String(seal.source_question_id || '') !== String(snapshot.source_question_id || '')
+    || String(snapshot.game_id || '') !== DAILY_GAME_ID
+    || Number(snapshot.level) !== DAILY_LEVEL
+    || String(snapshot.question_data?.id || '') !== String(seal.source_question_id || '')
+    || String(snapshot.question_data?.policyChecksum || '').toLowerCase()
+      !== String(seal.source_policy_checksum || '').toLowerCase()
+  ) {
+    return null;
+  }
+
+  let rebuilt;
+  try {
+    rebuilt = buildTrainingQuestionSnapshot({
+      canonicalQuestion: snapshot.question_data,
+      gameId: DAILY_GAME_ID,
+      level: DAILY_LEVEL,
+    });
+  } catch {
+    return null;
+  }
+  if (
+    rebuilt.snapshot_key !== snapshot.snapshot_key
+    || rebuilt.content_digest !== snapshot.content_digest
+    || !isTrainingQuestionCampaignEligible(snapshot.question_data)
+  ) {
+    return null;
+  }
+
+  return {
+    snapshotKey: snapshot.snapshot_key,
+    row: {
+      question_id: seal.source_question_id,
+      policy_checksum: seal.source_policy_checksum,
+    },
+    question: snapshot.question_data,
+  };
+}
+
+async function readSealedDailyQuestion(dailyId) {
+  const sealResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_daily_question_seals')
+      .select('daily_id, snapshot_key, source_question_id, source_policy_checksum')
+      .eq('daily_id', dailyId)
+      .maybeSingle(),
+    { label: 'DailyChallenge:seal-read' },
+  );
+  const seal = sealResult.data;
+  if (!seal) return null;
+
+  const snapshotResult = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_question_snapshots')
+      .select('snapshot_key, source_question_id, game_id, level, content_digest, question_data')
+      .eq('snapshot_key', seal.snapshot_key)
+      .maybeSingle(),
+    { label: 'DailyChallenge:sealed-snapshot-read' },
+  );
+  return sealedDailyCandidate(seal, snapshotResult.data) || {
+    integrityCode: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH',
+  };
+}
+
+async function dailyQuestionHasConflict(dailyId) {
+  const result = await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_daily_question_conflicts')
+      .select('attempt_id')
+      .eq('daily_id', dailyId)
+      .limit(1)
+      .maybeSingle(),
+    { label: 'DailyChallenge:current-conflict-read' },
+  );
+  return Boolean(result.data?.attempt_id);
+}
+
+async function sealDailyCanonicalQuestion(dailyId, candidate) {
+  const snapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: candidate.question,
+    gameId: DAILY_GAME_ID,
+    level: DAILY_LEVEL,
+  });
+  await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_question_snapshots')
+      .upsert([snapshot], {
+        onConflict: 'snapshot_key',
+        ignoreDuplicates: true,
+        defaultToNull: false,
+      }),
+    { label: 'DailyChallenge:sealed-snapshot-write' },
+  );
+  await runTrainingPersistenceQuery(
+    () => getSupabase()
+      .from('training_daily_question_seals')
+      .upsert([{
+        daily_id: dailyId,
+        snapshot_key: snapshot.snapshot_key,
+        source_question_id: candidate.row.question_id,
+        source_policy_checksum: candidate.row.policy_checksum,
+      }], {
+        onConflict: 'daily_id',
+        ignoreDuplicates: true,
+        defaultToNull: false,
+      }),
+    { label: 'DailyChallenge:seal-write' },
+  );
+
+  // The insert is intentionally first-writer-wins. Always read the winner
+  // back instead of assuming this request's candidate won a concurrent race.
+  return readSealedDailyQuestion(dailyId);
+}
+
+/**
+ * Resolve the globally sealed question for one product day. Mutable cache
+ * count/order is consulted only when a day has never been sealed; every later
+ * user reads the same immutable Training snapshot.
+ */
+async function getOrCreateSealedDailyQuestion(today, dailyId) {
+  if (await dailyQuestionHasConflict(dailyId)) {
+    return { integrityCode: 'TRAINING_DAILY_SNAPSHOT_CONFLICT' };
+  }
+  const existing = await readSealedDailyQuestion(dailyId);
+  if (existing) return existing;
+
+  const candidate = await selectDailyCanonicalQuestion(today);
+  if (!candidate) return null;
+  return sealDailyCanonicalQuestion(dailyId, candidate);
+}
+
 function optionText(options, answerId) {
   const match = (Array.isArray(options) ? options : []).find(
     (option) => String(option?.id ?? option) === String(answerId || ''),
@@ -186,28 +322,74 @@ function postCompletionFeedback(canonicalQuestion, answer) {
 }
 
 async function readDailyRows(userId, dailyId) {
-  const result = await runTrainingPersistenceQuery(
-    () => getSupabase()
-      .from('training_daily_challenge')
-      .select('daily_id, score, ev_loss, selected_action, completed_at, attempt_id')
-      .eq('user_id', userId)
-      .like('daily_id', 'daily-%')
-      .order('completed_at', { ascending: false })
-      .limit(365),
-    { label: 'DailyChallenge:completion-read' },
-  );
-  const rows = Array.isArray(result.data) ? result.data : [];
+  const [currentResult, historyResult] = await Promise.all([
+    runTrainingPersistenceQuery(
+      () => getSupabase()
+        .from('training_daily_challenge')
+        .select('daily_id, score, ev_loss, selected_action, completed_at, attempt_id')
+        .eq('user_id', userId)
+        .eq('daily_id', dailyId)
+        .maybeSingle(),
+      { label: 'DailyChallenge:current-completion-read' },
+    ),
+    runTrainingPersistenceQuery(
+      () => getSupabase()
+        .from('training_daily_challenge')
+        .select('daily_id, attempt_id, completed_at')
+        .eq('user_id', userId)
+        .like('daily_id', 'daily-%')
+        .order('completed_at', { ascending: false })
+        .limit(365),
+      { label: 'DailyChallenge:completion-history-read' },
+    ),
+  ]);
+  const current = currentResult.data;
+  const rows = Array.isArray(historyResult.data) ? historyResult.data : [];
   return {
-    row: rows.find((candidate) => (
-      candidate.daily_id === dailyId
-      && UUID_RE.test(String(candidate.attempt_id || ''))
-    )) || null,
+    row: current?.daily_id === dailyId
+      && UUID_RE.test(String(current.attempt_id || ''))
+      ? current
+      : null,
     // Legacy browser-authored rows without a sealed attempt are deliberately
     // excluded from streak/progress truth.
     completedDays: rows
       .filter((candidate) => UUID_RE.test(String(candidate.attempt_id || '')))
       .map((candidate) => String(candidate.daily_id).replace(/^daily-/, '')),
   };
+}
+
+async function readDailyAttemptIntegrity(attempt, snapshotKey) {
+  if (!attempt?.id || !attempt?.client_nonce || !snapshotKey) {
+    return { ok: false, code: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH' };
+  }
+  const [conflictResult, sealResult] = await Promise.all([
+    runTrainingPersistenceQuery(
+      () => getSupabase()
+        .from('training_daily_question_conflicts')
+        .select('attempt_id, daily_id')
+        .eq('daily_id', attempt.client_nonce)
+        .limit(1)
+        .maybeSingle(),
+      { label: 'DailyChallenge:attempt-conflict-read' },
+    ),
+    runTrainingPersistenceQuery(
+      () => getSupabase()
+        .from('training_daily_question_seals')
+        .select('daily_id, snapshot_key, source_question_id, source_policy_checksum')
+        .eq('daily_id', attempt.client_nonce)
+        .maybeSingle(),
+      { label: 'DailyChallenge:attempt-seal-read' },
+    ),
+  ]);
+  if (conflictResult.data?.daily_id === attempt.client_nonce) {
+    return { ok: false, code: 'TRAINING_DAILY_SNAPSHOT_CONFLICT' };
+  }
+  if (!sealResult.data
+      || String(sealResult.data.snapshot_key || '') !== String(snapshotKey)
+      || String(sealResult.data.daily_id || '') !== String(attempt.client_nonce)) {
+    return { ok: false, code: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH' };
+  }
+  return { ok: true, code: null, seal: sealResult.data };
 }
 
 async function readAttemptEvidence(attempt) {
@@ -221,6 +403,17 @@ async function readAttemptEvidence(attempt) {
       .maybeSingle(),
     { label: 'DailyChallenge:hand-read' },
   );
+  const snapshotKey = handResult.data?.snapshot_key;
+  const integrity = await readDailyAttemptIntegrity(attempt, snapshotKey);
+  if (!integrity.ok) {
+    return {
+      attempt,
+      answer: null,
+      question: null,
+      feedback: null,
+      integrityCode: integrity.code,
+    };
+  }
   const answerResult = await runTrainingPersistenceQuery(
     () => getSupabase()
       .from('training_answers')
@@ -231,18 +424,31 @@ async function readAttemptEvidence(attempt) {
       .maybeSingle(),
     { label: 'DailyChallenge:answer-read' },
   );
-  const snapshotKey = handResult.data?.snapshot_key;
   const snapshotResult = snapshotKey
     ? await runTrainingPersistenceQuery(
       () => getSupabase()
         .from('training_question_snapshots')
-        .select('snapshot_key, question_data')
+        .select('snapshot_key, source_question_id, game_id, level, content_digest, question_data')
         .eq('snapshot_key', snapshotKey)
         .maybeSingle(),
       { label: 'DailyChallenge:snapshot-read' },
     )
     : { data: null };
-  const canonicalQuestion = snapshotResult.data?.question_data || null;
+  // A matching foreign key is not sufficient evidence that the stored body is
+  // still the body named by the daily seal. Rebuild the content-addressed
+  // snapshot on every completed/pending replay, just as the midnight recovery
+  // path does, and fail closed on any source, policy, or digest drift.
+  const sealed = sealedDailyCandidate(integrity.seal, snapshotResult.data);
+  if (!sealed) {
+    return {
+      attempt,
+      answer: null,
+      question: null,
+      feedback: null,
+      integrityCode: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH',
+    };
+  }
+  const canonicalQuestion = sealed.question;
   const servedQuestion = canonicalQuestion
     ? applyDifficultyToQuestion(canonicalQuestion, attempt.difficulty || 'standard')
     : null;
@@ -279,6 +485,7 @@ async function readCompletedAttempt(userId, row) {
     return null;
   }
   const evidence = await readAttemptEvidence(attempt);
+  if (evidence?.integrityCode) return evidence;
   // A completion is an identity-bound historical record, not merely a set of
   // aggregate counters. Never substitute today's candidate when any part of
   // the completed hand's snapshot/answer/feedback chain is unavailable.
@@ -336,7 +543,216 @@ async function readPendingScoredAttempt(userId, dailyId) {
     return null;
   }
   const evidence = await readAttemptEvidence(attempt);
+  if (evidence?.integrityCode) return evidence;
   return evidence?.answer && evidence?.feedback ? evidence : null;
+}
+
+function chicagoProductDate(value) {
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(instant);
+  const part = (type) => parts.find((entry) => entry.type === type)?.value;
+  const date = `${part('year')}-${part('month')}-${part('day')}`;
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+}
+
+/**
+ * Find a previous product day's answer that was durably scored while its
+ * sealed attempt is still open. This runs before today's hand is minted, so a
+ * Chicago-midnight boundary cannot hide the only attempt that still needs its
+ * idempotent completion transaction.
+ */
+async function readRecoverablePriorScoredAttempt(userId, currentDailyId) {
+  let cursor = null;
+  const nowIso = new Date().toISOString();
+
+  for (let page = 0; page < RECOVERY_MAX_PAGES; page += 1) {
+    const attemptResult = await runTrainingPersistenceQuery(
+      () => {
+        let query = getSupabase()
+          .from('training_attempts')
+          .select(
+            'id, user_id, client_nonce, game_id, level, session_kind, difficulty, status, expected_hands, started_at, expires_at',
+            { count: 'exact' },
+          )
+          .eq('user_id', userId)
+          .eq('game_id', DAILY_GAME_ID)
+          .eq('level', DAILY_LEVEL)
+          .eq('session_kind', 'daily')
+          .eq('status', 'open')
+          .neq('client_nonce', currentDailyId)
+          .gt('expires_at', nowIso);
+        if (cursor) {
+          query = query.or(
+            `started_at.lt.${cursor.startedAt},and(started_at.eq.${cursor.startedAt},id.lt.${cursor.id})`,
+          );
+        }
+        return query
+          .order('started_at', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(RECOVERY_PAGE_SIZE + 1);
+      },
+      { label: 'DailyChallenge:prior-pending-attempt-read' },
+    );
+
+    const fetched = Array.isArray(attemptResult.data) ? attemptResult.data : [];
+    const reportedRemaining = attemptResult.count;
+    const countKnown = Number.isInteger(reportedRemaining) && reportedRemaining >= 0;
+    // The query deliberately asks for one sentinel row beyond the page. When
+    // PostgREST cannot return an exact count, only that sentinel proves another
+    // page exists; a full final page by itself is still complete.
+    const hasMore = fetched.length > RECOVERY_PAGE_SIZE
+      || (countKnown && reportedRemaining > fetched.length);
+    const attempts = fetched.slice(0, RECOVERY_PAGE_SIZE);
+    const eligibleAttempts = attempts.filter((attempt) => {
+      const startedProductDate = chicagoProductDate(attempt.started_at);
+      return attempt?.id
+        && Number(attempt.expected_hands) === 1
+        && startedProductDate
+        && attempt.client_nonce === `daily-${startedProductDate}`
+        && Date.parse(attempt.expires_at || '') > Date.now();
+    });
+
+    if (eligibleAttempts.length > 0) {
+      const attemptIds = eligibleAttempts.map((attempt) => attempt.id);
+      const dailyIds = [...new Set(eligibleAttempts.map((attempt) => attempt.client_nonce))];
+      const [handsResult, answersResult, conflictsResult, sealsResult] = await Promise.all([
+        runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_attempt_hands')
+            .select('attempt_id, snapshot_key')
+            .in('attempt_id', attemptIds)
+            .eq('hand_ordinal', 1),
+          { label: 'DailyChallenge:prior-pending-hands-read' },
+        ),
+        runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_answers')
+            .select('attempt_id, answer_id, is_correct, solver_verified, ev_loss, ev_loss_measured, answered_at, snapshot_key')
+            .in('attempt_id', attemptIds)
+            .eq('hand_ordinal', 1)
+            .eq('decision_ordinal', 1),
+          { label: 'DailyChallenge:prior-pending-answers-read' },
+        ),
+        runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_daily_question_conflicts')
+            .select('attempt_id, daily_id')
+            .in('daily_id', dailyIds),
+          { label: 'DailyChallenge:prior-pending-conflicts-read' },
+        ),
+        runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_daily_question_seals')
+            .select('daily_id, snapshot_key, source_question_id, source_policy_checksum')
+            .in('daily_id', dailyIds),
+          { label: 'DailyChallenge:prior-pending-seals-read' },
+        ),
+      ]);
+      const hands = new Map(
+        (handsResult.data || []).map((row) => [String(row.attempt_id), row]),
+      );
+      const answers = new Map(
+        (answersResult.data || []).map((row) => [String(row.attempt_id), row]),
+      );
+      const conflictDailyIds = new Set(
+        (conflictsResult.data || []).map((row) => String(row.daily_id)),
+      );
+      const seals = new Map(
+        (sealsResult.data || []).map((row) => [String(row.daily_id), row]),
+      );
+      const snapshotKeys = [...new Set(
+        [...hands.values()].map((hand) => hand.snapshot_key).filter(Boolean),
+      )];
+      const snapshotResult = snapshotKeys.length > 0
+        ? await runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_question_snapshots')
+            .select('snapshot_key, source_question_id, game_id, level, content_digest, question_data')
+            .in('snapshot_key', snapshotKeys),
+          { label: 'DailyChallenge:prior-pending-snapshots-read' },
+        )
+        : { data: [] };
+      const snapshots = new Map(
+        (snapshotResult.data || []).map((row) => [String(row.snapshot_key), row]),
+      );
+
+      for (const attempt of eligibleAttempts) {
+        const hand = hands.get(String(attempt.id));
+        const answer = answers.get(String(attempt.id));
+        if (conflictDailyIds.has(String(attempt.client_nonce))) {
+          return {
+            evidence: null,
+            conflict: true,
+            incomplete: false,
+            integrityCode: 'TRAINING_DAILY_SNAPSHOT_CONFLICT',
+          };
+        }
+        const seal = seals.get(String(attempt.client_nonce));
+        if (!answer) continue;
+        if (!hand?.snapshot_key
+          || String(answer.snapshot_key || '') !== String(hand.snapshot_key)
+          || !seal
+          || String(seal.snapshot_key || '') !== String(hand.snapshot_key)) {
+          return {
+            evidence: null,
+            conflict: false,
+            incomplete: false,
+            integrityCode: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH',
+          };
+        }
+        const snapshot = snapshots.get(String(hand.snapshot_key));
+        const sealed = sealedDailyCandidate(seal, snapshot);
+        if (!sealed || typeof answer.is_correct !== 'boolean') {
+          return {
+            evidence: null,
+            conflict: false,
+            incomplete: false,
+            integrityCode: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH',
+          };
+        }
+        const canonicalQuestion = sealed.question;
+        const servedQuestion = canonicalQuestion
+          ? applyDifficultyToQuestion(canonicalQuestion, attempt.difficulty || 'standard')
+          : null;
+        const feedback = postCompletionFeedback(servedQuestion, answer);
+        if (!servedQuestion || !feedback) {
+          return {
+            evidence: null,
+            conflict: false,
+            incomplete: false,
+            integrityCode: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH',
+          };
+        }
+        const evidence = {
+          attempt,
+          answer,
+          question: toPublicTrainingQuestion(servedQuestion),
+          feedback,
+        };
+        return { evidence, conflict: false, incomplete: false, integrityCode: null };
+      }
+    }
+
+    if (!hasMore) return {
+      evidence: null,
+      conflict: false,
+      incomplete: false,
+      integrityCode: null,
+    };
+    const tail = attempts[attempts.length - 1];
+    if (!tail?.started_at || !tail?.id) {
+      return { evidence: null, conflict: false, incomplete: true, integrityCode: null };
+    }
+    cursor = { startedAt: tail.started_at, id: tail.id };
+  }
+
+  return { evidence: null, conflict: false, incomplete: true, integrityCode: null };
 }
 
 function failureStatus(error) {
@@ -372,6 +788,17 @@ export default async function handler(req, res) {
         ? await readCompletedAttempt(user.id, dailyState.row)
         : null;
 
+      if (persisted?.integrityCode) {
+        return res.status(503).json({
+          success: false,
+          code: persisted.integrityCode,
+          error: persisted.integrityCode === 'TRAINING_DAILY_SNAPSHOT_CONFLICT'
+            ? 'This Daily Challenge has conflicting sealed evidence. Please contact support.'
+            : 'The completed Daily Challenge does not match its immutable daily seal.',
+          retryable: persisted.integrityCode !== 'TRAINING_DAILY_SNAPSHOT_CONFLICT',
+        });
+      }
+
       if (dailyState.row && !persisted) {
         return res.status(503).json({
           success: false,
@@ -398,6 +825,16 @@ export default async function handler(req, res) {
       // experiences a transport failure. Restore that durable verdict without
       // reissuing a receipt or asking the player to submit the hand again.
       const pending = await readPendingScoredAttempt(user.id, dailyId);
+      if (pending?.integrityCode) {
+        return res.status(503).json({
+          success: false,
+          code: pending.integrityCode,
+          error: pending.integrityCode === 'TRAINING_DAILY_SNAPSHOT_CONFLICT'
+            ? 'This Daily Challenge has conflicting sealed evidence. Please contact support.'
+            : 'This Daily Challenge attempt does not match its immutable daily seal.',
+          retryable: pending.integrityCode !== 'TRAINING_DAILY_SNAPSHOT_CONFLICT',
+        });
+      }
       if (pending) {
         return res.status(200).json({
           success: true,
@@ -416,27 +853,56 @@ export default async function handler(req, res) {
         });
       }
 
-      const candidate = await selectDailyCanonicalQuestion(today);
+      const priorRecovery = await readRecoverablePriorScoredAttempt(user.id, dailyId);
+      if (priorRecovery.integrityCode || priorRecovery.incomplete) {
+        const integrityConflict = priorRecovery.integrityCode === 'TRAINING_DAILY_SNAPSHOT_CONFLICT';
+        return res.status(503).json({
+          success: false,
+          code: priorRecovery.integrityCode || 'TRAINING_DAILY_RECOVERY_SCAN_INCOMPLETE',
+          error: integrityConflict
+            ? 'A prior Daily Challenge has conflicting sealed evidence. Please contact support.'
+            : priorRecovery.integrityCode
+              ? 'A prior Daily Challenge does not match its immutable daily seal.'
+              : 'Prior Daily Challenge recovery could not be completed safely. Please retry.',
+          retryable: !integrityConflict,
+        });
+      }
+      const priorPending = priorRecovery.evidence;
+      if (priorPending) {
+        return res.status(200).json({
+          success: true,
+          dailyId: priorPending.attempt.client_nonce,
+          question: priorPending.question,
+          completion: null,
+          completionPending: true,
+          persistedAnswer: {
+            attemptId: priorPending.attempt.id,
+            selectedAction: priorPending.answer.answer_id,
+            isCorrect: priorPending.answer.is_correct,
+          },
+          feedback: priorPending.feedback,
+          completedDays: dailyState.completedDays,
+          expiresAt: priorPending.attempt.expires_at,
+        });
+      }
+
+      const candidate = await getOrCreateSealedDailyQuestion(today, dailyId);
+      if (candidate?.integrityCode) {
+        return res.status(503).json({
+          success: false,
+          code: candidate.integrityCode,
+          error: candidate.integrityCode === 'TRAINING_DAILY_SNAPSHOT_CONFLICT'
+            ? 'Today’s Daily Challenge has conflicting sealed evidence. Please contact support.'
+            : 'Today’s sealed Daily Challenge could not be verified. Please retry.',
+          retryable: candidate.integrityCode !== 'TRAINING_DAILY_SNAPSHOT_CONFLICT',
+        });
+      }
       if (!candidate) {
         return res.status(503).json({
           success: false,
           code: 'TRAINING_DAILY_QUESTION_UNAVAILABLE',
           error: 'Today\u2019s canonical Daily Challenge is temporarily unavailable.',
         });
-      }
-
-      try {
-        await recordTrainingQuestionsServed(getSupabase(), {
-          requestId: randomUUID(),
-          userId: user.id,
-          receipts: [{
-            questionId: candidate.row.question_id,
-            policyChecksum: candidate.row.policy_checksum,
-          }],
-        });
-      } catch (receiptError) {
-        console.warn('[HandOfTheDay] Refusing to serve an unreceipted question:', receiptError?.message || receiptError);
-        return res.status(503).json(trainingPersistenceUnavailableBody());
       }
 
       let delivery;
@@ -468,10 +934,33 @@ export default async function handler(req, res) {
         throw deliveryError;
       }
 
+      const deliveredQuestion = delivery.questions[0];
+      if (
+        !deliveredQuestion
+        || String(deliveredQuestion?._gradingContext?.snapshotKey || '') !== candidate.snapshotKey
+      ) {
+        return res.status(503).json({
+          success: false,
+          code: 'TRAINING_DAILY_SNAPSHOT_BINDING_MISMATCH',
+          error: 'Today\u2019s sealed Daily Challenge could not be verified. Please retry.',
+          retryable: true,
+        });
+      }
+
+      try {
+        await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+          userId: user.id,
+          delivery,
+        });
+      } catch (receiptError) {
+        console.warn('[HandOfTheDay] Refusing to serve an unreceipted attempt hand:', receiptError?.message || receiptError);
+        return res.status(503).json(trainingPersistenceUnavailableBody());
+      }
+
       return res.status(200).json({
         success: true,
         dailyId,
-        question: delivery.questions[0],
+        question: deliveredQuestion,
         completion: null,
         completionPending: false,
         feedback: null,

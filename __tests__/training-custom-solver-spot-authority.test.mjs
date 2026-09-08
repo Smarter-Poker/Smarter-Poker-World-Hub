@@ -25,7 +25,7 @@ function makeRow() {
       frequencies: {},
       hand_evs_bb: [],
       street: 'flop',
-      board: 'AsKdQc',
+      board: ['As', 'Kd', 'Qc'],
       position: 'SB',
       hero: 'OOP',
       oop_player: 'SB',
@@ -33,9 +33,25 @@ function makeRow() {
       node: 'r:0',
       pot_bb: 7,
       eff_stack_bb: 93,
-      rake: '5 1 0 0',
+      rake: '0.05 100',
       tree_geometry: 'hu_cash_75pct',
       solver: 'PioSOLVER',
+      combo_order: 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
+      range_combo_order: 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
+      source_combo_order_schema: 'piosolver.show_hand_order.v1',
+      source_combo_order_sha256: '1'.repeat(64),
+      oop_range_checksum: '2'.repeat(64),
+      ip_range_checksum: '3'.repeat(64),
+      training_game_contracts_sha256: '4'.repeat(64),
+      exploitability_pct: 0.05,
+      convergence: {
+        schema: 'piosolver.calc-results.v1',
+        source_command: 'calc_results',
+        accuracy_fraction: 0.001,
+        starting_pot_chips: 700,
+        achieved_exploitability_chips: 0.35,
+        achieved_exploitability_fraction: 0.0005,
+      },
     },
     solver_version: '3.0.6',
     solver_binary_checksum: 'a'.repeat(64),
@@ -97,6 +113,11 @@ test('accepts only one fully audited exact root identity for the requested seats
   assert.equal(customSolverProvenanceIsComplete(row), true);
   assert.equal(customSolverRowMatchesRequest(row, request), true);
 
+  const missingComboOrder = makeRow();
+  delete missingComboOrder.strategy_matrix_v2.combo_order;
+  assert.equal(customSolverProvenanceIsComplete(missingComboOrder), false);
+  assert.equal(customSolverRowMatchesRequest(missingComboOrder, request), false);
+
   const wrongVillain = structuredClone(row);
   wrongVillain.strategy_matrix_v2.ip_player = 'BTN';
   assert.equal(customSolverRowMatchesRequest(wrongVillain, request), false);
@@ -123,14 +144,22 @@ test('Custom Solve API queries exact v2 identity and never upgrades board-only o
   assert.match(api, /normalizeCustomSolverSpot/);
   assert.match(api, /customSolverRowMatchesRequest/);
   assert.match(api, /v2ToAppMatrix/);
-  assert.match(api, /\.eq\('scenario_hash', request\.scenarioHash\)/);
-  assert.match(api, /\.eq\('quality_status', 'validated'\)/);
+  assert.match(api, /training_solver_spot_candidates_v1/);
+  assert.match(api, /p_scenario_hash: request\.scenarioHash/);
+  assert.match(api, /p_street: request\.street/);
+  assert.match(api, /p_artifact_id: null/);
+  assert.match(api, /const SOLVER_QUERY_TIMEOUT_MS = 8_000/);
+  assert.match(api, /query\.abortSignal\(controller\.signal\)/);
+  assert.doesNotMatch(api, /\.from\(['"]solved_spots_gold['"]\)/);
   assert.match(api, /matchQuality: 'exact_root_node'/);
   assert.match(api, /decisionNode: exact\.row\.strategy_matrix_v2\.node/);
   assert.match(api, /exactCandidates\.length > 1/);
   assert.doesNotMatch(api, /\.ilike\('scenario_hash'/);
   assert.doesNotMatch(api, /aggregateSolverActions\(row\.strategy_matrix\)/);
   assert.doesNotMatch(api, /matchQuality: 'exact_board'/);
+  assert.match(api, /source: 'training_solver_artifact_catalog'/);
+  assert.match(page, /data\?\.source === 'training_solver_artifact_catalog'/);
+  assert.doesNotMatch(page, /data\?\.source === 'solved_spots_gold'/);
   assert.doesNotMatch(api, /SUPABASE_SERVICE_ROLE_KEY \|\| process\.env\.NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.match(page, /Audited Solver Result/);
   assert.match(page, /Action Frequency Reference/);
