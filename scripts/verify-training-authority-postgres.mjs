@@ -1184,7 +1184,8 @@ BEGIN
     expected_hands, config_hash, practice_only, status, started_at, expires_at
   ) VALUES (
     p_attempt, p_user, nonce, 'daily-challenge', 1, 'daily', 'grouped',
-    1, repeat('a', 64), false, 'open', started, now() + interval '2 hours'
+    1, repeat('a', 64), false, 'open', started,
+    GREATEST(now() + interval '2 hours', started + interval '2 hours')
   );
   INSERT INTO public.training_question_snapshots (
     snapshot_key, source_question_id, game_id, level, content_digest, question_data
