@@ -116,21 +116,51 @@ export default async function handler(req, res) {
                 .json({ error: "Self-exclusion must end in the future" });
         }
 
+        /* THE LIVE FUNCTION TAKES HOURS, NOT A TIMESTAMP (fixed 2026-09-08).
+           This sent `p_until`. PostgREST resolves an overload by its ARGUMENT
+           NAMES, so a wrong name is not a wrong value - it is PGRST202, "no
+           function matches", a 404 dressed as a 500 by the branch below. The
+           live signature is and has been
+           fn_rg_self_exclude(p_user_id uuid, p_duration_hours integer), so
+           SELF-EXCLUSION HAS FAILED ON EVERY CALL IT HAS EVER RECEIVED.
+
+           That is the one request on this platform that must never fail
+           quietly: a player asking to be kept out. Found by the money-door
+           scanner widened in the phase 7 deep dive.
+
+           The public API is unchanged - callers still send `duration` or
+           `until` - because the conversion belongs here, not in their hands.
+           Hours are rounded UP so a converted exclusion is never SHORTER than
+           the one the player asked for, and 0 is the function's own encoding
+           for permanent (`p_duration_hours <= 0` -> 'infinity'). */
+        const permanent = String(body.duration || "").toLowerCase() === "permanent";
+        const durationHours = permanent
+            ? 0
+            : Math.max(1, Math.ceil((parsed.getTime() - Date.now()) / 3_600_000));
+
         const { data, error } = await supabase.rpc("fn_rg_self_exclude", {
             p_user_id: user.id,
-            p_until: parsed.toISOString()
+            p_duration_hours: durationHours
         });
 
         if (error) {
             console.warn("[rg/self-exclude:rpc]", error);
-            const status = /monotonic|cannot shorten|already excluded/i.test(
-                error.message
-            )
-                ? 403
-                : 500;
-            return res.status(status).json({
+            return res.status(500).json({
                 error: error.message,
                 code: "rg_self_exclude_failed"
+            });
+        }
+
+        /* A REFUSAL IS NOT A SUCCESS. The function does not raise when it
+           declines to shorten an existing exclusion - it returns
+           {ok:false, error:'cannot_shorten_exclusion'}, which this route used
+           to hand back as HTTP 200. The error branch above tested
+           `error.message` for that wording and could never have matched it. */
+        if (data && data.ok === false) {
+            const conflict = data.error === "cannot_shorten_exclusion";
+            return res.status(conflict ? 409 : 400).json({
+                ...data,
+                code: data.error || "rg_self_exclude_refused"
             });
         }
 
