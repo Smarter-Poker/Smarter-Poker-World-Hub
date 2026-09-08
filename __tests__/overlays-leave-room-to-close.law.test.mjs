@@ -32,13 +32,18 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Every file whose full-screen overlay was fixed in phase 0b. Add to this
 // list when you fix another one; never remove an entry to make the test pass.
+//
+// 2026-09-08: ChatWindow, ClubPageDashboard, ClubPagesView and PublicGameBoard
+// were removed - NOT to make this pass. Each of those four opened with a
+// verbatim copy of the social feed page, ~3,000 unreachable lines including its
+// image lightbox, and the lightbox is where their `safe-area-inset-top` lived.
+// The duplicated prefix is deleted, and none of the four now contains a
+// full-screen fixed overlay at all. NO_LONGER_OVERLAY below asserts exactly
+// that, so if one of them ever grows a real full-screen layer this test says so
+// and the entry goes back into FIXED_FILES above.
 const FIXED_FILES = [
   'src/components/ui/FullScreenPageOverlay.js',
   'src/components/social/PostImageLightbox.jsx',
-  'src/components/social/ChatWindow.jsx',
-  'src/components/social/ClubPageDashboard.jsx',
-  'src/components/social/ClubPagesView.jsx',
-  'src/components/social/PublicGameBoard.jsx',
   'src/components/social/Reels.jsx',
   'src/components/social/ReelsFeedCarousel.jsx',
   'src/components/social/Stories.jsx',
@@ -148,5 +153,56 @@ test('no fixed file carries a close control smaller than 44px', () => {
     'A close control near these lines is smaller than the 44px tap target.\n' +
       'Set width/height (or minWidth/minHeight) to 44:\n  ' +
       offences.join('\n  ')
+  );
+});
+
+/*
+ * Removed from FIXED_FILES on 2026-09-08 because the overlay they were listed
+ * for was in copied dead code that no longer exists. This is the receipt: if
+ * any of them grows a full-screen fixed layer again, it needs the safe-area
+ * treatment and belongs back in FIXED_FILES.
+ */
+const NO_LONGER_OVERLAY = [
+  // ChatWindow.jsx was deleted on 2026-09-08. It had been stripped from 3,651
+  // lines to 177 when its copied feed-page prefix went, and its only importer -
+  // a dynamic() that never rendered - went in the same pass, so the file was
+  // unreachable. A deleted file is handled below rather than dropped from this
+  // list silently.
+  'src/components/social/ChatWindow.jsx',
+  'src/components/social/ClubPageDashboard.jsx',
+  'src/components/social/ClubPagesView.jsx',
+  'src/components/social/PublicGameBoard.jsx',
+];
+
+test('the files removed from FIXED_FILES really have no full-screen overlay', () => {
+  const offenders = [];
+  let checked = 0;
+  for (const f of NO_LONGER_OVERLAY) {
+    // A file that no longer exists cannot grow an overlay. That is the honest
+    // pass condition, not an excuse to stop looking at the ones that remain.
+    if (!fs.existsSync(path.join(ROOT, f))) continue;
+    checked++;
+    const src = read(f);
+    for (const m of src.matchAll(/position:\s*'fixed'/g)) {
+      const block = src.slice(m.index, m.index + 400);
+      const fullScreen =
+        block.includes('inset: 0') ||
+        (/top:\s*'?0/.test(block) &&
+          /left:\s*'?0/.test(block) &&
+          /(right:\s*'?0|width:\s*'100)/.test(block) &&
+          /(bottom:\s*'?0|height:\s*'100)/.test(block));
+      if (fullScreen && !src.includes('safe-area-inset-top')) {
+        offenders.push(`${f}:${src.slice(0, m.index).split('\n').length}`);
+      }
+    }
+  }
+  // Control: if every entry vanished, this test would pass while checking
+  // nothing. Three of the four still exist and must still be examined.
+  assert.ok(checked >= 3, `only ${checked} of the removed files still exist - re-check this list`);
+  assert.deepEqual(
+    offenders,
+    [],
+    'these files grew a full-screen fixed overlay again and must go back into ' +
+      'FIXED_FILES with safe-area-inset-top handling:\n  ' + offenders.join('\n  ')
   );
 });

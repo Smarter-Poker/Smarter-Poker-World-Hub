@@ -1,3 +1,4 @@
+import './auth-network-deadline.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@
  *
  * No single deletion can hide a regression.
  */
+import './club-arena-shell-cache.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -156,7 +158,17 @@ import './pnm-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
+// 21 of 26 advertised rewards had never paid a diamond. This pins the triggers
+// that fix it, the shared reference-id that stops a trigger and an endpoint
+// both paying, and every anti-farming guard.
+import './an-advertised-reward-is-actually-payable.law.test.mjs';
 import './safe-profile-columns-are-granted.test.mjs';
+// Registered 2026-09-08. It had lived only as the npm script
+// "test:social-poker-cards", so nothing ran it, and it had been RED on main
+// since #1601 removed the copied PostCard from ClubPagesView and
+// PublicGameBoard - the exact shape section 10.8 names: a check nobody can see
+// is not a check. Fixed and wired in here so it runs in CHECK 8.
+import './social-poker-card-picker.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -219,6 +231,10 @@ import './the-hub-notices-a-revoked-session.law.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
+// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
+// avatars, <profile uuid>/avatar.png), never under a name that says horse:
+// the storage path is in the <img src> of every seat and post.
+import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).

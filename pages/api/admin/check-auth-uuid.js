@@ -34,8 +34,12 @@ function getSupabase() {
 
       try {
           // Query auth.users directly using RPC
+          // The live signature is get_auth_users_by_email(p_email text). This
+          // sent `email_pattern`, which PostgREST cannot resolve to any
+          // overload - PGRST202 on every call since it was written. Fixed
+          // 2026-09-08.
           const { data: authUsers, error: authError } = await getSupabase().rpc('get_auth_users_by_email', {
-              email_pattern: email.toLowerCase()
+              p_email: email.toLowerCase()
           });
 
           // Also try listing from admin API

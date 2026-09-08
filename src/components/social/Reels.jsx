@@ -117,7 +117,13 @@ export function ReelsViewer({ onClose }) {
   const [likeCounts, setLikeCounts] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
   const [saved, setSaved] = useState({});
-  const [viewCounts, setViewCounts] = useState({});
+  /*
+   * viewCounts used to live here alongside likeCounts and commentCounts, filled
+   * from the same DB payload - but unlike those two it was rendered nowhere, so
+   * it was three setState calls a session for a number nobody saw. The DB write
+   * below (incrementMetric) is untouched, so the real count still moves; only
+   * the local mirror is gone. ReelsFeedCarousel does display views.
+   */
   // Infinite scroll state
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -536,10 +542,6 @@ export function ReelsViewer({ onClose }) {
       reelId && currentUserId && !viewedReelsRef.current.has(reelId)
         ? setTimeout(() => {
             viewedReelsRef.current.add(reelId);
-            setViewCounts((prev) => ({
-              ...prev,
-              [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1,
-            }));
             incrementMetric(reels[currentIndex], 'view_count', 1);
           }, 2000)
         : null;
@@ -863,16 +865,13 @@ export function ReelsViewer({ onClose }) {
 
       setReels(filteredMerged);
       const lc = {},
-        cc = {},
-        vc = {};
+        cc = {};
       filteredMerged.forEach((r) => {
         lc[r.id] = r.like_count || 0;
         cc[r.id] = r.comment_count || 0;
-        vc[r.id] = r.view_count || 0;
       });
       // DB is source of truth on a full reload — DB values win over stale optimistic counts
       setLikeCounts((prev) => ({ ...prev, ...lc }));
-      setViewCounts((prev) => ({ ...prev, ...vc }));
       setCommentCounts((prev) => ({ ...prev, ...cc }));
     } catch (e) {
       console.warn('Load reels error:', e);
@@ -1027,17 +1026,14 @@ export function ReelsViewer({ onClose }) {
           setHasMore(false);
         } else {
           const lc = {},
-            cc = {},
-            vc = {};
+            cc = {};
           fresh.forEach((r) => {
             lc[r.id] = r.like_count || 0;
             cc[r.id] = r.comment_count || 0;
-            vc[r.id] = r.view_count || 0;
           });
           setReels((prev) => [...prev, ...fresh]);
           setLikeCounts((prev) => ({ ...prev, ...lc }));
           setCommentCounts((prev) => ({ ...prev, ...cc }));
-          setViewCounts((prev) => ({ ...prev, ...vc }));
           setPageOffset((prev) => prev + 30);
         }
       }

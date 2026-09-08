@@ -74,7 +74,47 @@
 })();
 
 /** @type {import('next').NextConfig} */
+const os = require('os');
 const { withSentryConfig } = require('@sentry/nextjs');
+
+// --- How many cores the build is allowed to use -----------------------------
+// Read the machine instead of hard-coding a number, because this same config
+// runs on three very different machines and a constant is wrong on two of them.
+//
+// Measured 2026-09-08 from the Vercel build log of PR #1601:
+//
+//   Build machine configuration: 8 cores, 16 GB   (Enhanced Build Machine)
+//   - Experiments (use with caution):
+//     - cpus: 2
+//   Compiled with warnings in 106s
+//   Collecting page data using 2 workers ...
+//   Generating static pages using 2 workers (0/397) ...
+//   Build Completed in /vercel/output [4m]
+//
+// 106s of compile and 98s of prerendering 397 pages, both pinned to two of the
+// eight cores we are paying for. The cap was raised 1 -> 2 on 2026-05-18 "to
+// prevent 8-core machines from OOMing" - on a machine that now has 16 GB and a
+// 7 GB max-old-space. The cap outlived the hardware that justified it.
+//
+// The other half is the 2026-07-21 note: a 2-core sandbox hits an export-worker
+// race in the /_not-found prerender under parallel export, and needed a MANUAL
+// `BUILD_CPUS=1` to avoid it. Deriving from the core count applies that
+// workaround automatically on exactly the machines that need it (2 cores -> 1)
+// instead of asking a person to remember.
+//
+// Capped at 4, not at the core count: memory, not cores, is the limit that bit
+// before, and 4 is the largest step supported by a measurement. Raise it when
+// the p50 says it is safe. BUILD_CPUS still overrides everything.
+function resolveBuildCpus() {
+  const override = Number(process.env.BUILD_CPUS);
+  if (Number.isFinite(override) && override > 0) return Math.floor(override);
+  const cores =
+    typeof os.availableParallelism === 'function'
+      ? os.availableParallelism()
+      : (os.cpus() || []).length;
+  if (!Number.isFinite(cores) || cores < 1) return 2; // unreadable: old default
+  return Math.max(1, Math.min(4, cores - 1));
+}
 const { publicShellManifestEntries } = require('./scripts/pwa/public-shell-precache');
 const { execFileSync } = require('child_process');
 
@@ -400,11 +440,16 @@ const nextConfig = {
 
   // ─── Build Memory Optimization ───────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
-  // workerThreads offloads page compilation to separate workers (lower per-worker memory).
-  // cpus limits parallel compilation to prevent 8-core machines from OOMing.
-  // CRITICAL: Only enable in production — in dev mode, workerThreads causes a race
-  // condition where vendor chunks get deleted mid-request, triggering
-  // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
+  //
+  // CORRECTED 2026-09-08. This comment used to describe `workerThreads` as if it
+  // were configured here. It is not, and never was - grep the file: the word
+  // appears only in this paragraph. So the warning it carried ("CRITICAL: only
+  // enable in production - in dev mode it deletes vendor chunks mid-request")
+  // was guarding a setting that does not exist, while reading like a decision
+  // somebody had made. It is left recorded, as a reason NOT to add the flag, not
+  // as a description of the config.
+  //
+  // What is actually set is `experimental.cpus`, below.
   // ─── Server External Packages (OOM FIX) — moved from experimental in Next 16 ──
   // `experimental.serverComponentsExternalPackages` was promoted to a stable top-level
   // key `serverExternalPackages` in Next.js 15+. Using the old path causes a build warning
@@ -515,16 +560,11 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
     // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
     // Retained so that any webpack fallback invocation still benefits from it.
-    // [2026-07-21] BUILD_CPUS env override: constrained build environments
-    // (2-core sandboxes) hit an export-worker race in the App Router
-    // /_not-found prerender ("Cannot read properties of undefined (reading
-    // 'next/dist/client/components/builtin/layout')") under parallel export.
-    // BUILD_CPUS=1 serializes the export and avoids it. Vercel is unaffected
-    // (env not set there -> default 2).
-    cpus: process.env.BUILD_CPUS ? Number(process.env.BUILD_CPUS) : 2,
+    // Derivation, and the two incidents behind it, are at resolveBuildCpus().
+    // BUILD_CPUS=<n> still overrides, and BUILD_CPUS=1 remains the escape hatch.
+    cpus: resolveBuildCpus(),
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.

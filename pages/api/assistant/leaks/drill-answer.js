@@ -108,6 +108,7 @@ export default async function handler(req, res) {
       p_metadata: {
         consumer: 'verified-leak-drill',
         batchId: batch.batchId,
+        selectedAnswer: graded.timedOut ? '__timeout__' : graded.selectedAnswer,
         policyChecksum: question.policy_checksum,
       },
       p_occurred_at: new Date().toISOString(),

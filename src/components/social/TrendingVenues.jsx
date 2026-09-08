@@ -25,10 +25,13 @@ export default function TrendingVenues({ onCheckIn }) {
         try {
             const res = await fetch('/api/poker/checkins/trending?limit=5');
             const data = await res.json();
-            if (!data.success) return;
-            if (isMountedRef.current) setVenues(data.venues || []);
+            // No bare `return` here: it skipped the setLoading(false) below and
+            // pinned `loading` true forever on a success:false response.
+            if (data.success && isMountedRef.current) setVenues(data.venues || []);
         } catch { /* silent */ }
-        if (isMountedRef.current) setLoading(false);
+        finally {
+            if (isMountedRef.current) setLoading(false);
+        }
     }, []);
 
     // Fetch on mount

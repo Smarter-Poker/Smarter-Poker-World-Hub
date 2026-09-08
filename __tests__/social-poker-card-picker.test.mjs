@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -89,18 +89,36 @@ test('the shared composer persists cards through every publishing path', () => {
   assert.match(source, /normalizePokerCardMarkup\(markup\)/);
 });
 
+// Surfaces that render a user's post body, so a raw card token like "Ah" must
+// go through PokerCardText rather than reach the DOM as text.
+const CARD_RENDERING_SURFACES = [
+  'src/components/social/SmarterPokerStyleCard.jsx',
+  'src/components/social/SocialCard.jsx',
+  'src/components/social/ClubPageDashboard.jsx',
+  'src/components/social/HashtagRenderer.jsx',
+  'src/components/social/Stories.jsx',
+];
+
+// These three were in the list above until 2026-09-08 and no longer belong in
+// it, because they no longer render a post body at all. Each opened with a
+// verbatim copy of the feed page - banner, LinkPreviewCard and the whole
+// PostCard - which #1601 removed as unreachable; ClubPagesView is a page
+// browser (search, filter, follow) and PublicGameBoard is a table list, and
+// neither renders user text now. ChatWindow was deleted outright on the same
+// day once its last dynamic() importer went.
+//
+// They are moved here rather than dropped, so that re-introducing body
+// rendering without PokerCardText fails instead of passing silently.
+const NO_LONGER_RENDERS_POST_BODIES = [
+  'src/components/social/ClubPagesView.jsx',
+  'src/components/social/PublicGameBoard.jsx',
+  'src/components/social/ChatWindow.jsx', // deleted 2026-09-08
+];
+
+const RENDERS_BODY = /post\.content|comment\.content|item\.content|msg\.(?:text|content)|message\.(?:text|content)|dangerouslySetInnerHTML/;
+
 test('primary social surfaces render card tokens as cards', () => {
-  const surfaces = [
-    'src/components/social/SmarterPokerStyleCard.jsx',
-    'src/components/social/SocialCard.jsx',
-    'src/components/social/ClubPageDashboard.jsx',
-    'src/components/social/ClubPagesView.jsx',
-    'src/components/social/PublicGameBoard.jsx',
-    'src/components/social/ChatWindow.jsx',
-    'src/components/social/HashtagRenderer.jsx',
-    'src/components/social/Stories.jsx',
-  ];
-  for (const file of surfaces) {
+  for (const file of CARD_RENDERING_SURFACES) {
     const source = read(file);
     assert.match(source, /PokerCardText/, `${file} can leak raw card tokens`);
   }
@@ -110,6 +128,27 @@ test('primary social surfaces render card tokens as cards', () => {
   const uploadGhost = read('src/components/social/GhostPostCard.jsx');
   assert.match(uploadGhost, /truncatePokerText\(content, 200\)/);
   assert.match(uploadGhost, /<PokerCardText text=\{displayContent\.text\} \/>/);
+});
+
+test('the surfaces removed from the card list really render no post body', () => {
+  let checked = 0;
+  const offenders = [];
+  for (const file of NO_LONGER_RENDERS_POST_BODIES) {
+    // A deleted file renders nothing. That is the honest pass condition.
+    if (!existsSync(join(ROOT, file))) continue;
+    checked++;
+    const source = read(file);
+    // If it started rendering bodies again, it must use PokerCardText.
+    if (RENDERS_BODY.test(source) && !/PokerCardText/.test(source)) offenders.push(file);
+  }
+  // Control: if every entry vanished this would pass while checking nothing.
+  assert.ok(checked >= 2, `only ${checked} of the removed surfaces still exist - re-check this list`);
+  assert.deepEqual(
+    offenders,
+    [],
+    'these render a post body again without PokerCardText and must go back into ' +
+      'CARD_RENDERING_SURFACES:\n  ' + offenders.join('\n  ')
+  );
 });
 
 test('picker forbids duplicates and respects hand and board limits', () => {

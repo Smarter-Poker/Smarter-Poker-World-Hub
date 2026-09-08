@@ -39,7 +39,20 @@ const C = {
 // STREAM-BUG-4: Module-scope cache so multiple cards for the same stream
 // don't each re-query the same row. Keyed by stream id, value is
 // { preview_clip_url, preview_updated_at }. Implicitly cleared on page reload.
+/*
+ * ITEM 22 (2026-09-08): capped. This was an unbounded module-level Map whose
+ * only eviction was a page reload, so it grew with every distinct stream id a
+ * long session saw. Same LRU shape the link-preview cache used before it was
+ * deleted: insertion order, drop the oldest.
+ */
+const PREVIEW_CACHE_MAX = 120;
 const _previewCache = new Map();
+function _cachePreview(id, data) {
+  if (_previewCache.size >= PREVIEW_CACHE_MAX) {
+    _previewCache.delete(_previewCache.keys().next().value);
+  }
+  _previewCache.set(id, data);
+}
 
 /**
  * @param {object} props
@@ -95,7 +108,7 @@ export function LiveStreamCard({ stream, onClick }) {
                     .maybeSingle();
                 if (cancelled) return;
                 if (error || !data) return;
-                _previewCache.set(stream.id, data);
+                _cachePreview(stream.id, data);
                 setFetched(data);
             } catch (_) { /* non-fatal — thumbnail fallback already covers this */ }
         })();
