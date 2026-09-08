@@ -621,11 +621,19 @@ export const REWARDS = {
       'Daily login training bonus - base plus consecutive-streak multiplier, up to 125 ◆/day.',
     diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
     maxDiamonds: 125,
-    monthlyDiamondCap: 3750,   // 125/day × 30; own budget, not the 110 daily cap
+    monthlyDiamondCap: 3750,   // 125/day × 30
     category: 'training',
-    countsTowardDailyCap: false,
+    // MIRROR OF THE DATABASE ROW (2026-09-07). The Daily Club Arena Bonus
+    // (Club Arena migration the_daily_bonus_lives_inside_the_diamond_caps)
+    // pays through this same action_key, one claim per tile, and Dan ruled
+    // that it follows the existing per-user daily diamond guidelines. So the
+    // catalog row now COUNTS toward the daily cap and allows four claims a
+    // day; award_diamonds_v2 reads that row, and this file must say the
+    // same or CHECK 9 (scripts/check-reward-catalog-drift.mjs) fails every
+    // pull request in this repo - which it did for 40 minutes on 2026-09-08.
+    countsTowardDailyCap: true,
     lifetime: false,
-    maxPerDay: 1,
+    maxPerDay: 4,
     icon: 'CalendarDays',
     gate: 'free',
     serverOnly: true,
