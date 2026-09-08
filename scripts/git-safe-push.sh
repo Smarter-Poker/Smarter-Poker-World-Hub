@@ -925,7 +925,16 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     # Extract owner/repo from URL
     REPO_PATH=$(echo "$PUSH_URL" | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
     AUTH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO_PATH}.git"
-    if git push $NO_VERIFY_FLAG --set-upstream "$AUTH_URL" "${BRANCH}" 2>&1; then
+    # Never let the one-shot credential URL become branch.<name>.remote. Git's
+    # --set-upstream persists the literal push target and then prints it, which
+    # leaks the token into both .git/config and terminal logs. Push through the
+    # authenticated URL, then bind the branch to the ordinary named remote.
+    if git push $NO_VERIFY_FLAG "$AUTH_URL" "HEAD:refs/heads/${BRANCH}" 2>&1; then
+    git update-ref "refs/remotes/${REMOTE}/${BRANCH}" HEAD
+    if ! git branch --set-upstream-to="${REMOTE}/${BRANCH}" "${BRANCH}" >/dev/null 2>&1; then
+      echo "❌ Push succeeded, but the safe named upstream could not be restored."
+      exit 2
+    fi
     PHASE3_END=$(date +%s)
     TOTAL_END=$(date +%s)
     COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
