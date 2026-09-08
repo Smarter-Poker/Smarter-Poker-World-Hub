@@ -63,10 +63,16 @@ function isScenarioQuestion(row) {
 }
 
 function isSanitizedLegacyArchive(question) {
+  const provenanceSource = normalize(question?.solverProvenance?.source);
+  const legacySource = normalize(question?.legacySource);
   return normalize(question?.source) === 'LEGACY_STRATEGY_ARCHIVE'
     && normalize(question?.dataQuality) === 'LEGACY_UNVERIFIED'
     && question?.solverProvenance?.verified === false
-    && String(question?.solverProvenance?.source || '').startsWith('solved_spots_gold_legacy')
+    && (
+      String(question?.solverProvenance?.source || '').startsWith('solved_spots_gold_legacy')
+      || provenanceSource === 'LOCAL_SOLVER_RANGES'
+      || legacySource === 'LOCAL_SOLVER_RANGES'
+    )
     && question?.questionContract?.version === 1
     && question?.questionContract?.valid === true
     && String(question?.evidenceDisclosure || '') === 'Legacy strategy archive; writer provenance is unavailable.';
@@ -84,8 +90,14 @@ function pioContractMatches(row, gameConfig, { allowSanitizedLegacyArchive = fal
   // The two declared preflop games use the separately audited local range
   // engine and do not have a solved_spots_gold family hash.
   if (normalize(gameConfig?.pioStreet) === 'PREFLOP') {
+    const canonicalLocalArchive = allowSanitizedLegacyArchive
+      && isSanitizedLegacyArchive(question)
+      && (
+        normalize(question?.legacySource) === 'LOCAL_SOLVER_RANGES'
+        || normalize(question?.solverProvenance?.source) === 'LOCAL_SOLVER_RANGES'
+      );
     return street === 'PREFLOP'
-      && source === 'LOCAL_SOLVER_RANGES'
+      && (source === 'LOCAL_SOLVER_RANGES' || canonicalLocalArchive)
       && (!Number.isFinite(stack) || stack === Number(gameConfig?.pioStackDepth));
   }
 

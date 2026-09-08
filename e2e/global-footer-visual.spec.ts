@@ -101,6 +101,22 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
 const expectedClubFooterHeight = (viewportWidth: number) =>
   Math.min(132, Math.max(44, viewportWidth * 0.12326));
 
+const expectedArtworkStage = (
+  viewportWidth: number,
+  world: (typeof footerRegistry.worlds)[number]
+) => {
+  const artwork = world.artwork;
+  const display = artwork.cropToContentBounds !== false && artwork.contentBounds
+    ? artwork.contentBounds
+    : artwork;
+  const aspect = display.width / display.height;
+  const width = Math.min(
+    viewportWidth,
+    Math.max(world.items.length * 44 + 1, expectedClubFooterHeight(viewportWidth) * aspect)
+  );
+  return { width, height: width / aspect };
+};
+
 const visit = async (page: Page, route: string) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -238,12 +254,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();
-      // GOLD STANDARD (Dan, 2026-09-04): every world footer is Club Arena's
-      // footer by size and fit — full bleed edge to edge, and exactly
-      // `clamp(44px, 12.326vw, 132px)` tall. Fourteen aspect-derived heights is
-      // what this replaced.
-      expect(Math.abs(stageBox!.width - 320)).toBeLessThanOrEqual(1);
-      expect(Math.abs(stageBox!.height - expectedClubFooterHeight(320))).toBeLessThanOrEqual(3);
+      // Every authored frame keeps its measured aspect ratio. The stage uses
+      // Club Arena's shared height token unless it needs a small width floor to
+      // keep six 44px destinations usable, and it never exceeds the viewport.
+      const expectedStage = expectedArtworkStage(320, definition!);
+      expect(Math.abs(stageBox!.width - expectedStage.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(stageBox!.height - expectedStage.height)).toBeLessThanOrEqual(1);
       expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
       expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
       expect(await artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([

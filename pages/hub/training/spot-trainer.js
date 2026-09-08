@@ -1,8 +1,8 @@
 /**
- * Spot Trainer — Postflop GTO Decision Drills
+ * Spot Trainer - Postflop Policy Decision Drills
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Phase 20: Rapid-fire quiz for postflop GTO decisions. Users are shown a
- * solver-verified spot and must choose the correct action.
+ * Phase 20: Rapid-fire quiz for postflop decisions. Users are shown a
+ * provenance-labelled spot and must choose the highest-frequency action.
  *
  * Route: /hub/training/spot-trainer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -800,7 +800,7 @@ export default function SpotTrainerPage() {
                           marginTop: 6,
                         }}
                       >
-                        Review The Solver Frequencies. This Result Will Stay Open Until You Click Next.
+                        Review The Canonical Policy Frequencies. This Result Will Stay Open Until You Click Next.
                       </div>
                     </motion.div>
                   )}
@@ -854,10 +854,10 @@ export default function SpotTrainerPage() {
               About Spot Trainer
             </div>
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              Rapid-Fire Postflop GTO Drills Using Solver-Verified Spots. Each Spot Shows You A
-              Board Texture, Your Hand, And 4 Action Options. Choose The Highest-Frequency GTO Play
-              To Build Your Streak. Filter By Format And Position To Target Specific Leaks. The GTO
-              Frequency Breakdown Is Shown After Each Answer.
+              Rapid-Fire Postflop Strategy Drills Using Provenance-Labelled Spots. Each Spot Shows You A
+              Board Texture, Your Hand, And 4 Action Options. Choose The Highest-Frequency Policy Action
+              To Build Your Streak. Filter By Format And Position To Target Specific Leaks. The Canonical
+              Policy Breakdown Is Shown After Each Answer.
             </p>
           </div>
         </div>

@@ -196,14 +196,30 @@ export default async function handler(req, res) {
         }
 
         // ── Eligibility 3: the reaction actually exists for THIS user ──
-        const { data: interaction } = await supabase
-            .from('social_interactions')
-            .select('id, interaction_type')
-            .eq('post_id', postId)
-            .eq('user_id', userId)
-            .maybeSingle();
+        // A like lands in one of TWO tables depending on which surface recorded
+        // it: social_likes (31,885 rows - /api/social/interactions and the reels
+        // page) or social_interactions (788 rows, of which only 8 are 'like' -
+        // the feed page's own direct write). Checking only the second one, as
+        // this did until 2026-09-08, rejected virtually every real like.
+        // Either table counts; award_diamonds_v2 dedups on the reference id, so
+        // a like recorded in both still pays exactly once.
+        const [{ data: interaction }, { data: likeRow }] = await Promise.all([
+            supabase
+                .from('social_interactions')
+                .select('id, interaction_type')
+                .eq('post_id', postId)
+                .eq('user_id', userId)
+                .eq('interaction_type', 'like')
+                .maybeSingle(),
+            supabase
+                .from('social_likes')
+                .select('id')
+                .eq('post_id', postId)
+                .eq('user_id', userId)
+                .maybeSingle(),
+        ]);
 
-        if (!interaction) {
+        if (!interaction && !likeRow) {
             return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Interaction not found' });
         }
 
@@ -212,7 +228,9 @@ export default async function handler(req, res) {
             actionKey: ACTION_KEY,
             referenceId: `${ACTION_KEY}_${userId}_${postId}`,
             targetId: String(postId),
-            metadata: { post_id: String(postId), type: interaction.interaction_type || interactionType || 'like' }
+            // interaction is null when the like was recorded in social_likes
+            // instead, so this must not dereference it.
+            metadata: { post_id: String(postId), type: interaction?.interaction_type || interactionType || 'like' }
         });
 
         return sendAwardResult(res, award, 'Reaction Reward!');

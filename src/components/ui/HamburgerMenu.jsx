@@ -38,6 +38,7 @@ import {
   parseWorldMenuHref,
 } from '../../lib/world-menu/navigationState.mjs';
 import WorldCommandMenuBoundary from './WorldCommandMenuBoundary';
+import { releaseMediaStreamOnLogout } from '../../lib/mediaStreamSingleton';
 
 const InviteFriendsModal = dynamic(() => import('./InviteFriendsModal'), { ssr: false });
 const GeevesMenuWidget = dynamic(() => import('./GeevesMenuWidget'), { ssr: false });
@@ -297,6 +298,14 @@ function HamburgerMenuContent({
     signingOutRef.current = true;
     try {
       const { supabase } = await import('../../lib/supabase');
+      // A logged-out browser must not keep this user's camera and mic open.
+      // The stream is cached at module scope for the whole page session, so
+      // signing out without this leaves it live until a full reload.
+      try {
+        releaseMediaStreamOnLogout();
+      } catch (_) {
+        /* never block sign-out on a cleanup helper */
+      }
       const { error } = (await supabase.auth.signOut()) || {};
       if (error) console.warn('[HamburgerMenu] signOut reported:', error?.message || error);
     } catch (error) {

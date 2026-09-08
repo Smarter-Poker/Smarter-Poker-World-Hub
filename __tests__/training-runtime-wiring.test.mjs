@@ -184,6 +184,31 @@ test('only a fully contracted sanitized legacy envelope is grade-eligible', () =
   ), []);
 });
 
+test('recording accepts the exact canonical archive written for a local preflop range', () => {
+  const config = {
+    sourceOfTruth: 'PioSOLVER',
+    pioGameType: 'hu_cash',
+    pioStackDepth: 100,
+    pioStreet: 'preflop',
+  };
+  const row = {
+    engine_type: 'PIO',
+    question_data: {
+      source: 'LEGACY_STRATEGY_ARCHIVE',
+      legacySource: 'local_solver_ranges',
+      dataQuality: 'LEGACY_UNVERIFIED',
+      scenario: { street: 'preflop', gameType: 'hu_cash', stackDepth: 100 },
+      solverProvenance: { verified: false, source: 'local_solver_ranges' },
+      evidenceDisclosure: 'Legacy strategy archive; writer provenance is unavailable.',
+      questionContract: { version: 1, valid: true },
+    },
+  };
+  assert.deepEqual(filterCachedRowsForGame([row], config), []);
+  assert.equal(filterCachedRowsForGame(
+    [row], config, { allowSanitizedLegacyArchive: true },
+  ).length, 1);
+});
+
 test('declared preflop PIO games accept only the audited local-range cache', () => {
   const rows = [
     { id: 'wrong', engine_type: 'PIO', question_data: { source: 'DETERMINISTIC_SOLVER', scenario: { street: 'flop', gameType: 'hu_cash', stackDepth: 100 } } },

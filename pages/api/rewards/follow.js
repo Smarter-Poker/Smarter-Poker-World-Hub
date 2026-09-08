@@ -185,8 +185,13 @@ export default async function handler(req, res) {
         }
 
         // ── Eligibility 2: the follow actually exists, with this user as follower ──
+        // 2026-09-08: this read social_connections, which holds ZERO rows and has
+        // no writer anywhere in the repo - the data moved to social_follows in the
+        // 2026-08-15 audit backfill and this endpoint was never updated. Every
+        // call therefore returned 'Follow connection not found', which is why
+        // follow has never paid a diamond in the lifetime of the platform.
         const { data: connection } = await supabase
-            .from('social_connections')
+            .from('social_follows')
             .select('id')
             .eq('follower_id', userId)
             .eq('following_id', followingId)

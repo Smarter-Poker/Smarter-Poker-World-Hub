@@ -69,17 +69,19 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: "Invalid or expired session" });
         }
 
-        // Optional ?ack=true — mark the reality check as shown (client tells us
-        // it actually displayed the modal, so we append a timestamp to
-        // reality_check_shown_at and the next poll resets the interval).
-        const ack = String(req.query.ack || "").toLowerCase() === "true";
+        /* THE FUNCTION ACKNOWLEDGES ITSELF; THERE IS NO p_ack (fixed
+           2026-09-08). This passed `p_ack`, and PostgREST resolves an overload
+           by ARGUMENT NAMES - so the extra name matched no signature and every
+           call returned PGRST202. The live function is
+           fn_rg_should_show_reality_check(p_user_id uuid), one argument, and it
+           appends now() to reality_check_shown_at itself on the poll that
+           decides to show. Nothing was ever needed from the client.
 
+           `?ack=true` is still accepted and ignored, so any caller already
+           sending it keeps working rather than starting to 400. */
         const { data, error } = await supabase.rpc(
             "fn_rg_should_show_reality_check",
-            {
-                p_user_id: user.id,
-                p_ack: ack
-            }
+            { p_user_id: user.id }
         );
 
         if (error) {

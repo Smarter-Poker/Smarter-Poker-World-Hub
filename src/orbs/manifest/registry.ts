@@ -111,15 +111,6 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     description: 'HIGH STAKES ACTION - PLAY FOR DIAMONDS AGAINST ELITE COMPETITION',
   },
   {
-    id: 'my-clubs',
-    scale: [1.149, 1.016],
-    color: '#00bfff',
-    label: 'My Clubs',
-    gradient: ['#4dd0e1', '#00838f'],
-    imageUrl: '/cards/my-clubs.png?v=splash1',
-    description: 'YOUR CLUBS & VENUES - QUICK ACCESS TO WAITLISTS, LIVE GAMES & MORE',
-  },
-  {
     id: 'video-library',
     scale: [1.123, 1.018],
     color: '#ff4444',

@@ -319,7 +319,7 @@ export default async function handler(req, res) {
               // Requiring q.engine_type === PIO here let a freshly sanitized
               // legacy warehouse row be reclassified as CURATED and receive
               // invented cards/boards/EV on the batch path.
-              const isWarehouseSolver = ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'LEGACY_STRATEGY_ARCHIVE']
+              const isWarehouseSolver = ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'LOCAL_SOLVER_RANGES', 'LEGACY_STRATEGY_ARCHIVE']
                   .includes(String(qData.source || '').toUpperCase());
               // Historical rows are usable only as explicitly unverified
               // legacy evidence until the warehouse writer supplies the full
@@ -593,7 +593,7 @@ export default async function handler(req, res) {
                   `pass: ${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
               );
           }
-              /* ═══ ONLY CANONICALISED QUESTIONS ARE SERVED (2026-09-07) ══════
+          /* ═══ ONLY CANONICALISED QUESTIONS ARE SERVED (2026-09-07) ══════
                *
                * Dropping unbuildable rows from the persistence pass was right;
                * leaving `servedBatch = enrichedBatch` was not, and it opened a

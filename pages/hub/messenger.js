@@ -99,6 +99,7 @@ function formatDateHeader(timestamp) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { Phone, Video, Search, Info, Home, Building, Crown } from 'lucide-react';
+import { spKeyActivate } from '../../src/lib/keyboardActivate';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
     <Phone size={size} color={color} strokeWidth={2.5} />
@@ -3259,6 +3260,35 @@ function MessengerPage() {
         if (router.query.clubId || router.query.forceIdentity) setClubDrawerOpen(true);
     }, [router.query.clubId, router.query.forceIdentity]);
 
+    /*
+     * ITEM 13 (2026-09-08): next.config.js redirects /hub/live-help to
+     * /hub/messenger?chat=jarvis, and nothing here read `chat` - so the
+     * redirect dropped you on the plain inbox. Jarvis is reachable only
+     * through handleSelectConversation's isJarvis branch, which nothing
+     * triggered from the URL.
+     */
+    const jarvisOpenedRef = useRef(false);
+    useEffect(() => {
+        if (router.query.chat !== 'jarvis' || jarvisOpenedRef.current) return;
+        jarvisOpenedRef.current = true;
+        // The SAME object the sidebar's Jarvis row builds. A thinner one leaves
+        // the thread header without an otherUser and leaves the active-id
+        // highlight ('jarvis-ai') pointing at nothing.
+        handleSelectConversation({
+            id: 'jarvis-ai',
+            isJarvis: true,
+            otherUser: {
+                id: 'jarvis',
+                username: 'jarvis',
+                full_name: 'Jarvis',
+                avatar_url: null,
+            },
+            last_message_preview: 'Your Poker AI Assistant',
+            last_message_at: new Date().toISOString(),
+            unreadCount: 0,
+        });
+    }, [router.query.chat]);
+
     // Aggregate unread across every club the user holds a page for, so the
     // collapsed widget can say whether opening it is worth the tap.
     const clubUnreadTotal = (ownedPages || []).reduce(
@@ -3739,12 +3769,14 @@ function MessengerPage() {
 
             {/* Forward Message Modal */}
             {forwardingMessage && (
-                <div style={{
+                <div
+                  data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', zIndex: 2000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }} onClick={() => setForwardingMessage(null)}>
-                    <div style={{
+                    <div
+                      data-sp-skip-a11y="propagation guard, not a control" style={{
                         background: C.card, borderRadius: 12, width: 360, maxHeight: 480,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
                     }} onClick={e => e.stopPropagation()}>
@@ -4287,7 +4319,10 @@ function MessengerPage() {
                             <div id="club-arena-inboxes">
                             <div className="no-scrollbar" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '4px 0 8px 0' }}>
                                 {/* Personal Identity */}
-                                <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={spKeyActivate} onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
                                     <div style={{ 
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -4315,7 +4350,10 @@ function MessengerPage() {
                                 </div>
                                 
                                 {ownedPages.map(page => (
-                                    <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={spKeyActivate} key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
                                         <div style={{ 
                                             display: 'inline-flex',
                                             alignItems: 'center',
@@ -4498,6 +4536,12 @@ function MessengerPage() {
                         ) : (
                             <>                                {/* Regular Conversations */}
                                 {conversations.filter(conv => {
+                                    // ITEM 13 (2026-09-08): ?filter=unread was a
+                                    // hamburger row that landed on the identical
+                                    // default inbox, because nothing here read the
+                                    // param. Now it does.
+                                    if (router.query.filter === 'unread'
+                                        && !(Number(conv.unread_count) > 0)) return false;
                                     if (!searchQuery) return true;
                                     const q = searchQuery.toLowerCase();
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
@@ -4661,6 +4705,9 @@ function MessengerPage() {
                     }}>
                         {/* Jarvis AI - Locked at Bottom (above Report Bug) */}
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                             onClick={() => handleSelectConversation({
                                 id: 'jarvis-ai',
                                 isJarvis: true,
@@ -4936,6 +4983,9 @@ function MessengerPage() {
                                                     </div>
                                                     {messageSearchResults.map(result => (
                                                         <div
+                                                          role="button"
+                                                          tabIndex={0}
+                                                          onKeyDown={spKeyActivate}
                                                             key={result.id}
                                                             onClick={() => {
                                                                 // Scroll to message (future: highlight it)
