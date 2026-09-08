@@ -842,6 +842,7 @@ jobs:
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
             __tests__/phase6-content-dispatch.test.mjs \
+            __tests__/native-push-fcm.test.mjs \
             __tests__/login-bridge-probe-relay.test.mjs \
             __tests__/pull-to-refresh-no-transform-at-rest.test.mjs \
             __tests__/native-app-cors.test.mjs \

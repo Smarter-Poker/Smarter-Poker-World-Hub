@@ -88,27 +88,44 @@ export default async function handler(req, res) {
     }
 
     // ---- POST: upsert ------------------------------------------------------
-    const p256dh = body?.keys?.p256dh || body?.p256dh;
-    const auth = body?.keys?.auth || body?.auth;
-    if (!p256dh || !auth) {
-        return res.status(400).json({ error: 'keys.p256dh and keys.auth are required' });
-    }
+    /* THE CLUB ARENA APP (2026-09-08). A native device token (APNs via
+       Firebase, or FCM) enrols through this same route with
+       `transport: 'fcm'`: the token is the endpoint, there are no VAPID keys,
+       and the push-service host check does not apply (a token is not a URL
+       and is never dialled - Firebase is). Everything after this - one
+       account per device, one live row per device, the preference flip - is
+       the same for both transports. */
+    const transport = body?.transport === 'fcm' ? 'fcm' : 'webpush';
+    const platform = ['ios', 'android', 'web'].includes(body?.platform) ? body.platform : null;
+    let p256dh = null;
+    let auth = null;
+    if (transport === 'fcm') {
+        if (!/^[A-Za-z0-9_:.-]{20,4096}$/.test(endpoint)) {
+            return res.status(400).json({ error: 'Malformed device token' });
+        }
+    } else {
+        p256dh = body?.keys?.p256dh || body?.p256dh;
+        auth = body?.keys?.auth || body?.auth;
+        if (!p256dh || !auth) {
+            return res.status(400).json({ error: 'keys.p256dh and keys.auth are required' });
+        }
 
-    // Endpoint host allowlist. web-push will dial ANY host:port it is handed,
-    // carrying a valid VAPID JWT, and the failure body comes back into
-    // last_failure_reason -- a column the row's owner can read through RLS. So
-    // an unvalidated endpoint is a server-side request primitive with response
-    // exfiltration. Validate before the value is ever persisted.
-    const endpointCheck = validatePushEndpoint(endpoint);
-    if (!endpointCheck.ok) {
-        console.warn('[push/subscribe] rejected endpoint:', endpointCheck.reason, endpointCheck.host || '');
-        return res.status(400).json({ error: 'Unsupported push service endpoint' });
-    }
-    // Wrong-shaped keys throw inside web-push with no statusCode, so they are
-    // never classified as expired and get retried on every dispatch forever.
-    const keyCheck = validatePushKeys(p256dh, auth);
-    if (!keyCheck.ok) {
-        return res.status(400).json({ error: 'Malformed subscription keys' });
+        // Endpoint host allowlist. web-push will dial ANY host:port it is handed,
+        // carrying a valid VAPID JWT, and the failure body comes back into
+        // last_failure_reason -- a column the row's owner can read through RLS. So
+        // an unvalidated endpoint is a server-side request primitive with response
+        // exfiltration. Validate before the value is ever persisted.
+        const endpointCheck = validatePushEndpoint(endpoint);
+        if (!endpointCheck.ok) {
+            console.warn('[push/subscribe] rejected endpoint:', endpointCheck.reason, endpointCheck.host || '');
+            return res.status(400).json({ error: 'Unsupported push service endpoint' });
+        }
+        // Wrong-shaped keys throw inside web-push with no statusCode, so they are
+        // never classified as expired and get retried on every dispatch forever.
+        const keyCheck = validatePushKeys(p256dh, auth);
+        if (!keyCheck.ok) {
+            return res.status(400).json({ error: 'Malformed subscription keys' });
+        }
     }
 
     const nowIso = new Date().toISOString();
@@ -136,7 +153,10 @@ export default async function handler(req, res) {
             .neq('user_id', user.id);
 
         for (const row of incumbents || []) {
-            if (!timingSafeEquals(auth, row.auth)) {
+            // A native token has no keys: the same phone signing in as another
+            // account IS the takeover, and it is allowed - the token can only
+            // ever reach that one phone, so possession is proven by having it.
+            if (transport === 'webpush' && !timingSafeEquals(auth, row.auth)) {
                 console.warn('[push/subscribe] refused takeover of an endpoint without matching keys');
                 return res.status(409).json({
                     error: 'This endpoint is registered to another account and the keys do not match.',
@@ -219,6 +239,8 @@ export default async function handler(req, res) {
                     endpoint,
                     p256dh,
                     auth,
+                    transport,
+                    platform,
                     user_agent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 500),
                     device_label: body.deviceLabel ? String(body.deviceLabel).slice(0, 120) : null,
                     device_id: deviceId,

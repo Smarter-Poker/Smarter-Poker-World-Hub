@@ -86,6 +86,7 @@ import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
 import './footer-follows-the-reader-not-a-rail.test.mjs';
 import './global-header-approved.test.mjs';
+import './global-header-profile-frame-law.test.mjs';
 // 2026-09-04, the "Log Out does nothing" fix. Its sibling guard
 // hamburger-never-regresses runs from `prebuild`, which fires on `npm run
 // build` but NOT on the `npx next build` the push script uses - so these two
