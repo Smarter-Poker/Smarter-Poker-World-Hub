@@ -835,7 +835,7 @@ attempt=0
 while [ $attempt -lt $MAX_RETRIES ]; do
   attempt=$((attempt + 1))
   echo ""
-  echo "⬇️  [Attempt ${attempt}/${MAX_RETRIES}] Pulling ${REMOTE}/${BRANCH} with rebase..."
+  echo "⬇️  [Attempt ${attempt}/${MAX_RETRIES}] Reconciling ${REMOTE}/${BRANCH}..."
 
   # Clean any leftover rebase state before trying
   if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
@@ -852,8 +852,19 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     git stash push -u -m "git-safe-push-retry-$(date +%s)" 2>/dev/null || true
   fi
 
-  # ── PULL WITH REBASE ──
-  if ! GIT_EDITOR=true git pull --rebase "${REMOTE}" "${BRANCH}" 2>&1; then
+  # ── FETCH, THEN REBASE ONLY WHEN THE REMOTE HAS NEW COMMITS ──
+  # A blind `git pull --rebase` rewrites an intentional merge from main even
+  # when the remote feature branch is already an ancestor of HEAD. That makes
+  # a current branch appear behind main again and destroys tested provenance.
+  if ! git fetch "${REMOTE}" "${BRANCH}" 2>&1; then
+    echo "⚠️  Could not fetch ${REMOTE}/${BRANCH}. Retrying..."
+    sleep "$((attempt * 2))"
+    continue
+  fi
+
+  if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+    echo "✅ Local branch already contains the remote branch; preserving merge ancestry."
+  elif ! GIT_EDITOR=true git rebase FETCH_HEAD 2>&1; then
 
     # ── AUTO-RESOLVE CONFLICTS ──
     echo "⚠️  Conflicts during rebase. Auto-resolving (accept theirs)..."

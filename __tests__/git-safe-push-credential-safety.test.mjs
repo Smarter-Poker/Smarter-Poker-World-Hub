@@ -25,3 +25,12 @@ test('the credential-bearing URL is not printed explicitly', async () => {
   assert.doesNotMatch(script, /echo[^\n]*(?:AUTH_URL|GH_TOKEN)/);
   assert.doesNotMatch(script, /printf[^\n]*(?:AUTH_URL|GH_TOKEN)/);
 });
+
+test('an already-contained remote branch does not rewrite a tested merge from main', async () => {
+  const script = await readFile(scriptUrl, 'utf8');
+
+  assert.doesNotMatch(script, /^\s*(?:if ! )?GIT_EDITOR=true git pull --rebase/m);
+  assert.match(script, /git fetch "\$\{REMOTE\}" "\$\{BRANCH\}"/);
+  assert.match(script, /git merge-base --is-ancestor FETCH_HEAD HEAD/);
+  assert.match(script, /elif ! GIT_EDITOR=true git rebase FETCH_HEAD/);
+});
