@@ -787,6 +787,9 @@ export default function BankrollManagerPage() {
   // The photograph only exists in memory at that point and the receipt itself
   // is back in someone's pocket, so closing the modal destroys real work.
   const [scannerHasUnsaved, setScannerHasUnsaved] = useState(false);
+  // What the scan was read as, and where its values belong. Set by
+  // ReceiptScanner from the shared router so the page and the scanner agree.
+  const [scannerRoute, setScannerRoute] = useState(null);
 
   const closeScanner = useCallback(() => {
     if (scannerHasUnsaved && typeof window !== 'undefined') {
@@ -2023,10 +2026,11 @@ export default function BankrollManagerPage() {
                   <ReceiptScanner
                     userId={userId}
                     onPendingChange={setScannerHasUnsaved}
-                    onScanComplete={({ imageUrl, extractedData }) => {
+                    onScanComplete={({ imageUrl, extractedData, route }) => {
                       setScannerHasUnsaved(false);
                       setScannerImageUrl(imageUrl);
                       setScannerExtractedData(extractedData);
+                      setScannerRoute(route || null);
                       setScannerStep('post-capture');
                     }}
                   />
@@ -2045,16 +2049,34 @@ export default function BankrollManagerPage() {
                       loading="lazy" />
                   </div>
 
+                  {/* What it was read as, so the choice below is already made
+                      for the common case instead of being asked cold. */}
+                  {scannerRoute && (
+                    <div style={{
+                      marginBottom: 16, padding: 12, borderRadius: 10,
+                      background: 'rgba(35,116,225,0.08)', border: '1px solid #2374e1',
+                    }}>
+                      <div style={{ color: '#e4e6eb', fontSize: 15, fontWeight: 600 }}>{scannerRoute.summary}</div>
+                      <div style={{ color: '#2374e1', fontSize: 14, marginTop: 2 }}>{scannerRoute.label}</div>
+                    </div>
+                  )}
+
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
                     What Would You Like To Do With This Receipt?
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <button
                       onClick={() => {
-                        // Open LogEntryModal as NEW entry with receipt pre-attached
-                        setDefaultReceiptCategory('expense');
+                        // Open LogEntryModal as NEW entry with receipt pre-attached.
+                        // A buy-in or a cash out is a SESSION, not a cost: routing
+                        // it as an expense would put the money in the wrong column.
+                        const kind = scannerRoute && scannerRoute.destination;
+                        setDefaultReceiptCategory(kind === 'session' ? 'session' : 'expense');
                         setDefaultReceiptMedia([scannerImageUrl]);
-                        setDefaultReceiptData(scannerExtractedData);
+                        setDefaultReceiptData({
+                          ...(scannerExtractedData || {}),
+                          ...(scannerRoute ? scannerRoute.prefill : {}),
+                        });
                         setEditEntry(null);
                         setShowLogModal(true);
                         setShowScanner(false);

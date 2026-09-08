@@ -96,7 +96,13 @@ export default async function handler(req, res) {
           });
       } catch (error) {
           console.warn('Receipt scan error:', error);
-          return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
+          // `detail` is the difference between "it broke" and "the model name
+          // is wrong". It is the failure reason, not user data.
+          return res.status(500).json({
+              success: false,
+              error: 'Failed to scan receipt',
+              detail: String((error && error.message) || error).slice(0, 300),
+          });
       }
 
   } catch (err) {
@@ -113,24 +119,59 @@ async function analyzeReceipt(imageBase64) {
         throw new Error('Receipt scanning is not configured. Missing API key.');
     }
 
-    const prompt = `Analyze this receipt image and extract the following information in JSON format:
+    const prompt = `You are reading a photograph a poker player took of a piece of paper.
+First decide WHAT KIND of document it is, then extract only the fields that
+belong to that kind. Reply with JSON and nothing else.
+
+document_type must be exactly one of:
+  "tournament_buyin"  a tournament entry receipt. Look for an event name, a
+                      buy-in plus a separate fee (e.g. "$300 + $40"), entry or
+                      seat numbers, a start time, "re-entry", flight letters.
+  "cash_game_buyin"   a cash game buy-in or chip purchase. Look for stakes
+                      ("1/2", "2/5"), "table", "seat", "chips", "buy in".
+  "payout"            a cash-out, payout or prize slip. Look for "cash out",
+                      "payout", "prize", a finishing position, "redeem".
+  "w2g"               a W-2G or similar gambling tax form. Look for "W-2G",
+                      "Certain Gambling Winnings", a payer TIN, box numbers,
+                      "federal income tax withheld".
+  "expense"           an ordinary purchase: meal, hotel, fuel, ride, flight.
+  "paystub"           a dealer paystub or earnings statement, with tokes/tips.
+  "unknown"           you genuinely cannot tell.
+
+Return this shape. Use null for anything not visible. Never invent a number:
+if you cannot read an amount, it is null.
 
 {
-  "category": "one of: buy_in, hotel, flights, rental_car, gas, meals, transport, tips, tournament, other",
-  "amount": <number - total amount paid>,
-  "currency": "USD or EUR",
-  "vendor": "<business name>",
+  "document_type": "<one of the above>",
+  "confidence": <0-100, how sure you are of document_type>,
+  "vendor": "<casino, business or payer name>",
   "location": "<city, state if visible>",
-  "date": "<YYYY-MM-DD format if visible>",
-  "description": "<brief description of what was purchased>",
-  "tax_deductible": <boolean - true if likely poker-related business expense>,
-  "itemized": [
-    {"item": "<item name>", "amount": <number>}
-  ],
-  "confidence": <0-100 confidence score>
+  "date": "<YYYY-MM-DD>",
+  "amount": <total on the document>,
+  "currency": "USD or EUR",
+  "description": "<one short line describing it>",
+
+  "tournament_name": "<tournament_buyin only>",
+  "buy_in": <tournament_buyin: the prize-pool portion>,
+  "fee": <tournament_buyin: the house fee, if shown separately>,
+  "game_type": "<nlhe, plo, mixed etc if stated>",
+
+  "stakes": "<cash_game_buyin only, e.g. 1/2>",
+
+  "payout": <payout only: amount paid out>,
+  "finish_position": <payout only, if shown>,
+
+  "gross_winnings": <w2g only>,
+  "federal_withheld": <w2g only>,
+  "state_withheld": <w2g only>,
+  "tax_year": <w2g only, 4 digits>,
+  "form_type": "<w2g only, e.g. W-2G>",
+
+  "category": "<expense only: hotel, flights, rental_car, gas, meals, transport, tips, tournament, other>"
 }
 
-If any field is not visible, use null. For poker buy-ins, look for "buy-in", "entry fee", "tournament", "cash", "chips". For hotels look for room rates, nights stayed. For meals look for food items, tips, total.`;
+A buy-in receipt is NOT an expense: classify it as tournament_buyin or
+cash_game_buyin so it is recorded against the session rather than as a cost.`;
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
@@ -139,7 +180,12 @@ If any field is not visible, use null. For poker buy-ins, look for "buy-in", "en
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            model: 'grok-2-vision-latest',
+            // grok-2-vision-1212, not grok-2-vision-latest. The `-latest` alias
+            // is rejected by the API, so every scan came back 500 "Failed to
+            // scan receipt" even with a valid key. This is the exact model
+            // /api/geeves/analyze-screenshot uses, which is verified working in
+            // production.
+            model: 'grok-2-vision-1212',
             messages: [
                 {
                     role: 'user',
@@ -164,7 +210,10 @@ If any field is not visible, use null. For poker buy-ins, look for "buy-in", "en
     });
 
     if (!response.ok) {
-        throw new Error(`OCR API error: ${response.status}`);
+        // Carry the reason. A bare status turned a wrong model name into an
+        // unexplained 500 that took a production repro to identify.
+        const detail = await response.text().catch(() => '');
+        throw new Error(`OCR API error ${response.status}: ${detail.slice(0, 300)}`);
     }
 
     const result = await response.json();
