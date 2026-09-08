@@ -151,3 +151,40 @@ every page load and paint nothing. It is not deleted here: it was written to
 replace six divergent table implementations and that is a design call, not a
 silent one. The status is now recorded in the file's own header so the next
 reader is not misled by it.
+
+## 8. And then I broke the deployment explaining the fix
+
+Deployment `2d79fd9` for #1632 went to ERROR on `main`. Not the cache change —
+the comment beside it. `vercel.json` is strict JSON and Vercel validates it
+against a schema that allows only `source`, `headers`, `has` and `missing` in a
+headers entry, so the `"_comment"` I added to explain why the TTL dropped from 30
+days to 1 was an unknown key and the deployment was refused:
+
+    headers[31] should NOT have additional property `_comment`
+
+**Every gate upstream was green, and there was no build log to read.** A
+schema-invalid config fails the DEPLOYMENT, before a build starts — so
+`npm run build` never ran, no test read the file, and the pre-push hooks read
+source rather than config. The only place it appeared was a red row on the
+Vercel dashboard, and it was found because Dan looked at it and said so.
+
+**Fixed by #1633, not by me.** Another agent reached the same diagnosis first,
+removed the key, and added `__tests__/vercel-json-is-deployable.law.test.mjs`
+with the real error message in its header, a key allowlist for headers, rewrites
+and crons, shape assertions, and the avatars TTL kept as an assertion — wired
+into `prebuild`, so `npm run build` refuses before a deploy can. That is a better
+guard than the one I had written, and it already carries the knowledge my
+`_comment` was trying to hold.
+
+So my version was deleted rather than added. Two detectors for one fault is how
+they drift apart and start disagreeing — the same argument this audit makes in
+section 5 about not re-implementing the hole check in
+`check-avatar-integrity.mjs`. Applying it to my own work when somebody else got
+there first is the only version of that rule that means anything.
+
+What survives from my branch is this record, and the cache change itself, which
+was correct and is still on `main`: `max-age=86400, stale-while-revalidate=604800`.
+
+The lesson is narrower than "do not comment JSON". The reasoning wanted to be a
+check, not a comment — a comment in a file nothing validates cannot stop the
+thing it warns about, and this one could not even survive being written down.

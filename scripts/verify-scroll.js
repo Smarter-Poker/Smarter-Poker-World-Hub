@@ -86,7 +86,13 @@ async function main() {
   const targets = [
     { name: 'Smarter Poker Hub News', url: 'https://smarter.poker/hub/news' },
     { name: 'Club Commander Dashboard', url: 'https://smarter.poker/hub/commander' },
-    { name: 'Club Arena (My Clubs)', url: 'https://smarter.poker/hub/my-clubs' }
+    // Was 'Club Arena (My Clubs)' -> https://smarter.poker/hub/my-clubs.
+    // That route became a 307 to /hub/social-pages?tab=managed on 2026-09-08,
+    // and page.goto follows redirects, so this case was silently scroll-testing
+    // Social Pages while reporting itself as My Clubs. A check that passes
+    // while measuring a different page than it names is worse than no check.
+    // Pointed at the real destination, under its real name.
+    { name: 'Social Pages', url: 'https://smarter.poker/hub/social-pages' }
   ];
 
   let allPassed = true;
