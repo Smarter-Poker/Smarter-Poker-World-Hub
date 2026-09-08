@@ -3,9 +3,7 @@
 **Date:** 2026-09-08
 **Scope:** World Hub (`Smarter-Poker-World-Hub` → `hub-vanguard` → smarter.poker) and
 Club Arena (`Smarter-Poker-Club-Arena` → `ca-static.smarter.poker`).
-**Status:** audited, and World Hub fixes 1 and 2 shipped in the same session
-(branch `patch/publish-pipeline-improvements`). Everything else below is
-findings, not changes. See "What shipped" at the end.
+**Status:** audit only. Nothing was changed, committed, or pushed.
 
 Every number below is marked **[M]** measured in this session, **[Mq]** measured by
 someone else and quoted from the file's own comments, or **[I]** inferred from config.
@@ -370,12 +368,12 @@ it is small because it is empty.
    Saves 6 min per push on the normal path and removes a false `DEPLOY_VERIFIED:false`
    on every success. When it does run, `--wait 30 --timeout 900` - agreeing with
    `publish-watchdog.yml`'s own 20-minute figure instead of contradicting it. *Largest
-   single win, smallest diff.* **SHIPPED**
+   single win, smallest diff.*
 2. **Stop Phase 1 deleting `.next/cache`.** Add it to the clean's exclude list (cache
    only, not the whole of `.next` - stale build output is a known bug source, per the
    `CLAUDE.md` §8 table). Turns a guaranteed cold build into a warm one. **[I] 2–5 min
    per push.** While there, exclude `.agent-trees/` explicitly rather than relying on
-   nested-repo skip, and run `git worktree prune` (177 stale registrations). **SHIPPED**
+   nested-repo skip, and run `git worktree prune` (177 stale registrations).
 3. **Widen `vercel-should-build.sh` GATE 1 to skip previews for every PR branch, not
    just `agent/*`.** `:37-44`. 8 of the last 11 branches miss the gate; 40% of recent
    deployments were cancelled. Removes the third pre-merge build and de-contends the
@@ -416,50 +414,311 @@ it is small because it is empty.
 
 ---
 
-## What shipped
-
-Branch `patch/publish-pipeline-improvements`, one file, `scripts/git-safe-push.sh`,
-+108/-7. Queued as a unified diff through `agent-apply-patch.yml` because the agent
-bridge caps a pushed file at ~65KB and this script is ~48KB.
-
-1. **Phase 1 keeps `.next` and `.agent-trees/`.** The exclude list moved into a
-   `CLEAN_KEEP` array with `!.next`, `!.next/**`, `!.agent-trees`, `!.agent-trees/**`
-   added. Re-ran the exact command with `-n`: 91 junk entries still go, `.next` and
-   `.agent-trees` no longer appear (was 93 including both).
-2. **Phase 2.5 clears last build's output and keeps `.next/cache`.**
-   `find .next -mindepth 1 -maxdepth 1 ! -name cache -exec rm -rf {} +` before the
-   build, so the stale-`vendor-chunks` failure mode the section 8 bug table describes
-   is still swept, but the 2.0 GB webpack cache survives. It prints the cache size it
-   is reusing.
-3. **Phase 4 is guarded on `BRANCH == main`**, in BOTH push paths, and the budget went
-   from `--wait 60 --timeout 300` to `--wait 30 --timeout 900`. Off `main` it now
-   prints `DEPLOY_VERIFIED:n/a_branch_push` and exits 0 instead of burning six minutes
-   to report a false failure.
-4. **`git worktree prune --expire 3.days.ago`** in Phase 1.
-5. **The build gate's duration is now recorded** to `logs/deploy-history.json` via
-   `deploy-log.js --action build`, so the one number this audit had to infer becomes a
-   measurement on the next push.
-
-Verification before pushing: `bash -n` clean; the patch applies to a pristine
-`origin/main` worktree under the workflow's own first command
-(`git apply --index --unidiff-zero --whitespace=nowarn`); the applied result is
-byte-identical to the locally edited file; and after the workflow ran, the blob sha of
-`scripts/git-safe-push.sh` on the branch is `a6da0abddccdbcc9db19fbc7581417e773e3403b`,
-matching the local file exactly. Every added line is pure ASCII.
-
-Not shipped, and each needs its own decision: the Vercel preview gate (fix 3), the
-audit-markers hole (fix 4), the CI caches (fix 5), the `main`-ref concurrency inversion
-(fix 6), and everything on the Club Arena side.
-
----
-
 ## What I did not verify
 
 - The 4–8 min figure for the local cold `next build` is **[I]**. Nothing in the repo
   records it, because `git-safe-push.sh` prints its phase durations and no one collects
-  them. Fix 2 shipped with a one-line append of `BUILD_END-BUILD_START` to
-  `logs/deploy-history.json`, so the next person arguing about this has a number.
+  them. **Fix 2 should land with a one-line append of `BUILD_END-BUILD_START` to
+  `logs/deploy-history.json`**, so the next person arguing about this has a number.
 - Club Arena files were read through the GitHub API; no clone is mounted in this
   session, so line numbers are given only for World Hub files.
 - Deployment sampling is n=4 for build durations and n=20 for the cancellation rate,
   drawn from one 52-minute window today. Directionally solid, not a week's p50.
+
+---
+---
+
+# Round 2 - what shipped, what is left, and what nobody had looked at yet
+
+## Shipped, verified on `main`
+
+PR #1615, squash `49f827c`. `scripts/git-safe-push.sh` on `main` is blob
+`a6da0abddccdbcc9db19fbc7581417e773e3403b`, byte-identical to the file that passed
+`bash -n` and the dry-run here. Phase 1 keeps `.next` and `.agent-trees/`; Phase 2.5
+clears the previous build's output and keeps `cache/`; Phase 4 is guarded on
+`BRANCH == main` in both push paths with a 30s + 900s budget; `git worktree prune`
+added; the build gate now records its own duration to `logs/deploy-history.json`.
+
+Two things confirmed themselves live while the PR was open. The `patch/` branch
+triggered a full Vercel preview build - finding 1.4, demonstrating itself on the
+audit's own pull request. And the merge took 9m57s wall clock, of which the required
+check was the no-op described in 1.3.
+
+---
+
+## New findings, this round. All [M] measured from the Vercel build logs of `dpl_D726H` (PR #1601, production)
+
+### R1. The build machine has 8 cores. Next.js is told to use 2.
+
+`next.config.js:511-520`:
+
+```js
+// [2026-05-18 cost-opt] cpus raised 1->2 to cut wall-clock build time.
+cpus: process.env.BUILD_CPUS ? Number(process.env.BUILD_CPUS) : 2,
+```
+
+and at `:397`, the reasoning: *"cpus limits parallel compilation to prevent 8-core
+machines from OOMing."*
+
+The build log confirms it is in force, and shows exactly what it costs:
+
+```
+14:50:30  Build machine configuration: 8 cores, 16 GB   (Enhanced Build Machine)
+14:50:56  - Experiments (use with caution):
+14:50:56    - cpus: 2
+14:52:43  Compiled with warnings in 106s
+14:52:43  Collecting page data using 2 workers ...
+14:52:50  Generating static pages using 2 workers (0/397) ...
+14:54:21  [done]
+14:54:25  Build Completed in /vercel/output [4m]
+```
+
+So the 215s of `next build` splits into **106s of webpack compile and 98s generating
+397 static pages**, and both halves are pinned to **2 of 8 available cores**. Static
+page generation parallelises close to linearly across workers; the compile phase
+benefits too.
+
+The OOM that motivated the cap was on 2026-05-18, and the machine now has 16 GB with
+`--max-old-space-size=7168`. The cap may simply be older than the hardware.
+
+**This is a zero-code experiment.** `BUILD_CPUS` is already an env override. Set it to
+4 in the Vercel project, watch one build, compare the two worker lines. If memory
+holds, it plausibly takes 60-90s off **every production deploy, every Actions build,
+and every local build gate** - the single largest remaining lever found in either
+round, and instantly reversible.
+
+### R2. The levers people usually reach for are already pulled
+
+Worth recording so nobody spends a day on them:
+
+| Lever | State | Evidence |
+|---|---|---|
+| Build machine size | **Already Enhanced**, 8 cores / 16 GB | `Build machine configuration: 8 cores, 16 GB` |
+| Vercel build cache | **Working.** 858 MB, restored each build | `Restored build cache from previous deployment (CEK3RkEY...)` |
+| Dependency install on Vercel | **2 seconds.** Not a factor | `up to date in 2s` |
+| The tests in `buildCommand` | **~3 seconds** for all 30 marketplace files | timestamps: whole suite inside `14:50:53` |
+| Cache upload (858 MB, 41s) | **Free.** Happens after `ready` | `ready` 14:54:56, upload finishes 14:55:37 |
+
+The 4 minutes is `next build` and almost nothing else. That is why R1 matters and why
+trimming the build command would not.
+
+### R3. `vercel.json` already has the right mechanism for the preview problem
+
+```json
+"git": { "deploymentEnabled": { "ci-marker/**": false, "backup/**": false,
+                                "build/**": false, "agent/**": false } }
+```
+
+`deploymentEnabled: false` stops the deployment being **created**. `ignoreCommand`
+does not - it provisions a build container, clones, and then runs
+`scripts/vercel-should-build.sh` to decide. So the map is strictly better than the
+script for any branch prefix that should never build, and `patch/**` is missing from
+it, which is why this audit's own branch built.
+
+Worse, the script fails open, and did so on this very production build:
+
+```
+14:50:48  Running "bash scripts/vercel-should-build.sh"
+14:50:48  [should-build] Cannot determine diff - building to be safe
+```
+
+Correct for production. But it means the gate cannot be relied on for previews either,
+and the real question underneath is whether previews are wanted at all - PR #1601's
+was cancelled unread.
+
+### R4. Two deprecations that will become build failures
+
+```
+14:50:56  The "middleware" file convention is deprecated. Please use "proxy" instead.
+14:50:56  The Edge Runtime is deprecated. You can use the "nodejs" runtime instead.
+```
+
+On Next 16.2.12. Neither is urgent; both are cheaper now than on the day a Next upgrade
+turns them into errors, and the codemod is named in the log.
+
+### R5. One 2.74 MB chunk
+
+```
+/_next/static/chunks/32958.88a03eb886f671ee.js is 2.74 MB, and won't be precached.
+```
+
+A build cost, a service-worker gap, and a user-facing download, in one artifact. Worth
+one `@next/bundle-analyzer` run to find out what is in it.
+
+### R6. `output: 'standalone'` on Vercel
+
+`next.config.js:371` sets `output: process.env.VERCEL ? 'standalone' : undefined`.
+Vercel's Next builder does its own output tracing, so standalone mode may be a second
+tracing pass over ~1,300 packages for an artifact Vercel does not consume. **Not
+verified** - it needs one A/B build to confirm either way, and it is the cheapest
+remaining thing to test after R1.
+
+---
+
+## The structural ceiling, and the two moves that actually raise it
+
+Everything above shaves seconds off a pipeline whose real constraint is arithmetic:
+**[M]** median gap between commits on `main` is 7.3 minutes, and a publish takes ~4.5.
+The system runs at roughly 60% of saturation, which is why 40% of deployments get
+cancelled and why `cancel-in-progress` inverts into a deadlock. Shaving 90 seconds
+helps. It does not change the shape.
+
+1. **A merge queue.** GitHub's merge queue batches merges and builds the batch once,
+   which is the first-class answer to the cancellation rate, to the `main`-ref
+   concurrency inversion (1.5), and to the Club Arena publisher's single-file
+   concurrency group (2.4) - all three are the same problem stated three ways. It is
+   also the only one of these fixes that gets *better* as agent count grows, and this
+   estate is adding agents.
+2. **Measure it.** Nothing in either repo records pipeline latency; every number in
+   this document had to be excavated by hand, and the two defects that were fixed had
+   been costing eleven minutes a push for months in plain sight. Now that
+   `logs/deploy-history.json` collects build durations, a small Open Claw job that
+   posts a weekly p50 of push -> merge -> live would turn the next version of this
+   argument into a lookup. **This is the enhancement that makes all the others
+   self-correcting**, and it should not go on the Claude scheduler (section 10.9).
+
+## The backlog, ranked by minutes saved against risk
+
+| # | Change | Saves | Risk | Where |
+|---|---|---|---|---|
+| 1 | `BUILD_CPUS=4` and watch one build | **[I] 60-90s per build, everywhere** | Low, instantly reversible | Vercel env |
+| 2 | Add `patch/**` to `git.deploymentEnabled`, decide whether previews are wanted at all | a whole preview build per PR; de-contends the prod queue | Low | `vercel.json` |
+| 3 | `cancel-in-progress: false` on the `main` ref for the two E2E workflows | 0 on the merge path; restores a signal that has been meaningless for days | Low | 2 workflow files |
+| 4 | `node_modules` + `.next/cache` + Playwright caches on the four cold jobs; fix the `ajv` lockfile | **[Mq] 424s -> ~15s** on each | Low, pattern proven in-repo | 4 workflow files |
+| 5 | Fix `.github/audit-markers.txt`, then decide what `main` requires | none - it *costs* time | Medium: it is the first real gate in months | correctness, do it anyway |
+| 6 | `Cache-Control: no-store` on Club Arena `build-info.json` | none - stops false diagnoses | Low | Caddy |
+| 7 | Club Arena: `post-deploy-e2e` off the publisher's runner pool | **[I] largest CA win** | Medium | 1 workflow file |
+| 8 | Club Arena: kill the 84 MB artifact round-trip; `--link-dest`; multiplex SSH | **[I] ~1 runner acquisition + 168 MB** | Medium | publish workflow |
+| 9 | A merge queue | the shape, not the seconds | High - changes how everything lands | estate-wide |
+| 10 | Weekly pipeline p50 via Open Claw | none directly; makes 1-9 provable | Low | new cron |
+
+Item 5 is the only one where the honest recommendation is to accept a *slower*
+pipeline. A required check that cannot fail is not a fast pipeline, it is an unguarded
+one.
+
+---
+---
+
+# Round 3 - shipped, measured, and three findings retracted
+
+Everything in this section is after the fact. Where a Round 1 or Round 2 claim turned
+out to be wrong, it is corrected here rather than edited above, so the record shows
+what was believed and what it cost.
+
+## Shipped and verified on main
+
+| PR | What | Proof |
+|---|---|---|
+| WH #1615 | Phase 1 keeps `.next/cache` and `.agent-trees/`; Phase 4 guarded on `main` with a 30s+900s budget; `git worktree prune`; the build gate records its own duration | blob `a6da0ab` on main |
+| WH #1627 | `resolveBuildCpus()`, preview allow-list, `patch/**` refused before a container, `e2e-tests` stops cancelling its own main runs | 4 blob shas on main; **`cpus: 4` in the production build log** |
+| WH #1633 | vercel.json schema hotfix + a law for the whole class | production deploying again |
+| WH #1640 | `node_modules` + Playwright + `.next/cache` on the four cold jobs; `push-delivery-watchdog` concurrency; the weekly p50 report | merged 17:35 |
+| WH #1642 | 127-token registry, empty registry now fails, one-pass scan | open at time of writing |
+| CA #3842 | SSH multiplexing, `--link-dest`, `proven` step gated | open at time of writing |
+
+**The one number that matters.** `dpl_EzRgt`, production, after #1627:
+
+```
+Build machine configuration: 8 cores, 16 GB
+  - cpus: 4
+Compiled with warnings in 74s                              (was 106s)
+Generating static pages using 4 workers (396/396) in 4.6s
+Build Completed in /vercel/output [2m]                     (was [4m])
+```
+
+`buildingAt -> ready` 266.1s -> 190.1s. One sample after against a before with real
+spread (155-273s), so the compile figure and the worker count are the hard claims.
+
+## RETRACTED
+
+**R-1. Finding 1.4, the build count, and half of 1.5.** Both were computed from a local
+worktree **2,000 files divergent from `main`**. On real main, `e2e-tests.yml` dropped its
+`pull_request` trigger on 2026-09-04 and `global-footer-e2e.yml` dropped its `push: main`
+trigger the same day. So it is ONE Actions build per PR and one per main push, not two
+each; and the concurrency fix applies to `e2e-tests.yml` alone - on `global-footer-e2e`
+the expression would have been dead code. Caught before shipping. The criticism of
+`.agent/audits/2026-09-04-build-once-per-pr.md` was also wrong: that note was acted on,
+on the day it was written, exactly as it described.
+
+**R-2. Finding 2.5, `post-deploy-e2e` on the publisher's runner pool.** Wrong twice.
+Its own comment says **OFFLOADED 2026-09-02** - it was deliberately moved *onto* the
+estate box because it was the single largest GitHub-billed job in the repo, and the
+comment explains at length why CSS Beat E2E was not moved with it. And **74 of its last
+100 runs were SKIPPED**: it only fires when the publish it follows succeeded. Acting on
+the recommendation would have undone a good decision and put the biggest job back on the
+bill. Ranked #7 above as "largest CA win"; it was not a win at all.
+
+**R-3. Finding 2.7, the stale `build-info.json`.** Re-measured: the origin sends
+`cache-control: no-store, no-cache, must-revalidate` and the busted and un-busted reads
+return the same sha. Either it was fixed in between or the original read was an edge
+artifact. Nothing to do.
+
+The common thread in all three: they were the findings I did not measure myself. R-1
+came from a subagent reading the wrong tree, R-2 and R-3 from quoting a file's own
+comments (`[Mq]`) without checking whether the comment described the present tense.
+
+## Found while shipping, and fixed
+
+**The patch bridge could not push a workflow file.** `agent-apply-patch.yml` had
+`contents: write` but not `workflows: write`, so the wave-1 patch applied perfectly and
+then died at the push:
+
+```
+! [remote rejected] (refusing to allow a GitHub App to create or update
+  workflow `.github/workflows/e2e-tests.yml` without `workflows` permission)
+```
+
+The job exits 1 with the patch still queued; it is not a required check; autopilot
+squash-merged the branch anyway, so `main` took the `.patch` FILE and none of its
+changes. Every earlier patch through that bridge touched only `scripts/` and `src/`.
+
+**Production had stopped publishing, and nothing said so.** A `_comment` key added to
+`vercel.json`'s `/avatars/` header entry failed Vercel's route schema. Valid JSON, so
+every `JSON.parse` and all fourteen checks were green; Vercel is the only thing that
+applies that schema, after merge, at deploy time, with **no build log at all**. Nothing
+had published for about 25 minutes and the pipeline reported success throughout. This is
+the worst failure shape available here and it now has a law.
+
+**Two of my own mistakes, caught by this repo's own guards.** `_test-guards-exist`
+failed my new law test for being executed by nothing. `vercel-build-queue.test.mjs`
+failed because it encoded the deny-list I had just inverted. Both were correct; both are
+fixed rather than deleted.
+
+## The weekly report, on its first run
+
+Written to prove the numbers above stop being archaeology - and it immediately found
+something Round 1 and 2 missed:
+
+| workflow | runs on main, 7d | cancelled |
+|---|---|---|
+| E2E Tests (Playwright) | 26 | **23** |
+| Push Delivery Watchdog | 26 | **21** |
+
+88% and 81% never reached a verdict. E2E was fixed in #1627; **Push Delivery Watchdog
+had the same defect and was not in the audit at all** - and that one is a watchdog. It
+also corroborates Round 1 independently: median 7m 50s between commits on main, 50 of 99
+gaps under eight minutes, against 7.3 min and 53% from a different sample.
+
+## Still open, deliberately
+
+1. **The 84 MB artifact round-trip in the Club Arena publisher.** Real, and worth
+   removing. It restructures which job holds the bundle when the `client-tests` gate is
+   evaluated, and there is no way to test that without publishing. It gets its own change
+   with its own verification, not a rider on three one-line fixes.
+2. **A merge queue.** Unchanged from Round 2, and now unblocked: it needed a required
+   check that can actually fail, and #1642 provides one. This is the only item that
+   changes the *shape* rather than the seconds, and the only one that improves as agents
+   are added.
+3. **`AGENT-PLAYBOOK.md:200`** says the watchdog "self-heals once per sha";
+   `publish-watchdog.sh:289` sets `MAX_RETRIES=3`. Not fixed, because that file is
+   byte-identical across seven repos and `estate-integrity` enforces it - it needs one
+   estate-wide change, not a local edit that breaks the check. Club Arena's own
+   `CLAUDE.md` already says "up to three times" correctly, so the drift is confined to
+   the shared file.
+4. **`output: 'standalone'` on Vercel** (`next.config.js:371`). Still unverified; still
+   the cheapest remaining thing to A/B now that the cpus change has landed.
+5. **The `ajv` lockfile mismatch.** `package.json` declares no `ajv`; `package-lock.json`
+   pins 6.15.0 against a transitive 8.20.0. Not fixed: regenerating a 1,324-package
+   lockfile needs a network the sandbox does not have and a verification pass this
+   session could not give it.
+
