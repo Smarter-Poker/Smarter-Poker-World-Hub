@@ -54,8 +54,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   useModalHistory(true, onClose);
   // Tap outside closes; a drag-select that ends on the scrim does not.
   const scrim = useScrimDismiss(onClose);
-  const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
-  const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
+  // A default category the ledger does not know (the scanner once passed
+  // 'session') would render the generic form and then be refused by the
+  // category CHECK on save. Unknown means: let the user choose.
+  const knownDefault = CATEGORIES.some((c) => c.id === defaultCategory) ? defaultCategory : null;
+  const [step, setStep] = useState(isEditMode || knownDefault ? 'details' : 'category');
+  const [category, setCategory] = useState(isEditMode ? editEntry.category : knownDefault);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
   const [savedStakes, setSavedStakes] = useState([]);

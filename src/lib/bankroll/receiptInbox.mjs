@@ -167,6 +167,27 @@ export function w2gRowFromReceipt(userId, route, imageUrl, today = isoToday()) {
     };
 }
 
+/**
+ * The bankroll_ledger category a routed session opens LogEntryModal with.
+ *
+ * `bankroll_ledger_category_check` allows poker_cash, poker_mtt, casino_table,
+ * slots, sports, expense, deposit and withdrawal. The sheet used to open the
+ * modal with 'session', which is not one of them: the generic form rendered,
+ * the tournament fields were never saved, and the insert was refused with
+ * 23514 "Failed To Log Entry". Every scanned buy-in failed to save.
+ *
+ * @returns {'poker_mtt'|'poker_cash'|null} null means "let the user pick"
+ */
+export function ledgerCategoryFor(route) {
+    const prefill = (route && route.prefill) || {};
+    switch (prefill.entryKind) {
+        case 'tournament': return 'poker_mtt';
+        case 'cash': return 'poker_cash';
+        case 'cashout': return prefill.finish_position !== null && prefill.finish_position !== undefined ? 'poker_mtt' : 'poker_cash';
+        default: return null;
+    }
+}
+
 /** The `bankroll_receipts` row written the moment a scan completes (rule 4). */
 export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType }) {
     return {

@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-    receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan,
+    receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
     RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../src/lib/bankroll/receiptInbox.mjs';
 import { routeScan, normaliseScan } from '../src/lib/bankroll/receiptRouting.mjs';
@@ -176,20 +176,43 @@ test('the sheet offers receiptActions(), not two hard-coded buttons', () => {
     }
 });
 
-test('rule 4: the row is written before a choice is offered, and closing keeps it', () => {
+test('a scanned session opens a category the ledger CHECK accepts', () => {
+    // bankroll_ledger_category_check: poker_cash, poker_mtt, casino_table,
+    // slots, sports, expense, deposit, withdrawal. 'session' was refused with
+    // 23514 and every scanned buy-in failed to save.
+    assert.equal(ledgerCategoryFor(BUY_IN), 'poker_mtt');
+    assert.equal(ledgerCategoryFor(routeScan(normaliseScan({ document_type: 'cash_game_buyin', confidence: 90, amount: 200 }))), 'poker_cash');
+    assert.equal(ledgerCategoryFor(routeScan(normaliseScan({ document_type: 'payout', confidence: 90, payout: 900, finish_position: 3 }))), 'poker_mtt');
+    assert.equal(ledgerCategoryFor(routeScan(normaliseScan({ document_type: 'payout', confidence: 90, payout: 900 }))), 'poker_cash');
+    assert.equal(ledgerCategoryFor(UNSURE), null, 'when the scan did not say, the user picks');
+    assert.equal(ledgerCategoryFor(null), null);
+
+    const page = code(PAGE);
+    assert.doesNotMatch(page, /openEntryForReceipt\('session'\)/);
+    assert.doesNotMatch(page, /setDefaultReceiptCategory\('session'\)/);
+    const modal = code(LOG_MODAL);
+    assert.match(modal, /CATEGORIES\.some\(\(c\) => c\.id === defaultCategory\)/, 'the modal refuses a category it does not have');
+});
+
+test('rule 4: the row is written before a choice can be taken, and closing keeps it', () => {
     const src = code(PAGE);
-    const onComplete = src.slice(src.indexOf('onScanComplete={async'), src.indexOf('onScanComplete={async') + 900);
+    const onComplete = src.slice(src.indexOf('onScanComplete={async'), src.indexOf('onScanComplete={async') + 1200);
     assert.ok(
-        onComplete.indexOf('await saveReceiptRow(') < onComplete.indexOf("setScannerStep('post-capture')"),
-        'the bankroll_receipts row must exist before the sheet is shown',
+        onComplete.indexOf('setReceiptSaving(true)') < onComplete.indexOf("setScannerStep('post-capture')"),
+        'the sheet opens in the saving state',
     );
+    assert.match(onComplete, /const id = await saveReceiptRow\(/);
+    assert.match(src, /disabled=\{receiptBusy \|\| receiptSaving\}/, 'no choice is enabled until the row exists');
+    assert.match(src, /Retry Listing/, 'a failed insert is retried, not hidden');
+    assert.match(src, /if \(!scannerReceiptId\) \{\s*toast\.error\('This Receipt Is Not Listed Yet/, '"keep it" cannot claim to keep what was never listed');
     assert.match(src, /\.from\('bankroll_receipts'\)\s*\.insert\(receiptRowFromScan\(/);
     assert.match(src, /\.eq\('status', 'unassigned'\)/, 'the dashboard reads what is still waiting');
     assert.match(src, /Receipts Waiting To Be Filed/, 'and shows it');
     assert.match(src, /onClick=\{\(\) => resumeReceipt\(receipt\)\}/, 'and each one reopens');
 
     const close = src.slice(src.indexOf('const closeScanner = useCallback'), src.indexOf('const loadPendingReceipts'));
-    assert.match(close, /scannerStep === 'post-capture' && scannerReceiptId/, 'closing a saved receipt says where it went');
+    assert.match(close, /scannerStep !== 'scan' && scannerReceiptId/, 'closing a saved receipt says where it went');
+    assert.match(close, /!scannerReceiptId && typeof window !== 'undefined'/, 'closing an unlisted one asks first');
     assert.doesNotMatch(close, /from\('bankroll_receipts'\)\s*\.delete/, 'closing never deletes it');
 });
 
@@ -211,7 +234,7 @@ test('rule 2: with no active trip the page starts one before logging the session
     const block = src.slice(src.indexOf('actionId === RECEIPT_ACTIONS.LOG_SESSION'), src.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
     assert.match(block, /if \(!activeTrip\)/);
     assert.match(block, /await createTrip\(userId, tripFromReceipt\(scannerRoute\)\)/);
-    assert.match(block, /openEntryForReceipt\('session'\)/, 'and it is logged as a SESSION');
+    assert.match(block, /openEntryForReceipt\(ledgerCategoryFor\(scannerRoute\)\)/, 'and it is logged as a SESSION, under a real ledger category');
     assert.doesNotMatch(block, /openEntryForReceipt\('expense'\)/);
 });
 
@@ -244,5 +267,7 @@ test('W-2G and dealer-document uploads go to the allowlisted bucket, reads and d
     const storage = code(STORAGE);
     assert.match(storage, /'application\/pdf': 'pdf'/, 'both forms accept PDFs');
     assert.match(storage, /export async function removeBankrollObject/);
+    const remover = storage.slice(storage.indexOf('export async function removeBankrollObject'), storage.indexOf('export function isRetryableUploadError'));
+    assert.doesNotMatch(remover, /throw /, 'a storage object that will not delete must not block deleting the record');
     assert.match(storage, /\\\/storage\\\/v1\\\/object\\\/public\\\/\(\[\^\/\]\+\)\\\/\(\.\+\)\$/, 'the bucket is read from the URL, so old images objects still delete');
 });
