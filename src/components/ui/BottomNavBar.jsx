@@ -391,6 +391,8 @@ const artworkDisplayBounds = (artwork) =>
  * window. One clamped height, full bleed, is what makes them match.
  */
 export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 12.326vw, 132px)';
+const MIN_FOOTER_HIT_ZONE = 44;
+const FOOTER_HIT_ZONE_ROUNDING_GUARD = 1;
 
 /**
  * THE STAGE KEEPS THE ARTWORK'S OWN SHAPE (Dan, 2026-09-08).
@@ -416,13 +418,25 @@ export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 12.326vw, 132px)';
  * hit zone below is positioned in percentages OF THIS STAGE, so they follow the
  * box exactly as they did before.
  */
-const artworkStageStyle = (artwork) => {
+const artworkStageStyle = (artwork, itemCount = 0) => {
   const display = artworkDisplayBounds(artwork);
   const aspect = display.width / display.height;
+  const controls = Number.isFinite(itemCount) ? Math.max(0, Math.trunc(itemCount)) : 0;
+  // WebKit can quantize a 264px six-way percentage split to 43.984375px per
+  // item. One shared pixel keeps every measured target safely at or above 44.
+  const minimumControlSpan = controls > 0
+    ? controls * MIN_FOOTER_HIT_ZONE + FOOTER_HIT_ZONE_ROUNDING_GUARD
+    : 0;
+  const naturalWidth = `calc(${FOOTER_ARTWORK_HEIGHT} * ${aspect.toFixed(4)})`;
   return {
     // min() keeps a wide frame (news is 8.3:1) inside the viewport on a phone
     // instead of letting max-width silently squash it back out of aspect.
-    width: `min(100%, calc(${FOOTER_ARTWORK_HEIGHT} * ${aspect.toFixed(4)}))`,
+    // The inner max() keeps every authored destination at least 44px wide at
+    // supported viewports. Training's narrower artwork otherwise produced six
+    // 43.47px controls at 320px after the aspect-ratio correction.
+    width: minimumControlSpan > 0
+      ? `min(100%, max(${minimumControlSpan}px, ${naturalWidth}))`
+      : `min(100%, ${naturalWidth})`,
     maxWidth: '100%',
     aspectRatio: `${display.width} / ${display.height}`,
     flex: '0 0 auto',
@@ -478,7 +492,7 @@ export const BottomNavSpacer = ({ config = null }) => {
     >
       {/* Same box as the real stage, so the clearance is exactly the height the
           footer now occupies rather than the pre-aspect-ratio maximum. */}
-      <div style={artworkStageStyle(artwork)} />
+      <div style={artworkStageStyle(artwork, config?.items?.length)} />
     </div>
   );
 };
@@ -682,7 +696,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         data-footer-source-width={artwork.width}
         data-footer-source-height={artwork.height}
         style={{
-          ...artworkStageStyle(artwork),
+          ...artworkStageStyle(artwork, items.length),
           position: 'relative',
           minWidth: 0,
           overflow: 'hidden',
@@ -746,6 +760,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
                 top: `${topPercent}%`,
                 width: `${widthPercent}%`,
                 height: `${heightPercent}%`,
+                minWidth: MIN_FOOTER_HIT_ZONE,
                 minHeight: 44,
                 margin: 0,
                 padding: 0,

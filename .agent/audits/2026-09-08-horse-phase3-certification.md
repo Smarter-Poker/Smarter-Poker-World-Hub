@@ -211,6 +211,18 @@ production matrix passed 36 of 36 tests after the correction, including Poker
 Near Me in Chromium and WebKit. This is a test-contract repair only; it changes
 no player runtime or horse policy.
 
+The same post-release sweep then reproduced a separate footer accessibility
+regression in both browser engines. Preserving each approved artwork's aspect
+ratio had made the Training footer stage 260.81px wide at the 320px viewport,
+so six equal controls were only 43.47px each. `artworkStageStyle` now receives
+the real item count and floors the stage at one 44px target per item plus a
+one-pixel cross-engine rounding guard while remaining capped to the viewport.
+Each hit zone also carries an explicit 44px minimum. The artwork keeps its
+aspect ratio, the clearance spacer uses the identical geometry, and wider
+viewports retain the existing Club Arena height cap. The local production
+build passed the 14-world 320px and seven-viewport Training geometry probes in
+Chromium and WebKit, 4 of 4. Horse policy and the action clock remain untouched.
+
 ## Runbook for two failed cache-audit passes
 
 1. Read `cron_execution_log` for `/cron/training-cache-drift-audit` and retain
