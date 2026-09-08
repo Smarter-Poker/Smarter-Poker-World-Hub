@@ -641,9 +641,13 @@ export function GoLiveModal({
       // BUG-FIX-LIVE-2: do NOT stop streamRef tracks here — they belong
       // to the module-level mediaStreamSingleton and are reused across
       // modal opens to prevent iOS Safari re-prompting for camera/mic.
-      // Cleanup of the actual MediaStream happens only on full
-      // navigation away from the streaming surface (handled at the
-      // page-level layout) or via releaseMediaStream({force:true}).
+      // Cleanup of the actual MediaStream happens only on full navigation away
+      // from the streaming surface. That owner is real as of 2026-09-08:
+      // pages/_app.js binds releaseMediaStreamOnLeave to routeChangeStart, and
+      // HamburgerMenu releases on sign-out. Before that this comment pointed at
+      // a handler nobody had written, and the camera stayed live until reload.
+      // Do NOT release here - re-acquiring inside one page session is what
+      // makes iOS re-prompt, which is the bug the singleton exists to prevent.
       if (timerRef.current) clearInterval(timerRef.current);
       if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
       // 2026-08-15 final sweep: drop recorded chunks on force-close — they
