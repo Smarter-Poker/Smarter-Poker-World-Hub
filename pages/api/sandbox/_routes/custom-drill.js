@@ -15,12 +15,19 @@
  *   { success: true, pool: [...], questions: [...] } with both keys holding the same rows.
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { randomUUID } from 'node:crypto';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { MIN_VERIFIED_QUESTIONS, sealDrillBatch } from '../../../../src/lib/personal-assistant/drillTelemetry';
 import { leakToDrill } from '../../../../src/lib/sandbox/leakReview';
 import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, solverDecisionGroupKey } from '../../../../src/lib/training/solverDecisionEvidence';
+import { TRAINING_SOURCE_CLASSIFICATION } from '../../../../src/lib/training/cacheTruthContract.mjs';
+import {
+    cacheQuestionFromRow,
+    cacheRowIsServingEligible,
+    recordTrainingQuestionsServed,
+} from '../../../../src/lib/training/cacheTruthPersistence.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -159,8 +166,9 @@ function shuffle(arr) {
  * filters those out rather than shipping a guaranteed-wrong drill.
  */
 function mapCacheRow(row) {
-    const qd = row && row.question_data;
-    if (!qd || typeof qd !== 'object') return null;
+    if (!cacheRowIsServingEligible(row)) return null;
+    const qd = cacheQuestionFromRow(row);
+    if (!qd) return null;
 
     const scen = (qd.scenario && typeof qd.scenario === 'object') ? qd.scenario : {};
     const rawOptions = Array.isArray(qd.options) ? qd.options : [];
@@ -170,17 +178,22 @@ function mapCacheRow(row) {
         .filter(Boolean);
     if (optionTexts.length < 2) return null;
 
-    const answerId = qd.correctAnswer == null ? '' : String(qd.correctAnswer).trim();
+    const answerId = Object.entries(row.canonical_policy?.distribution || {})
+        .reduce((best, [id, value]) => (
+            !best || Number(value) > best.frequency ? { id, frequency: Number(value) } : best
+        ), null)?.id || '';
     const answerFromId = rawOptions.find(
         (o) => o && typeof o === 'object' && String(o.id).trim().toLowerCase() === answerId.toLowerCase()
     );
-    const correctAnswer = (qd.correctAnswerText && String(qd.correctAnswerText).trim())
-        || (answerFromId && answerFromId.text ? String(answerFromId.text).trim() : '')
+    const correctAnswer = (answerFromId && answerFromId.text ? String(answerFromId.text).trim() : '')
         || answerId;
     if (!correctAnswer) return null;
 
     return {
         id: row.id ?? null,
+        question_id: row.question_id ?? null,
+        policyChecksum: row.policy_checksum,
+        sourceClassification: row.source_classification,
         scenario_text: qd.question || scen.context || scen.title || 'Which Action Fits This Recorded Decision?',
         hero_hand: qd.heroHand || scen.heroHand || null,
         hero_position: scen.heroPosition || null,
@@ -237,7 +250,9 @@ export default async function handler(req, res) {
           const gameId = String(Array.isArray(effectiveGame) ? effectiveGame[0] : (effectiveGame || '')).trim().toLowerCase();
           const gameIds = gameIdAliases(gameId);
           const buildQuery = () => {
-              let query = supabase.from('training_question_cache').select('id, question_data');
+              let query = supabase.from('training_question_cache')
+                  .select('id, question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+                  .in('quality_status', ['active', 'active_fallback']);
               if (effectiveStreet && effectiveStreet !== 'Any') {
                   query = query.ilike('question_data->scenario->>street', `${String(effectiveStreet).slice(0, 20)}%`);
               }
@@ -266,8 +281,10 @@ export default async function handler(req, res) {
               const page = data || [];
               if (ownedDrillParams?.rewardEligible) {
                   for (const row of page) {
-                      const exactScope = matchesExactSolverScope(row.question_data, ownedDrillParams.leak);
-                      const honestQuestion = honestPracticeQuestion(row.question_data);
+                      const hydratedQuestion = cacheQuestionFromRow(row);
+                      if (!hydratedQuestion || !cacheRowIsServingEligible(row)) continue;
+                      const exactScope = matchesExactSolverScope(hydratedQuestion, ownedDrillParams.leak);
+                      const honestQuestion = honestPracticeQuestion(hydratedQuestion);
                       const mapped = mapCacheRow(honestQuestion ? {
                           ...row,
                           question_data: honestQuestion,
@@ -275,12 +292,16 @@ export default async function handler(req, res) {
                       if (!mapped) continue;
                       scopedPracticeRows.push(mapped);
                       if (exactScope) exactPracticeRows.push(mapped);
-                      if (exactScope && isVerifiedSolverQuestion(row.question_data)) mappedRows.push(mapCacheRow(row));
+                      if (
+                          exactScope
+                          && row.source_classification === TRAINING_SOURCE_CLASSIFICATION.SOLVER_EXACT
+                          && isVerifiedSolverQuestion(hydratedQuestion)
+                      ) mappedRows.push(mapCacheRow({ ...row, question_data: hydratedQuestion }));
                   }
               } else {
                   mappedRows.push(...page.map((row) => ({
                       ...row,
-                      question_data: honestPracticeQuestion(row.question_data),
+                      question_data: honestPracticeQuestion(cacheQuestionFromRow(row)),
                   })).map(mapCacheRow).filter(Boolean));
               }
               if (page.length < PAGE_SIZE) break;
@@ -307,7 +328,13 @@ export default async function handler(req, res) {
           // `pool` is what QuickSpotDrill reads; `questions` kept for parity with
           // the training route's response shape.
           const drillToken = drillUserId && verifiedReady
-              ? sealDrillBatch({ leakId, questionIds: pool.map((row) => row.id) }, drillUserId)
+              ? sealDrillBatch({
+                  leakId,
+                  receipts: pool.map((row) => ({
+                      id: row.id,
+                      policyChecksum: row.policyChecksum,
+                  })),
+              }, drillUserId)
               : null;
           if (verifiedReady && !drillToken) {
               throw new Error('Verified drill signing is unavailable');
@@ -318,6 +345,21 @@ export default async function handler(req, res) {
           const publicPool = drillToken
               ? pool.map(({ correct_answer: _answer, gto_explanation: _explanation, ...row }) => ({ ...row, answer_locked: true }))
               : pool;
+          if (pool.length > 0) {
+              try {
+                  await recordTrainingQuestionsServed(supabase, {
+                      requestId: randomUUID(),
+                      userId: drillUserId,
+                      receipts: pool.map((row) => ({
+                          questionId: row.question_id,
+                          policyChecksum: row.policyChecksum,
+                      })),
+                  });
+              } catch (eventError) {
+                  console.warn('[custom-drill] cache serve receipt failed:', eventError.message);
+                  return res.status(503).json({ success: false, error: 'Could not finalize this drill. Please retry.' });
+              }
+          }
           const practiceOnly = Boolean(drillUserId && !drillToken);
           return res.status(200).json({
               success: true,

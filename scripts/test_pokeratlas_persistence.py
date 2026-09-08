@@ -67,6 +67,7 @@ class _Response:
 class _Manager:
     def __init__(self, fetch_results=()):
         self.fetch_results = list(fetch_results)
+        self.fetch_urls = []
         self.ensure_calls = 0
         self.total_cycles = 0
         self.consecutive_failures = 0
@@ -78,11 +79,46 @@ class _Manager:
         self.ensure_calls += 1
         return True
 
-    def fetch_with_fallback(self, url, expected_slug=None):
+    def fetch_with_fallback(self, url, expected_slug=None, expected_name=None):
+        self.fetch_urls.append(url)
         return self.fetch_results.pop(0)
 
 
 class PokerAtlasPersistenceTests(unittest.TestCase):
+    def test_partial_saved_cycle_refreshes_liveness_but_keeps_backoff(self):
+        cycle_result = {
+            "records_saved": 319,
+            "healthy_progress": False,
+            "run_status": daemon.RUN_PARTIAL,
+        }
+
+        control = daemon.daemon_cycle_control(cycle_result)
+
+        self.assertEqual(319, control["saved_records"])
+        self.assertTrue(control["refresh_liveness"])
+        self.assertFalse(control["use_normal_interval"])
+        self.assertFalse(cycle_result["healthy_progress"])
+
+    def test_zero_write_failure_remains_stale_and_in_backoff(self):
+        control = daemon.daemon_cycle_control({
+            "records_saved": 0,
+            "healthy_progress": False,
+            "run_status": daemon.RUN_FAILED,
+        })
+
+        self.assertFalse(control["refresh_liveness"])
+        self.assertFalse(control["use_normal_interval"])
+
+    def test_healthy_zero_write_progress_refreshes_liveness(self):
+        control = daemon.daemon_cycle_control({
+            "records_saved": 0,
+            "healthy_progress": True,
+            "run_status": daemon.RUN_MAINTENANCE,
+        })
+
+        self.assertTrue(control["refresh_liveness"])
+        self.assertTrue(control["use_normal_interval"])
+
     def test_checked_in_registry_keeps_broad_us_coverage_without_border_rooms(self):
         venues = daemon.load_pa_venues()
         slugs = {venue["slug"] for venue in venues}
@@ -192,6 +228,218 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
             )
         )
 
+    def test_bellagio_request_rejects_an_aria_room_response(self):
+        requested = (
+            "https://www.pokeratlas.com/poker-room/"
+            "bellagio-las-vegas/cash-games"
+        )
+        aria = """
+          <html><head>
+          <title>ARIA Resort & Casino Poker Room</title>
+          <link rel="canonical"
+            href="https://www.pokeratlas.com/poker-room/aria-resort-casino-las-vegas/cash-games">
+          </head><body><h1>ARIA Resort & Casino</h1>
+          <li class="cash-games-list-item">$1/$3 NLH</li></body></html>
+        """
+        matched, reason = daemon._pokeratlas_room_response_identity(
+            requested,
+            "bellagio-las-vegas",
+            "Bellagio",
+            aria,
+            requested,
+        )
+        self.assertFalse(matched)
+        self.assertEqual(reason, "canonical_room_path_mismatch")
+
+    def test_source_owned_room_redirect_returns_quarantine_not_html(self):
+        requested = (
+            "https://www.pokeratlas.com/poker-room/"
+            "ccg-poker-burr-ridge/cash-games"
+        )
+        final = (
+            "https://www.pokeratlas.com/poker-room/"
+            "ccg-poker-west-chicago/cash-games"
+        )
+        response = types.SimpleNamespace(
+            status=200,
+            url=final,
+            html_content=(
+                "<html><head><title>CCG Poker West Chicago</title></head>"
+                "<body><h1>CCG Poker West Chicago</h1>"
+                "<li class='cash-games-list-item'>$1/$2 NLH</li>"
+                "</body></html>"
+            ),
+            body=b"",
+        )
+        manager = daemon.PokerAtlasSessionManager()
+        manager.session = types.SimpleNamespace(fetch=lambda *args, **kwargs: response)
+
+        result = manager.fetch_page(
+            requested,
+            expected_slug="ccg-poker-burr-ridge",
+            expected_name="CCG Poker Burr Ridge",
+        )
+
+        self.assertIsInstance(result, daemon.RoomIdentityQuarantine)
+        self.assertEqual(result.expected_slug, "ccg-poker-burr-ridge")
+        self.assertEqual(result.reason, "final_room_path_mismatch")
+        self.assertEqual(result.final_url, final)
+
+    def test_body_only_room_mismatch_remains_transient_and_retryable(self):
+        requested = (
+            "https://www.pokeratlas.com/poker-room/"
+            "bellagio-las-vegas/cash-games"
+        )
+        response = types.SimpleNamespace(
+            status=200,
+            url=requested,
+            html_content=(
+                "<html><head><title>ARIA Resort & Casino Poker Room</title></head>"
+                "<body><h1>ARIA Resort & Casino</h1>"
+                "<li class='cash-games-list-item'>$1/$3 NLH</li>"
+                "</body></html>"
+            ),
+            body=b"",
+        )
+        manager = daemon.PokerAtlasSessionManager()
+        manager.session = types.SimpleNamespace(fetch=lambda *args, **kwargs: response)
+
+        result = manager.fetch_page(
+            requested,
+            expected_slug="bellagio-las-vegas",
+            expected_name="Bellagio",
+        )
+
+        self.assertIsNone(result)
+
+    def test_quarantined_room_advances_but_transient_failure_retries(self):
+        venues = [
+            {
+                "slug": "ccg-poker-burr-ridge",
+                "name": "CCG Poker Burr Ridge",
+                "discovered_from": "https://www.pokeratlas.com/poker-rooms/illinois",
+            },
+            {
+                "slug": "next-room",
+                "name": "Next Room",
+                "discovered_from": "https://www.pokeratlas.com/poker-rooms/illinois",
+            },
+        ]
+        mismatch = daemon.RoomIdentityQuarantine(
+            "ccg-poker-burr-ridge",
+            "CCG Poker Burr Ridge",
+            "final_room_path_mismatch",
+            (
+                "https://www.pokeratlas.com/poker-room/"
+                "ccg-poker-west-chicago/cash-games"
+            ),
+        )
+
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            manager = _Manager([mismatch, None])
+            with self._cycle_context(base):
+                with mock.patch.object(daemon, "load_pa_venues", return_value=venues):
+                    with mock.patch.object(daemon, "sb_delete") as delete:
+                        result = daemon.run_scrape_cycle(manager)
+
+            state = json.loads(
+                (base / "data" / "pokeratlas-sweep-state.json").read_text()
+            )
+            quarantine = json.loads(
+                (
+                    base / "data" / "pokeratlas-room-identity-quarantine.json"
+                ).read_text()
+            )
+
+        self.assertEqual(result["run_status"], daemon.RUN_FAILED)
+        self.assertFalse(result["healthy_progress"])
+        self.assertEqual(state["cursor"], 1)
+        self.assertEqual(
+            quarantine["rooms"]["ccg-poker-burr-ridge"]["reason"],
+            "final_room_path_mismatch",
+        )
+        self.assertEqual(
+            quarantine["rooms"]["ccg-poker-burr-ridge"]["map_fingerprint"],
+            daemon._venue_map_fingerprint(venues),
+        )
+        self.assertNotIn("next-room", quarantine["rooms"])
+        delete.assert_not_called()
+
+    def test_fresh_map_bound_tombstone_is_a_healthy_audited_exclusion(self):
+        venues = [
+            {
+                "slug": "ccg-poker-burr-ridge",
+                "name": "CCG Poker Burr Ridge",
+                "discovered_from": "https://www.pokeratlas.com/poker-rooms/illinois",
+            },
+            {
+                "slug": "next-room",
+                "name": "Next Room",
+                "discovered_from": "https://www.pokeratlas.com/poker-rooms/illinois",
+            },
+        ]
+        mismatch = daemon.RoomIdentityQuarantine(
+            "ccg-poker-burr-ridge",
+            "CCG Poker Burr Ridge",
+            "final_room_path_mismatch",
+            (
+                "https://www.pokeratlas.com/poker-room/"
+                "ccg-poker-west-chicago/cash-games"
+            ),
+        )
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            quarantine_path = (
+                base / "data" / "pokeratlas-room-identity-quarantine.json"
+            )
+            self.assertTrue(daemon._record_room_identity_quarantine(
+                quarantine_path,
+                mismatch,
+                (
+                    "https://www.pokeratlas.com/poker-room/"
+                    "ccg-poker-burr-ridge/cash-games"
+                ),
+                "00000000-0000-0000-0000-000000000123",
+                daemon._venue_map_fingerprint(venues),
+            ))
+            manager = _Manager([daemon.NO_CASH_PAGE])
+            with self._cycle_context(base):
+                with mock.patch.object(daemon, "load_pa_venues", return_value=venues):
+                    with mock.patch.object(daemon, "sb_delete", return_value=True):
+                        with mock.patch.object(daemon, "sb_has_rows", return_value=False):
+                            result = daemon.run_scrape_cycle(manager)
+
+        self.assertEqual(result["run_status"], daemon.RUN_VALID_EMPTY)
+        self.assertTrue(result["healthy_progress"])
+        self.assertEqual(len(manager.fetch_urls), 1)
+        self.assertTrue(manager.fetch_urls[0].endswith("/next-room/cash-games"))
+
+    def test_unwritable_identity_quarantine_keeps_cursor_for_retry(self):
+        mismatch = daemon.RoomIdentityQuarantine(
+            "test-room",
+            "Test Room",
+            "canonical_room_path_mismatch",
+            "https://www.pokeratlas.com/poker-room/other-room/cash-games",
+        )
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            manager = _Manager([mismatch])
+            with self._cycle_context(base):
+                with mock.patch.object(
+                    daemon, "_record_room_identity_quarantine", return_value=False,
+                ):
+                    with mock.patch.object(daemon, "sb_delete") as delete:
+                        result = daemon.run_scrape_cycle(manager)
+
+            state = json.loads(
+                (base / "data" / "pokeratlas-sweep-state.json").read_text()
+            )
+
+        self.assertEqual(result["run_status"], daemon.RUN_FAILED)
+        self.assertEqual(state["cursor"], 0)
+        delete.assert_not_called()
+
     def test_checkpoint_failure_aborts_before_browser_or_database_work(self):
         with TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -241,6 +489,26 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
             self.assertEqual(result["run_status"], daemon.RUN_VALID_EMPTY)
             self.assertTrue(result["healthy_progress"])
             self.assertIn("scrape_batch_id.is.null", queries[0])
+
+    def test_source_explicit_no_info_page_advances_without_live_zero(self):
+        explicit_empty = """
+          <h2>Cash Games Offered</h2>
+          <p>Currently we don't have any cash game information for Test Room.</p>
+        """
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            manager = _Manager([explicit_empty])
+            with self._cycle_context(base):
+                with mock.patch.object(daemon, "sb_delete", return_value=True):
+                    with mock.patch.object(daemon, "sb_has_rows", return_value=False):
+                        result = daemon.run_scrape_cycle(manager)
+
+            cache = json.loads(
+                (base / "data" / "pokeratlas-nocash-venues.json").read_text()
+            )
+            self.assertEqual(result["run_status"], daemon.RUN_VALID_EMPTY)
+            self.assertTrue(result["healthy_progress"])
+            self.assertIn("test-room", cache)
 
     def test_cleanup_retry_skips_browser_and_reports_maintenance(self):
         with TemporaryDirectory() as tmp:
@@ -313,6 +581,29 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
                         result = daemon.run_scrape_cycle(manager)
 
             self.assertEqual(result["run_status"], daemon.RUN_MAINTENANCE)
+
+    def test_metric_insert_failure_degrades_outcome_and_heartbeat(self):
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self._write_sweep_state(base, had_persisted_rows=True)
+            manager = _Manager()
+            with self._cycle_context(base):
+                with mock.patch.object(daemon, "sb_delete", return_value=True):
+                    with mock.patch.object(daemon, "sb_has_rows", return_value=False):
+                        with mock.patch.object(
+                            daemon, "write_scraper_metric", return_value=False,
+                        ):
+                            with mock.patch.object(
+                                daemon, "write_heartbeat",
+                            ) as heartbeat:
+                                result = daemon.run_scrape_cycle(manager)
+
+        self.assertEqual(result["run_status"], daemon.RUN_FAILED)
+        self.assertFalse(result["healthy_progress"])
+        final_status, payload = heartbeat.call_args.args
+        self.assertEqual(final_status, "save_failed")
+        self.assertTrue(payload["metrics_insert_failed"])
+        self.assertEqual(payload["run_status"], daemon.RUN_FAILED)
 
     def test_catalog_dedupes_whitespace_and_preserves_unknown_waitlist(self):
         payload = daemon.build_payload_from_results([{

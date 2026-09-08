@@ -1,9 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-
-const source = fs.readFileSync('src/lib/training/solverDecisionEvidence.js', 'utf8');
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 const {
   classifyFrequencyDecision,
   gradeSolverDecision,
@@ -11,7 +7,7 @@ const {
   summarizeSolverDecisionGroups,
   canResolveSolverLeakScope,
   aggregateSolverLeaks,
-} = await import(moduleUrl);
+} = await import('../src/lib/training/solverDecisionEvidence.js');
 
 const question = (overrides = {}) => ({
   source: 'DETERMINISTIC_SOLVER',

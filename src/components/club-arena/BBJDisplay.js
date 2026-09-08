@@ -179,7 +179,14 @@ const WinnersTab = ({ winners }) => {
                 )}
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: METAL.text }}>{capitalizeWords(w.loserName)}</div>
-                  <div style={{ fontSize: '13px', color: METAL.textMuted }}>{capitalizeWords(w.gameVariant)} - {new Date(w.awardedAt).toLocaleDateString()}</div>
+                  <div style={{ fontSize: '13px', color: METAL.textMuted }}>
+                    {/* Which jackpot paid it (Club Arena BBJ phase 6). A mini is
+                        a flat few hundred chips out of the backup reserve; listed
+                        next to a five-figure main with nothing to separate them
+                        it reads as the big one having paid almost nothing. */}
+                    {w.kind === 'mini' ? 'Mini Jackpot - ' : ''}
+                    {capitalizeWords(w.gameVariant)} - {new Date(w.awardedAt).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -307,6 +314,34 @@ export const BBJModal = ({ clubId, onClose }) => {
     if (!clubId) return;
     const channel = supabase.channel('bbj_winners_live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bbj_winners', filter: `club_id=eq.${clubId}` }, (payload) => {
+        /* THE MINI DOES NOT BUZZ EVERY PHONE IN THE CLUB (Club Arena BBJ phase 6,
+           2026-09-07). This handler fires three heavy haptics, a two-second
+           audio fanfare and a full-screen "JACKPOT HIT!" takeover. That is right
+           for the main jackpot, which fires about once a fortnight and pays six
+           figures. Dan's second tier - a flat few hundred chips out of the backup
+           reserve for a hand that came close to the main bar - fires ABOUT FOUR
+           TIMES A DAY, and giving it the same treatment would make the real one
+           indistinguishable from background noise inside a week.
+
+           A mini is not hidden: it still lands in the winners list this page
+           renders below, badged, and it gets the full celebration at its own
+           table in Club Arena. It just does not interrupt everybody else.
+
+           A row with no `kind` is a main jackpot - every row written before
+           2026-09-07 is. */
+        if ((payload.new?.kind || 'main') !== 'main') {
+          fetch(`/api/club-arena/bbj?clubId=${clubId}`)
+            .then(r => r.json())
+            .then(d => setData(d))
+            .catch((err) => {
+              // Not fatal - the list is stale until the next load, and the mini
+              // is already paid. Swallowing it silently is how a surface goes
+              // quietly wrong for months, so it leaves a trace.
+              console.warn('[BBJDisplay] mini refresh failed; the list is stale:', err);
+            });
+          return;
+        }
+
         triggerHaptic('heavy');
         setTimeout(() => triggerHaptic('heavy'), 200);
         setTimeout(() => triggerHaptic('heavy'), 400);
@@ -355,7 +390,9 @@ export const BBJModal = ({ clubId, onClose }) => {
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
           animation: 'fadeIn 0.5s ease'
         }}>
-          <h1 style={{...STYLES.title, fontSize: '48px', color: METAL.gold, textShadow: '0 0 40px #FFD700'}}>JACKPOT HIT!</h1>
+          <h1 style={{...STYLES.title, fontSize: '48px', color: METAL.gold, textShadow: '0 0 40px #FFD700'}}>
+            {(celebration.kind || 'main') === 'mini' ? 'MINI JACKPOT HIT!' : 'JACKPOT HIT!'}
+          </h1>
           <h2 style={{color: '#fff', fontSize: '24px'}}>{formatMoney(celebration.total_payout)}</h2>
           <button 
             onClick={() => { triggerHaptic('medium'); setCelebration(null); }}
@@ -402,15 +439,59 @@ export const BBJTicker = ({ clubId, onClick }) => {
   );
 };
 
+/**
+ * THE JACKPOT FIGURE (BBJ build plan phase 3.5, 2026-09-06).
+ *
+ * THREE THINGS WERE WRONG WITH WHAT THIS REPLACES, and each one on its own was
+ * enough to make the number never appear:
+ *
+ *  1. IT RETURNED THE WRONG SHAPE. Its only caller, MultiTableView, reads
+ *     `const { bbjData } = useBBJ(...)` and then guards on
+ *     `bbjData && bbjData.pool?.amount > 0`. This returned `{ amount }`, so
+ *     `bbjData` was `undefined` and the guard was false FOR EVER - the ticker
+ *     has never rendered once.
+ *  2. IT READ A DEAD COLUMN. `bbj_pools.pool_amount` has not been written
+ *     since the triple-bank rework; the engine banks into `main_balance`.
+ *     Measured on production the day this was written: the union pool read
+ *     0.00 against a real balance of 107,092.27.
+ *  3. ITS FILTER COULD NOT MATCH A UNION. A union banks the jackpot on a row
+ *     whose `club_id` IS NULL, so `club_id=eq.<club>` matched nothing for
+ *     every club in a union.
+ *
+ * It now asks the API, which asks `fn_bbj_pool_for_club` - the one place the
+ * union rule lives. A poll, not a subscription: that row is updated on every
+ * raked hand (40,219 times in twenty-four hours, measured), and phase 3.2 took
+ * every other surface off that firehose for the same reason.
+ */
+const BBJ_POLL_MS = 30000;
+
 export const useBBJ = (clubId) => {
-  const [amount, setAmount] = useState(0);
+  const [bbjData, setBbjData] = useState(null);
+
   useEffect(() => {
-    if (!clubId) return;
-    const ch = supabase.channel('bbj_pools_live')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bbj_pools', filter: `club_id=eq.${clubId}` }, (payload) => {
-        setAmount(payload.new.pool_amount);
-      }).subscribe();
-    return () => supabase.removeChannel(ch);
+    if (!clubId) return undefined;
+    let cancelled = false;
+
+    const read = async () => {
+      try {
+        const res = await fetch(`/api/club-arena/bbj?clubId=${clubId}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setBbjData(data);
+      } catch {
+        /* Leave the last known figure up. A zero here reads as "there is no
+           jackpot at this club", which is a lie about money. */
+      }
+    };
+
+    read();
+    const timer = setInterval(read, BBJ_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [clubId]);
-  return { amount };
+
+  /* `amount` is kept for any caller that wants the bare figure. */
+  return { bbjData, amount: Number(bbjData?.pool?.amount || 0) };
 };

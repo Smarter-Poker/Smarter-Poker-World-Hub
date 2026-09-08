@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const {
+  MARKETPLACE_PHASE7_SCHEMA_MARKER,
   catalogReadiness,
   runMarketplaceReadiness,
 } = require('../src/lib/store/marketplaceReadiness.js');
@@ -20,6 +21,7 @@ function queryResult(rows, count = rows.length) {
   return {
     select() { return this; },
     eq() { return this; },
+    order() { return this; },
     range(from, to) {
       return Promise.resolve({ data: rows.slice(from, to + 1), count, error: null });
     },
@@ -31,6 +33,7 @@ function marketplaceClient({
   variants = [],
   itemCount = items.length,
   variantCount = variants.length,
+  rpcData = MARKETPLACE_PHASE7_SCHEMA_MARKER,
   rpcError = null,
 } = {}) {
   const calls = [];
@@ -44,7 +47,7 @@ function marketplaceClient({
     },
     async rpc(name, args) {
       calls.push({ type: 'rpc', name, args });
-      return { data: { success: false, error: 'no_items' }, error: rpcError };
+      return { data: rpcData, error: rpcError };
     },
   };
 }
@@ -76,8 +79,9 @@ test('catalog readiness paginates, counts the full catalog, and scopes mappings 
   assert.equal(result.total, 2);
   assert.equal(result.variantsTotal, 2);
   assert.equal(result.printfulItems, 1);
+  assert.equal(result.manualItems, 1);
   assert.equal(result.fulfillmentReady, 1);
-  assert.equal(result.allFulfillmentReady, true);
+  assert.equal(result.allFulfillmentReady, false);
 });
 
 test('catalog readiness fails closed when a sentinel row exceeds its bounded scan', async () => {
@@ -100,7 +104,7 @@ test('catalog readiness fails closed when a sentinel row exceeds its bounded sca
   assert.equal(result.loaded, 1);
 });
 
-test('strict readiness executes the non-mutating RPC signature and live provider probes', async () => {
+test('strict readiness proves the exact Phase 7 schema marker and live provider probes', async () => {
   const client = marketplaceClient({
     items: [{ id: 'printful', has_variants: false, metadata: { fulfillment_provider: 'printful', sync_variant_id: 99 } }],
   });
@@ -112,8 +116,9 @@ test('strict readiness executes the non-mutating RPC signature and live provider
   const env = {
     NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
     SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
-    STRIPE_SECRET_KEY: 'stripe-secret',
-    STRIPE_WEBHOOK_SECRET: 'stripe-webhook-secret',
+    STRIPE_SECRET_KEY: 'sk_test_secret',
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+    STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
     PRINTFUL_API_TOKEN: 'printful-secret',
     PRINTFUL_AUTO_CONFIRM: 'true',
     PRINTFUL_STORE_ID: '42',
@@ -132,12 +137,16 @@ test('strict readiness executes the non-mutating RPC signature and live provider
   assert.deepEqual(result.capabilities, {
     cardCheckout: true,
     diamondCheckout: true,
+    manualMerchFulfillment: true,
     automaticMerchFulfillment: true,
   });
+  assert.equal(result.fulfillmentMode, 'automatic');
   assert.deepEqual(
     client.calls.find((call) => call.type === 'rpc'),
-    { type: 'rpc', name: 'reserve_merch_order', args: { p_items: [], p_dry_run: true } }
+    { type: 'rpc', name: 'marketplace_phase7_vip_acquisition_mutex_version', args: {} }
   );
+  assert.equal(result.dependencies.supabase.schemaMarker, MARKETPLACE_PHASE7_SCHEMA_MARKER);
+  assert.equal(result.dependencies.supabase.schemaMarkerReady, true);
   assert.deepEqual(requested.map((request) => request.url).sort(), [
     'https://api.printful.com/store',
     'https://api.stripe.com/v1/balance',
@@ -146,6 +155,30 @@ test('strict readiness executes the non-mutating RPC signature and live provider
   for (const secret of Object.values(env).filter((value) => String(value).includes('secret'))) {
     assert.doesNotMatch(serialized, new RegExp(secret));
   }
+});
+
+test('readiness fails closed when production returns a stale Phase 7 schema marker', async () => {
+  const result = await runMarketplaceReadiness({
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+      STRIPE_SECRET_KEY: 'sk_test_secret',
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+      STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+    },
+    createClient: () => marketplaceClient({
+      items: [{ id: 'manual-item', has_variants: false, metadata: { fulfillment_provider: 'manual' } }],
+      rpcData: 'marketplace_phase7_vip_acquisition_mutex:v0',
+    }),
+    fetchImpl: async () => ({ ok: true, status: 200 }),
+    resolvePrintfulMapping: resolveMapping,
+    isPrintfulReady: () => false,
+  });
+
+  assert.equal(result.ready, false);
+  assert.equal(result.checks.supabase, false);
+  assert.equal(result.dependencies.supabase.schemaMarkerReady, false);
+  assert.equal(result.dependencies.supabase.schemaMarkerReason, 'schema_marker_mismatch');
 });
 
 test('missing provider configuration is explicit and does not attempt external calls', async () => {
@@ -177,8 +210,9 @@ test('deferred Printful does not take card and diamond checkout offline', async 
     env: {
       NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
-      STRIPE_SECRET_KEY: 'stripe-secret',
-      STRIPE_WEBHOOK_SECRET: 'stripe-webhook-secret',
+      STRIPE_SECRET_KEY: 'sk_test_secret',
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+      STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
     },
     createClient: () => client,
     fetchImpl: async () => ({ ok: true, status: 200 }),
@@ -189,7 +223,186 @@ test('deferred Printful does not take card and diamond checkout offline', async 
   assert.equal(result.capabilities.cardCheckout, true);
   assert.equal(result.capabilities.diamondCheckout, true);
   assert.equal(result.capabilities.automaticMerchFulfillment, false);
+  assert.equal(result.capabilities.manualMerchFulfillment, true);
   assert.equal(result.checks.printful, true);
+  assert.equal(result.fulfillmentMode, 'manual');
+});
+
+test('an explicitly disabled Printful switch remains deliberate manual fulfillment', async () => {
+  const result = await runMarketplaceReadiness({
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+      STRIPE_SECRET_KEY: 'sk_test_secret',
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+      STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+      PRINTFUL_AUTO_CONFIRM: 'false',
+    },
+    createClient: () => marketplaceClient({
+      items: [{ id: 'manual-item', has_variants: false, metadata: { fulfillment_provider: 'manual' } }],
+    }),
+    fetchImpl: async () => ({ ok: true, status: 200 }),
+    resolvePrintfulMapping: resolveMapping,
+    isPrintfulConfigured: () => false,
+    isAutoConfirmEnabled: () => false,
+    isPrintfulReady: () => false,
+  });
+
+  assert.equal(result.ready, true);
+  assert.equal(result.fulfillmentMode, 'manual');
+  assert.equal(result.dependencies.printful.configurationPresent, false);
+  assert.equal(result.dependencies.printful.autoConfirmConfigured, true);
+  assert.equal(result.dependencies.printful.autoConfirmEnabled, false);
+});
+
+test('every partial Printful configuration is misconfigured instead of safe deferral', async () => {
+  const partialConfigurations = [
+    { PRINTFUL_API_TOKEN: 'printful-secret' },
+    { PRINTFUL_AUTO_CONFIRM: 'true' },
+    { PRINTFUL_AUTO_CONFIRM: 'sometimes' },
+    { PRINTFUL_STORE_ID: '42' },
+    { PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret' },
+  ];
+
+  for (const partial of partialConfigurations) {
+    const result = await runMarketplaceReadiness({
+      env: {
+        NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+        STRIPE_SECRET_KEY: 'sk_test_secret',
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+        STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+        ...partial,
+      },
+      createClient: () => marketplaceClient({
+        items: [{ id: 'manual-item', has_variants: false, metadata: { fulfillment_provider: 'manual' } }],
+      }),
+      fetchImpl: async () => ({ ok: true, status: 200 }),
+      resolvePrintfulMapping: resolveMapping,
+      isPrintfulConfigured: (candidate) => Boolean(candidate.PRINTFUL_API_TOKEN),
+      isAutoConfirmEnabled: (candidate) => candidate.PRINTFUL_AUTO_CONFIRM === 'true',
+      isPrintfulReady: () => false,
+    });
+
+    assert.equal(result.ready, false, JSON.stringify(partial));
+    assert.equal(result.checks.printful, false, JSON.stringify(partial));
+    assert.equal(result.fulfillmentMode, 'misconfigured', JSON.stringify(partial));
+    assert.equal(result.dependencies.printful.configurationPresent, true, JSON.stringify(partial));
+    assert.equal(result.dependencies.printful.configured, false, JSON.stringify(partial));
+  }
+});
+
+test('a healthy Printful connection reports mixed mode while any active item remains manual', async () => {
+  const client = marketplaceClient({
+    items: [
+      { id: 'printful', has_variants: false, metadata: { fulfillment_provider: 'printful', sync_variant_id: 99 } },
+      { id: 'manual', has_variants: false, metadata: { fulfillment_provider: 'manual' } },
+    ],
+  });
+  const env = {
+    NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+    STRIPE_SECRET_KEY: 'sk_test_secret',
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+    STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+    PRINTFUL_API_TOKEN: 'printful-secret',
+    PRINTFUL_AUTO_CONFIRM: 'true',
+    PRINTFUL_STORE_ID: '42',
+    PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret',
+  };
+  const result = await runMarketplaceReadiness({
+    env,
+    createClient: () => client,
+    fetchImpl: async () => ({ ok: true, status: 200 }),
+    resolvePrintfulMapping: resolveMapping,
+    isPrintfulConfigured: () => true,
+    isAutoConfirmEnabled: () => true,
+    isPrintfulReady: () => true,
+  });
+
+  assert.equal(result.ready, true);
+  assert.equal(result.fulfillmentMode, 'mixed');
+  assert.equal(result.catalog.printfulItems, 1);
+  assert.equal(result.catalog.manualItems, 1);
+  assert.equal(result.capabilities.manualMerchFulfillment, true);
+  assert.equal(result.capabilities.automaticMerchFulfillment, false);
+});
+
+test('a configured Printful catalog fails readiness while any provider item is unmapped', async () => {
+  const env = {
+    NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+    STRIPE_SECRET_KEY: 'sk_test_secret',
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+    STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+    PRINTFUL_API_TOKEN: 'printful-secret',
+    PRINTFUL_AUTO_CONFIRM: 'true',
+    PRINTFUL_STORE_ID: '42',
+    PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret',
+  };
+  const result = await runMarketplaceReadiness({
+    env,
+    createClient: () => marketplaceClient({
+      items: [{ id: 'unmapped-printful', has_variants: false, metadata: { fulfillment_provider: 'printful' } }],
+    }),
+    fetchImpl: async () => ({ ok: true, status: 200 }),
+    resolvePrintfulMapping: resolveMapping,
+    isPrintfulConfigured: () => true,
+    isAutoConfirmEnabled: () => true,
+    isPrintfulReady: () => true,
+  });
+
+  assert.equal(result.ready, false);
+  assert.equal(result.checks.printful, false);
+  assert.equal(result.fulfillmentMode, 'misconfigured');
+  assert.equal(result.catalog.fulfillmentReady, 0);
+});
+
+test('Card readiness fails closed for a missing, mismatched, or non-live production key pair', async () => {
+  const cases = [
+    {
+      name: 'missing publishable key',
+      env: { STRIPE_SECRET_KEY: 'sk_test_secret' },
+      expectedMode: 'invalid',
+    },
+    {
+      name: 'mismatched key modes',
+      env: {
+        STRIPE_SECRET_KEY: 'sk_test_secret',
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_live_public',
+      },
+      expectedMode: 'invalid',
+    },
+    {
+      name: 'test keys in production',
+      env: {
+        STRIPE_SECRET_KEY: 'sk_test_secret',
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+        VERCEL_ENV: 'production',
+      },
+      expectedMode: 'test',
+    },
+  ];
+
+  for (const scenario of cases) {
+    let providerFetches = 0;
+    const result = await runMarketplaceReadiness({
+      env: {
+        NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+        STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+        ...scenario.env,
+      },
+      createClient: () => marketplaceClient(),
+      fetchImpl: async () => { providerFetches += 1; return { ok: true, status: 200 }; },
+      resolvePrintfulMapping: resolveMapping,
+      isPrintfulReady: () => false,
+    });
+    assert.equal(result.capabilities.cardCheckout, false, scenario.name);
+    assert.equal(result.dependencies.stripe.configured, false, scenario.name);
+    assert.equal(result.dependencies.stripe.keyMode, scenario.expectedMode, scenario.name);
+    assert.equal(providerFetches, 0, scenario.name);
+  }
 });
 
 test('migration gate distinguishes overloaded RPC arguments instead of accepting name-only matches', () => {

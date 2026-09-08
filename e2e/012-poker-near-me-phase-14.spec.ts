@@ -5,6 +5,33 @@ async function expectNoOverflow(page: Page, label: string) {
   expect(overflow, `${label} overflows horizontally by ${overflow}px`).toBeLessThanOrEqual(1);
 }
 
+async function expectVerticalGap(upper: Locator, lower: Locator, minimum: number, label: string) {
+  const [upperBox, lowerBox] = await Promise.all([upper.boundingBox(), lower.boundingBox()]);
+  if (!upperBox || !lowerBox) throw new Error(`${label} requires two visible boxes`);
+  const gap = lowerBox.y - (upperBox.y + upperBox.height);
+  expect(gap, `${label} gap was ${gap}px`).toBeGreaterThanOrEqual(minimum);
+}
+
+async function expectNoRectOverlap(first: Locator, second: Locator, label: string) {
+  const [firstBox, secondBox] = await Promise.all([first.boundingBox(), second.boundingBox()]);
+  if (!firstBox || !secondBox) throw new Error(`${label} requires two visible boxes`);
+  const overlaps = !(
+    firstBox.x + firstBox.width <= secondBox.x
+    || secondBox.x + secondBox.width <= firstBox.x
+    || firstBox.y + firstBox.height <= secondBox.y
+    || secondBox.y + secondBox.height <= firstBox.y
+  );
+  expect(overlaps, label).toBe(false);
+}
+
+const MAP_HUD_VIEWPORTS = [
+  { width: 320, height: 568 },
+  { width: 375, height: 812 },
+  { width: 390, height: 844 },
+  { width: 844, height: 390 },
+  { width: 1024, height: 600 },
+] as const;
+
 function collectMapRuntimeErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (error) => {
@@ -90,7 +117,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
 
-    const map = page.locator('[data-map-foundation="shared-v2"][data-map-ready]').first();
+    const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready]').first();
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
     await expect(map).toHaveAttribute('data-map-style-source', 'local');
     await expect(map).toHaveAttribute('data-map-clustering', /available|disabled/);
@@ -111,6 +138,51 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
+  for (const viewport of MAP_HUD_VIEWPORTS) {
+    test(`fullscreen map HUD clears attribution and zoom controls at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
+      expect(response?.status()).toBe(200);
+
+      const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready="true"]').first();
+      await expect(map).toBeVisible({ timeout: 60_000 });
+      const surface = map.locator('xpath=ancestor::*[@data-pnm-map-surface="true"][1]');
+      await surface.locator('[data-map-fullscreen-control="true"]').click();
+      await expect(surface).toHaveAttribute('data-map-fullscreen', 'true');
+      await expect.poll(
+        async () => Number(await surface.getAttribute('data-map-attribution-clearance')),
+        { message: 'expected measured provider-attribution clearance' }
+      ).toBeGreaterThan(0);
+
+      const coverage = surface.locator('[data-map-coverage="true"]');
+      const legend = surface.locator('.venue-map-legend');
+      const attribution = surface.locator('.leaflet-control-attribution');
+      const zoom = surface.locator('.leaflet-control-zoom');
+      await expect(attribution).toBeVisible();
+      if (await legend.getAttribute('aria-expanded') === 'true') await legend.click();
+      await expect(legend).toHaveAttribute('aria-expanded', 'false');
+      await expect(coverage).toBeVisible();
+      await expectVerticalGap(legend, coverage, 7, 'collapsed legend to telemetry');
+      await expectVerticalGap(coverage, attribution, 7, 'telemetry to attribution');
+      await expectNoRectOverlap(legend, zoom, 'collapsed legend must not cover zoom controls');
+      await expectNoRectOverlap(coverage, zoom, 'telemetry must not cover zoom controls');
+
+      await legend.click();
+      await expect(legend).toHaveAttribute('aria-expanded', 'true');
+      const constrained = viewport.width <= 768 || viewport.height <= 500;
+      if (constrained) {
+        await expect(coverage).toBeHidden();
+      } else {
+        await expect(coverage).toBeVisible();
+        await expectVerticalGap(legend, coverage, 7, 'expanded legend to telemetry');
+        await expectVerticalGap(coverage, attribution, 7, 'expanded telemetry to attribution');
+      }
+      await expectVerticalGap(legend, attribution, 7, 'expanded legend to attribution');
+      await expectNoRectOverlap(legend, zoom, 'expanded legend must not cover zoom controls');
+      await expectNoOverflow(page, `fullscreen map HUD at ${viewport.width}x${viewport.height}`);
+    });
+  }
+
   test('lobby map survives rapid pod teardown and recreation', async ({ page }) => {
     const runtimeErrors = collectMapRuntimeErrors(page);
     await page.addInitScript(() => {
@@ -120,7 +192,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     expect(response?.status()).toBe(200);
 
     const sharedMap = page.getByRole('region', { name: 'Poker venues map' });
-    await expect(sharedMap).toHaveAttribute('data-map-foundation', 'shared-v2', { timeout: 30_000 });
+    await expect(sharedMap).toHaveAttribute('data-map-foundation', 'shared-v3', { timeout: 30_000 });
     await expect(sharedMap).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
 
     for (let cycle = 0; cycle < 2; cycle += 1) {
@@ -141,10 +213,10 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
 
   test('shared map shell remains usable when background tiles are unavailable', async ({ page }) => {
     const runtimeErrors = collectMapRuntimeErrors(page);
-    await page.route(/^https:\/\/[^/]*\.basemaps\.cartocdn\.com\//, (route) => route.abort());
+    await page.route(/^https:\/\/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/Canvas\//, (route) => route.abort());
     await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
 
-    const map = page.locator('[data-map-foundation="shared-v2"]').first();
+    const map = page.locator('[data-map-foundation="shared-v3"]').first();
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 60_000 });
     await expect(map.locator('.leaflet-control-zoom')).toBeVisible();
     await expect.poll(async () => Number(await map.getAttribute('data-map-marker-count')), {
@@ -171,7 +243,7 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     await page.getByRole('button', { name: 'Plan My Trip' }).click();
 
     const routeMap = page.getByRole('region', { name: 'Poker road trip route map' });
-    await expect(routeMap).toHaveAttribute('data-map-foundation', 'shared-v2', { timeout: 30_000 });
+    await expect(routeMap).toHaveAttribute('data-map-foundation', 'shared-v3', { timeout: 30_000 });
     await expect(page.locator('.rtp-map-overlay')).toHaveCount(0, { timeout: 30_000 });
     await expectNoOverflow(page, 'road-trip shared map');
     expect(runtimeErrors).toEqual([]);

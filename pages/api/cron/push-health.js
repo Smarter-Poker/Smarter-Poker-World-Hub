@@ -23,6 +23,10 @@
  */
 import { createHash } from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+// Pure, no imports, so the retirement decision can be tested by RUNNING it.
+// See the note in that file: the pins this replaced were regexes over THIS
+// file's source, and all of them passed while the bug was live.
+import { selectRetirable, selectDuplicateConfirmers } from '../../../src/lib/pushDeviceGroups.js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { vapidConfig, isPushConfigured } from '../../../src/lib/push/web-push';
@@ -88,18 +92,36 @@ async function handler(req, res) {
 
     // ---- CHECK 1: zombie subscriptions ------------------------------------
     try {
+        /* THE GRACE PERIOD DECIDES WHO IS A ZOMBIE. IT MUST NOT DECIDE WHO
+           COUNTS AS PROOF (2026-09-07).
+
+           `.lt('created_at', zombieCutoff)` used to be part of this query, and
+           it silently did TWO jobs: it withheld young rows from being branded
+           zombies, which is right, and it also withheld them from
+           `confirmingByUser` below, which is what broke the retire.
+
+           Measured on Dan's account. Four active rows, two physical devices:
+
+             iPhone  ff4645d3  created 09-05  last_receipt 09-07 17:12  <- proof
+             iPhone  657b16e5  created 08-26  last_receipt NULL         <- zombie
+             Mac     ec90f0f1  created 09-07  last_receipt 09-07 17:12  <- proof
+             Mac     f902fc7b  created 09-01  last_receipt 09-01 02:11  <- zombie
+
+           Both CONFIRMING rows were created inside the three-day window, so the
+           query excluded them, so `confirmingByUser` did not contain Dan, so
+           nothing was retirable and both silent rows stayed live. He received
+           the Estate Digest and the engine-break alert twice, on one phone,
+           while the sweep built to prevent exactly that reported zero.
+
+           The grace period now applies where it belongs - to `matured`, below -
+           and evidence is read from every active row. */
         const { data: subs, error: subsErr } = await supabase
             .from('push_subscriptions')
-            .select('id, user_id, device_label, last_used_at, last_receipt_at, created_at')
+            .select(
+                'id, user_id, device_label, endpoint, user_agent, last_used_at, last_receipt_at, created_at'
+            )
             .eq('is_active', true)
-            .gte('last_used_at', usedSince)
-            // GRACE PERIOD. Without this a device that enrolled ten minutes ago
-            // and was pushed once has last_receipt_at = null (phone asleep, the
-            // beacon has not fired yet) and is immediately branded a zombie --
-            // so the user's very first experience of push is an alarming
-            // "notifications are not reaching you" message. Only subscriptions
-            // older than the window can qualify.
-            .lt('created_at', zombieCutoff);
+            .gte('last_used_at', usedSince);
 
         // A failed query must not read as "0 zombies, all healthy". That is the
         // green-dashboard-silent-phones failure this watchdog exists to catch,
@@ -111,9 +133,17 @@ async function handler(req, res) {
         // for values seconds apart but is wrong at sub-second boundaries and
         // breaks outright if PostgREST ever returns a non-UTC offset.
         const zombieCutoffMs = Date.parse(zombieCutoff);
-        const zombies = (subs || []).filter(
-            (s) => !s.last_receipt_at || Date.parse(s.last_receipt_at) < zombieCutoffMs
-        );
+        const all = subs || [];
+
+        // GRACE PERIOD, applied here rather than in the query. A device that
+        // enrolled ten minutes ago and was pushed once has last_receipt_at =
+        // null (phone asleep, beacon not fired) and must not be branded a
+        // zombie -- the user's first experience of push would be an alarming
+        // "notifications are not reaching you".
+        const matured = all.filter((s) => Date.parse(s.created_at || 0) < zombieCutoffMs);
+        const isConfirming = (s) =>
+            s.last_receipt_at && Date.parse(s.last_receipt_at) >= zombieCutoffMs;
+        const zombies = matured.filter((s) => !isConfirming(s));
         report.zombies = zombies.length;
 
         /* ═══ RETIRE A ZOMBIE ONLY WHEN A SIBLING PROVES THE DEVICE IS FINE ═══
@@ -147,21 +177,28 @@ async function handler(req, res) {
          *   - `is_active` is scoped in the UPDATE, so a row another process has
          *     already retired is not counted twice.
          */
-        const confirmingByUser = new Set(
-            (subs || [])
-                .filter((s) => s.last_receipt_at && Date.parse(s.last_receipt_at) >= zombieCutoffMs)
-                .map((s) => s.user_id)
-        );
-        const newestByUser = new Map();
-        for (const s of subs || []) {
-            const prev = newestByUser.get(s.user_id);
-            if (!prev || Date.parse(s.created_at || 0) > Date.parse(prev.created_at || 0)) {
-                newestByUser.set(s.user_id, s);
-            }
-        }
-        const retirable = zombies.filter(
-            (z) => confirmingByUser.has(z.user_id) && newestByUser.get(z.user_id)?.id !== z.id
-        );
+        /* AND THE PROOF IS PER DEVICE, NOT PER PERSON (2026-09-07).
+
+           `confirmingByUser` asked "does this PERSON have anything that
+           delivers". That is too weak in one direction and too strong in the
+           other: a working Mac authorised retiring a genuinely-silent iPhone,
+           while two rows belonging to ONE phone were never compared with each
+           other at all.
+
+           The group is (user, push host, user agent). Two rows in it are the
+           same physical device wearing two `device_id`s -- which is the whole
+           reason the UNIQUE (user_id, device_id) index cannot see this pair:
+           `deviceId` lives in localStorage, an installed PWA and a browser tab
+           on one phone do not share that storage, so one device mints two ids
+           and keeps both lineages alive for ever. Every retire in this codebase
+           matches on `device_id`, so none of them can see across the pair.
+
+           `user_agent` is deliberately part of the key. Two identical iPhones
+           on one account produce byte-identical strings and would be merged by
+           it -- which is exactly why the receipt is still required: a row is
+           only retired when a sibling in its own group PROVES delivery works.
+           Nothing here can silence a device that is the only live row it has. */
+        const retirable = selectRetirable(all, zombies, zombieCutoffMs);
 
         report.zombiesRetired = 0;
         if (retirable.length > 0) {
@@ -187,6 +224,44 @@ async function handler(req, res) {
                    into a TypeError that takes down the health check it was
                    attached to. */
                 report.zombieRetireError = String(e?.message || e).slice(0, 200);
+            }
+        }
+
+        /* ── THE OTHER HALF OF THE SAME DUPLICATE ──────────────────────────
+           `selectRetirable` draws only from `zombies`, and a zombie is by
+           definition NOT confirming. So the block above can only ever fix the
+           pair shape "one delivering, one silent". A group holding TWO rows
+           that both deliver is two banners on one screen and nothing above can
+           see it: neither row ever falls silent, and the UNIQUE index is on
+           (user_id, device_id), which differ.
+
+           That is not a rare shape. It is what the morning's pair became once
+           the browser minted a fresh deviceId at 19:42 and that row began
+           confirming - measured on Dan's Mac the same day, both rows on
+           fcm.googleapis.com with a byte-identical user_agent.
+
+           Deciding this one needs no caution, unlike the silent case: every
+           row considered has itself confirmed a recent receipt, and the row
+           kept is the group's most recent confirmer, so the device provably
+           still receives push afterwards. */
+        const redundant = selectDuplicateConfirmers(all, zombieCutoffMs);
+        report.duplicateConfirmersRetired = 0;
+        if (redundant.length > 0) {
+            try {
+                const { error: dupErr } = await supabase
+                    .from('push_subscriptions')
+                    .update({
+                        is_active: false,
+                        last_failure_reason: 'duplicate_confirming_row_for_one_device',
+                        updated_at: new Date().toISOString(),
+                    })
+                    .in('id', redundant.map((d) => d.id))
+                    .eq('is_active', true);
+                if (dupErr) throw new Error(dupErr.message);
+                report.duplicateConfirmersRetired = redundant.length;
+            } catch (e) {
+                /* Same rule as the block above: a cleanup never fails the run. */
+                report.duplicateConfirmerRetireError = String(e?.message || e).slice(0, 200);
             }
         }
 

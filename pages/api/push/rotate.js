@@ -195,6 +195,72 @@ export default async function handler(req, res) {
                 .eq('id', existing.id);
         }
 
+        /* ═══ AND RETIRE EVERY OTHER LIVE ROW FOR THIS DEVICE ═════════════════
+           /api/push/subscribe has done this since 2026-08-30 (see the long note
+           there); this route never did, and it is the route BOTH service
+           workers call from `pushsubscriptionchange`. So the one-live-endpoint-
+           per-device invariant held on the enrol path and leaked on the
+           self-heal path — which fires on exactly the events that produce the
+           duplicate in the first place.
+
+           MEASURED 2026-09-07. The Estate Digest arrived TWICE on one device at
+           the same second, and the two copies were not identical: one was
+           Title Cased and the other was not. That is the fingerprint, because
+           this origin has two independently-enrolling push-capable service
+           workers — `/sw.js` (worker/index.js, which Title Cases) and
+           `/push/sw.js` (which does not) — so the two banners had come from two
+           registrations, two endpoints, and two `push_subscriptions` rows.
+           `push-dispatch.js` fans one outbox row out to every active row for
+           the user, so one notification became two.
+
+           The `tag` on the payload cannot save this: a tag replaces within ONE
+           registration's notification list and never across registrations.
+
+           The partial unique index only covers `device_id IS NOT NULL`, so a
+           row descended from a legacy NULL-device_id ancestor is exempt from it
+           forever — which is why the retire has to be explicit here rather than
+           left to the constraint.
+
+           ── `verified &&` IS LOAD-BEARING, AND IT WAS MISSING (2026-09-07) ──
+           This shipped as a bare `if (row.device_id)`, which reopened the exact
+           hole the block thirty lines above closes and whose comment names it:
+           "an unverified caller is a free, unauthenticated mute button for any
+           endpoint an attacker has learned."
+
+           This route is UNAUTHENTICATED by design — it is called from a service
+           worker's `pushsubscriptionchange`, where no session exists — so proof
+           of possession of the OLD subscription's auth secret is the only thing
+           standing between a caller and somebody else's notifications. Without
+           the guard: post a victim's `oldEndpoint` with an endpoint of your own
+           and no `oldKeys`, and `verified` is false, but line 178 still copies
+           the victim's `device_id` onto the new row and this update then scopes
+           to the victim's `user_id` and that `device_id` and switches off every
+           live row for that device.
+
+           That is strictly worse than the 2026-08-19 bug it echoes, which
+           silenced one row rather than a whole device. `supersedes` already
+           carries the same requirement for the single-row retire above; this
+           one needs it for the same reason and is gated on the same flag. */
+        if (verified && row.device_id) {
+            const { error: retireErr } = await supabase
+                .from('push_subscriptions')
+                .update({
+                    is_active: false,
+                    last_failure_reason: 'superseded_same_device',
+                    updated_at: nowIso,
+                })
+                .eq('user_id', existing.user_id)
+                .eq('device_id', row.device_id)
+                .eq('is_active', true)
+                .neq('endpoint', endpoint);
+            if (retireErr) {
+                // Not fatal by itself, but the upsert below is about to meet the
+                // partial unique index if a live row for this device is still
+                // there, so say so rather than let it surface as a bare 500.
+                console.warn('[push/rotate] same-device retire failed:', retireErr.message);
+            }
+        }
+
         const { error: upsertErr } = await supabase
             .from('push_subscriptions')
             .upsert(row, { onConflict: 'user_id,endpoint' });

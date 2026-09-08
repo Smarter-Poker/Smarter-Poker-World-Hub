@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🎯 DETERMINISTIC CACHE RE-SEEDER
+ * LEGACY DETERMINISTIC CACHE AUDITOR
  * ═══════════════════════════════════════════════════════════════════════════
- * Replaces all Grok-generated questions in training_question_cache with
- * 100% solver-backed questions from DeterministicGTOEngine.
+ * Mutation mode is permanently retired. The old writer generated a mutable
+ * answer envelope without the immutable policy and source receipt required by
+ * the Phase 3 truth contract. Dry-run and read-only verification remain only
+ * so historical solver coverage can still be inspected.
  *
  * Usage:
  *   node scripts/reseed-deterministic-cache.js --dry-run              # Validate only, no DB writes
- *   node scripts/reseed-deterministic-cache.js --live                 # Full re-seed (all 79 games)
- *   node scripts/reseed-deterministic-cache.js --live --game=cash-001 # Single game test
  *   node scripts/reseed-deterministic-cache.js --verify --game=cash-001 # Verify a game in DB
  *
  * Coverage:
@@ -18,33 +18,46 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// ─── ENVIRONMENT SETUP ─────────────────────────────────────────────────────
-require('dotenv').config({ path: '.env' });
-require('dotenv').config({ path: '.env.local' });
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!SUPABASE_URL || !SERVICE_KEY) {
-    console.error('Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in your environment (e.g. .env or .env.local).');
-    process.exit(1);
-}
-
+// Reject the retired mutation mode before loading any dependency or
+// environment file. This guarantee must hold even in a minimal CI/runtime
+// where dotenv is unavailable: --live always reaches the explicit refusal.
 const args = process.argv.slice(2);
 const IS_DRY_RUN = args.includes('--dry-run');
 const IS_LIVE = args.includes('--live');
 const IS_VERIFY = args.includes('--verify');
 const SINGLE_GAME = args.find(a => a.startsWith('--game='))?.split('=')[1];
 const VERBOSE = args.includes('--verbose');
+
+if (IS_LIVE) {
+    console.error([
+        'Mutation mode is permanently retired.',
+        'This legacy writer cannot provide a canonical policy receipt and may not write training_question_cache.',
+        'Use the live Training APIs or scripts/backfill-training-cache-truth.mjs.',
+    ].join('\n'));
+    process.exit(2);
+}
+
+// ─── ENVIRONMENT SETUP ─────────────────────────────────────────────────────
+require('dotenv').config({ path: '.env' });
+require('dotenv').config({ path: '.env.local' });
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+
 let enforceTrainingQuestionContract;
 let enforceSolverClaimHonesty;
 let selectTrustedLegacySolverMatrix;
 let selectTrustedSolverMatrix;
 
-if (!IS_DRY_RUN && !IS_LIVE && !IS_VERIFY) {
-    console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--live|--verify] [--game=cash-001]');
+if (!IS_DRY_RUN && !IS_VERIFY) {
+    console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--verify] [--game=cash-001]');
+    process.exit(1);
+}
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+    console.error('Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in your environment (e.g. .env or .env.local).');
     process.exit(1);
 }
 
@@ -67,30 +80,15 @@ async function supabaseQuery(table, params = '') {
 }
 
 async function supabaseUpsert(table, rows) {
-    const url = `${SUPABASE_URL}/rest/v1/${table}?on_conflict=question_id`;
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(rows),
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Upsert failed ${res.status}: ${text.substring(0, 200)}`);
-    }
-    return true;
+    void table;
+    void rows;
+    throw new Error('Legacy cache mutation is permanently retired.');
 }
 
 async function supabaseDelete(table, filter) {
-    const url = `${SUPABASE_URL}/rest/v1/${table}?${filter}`;
-    const res = await fetch(url, {
-        method: 'DELETE',
-        headers: HEADERS,
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Delete failed ${res.status}: ${text.substring(0, 200)}`);
-    }
-    return true;
+    void table;
+    void filter;
+    throw new Error('Legacy cache mutation is permanently retired.');
 }
 
 async function supabaseCount(table, filter = '') {
@@ -1041,7 +1039,7 @@ async function main() {
 
     if (IS_DRY_RUN) {
         console.log('\n💡 This was a DRY RUN. No changes were made to the database.');
-        console.log('   To run live: node scripts/reseed-deterministic-cache.js --live');
+        console.log('   Mutation mode is retired; canonical cache writes happen through the Training APIs.');
     } else {
         console.log('\n✅ Cache re-seeding complete!');
         console.log('   Run --verify --game=<gameId> to inspect results in DB.');

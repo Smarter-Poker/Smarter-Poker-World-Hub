@@ -1076,7 +1076,11 @@ export default function DiamondStorePage({
 
     /* Capability tripwire: never open a card checkout for a term whose complete
        settlement, refund, dispute, and cross-method lifecycle is not enabled. */
-    if (plan?.cardCheckoutReady === false) {
+    if (plan?.cardCheckoutReady !== true) {
+      if (plan?.interval !== 'lifetime') {
+        showStoreToast('error', 'Card Checkout Is Not Verified For This VIP Plan. Please Try Again.');
+        return;
+      }
       if (!user?.id) {
         showStoreToast('error', 'Please Sign In To Purchase VIP.');
         return;
@@ -1764,7 +1768,7 @@ export default function DiamondStorePage({
         ? VIP_MEMBERSHIP.yearly
         : VIP_MEMBERSHIP.monthly;
   const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
-  const vipCardReady = selectedVIPPlan?.cardCheckoutReady !== false;
+  const vipCardReady = selectedVIPPlan?.cardCheckoutReady === true;
   const vipSubscribeLabel = vipCardReady
     ? lifetimeSelected
       ? `Buy VIP Lifetime With Card: $${Number(selectedVIPPlan?.price || 499).toFixed(2)} Once`
@@ -1872,7 +1876,10 @@ export default function DiamondStorePage({
           {/* Header */}
           <UniversalHeader pageDepth={1} />
 
-          <main className={`store-redesign-content ${shellStyles.root}`}>
+          <main
+            className={`store-redesign-content ${shellStyles.root}`}
+            data-marketplace-route={TAB_ROUTES[activeTab]}
+          >
             <CheckoutStatusPanel
               state={checkoutReturn}
               onDismiss={() => setCheckoutReturn(null)}

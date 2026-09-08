@@ -1,0 +1,183 @@
+{
+  "evidence": "trivia_phase1_final_closeout",
+  "capturedAtUtc": "2026-09-07T04:28:51Z",
+  "phase": 1,
+  "totalPhases": 12,
+  "status": "complete",
+  "scope": "control_plane_production_baseline_and_competitive_containment",
+  "phase1CodeBaseline": {
+    "mergeSha": "d6084229a59e3c51769e94ee945b9795df3a8804",
+    "mergedAtUtc": "2026-09-07T04:07:19Z",
+    "pullRequest": "https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1529",
+    "productionDeploymentId": 6301788456,
+    "productionDeploymentState": "success",
+    "productionDeploymentUrl": "https://hub-vanguard-b097busho-smarter-poker.vercel.app",
+    "observedProductionHealthVersion": "1705e96c45088c5e0927050b95a0295d0aed7616",
+    "observedVersionContainsPhase1CodeBaseline": true,
+    "applicationHealth": "ok",
+    "databaseHealth": "ok"
+  },
+  "releasePullRequests": [
+    {
+      "repository": "Smarter-Poker/Smarter-Poker-World-Hub",
+      "number": 1468,
+      "mergeSha": "8b63c09c1c6adb42c1824b170337a989a4d15ac7",
+      "purpose": "competitive containment"
+    },
+    {
+      "repository": "Smarter-Poker/Smarter-Poker-World-Hub",
+      "number": 1471,
+      "mergeSha": "852facdfb84b775166590aa2b8477143a3c230f7",
+      "purpose": "recovery smoke correction"
+    },
+    {
+      "repository": "Smarter-Poker/Smarter-Poker-World-Hub",
+      "number": 1500,
+      "mergeSha": "8b6c5959c8e4fe506934eb8f88f2889be18c03a9",
+      "purpose": "diamond debit idempotency binding migration"
+    },
+    {
+      "repository": "Smarter-Poker/Smarter-Poker-World-Hub",
+      "number": 1501,
+      "mergeSha": "105171babdd0406704c4b0afe5c98877fe344662",
+      "purpose": "server-owned lifeline price and receipt validation"
+    },
+    {
+      "repository": "Smarter-Poker/Smarter-Poker-World-Hub",
+      "number": 1529,
+      "mergeSha": "d6084229a59e3c51769e94ee945b9795df3a8804",
+      "purpose": "controlled Trivia header and drawer ownership"
+    },
+    {
+      "repository": "Smarter-Poker/smarter-poker-workers",
+      "number": 100,
+      "mergeSha": "1ee4b2d53afbb2b4e6561963022c9481fa4dc3b1",
+      "purpose": "retire legacy competitive schedules and routes"
+    },
+    {
+      "repository": "Smarter-Poker/smarter-poker-workers",
+      "number": 101,
+      "mergeSha": "6e39c5140df58a2457e9baf5ed930b2403aa0dee",
+      "purpose": "worker version stamp correction"
+    }
+  ],
+  "database": {
+    "projectRef": "kuklfnapbkmacvwxktbh",
+    "migrationsApplied": [
+      {
+        "version": "20260906120000",
+        "file": "20260906120000_trivia_pvp_containment.sql",
+        "sha256": "6e53f56b5e86b1af6c342f6be27daac4d4790a4cab72f0edec24059348656a85"
+      },
+      {
+        "version": "20260906210000",
+        "file": "20260906210000_deduct_diamonds_idempotency_binding.sql",
+        "sha256": "432c7e500e780721d07f24e4db72ba5f9bd18faa86675ed847ff62cd6ca18d99"
+      }
+    ],
+    "finalDirectVerifier": {
+      "topLevelAssertionsPassed": 17,
+      "topLevelAssertionsFailed": 0,
+      "rollbackOnlyAbuseProbesDenied": 70,
+      "rollbackOnlyAbuseProbeTotal": 70,
+      "residue": 0
+    },
+    "diamondDebitAdversarialCasesPassed": 6,
+    "diamondDebitAdversarialCasesFailed": 0,
+    "diamondDebitRehearsalWalletChanges": 0,
+    "diamondDebitRehearsalLedgerRows": 0
+  },
+  "tests": {
+    "phaseSpecific": {
+      "passed": 40,
+      "failed": 0
+    },
+    "allTriviaContracts": {
+      "passed": 77,
+      "failed": 0
+    },
+    "repositoryMetaGuard": {
+      "passed": 1291,
+      "failed": 0
+    },
+    "optimizedProductionBuild": {
+      "passed": true,
+      "staticPagesGenerated": 397
+    },
+    "localMobileWorldMenuChromiumAndWebKit": {
+      "passed": 36,
+      "failed": 0
+    },
+    "localTriviaWebKitStress": {
+      "passed": 20,
+      "failed": 0
+    },
+    "productionTriviaWebKitStress": {
+      "passed": 10,
+      "failed": 0
+    },
+    "buildSafety": {
+      "runId": 34081774890,
+      "url": "https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34081774890",
+      "conclusion": "success"
+    },
+    "authoritativeGlobalFooter": {
+      "runId": 34081774882,
+      "url": "https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/runs/34081774882",
+      "conclusion": "success",
+      "staticMenuContracts": {
+        "passed": 12,
+        "failed": 0
+      },
+      "footerRoutesAndGeometry": {
+        "passed": 16,
+        "failed": 0
+      },
+      "premiumWorldMenu": {
+        "passed": 31,
+        "failed": 0
+      },
+      "phase3MobileWorldMenu": {
+        "passed": 36,
+        "failed": 0
+      },
+      "mobilePerformanceWorldRoots": {
+        "passed": 13,
+        "failed": 0
+      }
+    }
+  },
+  "productionSmoke": {
+    "artifact": "phase1-production-smoke-20260907-0427utc.json",
+    "artifactSha256": "302da330facab397e21dc828e369f7f263ceeea1742b7aebc3762407a65ce6e6",
+    "capturedAtUtc": "2026-09-07T04:27:20.402Z",
+    "apiProbesPassed": 15,
+    "pageRedirectsPassed": 2,
+    "retiredRouteProbesPassed": 3,
+    "lobbyContractPassed": true,
+    "temporaryFixtureRemoved": true,
+    "databaseAndLedgerSnapshotUnchanged": true
+  },
+  "competitiveReleaseControls": {
+    "pvp": false,
+    "pvpHorses": false,
+    "tournaments": false,
+    "tournamentHorses": false,
+    "evidence": "live disabled routes returned non-cacheable fail-closed receipts"
+  },
+  "remainingPhase1CriticalOrHighIssues": [],
+  "laterPhaseReleaseBlockers": [
+    {
+      "targetPhase": 3,
+      "finding": "2003 WSOP factual variants include incorrect venue, winning-hand, and Farha-hole-card facts"
+    },
+    {
+      "targetPhase": 3,
+      "finding": "deterministic seeder discards source frequencies above one before normalization",
+      "servableQuestionsAudited": 6403,
+      "affectedQuestions": 5886,
+      "affectedPercent": 91.93
+    }
+  ],
+  "nextPhase": 2
+}

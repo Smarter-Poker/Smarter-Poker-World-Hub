@@ -86,6 +86,7 @@ import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
 import './footer-follows-the-reader-not-a-rail.test.mjs';
 import './global-header-approved.test.mjs';
+import './global-header-profile-frame-law.test.mjs';
 // 2026-09-04, the "Log Out does nothing" fix. Its sibling guard
 // hamburger-never-regresses runs from `prebuild`, which fires on `npm run
 // build` but NOT on the `npx next build` the push script uses - so these two
@@ -170,6 +171,10 @@ import './trivia-lifeline-spend-integrity.test.mjs';
 // grading must run in required CI, not only in a developer's targeted command.
 import './god-mode-policy-grading.test.mjs';
 import './solver-policy-service.test.mjs';
+// Horse Brain Phase 3, 2026-09-07: cache provenance, canonical regrading,
+// atomic counters, the live drift schedule, and legacy writer retirement are
+// release gates rather than an optional developer-only audit.
+import './horse-phase3-training-cache-truth.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-hub-media-audit.test.mjs';
@@ -214,6 +219,10 @@ import './the-hub-notices-a-revoked-session.law.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
+// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
+// avatars, <profile uuid>/avatar.png), never under a name that says horse:
+// the storage path is in the <img src> of every seat and post.
+import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).
@@ -226,6 +235,17 @@ import './alertmanager-page.test.mjs';
 // never asks Vercel to decrypt, never carries a value, and exits 2 rather
 // than 0 when it cannot see.
 import './an-env-var-cannot-change-unseen.law.test.mjs';
+// 2026-09-07: `env(safe-area-inset-top)` was applied on BOTH <body> and the
+// sticky header, so on an installed PWA the header sat one whole status bar too
+// low (118px of dead space on a Dynamic Island phone, where 59 is correct). It
+// is invisible in a browser tab, where the inset is 0, which is precisely why
+// it needs a test rather than an eye.
+import './the-status-bar-inset-has-one-owner.test.mjs';
+// 2026-09-07: two scrapers judged themselves on the absence of errors rather
+// than on what they produced, in opposite directions. One reported success
+// while every dispatch 401'd for five weeks; the other could never report
+// success at all and was red every day for five months, hiding a real 42P10.
+import './a-scraper-run-is-judged-on-what-it-produced.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 

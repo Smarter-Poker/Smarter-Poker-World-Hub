@@ -677,7 +677,7 @@ export default function CreateHomeGamePage() {
         noindex={true}
       />
 
-      <div className="cmd-page">
+      <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Dan-fix/header-pin-v2 (2026-05-12): switched from `sticky top-0` to
             `fixed top-0 left-0 right-0` because an ancestor (likely the layout
             wrapper) was breaking the sticky containing block on long forms,

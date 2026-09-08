@@ -176,10 +176,51 @@ export function createPokerClusterIcon(L, cluster, options = {}) {
       ? 'linear-gradient(180deg,#c9d6df 0%,#596b7a 46%,#101820 47%,#070b0f 100%)'
       : 'linear-gradient(180deg,#263540 0%,#081018 100%)';
   return L.divIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:3px;background:${gradient};border:${borderWidth}px solid ${compact ? '#aab8c4' : '#c8d4dd'};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:800;color:${intense ? '#071019' : '#eef5fb'};box-shadow:0 0 0 2px #030507,0 0 ${size / 2}px rgba(72,199,255,.24),0 6px 16px rgba(0,0,0,.68),inset 0 1px rgba(255,255,255,.24);font-family:Inter,-apple-system,sans-serif;">${count}</div>`,
+    html: `<div data-pnm-cluster-count="${count}" aria-hidden="true" style="width:${size}px;height:${size}px;border-radius:3px;background:${gradient};border:${borderWidth}px solid ${compact ? '#aab8c4' : '#c8d4dd'};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:800;color:${intense ? '#071019' : '#eef5fb'};box-shadow:0 0 0 2px #030507,0 0 ${size / 2}px rgba(72,199,255,.24),0 6px 16px rgba(0,0,0,.68),inset 0 1px rgba(255,255,255,.24);font-family:Inter,-apple-system,sans-serif;">${count}</div>`,
     className: compact ? 'vmp-cluster-icon' : 'venue-cluster-icon',
     iconSize: [size, size],
   });
+}
+
+/**
+ * Keep Leaflet keyboard targets aligned with the pixels a user can actually
+ * see. MarkerCluster can retain icon nodes just outside the clipped map pane,
+ * which otherwise lets a fullscreen focus trap tab to an invisible venue.
+ * Only nodes Leaflet already made keyboard-enabled are managed here, so a
+ * deliberately decorative marker never becomes interactive.
+ */
+export function syncPokerMapKeyboardTargets(container) {
+  if (!container?.querySelectorAll || !container?.getBoundingClientRect) {
+    return { visible: 0, hidden: 0 };
+  }
+
+  const viewport = container.getBoundingClientRect();
+  let visible = 0;
+  let hidden = 0;
+
+  container.querySelectorAll('.leaflet-marker-icon[tabindex]').forEach((target) => {
+    const countNode = target.querySelector?.('[data-pnm-cluster-count]');
+    const count = Number(countNode?.getAttribute?.('data-pnm-cluster-count'));
+    if (Number.isFinite(count) && count > 0) {
+      const label = `Zoom to ${count} poker locations`;
+      if (target.getAttribute('aria-label') !== label) target.setAttribute('aria-label', label);
+      if (target.getAttribute('title') !== label) target.setAttribute('title', label);
+    }
+
+    const rect = target.getBoundingClientRect();
+    const hasArea = rect.right > rect.left && rect.bottom > rect.top;
+    const inViewport = hasArea
+      && rect.right > viewport.left
+      && rect.left < viewport.right
+      && rect.bottom > viewport.top
+      && rect.top < viewport.bottom;
+    const nextTabIndex = inViewport ? 0 : -1;
+    if (target.tabIndex !== nextTabIndex) target.tabIndex = nextTabIndex;
+    if (inViewport) visible += 1;
+    else hidden += 1;
+  });
+
+  return { visible, hidden };
 }
 
 export function createPokerUserLocationIcon(L) {

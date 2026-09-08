@@ -4,6 +4,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { inspectStripeRuntime } = require('../../../src/lib/store/stripeRuntimeMode');
 
 let _supabase = null;
 function getSupabase() {
@@ -179,13 +180,13 @@ export default async function handler(req, res) {
     if (error || !user) {
       return res.status(401).json({ success: false, error: 'Sign in to verify this purchase' });
     }
-    if (!stripe) {
-      return res.status(503).json({ success: false, error: 'Payment status is temporarily unavailable' });
-    }
-
     const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id.trim() : '';
     if (!/^cs_(?:test_|live_)?[A-Za-z0-9]{12,}$/.test(sessionId)) {
       return res.status(400).json({ success: false, error: 'Invalid checkout reference' });
+    }
+    const stripeRuntime = inspectStripeRuntime(process.env, { requirePublishable: false });
+    if (!stripe || !stripeRuntime.ready) {
+      return res.status(503).json({ success: false, error: 'Payment status is temporarily unavailable' });
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);

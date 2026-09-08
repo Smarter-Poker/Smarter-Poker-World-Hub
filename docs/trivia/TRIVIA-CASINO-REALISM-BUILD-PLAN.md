@@ -16,6 +16,18 @@ shipping code or producing screenshots is not completion. Work inside a phase sh
 be split into small, independently reviewed changes, and every change should include
 the tests and telemetry needed to prove its own behavior.
 
+## Delivery status
+
+| Phase | State | Release boundary |
+|---:|---|---|
+| 1 | Complete | Competitive containment, production baseline, final smoke, and release evidence are recorded in `PHASE-1-RELEASE-REPORT.md`. |
+| 2 | Ready next | Versioned rules, balanced journal/ledger, atomic economic operations, and settlement foundation. |
+| 3 | Planned | Question-bank and deterministic-engine defects found during Phase 1 are explicit entry blockers. |
+| 4–12 | Planned | Start only when the dependency graph and prior phase exit gates permit it. |
+
+The release controls for PvP, PvP horses, tournaments, and tournament horses remain
+off after Phase 1. “Ready next” does not mean enabled or partially shipped.
+
 ## Non-negotiable product requirements
 
 1. The complete Trivia world uses `#SmarterCasinoRealism`: obsidian, carbon,

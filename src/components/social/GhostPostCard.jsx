@@ -10,6 +10,8 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import bgUpload from '../../lib/backgroundVideoUpload';
+import PokerCardText from './PokerCardText';
+import { truncatePokerText } from '../../lib/pokerCardMarkup';
 
 const SOCIAL_COLORS = {
     bg: '#FFFFFF',
@@ -109,6 +111,7 @@ export default function GhostPostCard({ user }) {
     const displayName = user?.name || 'You';
     const avatarUrl = user?.avatar;
     const content = meta?.content || '';
+    const displayContent = truncatePokerText(content, 200);
     const thumbnail = meta?.thumbnail;
     const isComplete = progress >= 100;
     const isFailed = label === 'Upload Failed';
@@ -210,7 +213,8 @@ export default function GhostPostCard({ user }) {
                     color: SOCIAL_COLORS.text,
                     lineHeight: 1.4,
                 }}>
-                    {content.length > 200 ? content.slice(0, 200) + '…' : content}
+                    <PokerCardText text={displayContent.text} />
+                    {displayContent.truncated ? '...' : null}
                 </div>
             )}
 

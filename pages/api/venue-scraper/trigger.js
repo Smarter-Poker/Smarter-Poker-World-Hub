@@ -23,6 +23,8 @@ import { createHmac } from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import allVenuesData from '../../../public/data/all-venues.json';
+// Pure, so the "did this run produce anything" rule is testable by running it.
+import { isTotalDispatchFailure } from '../../../src/lib/scraperRunOutcome.js';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -84,6 +86,26 @@ export default async function handler(req, res) {
 
         if (!MANUS_API_KEY) {
             return res.status(500).json({ error: 'MANUS_API_KEY not configured' });
+        }
+
+        /* FAIL ON A MALFORMED KEY HERE, NOT FORTY TIMES DOWNSTREAM.
+         *
+         * Manus rejects the current production value with "token is malformed:
+         * token contains an invalid number of segments" - a JWT-shape
+         * complaint. A JWT is three dot-separated base64url segments, so the
+         * shape is cheap to check and the failure becomes one clear message
+         * instead of forty 401s buried in a summary that claimed success.
+         *
+         * Shape only. Never log, echo or return the value; whether it is VALID
+         * is Manus's to say. Rotating it is Dan's - agents do not set
+         * credentials (World Hub CLAUDE.md, Club Arena 10.84 rule 1). */
+        if (MANUS_API_KEY.split('.').length !== 3) {
+            console.error('[Venue Scraper] MANUS_API_KEY is not a three-segment JWT');
+            return res.status(500).json({
+                error:
+                    'MANUS_API_KEY is malformed: expected a three-segment JWT. Set it in the ' +
+                    'smarter.poker Vercel project (Production) and redeploy.',
+            });
         }
 
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -325,7 +347,19 @@ POST body format:
             next_offset: hasMore ? nextOffset : null,
         };
         try {
-            const finalStatus = errors.length === 0 ? 'success' : 'partial';
+            /* THE RUN RECORD MUST AGREE WITH THE HTTP ANSWER (2026-09-07).
+             *
+             * The status code was fixed to 502 on a total dispatch failure, and
+             * this was left saying 'partial' - so `scraper_runs`, which is what
+             * a dashboard reads, still described five weeks of forty-out-of-
+             * forty 401s as a partially successful run. Two truths about the
+             * same event is how the failure stayed invisible in the first
+             * place. 'partial' means some work was created; none is 'failed'. */
+            const finalStatus = isTotalDispatchFailure(dispatchTasks.length, tasksCreated)
+                ? 'failed'
+                : errors.length === 0
+                  ? 'success'
+                  : 'partial';
             const supabase = getSupabase();
             const { error: err_scraper_runs_w7wdm } = runLogId
                 ? await supabase
@@ -351,8 +385,43 @@ POST body format:
             console.warn('[Venue Scraper] Failed to log run:', logErr.message);
         }
 
-        return res.status(200).json({
-            success: true,
+        /* ═══ A RUN THAT DISPATCHED NOTHING DID NOT SUCCEED (2026-09-07) ═════
+         *
+         * This returned `success: true` with HTTP 200 whatever happened. On
+         * 2026-09-07 every one of forty Manus dispatches came back
+         *
+         *   401 {"code":16,"message":"invalid token: token is malformed:
+         *        token contains an invalid number of segments"}
+         *
+         * and this endpoint answered `{"success":true, tasks_created:0,
+         * errors:40}`. The credential has been broken since 2026-08-03 and the
+         * workflow has failed 11 consecutive scheduled runs over five weeks,
+         * caught ONLY by a shell health gate in a workflow nobody watches.
+         * Anything else calling this endpoint was told the run worked.
+         *
+         * Productivity, not the absence of errors, is the test - the same rule
+         * the poker-series gate now uses. Partial failure stays 200 with
+         * `success: true` and a visible error list, because dispatching 39 of
+         * 40 IS a successful run with a problem in it. Dispatching zero is not
+         * a run at all.
+         */
+        const dispatchedNothing = isTotalDispatchFailure(dispatchTasks.length, tasksCreated);
+        if (dispatchedNothing) {
+            console.error(
+                `[Venue Scraper] every dispatch failed (${errors.length}/${dispatchTasks.length}); ` +
+                'returning 502 so the caller cannot read this as a successful run'
+            );
+        }
+
+        return res.status(dispatchedNothing ? 502 : 200).json({
+            success: !dispatchedNothing,
+            ...(dispatchedNothing
+                ? {
+                      error:
+                          'every task dispatch failed - no work was created. The usual cause is ' +
+                          'a malformed or expired MANUS_API_KEY in the production environment.',
+                  }
+                : {}),
             summary: {
                 tier1_venues: tier1.length,
                 tier2_venues: tier2.length,

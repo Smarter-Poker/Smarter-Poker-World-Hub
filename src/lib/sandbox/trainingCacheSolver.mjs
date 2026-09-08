@@ -58,11 +58,10 @@ export function canonicalBoard(value) {
 export function isCanonicalTrainingQuestion(question) {
   if (!question || typeof question !== 'object') return false;
   // Keep Sandbox trust identical to Training Arena and Leak Finder. Warehouse
-  // labels such as PIO are claims, not proof, unless the provenance seal is
-  // complete; local chart sources retain the shared verifier's narrow carveout.
+  // labels such as PIO are claims, not proof; only a canonical policy seal can
+  // cross this boundary.
   if (!isVerifiedSolverQuestion(question)) return false;
-  if (String(question.dataQuality || '').toUpperCase() === 'SIMULATED') return false;
-  const frequencies = question.gtoFrequencies;
+  const frequencies = question.solverPolicy?.distribution;
   return !!frequencies && typeof frequencies === 'object'
     && Object.values(frequencies).some(value => (finite(value) ?? 0) > 0);
 }
@@ -213,23 +212,21 @@ export function chooseTrainingCacheMatch(rows, context = {}) {
 /** Map one verified Training Arena question onto the Sandbox result contract. */
 export function mapTrainingQuestionToAnalysis(question, { facingBet = false } = {}) {
   if (!isCanonicalTrainingQuestion(question)) return null;
-  const frequencies = question.gtoFrequencies || {};
-  const frequencyValues = Object.values(frequencies).map(finite).filter(value => value !== null);
-  const scale = frequencyValues.length > 0 && Math.max(...frequencyValues) <= 1 ? 100 : 1;
-  const options = Array.isArray(question.options) ? question.options : [];
-  const optionById = new Map(options.map(option => [String(option?.id ?? option), option]));
-  const ids = [...new Set([...Object.keys(frequencies), ...optionById.keys()])];
-  const actionEVs = question.evData?.actionEVs && typeof question.evData.actionEVs === 'object'
-    ? question.evData.actionEVs
+  const policy = question.solverPolicy;
+  const frequencies = policy.distribution;
+  const policyActionById = new Map(policy.actions.map((action) => [action.id, action]));
+  const ids = Object.keys(frequencies);
+  const actionEVs = policy.chipEv?.measuredByAction === true
+    ? policy.chipEv.byAction
     : {};
 
   const actions = ids.map(id => {
-    const option = optionById.get(id);
-    const label = actionLabel(id, option?.text, facingBet);
+    const policyAction = policyActionById.get(id);
+    const label = actionLabel(id, policyAction?.label, facingBet);
     const entry = {
       id,
       label,
-      frequency: +percent(frequencies[id] ?? option?.frequency, scale).toFixed(1),
+      frequency: +percent(frequencies[id], 100).toFixed(1),
       color: actionColor(label),
       isOptimal: false,
     };
@@ -247,7 +244,7 @@ export function mapTrainingQuestionToAnalysis(question, { facingBet = false } = 
   }
 
   const priced = actions.map(action => action.ev).filter(value => typeof value === 'number');
-  const heroEV = finite(question.evData?.heroHandEV ?? question.evData?.heroEV);
+  const heroEV = finite(policy.chipEv?.policy);
   const displayEV = heroEV === null ? 0 : heroEV;
   // Canonical cache generations do not all use the same unit for `optimalEV`:
   // older rows may store a normalized 0..1 quality score there while the
@@ -256,7 +253,7 @@ export function mapTrainingQuestionToAnalysis(question, { facingBet = false } = 
   // `optimalEV` is only a fallback for rows without per-action pricing.
   const maxEV = priced.length
     ? Math.max(...priced)
-    : finite(question.evData?.optimalEV) ?? displayEV;
+    : displayEV;
   const minEV = priced.length ? Math.min(...priced) : displayEV;
   const avgEV = priced.length ? priced.reduce((sum, value) => sum + value, 0) / priced.length : displayEV;
 
@@ -274,6 +271,8 @@ export function mapTrainingQuestionToAnalysis(question, { facingBet = false } = 
       evLoss: heroEV === null ? 0 : +Math.max(0, maxEV - heroEV).toFixed(3),
     },
     explanation: question.explanation || null,
+    sourceClassification: question.sourceClassification || policy.qualitySeal,
+    policyVersion: policy.policyVersion,
   };
 }
 

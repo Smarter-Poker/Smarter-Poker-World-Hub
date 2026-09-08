@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFile(path.join(ROOT, file), 'utf8');
+const VALID_HERO_ASSET = await readFile(
+  path.join(ROOT, 'public/images/store-v3/diamond-vault-hero.webp')
+);
 
 test('fulfillment privacy and mutation guards cover every early exit and stale completion', async () => {
   const [api, page, migration] = await Promise.all([
@@ -50,8 +53,9 @@ test('deployment verifier probes the complete private operations surface and acc
   }
   assert.match(
     verifier,
-    /probePrivate\(\{ path: '\/api\/store\/fulfillment-operations', method: 'POST', expectedStatus: 405 \}\)/
+    /\{ path: '\/api\/store\/fulfillment-operations', method: 'POST', expectedStatus: 405 \}/
   );
+  assert.match(verifier, /mapWithConcurrency\(privateProbeContracts, 4, probePrivate\)/);
   assert.match(verifier, /\/hub\/club-shop\/00000000-0000-4000-8000-000000000094\?clubId=/);
   assert.match(verifier, /response\.status === expectedStatus/);
   assert.match(verifier, /`expected_\$\{expectedStatus\}_received_\$\{response\.status\}`/);
@@ -59,11 +63,31 @@ test('deployment verifier probes the complete private operations surface and acc
   const server = createServer((req, res) => {
     if (req.url?.startsWith('/images/')) {
       res.writeHead(200, { 'Content-Type': 'image/webp' });
-      return res.end('image');
+      return res.end(VALID_HERO_ASSET);
     }
     if (req.url === '/api/store/merch-catalog') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ items: [{ id: 'verified-item' }] }));
+      return res.end(JSON.stringify({
+        success: true,
+        data: {
+          items: [{
+            id: 'verified-item',
+            price_usd: 19.99,
+            price_diamonds: 1_999,
+            variants: [],
+            fulfillment_ready: true,
+            fulfillment_mode: 'manual',
+            card_checkout_ready: true,
+            diamond_checkout_ready: true,
+            payment_methods: ['card', 'diamonds'],
+          }],
+          count: 1,
+          catalog_available: true,
+          diamonds_per_dollar: 100,
+          manual_fulfillment_available: true,
+          print_on_demand_available: false,
+        },
+      }));
     }
     if (req.url === '/api/store/readiness') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -81,6 +105,14 @@ test('deployment verifier probes the complete private operations surface and acc
       });
       return res.end(JSON.stringify({ success: false, error: 'Method Not Allowed' }));
     }
+    if (req.url === '/api/store/purchase-daily-vip' && req.method === 'POST') {
+      res.writeHead(410, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, no-store, max-age=0',
+        Vary: 'Authorization',
+      });
+      return res.end(JSON.stringify({ success: false, error: 'DAILY_VIP_RETIRED' }));
+    }
     if (req.url?.startsWith('/api/')) {
       res.writeHead(401, {
         'Content-Type': 'application/json',
@@ -89,8 +121,9 @@ test('deployment verifier probes the complete private operations surface and acc
       });
       return res.end(JSON.stringify({ success: false, error: 'Authorization Required' }));
     }
+    const pathname = new URL(req.url, 'http://marketplace.test').pathname;
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end('<main>VIP Command Center Fulfillment Command Vault Shopping Cart: Diamond Store Order History Wishlist Verified Reward Telemetry</main>');
+    return res.end(`<main data-marketplace-route="${pathname}">Verified Marketplace Route</main>`);
   });
 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

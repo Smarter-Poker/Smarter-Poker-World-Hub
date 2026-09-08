@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 import urllib.request as urllib_req
 from scrapling.fetchers import AsyncStealthySession
 from scraper_data_truth import (
+    NON_PRODUCTION_POKERATLAS_VENUE_SLUGS,
     canonical_us_state_code,
     is_noise_venue_label,
     is_verified_us_location,
@@ -317,7 +318,11 @@ async def scrape_venue_page(session, url):
 async def prepare_slug(session, slug):
     """Scrape and validate one candidate without performing any database write."""
     slug = str(slug or '').strip().lower()
-    if not ROOM_SLUG_RE.fullmatch(slug) or slug.isdigit():
+    if (
+        not ROOM_SLUG_RE.fullmatch(slug)
+        or slug.isdigit()
+        or slug in NON_PRODUCTION_POKERATLAS_VENUE_SLUGS
+    ):
         print(f'\n  ❌ Skip (invalid_room_slug: {slug!r})')
         return 'fail', None
     url = f'https://www.pokeratlas.com/poker-room/{slug}'
@@ -424,6 +429,7 @@ async def main(slug_file=None):
             not ROOM_SLUG_RE.fullmatch(slug)
             or slug.isdigit()
             or 'test' in slug
+            or slug in NON_PRODUCTION_POKERATLAS_VENUE_SLUGS
             or slug in seen_slugs
         ):
             continue

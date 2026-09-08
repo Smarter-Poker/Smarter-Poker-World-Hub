@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { randomUUID } from 'node:crypto';
 /**
  * HAND OF THE DAY API (v2 — Rewired to training_question_cache)
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -9,11 +10,17 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
+import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import { gradeCanonicalPolicyDecision } from '../../../src/lib/training/cacheTruthContract.mjs';
+import {
+  cacheQuestionFromRow,
+  cacheRowIsServingEligible,
+  recordTrainingQuestionsServed,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -40,10 +47,10 @@ function dateHash(dateStr) {
 
 async function getUserDailyState(req, dailyId) {
   if (!req.headers.authorization?.startsWith('Bearer ')) {
-    return { completion: null, completedDays: [] };
+    return { completion: null, completedDays: [], userId: null };
   }
   const { user, error } = await getServerUserWithFallback(req, getSupabase());
-  if (error || !user) return { completion: null, completedDays: [] };
+  if (error || !user) return { completion: null, completedDays: [], userId: null };
   const { data } = await getSupabase()
     .from('training_daily_challenge')
     .select('daily_id, score, ev_loss, selected_action, completed_at')
@@ -55,6 +62,7 @@ async function getUserDailyState(req, dailyId) {
   return {
     completion: rows.find((row) => row.daily_id === dailyId) || null,
     completedDays: rows.map((row) => String(row.daily_id).replace(/^daily-/, '')),
+    userId: user.id,
   };
 }
 
@@ -66,7 +74,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      res.setHeader('Cache-Control', 'private, no-store');
       // GET: Return today's daily challenge hand from training_question_cache
       try {
         // Phase 76 — Hand of the Day rotates at America/Chicago midnight.
@@ -81,7 +89,8 @@ export default async function handler(req, res) {
         const { count } = await getSupabase()
           .from('training_question_cache')
           .select('*', { count: 'exact', head: true })
-          .in('engine_type', ['PIO', 'CHART']);
+          .in('question_kind', ['PIO', 'CHART'])
+          .in('quality_status', ['active', 'active_fallback']);
 
         if (!count || count === 0) {
           return res.status(200).json({
@@ -97,8 +106,10 @@ export default async function handler(req, res) {
 
         const { data: cached, error } = await getSupabase()
           .from('training_question_cache')
-          .select('question_data, question_id, game_id, engine_type, level')
-          .in('engine_type', ['PIO', 'CHART'])
+          .select('question_data, question_id, game_id, engine_type, question_kind, level, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+          .in('question_kind', ['PIO', 'CHART'])
+          .in('quality_status', ['active', 'active_fallback'])
+          .order('question_id', { ascending: true })
           .range(offset, offset)
           .maybeSingle();
 
@@ -107,7 +118,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Failed to fetch daily hand' });
         }
 
-        if (!cached || !cached.question_data) {
+        if (!cached || !cached.question_data || !cacheRowIsServingEligible(cached)) {
           return res.status(200).json({
             success: true,
             dailyId,
@@ -119,11 +130,7 @@ export default async function handler(req, res) {
         // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         // MAP question_data to the daily challenge display format
         // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-        let qd = cached.question_data;
-        // 2026-07-19 AUDIT FIX: ~7% of cache rows carry a correctAnswer /
-        // correctAnswerText contradicting their own solver `frequencies` —
-        // and this endpoint grades by TEXT. Reconcile before mapping.
-        reconcileAnswerKey(qd);
+        let qd = cacheQuestionFromRow(cached);
         qd = enforceTrainingQuestionContract(qd);
         if (!isTrainingQuestionValid(qd)) {
           return res.status(422).json({
@@ -165,6 +172,8 @@ export default async function handler(req, res) {
           id: cached.question_id || dailyId,
           game_id: cached.game_id,
           engine_type: cached.engine_type,
+          sourceClassification: cached.source_classification,
+          policyChecksum: cached.policy_checksum,
           level: cached.level,
           // Fields that daily-challenge.js looks for:
           hero_hand: heroHand,
@@ -205,6 +214,14 @@ export default async function handler(req, res) {
         const tomorrowMidnightCST = new Date(`${tYear}-${tMonth}-${tDate}T00:00:00${tzOffset}`);
 
         const dailyState = await getUserDailyState(req, dailyId);
+        await recordTrainingQuestionsServed(getSupabase(), {
+          requestId: randomUUID(),
+          userId: dailyState.userId,
+          receipts: [{
+            questionId: cached.question_id,
+            policyChecksum: cached.policy_checksum,
+          }],
+        });
         return res.status(200).json({
           success: true,
           dailyId,
@@ -233,6 +250,9 @@ export default async function handler(req, res) {
       try {
         const userId = user.id; // From JWT, NOT from req.body
         const { dailyId, selectedAction } = req.body;
+        const policyChecksum = typeof req.body?.policyChecksum === 'string'
+          ? req.body.policyChecksum.trim().toLowerCase()
+          : '';
 
         if (!dailyId) {
           return res.status(400).json({ success: false, error: 'dailyId required' });
@@ -252,22 +272,28 @@ export default async function handler(req, res) {
         const { count, error: countError } = await getSupabase()
           .from('training_question_cache')
           .select('*', { count: 'exact', head: true })
-          .in('engine_type', ['PIO', 'CHART']);
+          .in('question_kind', ['PIO', 'CHART'])
+          .in('quality_status', ['active', 'active_fallback']);
         if (countError || !count) {
           return res.status(503).json({ success: false, error: 'Daily challenge is unavailable' });
         }
         const offset = dateHash(today) % count;
         const { data: cached, error: questionError } = await getSupabase()
           .from('training_question_cache')
-          .select('question_data')
-          .in('engine_type', ['PIO', 'CHART'])
+          .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+          .in('question_kind', ['PIO', 'CHART'])
+          .in('quality_status', ['active', 'active_fallback'])
+          .order('question_id', { ascending: true })
           .range(offset, offset)
           .maybeSingle();
-        if (questionError || !cached?.question_data) {
+        if (questionError || !cached?.question_data || !cacheRowIsServingEligible(cached)) {
           return res.status(503).json({ success: false, error: 'Daily challenge is unavailable' });
         }
-        let gradedQuestion = cached.question_data;
-        reconcileAnswerKey(gradedQuestion);
+        if (!/^[0-9a-f]{64}$/.test(policyChecksum)
+          || policyChecksum !== String(cached.policy_checksum || '').toLowerCase()) {
+          return res.status(409).json({ success: false, error: 'Daily challenge policy changed. Reload today’s hand.' });
+        }
+        let gradedQuestion = cacheQuestionFromRow(cached);
         gradedQuestion = enforceTrainingQuestionContract(gradedQuestion);
         if (!isTrainingQuestionValid(gradedQuestion)) {
           return res.status(422).json({ success: false, error: 'Daily challenge did not pass validation' });
@@ -287,14 +313,14 @@ export default async function handler(req, res) {
         const canonicalSelectedId = typeof canonicalSelection === 'string'
           ? canonicalSelection
           : canonicalSelection.id || canonicalSelection.text;
-        const correctOption = gradedOptions.find((option) => (
-          typeof option === 'object' && String(option?.id) === String(gradedQuestion.correctAnswer)
-        ));
-        const correctLabel = gradedQuestion.correctAnswerText
-          || (typeof correctOption === 'object' ? correctOption?.text : correctOption)
-          || gradedQuestion.correctAnswer;
-        const submittedCorrect = String(canonicalSelectedId || '').toLowerCase() === String(gradedQuestion.correctAnswer || '').toLowerCase()
-          || String(canonicalSelectedLabel || '').toLowerCase() === String(correctLabel || '').toLowerCase();
+        const canonicalGrade = gradeCanonicalPolicyDecision(
+          cached.canonical_policy,
+          canonicalSelectedId,
+        );
+        if (!canonicalGrade.valid) {
+          return res.status(409).json({ success: false, error: 'Daily challenge policy changed. Reload today’s hand.' });
+        }
+        const submittedCorrect = canonicalGrade.isCorrect;
 
         // 2026-07-19 AUDIT FIX: check for an existing completion FIRST so the
         // 25-diamond reward is credited exactly once per user per day.
@@ -347,6 +373,27 @@ export default async function handler(req, res) {
             }
             alreadyCompleted = true;
             isCorrect = Number(raced.score) >= 100;
+          }
+        }
+
+        for (const eventType of ['answered', 'completed']) {
+          const { error: eventError } = await getSupabase().rpc('fn_training_cache_record_event', {
+            p_event_type: eventType,
+            p_event_key: `daily-challenge:${dailyId}:${userId}`,
+            p_question_id: cached.question_id,
+            p_user_id: userId,
+            p_is_correct: eventType === 'answered' ? isCorrect : null,
+            p_metadata: {
+              consumer: 'daily-challenge',
+              dailyId,
+              policyChecksum: cached.policy_checksum,
+            },
+            p_occurred_at: new Date().toISOString(),
+            p_expected_policy_checksum: cached.policy_checksum,
+          });
+          if (eventError) {
+            console.warn('[HandOfTheDay] cache event write failed:', eventError.message);
+            return res.status(503).json({ success: false, error: 'Daily challenge evidence could not be finalized. Please retry.' });
           }
         }
 

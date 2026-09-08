@@ -14,10 +14,11 @@
  * - /public/data/us-mask-outer.json
  */
 
-import React, { useRef, useState, useEffect, useId, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useId, useMemo, useCallback } from 'react';
 import { radiusToZoom } from './pnm-utils';
 import MapPreferenceChooser from './MapPreferenceChooser';
 import MapCoverageReadout from './MapCoverageReadout';
+import MapSurfaceFrame from './MapSurfaceFrame';
 import {
   addPokerMapLayers,
   createPokerMapSession,
@@ -38,6 +39,7 @@ import {
   createPokerVenueIcon,
   isPokerTourStop,
   pokerVenueTheme,
+  syncPokerMapKeyboardTargets,
 } from './mapPresentation';
 
 // ─── Constants ───
@@ -275,7 +277,25 @@ export class MapErrorBoundary extends React.Component {
 
 // ─── Helper: Truncate venue name for map label ───
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, clusterTourStops = false, isFavorited }) {
+export default function VenueMap({
+  venues,
+  userLocation,
+  centerLocation,
+  fullHeight = false,
+  onVenueClick,
+  hideLegend = false,
+  radiusMiles,
+  uniformColor,
+  onOpenIframeModal,
+  disableClustering = false,
+  clusterTourStops = false,
+  isFavorited,
+  mapEyebrow = 'Location intelligence',
+  mapTitle = 'Poker discovery map',
+  mapDetail,
+  mapControls,
+  allowFullscreen = true,
+}) {
   const normalizedUniformColor = typeof uniformColor === 'string' && /^#[0-9a-f]{6}$/i.test(uniformColor.trim())
     ? uniformColor.trim()
     : null;
@@ -306,6 +326,8 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const circlesGroupRef = useRef(null);
   const userMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
+  const keyboardSyncFrameRef = useRef(0);
+  const keyboardObserverRef = useRef(null);
   const onOpenIframeModalRef = useRef(onOpenIframeModal);
   // WIRING FIX: `onVenueClick` was destructured and never used, so map pin → venue card
   // sync (scroll + highlight, implemented on the page) could never fire. Held in a ref so
@@ -318,6 +340,38 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [clusteringAvailable, setClusteringAvailable] = useState(false);
   const mapInstructionsId = `pnm-map-instructions-${useId().replace(/:/g, '')}`;
+
+  const scheduleKeyboardTargetSync = useCallback(() => {
+    if (typeof window === 'undefined' || keyboardSyncFrameRef.current) return;
+    keyboardSyncFrameRef.current = window.requestAnimationFrame(() => {
+      keyboardSyncFrameRef.current = 0;
+      syncPokerMapKeyboardTargets(mapContainerRef.current);
+    });
+  }, []);
+
+  const handleMapLayoutChange = useCallback(() => {
+    mapInstanceRef.current?.invalidateSize?.({ pan: false });
+    scheduleKeyboardTargetSync();
+  }, [scheduleKeyboardTargetSync]);
+
+  // Keep the national map legible whenever the available viewport is narrow
+  // or short. Re-entering a constrained orientation collapses the legend, but
+  // the user can immediately expand it again; the CSS then gives the legend
+  // temporary ownership of the shared HUD lane.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const constrainedViewport = window.matchMedia('(max-width: 768px), (max-height: 500px)');
+    const collapseForConstrainedViewport = (event) => {
+      if (event.matches) setLegendCollapsed(true);
+    };
+    collapseForConstrainedViewport(constrainedViewport);
+    if (typeof constrainedViewport.addEventListener === 'function') {
+      constrainedViewport.addEventListener('change', collapseForConstrainedViewport);
+      return () => constrainedViewport.removeEventListener('change', collapseForConstrainedViewport);
+    }
+    constrainedViewport.addListener?.(collapseForConstrainedViewport);
+    return () => constrainedViewport.removeListener?.(collapseForConstrainedViewport);
+  }, []);
 
   // Keep the refs current without triggering re-init
   useEffect(() => { onOpenIframeModalRef.current = onOpenIframeModal; }, [onOpenIframeModal]);
@@ -355,6 +409,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     
     const handlePopupClicks = createPokerPopupClickHandler({
       onOpenDetails: (path, title) => {
+        // Opening a profile is an explicit transition away from map
+        // exploration. Close the shared fullscreen frame first so the detail
+        // surface is visible and becomes the sole focus owner.
+        window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
         if (onOpenIframeModalRef.current) onOpenIframeModalRef.current(path, title);
         else window.location.assign(path);
       },
@@ -405,6 +463,15 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6 });
 
     mapInstanceRef.current = map;
+
+    // MarkerCluster may keep nodes just beyond the clipped pane and creates
+    // cluster icons asynchronously while chunking a large national dataset.
+    // Reconcile focus targets after every viewport change and DOM insertion.
+    map.on('moveend zoomend resize', scheduleKeyboardTargetSync);
+    keyboardObserverRef.current?.disconnect();
+    keyboardObserverRef.current = new MutationObserver(scheduleKeyboardTargetSync);
+    keyboardObserverRef.current.observe(container, { childList: true, subtree: true });
+    scheduleKeyboardTargetSync();
 
     // ═══ LOAD US GEOJSON OVERLAYS ═══
     const loadOverlays = async () => {
@@ -536,7 +603,13 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     if (userLocation) {
       const userIcon = createPokerUserLocationIcon(L);
 
-      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
+      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userIcon,
+        zIndexOffset: 1000,
+        keyboard: true,
+        title: 'Your location',
+        alt: 'Your location map marker',
+      })
         .addTo(map)
         .bindPopup('<div style="padding:10px 14px;"><b style="color:#fff;font-size:14px;">You Are Here</b><br/><span style="font-size: 12px;color:rgba(148,163,184,0.7);">Your Current Location</span></div>');
 
@@ -545,6 +618,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
     return () => {
       container.removeEventListener('click', handlePopupClicks);
+      keyboardObserverRef.current?.disconnect();
+      keyboardObserverRef.current = null;
+      if (keyboardSyncFrameRef.current) window.cancelAnimationFrame(keyboardSyncFrameRef.current);
+      keyboardSyncFrameRef.current = 0;
       mapSessionRef.current?.destroy();
       mapSessionRef.current = null;
       mapInstanceRef.current = null;
@@ -713,6 +790,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     });
     addPokerMapLayers(clusterGroup, clusteredMarkers);
     addPokerMapLayers(tourLayer, tourMarkers);
+    scheduleKeyboardTargetSync();
     const bounds = mapInstanceRef.current.getBounds();
     setViewportCount(validVenues.filter(function(venue) {
       return bounds.contains([Number(venue.latitude), Number(venue.longitude)]);
@@ -754,13 +832,20 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     if (userLocation) {
       const userIcon = createPokerUserLocationIcon(L);
 
-      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
+      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userIcon,
+        zIndexOffset: 1000,
+        keyboard: true,
+        title: 'Your location',
+        alt: 'Your location map marker',
+      })
         .addTo(map)
         .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
+      scheduleKeyboardTargetSync();
 
       // Do NOT auto-zoom — user explores the full map freely
     }
-  }, [userLocation, mapReady]);
+  }, [userLocation, mapReady, scheduleKeyboardTargetSync]);
 
   // ═══ DYNAMIC RADIUS ZOOM + VISUAL CIRCLE — Adjust map zoom and show radius overlay ═══
   // Uses centerLocation (GPS or city centroid) to zoom appropriately
@@ -815,7 +900,17 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   ];
 
   return (
+    <MapSurfaceFrame
+      className={fullHeight ? 'pnm-map-surface--fill' : ''}
+      eyebrow={mapEyebrow}
+      title={mapTitle}
+      detail={mapDetail || `${integritySummary.mapped} mapped locations · select a marker for details`}
+      controls={mapControls}
+      onLayoutChange={handleMapLayoutChange}
+      allowFullscreen={allowFullscreen}
+    >
     <div
+      className="pnm-map-stage"
       style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}
       // The map is treated as one keyboard control, while its pointer-operated
       // pins and cluster orbs still preserve the shared 44px touch floor.
@@ -876,7 +971,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         data-map-load-ms={mapLoadMs == null ? '' : mapLoadMs}
         data-map-clustering={disableClustering ? 'disabled' : clusteringAvailable ? 'available' : 'fallback'}
         data-map-style-source="local"
-        data-map-foundation="shared-v2"
+        data-map-foundation="shared-v3"
         data-map-integrity-held={integritySummary.held}
         tabIndex={0}
         style={{
@@ -894,49 +989,56 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       <p id={mapInstructionsId} className="sr-only">
         Interactive Poker Venue Map. Use Arrow Keys To Pan, Plus And Minus To Zoom, And Tab To Move Between Venue Markers.
       </p>
-      {/* ═══ VENUE TYPE LEGEND ═══ */}
-      {mapReady && !hideLegend && (
-        // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
-        // stop and keyboard activation. Kept as a div (not a button) so the existing
-        // .venue-map-legend layout and its block-level children stay valid.
-        <div className="venue-map-legend venue-map-legend--coverage" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={!legendCollapsed}
-          aria-label="Toggle venue type legend"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-              e.preventDefault();
-              e.stopPropagation();
-              setLegendCollapsed(!legendCollapsed);
-            }
-          }}
-          onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
-          <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
-          {!legendCollapsed && legendItems.map(item => (
-            <div key={item.type} className="venue-map-legend-item">
-              <div className="venue-map-legend-dot" style={{ background: item.color, boxShadow: `0 0 6px ${item.color}55` }} />
-              <span className="venue-map-legend-label">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div
+        className="pnm-map-overlay-stack"
+        data-legend-expanded={mapReady && !legendCollapsed && !hideLegend ? 'true' : 'false'}
+      >
+        {/* ═══ VENUE TYPE LEGEND ═══ */}
+        {mapReady && !hideLegend && (
+          // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
+          // stop and keyboard activation. Kept as a div (not a button) so the existing
+          // .venue-map-legend layout and its block-level children stay valid.
+          <div className="venue-map-legend venue-map-legend--coverage" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
+            role="button"
+            tabIndex={0}
+            aria-expanded={!legendCollapsed}
+            aria-label="Toggle venue type legend"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                e.stopPropagation();
+                setLegendCollapsed(!legendCollapsed);
+              }
+            }}
+            onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
+            <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
+            {!legendCollapsed && legendItems.map(item => (
+              <div key={item.type} className="venue-map-legend-item">
+                <div className="venue-map-legend-dot" style={{ background: item.color, boxShadow: `0 0 6px ${item.color}55` }} />
+                <span className="venue-map-legend-label">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <MapCoverageReadout
+          total={visibleCount}
+          visible={viewportCount}
+          zoom={zoomLevel}
+          ready={mapReady}
+          clustering={!disableClustering && clusteringAvailable && visibleCount >= 20}
+          gps={!!userLocation}
+          verified={integritySummary.verified}
+          approximate={integritySummary.approximate}
+          held={integritySummary.held}
+        />
+      </div>
+
       {/* Map Preference Chooser — gear icon */}
       {mapReady && (
         <MapPreferenceChooser position="top-right" />
       )}
-
-      <MapCoverageReadout
-        total={visibleCount}
-        visible={viewportCount}
-        zoom={zoomLevel}
-        ready={mapReady}
-        clustering={!disableClustering && clusteringAvailable && visibleCount >= 20}
-        gps={!!userLocation}
-        verified={integritySummary.verified}
-        approximate={integritySummary.approximate}
-        held={integritySummary.held}
-      />
     </div>
+    </MapSurfaceFrame>
   );
 }

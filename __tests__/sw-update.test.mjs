@@ -30,6 +30,25 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const UPDATER = readFileSync(join(ROOT, 'src/components/ui/ServiceWorkerUpdater.jsx'), 'utf8');
 const WORKER = readFileSync(join(ROOT, 'worker/index.js'), 'utf8');
 const APP = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
+const NEXT_CONFIG = readFileSync(join(ROOT, 'next.config.js'), 'utf8');
+
+test('root worker registration is app-owned and rejects safely in WebKit', () => {
+    assert.match(
+        NEXT_CONFIG,
+        /register:\s*false/,
+        'next-pwa must not launch the Workbox Window registration path'
+    );
+    assert.match(
+        UPDATER,
+        /navigator\.serviceWorker\.register\('\/sw\.js',\s*\{\s*scope:\s*'\/'\s*\}\)/,
+        'the app must still register the generated root worker'
+    );
+    assert.match(
+        UPDATER,
+        /if \(!reg \|\| cancelled\) return;/,
+        'a browser that declines registration must stop before reading worker state'
+    );
+});
 
 test('the page actively checks for a new worker', () => {
     // Without update(), an installed PWA only looks on the browser's own

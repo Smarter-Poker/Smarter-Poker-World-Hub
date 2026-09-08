@@ -23,7 +23,8 @@
  * lives elsewhere is the one /api/news/digest uses -- a CRON_SECRET bearer
  * check on a normal route. That is what this does.
  *
- * BELT AND BRACES: fn_union_settlement_cascade (pg_cron, Mondays 00:10 UTC)
+ * BELT AND BRACES: fn_union_settlement_cascade_due (pg_cron, daily at :05 from
+ * 07:00 UTC, which is midnight America/Los_Angeles)
  * already issues and delivers from inside Postgres. This route running later
  * the same morning is a no-op if that worked, and the safety net if it did
  * not. Everything downstream is idempotent: one invoice per club per period,
@@ -34,7 +35,7 @@
  * Supabase via ca_club_union_invoices; they do not come through here.
  */
 
-const { createClient } = require('../../../src/lib/supabaseServerClient');
+import { createClient } from '../../../src/lib/supabaseServerClient';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
@@ -132,7 +133,10 @@ export default async function handler(req, res) {
         }
 
         // Default period is the week that just closed, matching the settlement
-        // cascade (date_trunc('week', now()) - 7 days .. date_trunc('week', now())).
+        // cascade (fn_union_prev_week_start(now()) .. fn_union_week_start(now())).
+        // Since 2026-09-07 that boundary is midnight America/Los_Angeles, i.e.
+        // 2 AM Central / 07:00 UTC on PDT and 08:00 UTC on PST, NOT UTC midnight.
+        // Dan: the week cannot end until the West Coast hits 11:59:59.
         const periodStart = q.start ? new Date(q.start).toISOString() : null;
         const periodEnd = q.end ? new Date(q.end).toISOString() : null;
 

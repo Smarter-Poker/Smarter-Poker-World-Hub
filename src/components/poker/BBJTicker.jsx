@@ -48,23 +48,24 @@ export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = nul
     return () => clearInterval(interval);
   }, [fetchPool]);
 
-  // Realtime subscription — instant updates when bbj_pools changes
-  useEffect(() => {
-    if (!supabase || !clubId) return;
-    const ch = supabase
-      .channel(`bbj-ticker:${clubId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'bbj_pools',
-        filter: `club_id=eq.${clubId}`,
-      }, (payload) => {
-        const amt = Number(payload.new.pool_amount || 0);
-        setPoolAmount(amt);
-        setHourlyRate(Number(payload.new.hourly_rate || 0));
-        targetRef.current = amt;
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [supabase, clubId]);
+  /* THE REALTIME SUBSCRIPTION IS GONE, AND IT WAS DOING HARM
+     (BBJ build plan phase 3.5, 2026-09-06).
+
+     It bound to `bbj_pools` UPDATE and then read `payload.new.pool_amount` and
+     `payload.new.hourly_rate`. `pool_amount` is a legacy column nothing has
+     written since the triple-bank rework - measured on production, it read
+     0.00 while the pool held 107,092.27 - and `hourly_rate` is not a column at
+     all, so `Number(undefined || 0)` set the rate to 0 and disabled the
+     tick-up animation this component exists for.
+
+     So on every raked hand - one every 2.1 seconds - this OVERWROTE the
+     correct figure the 30-second poll had just fetched with a stale one or a
+     zero. The subscription was not merely useless; it was the reason the
+     ticker was wrong.
+
+     The poll above is now the only source, and it reads the API, which reads
+     `fn_bbj_pool_for_club`. Phase 3.2 took every Club Arena surface off the
+     same firehose for the same reason. */
 
   // ── Smooth tick-up animation ──
   useEffect(() => {

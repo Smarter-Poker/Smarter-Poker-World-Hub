@@ -5,7 +5,8 @@
  * and shows step-by-step instructions for enabling location services.
  * Includes "Enter Manually" fallback and auto-retry button.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 
 /**
  * Detect device type from user agent
@@ -88,7 +89,10 @@ export default function LocationEnableModal({
   const [isPwa, setIsPwa] = useState(false);
   const [permissionState, setPermissionState] = useState('denied');
   const [retrying, setRetrying] = useState(false);
-  const closeButtonRef = useRef(null);
+  const { dialogRef, initialFocusRef } = useAccessibleDialog({
+    open: isOpen,
+    onClose,
+  });
 
   useEffect(() => {
     setDeviceType(detectDeviceType());
@@ -110,21 +114,6 @@ export default function LocationEnableModal({
       });
     }
   }, []);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const previouslyFocused = document.activeElement;
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose?.();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus?.();
-    };
-  }, [isOpen, onClose]);
 
   const handleRetry = useCallback(() => {
     setRetrying(true);
@@ -165,6 +154,7 @@ export default function LocationEnableModal({
 
   return (
     <div
+      ref={dialogRef}
       className="location-enable-modal"
       role="dialog"
       aria-modal="true"
@@ -215,7 +205,7 @@ export default function LocationEnableModal({
             </div>
           </div>
           <button
-            ref={closeButtonRef}
+            ref={initialFocusRef}
             type="button"
             onClick={onClose}
             className="location-enable-modal__close sp-icon-btn"

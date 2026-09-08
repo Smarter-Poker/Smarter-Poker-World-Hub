@@ -43,6 +43,40 @@ test('invalid card notation remains harmless text', () => {
   assert.equal(markup.clubArenaCardUrl('A', 'x'), null);
 });
 
+test('hostile or stale selections are normalized at the data boundary', () => {
+  const hand = [
+    { rank: 'A', suit: 's' }, { rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' },
+    { rank: 'Q', suit: 'd' }, { rank: 'J', suit: 'c' }, { rank: 'T', suit: 's' },
+    { rank: '9', suit: 'h' }, { rank: '8', suit: 'd' }, { rank: '1', suit: 'c' },
+  ];
+  const board = [
+    { rank: 'A', suit: 's' }, { rank: '7', suit: 's' }, { rank: '6', suit: 'h' },
+    { rank: '5', suit: 'd' }, { rank: '4', suit: 'c' }, { rank: '3', suit: 's' },
+    { rank: '2', suit: 'h' },
+  ];
+  assert.deepEqual(markup.normalizePokerCardSelection(hand, board), {
+    hand: hand.filter((_, index) => ![1, 7, 8].includes(index)),
+    board: board.slice(1, 6),
+  });
+  const formatted = markup.formatPokerCards(hand, board);
+  assert.equal((formatted.match(/\[\[sp-card:/g) || []).length, 11);
+  assert.deepEqual(markup.parsePokerCards(formatted), markup.normalizePokerCardSelection(hand, board));
+  assert.equal(markup.normalizePokerCardMarkup(`${formatted}[[sp-card:As]]`), formatted);
+});
+
+test('feed truncation never exposes or splits card storage tokens', () => {
+  const card = '[[sp-card:As]]';
+  assert.deepEqual(markup.truncatePokerText(`1234${card}after`, 5), {
+    text: `1234${card}`,
+    truncated: true,
+  });
+  assert.deepEqual(markup.truncatePokerText(`12345${card}`, 5), {
+    text: '12345',
+    truncated: true,
+  });
+  assert.deepEqual(markup.truncatePokerText(card, 1), { text: card, truncated: false });
+});
+
 test('the shared composer persists cards through every publishing path', () => {
   const source = read('src/components/social/SharedPostCreator.jsx');
   assert.match(source, /<PokerCardPicker/);
@@ -51,6 +85,8 @@ test('the shared composer persists cards through every publishing path', () => {
   assert.match(source, /let finalContent = \[cleanContent, pokerCardsMarkup\]/);
   assert.match(source, /localStorage\.setItem\('sp-post-card-draft'/);
   assert.match(source, /localStorage\.removeItem\('sp-post-card-draft'/);
+  assert.match(source, /normalizePokerCardMarkup\(cardDraft\)/);
+  assert.match(source, /normalizePokerCardMarkup\(markup\)/);
 });
 
 test('primary social surfaces render card tokens as cards', () => {
@@ -68,6 +104,12 @@ test('primary social surfaces render card tokens as cards', () => {
     const source = read(file);
     assert.match(source, /PokerCardText/, `${file} can leak raw card tokens`);
   }
+  const mainFeed = read('pages/hub/social-media/index.js');
+  assert.match(mainFeed, /truncatePokerText\(displayText, TRUNCATE_LENGTH\)/);
+  assert.match(mainFeed, /<PokerCardText key=\{i\} text=\{part\} \/>/);
+  const uploadGhost = read('src/components/social/GhostPostCard.jsx');
+  assert.match(uploadGhost, /truncatePokerText\(content, 200\)/);
+  assert.match(uploadGhost, /<PokerCardText text=\{displayContent\.text\} \/>/);
 });
 
 test('picker forbids duplicates and respects hand and board limits', () => {
@@ -81,5 +123,11 @@ test('picker forbids duplicates and respects hand and board limits', () => {
   assert.match(source, /Turn Added · Add The River/);
   assert.match(source, /River Complete/);
   assert.match(source, /aria-pressed=\{zone === area\.id\}/);
+  assert.match(source, /const LONG_PRESS_MS = 420/);
+  assert.match(source, /onPointerDown=\{\(\) => beginLongPress\(rank\)\}/);
+  assert.match(source, /1 Means 10/);
+  assert.match(source, /aria-controls="quick-rank-suits"/);
+  assert.match(source, /if \(choose\(card\)\) setQuickRank\(null\)/);
+  assert.match(source, /repeat\(auto-fit, minmax\(44px, 1fr\)\)/);
   assert.doesNotMatch(source, /<span[\s\S]{0,160}role="button"/);
 });

@@ -119,10 +119,49 @@ const visit = async (page: Page, route: string) => {
   }
 };
 
+/**
+ * HOW MANY ROUTES THIS SUITE EXPECTS, DERIVED RATHER THAN TYPED (2026-09-07).
+ *
+ * This was the literal `202`, and on 2026-09-07 PR #1538 added "/home-game" to
+ * the poker-near-me world's routePrefixes. That correctly pulled
+ * `pages/home-game/[code].js` into the matrix and made it 203. The same PR
+ * updated the OTHER two copies of the count — `scripts/generate-world-footer-
+ * route-matrix.mjs` and `docs/world-hub-footer-route-matrix.md`, both 203 -> 204
+ * — and missed this one. Push Delivery Watchdog went red and stayed red,
+ * because the footer probe is bolted into that workflow and neither is a
+ * required check. Three copies of one number is three chances to drift.
+ *
+ * The count now comes from the committed matrix document, which is generated
+ * output a human reviews in the diff — so the guard still guards. Adding a
+ * route means regenerating that doc deliberately; it cannot happen silently.
+ *
+ * The document counts every applicable physical route. This suite additionally
+ * excludes the live Training arena (see the flatMap above), so the expectation
+ * is the document's total minus those.
+ */
+const matrixDoc = fs.readFileSync(
+  path.join(process.cwd(), 'docs/world-hub-footer-route-matrix.md'),
+  'utf8'
+);
+const documentedTotal = Number(
+  /Total applicable physical routes:\s*(\d+)/.exec(matrixDoc)?.[1] ?? NaN
+);
+const arenaRoutesExcluded = (matrixDoc.match(/^\|\s*`?\/hub\/training\/arena\//gm) || []).length;
+const EXPECTED_ROUTES = documentedTotal - arenaRoutesExcluded;
+
 test.describe('dynamic World Hub footer route and visual contract', () => {
-  test('all 202 applicable routes server-render exactly one correct artwork footer', async ({ request }) => {
+  test('every applicable route server-renders exactly one correct artwork footer', async ({ request }) => {
     test.setTimeout(300_000);
-    expect(routeMatrix).toHaveLength(202);
+    expect(
+      Number.isFinite(documentedTotal),
+      'docs/world-hub-footer-route-matrix.md no longer states its total; regenerate it with scripts/generate-world-footer-route-matrix.mjs'
+    ).toBe(true);
+    expect(
+      routeMatrix,
+      `the walked route matrix disagrees with docs/world-hub-footer-route-matrix.md ` +
+        `(${documentedTotal} documented, ${arenaRoutesExcluded} arena route(s) excluded here). ` +
+        `If you added or removed a route, regenerate that document in the same commit.`
+    ).toHaveLength(EXPECTED_ROUTES);
 
     for (let offset = 0; offset < routeMatrix.length; offset += 8) {
       const batch = routeMatrix.slice(offset, offset + 8);

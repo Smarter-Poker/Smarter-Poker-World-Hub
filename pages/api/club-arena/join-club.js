@@ -204,7 +204,6 @@ export default async function handler(req, res) {
                   user_id: user.id,
                   role: 'player',
                   status: memberStatus,
-                  chip_balance: 0,
                   agent_id: resolvedAgentUserId,
                   joined_at: new Date().toISOString(),
               });

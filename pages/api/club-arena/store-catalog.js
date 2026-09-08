@@ -64,6 +64,7 @@ const VIP_PLANS = [
         planKey: 'monthly',
         checkoutPlan: 'vip-monthly',
         cardCheckoutReady: true,
+        diamondCheckoutReady: true,
         name: 'Monthly VIP',
         period: 'Per Month',
         priceUsd: 19.99,
@@ -81,6 +82,7 @@ const VIP_PLANS = [
         planKey: 'yearly',
         checkoutPlan: 'vip-yearly',
         cardCheckoutReady: true,
+        diamondCheckoutReady: true,
         name: 'Yearly VIP',
         period: 'Per Year',
         priceUsd: 199.99,
@@ -97,6 +99,7 @@ const VIP_PLANS = [
         checkoutPlan: 'vip-lifetime',
         oneTime: true,
         cardCheckoutReady: false,
+        diamondCheckoutReady: true,
         name: 'Lifetime VIP',
         period: 'One Payment',
         priceUsd: 499,
@@ -133,17 +136,20 @@ function verify() {
                made the drift check go silent instead of firing. A missing plan
                is the loudest drift there is. */
             const checks = [
-                ['vip-monthly', vip.monthly, 19.99],
-                ['vip-yearly', vip.yearly, 199.99],
-                ['vip-lifetime', vip.lifetime, 499],
+                ['vip-monthly', vip.monthly, 19.99, true],
+                ['vip-yearly', vip.yearly, 199.99, true],
+                ['vip-lifetime', vip.lifetime, 499, false],
             ];
-            for (const [id, entry, expected] of checks) {
+            for (const [id, entry, expected, expectedCard] of checks) {
                 if (!entry) {
                     warnings.push(id + ': catalog sells it, diamondStoreData has no such plan');
                     continue;
                 }
                 if (Number(entry.price) !== Number(expected)) {
                     warnings.push(id + ': catalog says ' + expected + ', diamondStoreData says ' + entry.price);
+                }
+                if (entry.cardCheckoutReady !== expectedCard || entry.diamondCheckoutReady !== true) {
+                    warnings.push(id + ': payment capability differs from the public catalog');
                 }
             }
             for (const retired of ['daily', 'annual']) {
@@ -201,6 +207,8 @@ export default async function handler(req, res) {
             diamondPackages: diamondCatalog.packages.map((pkg) => ({
                 ...pkg,
                 priceUsd: pkg.price,
+                cardCheckoutReady: true,
+                diamondCheckoutReady: false,
             })),
             diamondCatalogSource: diamondCatalog.source,
             vipPlans: VIP_PLANS,

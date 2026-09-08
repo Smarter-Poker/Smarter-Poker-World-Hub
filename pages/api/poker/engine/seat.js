@@ -21,7 +21,7 @@ import { getController } from '../../../../src/lib/poker-engine/GameController';
 const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
 const { applyCors } = require('../../../../src/lib/cors');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
-const { createClient } = require('../../../../src/lib/supabaseServerClient');
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // Supabase admin for buy-in auth and chip operations

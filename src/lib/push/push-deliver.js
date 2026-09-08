@@ -12,7 +12,9 @@
  *   { attempted, accepted, expired, errors: [{ endpoint, error }] }
  */
 
-import { sendWebPush, isPushConfigured } from './web-push';
+import { isPushConfigured } from './web-push';
+import { isFcmConfigured } from './fcm';
+import { sendPush, SUBSCRIPTION_COLUMNS } from './send-push';
 
 /**
  * Consecutive transient failures before an endpoint is retired. Permanent
@@ -28,7 +30,9 @@ export async function deliverPushNow(supabase, userId, payload, opts = {}) {
         result.errors.push({ endpoint: null, error: 'missing supabase client or userId' });
         return result;
     }
-    if (!isPushConfigured()) {
+    // Either transport being configured is enough to try; a row whose own
+    // transport is not configured reports that on its own send.
+    if (!isPushConfigured() && !isFcmConfigured()) {
         result.errors.push({ endpoint: null, error: 'vapid_not_configured' });
         return result;
     }
@@ -37,7 +41,7 @@ export async function deliverPushNow(supabase, userId, payload, opts = {}) {
     try {
         const { data, error } = await supabase
             .from('push_subscriptions')
-            .select('id, endpoint, p256dh, auth')
+            .select(SUBSCRIPTION_COLUMNS)
             .eq('user_id', userId)
             .eq('is_active', true);
         if (error) {
@@ -61,7 +65,7 @@ export async function deliverPushNow(supabase, userId, payload, opts = {}) {
     await Promise.all(
         subs.map(async (sub) => {
             result.attempted += 1;
-            const res = await sendWebPush(sub, payload, opts);
+            const res = await sendPush(sub, payload, opts);
 
             if (res.ok) {
                 result.accepted += 1;

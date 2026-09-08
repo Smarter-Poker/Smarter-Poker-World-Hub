@@ -4,6 +4,8 @@ const DEFAULT_RETRY_DELAY_MS = 125;
 const DEFAULT_PAGE_SIZE = 250;
 const DEFAULT_MAX_ITEMS = 2_500;
 const DEFAULT_MAX_VARIANTS = 10_000;
+const MARKETPLACE_PHASE7_SCHEMA_MARKER = 'marketplace_phase7_vip_acquisition_mutex:v1';
+const { inspectStripeRuntime } = require('./stripeRuntimeMode');
 
 function bool(value) {
   return Boolean(value);
@@ -45,6 +47,7 @@ async function withTransientRetry(task, {
       return await task(attempt);
     } catch (error) {
       lastError = error;
+      if (error?.code === 'MARKETPLACE_HEALTH_TIMEOUT') throw error;
       if (attempt >= attempts) throw error;
       await wait(delayMs * attempt);
     }
@@ -101,6 +104,7 @@ async function readAllActive(client, table, columns, maxRows, pageSize) {
       .from(table)
       .select(columns)
       .eq('is_active', true)
+      .order('id', { ascending: true })
       .range(offset, Math.min(offset + pageSize - 1, maxRows));
     if (error) throw error;
     const page = Array.isArray(data) ? data : [];
@@ -146,10 +150,14 @@ async function catalogReadiness(client, {
     }
 
     let printfulItems = 0;
+    let manualItems = 0;
     let fulfillmentReady = 0;
     for (const item of itemResult.rows) {
       const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
-      if (metadata.fulfillment_provider !== 'printful') continue;
+      if (metadata.fulfillment_provider !== 'printful') {
+        manualItems += 1;
+        continue;
+      }
       printfulItems += 1;
       const variants = variantsByItem.get(item.id) || [];
       const mapped = item.has_variants || variants.length > 0
@@ -168,8 +176,13 @@ async function catalogReadiness(client, {
       variantsTotal: variantResult.count,
       variantsLoaded: variantResult.rows.length,
       printfulItems,
+      manualItems,
       fulfillmentReady,
-      allFulfillmentReady: complete && printfulItems > 0 && fulfillmentReady === printfulItems,
+      allFulfillmentReady: complete
+        && itemResult.rows.length > 0
+        && manualItems === 0
+        && printfulItems === itemResult.rows.length
+        && fulfillmentReady === printfulItems,
       reason: complete ? null : 'catalog_health_limit_exceeded',
       latencyMs: elapsed(startedAt),
     };
@@ -182,6 +195,7 @@ async function catalogReadiness(client, {
       variantsTotal: 0,
       variantsLoaded: 0,
       printfulItems: 0,
+      manualItems: 0,
       fulfillmentReady: 0,
       allFulfillmentReady: false,
       reason: error?.code === 'MARKETPLACE_HEALTH_TIMEOUT' ? 'catalog_timeout' : 'catalog_unreachable',
@@ -191,23 +205,37 @@ async function catalogReadiness(client, {
   }
 }
 
-async function rpcReadiness(client, timeoutMs = DEFAULT_TIMEOUT_MS) {
+async function schemaVersionReadiness(client, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const startedAt = Date.now();
   try {
-    const { error } = await withTransientRetry(
+    const { data } = await withTransientRetry(
       () => withTimeout(
-        'reserve_merch_order dry-run RPC',
-        () => client.rpc('reserve_merch_order', { p_items: [], p_dry_run: true }),
+        'Phase 7 marketplace schema marker RPC',
+        async () => {
+          const result = await client.rpc('marketplace_phase7_vip_acquisition_mutex_version', {});
+          if (result.error) throw result.error;
+          return result;
+        },
         timeoutMs
       )
     );
-    if (error) throw error;
-    return { reachable: true, signatureReady: true, reason: null, latencyMs: elapsed(startedAt) };
+    const marker = typeof data === 'string' ? data : null;
+    const markerReady = marker === MARKETPLACE_PHASE7_SCHEMA_MARKER;
+    return {
+      reachable: true,
+      marker,
+      markerReady,
+      reason: markerReady ? null : 'schema_marker_mismatch',
+      latencyMs: elapsed(startedAt),
+    };
   } catch (error) {
     return {
       reachable: false,
-      signatureReady: false,
-      reason: error?.code === 'MARKETPLACE_HEALTH_TIMEOUT' ? 'rpc_timeout' : 'rpc_signature_unavailable',
+      marker: null,
+      markerReady: false,
+      reason: error?.code === 'MARKETPLACE_HEALTH_TIMEOUT'
+        ? 'schema_marker_timeout'
+        : 'schema_marker_unavailable',
       latencyMs: elapsed(startedAt),
       error,
     };
@@ -228,6 +256,8 @@ async function runMarketplaceReadiness({
   createClient,
   fetchImpl = globalThis.fetch,
   resolvePrintfulMapping,
+  isPrintfulConfigured = (candidate) => bool(candidate?.PRINTFUL_API_TOKEN),
+  isAutoConfirmEnabled = (candidate) => String(candidate?.PRINTFUL_AUTO_CONFIRM || '').trim().toLowerCase() === 'true',
   isPrintfulReady,
   onError = () => {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -241,10 +271,38 @@ async function runMarketplaceReadiness({
   if (typeof isPrintfulReady !== 'function') throw new TypeError('isPrintfulReady is required');
 
   const supabaseConfigured = bool(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
-  const stripeConfigured = bool(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET);
-  const printfulConfigured = bool(
-    isPrintfulReady(env) && env.PRINTFUL_STORE_ID && env.PRINTFUL_WEBHOOK_SECRET
-  );
+  const stripeRuntime = inspectStripeRuntime(env, {
+    requirePublishable: true,
+    requireWebhook: true,
+  });
+  const stripeSecretConfigured = stripeRuntime.secretConfigured;
+  const stripePublishableConfigured = stripeRuntime.publishableConfigured;
+  const stripeWebhookConfigured = stripeRuntime.webhookConfigured;
+  const stripeMode = stripeRuntime.keyMode;
+  const stripeModeAllowed = stripeRuntime.productionModeAllowed && bool(stripeMode);
+  const stripeConfigured = stripeRuntime.ready;
+  const printfulTokenConfigured = bool(isPrintfulConfigured(env));
+  const printfulAutoConfirmValue = String(env.PRINTFUL_AUTO_CONFIRM || '').trim().toLowerCase();
+  const printfulAutoConfirmConfigured = bool(printfulAutoConfirmValue);
+  const printfulAutoConfirmEnabled = bool(isAutoConfirmEnabled(env));
+  const printfulAutoConfirmValid = !printfulAutoConfirmConfigured
+    || ['true', 'false'].includes(printfulAutoConfirmValue);
+  const printfulStoreConfigured = bool(env.PRINTFUL_STORE_ID);
+  const printfulWebhookConfigured = bool(env.PRINTFUL_WEBHOOK_SECRET);
+  // `PRINTFUL_AUTO_CONFIRM=false` by itself is an explicit manual-mode
+  // declaration, not an attempted provider connection. Any credential,
+  // provider identifier, webhook secret, or enabled auto-confirm flag does
+  // constitute an integration attempt and must fail closed when incomplete.
+  const printfulConfigurationPresent = printfulTokenConfigured
+    || printfulAutoConfirmEnabled
+    || !printfulAutoConfirmValid
+    || printfulStoreConfigured
+    || printfulWebhookConfigured;
+  const printfulConfigured = printfulTokenConfigured
+    && printfulAutoConfirmEnabled
+    && printfulStoreConfigured
+    && printfulWebhookConfigured
+    && bool(isPrintfulReady(env));
 
   let catalog = {
     reachable: false,
@@ -254,18 +312,25 @@ async function runMarketplaceReadiness({
     variantsTotal: 0,
     variantsLoaded: 0,
     printfulItems: 0,
+    manualItems: 0,
     fulfillmentReady: 0,
     allFulfillmentReady: false,
     reason: 'missing_configuration',
     latencyMs: null,
   };
-  let rpc = { reachable: false, signatureReady: false, reason: 'missing_configuration', latencyMs: null };
+  let schemaVersion = {
+    reachable: false,
+    marker: null,
+    markerReady: false,
+    reason: 'missing_configuration',
+    latencyMs: null,
+  };
 
   if (supabaseConfigured) {
     const client = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-    [catalog, rpc] = await Promise.all([
+    [catalog, schemaVersion] = await Promise.all([
       catalogReadiness(client, { resolvePrintfulMapping, timeoutMs, pageSize, maxItems, maxVariants }),
-      rpcReadiness(client, timeoutMs),
+      schemaVersionReadiness(client, timeoutMs),
     ]);
   }
 
@@ -289,39 +354,54 @@ async function runMarketplaceReadiness({
       : { reachable: false, reason: 'missing_configuration', latencyMs: null },
   ]);
 
-  for (const [label, result] of Object.entries({ catalog, rpc, stripe, printful })) {
+  for (const [label, result] of Object.entries({ catalog, schemaVersion, stripe, printful })) {
     if (result?.error) onError(label, result.error);
   }
 
   const supabaseHealthy = supabaseConfigured
     && catalog.reachable === true
     && catalog.complete === true
-    && rpc.signatureReady === true;
+    && catalog.total > 0
+    && schemaVersion.markerReady === true;
   const stripeHealthy = stripeConfigured && stripe.reachable === true;
   const printfulHealthy = printfulConfigured && printful.reachable === true;
-  // Physical fulfillment is intentionally allowed to remain deferred while
-  // the store's card and diamond checkout are live. It becomes a release gate
-  // only after operators deliberately enable and configure Printful; the
-  // deployment verifier's --require-commerce flag enforces that launch step.
-  const fulfillmentRequired = printfulConfigured;
+  // A completely absent Printful configuration is the owner's deliberate
+  // manual-fulfillment mode. Any partial configuration is different: it is an
+  // attempted automatic integration that cannot safely be called ready.
+  const fulfillmentRequired = printfulConfigurationPresent;
+  const configuredPrintfulCatalogReady = printfulConfigured
+    && printfulHealthy
+    && (
+      catalog.printfulItems === 0
+      || catalog.fulfillmentReady === catalog.printfulItems
+    );
   const checks = {
     supabase: supabaseHealthy,
     stripe: stripeHealthy,
-    printful: !fulfillmentRequired || printfulHealthy,
+    printful: !fulfillmentRequired || configuredPrintfulCatalogReady,
   };
   const capabilities = {
     cardCheckout: supabaseHealthy && stripeHealthy,
     diamondCheckout: supabaseHealthy,
+    manualMerchFulfillment: supabaseHealthy,
     automaticMerchFulfillment:
       supabaseHealthy && printfulHealthy && catalog.allFulfillmentReady === true,
   };
+  const fulfillmentMode = capabilities.automaticMerchFulfillment
+    ? 'automatic'
+    : !printfulConfigurationPresent
+      ? 'manual'
+      : configuredPrintfulCatalogReady
+        ? catalog.printfulItems > 0 && catalog.manualItems > 0 ? 'mixed' : 'manual'
+        : 'misconfigured';
   const ready = Object.values(checks).every(Boolean)
-    && (!fulfillmentRequired || capabilities.automaticMerchFulfillment);
+    && capabilities.manualMerchFulfillment;
 
   return {
     success: true,
     ready,
     status: ready ? 'ready' : 'degraded',
+    fulfillmentMode,
     checks,
     catalog: {
       reachable: catalog.reachable,
@@ -331,6 +411,7 @@ async function runMarketplaceReadiness({
       variantsTotal: catalog.variantsTotal,
       variantsLoaded: catalog.variantsLoaded,
       printfulItems: catalog.printfulItems,
+      manualItems: catalog.manualItems,
       fulfillmentReady: catalog.fulfillmentReady,
       allFulfillmentReady: catalog.allFulfillmentReady,
       reason: catalog.reason,
@@ -340,12 +421,29 @@ async function runMarketplaceReadiness({
       supabase: {
         ...publicDependency(catalog, supabaseConfigured),
         catalogComplete: catalog.complete,
-        rpcSignatureReady: rpc.signatureReady,
-        rpcReason: rpc.reason,
-        rpcLatencyMs: rpc.latencyMs,
+        schemaMarker: schemaVersion.marker,
+        schemaMarkerReady: schemaVersion.markerReady,
+        schemaMarkerReason: schemaVersion.reason,
+        schemaMarkerLatencyMs: schemaVersion.latencyMs,
       },
-      stripe: publicDependency(stripe, stripeConfigured),
-      printful: publicDependency(printful, printfulConfigured),
+      stripe: {
+        ...publicDependency(stripe, stripeConfigured),
+        secretConfigured: stripeSecretConfigured,
+        publishableConfigured: stripePublishableConfigured,
+        webhookConfigured: stripeWebhookConfigured,
+        keyMode: stripeMode || 'invalid',
+        modeAllowed: stripeModeAllowed,
+      },
+      printful: {
+        ...publicDependency(printful, printfulConfigured),
+        configurationPresent: printfulConfigurationPresent,
+        tokenConfigured: printfulTokenConfigured,
+        autoConfirmConfigured: printfulAutoConfirmConfigured,
+        autoConfirmEnabled: printfulAutoConfirmEnabled,
+        autoConfirmValid: printfulAutoConfirmValid,
+        storeConfigured: printfulStoreConfigured,
+        webhookConfigured: printfulWebhookConfigured,
+      },
     },
     capabilities,
   };
@@ -358,9 +456,11 @@ module.exports = {
   DEFAULT_MAX_VARIANTS,
   DEFAULT_PAGE_SIZE,
   DEFAULT_TIMEOUT_MS,
+  MARKETPLACE_PHASE7_SCHEMA_MARKER,
   catalogReadiness,
-  rpcReadiness,
+  rpcReadiness: schemaVersionReadiness,
   runMarketplaceReadiness,
+  schemaVersionReadiness,
   withTransientRetry,
   withTimeout,
 };

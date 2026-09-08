@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { createHash, randomUUID } from 'node:crypto';
 /**
  * API: Spot Drill — Random Postflop GTO Quiz Spot
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -21,6 +22,9 @@ import { parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import { persistCanonicalTrainingQuestions } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import { trainingPersistenceUnavailableBody } from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -44,34 +48,8 @@ function getStreetFromBoard(board) {
     return 'Preflop';
 }
 
-// Standard GTO action distractor pool
-const ACTION_POOL = [
-    'Bet 33%', 'Bet 50%', 'Bet 66%', 'Bet 75%', 'Bet 100%', 'Bet 125%', 'Bet 150%',
-    'Check', 'Fold', 'Call', 'Raise 2.5x', 'Raise 3x', 'All-In',
-];
-
-function generateOptions(correctAction, allActions) {
-    const options = [correctAction];
-    // Add other real actions from this spot first
-    const otherReal = allActions.filter(a => a !== correctAction);
-    for (const action of otherReal) {
-        if (options.length >= 4) break;
-        options.push(action);
-    }
-    // Fill remaining with distractors from the pool (Fisher-Yates shuffle)
-    const shuffledPool = [...ACTION_POOL];
-    for (let i = shuffledPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]];
-    }
-    for (const action of shuffledPool) {
-        if (options.length >= 4) break;
-        const normalized = action.toLowerCase().trim();
-        if (!options.some(o => o.toLowerCase().trim() === normalized)) {
-            options.push(action);
-        }
-    }
-    // Shuffle options with Fisher-Yates
+function shuffledActions(actions) {
+    const options = actions.map((action) => ({ id: action.id, text: action.label }));
     for (let i = options.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [options[i], options[j]] = [options[j], options[i]];
@@ -105,7 +83,7 @@ export default async function handler(req, res) {
 
           // UUID-pivot sampling stays indexed, but all row access and policy
           // interpretation is owned by the canonical service.
-          const randomUuid = require('crypto').randomUUID();
+          const randomUuid = randomUUID();
           const policyService = new SolverPolicyService({ db: getSupabase() });
           const safePosition = position ? sanitizeParam(position, 10) : null;
           const filters = {
@@ -135,7 +113,7 @@ export default async function handler(req, res) {
           }
           const key = policyService.keyForRecord(record);
           const answer = policyService.answerFromRecord(record, key, { holdingClass: randomHand });
-          if (answer.kind === 'unavailable') {
+          if (answer.kind === 'unavailable' || answer.actions.length < 2) {
               return res.status(200).json({
                   success: false, error: 'Spot has no policy answer - retry', retry: true,
               });
@@ -145,14 +123,69 @@ export default async function handler(req, res) {
           const displayBreakdown = Object.fromEntries(answer.actions.map((action) => [
               action.label, Math.round(action.frequency * 1000) / 10,
           ]));
-          const options = generateOptions(correct.label, answer.actions.map((action) => action.label));
+          const options = shuffledActions(answer.actions);
           const spot = record.metadata;
           const board = parseBoardFromHash(spot.scenario_hash);
+          const policy = policyService.consumerEnvelope(answer, 'spot-drill');
+          const questionId = `spot:${createHash('sha256').update(JSON.stringify({
+              artifactId: policy.sourceArtifact?.artifactId || spot.id,
+              scenarioHash: spot.scenario_hash,
+              holding: policy.key?.holding || randomHand,
+              policyVersion: policy.policyVersion,
+          })).digest('hex')}`;
+          let question = enforceTrainingQuestionContract({
+              id: questionId,
+              type: 'PIO',
+              source: 'DETERMINISTIC_SOLVER',
+              heroHand: randomHand,
+              heroCards: policy.key?.holding || [],
+              boardCards: board,
+              scenario: {
+                  scenarioHash: spot.scenario_hash,
+                  board: board.join(' '),
+                  street: String(spot.street || getStreetFromBoard(board)).toLowerCase(),
+                  heroPosition: extractPositionFromHash(spot.scenario_hash),
+                  stackDepth: spot.stack_depth,
+                  heroStack: spot.stack_depth,
+                  pot: policy.node?.potBb,
+              },
+              options,
+              correctAnswer: correct.id,
+              correctAnswerText: correct.label,
+              solverPolicy: policy,
+              explanation: 'Compare your action with the canonical policy distribution for this exact cached decision.',
+          });
+          question = policyService.attachToQuestion(question, 'spot-drill');
+          if (!isTrainingQuestionValid(question)) {
+              return res.status(200).json({
+                  success: false, error: 'Spot failed the training integrity audit - retry', retry: true,
+              });
+          }
+
+          let servedQuestion;
+          try {
+              [servedQuestion] = await persistCanonicalTrainingQuestions(getSupabase(), {
+                  questions: [question],
+                  gameId: 'spot-trainer',
+                  questionKind: 'PIO',
+                  gameType: String(spot.game_type || '').includes('mtt') ? 'tournament' : 'cash',
+                  level: 1,
+                  userId: user.id,
+                  requestId: randomUUID(),
+                  label: 'SpotDrill:canonicalize',
+              });
+          } catch (canonicalizeError) {
+              console.warn('[SpotDrill] Refusing to serve an uncanonicalized question:', canonicalizeError.message);
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
+          const actionIdByLabel = Object.fromEntries(
+              servedQuestion.solverPolicy.actions.map((action) => [action.label, action.id]),
+          );
 
           return res.status(200).json({
               success: true,
               spot: {
-                  id: spot.id,
+                  id: servedQuestion.id,
                   board,
                   street: getStreetFromBoard(board),
                   heroPosition: extractPositionFromHash(spot.scenario_hash),
@@ -160,10 +193,14 @@ export default async function handler(req, res) {
                   gameType: spot.game_type,
                   heroHand: randomHand,
                   gtoAction: correct.label,
+                  gtoActionId: correct.id,
                   gtoFrequency: Math.round(correct.frequency * 1000) / 10,
                   actionBreakdown: displayBreakdown,
-                  options,
-                  solverPolicy: policyService.consumerEnvelope(answer, 'spot-drill'),
+                  options: options.map((option) => option.text),
+                  actionIdByLabel,
+                  solverPolicy: servedQuestion.solverPolicy,
+                  policyChecksum: servedQuestion.policyChecksum,
+                  sourceClassification: servedQuestion.sourceClassification,
               },
           });
 

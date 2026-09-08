@@ -928,21 +928,78 @@ def scrape_pokernews(mgr: SeriesSessionManager, known_keys: set) -> list:
 # ──────────────────────────────────────────────────────────────────────────────
 # DB INSERT
 # ──────────────────────────────────────────────────────────────────────────────
+def series_uid_for(name: str) -> str:
+    """A stable id for a discovered series, reproducible across re-scrapes.
+
+    `poker_series.series_uid` is the unique key the upsert conflicts on, so it
+    must be derived from CONTENT only. Anything derived from parse ordering
+    turns every re-scrape into a duplicate INSERT instead of an UPDATE - the
+    same reasoning as `stable_event_uid` in poker_series_scraper.py.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:80]
+    return f"disc_{slug}" if slug else f"disc_{hashlib.md5((name or '').encode()).hexdigest()[:12]}"
+
+
 def insert_new_series(items: list) -> int:
+    """Record newly discovered series.
+
+    ── THIS HAS NEVER INSERTED A ROW (fixed 2026-09-07) ─────────────────────
+    It wrote to `poker_venues` with `on_conflict="name"`, and `poker_venues`
+    has no unique constraint on `name` alone - its uniqueness is
+    (name, city, state), because two venues legitimately share a name in
+    different cities. Every call therefore died with Postgres 42P10, "there is
+    no unique or exclusion constraint matching the ON CONFLICT specification",
+    four times per run.
+
+    And the 42P10 was MASKING a second, deeper problem: `poker_venues.city` and
+    `.state` are NOT NULL with no default, and this payload carries neither. So
+    even with a valid conflict target the insert could not have succeeded. The
+    77 rows in that table with `venue_type='series'` were all written by other
+    paths; not one came from here.
+
+    The real fault is that a poker series is not a venue. `poker_series` exists,
+    `poker_series_scraper.py` already upserts into it on `series_uid`, and every
+    column this discovery pass can actually fill is nullable there. Writing a
+    discovered series name into `poker_venues` would have meant inventing a city
+    and a state for something that has neither, to satisfy a constraint that is
+    correct.
+
+    Nothing is lost by the change of table: since this function has never
+    written a row, there is no history in `poker_venues` to migrate.
+    """
     if not items:
         return 0
     records = [{
-        "name": item["name"],
-        "venue_type": "series",
-        "is_active": True,
-        "has_tournaments": True,
-        "data_quality": "scraped_verified",
+        "series_uid": series_uid_for(item["name"]),
+        "series_name": item["name"],
+        # `data_quality` is the only other NOT NULL column on poker_series, and
+        # it carries a CHECK constraint — `chk_poker_series_data_quality` allows
+        # exactly {scraped_verified, scraped_inferred, manual_research, stale,
+        # expired}. A first draft of this used "discovered", which would have
+        # been rejected on every row and simply replaced the 42P10 with a 23514.
+        #
+        # `scraped_inferred` is the honest member of that set for this pass: it
+        # has seen a NAME and a URL and INFERRED that a series exists, having
+        # confirmed nothing about dates, venue or events. `scraped_verified` is
+        # what poker_series_scraper.py writes once it has actually read them,
+        # and it must stay stronger than this.
+        "data_quality": "scraped_inferred",
         "source": item.get("scrape_source", "discovery_v3"),
-        "scrape_source": item.get("scrape_source", "discovery_v3"),
+        "source_url": item.get("source_url"),
+        "scrape_url": item.get("source_url"),
+        "scrape_status": "pending",
+        "events_scraped": False,
+        # NOT OPTIONAL. `enforce_scrape_provenance()` is a BEFORE trigger on
+        # poker_series and raises P0001 - "CRITICAL VIOLATION: Cannot
+        # insert/update without scrape_html_hash and scrape_timestamp
+        # (15-Layer Scrapling Web Scraper Integrity Standard)" - on any row
+        # missing either. Both columns are NOT NULL besides. The original
+        # payload carried them; a first draft of this rewrite dropped them and
+        # would have traded the 42P10 for a P0001 on every row.
         "scrape_html_hash": item.get("scrape_html_hash", ""),
         "scrape_timestamp": item.get("scrape_timestamp", STARTED),
     } for item in items]
-    return sb_upsert("poker_venues", records, on_conflict="name")
+    return sb_upsert("poker_series", records, on_conflict="series_uid")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1098,17 +1155,18 @@ def main():
     inserted = 0
     if clean and not dry_run:
         log.info(f"\n💾 Inserting {len(clean)} new series…")
-        inserted = sb_upsert("poker_venues", [{
-            "name": s["name"],
-            "venue_type": "series",
-            "is_active": True,
-            "has_tournaments": True,
-            "data_quality": "scraped_verified",
-            "source": s.get("scrape_source", "discovery_v3"),
-            "scrape_source": s.get("scrape_source", "discovery_v3"),
-            "scrape_html_hash": s.get("scrape_html_hash", ""),
-            "scrape_timestamp": s.get("scrape_timestamp", STARTED),
-        } for s in clean], on_conflict="name")
+        # ── THE LIVE PATH, AND IT WAS THE ONE LEFT BROKEN (2026-09-07) ──────
+        # An earlier pass fixed `insert_new_series()` — a function NOTHING
+        # calls — and left this inline copy, which is what actually runs, still
+        # upserting `poker_venues ON CONFLICT (name)`. That constraint does not
+        # exist (the real one is `(name, city, state)`), so every run raised
+        # 42P10; and `city`/`state` are NOT NULL with no default and are absent
+        # here, so it could not have inserted even with a valid target.
+        #
+        # Fixing dead code and declaring the bug closed is worse than not
+        # fixing it, because the tests then pass over the broken path. There is
+        # ONE implementation now and this is the caller.
+        inserted = insert_new_series(clean)
         log.info(f"  ✅ Inserted: {inserted}")
     elif dry_run:
         log.info(f"\n[DRY RUN] Would insert: {len(clean)}")

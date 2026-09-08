@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { randomUUID } from 'node:crypto';
 /**
  * BATCH QUESTION PRE-LOADER — API Endpoint
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -31,6 +32,13 @@ import {
     trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
 import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import {
+    buildTrainingCacheRow,
+    cacheQuestionFromRow,
+    cacheRowIsServingEligible,
+    recordTrainingQuestionsServed,
+    withPersistedCacheReceipt,
+} from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
 function hashSeed(str) {
@@ -123,9 +131,10 @@ export default async function handler(req, res) {
           // Fetch questions from cache (over-fetch so seen-filtering has room)
           const { data: questions, error } = await getSupabase()
               .from('training_question_cache')
-              .select('id, question_data, engine_type')
+              .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
               .eq('game_id', gameId)
               .eq('level', gameLevel)
+              .in('quality_status', ['active', 'active_fallback'])
               .limit(Math.max(100, questionCount * 3));
 
           if (error) {
@@ -146,8 +155,11 @@ export default async function handler(req, res) {
           // rows per level, 25 > the 20 a session asks for, and the engine
           // branch below never ran. Games that declare no street are untouched.
           const declaredCfg = pioQueryService.getGameConfig(gameId);
+          const hydratedCacheRows = (questions || [])
+              .map((row) => ({ ...row, question_data: cacheQuestionFromRow(row) }))
+              .filter((row) => cacheRowIsServingEligible(row));
           const contractedRows = filterCachedRowsForGame(
-              (questions || []).slice(0, questionCount * 3),
+              hydratedCacheRows.slice(0, questionCount * 3),
               declaredCfg,
           );
           // An explicit street target is a hard training contract, not a hint.
@@ -283,9 +295,16 @@ export default async function handler(req, res) {
 
           // ●●● ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ●●●
           const policyService = new SolverPolicyService({ db: getSupabase() });
+          const originalCacheRowByQuestionId = new Map(cachedQuestions.flatMap((row) => {
+              const ids = [row?.question_id, row?.question_data?.id]
+                  .filter(Boolean)
+                  .map(String);
+              return ids.map((id) => [id, row]);
+          }));
           const enrichedBatch = batch.map(q => {
               const qData = q.question_data;
               if (!qData) return null; // Skip null entries
+              if (q.question_id) qData.id = q.question_id;
 
               // The payload type is authoritative here. Some historical chart
               // rows were stored under the generic PIO engine label, so
@@ -502,50 +521,154 @@ export default async function handler(req, res) {
           // reader sanitizes and discloses them in memory, so leaving the old
           // unsanitized row untouched made record-question reject the answer as
           // expired even though this endpoint had just served it.
-          const generatedIds = new Set(solverQuestions
-              .map(q => q?.question_data?.id)
-              .filter(Boolean)
-              .map(id => String(id).slice(0, 180)));
+          if (enrichedBatch.some((question) => !question?.id)) {
+              return res.status(422).json({
+                  success: false,
+                  error: 'A canonical identifier is required for every training question.',
+              });
+          }
+          const uniqueQuestionIds = new Set(enrichedBatch.map((question) => String(question.id)));
+          if (uniqueQuestionIds.size !== enrichedBatch.length) {
+              return res.status(422).json({
+                  success: false,
+                  error: 'Duplicate canonical question identifiers were generated for this batch.',
+              });
+          }
+          /* ═══ ONE UNBUILDABLE QUESTION MUST NOT 500 THE WHOLE BATCH ══════
+           *
+           * (2026-09-07) `buildTrainingCacheRow` throws on six separate
+           * conditions — a mismatched answer key, an option set that disagrees
+           * with the distribution, a missing canonical identifier. This block
+           * sat OUTSIDE the try below, so a single bad row out of ~25 threw
+           * straight to the handler's outer catch and answered
+           * `500 Internal server error` for the entire request.
+           *
+           * That 500 was terminal for the player, because the client's
+           * "fallback" called this same route (see the note in
+           * `useGTOTrainer.fetchSingleQuestion`). One bad question therefore
+           * bricked the whole GTO arena until a page reload, showing
+           * `Loading Solver Data...` on a permanently disabled button.
+           *
+           * A question that cannot be canonicalised is dropped from the
+           * PERSISTENCE pass and reported, not served silently and not allowed
+           * to take the other twenty-four with it. It is still excluded from
+           * `servedBatch` below by the existing quality gate, so nothing
+           * unverified reaches a player — this only stops one bad row being
+           * an outage.
+           */
+          const canonicalizeFailures = [];
           const canonicalRows = Array.from(new Map(enrichedBatch
-                  .filter(q => q?.id)
-                  .map(q => [String(q.id).slice(0, 180), {
-                      question_id: String(q.id).slice(0, 180),
-                      game_id: gameId,
-                      engine_type: String(gameId).startsWith('psy-') ? 'SCENARIO'
-                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
-                      game_type: String(gameId).startsWith('mtt-') ? 'tournament'
-                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
-                      level: gameLevel,
-                      question_data: q,
-                  }])).values());
-              const cachedCanonicalRows = canonicalRows.filter(row => !generatedIds.has(row.question_id));
-              const generatedCanonicalRows = canonicalRows
-                  .filter(row => generatedIds.has(row.question_id))
-                  .map(row => ({ ...row, times_used: 1 }));
+                  .map(q => {
+                      const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
+                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
+                      const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
+                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
+                      const original = originalCacheRowByQuestionId.get(String(q.id));
+                      try {
+                          const row = buildTrainingCacheRow({
+                              question: q,
+                              questionId: original?.question_id || q.id,
+                              gameId,
+                              questionKind,
+                              gameType,
+                              level: gameLevel,
+                              generatedAt: original?.generated_at || new Date().toISOString(),
+                              id: original?.id || null,
+                          });
+                          return [row.question_id, row];
+                      } catch (rowError) {
+                          canonicalizeFailures.push({
+                              questionId: String(original?.question_id || q.id),
+                              reason: String(rowError?.message || rowError).slice(0, 200),
+                          });
+                          return null;
+                      }
+                  })
+                  .filter(Boolean)).values());
+
+          if (canonicalizeFailures.length > 0) {
+              console.warn(
+                  `[BatchPreload] ${canonicalizeFailures.length} of ${enrichedBatch.length} ` +
+                  `question(s) could not be canonicalised and were dropped from the persistence ` +
+                  `pass: ${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
+              );
+          }
+              /* ═══ ONLY CANONICALISED QUESTIONS ARE SERVED (2026-09-07) ══════
+               *
+               * Dropping unbuildable rows from the persistence pass was right;
+               * leaving `servedBatch = enrichedBatch` was not, and it opened a
+               * hole in the middle of a change series titled "enforce truthful
+               * cache provenance":
+               *
+               *   - `servedBatch` mapped over the FULL enriched batch while
+               *     `canonicalRows` was filtered, so `withPersistedCacheReceipt`
+               *     was handed `undefined` for any dropped question and threw -
+               *     turning "one bad row out of 25" into a 503 for all 25,
+               *     which is exactly what this was supposed to stop.
+               *   - Worse, if EVERY row was unbuildable then `canonicalRows`
+               *     was empty, the whole block was skipped, and the raw batch
+               *     went out with `success: true` and no persistence, no
+               *     receipt and no provenance at all.
+               *
+               * A question that cannot be canonicalised is not served. The
+               * batch is short, the client keeps the ones that are real, and a
+               * batch with nothing left in it is a 503 rather than a lie.
+               */
+              const canonicalIds = new Set(canonicalRows.map((row) => String(row.question_id)));
+              const servableBatch = enrichedBatch.filter((q) => {
+                  const original = originalCacheRowByQuestionId.get(String(q.id));
+                  return canonicalIds.has(String(original?.question_id || q.id));
+              });
+
+              if (servableBatch.length === 0) {
+                  console.warn(
+                      `[BatchPreload] every question in the batch failed to canonicalise ` +
+                      `(${canonicalizeFailures.length} of ${enrichedBatch.length}); refusing to ` +
+                      'serve unverified questions'
+                  );
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+
+              let servedBatch = servableBatch;
               if (canonicalRows.length > 0) {
                   try {
-                    await Promise.all([
-                      cachedCanonicalRows.length > 0
-                          ? runTrainingPersistenceQuery(
-                              () => getSupabase().from('training_question_cache')
-                                  .upsert(cachedCanonicalRows, {
-                                      onConflict: 'question_id',
-                                      defaultToNull: false,
-                                  }),
-                              { label: 'BatchPreload:canonicalize-cached' },
-                            )
-                          : Promise.resolve({ error: null }),
-                      generatedCanonicalRows.length > 0
-                          ? runTrainingPersistenceQuery(
-                              () => getSupabase().from('training_question_cache')
-                                  .upsert(generatedCanonicalRows, {
-                                      onConflict: 'question_id',
-                                      defaultToNull: false,
-                                  }),
-                              { label: 'BatchPreload:canonicalize-generated' },
-                            )
-                          : Promise.resolve({ error: null }),
-                    ]);
+                    const persisted = await runTrainingPersistenceQuery(
+                        () => getSupabase().from('training_question_cache')
+                            .upsert(canonicalRows, {
+                                onConflict: 'question_id',
+                                defaultToNull: false,
+                            })
+                            .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
+                        { label: 'BatchPreload:canonicalize' },
+                    );
+                    const receiptByQuestionId = new Map(
+                        (persisted.data || []).map((row) => [row.question_id, row]),
+                    );
+                    if (receiptByQuestionId.size !== canonicalRows.length) {
+                        throw new Error('Database did not return one canonical receipt per question');
+                    }
+                    const canonicalByQuestionId = new Map(
+                        canonicalRows.map((row) => [row.question_id, row.question_data]),
+                    );
+                    // `servableBatch`, not `enrichedBatch`: a dropped question
+                    // has no canonical row and no receipt, so mapping it here
+                    // hands `withPersistedCacheReceipt` two undefineds.
+                    servedBatch = servableBatch.map((question) => {
+                        const original = originalCacheRowByQuestionId.get(String(question.id));
+                        const questionId = String(original?.question_id || question.id);
+                        return withPersistedCacheReceipt(
+                            canonicalByQuestionId.get(questionId),
+                            receiptByQuestionId.get(questionId),
+                        );
+                    });
+                    await recordTrainingQuestionsServed(getSupabase(), {
+                        requestId: randomUUID(),
+                        userId: _authUser.id,
+                        receipts: canonicalRows.map((row) => ({
+                            questionId: row.question_id,
+                            policyChecksum: receiptByQuestionId.get(row.question_id)?.policy_checksum,
+                        })),
+                    });
                   } catch (canonicalizeError) {
                       console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
                       return res.status(503).json(trainingPersistenceUnavailableBody());
@@ -557,8 +680,8 @@ export default async function handler(req, res) {
               success: true,
               gameId,
               level: gameLevel,
-              count: enrichedBatch.length,
-              questions: enrichedBatch
+              count: servedBatch.length,
+              questions: servedBatch
           });
 
       } catch (err) {

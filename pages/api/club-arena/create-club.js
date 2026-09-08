@@ -75,7 +75,6 @@ export default async function handler(req, res) {
                   user_id: user.id,
                   role: 'owner',
                   status: 'active',
-                  chip_balance: 0,
                   joined_at: new Date().toISOString(),
               });
 

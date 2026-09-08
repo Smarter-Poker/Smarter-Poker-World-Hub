@@ -423,6 +423,8 @@ for (const world of WORLDS) {
         documentOverflow:
           document.documentElement.scrollWidth - document.documentElement.clientWidth,
         bodyOverflow: getComputedStyle(document.body).overflow,
+        bodyPosition: getComputedStyle(document.body).position,
+        rootOverflow: getComputedStyle(document.documentElement).overflow,
       };
     });
 
@@ -432,7 +434,50 @@ for (const world of WORLDS) {
     expect(Math.abs(metrics.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(metrics.y)).toBeLessThanOrEqual(1);
     expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
-    expect(metrics.bodyOverflow).toBe('hidden');
+    /**
+     * THE CONTRACT IS "THE PAGE CANNOT SCROLL", NOT "overflow === hidden"
+     * (2026-09-07).
+     *
+     * This asserted the literal string `hidden` and went red when PR #1538
+     * added a deliberate, documented rule to
+     * `src/styles/worlds/poker-near-me.css`:
+     *
+     *     body.world-poker-near-me[style*='overflow: hidden'] {
+     *         overflow: clip !important;
+     *     }
+     *
+     * WebKit turns a `hidden` body into a fixed-position containing scroll box,
+     * which breaks that world's drawer geometry; `clip` locks scrolling without
+     * doing so. The same PR taught `src/lib/scrollLock.js` to lock the ROOT
+     * scroller too, precisely because a world may translate the body lock.
+     * `__tests__/scroll-lock.test.mjs` was updated for that; these two
+     * Playwright assertions were not, and only Poker Near Me failed - the other
+     * thirteen worlds still say `hidden`.
+     *
+     * Asserting the contract instead of the keyword survives the next world
+     * that adopts `clip`, and is a STRONGER check than the old one: `clip` on
+     * body alone does NOT stop a standards-mode page scrolling, because the
+     * root element is the scrolling element. So something else must also hold
+     * it, and this pins that something exists. There are exactly two sanctioned
+     * mechanisms in this codebase and the drawer must use one:
+     *
+     *   - `position: fixed` on body with a negative `top` (HamburgerMenu's
+     *     iOS-safe lock, src/components/ui/HamburgerMenu.jsx), which pins the
+     *     page whatever overflow says; or
+     *   - a locked ROOT scroller (src/lib/scrollLock.js, which sets
+     *     documentElement.style.overflow precisely because a world may
+     *     translate the body lock to `clip`).
+     */
+    expect(
+      ['hidden', 'clip'],
+      `body overflow was "${metrics.bodyOverflow}" - the drawer must lock the page`
+    ).toContain(metrics.bodyOverflow);
+    expect(
+      metrics.bodyPosition === 'fixed' || ['hidden', 'clip'].includes(metrics.rootOverflow),
+      `nothing is actually holding the page: body position "${metrics.bodyPosition}", ` +
+        `root overflow "${metrics.rootOverflow}". \`overflow: clip\` on body alone lets a ` +
+        'standards-mode page keep scrolling behind the drawer.'
+    ).toBe(true);
 
     const closeButton = dialog.getByRole('button', { name: 'Close menu' });
     await expect(closeButton).toBeFocused();

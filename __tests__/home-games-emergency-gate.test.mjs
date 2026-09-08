@@ -281,21 +281,27 @@ test('public slug query does not select the secret invite credential', async () 
 test('World roster removal requires a normalized server-authorized membership id', async () => {
   const source = await readFile(rosterPagePath, 'utf8');
   const handler = source.match(/async function handleRemove\(memberId\) \{([\s\S]*?)\n  \}/);
+  const requestHandler = source.match(/function requestRemove\(memberId, displayName\) \{([\s\S]*?)\n  \}/);
 
   assert.ok(handler, 'expected roster removal handler');
+  assert.ok(requestHandler, 'expected roster removal confirmation handler');
   const guard = handler[1].indexOf('if (!normalizedMemberId)');
-  const confirmPrompt = handler[1].indexOf("if (!confirm(");
   const deleteRequest = handler[1].indexOf("method: 'DELETE'");
   assert.ok(guard >= 0, 'missing empty/malformed membership-id guard');
-  assert.ok(confirmPrompt > guard, 'membership id must be validated before confirmation');
-  assert.ok(deleteRequest > confirmPrompt, 'DELETE must happen only after validation');
+  assert.ok(deleteRequest > guard, 'DELETE must happen only after validation');
+  const requestGuard = requestHandler[1].indexOf('if (!normalizedMemberId)');
+  const openDialog = requestHandler[1].indexOf('setRemoveTarget({');
+  assert.ok(requestGuard >= 0, 'confirmation path must normalize the membership id');
+  assert.ok(openDialog > requestGuard, 'membership id must be validated before confirmation');
+  assert.match(requestHandler[1], /id: normalizedMemberId/);
   assert.match(handler[1], /JSON\.stringify\(\{ member_id: normalizedMemberId \}\)/);
   assert.match(source, /\(data\.roster \|\| \[\]\)\.map\(normalizeRosterMember\)/);
   assert.match(source, /row\?\.can_remove === true[\s\S]*Boolean\(memberId\)/);
   assert.match(source, /!\['follower', 'owner', 'host'\]\.includes\(relationship\)/);
   assert.match(source, /!\['owner', 'host'\]\.includes\(role\)/);
   assert.match(source, /\{p\.can_remove && p\.member_id && \(/);
-  assert.match(source, /handleRemove\(p\.member_id\)/);
+  assert.match(source, /requestRemove\(p\.member_id, p\.display_name\)/);
+  assert.match(source, /await handleRemove\(removeTarget\.id\)/);
   assert.doesNotMatch(source, /handleRemove\(p\.member_id \|\| p\.id\)/);
 });
 

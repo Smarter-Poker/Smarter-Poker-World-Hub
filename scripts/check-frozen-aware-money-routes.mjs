@@ -62,7 +62,6 @@ const FREEZE_EXEMPT_RE = /freeze-exempt:/;
 /** Routes that predate the check. Shrink only. */
 const BASELINE = new Set([
   'agent-analytics.js',
-  'agent-credit.js',
   'agent-dashboard.js',
   'auto-close-tables.js',
   'cashier-info.js',
@@ -76,13 +75,10 @@ const BASELINE = new Set([
   'horse-launch.js',
   'join-club.js',
   'leave-club.js',
-  'manage-agent.js',
   'manage-union.js',
   'mint-chips.js',
   'player-chip-flow.js',
-  'player-retention.js',
   'player-sessions.js',
-  'promo-wallet.js',
   'rakeback.js',
   'request-cashout.js',
   'settle-period.js',

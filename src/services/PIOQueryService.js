@@ -83,8 +83,9 @@ export class PIOQueryService {
             console.debug(`[PIO] Querying memory_charts_gold for ${gameConfig.id}`);
 
             const data = await this.policy.readChartRows({
+                gameType: 'Tournament',
                 stackDepth: gameConfig.pioStackDepth,
-                limit: 5,
+                limit: 20,
             });
 
             if (!data || data.length === 0) {
@@ -114,6 +115,7 @@ export class PIOQueryService {
 
     transformPolicyRecord(record) {
         const scenario = record.metadata;
+        const answer = this.policy.answerFromRecord(record, record.defaultKey, { mode: 'aggregate' });
         return {
             id: scenario.id,
             scenarioHash: scenario.scenario_hash,
@@ -123,7 +125,7 @@ export class PIOQueryService {
             gameType: scenario.game_type,
             strategies: record.matrix,
             handEVs: record.matrix.hand_evs || {},
-            policy: this.policy.answerFromRecord(record, record.defaultKey, { mode: 'aggregate' }),
+            policy: this.policy.consumerEnvelope(answer, 'get-question'),
         };
     }
 
@@ -166,15 +168,28 @@ export class PIOQueryService {
      * is in canonical {push: x, fold: y} object form.
      */
     transformChartData(rawData) {
-        return rawData.map(chart => ({
-            id: chart.chart_id,
-            chartName: `${chart.game_type} ${chart.hero_position} ${chart.stack_depth}bb`,
-            gameType: chart.game_type,
-            stackDepth: chart.stack_depth,
-            heroPosition: chart.hero_position,
-            villainAction: chart.villain_action,
-            handMatrix: chart.hand_matrix || {},
-        }));
+        return rawData.map(chart => {
+            const answer = this.policy.answerFromChart(chart, {}, { mode: 'aggregate' });
+            const policy = this.policy.consumerEnvelope(answer, 'get-question');
+            const sourceAction = chart.villain_action === 'sb_push' ? 'call' : 'push';
+            const canonicalAction = sourceAction === 'call' ? 'call' : 'all_in';
+            const handMatrix = Object.fromEntries(
+                Object.entries(policy.rangeDistribution || {}).map(([hand, mix]) => [hand, {
+                    [sourceAction]: mix[canonicalAction] || 0,
+                    fold: mix.fold || 0,
+                }])
+            );
+            return {
+                id: chart.chart_id,
+                chartName: `${chart.game_type} ${chart.hero_position} ${chart.stack_depth}bb`,
+                gameType: chart.game_type,
+                stackDepth: chart.stack_depth,
+                heroPosition: chart.hero_position,
+                villainAction: chart.villain_action,
+                handMatrix,
+                policy,
+            };
+        });
     }
 
     /**

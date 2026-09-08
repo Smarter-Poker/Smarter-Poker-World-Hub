@@ -190,6 +190,17 @@ for (const world of NON_SOCIAL_WORLDS) {
     expect(viewportPolicy || '').not.toMatch(/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:\.0)?(?:\D|$)/i);
     const { trigger, drawer } = await openMenu(page, world);
 
+    if (world.id === 'trivia') {
+      const approvedTrigger = page.locator('[data-world-menu-trigger="approved-header"]');
+      await expect(approvedTrigger).toHaveAttribute('aria-expanded', 'true');
+      // WorldCommandDock admits a fallback only after a 750ms absence check.
+      // Hold beyond that boundary so a missed header/drawer state handoff cannot
+      // pass as a transiently healthy frame.
+      await page.waitForTimeout(900);
+      await expect(approvedTrigger).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(0);
+    }
+
     await assertContained(page, drawer);
     await assertModalIsolation(page, drawer);
     await assertMobileSizing(drawer);

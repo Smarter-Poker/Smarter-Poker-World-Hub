@@ -417,8 +417,27 @@ export default function useGTOTrainer(
   }, [trainerConfig]);
 
   /**
-   * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
-   * Eliminates all Grok AI dependency — pure solver data only
+   * FALLBACK: fetch ONE question from the independent single-question route.
+   *
+   * ── A FALLBACK THAT CALLS THE ROUTE IT IS FALLING BACK FROM IS NOT ONE ────
+   * (2026-09-07)
+   *
+   * This hit `/api/training/batch-preload?count=1` — the exact route
+   * `preloadAllQuestions` had just failed on. So there was no second source at
+   * all: any failure of batch-preload, for any reason, killed the lobby. The
+   * user sees `Loading Solver Data...` on a permanently disabled button,
+   * because `GodModeArena` only flips `splashReady` when `currentQuestion`
+   * arrives, and on this path `setError` runs while `setCurrentQuestion` never
+   * does. There is no timeout and no retry after it: the arena is simply dead
+   * until the page is reloaded.
+   *
+   * The comment above this function had said "requests one hand at a time"
+   * since it was written, which describes `/api/training/get-question` — a
+   * complete, independent route with its own engine path. The client stopped
+   * calling it in #961 (2026-08-29) and nothing has called it since, so the
+   * promise in the comment quietly became false while the code kept its shape.
+   *
+   * `get-question` returns `{ question }` (singular), not `{ questions: [] }`.
    */
   const fetchSingleQuestion = useCallback(async (levelOverride = null) => {
     if (!gameId) return;
@@ -432,10 +451,9 @@ export default function useGTOTrainer(
       const params = new URLSearchParams({
         gameId,
         level: effectiveLevel.toString(),
-        count: '1',
       });
 
-      const response = await authedFetch(`/api/training/batch-preload?${params}`);
+      const response = await authedFetch(`/api/training/get-question?${params}`);
 
       // Safe JSON parsing
       let data;
@@ -447,11 +465,11 @@ export default function useGTOTrainer(
         throw new Error(`Server error (${response.status})`);
       }
 
-      if (!response.ok || !data.questions || data.questions.length === 0) {
+      if (!response.ok || !data.question) {
         throw new Error(data.error || 'No solver data available');
       }
 
-      setCurrentQuestion(applyDifficultyToQuestion(data.questions[0], resolveDifficultyMode()));
+      setCurrentQuestion(applyDifficultyToQuestion(data.question, resolveDifficultyMode()));
     } catch (err) {
       console.warn('[GTOTrainer] Fetch error:', err);
       setError(err.message);
@@ -481,6 +499,7 @@ export default function useGTOTrainer(
       if (isCustomTrainerConfig(trainerConfig)) {
         // CUSTOM TRAINER MODE — use custom-train API with detailed config
         params = new URLSearchParams({
+          gameId,
           gameType: trainerConfig.gameType || 'cash',
           stackDepth: (trainerConfig.stackDepth || 100).toString(),
           count: (trainerConfig.questionsCount || effectiveQuestionsPerLevel).toString(),
@@ -734,6 +753,7 @@ export default function useGTOTrainer(
               userId,
               gameId,
               questionId,
+              policyChecksum: spotMeta.policyChecksum || null,
               submissionId,
               selectedAnswer,
               isCorrect,
@@ -867,6 +887,10 @@ export default function useGTOTrainer(
         frequencyDiff: moveResult.frequencyDiff,
         isRealData: moveResult.isRealData || false,
         handData: {
+          // Database completion telemetry keys off the canonical cache id.
+          // Persist it in the flat hand-history envelope so the session insert
+          // trigger can account for completed questions atomically.
+          questionId: currentQuestion.id,
           // Stable per-hand id so multi-street decisions count as ONE hand.
           //
           // roadmap #28a — this used to read `currentQuestion.id` first, which
@@ -895,6 +919,10 @@ export default function useGTOTrainer(
           gtoFrequencies: frequencies || {},
           solverVerified,
           dataQuality: currentQuestion.dataQuality || null,
+          sourceClassification: currentQuestion.sourceClassification || null,
+          policyVersion: currentQuestion.solverPolicy?.policyVersion || null,
+          policyChecksum: currentQuestion.policyChecksum || null,
+          sourceChecksum: currentQuestion.solverPolicy?.sourceArtifact?.sourceArtifactChecksum || null,
           evLossMeasured: Boolean(moveResult.isRealData),
           // ═══ PHASE 20: Raw solver matrix for RangeGrid display ═══
           rawFrequencies: currentQuestion.rawFrequencies || null,
@@ -1425,6 +1453,7 @@ export default function useGTOTrainer(
         classification: moveResult.classification,
         evLoss: moveResult.evLoss,
         spotType,
+        policyChecksum: currentQuestion.policyChecksum || null,
       });
       pendingAnswerPersistenceRef.current = persistence;
     },
@@ -3469,5 +3498,9 @@ export default function useGTOTrainer(
     retryLevel,
     retrainMistakes,
     resetGame,
+    // Retry the initial question load. Exposed 2026-09-07 so the lobby can
+    // offer a way out of a failed load instead of showing "Loading Solver
+    // Data..." on a dead button until the page is reloaded.
+    reloadQuestions: preloadAllQuestions,
   };
 }

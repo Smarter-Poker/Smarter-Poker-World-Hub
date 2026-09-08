@@ -24,6 +24,11 @@ import {
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import PokerNearMeFamilyNav from '../../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import {
+  fetchAllHomeGameDirectoryRows,
+  fetchHomeGameGroupsInChunks,
+  homeGameDirectoryUnavailable,
+} from '../../../../../src/lib/home-games/geoDirectoryServer.mjs';
 
 // Phase 18 auto-hide window, mirrored from /api/public/home-games/discover.
 const HOME_GROUP_INACTIVITY_DAYS = 45;
@@ -105,25 +110,32 @@ async function countVisibleGamesByState(supabase, codes) {
   const counts = new Map();
   if (!codes || codes.length === 0) return counts;
 
-  const { data: nPages, error: nErr } = await supabase
+  const pageResult = await fetchAllHomeGameDirectoryRows((from, to) => supabase
     .from('social_pages')
-    .select('location_state, linked_entity_id')
+    .select('id, location_state, linked_entity_id')
     .eq('page_type', 'home_game')
     .eq('is_public', true)
-    .in('location_state', codes);
-  if (nErr || !nPages || nPages.length === 0) return counts;
+    .in('location_state', codes)
+    .order('id', { ascending: true })
+    .range(from, to));
+  if (pageResult.error || !pageResult.complete) {
+    throw pageResult.error || new Error('Neighbor home game query was incomplete');
+  }
+  const nPages = pageResult.rows;
+  if (nPages.length === 0) return counts;
 
-  const groupIds = Array.from(
-    new Set(nPages.map(p => p.linked_entity_id).filter(Boolean).map(String))
-  );
-  const groupMap = {};
-  for (let i = 0; i < groupIds.length; i += GROUP_ID_CHUNK) {
-    const { data: groups } = await supabase
+  const groupResult = await fetchHomeGameGroupsInChunks(
+    nPages.map(p => p.linked_entity_id).filter(Boolean),
+    (ids) => supabase
       .from('commander_home_groups')
       .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
-      .in('id', groupIds.slice(i, i + GROUP_ID_CHUNK));
-    for (const g of groups || []) groupMap[String(g.id)] = g;
+      .in('id', ids),
+    { chunkSize: GROUP_ID_CHUNK },
+  );
+  if (groupResult.error || !groupResult.complete) {
+    throw groupResult.error || new Error('Neighbor home game group query was incomplete');
   }
+  const groupMap = Object.fromEntries(groupResult.rows.map(g => [String(g.id), g]));
 
   for (const p of nPages) {
     if (!isGroupPubliclyVisible(groupMap[String(p.linked_entity_id)])) continue;
@@ -155,11 +167,32 @@ export async function getServerSideProps({ params, res }) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(url, key);
+  const unavailableProps = {
+    stateCode: code,
+    stateName: stateCodeToName(code),
+    stateSlug: stateCodeToSlug(code),
+    games: [],
+    cities: [],
+    neighborStates: [],
+  };
+  // Match the query failure path when credentials are unavailable. Supabase's
+  // constructor throws before it can return an error object, so this explicit
+  // guard prevents a framework 500 while preserving the canonical state page.
+  if (!url || !key) {
+    console.warn(`[home-games/in/${code}] Supabase configuration unavailable`);
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
+  let supabase;
+  try {
+    supabase = createClient(url, key);
+  } catch (error) {
+    console.warn(`[home-games/in/${code}] Supabase client creation failed:`, error?.message || error);
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
 
   // Fetch public home_game social_pages + join to commander_home_groups
   // via linked_entity_id for stakes/frequency/member_count/coords.
-  const { data: pages, error } = await supabase
+  const pageResult = await fetchAllHomeGameDirectoryRows((from, to) => supabase
     .from('social_pages')
     .select(`
       id,
@@ -179,30 +212,39 @@ export async function getServerSideProps({ params, res }) {
     // social_pages.slug is nullable. A null slug produced cards and JSON-LD
     // ListItems pointing at /hub/home-games/null, which the public API 404s.
     .not('slug', 'is', null)
-    .eq('location_state', code);
+    .eq('location_state', code)
+    .order('id', { ascending: true })
+    .range(from, to));
 
-  if (error) {
-    console.warn(`[home-games/in/${code}] fetch failed:`, error.message);
-    // stateSlug must be present even on the failure path — the canonical URL
-    // and every city link are built from it.
-    return { props: { stateCode: code, stateName: stateCodeToName(code), stateSlug: stateCodeToSlug(code), games: [], cities: [], neighborStates: [] } };
+  if (pageResult.error || !pageResult.complete) {
+    console.warn(`[home-games/in/${code}] fetch failed:`, pageResult.error?.message || 'incomplete response');
+    return homeGameDirectoryUnavailable(res, unavailableProps);
   }
+  const pages = pageResult.rows;
 
   // Fetch matching groups for the enrichment (stakes, frequency, etc.)
-  const groupIds = (pages || []).map(p => p.linked_entity_id).filter(Boolean);
+  const groupIds = pages.map(p => p.linked_entity_id).filter(Boolean);
   let groupMap = {};
   if (groupIds.length > 0) {
-    const { data: groups } = await supabase
-      .from('commander_home_groups')
-      // PRIVACY (audit 2026-08-12, finding C-2): latitude/longitude are
-      // deliberately NOT selected. They are a host's home address, they were
-      // never rendered by this page, and Next.js serialises every prop into
-      // __NEXT_DATA__ in the HTML — so selecting them published raw home
-      // coordinates on a page built specifically to be crawled and cached.
-      // Do not re-add them.
-      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, is_active, is_private, last_activity_at, created_at, visibility_override_until')
-      .in('id', groupIds);
-    groupMap = Object.fromEntries((groups || []).map(g => [String(g.id), g]));
+    const groupResult = await fetchHomeGameGroupsInChunks(
+      groupIds,
+      (ids) => supabase
+        .from('commander_home_groups')
+        // PRIVACY (audit 2026-08-12, finding C-2): latitude/longitude are
+        // deliberately NOT selected. They are a host's home address, they were
+        // never rendered by this page, and Next.js serialises every prop into
+        // __NEXT_DATA__ in the HTML, so selecting them published raw home
+        // coordinates on a page built specifically to be crawled and cached.
+        // Do not re-add them.
+        .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+        .in('id', ids),
+      { chunkSize: GROUP_ID_CHUNK },
+    );
+    if (groupResult.error || !groupResult.complete) {
+      console.warn(`[home-games/in/${code}] group fetch failed:`, groupResult.error?.message || 'incomplete response');
+      return homeGameDirectoryUnavailable(res, unavailableProps);
+    }
+    groupMap = Object.fromEntries(groupResult.rows.map(g => [String(g.id), g]));
   }
 
   const games = (pages || [])
@@ -249,7 +291,13 @@ export async function getServerSideProps({ params, res }) {
   // Neighbouring states that actually have something to show. Bounded to the
   // adjacency list (at most 8 codes), so this is a cheap pair of queries.
   const neighborCodes = (NEIGHBOR_STATES[code] || []).filter(c => US_STATES_BY_CODE[c] && c !== code);
-  const neighborCounts = await countVisibleGamesByState(supabase, neighborCodes);
+  let neighborCounts;
+  try {
+    neighborCounts = await countVisibleGamesByState(supabase, neighborCodes);
+  } catch (error) {
+    console.warn(`[home-games/in/${code}] neighbor fetch failed:`, error?.message || error);
+    return homeGameDirectoryUnavailable(res, unavailableProps);
+  }
   const neighborStates = neighborCodes
     .filter(c => (neighborCounts.get(c) || 0) > 0)
     .map(c => ({
@@ -267,6 +315,7 @@ export async function getServerSideProps({ params, res }) {
       games,
       cities,
       neighborStates,
+      directoryUnavailable: false,
     },
   };
 }
@@ -297,7 +346,6 @@ function GameCard({ game, stateSlug }) {
         {/* Cover */}
         <div className="relative aspect-[16/9] bg-gradient-to-br from-[#1E293B] to-[#0D192E] overflow-hidden">
           {game.cover_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={game.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -351,9 +399,18 @@ function GameCard({ game, stateSlug }) {
 // stateCode is still supplied by getServerSideProps (canonical URL / analytics)
 // but is no longer read here — the sidebar now uses the pre-resolved
 // neighborStates list instead of filtering the full state map client-side.
-export default function HomeGamesByState({ stateName, stateSlug, games, cities, neighborStates = [] }) {
+export default function HomeGamesByState({
+  stateName,
+  stateSlug,
+  games,
+  cities,
+  neighborStates = [],
+  directoryUnavailable = false,
+}) {
   const pageTitle = `Poker Home Games in ${stateName} - Cash Games & Tournaments`;
-  const pageDescription = games.length > 0
+  const pageDescription = directoryUnavailable
+    ? `The Poker Home Games directory for ${stateName} is temporarily unavailable. Please try again shortly.`
+    : games.length > 0
     ? `Browse ${games.length} active poker home game${games.length === 1 ? '' : 's'} in ${stateName}. Find weekly cash games, tournaments, and friendly home games across ${cities.length} ${cities.length === 1 ? 'city' : 'cities'}.`
     : `Be the first to host a poker home game in ${stateName}. List your game free while in beta and get discovered by local players.`;
 
@@ -408,7 +465,11 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
       </Head>
 
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
-      <main className="min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white">
+      <main
+        className="pnm-home-geo-page min-h-screen bg-gradient-to-b from-[#0A0F1C] to-[#0D192E] text-white"
+        data-pnm-realism="machined-v2"
+        data-pnm-secondary-foundation="interaction-v1"
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-24">
           {/* Breadcrumbs */}
           <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
@@ -427,7 +488,9 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
               Poker Home Games In <span className="text-[#C4B5FD]">{stateName}</span>
             </h1>
             <p className="text-base text-[#94A3B8] mt-3 max-w-2xl">
-              {games.length > 0 ? (
+              {directoryUnavailable ? (
+                <>The Home Game Directory Is Temporarily Unavailable. Please Try Again Shortly.</>
+              ) : games.length > 0 ? (
                 <>
                   <span className="text-white font-semibold">{games.length}</span> active{' '}
                   {games.length === 1 ? 'game' : 'games'} across{' '}
@@ -464,10 +527,23 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
                   ))}
                 </ul>
               ) : (
-                <div className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center">
-                  <p className="text-[#94A3B8]">
-                    Be The First To Host A Poker Home Game In {stateName}.
-                  </p>
+                <div
+                  className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center"
+                  role={directoryUnavailable ? 'status' : undefined}
+                >
+                  {directoryUnavailable ? (
+                    <>
+                      <h2 className="text-white font-semibold">Directory Data Could Not Be Verified</h2>
+                      <p className="text-[#94A3B8] mt-2">No Listings Have Been Removed. Please Retry In A Moment.</p>
+                      <Link href={`/hub/home-games/in/${stateSlug}`} className="inline-flex mt-4 text-[#C4B5FD] underline hover:text-white">
+                        Retry {stateName}
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="text-[#94A3B8]">
+                      Be The First To Host A Poker Home Game In {stateName}.
+                    </p>
+                  )}
                 </div>
               )}
             </section>
