@@ -131,9 +131,12 @@ test('rule 4: every list ends with keeping the receipt, and never with nothing',
 
 test('the W-2G vault row matches the w2g_forms columns and sums the withholding', () => {
     const row = w2gRowFromReceipt('user-1', W2G, 'https://x.supabase.co/storage/v1/object/public/user-media/user-1/bankroll/1.jpg', '2026-09-08');
+    // The split columns arrived with migration 20260908232953; the total
+    // stays, because every existing reader adds federal and state up.
     assert.deepEqual(Object.keys(row).sort(), [
-        'file_name', 'file_url', 'form_type', 'gross_amount', 'source_description',
-        'tax_year', 'upload_date', 'user_id', 'withholding_amount',
+        'federal_withheld', 'file_name', 'file_url', 'form_type', 'gross_amount',
+        'source_description', 'state_withheld', 'tax_year', 'upload_date', 'user_id',
+        'withholding_amount',
     ]);
     assert.equal(row.tax_year, 2026);
     assert.equal(row.gross_amount, 2140);

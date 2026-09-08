@@ -164,6 +164,9 @@ export function w2gRowFromReceipt(userId, route, imageUrl, today = isoToday()) {
     const federal = toNumber(prefill.federal_withheld);
     const state = toNumber(prefill.state_withheld);
     const withheld = federal === null && state === null ? null : (federal || 0) + (state || 0);
+    // withholding_amount stays the TOTAL, because every existing reader adds
+    // it up that way. The split is kept beside it (migration 20260908232953)
+    // because a return wants the federal and the state figure apart.
     const yearFromDate = /^\d{4}/.test(String(prefill.date || '')) ? Number(String(prefill.date).slice(0, 4)) : null;
     const taxYear = toNumber(prefill.tax_year) || yearFromDate || Number(today.slice(0, 4));
 
@@ -174,6 +177,8 @@ export function w2gRowFromReceipt(userId, route, imageUrl, today = isoToday()) {
         source_description: String(prefill.source_description || prefill.vendor || '').slice(0, 200) || null,
         gross_amount: toNumber(prefill.gross_amount ?? prefill.amount),
         withholding_amount: withheld,
+        federal_withheld: federal,
+        state_withheld: state,
         file_url: imageUrl,
         file_name: fileNameFromUrl(imageUrl),
         upload_date: today,
@@ -285,18 +290,111 @@ export function rankEntriesForReceipt(entries, route) {
         .map((x) => x.e);
 }
 
+/**
+ * The bankroll_ledger row a receipt files DIRECTLY, with no form in between.
+ *
+ * Only for a receipt the router was confident enough to auto-file: the single
+ * receipt path still opens LogEntryModal so a person sees it. This is what
+ * "File All Suggested" writes, so a player who scans five receipts at the end
+ * of a trip taps once instead of five times.
+ *
+ * Returns null whenever a safe row cannot be built - no category, no legible
+ * amount, or a cash out, which CLOSES a session rather than opening one.
+ */
+export function ledgerEntryFromReceipt(route, context = {}) {
+    const prefill = (route && route.prefill) || {};
+    const destination = route && route.destination;
+    const today = context.today || isoToday();
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(prefill.date || '')) && prefill.date <= today ? prefill.date : today;
+
+    const base = {
+        entry_date: date,
+        location_id: context.locationId || null,
+        trip_id: context.tripId || null,
+        media_urls: context.imageUrl ? [context.imageUrl] : null,
+        notes: 'Filed From A Scanned Receipt',
+    };
+
+    if (destination === DESTINATIONS.EXPENSE) {
+        const amount = toNumber(prefill.amount);
+        if (amount === null) return null;
+        return {
+            ...base,
+            category: 'expense',
+            expense_type: prefill.expense_type || 'other',
+            gross_in: Math.abs(amount),
+            gross_out: 0,
+        };
+    }
+
+    if (destination === DESTINATIONS.SESSION) {
+        if (prefill.entryKind === 'cashout') return null;
+        const category = ledgerCategoryFor(route);
+        if (!category) return null;
+        if (category === 'poker_mtt') {
+            const buyIn = toNumber(prefill.buy_in_amount ?? prefill.gross_in);
+            if (buyIn === null) return null;
+            return {
+                ...base,
+                category,
+                gross_in: buyIn,
+                gross_out: 0,
+                buy_in_amount: buyIn,
+                tournament_name: prefill.tournament_name || null,
+                game_type: prefill.game_type || null,
+            };
+        }
+        const grossIn = toNumber(prefill.gross_in ?? prefill.amount);
+        if (grossIn === null) return null;
+        return {
+            ...base,
+            category,
+            gross_in: grossIn,
+            gross_out: 0,
+            stakes: prefill.stakes || null,
+            game_type: prefill.game_type || null,
+        };
+    }
+
+    return null;
+}
+
 /** The `bankroll_receipts` row written the moment a scan completes (rule 4). */
-export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType }) {
+export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType, imageHash }) {
     return {
         user_id: userId,
         image_url: imageUrl,
         document_type: documentType || (route && route.documentType) || 'unknown',
         destination: (route && route.destination) || DESTINATIONS.MANUAL,
         summary: (route && route.summary) || null,
-        route: route ? { destination: route.destination, label: route.label, summary: route.summary, prefill: route.prefill || {} } : null,
+        // autoFile travels with the route so the inbox can act on the router's
+        // verdict later without reading the image again.
+        route: route ? { destination: route.destination, label: route.label, summary: route.summary, prefill: route.prefill || {}, autoFile: route.autoFile === true } : null,
         extracted: extracted || null,
+        image_hash: imageHash || null,
+        confidence: extracted && Number.isFinite(Number(extracted.confidence)) ? Number(extracted.confidence) : null,
+        auto_file: Boolean(route && route.autoFile),
         status: 'unassigned',
     };
+}
+
+/**
+ * The receipts "File All Suggested" would file, and the ones it would leave.
+ *
+ * A W-2G is never in the first list however confident the read: a human
+ * confirms a tax form, always (AUTOFILE_MIN_CONFIDENCE and the W-2G rule).
+ */
+export function partitionForBulkFiling(receipts) {
+    const willFile = [];
+    const willKeep = [];
+    for (const receipt of Array.isArray(receipts) ? receipts : []) {
+        const route = receipt && receipt.route;
+        const auto = receipt && (receipt.auto_file === true || (route && route.autoFile === true));
+        const filable = Boolean(auto) && Boolean(route) && route.destination !== DESTINATIONS.TAX
+            && ledgerEntryFromReceipt(route, { imageUrl: receipt.image_url }) !== null;
+        (filable ? willFile : willKeep).push(receipt);
+    }
+    return { willFile, willKeep };
 }
 
 function toNumber(value) {

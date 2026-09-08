@@ -93,8 +93,21 @@ function extensionFor(contentType) {
  * @param {File}   file
  * @returns {Promise<string>} public URL
  */
+/**
+ * The largest file the vault forms accept.
+ *
+ * The bucket's own limit is 50 GB, which is not a limit for a photograph of a
+ * tax form: a mis-picked video would upload for minutes and then fail
+ * somewhere the user cannot see. The `images` bucket enforced 25 MB, so that
+ * number is kept and said out loud instead.
+ */
+export const BANKROLL_MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
 export async function uploadBankrollFile(supabase, userId, file) {
     const type = String((file && file.type) || 'image/jpeg').toLowerCase();
+    if (file && Number(file.size) > BANKROLL_MAX_UPLOAD_BYTES) {
+        throw new Error('That File Is Too Large. The Limit Is 25 MB.');
+    }
     if (!EXTENSIONS[type]) {
         // The bucket refuses anything outside its allowed_mime_types, with a
         // storage error nobody can act on. Say it in words before it goes up.
