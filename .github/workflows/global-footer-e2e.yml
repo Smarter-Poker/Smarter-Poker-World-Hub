@@ -32,8 +32,47 @@ jobs:
           node-version: '24.12.0'
           cache: npm
 
+
+      # THE COLD INSTALL, EVERY RUN (2026-09-08). `cache: npm` above keeps only
+      # the tarballs; extracting 1,324 packages still happened on every run of
+      # this job. The pattern below is the one already proven in this repo at
+      # build-safety-gate.yml's type-check job on 2026-09-04: 424s -> ~15s.
+      #
+      # The key is SHARED with the other --ignore-scripts jobs in this repo on
+      # purpose. Club Arena kept two deliberately separate node_modules caches
+      # for two jobs installing the identical tree, so neither ever warmed the
+      # other; there is no reason to repeat that here. --ignore-scripts means
+      # no native binaries are built, so the tree is portable between the
+      # self-hosted estate runners and hosted ubuntu.
+      #
+      # The install is SKIPPED on a hit, because `npm ci` deletes node_modules
+      # before installing and would throw the restored tree away.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts
+
+
+      # Playwright browsers were downloaded from scratch on every run - no job
+      # in this repo cached ~/.cache/ms-playwright (verified 2026-09-08: no
+      # match for ms-playwright or PLAYWRIGHT_BROWSERS_PATH in any of the 38
+      # workflow files). The install step still RUNS below rather than being
+      # skipped on a hit: Playwright no-ops when the browser is already on
+      # disk, and that keeps the OS-dependency half of --with-deps honest
+      # instead of trusting a cache to have provided it.
+      - name: Restore Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            pw-wh-${{ runner.os }}-
 
       - name: Install Chromium and WebKit
         run: |
