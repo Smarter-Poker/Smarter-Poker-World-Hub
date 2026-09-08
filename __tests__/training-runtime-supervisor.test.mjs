@@ -252,6 +252,11 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     1,
     'the required PR safety context must run the authority suite exactly once',
   );
+  assert.match(
+    safetyGate,
+    /name: "CHECK 8: Auth-critical files exist"[\s\S]*?node --experimental-vm-modules --test/,
+    'the aggregate safety guard must enable VM modules before importing Phase 6 transport tests',
+  );
   assert.match(safetyGate, /postgresql-17/);
   const postgresInstallBlock = safetyGate.slice(
     safetyGate.indexOf('Install PostgreSQL 17 For Training Authority On Linux Runners'),

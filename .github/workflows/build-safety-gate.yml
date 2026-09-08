@@ -932,7 +932,7 @@ jobs:
             npm install --no-save --no-audit --no-fund --ignore-scripts sharp@0.34 \
               || echo "::warning::could not install sharp; the avatar guard will say so and fail"
           fi
-          node --test \
+          node --experimental-vm-modules --test \
             __tests__/_test-guards-exist.test.mjs \
             __tests__/auth-routes-exist.test.mjs \
             __tests__/signup-hardening.test.mjs \
