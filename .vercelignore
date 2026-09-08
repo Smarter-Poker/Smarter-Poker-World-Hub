@@ -78,6 +78,10 @@ _legacy_sql/
 # The Vercel build runs the compact marketplace contract suite. Keep those
 # exact files in the upload while excluding the rest of the large test tree.
 /__tests__/*
+# Vercel runs the permanent Training authority gate before compiling. Keep
+# every tracked Node contract test so new gate members cannot disappear from a
+# direct Vercel CLI upload while remaining present in Git and local CI.
+!/__tests__/*.test.mjs
 !/__tests__/diamond-store-phase-7.test.mjs
 !/__tests__/diamond-store-phase-8.test.mjs
 !/__tests__/diamond-store-phase-9.test.mjs

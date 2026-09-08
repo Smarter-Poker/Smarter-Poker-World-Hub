@@ -199,6 +199,26 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
 
   const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
   assert.match(vercel.buildCommand, /npm run test:training:phase6-authority/);
+  const vercelIgnore = readFileSync(join(ROOT, '.vercelignore'), 'utf8');
+  const phase6BuildTests = [
+    packageJson.scripts['test:training:legacy-windows-retirement'],
+    packageJson.scripts['pretest:training:phase6-authority'],
+    packageJson.scripts['test:training:phase6-authority'],
+  ].flatMap((command) => [...command.matchAll(/__tests__\/[^ ]+\.test\.mjs/g)]
+    .map(([testPath]) => `/${testPath}`));
+  const testReincludes = vercelIgnore
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith('!/__tests__/'))
+    .map((line) => new RegExp(`^${line.slice(1)
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replaceAll('*', '[^/]*')}$`));
+  assert.ok(phase6BuildTests.length > 0, 'expected Phase 6 deployment test inputs');
+  for (const testPath of phase6BuildTests) {
+    assert.ok(
+      testReincludes.some((pattern) => pattern.test(testPath)),
+      `${testPath} must survive .vercelignore for the Vercel authority gate`,
+    );
+  }
 
   const safetyGate = readFileSync(
     join(ROOT, '.github/workflows/build-safety-gate.yml'),
