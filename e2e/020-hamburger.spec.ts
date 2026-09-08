@@ -76,7 +76,7 @@ const WORLDS: WorldCase[] = [
     accent: '#4599ff',
     primary: items([
       ['/hub/personal-assistant', 'Coach'],
-      ['/hub/personal-assistant/sandbox', 'Scenario Analysis Archive'],
+      ['/hub/personal-assistant/sandbox', 'GTO Sandbox'],
       ['/hub/personal-assistant/leaks', 'Leaks'],
       ['/hub/training', 'Train'],
       ['/hub/preflop-charts', 'Charts'],

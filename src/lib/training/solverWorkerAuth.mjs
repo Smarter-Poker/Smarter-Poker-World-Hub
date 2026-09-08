@@ -121,4 +121,3 @@ export function solverWorkerEnvelopeIsValid(envelope, workerId) {
     && worker.manifest_version.length <= 160
     && HEX_64.test(worker.manifest_checksum);
 }
-

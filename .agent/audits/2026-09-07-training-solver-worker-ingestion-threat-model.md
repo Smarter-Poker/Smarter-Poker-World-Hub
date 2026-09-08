@@ -1,6 +1,6 @@
 # Training Solver Worker Ingestion Threat Model
 
-Date: 2026-09-07  
+Date: 2026-09-07
 Scope: M1/M2 to Training solver warehouse; no production secrets or tuples
 
 ## Checklist

@@ -1,8 +1,8 @@
 # Training Phase 6 Of 16: Deep Re-Certification
 
-Date: 2026-09-06
-Status: Protected implementation and E2E remediation merged; production re-certification in progress
-Protected Main Baseline: `cfa00625ea196aaddf3cfc2113e409ee5e9e3808`
+Date: 2026-09-06 (updated 2026-09-08)
+Status: Authority and solver candidate verified locally; protected publication and production re-certification in progress
+Protected Main Baseline: `4314b7e8d6036490d4326a0002a4a4859774fd4d`
 
 ## Release Decision
 
@@ -227,7 +227,8 @@ exact production runtime pass are recorded below.
   and complete-ledger contracts. The route audit now recognizes both direct
   default exports and standards-compliant default re-exports.
 
-Local candidate evidence before integration with current protected main:
+Historical local candidate evidence before integration with current protected
+main (superseded by the 2026-09-08 integrated evidence below):
 
 - Phase 6 authority suite: 578/578 passed.
 - Every `training-*.test.mjs` suite: 614/614 passed.
@@ -248,3 +249,72 @@ Local candidate evidence before integration with current protected main:
 Publication, production migration state, exact deployment revision, and the
 final 107-game desktop/mobile runtime receipts remain pending for this
 candidate. Phase 7 has not started.
+
+## 2026-09-08 Current-Main Integration And Release Gate
+
+Protected `main` at `4314b7e8d6036490d4326a0002a4a4859774fd4d` was merged
+locally into the unpublished authority candidate, which was then recertified as
+one release candidate. The integration found and closed three test defects instead of
+loosening their assertions:
+
+- The daily-authority PostgreSQL fixture could create an expiry before its
+  product-date start when run shortly after midnight. Its seed now preserves
+  the intended two-hour validity relative to both database time and the
+  product-date boundary.
+- The seat-offer regression guard still expected a direct `sendWebPush` call
+  after protected main moved delivery through the unified `sendPush` adapter.
+  The guard now proves the caller supplies the required TTL and the adapter
+  forwards it to `sendWebPush`.
+- The repository guard coupled repeated-query validation in a Horse Analytics
+  route test to a live upstream response that could return 503. The test now
+  validates first-selected repeated values deterministically without network
+  state masking the API contract.
+
+The merge retained protected main's new acceptance and one-device/one-banner
+prebuild guards while preserving the candidate's stricter full-attempt
+`batch-preload` canonical delivery contract. Solver ingestion executable mode
+was restored, and the Training inventory was regenerated after main changed its
+marker classification.
+
+Current integrated local evidence:
+
+- Phase 6 authority suite: 715/715 passed.
+- Every `training-*.test.mjs` suite: 754/754 passed.
+- Repository guard and reachability suite: 1,370/1,370 passed.
+- Cross-domain prebuild suite: 687/687 passed.
+- Leak Finder and Personal Assistant integration suite: 181/181 passed.
+- Focused solver ingestion and policy suite: 84/84 passed.
+- Full lint: 4,192/4,192 source and test files passed.
+- Strict TypeScript, whitespace, inventory generation/verification, and the
+  94-page Training route/link/API audit passed. The generated inventory records
+  107 canonical games, 214 play/arena expansions, 54 API templates, and zero
+  unassigned route-state or CTA wiring gaps.
+- The complete disposable PostgreSQL Phase 6 gate passed reward concurrency,
+  server authority, cross-RPC concurrency, cache replay, and solver-catalog
+  admission. Its authority evidence includes 14 reward invariants, 18 canonical
+  attempts, 13 completions, and 54 immutable first decisions with the expected
+  access-control, write-protection, rollback, cap, idempotency, and key-binding
+  assertions.
+- The optimized production build passed and generated 395/395 pages. Every
+  declared Personal Assistant route, client, and server performance budget
+  remained below its cap.
+- `src/components/ui/UniversalHeader.js`, `pages/_app.js`, the header-rendered
+  hamburger labels, and the command-menu navigation registry match the
+  protected-main baseline. The approved global header remains untouched.
+
+The solver admission manifest covers all 107 games and 25 required
+family/stack contracts, but remains deliberately `CLOSED` and unapproved for
+M1/M2 activation. No solver host was restarted or retargeted. The separate
+`strategy_matrix_v2` backfill remains blocked by its production disk-headroom
+gate and was not run.
+
+Delivery authority uses a two-protected-PR expand/contract release. The strict
+enforcement migration and its verifier are excluded from PR A. PR B may not be
+opened until PR A merges normally, the exact dual-write build serves
+production, real attempt-scoped delivery evidence and private attestation are
+verified, predecessor rollback compatibility passes, and the full production
+browser receipts are healthy. After PR B merges normally, production must serve
+its exact merge or a reviewed descendant; fresh delivery, reissue, response-loss
+replay, next-street, and strict positive/negative probes must pass before the
+complete 107-game desktop/mobile production receipt can close the phase. Phase 6
+therefore remains open and Phase 7 has not started.

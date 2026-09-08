@@ -1,6 +1,6 @@
 # Existing Solved-Spots Live Revalidation
 
-Date: 2026-09-08  
+Date: 2026-09-08
 Status: Read-only audit complete; worker activation remains blocked
 
 ## Decision

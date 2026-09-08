@@ -1,6 +1,6 @@
 # Training Solver Catalog Admission Runbook
 
-Date: 2026-09-07  
+Date: 2026-09-07
 Status: Operator procedure only; no production provenance tuple is seeded by this change
 
 ## Non-Negotiable Gate

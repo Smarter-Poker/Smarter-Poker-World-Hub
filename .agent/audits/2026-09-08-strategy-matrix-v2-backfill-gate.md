@@ -1,6 +1,6 @@
 # Strategy Matrix V2 Backfill Hard Gate
 
-Date: 2026-09-08  
+Date: 2026-09-08
 Status: Blocked before execution; no backfill or reclaim started
 
 The prior handoff misidentified `_pps_backfill_state` as the solver-V2

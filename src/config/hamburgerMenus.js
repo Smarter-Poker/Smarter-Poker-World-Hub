@@ -225,7 +225,7 @@ export const MENU_CONFIGS = {
                     icon: MenuIcons.brain
                 },
                 {
-                    label: 'Scenario Analysis Archive',
+                    label: 'GTO Sandbox',
                     href: '/hub/personal-assistant/sandbox',
                     icon: MenuIcons.target
                 },
@@ -343,7 +343,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Training Library', '/hub/training', MenuIcons.training),
             createMenuItem.navigation('My Progress', '/hub/training/progress', MenuIcons.chart),
             createMenuItem.navigation('Leaderboard', '/hub/training/leaderboard', MenuIcons.trophy),
-            createMenuItem.navigation('Scenario Analysis Archive', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
             createMenuItem.navigation('Leak Finder', '/hub/personal-assistant/leaks', MenuIcons.flame)
         ],
         bottomLinks: [
@@ -867,7 +867,7 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Coach Tools'),
             createMenuItem.grid([
-                { label: 'Scenario Analysis Archive', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
+                { label: 'GTO Sandbox', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
                 { label: 'Leak Finder', href: '/hub/personal-assistant/leaks', icon: MenuIcons.flame },
                 { label: 'Training', href: '/hub/training', icon: MenuIcons.training },
                 { label: 'Preflop Charts', href: '/hub/preflop-charts', icon: MenuIcons.grid },
@@ -920,7 +920,7 @@ export const MENU_CONFIGS = {
                 )]
                 : []),
             ...(handlers?.onPracticeWorst
-                ? [createMenuItem.action('Open Hand Review', handlers.onPracticeWorst, MenuIcons.target)]
+                ? [createMenuItem.action('Practice Worst Leak', handlers.onPracticeWorst, MenuIcons.target)]
                 : []),
 
             ...(handlers?.onToggleResolved
@@ -932,7 +932,7 @@ export const MENU_CONFIGS = {
                 : []),
 
             createMenuItem.section('Navigation'),
-            createMenuItem.navigation('Scenario Analysis Archive', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
             createMenuItem.navigation('PA Hub', '/hub/personal-assistant', MenuIcons.brain),
             createMenuItem.navigation('Session History', '/hub/session-history', MenuIcons.clock),
             createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)

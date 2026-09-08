@@ -97,12 +97,11 @@ test('direct Sandbox navigation no longer promises unavailable analysis authorit
   assert.match(hub, /\/hub\/training\?source=personal-assistant-hero/);
   assert.doesNotMatch(hub, /solver-verified strategy|Solver Connected|Start New Scenario|Load In Sandbox|Virtual Sandbox/i);
 
-  assert.match(menus, /Scenario Analysis Archive/);
-  assert.doesNotMatch(menus, /GTO Sandbox/);
+  assert.match(menus, /GTO Sandbox/);
   assert.deepEqual(sandboxFooterItem, {
     href: '/hub/personal-assistant/sandbox',
-    label: 'Archive',
-    title: 'Scenario Analysis Archive',
+    label: 'Sandbox',
+    title: 'GTO Sandbox',
     icon: 'target',
   });
 
