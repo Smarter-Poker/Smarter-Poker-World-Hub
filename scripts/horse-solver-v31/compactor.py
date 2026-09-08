@@ -18,13 +18,29 @@ from pio_upi import PioError, target_context, validate_pipeline_imports
 
 def declared_coverage(manifest: ApprovedManifest) -> list[dict[str, Any]]:
     unique: dict[bytes, dict[str, Any]] = {}
+    machines: dict[bytes, set[str]] = {}
+    boards: dict[bytes, dict[str, set[str]]] = {}
     for scenario in manifest.raw["scenarios"]:
         for target in scenario["targets"]:
             context = target_context(scenario, target)
             key = canonical_json(context)
             unique[key] = context
+            machine = target["machine_id"]
+            machines.setdefault(key, set()).add(machine)
+            boards.setdefault(key, {"M1": set(), "M2": set()})[machine].add(
+                target["board"]
+            )
     if not unique:
         raise ContractError("manifest contains no compact-cell coverage")
+    for key in unique:
+        if machines[key] != {"M1", "M2"}:
+            raise ContractError(
+                "every compact context needs independently assigned M1 and M2 targets"
+            )
+        if boards[key]["M1"] & boards[key]["M2"]:
+            raise ContractError(
+                "M1 training and M2 holdout targets must use disjoint exact boards"
+            )
     return [unique[key] for key in sorted(unique)]
 
 
@@ -86,7 +102,6 @@ def load(args: argparse.Namespace) -> ApprovedManifest:
         expected_checksum=os.environ.get("APPROVED_MANIFEST_CHECKSUM", ""),
         input_root=args.input_root,
         pipeline_root=script_root,
-        verify_inputs=False,
     )
 
 

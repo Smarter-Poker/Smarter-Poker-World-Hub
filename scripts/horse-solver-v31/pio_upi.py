@@ -12,7 +12,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from contract import COMBO_ORDER, ContractError, load_range_vector
+from contract import (
+    COMBO_ORDER,
+    ApprovedManifest,
+    ContractError,
+    load_range_vector,
+    parse_source_combo_order,
+)
 
 
 CARD = re.compile(r"^[2-9TJQKA][cdhs]$")
@@ -44,10 +50,54 @@ class NodeLine:
     older_street_aggressor: int | None
 
 
-class PioProcess:
-    """One serialized UPI process with bounded reads to the END terminator."""
+PIO_ACK_COMMANDS = frozenset(
+    {
+        "add_line",
+        "build_tree",
+        "clear_lines",
+        "go",
+        "is_ready",
+        "reset_icm_tables",
+        "set_accuracy",
+        "set_board",
+        "set_eff_stack",
+        "set_end_string",
+        "set_icm",
+        "set_icm_point",
+        "set_isomorphism",
+        "set_pot",
+        "set_rake",
+        "set_range",
+        "wait_for_solver",
+    }
+)
+VECTOR_COMMANDS = frozenset({"show_strategy", "show_range", "calc_ev"})
 
-    def __init__(self, executable: str | Path):
+
+class PioProcess:
+    """One serialized, attested UPI process with canonical combo vectors.
+
+    The licensed executable owns the wire order.  The Phase 4 artifact owns a
+    different explicit order.  Startup proves the exact executable-reported
+    version and hand order before any range is sent, and every vector crossing
+    the boundary is translated rather than assumed.
+    """
+
+    def __init__(
+        self,
+        executable: str | Path,
+        *,
+        expected_solver_version: str,
+        expected_hand_order: tuple[str, ...],
+        startup_timeout_seconds: float = 30.0,
+    ):
+        if not str(expected_solver_version).strip():
+            raise PioError("approved PioSOLVER version is empty")
+        if len(expected_hand_order) != 1326:
+            raise PioError("approved PioSOLVER hand order is incomplete")
+        self._expected_solver_version = str(expected_solver_version).strip()
+        self._expected_hand_order = tuple(expected_hand_order)
+        self._pio_to_canonical: tuple[int, ...] = ()
         self._process = subprocess.Popen(
             [str(executable)],
             stdin=subprocess.PIPE,
@@ -59,11 +109,17 @@ class PioProcess:
             bufsize=1,
         )
         if self._process.stdin is None or self._process.stdout is None:
+            self.close()
             raise PioError("PioSOLVER did not expose a UPI pipe")
         self._lines: queue.Queue[str | BaseException | None] = queue.Queue()
         self._lock = threading.Lock()
         self._reader = threading.Thread(target=self._read_lines, daemon=True)
         self._reader.start()
+        try:
+            self._initialize(startup_timeout_seconds)
+        except BaseException:
+            self.close()
+            raise
 
     def _read_lines(self) -> None:
         try:
@@ -75,39 +131,178 @@ class PioProcess:
         finally:
             self._lines.put(None)
 
+    def _write(self, command: str) -> None:
+        if self._process.poll() is not None:
+            raise PioError(f"PioSOLVER exited with code {self._process.returncode}")
+        assert self._process.stdin is not None
+        try:
+            self._process.stdin.write(command + "\n")
+            self._process.stdin.flush()
+        except (BrokenPipeError, OSError) as error:
+            raise PioError("PioSOLVER stdin transport failed") from error
+
+    def _read_until_end(self, timeout_seconds: float, verb: str) -> str:
+        if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+            raise PioError("UPI timeout must be a finite positive number")
+        deadline = time.monotonic() + timeout_seconds
+        output: list[str] = []
+        in_solver_update = False
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise PioError(f"timeout waiting for PioSOLVER END after {verb}")
+            try:
+                line = self._lines.get(timeout=remaining)
+            except queue.Empty as error:
+                raise PioError(f"timeout waiting for PioSOLVER END after {verb}") from error
+            if isinstance(line, BaseException):
+                raise PioError("PioSOLVER output could not be decoded as UTF-8") from line
+            if line is None:
+                raise PioError(f"PioSOLVER exited before END after {verb}")
+            # Solver progress is an asynchronous protocol message.  A
+            # multiline update owns its own END; consuming that END as this
+            # command's terminator desynchronizes every later response.
+            if in_solver_update:
+                if line == "END":
+                    in_solver_update = False
+                continue
+            if line == "SOLVER:":
+                in_solver_update = True
+                continue
+            if line.startswith("SOLVER: "):
+                continue
+            if line == "END":
+                return "\n".join(output)
+            output.append(line)
+
+    @staticmethod
+    def _clean_response(command: str, response: str, *, require_ack: bool = True) -> str:
+        lines = [line.strip() for line in response.splitlines() if line.strip()]
+        if any(line.upper().startswith(("ERROR", "ERR ")) for line in lines):
+            raise PioError(f"PioSOLVER rejected {command.split()[0]}: {' | '.join(lines)[:500]}")
+        verb = command.split()[0]
+        if require_ack and verb in PIO_ACK_COMMANDS:
+            expected = f"{verb} ok!"
+            if len(lines) != 1 or lines[0].lower() != expected.lower():
+                raise PioError(f"PioSOLVER returned an invalid acknowledgement for {verb}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _hand_order_mapping(response: str) -> tuple[tuple[str, ...], tuple[int, ...]]:
+        try:
+            tokens = parse_source_combo_order(response)
+        except ContractError as error:
+            raise PioError(str(error)) from error
+        ranks = "23456789TJQKA"
+        suits = "cdhs"
+        mapping: list[int] = []
+        for token in tokens:
+            first = ranks.index(token[0]) * 4 + suits.index(token[1])
+            second = ranks.index(token[2]) * 4 + suits.index(token[3])
+            low, high = sorted((first, second))
+            mapping.append(high * (high - 1) // 2 + low)
+        return tokens, tuple(mapping)
+
+    def _initialize(self, timeout_seconds: float) -> None:
+        # UPI 2+ emits no response terminator until this exact first command.
+        self._write("set_end_string END")
+        response = self._read_until_end(timeout_seconds, "set_end_string")
+        lines = [line.strip() for line in response.splitlines() if line.strip()]
+        activation = ["ERROR code 0:", "OK!", "Activation ok!"]
+        marker_positions = [index for index, line in enumerate(lines) if line == activation[0]]
+        if marker_positions:
+            marker = marker_positions[0]
+            if len(marker_positions) != 1 or lines[marker : marker + 3] != activation:
+                raise PioError("PioSOLVER returned an invalid activation banner")
+            del lines[marker : marker + 3]
+        self._clean_response(
+            "set_end_string END", "\n".join(lines), require_ack=False
+        )
+        if not lines or lines[-1].lower() != "set_end_string ok!":
+            raise PioError("PioSOLVER END framing was not acknowledged")
+
+        self._write("show_version")
+        version = self._clean_response(
+            "show_version",
+            self._read_until_end(timeout_seconds, "show_version"),
+            require_ack=False,
+        )
+        if version != self._expected_solver_version:
+            raise PioError("PioSOLVER show_version does not match the approved manifest")
+
+        self._write("show_hand_order")
+        hand_order = self._clean_response(
+            "show_hand_order",
+            self._read_until_end(timeout_seconds, "show_hand_order"),
+            require_ack=False,
+        )
+        tokens, mapping = self._hand_order_mapping(hand_order)
+        if tokens != self._expected_hand_order:
+            raise PioError("PioSOLVER show_hand_order does not match the approved input file")
+        self._pio_to_canonical = mapping
+
+        self._write("is_ready")
+        ready = self._read_until_end(timeout_seconds, "is_ready")
+        self._clean_response("is_ready", ready)
+
+    def _outbound(self, command: str) -> str:
+        if not command.startswith("set_range "):
+            return command
+        parts = command.split()
+        if (
+            len(parts) != 1328
+            or parts[1] not in ("OOP", "IP")
+            or len(self._pio_to_canonical) != 1326
+        ):
+            raise PioError("set_range must carry one player and 1,326 canonical weights")
+        canonical = parts[2:]
+        return " ".join(
+            parts[:2] + [canonical[index] for index in self._pio_to_canonical]
+        )
+
+    def _canonicalize_vectors(self, command: str, response: str) -> str:
+        verb = command.split()[0]
+        if verb not in VECTOR_COMMANDS:
+            return response
+        if len(self._pio_to_canonical) != 1326:
+            raise PioError("PioSOLVER hand order is not attested")
+        output: list[str] = []
+        vectors = 0
+        for line in response.splitlines():
+            parts = line.split()
+            if len(parts) >= 1000:
+                if len(parts) != 1326:
+                    raise PioError(f"{verb} returned a non-1,326 solver vector")
+                try:
+                    [float(value) for value in parts]
+                except ValueError as error:
+                    raise PioError(f"{verb} returned a nonnumeric solver vector") from error
+                canonical: list[str | None] = [None] * 1326
+                for pio_index, canonical_index in enumerate(self._pio_to_canonical):
+                    canonical[canonical_index] = parts[pio_index]
+                if any(value is None for value in canonical):
+                    raise PioError("PioSOLVER hand-order remap is incomplete")
+                output.append(" ".join(value for value in canonical if value is not None))
+                vectors += 1
+            else:
+                output.append(line)
+        expected = 1 if verb == "show_range" else 2 if verb == "calc_ev" else None
+        if vectors == 0 or (expected is not None and vectors != expected):
+            raise PioError(f"{verb} returned the wrong number of solver vectors")
+        return "\n".join(output)
+
     def command(self, command: str, timeout_seconds: float | None = None) -> str:
         text = str(command).strip()
         if not text or "\n" in text or "\r" in text or len(text) > 200_000:
             raise PioError("refusing an invalid UPI command")
-        slow = text.split(" ", 1)[0] in {"go", "wait_for_solver", "build_tree"}
+        verb = text.split(" ", 1)[0]
+        slow = verb in {"go", "wait_for_solver", "build_tree"}
         timeout = timeout_seconds if timeout_seconds is not None else (7200.0 if slow else 300.0)
         with self._lock:
-            if self._process.poll() is not None:
-                raise PioError(f"PioSOLVER exited with code {self._process.returncode}")
-            assert self._process.stdin is not None
-            self._process.stdin.write(text + "\n")
-            self._process.stdin.flush()
-            deadline = time.monotonic() + timeout
-            output: list[str] = []
-            while True:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    raise PioError(f"timeout waiting for PioSOLVER END after {text.split()[0]}")
-                try:
-                    line = self._lines.get(timeout=remaining)
-                except queue.Empty as error:
-                    raise PioError(f"timeout waiting for PioSOLVER END after {text.split()[0]}") from error
-                if isinstance(line, BaseException):
-                    raise PioError("PioSOLVER output could not be decoded as UTF-8") from line
-                if line is None:
-                    raise PioError(f"PioSOLVER exited before END after {text.split()[0]}")
-                if line == "END":
-                    break
-                output.append(line)
-            body = "\n".join(output)
-            if any(line.lstrip().upper().startswith(("ERROR", "ERR ")) for line in output):
-                raise PioError(f"PioSOLVER rejected {text.split()[0]}: {body[:500]}")
-            return body
+            self._write(self._outbound(text))
+            response = self._read_until_end(timeout, verb)
+            cleaned = self._clean_response(text, response)
+            return self._canonicalize_vectors(text, cleaned)
 
     def close(self) -> None:
         if self._process.poll() is None:
@@ -117,6 +312,13 @@ class PioProcess:
             except subprocess.TimeoutExpired:
                 self._process.kill()
                 self._process.wait(timeout=10)
+        if self._process.stdin is not None and not self._process.stdin.closed:
+            self._process.stdin.close()
+        if self._process.stdout is not None and not self._process.stdout.closed:
+            self._process.stdout.close()
+        reader = getattr(self, "_reader", None)
+        if reader is not None and reader.is_alive():
+            reader.join(timeout=1)
 
     def __enter__(self) -> "PioProcess":
         return self
@@ -129,25 +331,21 @@ def _numeric_vectors(raw: str) -> list[list[float]]:
     vectors: list[list[float]] = []
     for line in raw.splitlines():
         tokens = line.replace(",", " ").split()
-        if len(tokens) < 1326:
+        if len(tokens) < 1000:
             continue
-        found: list[float] | None = None
-        for start in range(len(tokens) - 1326, -1, -1):
-            try:
-                candidate = [float(value) for value in tokens[start : start + 1326]]
-            except ValueError:
-                continue
-            found = candidate
-            break
-        if found is not None:
-            vectors.append(found)
+        if len(tokens) != 1326:
+            raise PioError("PioSOLVER returned a non-1,326 numeric vector")
+        try:
+            vectors.append([float(value) for value in tokens])
+        except ValueError as error:
+            raise PioError("PioSOLVER returned a nonnumeric vector") from error
     return vectors
 
 
 def parse_vector(raw: str, *, allow_nan: bool, label: str) -> list[float]:
     vectors = _numeric_vectors(raw)
-    if not vectors:
-        raise PioError(f"{label} did not contain a 1,326-combo vector")
+    if len(vectors) != 1:
+        raise PioError(f"{label} did not contain exactly one 1,326-combo vector")
     values = vectors[0]
     for value in values:
         if math.isinf(value) or (math.isnan(value) and not allow_nan):
@@ -166,6 +364,20 @@ def parse_strategy(raw: str, action_codes: list[str]) -> dict[str, list[float]]:
     return dict(zip(action_codes, vectors))
 
 
+def parse_calc_ev(raw: str, *, label: str) -> tuple[list[float], list[float]]:
+    """Return Pio's exact (per-combo EV, matchup-mass) pair."""
+
+    vectors = _numeric_vectors(raw)
+    if len(vectors) != 2:
+        raise PioError(f"{label} did not contain exact EV and matchup vectors")
+    evs, matchups = vectors
+    if any(math.isinf(value) for value in evs):
+        raise PioError(f"{label} EV vector contains infinity")
+    if any(not math.isfinite(value) or value < 0 for value in matchups):
+        raise PioError(f"{label} matchup vector contains an invalid value")
+    return evs, matchups
+
+
 def parse_children(raw: str, parent: str) -> list[str]:
     prefix = parent + ":"
     depth = parent.count(":") + 1
@@ -181,18 +393,37 @@ def parse_children(raw: str, parent: str) -> list[str]:
     return result
 
 
-def parse_exploitability(raw: str) -> float:
-    values: list[float] = []
-    for token in raw.replace("%", " ").replace(",", " ").split():
+def parse_calc_results(raw: str) -> dict[str, float]:
+    """Parse Pio's named root summary without guessing a trailing number."""
+
+    expected = {
+        "running time": "running_time_seconds",
+        "ev oop": "ev_oop_chips",
+        "ev ip": "ev_ip_chips",
+        "oop's mes": "oop_mes_chips",
+        "ip's mes": "ip_mes_chips",
+        "exploitable for": "exploitability_chips",
+    }
+    parsed: dict[str, float] = {}
+    for line in raw.splitlines():
+        if not line.strip() or ":" not in line:
+            raise PioError("calc_results returned a malformed named field")
+        name, value_text = (part.strip() for part in line.split(":", 1))
+        output_name = expected.get(name.lower())
+        if output_name is None or output_name in parsed or len(value_text.split()) != 1:
+            raise PioError("calc_results returned an unknown or duplicate named field")
         try:
-            value = float(token)
-        except ValueError:
-            continue
-        if math.isfinite(value):
-            values.append(value)
-    if not values or values[-1] < 0:
-        raise PioError("calc_exploitability returned no finite nonnegative value")
-    return values[-1]
+            value = float(value_text)
+        except ValueError as error:
+            raise PioError("calc_results returned a nonnumeric field") from error
+        if not math.isfinite(value):
+            raise PioError("calc_results returned a nonfinite field")
+        parsed[output_name] = value
+    if set(parsed) != set(expected.values()):
+        raise PioError("calc_results omitted a required named field")
+    if parsed["running_time_seconds"] < 0 or parsed["exploitability_chips"] < 0:
+        raise PioError("calc_results returned an impossible negative metric")
+    return parsed
 
 
 def _bucket(fraction: float | None, all_in: bool = False) -> str:
@@ -439,13 +670,76 @@ def _format_number(value: int | float) -> str:
     number = float(value)
     if not math.isfinite(number) or number < 0:
         raise PioError("UPI numeric argument is invalid")
-    return str(int(number)) if number.is_integer() else format(number, ".12g")
+    return (
+        str(int(number))
+        if number.is_integer()
+        else format(number, ".12f").rstrip("0").rstrip(".")
+    )
+
+
+def _icm_setup_commands(
+    scenario: dict[str, Any], icm_model: dict[str, Any] | None
+) -> list[str]:
+    model_id = scenario.get("icm_model_id")
+    if scenario.get("objective") != "icm":
+        if model_id is not None or icm_model is not None:
+            raise PioError("cash/chip EV may not configure an ICM table")
+        return []
+    if scenario.get("rake") is not None:
+        raise PioError("Pio rake and ICM are mutually exclusive")
+    if not isinstance(icm_model, dict) or icm_model.get("model_id") != model_id:
+        raise PioError("the scenario's approved ICM model is absent")
+    oop_stack = icm_model.get("oop_stack_chips")
+    ip_stack = icm_model.get("ip_stack_chips")
+    if (
+        isinstance(oop_stack, bool)
+        or not isinstance(oop_stack, int)
+        or oop_stack <= 0
+        or isinstance(ip_stack, bool)
+        or not isinstance(ip_stack, int)
+        or ip_stack <= 0
+        or min(oop_stack, ip_stack) != scenario.get("effective_stack_chips")
+    ):
+        raise PioError("approved ICM stacks do not match the scenario")
+    points = icm_model.get("points")
+    if not isinstance(points, (tuple, list)) or len(points) < 4:
+        raise PioError("approved ICM interpolation points are incomplete")
+    commands = ["reset_icm_tables", f"set_icm {oop_stack} {ip_stack}"]
+    seen: set[tuple[str, int]] = set()
+    for point in points:
+        if not isinstance(point, (tuple, list)) or len(point) != 3:
+            raise PioError("approved ICM interpolation point is malformed")
+        player, stack, utility = point
+        if (
+            player not in ("OOP", "IP")
+            or isinstance(stack, bool)
+            or not isinstance(stack, int)
+            or stack < 0
+            or (player, stack) in seen
+        ):
+            raise PioError("approved ICM interpolation point is invalid")
+        seen.add((player, stack))
+        commands.append(
+            f"set_icm_point {player} {stack} {_format_number(utility)}"
+        )
+    if {player for player, _stack in seen} != {"OOP", "IP"}:
+        raise PioError("approved ICM interpolation points omit a player")
+    return commands
 
 
 def setup_commands(
-    scenario: dict[str, Any], oop_range: list[float], ip_range: list[float]
+    scenario: dict[str, Any],
+    oop_range: list[float],
+    ip_range: list[float],
+    *,
+    icm_model: dict[str, Any] | None = None,
 ) -> list[str]:
-    if len(oop_range) != 1326 or len(ip_range) != 1326:
+    if (
+        len(oop_range) != 1326
+        or len(ip_range) != 1326
+        or any(not math.isfinite(value) or value < 0 or value > 1 for value in oop_range)
+        or any(not math.isfinite(value) or value < 0 or value > 1 for value in ip_range)
+    ):
         raise PioError("approved Pio ranges must contain exactly 1,326 weights")
     commands = [
         f"set_pot 0 0 {scenario['pot_chips']}",
@@ -460,25 +754,79 @@ def setup_commands(
         "add_line " + " ".join(_format_number(value) for value in line)
         for line in scenario["tree_lines"]
     )
-    commands.append("set_rake " + " ".join(_format_number(value) for value in scenario["rake"]))
-    if scenario["icm_command"] is not None:
-        commands.append(scenario["icm_command"])
-    commands.extend(("build_tree", f"go {_format_number(scenario['solve_accuracy'])}", "wait_for_solver"))
-    if commands.index(next(command for command in commands if command.startswith("set_rake "))) > commands.index("build_tree"):
-        raise PioError("set_rake must precede build_tree")
-    icm_commands = [command for command in commands if command.startswith(("set_icm ", "set_icm_point "))]
-    if len(icm_commands) != (1 if scenario["objective"] == "icm" else 0):
-        raise PioError("a scenario must use exactly its declared ICM mode")
+    if scenario.get("objective") == "icm":
+        commands.extend(_icm_setup_commands(scenario, icm_model))
+    else:
+        rake = scenario.get("rake")
+        if (
+            not isinstance(rake, list)
+            or len(rake) != 2
+            or isinstance(rake[1], bool)
+            or not isinstance(rake[1], int)
+            or rake[1] < 0
+            or not isinstance(rake[0], (int, float))
+            or isinstance(rake[0], bool)
+            or not math.isfinite(float(rake[0]))
+            or not 0 <= float(rake[0]) <= 1
+        ):
+            raise PioError("rake must be exactly [fraction, integer cap]")
+        commands.append(f"set_rake {_format_number(rake[0])} {rake[1]}")
+    accuracy = scenario.get("solve_accuracy")
+    if (
+        isinstance(accuracy, bool)
+        or not isinstance(accuracy, (int, float))
+        or not math.isfinite(float(accuracy))
+        or not 0 < float(accuracy) <= 0.01
+    ):
+        raise PioError("solve_accuracy must be a fraction in (0, 0.01]")
+    commands.extend(
+        (
+            "build_tree",
+            f"set_accuracy {_format_number(accuracy)} fraction",
+            "go",
+            "wait_for_solver",
+        )
+    )
+    rake_commands = [command for command in commands if command.startswith("set_rake ")]
+    icm_commands = [
+        command
+        for command in commands
+        if command == "reset_icm_tables"
+        or command.startswith(("set_icm ", "set_icm_point "))
+    ]
+    if bool(rake_commands) == bool(icm_commands):
+        raise PioError("a scenario must use exactly one of rake or ICM")
+    if any(commands.index(command) > commands.index("build_tree") for command in rake_commands + icm_commands):
+        raise PioError("the EV model must be configured before build_tree")
     return commands
 
 
 def solve_scenario(
-    pio: Callable[[str], str], scenario: dict[str, Any], input_root: Path
-) -> None:
-    oop_range = load_range_vector(input_root / scenario["oop_range_path"])
-    ip_range = load_range_vector(input_root / scenario["ip_range_path"])
-    for command in setup_commands(scenario, oop_range, ip_range):
+    pio: Callable[[str], str], scenario: dict[str, Any], manifest: ApprovedManifest
+) -> dict[str, float]:
+    oop_range = load_range_vector(manifest.input_root / scenario["oop_range_path"])
+    ip_range = load_range_vector(manifest.input_root / scenario["ip_range_path"])
+    model_id = scenario.get("icm_model_id")
+    icm_model = manifest.icm_models.get(model_id) if isinstance(model_id, str) else None
+    for command in setup_commands(
+        scenario, oop_range, ip_range, icm_model=icm_model
+    ):
         pio(command)
+    summary = parse_calc_results(pio("calc_results"))
+    exploitability_fraction = summary["exploitability_chips"] / scenario["pot_chips"]
+    # In chip/cash EV the named calc_results unit is chips, so independently
+    # prove the accuracy stop.  ICM replaces chip utility; its exact values are
+    # still parsed and finite, while set_accuracy/wait_for_solver own the stop.
+    if (
+        scenario["objective"] != "icm"
+        and exploitability_fraction > scenario["solve_accuracy"] + 1e-9
+    ):
+        raise PioError("PioSOLVER stopped above the approved accuracy fraction")
+    return {
+        **summary,
+        "exploitability_fraction": exploitability_fraction,
+        "exploitability_pct": exploitability_fraction * 100,
+    }
 
 
 def _combo_cards() -> list[tuple[str, str]]:
@@ -612,16 +960,19 @@ def harvest_node(
         )
     player = "OOP" if line.actor == 0 else "IP"
     raw_frequencies = parse_strategy(pio(f"show_strategy {node}"), children)
-    matchups = parse_vector(pio(f"show_range {player} {node}"), allow_nan=False, label="show_range")
-    policy_ev = parse_vector(pio(f"calc_ev {player} {node}"), allow_nan=True, label="policy EV")
-    action_ev = {
-        action: parse_vector(
+    reach = parse_vector(
+        pio(f"show_range {player} {node}"), allow_nan=False, label="show_range"
+    )
+    policy_ev, matchups = parse_calc_ev(
+        pio(f"calc_ev {player} {node}"), label="policy EV"
+    )
+    action_ev: dict[str, list[float]] = {}
+    for action in children:
+        evs, _action_matchups = parse_calc_ev(
             pio(f"calc_ev {player} {node}:{action}"),
-            allow_nan=True,
             label=f"action EV {action}",
         )
-        for action in children
-    }
+        action_ev[action] = evs
     board_cards = {
         target["board"][index : index + 2] for index in range(0, len(target["board"]), 2)
     }
@@ -629,10 +980,13 @@ def harvest_node(
     normalized_matchups: list[float] = []
     for index, weight in enumerate(matchups):
         blocked = any(card in board_cards for card in COMBO_CARDS[index])
-        if not math.isfinite(weight) or weight < 0 or weight > 1.000000001:
+        reach_weight = reach[index]
+        if not math.isfinite(reach_weight) or reach_weight < 0 or reach_weight > 1.000000001:
             raise PioError(f"show_range contains an invalid weight at combo {index}")
-        if blocked and abs(weight) > 0.0000001:
-            raise PioError(f"board-blocked combo {index} has nonzero reach weight")
+        if blocked and (abs(weight) > 0.0000001 or abs(reach_weight) > 0.0000001):
+            raise PioError(f"board-blocked combo {index} has nonzero solver weight")
+        if weight > 0 and reach_weight <= 0:
+            raise PioError(f"calc_ev reports matchups for unreachable combo {index}")
         normalized_weight = 0.0 if blocked else round(weight, 8)
         normalized_matchups.append(normalized_weight)
         live.append(normalized_weight > 0)
@@ -694,7 +1048,10 @@ def harvest_node(
 
 
 def run_self_test(
-    pio: Callable[[str], str], scenario: dict[str, Any], contract: dict[str, Any]
+    pio: Callable[[str], str],
+    scenario: dict[str, Any],
+    contract: dict[str, Any],
+    convergence: dict[str, float] | None = None,
 ) -> dict[str, float]:
     node = contract["node"]
     line = analyze_node(
@@ -710,8 +1067,9 @@ def run_self_test(
         raise PioError("self-test action topology changed")
     parse_strategy(pio(f"show_strategy {node}"), children)
     player = "OOP" if line.actor == 0 else "IP"
-    weights = parse_vector(pio(f"show_range {player} {node}"), allow_nan=False, label="self-test range")
-    evs = parse_vector(pio(f"calc_ev {player} {node}"), allow_nan=True, label="self-test EV")
+    evs, weights = parse_calc_ev(
+        pio(f"calc_ev {player} {node}"), label="self-test EV"
+    )
     numerator = 0.0
     denominator = 0.0
     for weight, ev in zip(weights, evs):
@@ -723,7 +1081,12 @@ def run_self_test(
     if denominator <= 0:
         raise PioError("self-test range has no live combos")
     weighted_ev_bb = numerator / denominator / scenario["chips_per_bb"]
-    exploitability = parse_exploitability(pio("calc_exploitability"))
+    solve_receipt = convergence or {
+        **parse_calc_results(pio("calc_results")),
+    }
+    exploitability = (
+        solve_receipt["exploitability_chips"] / scenario["pot_chips"] * 100
+    )
     if not contract["weighted_policy_ev_min_bb"] <= weighted_ev_bb <= contract[
         "weighted_policy_ev_max_bb"
     ]:

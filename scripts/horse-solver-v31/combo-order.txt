@@ -1,1 +1,0 @@
-card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325

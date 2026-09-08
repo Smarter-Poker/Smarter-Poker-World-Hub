@@ -24,12 +24,24 @@ Create one immutable input directory containing:
 
 1. A range-bundle JSON whose file receipts cover every OOP/IP 1,326-combo
    range used by the manifest.
-2. `combo-order.txt`, byte-pinned to the canonical V31/Pio combo order.
-3. A reviewed ICM/payout model file. Every ICM scenario must carry exactly one
-   approved `set_icm` or `set_icm_point` command; chip-EV and cash-EV scenarios
-   must carry neither.
+2. `combo-order.txt`, byte-pinned to the exact 1,326-token output of the
+   approved executable's `show_hand_order`. The worker attests that live order
+   at startup and remaps every range, strategy, reach, EV, and matchup vector
+   to the canonical V31 artifact order. The repository deliberately does not
+   ship a substitute order file: capture it from the licensed, approved binary
+   and approve those exact bytes with the rest of the input bundle.
+3. A reviewed ICM/payout model bundle using contract
+   `smarter-poker.horse-solver-v31-icm-model.v1`. Each model names the OOP/IP
+   starting stacks and monotone interpolation points for both players. Every
+   ICM scenario references one model by `icm_model_id`; the worker derives
+   `reset_icm_tables`, `set_icm`, and every `set_icm_point` command from those
+   pinned bytes. Chip-EV and cash-EV scenarios must use `icm_model_id: null`.
 4. A complete enabled scenario manifest. Each target declares its exact Pio
-   node, board, role, facing kind, size bucket, and ordered child topology.
+   node, board, role, facing kind, size bucket, ordered child topology, and
+   owning `machine_id`. M1 is the training split and M2 is the holdout split;
+   every compact context must have targets on both hosts, and their exact
+   boards must be disjoint. Solving the same board twice is reproducibility
+   evidence, not held-out evidence, and is rejected by the compactor.
 
 The input bundle approved through `ca_gto_v31_approve_input_bundle` must include
 file receipts for the range bundle, combo-order file, ICM model, and the exact
@@ -84,17 +96,27 @@ scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
 
 ## Pio semantics pinned by the worker
 
-- `show_children`, `show_strategy`, `show_range`, and `calc_ev` must all return
-  complete 1,326-combo data.
+- Startup must acknowledge `set_end_string END` and `is_ready`; `show_version`
+  and `show_hand_order` must exactly match the approved manifest and pinned
+  order file. State-changing commands require their exact UPI acknowledgement,
+  and asynchronous `SOLVER:` updates cannot consume a command response.
+- `show_children`, `show_strategy`, `show_range`, and both vectors from
+  `calc_ev` must all return complete 1,326-combo data.
 - Policy EV comes from `calc_ev PLAYER node`; every action EV comes from
-  `calc_ev PLAYER node:action`.
+  `calc_ev PLAYER node:action`. Reach weighting comes from `calc_ev`'s second
+  matchup vector, not the visually similar `show_range` vector.
 - `c` is check or call according to the reconstructed node state. Pio wagers
   are only `bNNN` cumulative street targets.
 - A bet size is target / pot-before-bet. A raise size is raise-increment /
   pot-after-call, matching Club Arena's live sizing contract.
 - All-in identity is proven against remaining effective stack, not inferred
   from a large size label.
-- `set_rake` and the one optional ICM command occur before `build_tree`.
+- A non-ICM tree uses exactly `set_rake <fraction> <integer-cap>`. An ICM tree
+  uses the complete pinned ICM table and no rake; Pio does not permit both.
+- Convergence is `set_accuracy <fraction> fraction`, then argument-free `go`
+  and `wait_for_solver`. `go <accuracy>` would mean seconds/steps, not an
+  accuracy target. `calc_results` is parsed as named fields and the approved
+  non-ICM self-test independently checks achieved exploitability.
 - The worker emits no node checksum. PostgreSQL canonicalizes JSON numbers and
   owns that checksum.
 

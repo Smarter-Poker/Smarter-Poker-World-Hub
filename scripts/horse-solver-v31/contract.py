@@ -6,13 +6,14 @@ import hashlib
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
 
 MANIFEST_CONTRACT = "smarter-poker.horse-solver-v31-manifest.v1"
 RANGE_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-range-bundle.v1"
+ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v1"
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -65,7 +66,7 @@ SCENARIO_KEYS = {
     "effective_stack_chips",
     "chips_per_bb",
     "rake",
-    "icm_command",
+    "icm_model_id",
     "oop_range_path",
     "oop_range_checksum",
     "ip_range_path",
@@ -74,8 +75,12 @@ SCENARIO_KEYS = {
     "solve_accuracy",
     "targets",
 }
+ICM_ROOT_KEYS = {"contract", "models"}
+ICM_MODEL_KEYS = {"model_id", "oop_stack_chips", "ip_stack_chips", "points"}
+ICM_POINT_KEYS = {"player", "stack_chips", "utility"}
 TARGET_KEYS = {
     "target_id",
+    "machine_id",
     "node",
     "board",
     "node_role",
@@ -243,6 +248,148 @@ def load_range_vector(path: Path) -> list[float]:
     return result
 
 
+def canonical_hand_order_tokens() -> tuple[str, ...]:
+    """The canonical artifact order, expressed as one token per combo.
+
+    Pio's live order is separately pinned and may differ.  This helper exists
+    for fixtures and for proving that a supplied Pio order covers the same
+    complete set of unordered two-card combinations.
+    """
+
+    deck = [rank + suit for rank in "23456789TJQKA" for suit in "cdhs"]
+    return tuple(
+        deck[low] + deck[high]
+        for high in range(1, len(deck))
+        for low in range(high)
+    )
+
+
+def parse_source_combo_order(payload: str) -> tuple[str, ...]:
+    """Validate the exact 1,326-token order reported by ``show_hand_order``."""
+
+    tokens = tuple(payload.split())
+    if len(tokens) != 1326:
+        raise ContractError("source combo-order file must contain exactly 1,326 hands")
+    ranks = "23456789TJQKA"
+    suits = "cdhs"
+    seen: set[int] = set()
+    for token in tokens:
+        if (
+            len(token) != 4
+            or token[0] not in ranks
+            or token[1] not in suits
+            or token[2] not in ranks
+            or token[3] not in suits
+        ):
+            raise ContractError("source combo-order file contains a malformed hand")
+        first = ranks.index(token[0]) * 4 + suits.index(token[1])
+        second = ranks.index(token[2]) * 4 + suits.index(token[3])
+        if first == second:
+            raise ContractError("source combo-order file contains a duplicate-card hand")
+        low, high = sorted((first, second))
+        canonical_index = high * (high - 1) // 2 + low
+        if canonical_index in seen:
+            raise ContractError("source combo-order file repeats a combination")
+        seen.add(canonical_index)
+    if seen != set(range(1326)):
+        raise ContractError("source combo-order file omits a canonical combination")
+    return tokens
+
+
+def _positive_integer(value: Any, label: str, *, allow_zero: bool = False) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ContractError(f"{label} must be an integer")
+    if value < 0 or (not allow_zero and value == 0):
+        raise ContractError(f"{label} is outside its allowed range")
+    return value
+
+
+def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Load the byte-pinned ICM interpolation tables that actually drive Pio.
+
+    The old manifest only hashed an opaque file while scenarios supplied an
+    unrelated free-form command.  This contract makes every ICM scenario name
+    a reviewed model whose complete stack/value table is converted to UPI by
+    the worker.
+    """
+
+    relative = _safe_relative_path(manifest["icm_model_path"], "icm_model_path")
+    checksum = _nonzero_hex(manifest["icm_model_checksum"], 64, "icm_model_checksum")
+    model_path = _verify_file(input_root, relative, checksum)
+    root = _exact_keys(
+        _json_bytes(model_path.read_bytes(), "ICM model bundle"),
+        ICM_ROOT_KEYS,
+        "ICM model bundle",
+    )
+    if root["contract"] != ICM_MODEL_CONTRACT or not isinstance(root["models"], list):
+        raise ContractError("ICM model bundle contract is invalid")
+    models: dict[str, dict[str, Any]] = {}
+    for model_index, raw_model in enumerate(root["models"]):
+        model = _exact_keys(raw_model, ICM_MODEL_KEYS, f"ICM models[{model_index}]")
+        model_id = str(model["model_id"] or "")
+        if not SAFE_ID.fullmatch(model_id) or model_id in models:
+            raise ContractError(f"ICM models[{model_index}].model_id is invalid or duplicate")
+        oop_stack = _positive_integer(
+            model["oop_stack_chips"], f"ICM models[{model_index}].oop_stack_chips"
+        )
+        ip_stack = _positive_integer(
+            model["ip_stack_chips"], f"ICM models[{model_index}].ip_stack_chips"
+        )
+        points = model["points"]
+        if not isinstance(points, list):
+            raise ContractError(f"ICM models[{model_index}].points must be an array")
+        by_player: dict[str, list[tuple[int, float]]] = {"OOP": [], "IP": []}
+        seen_points: set[tuple[str, int]] = set()
+        for point_index, raw_point in enumerate(points):
+            point = _exact_keys(
+                raw_point,
+                ICM_POINT_KEYS,
+                f"ICM models[{model_index}].points[{point_index}]",
+            )
+            player = point["player"]
+            if player not in ("OOP", "IP"):
+                raise ContractError("ICM point player must be OOP or IP")
+            stack = _positive_integer(
+                point["stack_chips"],
+                f"ICM models[{model_index}].points[{point_index}].stack_chips",
+                allow_zero=True,
+            )
+            utility = _finite_number(
+                point["utility"],
+                f"ICM models[{model_index}].points[{point_index}].utility",
+                0,
+            )
+            identity = (player, stack)
+            if identity in seen_points:
+                raise ContractError("ICM model repeats a player/stack point")
+            seen_points.add(identity)
+            by_player[player].append((stack, utility))
+        effective = min(oop_stack, ip_stack)
+        for player, starting_stack in (("OOP", oop_stack), ("IP", ip_stack)):
+            ordered = sorted(by_player[player])
+            if len(ordered) < 2:
+                raise ContractError(f"ICM model {model_id} needs at least two {player} points")
+            if ordered[0][0] > starting_stack - effective or ordered[-1][0] < starting_stack + effective:
+                raise ContractError(f"ICM model {model_id} does not cover every reachable {player} stack")
+            if any(
+                later[1] <= earlier[1]
+                for earlier, later in zip(ordered, ordered[1:])
+            ):
+                raise ContractError(f"ICM model {model_id} utility must rise with {player} stack")
+            by_player[player] = ordered
+        models[model_id] = {
+            "model_id": model_id,
+            "oop_stack_chips": oop_stack,
+            "ip_stack_chips": ip_stack,
+            "points": tuple(
+                (player, stack, utility)
+                for player in ("OOP", "IP")
+                for stack, utility in by_player[player]
+            ),
+        }
+    return models
+
+
 def _range_bundle(input_root: Path, manifest: dict[str, Any]) -> dict[str, str]:
     relative = _safe_relative_path(manifest["range_bundle_path"], "range_bundle_path")
     checksum = _nonzero_hex(manifest["range_bundle_checksum"], 64, "range_bundle_checksum")
@@ -297,6 +444,8 @@ def _validate_target(raw: Any, scenario: dict[str, Any], index: int) -> dict[str
     target = _exact_keys(raw, TARGET_KEYS, f"target[{index}]")
     if not SAFE_ID.fullmatch(str(target["target_id"] or "")):
         raise ContractError(f"target[{index}].target_id is invalid")
+    if target["machine_id"] not in ("M1", "M2"):
+        raise ContractError(f"target[{index}].machine_id must be M1 or M2")
     node = str(target["node"] or "")
     if not NODE.fullmatch(node) or ":f" in node:
         raise ContractError(f"target[{index}].node is not a decision-node path")
@@ -340,6 +489,7 @@ def _validate_scenario(
     index: int,
     input_root: Path,
     range_receipts: dict[str, str],
+    icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
     scenario = _exact_keys(raw, SCENARIO_KEYS, f"scenarios[{index}]")
@@ -390,35 +540,61 @@ def _validate_scenario(
             f"scenarios[{index}].effective_stack_chips must equal depth_bucket * chips_per_bb"
         )
     rake = scenario["rake"]
-    if (
-        not isinstance(rake, list)
-        or len(rake) != 4
-        or any(_finite_number(value, f"scenarios[{index}].rake", 0) < 0 for value in rake)
-    ):
-        raise ContractError(f"scenarios[{index}].rake must contain four nonnegative numbers")
-    icm_command = scenario["icm_command"]
+    icm_model_id = scenario["icm_model_id"]
     if objective == "icm":
-        if (
-            not isinstance(icm_command, str)
-            or len(icm_command) > 2000
-            or "\n" in icm_command
-            or "\r" in icm_command
-            or not re.fullmatch(r"set_icm(?:_point)? [0-9 .-]+", icm_command)
-        ):
-            raise ContractError(f"scenarios[{index}] requires one approved ICM command")
-    elif icm_command is not None:
-        raise ContractError(f"scenarios[{index}] chip/cash EV may not set ICM")
-    _finite_number(scenario["solve_accuracy"], f"scenarios[{index}].solve_accuracy", 0.000001)
+        if rake is not None:
+            raise ContractError(f"scenarios[{index}] ICM and rake are mutually exclusive")
+        if not SAFE_ID.fullmatch(str(icm_model_id or "")):
+            raise ContractError(f"scenarios[{index}] requires one approved ICM model id")
+        if verify_inputs:
+            model = icm_models.get(str(icm_model_id))
+            if model is None:
+                raise ContractError(f"scenarios[{index}] names an absent ICM model")
+            if min(model["oop_stack_chips"], model["ip_stack_chips"]) != scenario[
+                "effective_stack_chips"
+            ]:
+                raise ContractError(
+                    f"scenarios[{index}] ICM stacks do not match effective_stack_chips"
+                )
+    else:
+        if icm_model_id is not None:
+            raise ContractError(f"scenarios[{index}] chip/cash EV may not name an ICM model")
+        if not isinstance(rake, list) or len(rake) != 2:
+            raise ContractError(f"scenarios[{index}].rake must be [fraction, integer cap]")
+        fraction = _finite_number(rake[0], f"scenarios[{index}].rake fraction", 0)
+        cap = _positive_integer(
+            rake[1], f"scenarios[{index}].rake cap", allow_zero=True
+        )
+        if fraction > 1:
+            raise ContractError(f"scenarios[{index}].rake fraction cannot exceed 1")
+        if family != "cash" and (fraction != 0 or cap != 0):
+            raise ContractError(f"scenarios[{index}] tournament/spin chip EV must use zero rake")
+    accuracy = _finite_number(
+        scenario["solve_accuracy"], f"scenarios[{index}].solve_accuracy", 0.000001
+    )
+    if accuracy > 0.01:
+        raise ContractError(f"scenarios[{index}].solve_accuracy must be a fraction at most 0.01")
     tree_lines = scenario["tree_lines"]
     if not isinstance(tree_lines, list) or not tree_lines:
         raise ContractError(f"scenarios[{index}].tree_lines cannot be empty")
+    seen_lines: set[tuple[int, ...]] = set()
     for line_index, line in enumerate(tree_lines):
         if (
             not isinstance(line, list)
             or not line
-            or any(_finite_number(value, f"tree_lines[{line_index}]") < 0 for value in line)
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < 0
+                or value > scenario["effective_stack_chips"]
+                for value in line
+            )
         ):
             raise ContractError(f"scenarios[{index}].tree_lines[{line_index}] is invalid")
+        identity = tuple(line)
+        if identity in seen_lines:
+            raise ContractError(f"scenarios[{index}] repeats a tree line")
+        seen_lines.add(identity)
     for side in ("oop", "ip"):
         path = _safe_relative_path(
             scenario[f"{side}_range_path"], f"scenarios[{index}].{side}_range_path"
@@ -450,6 +626,8 @@ class ApprovedManifest:
     input_root: Path
     raw: dict[str, Any]
     checksum: str
+    source_combo_order: tuple[str, ...] = ()
+    icm_models: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @property
     def provenance(self) -> dict[str, str]:
@@ -517,38 +695,60 @@ def load_manifest(
     _validate_quality_gates(manifest["quality_gates"])
     root = Path(input_root).resolve()
     range_receipts = _range_bundle(root, manifest) if verify_inputs else {}
+    source_combo_order: tuple[str, ...] = ()
+    icm_models: dict[str, dict[str, Any]] = {}
     if verify_inputs:
         combo_path = _safe_relative_path(manifest["source_combo_order_path"], "source_combo_order_path")
         combo_checksum = _nonzero_hex(
             manifest["source_combo_order_checksum"], 64, "source_combo_order_checksum"
         )
         combo_file = _verify_file(root, combo_path, combo_checksum)
-        if combo_file.read_text(encoding="utf-8").strip() != COMBO_ORDER:
-            raise ContractError("source combo-order file does not contain the canonical V31 order")
-        icm_path = _safe_relative_path(manifest["icm_model_path"], "icm_model_path")
-        _verify_file(root, icm_path, manifest["icm_model_checksum"])
+        source_combo_order = parse_source_combo_order(combo_file.read_text(encoding="utf-8"))
+        icm_models = _icm_models(root, manifest)
     scenarios = manifest["scenarios"]
     if not isinstance(scenarios, list) or not scenarios:
         raise ContractError("manifest scenarios cannot be empty")
     scenario_ids: set[str] = set()
+    scenario_by_id: dict[str, dict[str, Any]] = {}
     all_target_ids: set[str] = set()
+    target_machines: set[str] = set()
     for index, raw in enumerate(scenarios):
-        scenario = _validate_scenario(raw, index, root, range_receipts, verify_inputs)
+        scenario = _validate_scenario(
+            raw, index, root, range_receipts, icm_models, verify_inputs
+        )
         if scenario["scenario_id"] in scenario_ids:
             raise ContractError(f"duplicate scenario_id: {scenario['scenario_id']}")
         scenario_ids.add(scenario["scenario_id"])
+        scenario_by_id[scenario["scenario_id"]] = scenario
         for target in scenario["targets"]:
             if target["target_id"] in all_target_ids:
                 raise ContractError(f"duplicate target_id: {target['target_id']}")
             all_target_ids.add(target["target_id"])
+            target_machines.add(target["machine_id"])
+    if target_machines != {"M1", "M2"}:
+        raise ContractError("manifest must assign source targets to both M1 and M2")
     self_test = _exact_keys(manifest["self_test"], SELF_TEST_KEYS, "self_test")
     if self_test["scenario_id"] not in scenario_ids or self_test["solver_player"] not in (0, 1):
         raise ContractError("self_test scenario or solver player is invalid")
+    if scenario_by_id[self_test["scenario_id"]]["objective"] == "icm":
+        raise ContractError("self_test must use chip/cash EV so exploitability has chip units")
     if not NODE.fullmatch(str(self_test["node"] or "")):
         raise ContractError("self_test node is invalid")
     children = self_test["expected_children"]
-    if not isinstance(children, list) or len(children) < 2 or any(not ACTION.fullmatch(str(x)) for x in children):
+    if (
+        not isinstance(children, list)
+        or len(children) < 2
+        or len(children) != len(set(children))
+        or any(not ACTION.fullmatch(str(x)) for x in children)
+    ):
         raise ContractError("self_test expected_children is invalid")
+    self_scenario = scenario_by_id[self_test["scenario_id"]]
+    self_target = next(
+        (target for target in self_scenario["targets"] if target["node"] == self_test["node"]),
+        None,
+    )
+    if self_target is None or self_target["expected_children"] != children:
+        raise ContractError("self_test must bind an exact declared target and child topology")
     low = _finite_number(self_test["weighted_policy_ev_min_bb"], "self_test minimum")
     high = _finite_number(self_test["weighted_policy_ev_max_bb"], "self_test maximum")
     if low > high:
@@ -558,4 +758,11 @@ def load_manifest(
         actual_bundle = pipeline_bundle_checksum(Path(pipeline_root), manifest["pipeline_files"])
         if actual_bundle != manifest["pipeline_bundle_checksum"]:
             raise ContractError(f"pipeline bundle checksum mismatch: {actual_bundle}")
-    return ApprovedManifest(manifest_path, root, manifest, checksum)
+    return ApprovedManifest(
+        manifest_path,
+        root,
+        manifest,
+        checksum,
+        source_combo_order=source_combo_order,
+        icm_models=icm_models,
+    )

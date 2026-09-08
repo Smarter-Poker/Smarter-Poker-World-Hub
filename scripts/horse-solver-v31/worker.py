@@ -237,6 +237,12 @@ def ordered_scenarios(manifest: ApprovedManifest) -> list[dict[str, Any]]:
     return sorted(scenarios, key=lambda scenario: scenario["scenario_id"] != self_test_id)
 
 
+def owned_targets(scenario: dict[str, Any], machine: str) -> list[dict[str, Any]]:
+    """Return only the manifest targets assigned to this independent split."""
+
+    return [target for target in scenario["targets"] if target["machine_id"] == machine]
+
+
 def run(args: argparse.Namespace) -> None:
     script_root = Path(__file__).resolve().parents[2]
     expected_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "")
@@ -263,7 +269,12 @@ def run(args: argparse.Namespace) -> None:
         )
         return
     dataset_id = contract.get("dataset_id")
-    planned = sum(len(scenario["targets"]) for scenario in manifest.raw["scenarios"])
+    planned = sum(
+        len(owned_targets(scenario, args.machine))
+        for scenario in manifest.raw["scenarios"]
+    )
+    if planned <= 0:
+        raise ContractError(f"manifest assigns no targets to {args.machine}")
     heartbeat = WorkerHeartbeat(client, manifest, args.machine, planned)
     heartbeat.pulse("starting", "startup")
     work_directory = Path(args.work_directory).resolve()
@@ -271,7 +282,11 @@ def run(args: argparse.Namespace) -> None:
     loaded_scenario: str | None = None
 
     try:
-        with PioProcess(executable) as process:
+        with PioProcess(
+            executable,
+            expected_solver_version=manifest.raw["solver_version"],
+            expected_hand_order=manifest.source_combo_order,
+        ) as process:
             pio = process.command
             scenarios = ordered_scenarios(manifest)
             self_test = manifest.raw["self_test"]
@@ -279,8 +294,10 @@ def run(args: argparse.Namespace) -> None:
                 scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
             )
             with heartbeat.keepalive("self_test", f"self_test:{self_scenario['scenario_id']}"):
-                solve_scenario(pio, self_scenario, manifest.input_root)
-                receipt = run_self_test(pio, self_scenario, self_test)
+                convergence = solve_scenario(pio, self_scenario, manifest)
+                receipt = run_self_test(
+                    pio, self_scenario, self_test, convergence=convergence
+                )
             loaded_scenario = self_scenario["scenario_id"]
             print(
                 "[v31-worker] self-test passed: "
@@ -289,8 +306,11 @@ def run(args: argparse.Namespace) -> None:
             )
 
             for scenario in scenarios:
+                targets = owned_targets(scenario, args.machine)
+                if not targets:
+                    continue
                 checkpoints: dict[str, dict[str, Any] | None] = {}
-                for target in scenario["targets"]:
+                for target in targets:
                     try:
                         prior = load_checkpoint(
                             artifact_path(work_directory, args.machine, target["target_id"])
@@ -309,9 +329,9 @@ def run(args: argparse.Namespace) -> None:
                 if any(value is None for value in checkpoints.values()):
                     if loaded_scenario != scenario["scenario_id"]:
                         with heartbeat.keepalive("solving", f"solve:{scenario['scenario_id']}"):
-                            solve_scenario(pio, scenario, manifest.input_root)
+                            solve_scenario(pio, scenario, manifest)
                         loaded_scenario = scenario["scenario_id"]
-                for target in scenario["targets"]:
+                for target in targets:
                     phase_id = f"harvest:{target['target_id']}"
                     artifact = checkpoints[target["target_id"]]
                     if artifact is None:

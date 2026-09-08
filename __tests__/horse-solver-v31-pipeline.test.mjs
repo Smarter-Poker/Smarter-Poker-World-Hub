@@ -13,7 +13,9 @@ test('the certified V31 solver pipeline passes its hermetic parser and contract 
     { cwd: ROOT, encoding: 'utf8', timeout: 120_000 },
   );
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.match(result.stderr, /Ran 10 tests/);
+  const count = result.stderr.match(/Ran (\d+) tests/);
+  assert.ok(count, result.stderr);
+  assert.ok(Number(count[1]) >= 14, `expected at least 14 Python tests, got ${count[1]}`);
   assert.match(result.stderr, /OK/);
 });
 
@@ -37,7 +39,9 @@ test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   assert.match(compactor, /timeout_seconds=280/);
   assert.doesNotMatch(compactor, /mark_candidate|promote_dataset/);
   assert.match(pio, /calc_ev \{player\} \{node\}:\{action\}/);
-  assert.ok(pio.indexOf('commands.append("set_rake') < pio.indexOf('commands.extend(("build_tree"'));
+  const rakeSetup = pio.indexOf('commands.append(f"set_rake');
+  const treeBuild = pio.indexOf('"build_tree",', rakeSetup);
+  assert.ok(rakeSetup > 0 && treeBuild > rakeSetup);
   assert.match(documentation, /cannot mark a candidate or promote one/);
   assert.match(documentation, /no OpenClaw dependency/);
 });
