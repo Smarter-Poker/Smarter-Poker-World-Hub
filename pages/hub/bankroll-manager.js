@@ -783,13 +783,25 @@ export default function BankrollManagerPage() {
     setShowAdjustModal(true);
   };
 
+  // True while ReceiptScanner is holding a captured scan it has not saved.
+  // The photograph only exists in memory at that point and the receipt itself
+  // is back in someone's pocket, so closing the modal destroys real work.
+  const [scannerHasUnsaved, setScannerHasUnsaved] = useState(false);
+
   const closeScanner = useCallback(() => {
+    if (scannerHasUnsaved && typeof window !== 'undefined') {
+      const ok = window.confirm(
+        'This Scan Has Not Been Saved Yet. The Receipt Image Will Be Lost. Close Anyway?',
+      );
+      if (!ok) return;
+    }
+    setScannerHasUnsaved(false);
     setShowScanner(false);
     setScannerStep('scan');
     setScannerEntryId(null);
     setScannerImageUrl(null);
     setScannerExtractedData(null);
-  }, []);
+  }, [scannerHasUnsaved]);
 
   const handleSidebarClick = (sectionId) => {
     haptic('light');
@@ -2010,7 +2022,9 @@ export default function BankrollManagerPage() {
                 <div>
                   <ReceiptScanner
                     userId={userId}
+                    onPendingChange={setScannerHasUnsaved}
                     onScanComplete={({ imageUrl, extractedData }) => {
+                      setScannerHasUnsaved(false);
                       setScannerImageUrl(imageUrl);
                       setScannerExtractedData(extractedData);
                       setScannerStep('post-capture');

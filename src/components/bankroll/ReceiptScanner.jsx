@@ -24,7 +24,8 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getAuthUser, getFreshAccessToken } from '../../lib/authUtils';
+import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
+import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
@@ -39,7 +40,16 @@ const EXPENSE_LABELS = {
     tournament: 'TOURNAMENT', other: 'OTHER',
 };
 
-export default function ReceiptScanner({ onScanComplete, userId, displayEUR = false, tripId = null }) {
+/** Attempts before the user is shown a failure they have to act on. */
+const UPLOAD_ATTEMPTS = 3;
+
+export default function ReceiptScanner({
+    onScanComplete,
+    userId,
+    displayEUR = false,
+    tripId = null,
+    onPendingChange,
+}) {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerSeed, setScannerSeed] = useState(null);   // a File, when the user chose one
 
@@ -47,6 +57,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
     // must not lose it, so retry re-sends this exact blob.
     const [approvedScan, setApprovedScan] = useState(null); // { blob, previewUrl, width, height }
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadAttempt, setUploadAttempt] = useState(0);
     const [error, setError] = useState(null);
 
     const [uploadedUrl, setUploadedUrl] = useState(null);
@@ -69,6 +80,36 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             }
         };
     }, []);
+
+    /**
+     * A captured scan that has not been saved yet.
+     *
+     * The photograph is gone the moment this component lets go of it: the
+     * scanner destroyed its buffers, and the receipt itself is back in a
+     * pocket. So an unsaved scan is unrecoverable work, and every route out of
+     * this component has to say so rather than silently binning it.
+     */
+    const hasUnsavedScan = Boolean(approvedScan) && !uploadedUrl;
+
+    useEffect(() => {
+        if (onPendingChange) onPendingChange(hasUnsavedScan);
+    }, [hasUnsavedScan, onPendingChange]);
+
+    // A reload or a back gesture mid-save loses it too.
+    useEffect(() => {
+        if (!hasUnsavedScan || typeof window === 'undefined') return undefined;
+        const warn = (e) => { e.preventDefault(); e.returnValue = ''; return ''; };
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [hasUnsavedScan]);
+
+    const confirmDiscard = useCallback(() => {
+        if (!hasUnsavedScan) return true;
+        if (typeof window === 'undefined') return true;
+        return window.confirm(
+            'This Scan Has Not Been Saved Yet. The Receipt Image Will Be Lost. Discard It?',
+        );
+    }, [hasUnsavedScan]);
 
     const computeConfidence = useCallback((data) => {
         if (!data) return 0;
@@ -96,50 +137,67 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         if (!scan || !scan.blob) return;
         setIsUploading(true);
         setError(null);
+        setUploadAttempt(0);
+        setExtractedData(null);
+        setConfidenceScore(null);
 
-        try {
-            // Through the house auth helpers, not the Supabase client. A
-            // pre-commit guard blocks the SDK session call in components
-            // because it can throw AbortError; src/lib/authUtils.ts reads the
-            // same session out of storage without that risk.
-            const authUser = getAuthUser();
-            const uid = userId || (authUser && authUser.id);
-            const accessToken = await getFreshAccessToken();
-            if (!uid || !accessToken) {
-                setError('SIGN IN REQUIRED');
-                return;
-            }
+        // Through the house auth helpers, not the Supabase client. A pre-commit
+        // guard blocks the SDK session call in components because it can throw
+        // AbortError; src/lib/authUtils.ts reads the same session out of
+        // storage without that risk.
+        const authUser = getAuthUser();
+        const uid = userId || (authUser && authUser.id);
+        const accessToken = await getFreshAccessToken();
+        if (!uid || !accessToken) {
+            setError('SIGN IN REQUIRED');
+            setIsUploading(false);
+            return;
+        }
 
-            const storageName = `${Date.now()}_${Math.random().toString(36).slice(2, 11)}.jpg`;
-            const filePath = `bankroll/${uid}/${storageName}`;
-            const file = new File([scan.blob], storageName, { type: 'image/jpeg' });
+        // Storage RLS is enforced against the SDK's own session, not against a
+        // token we happen to be holding. If the client has not rehydrated yet
+        // the request goes up as anon and the policy refuses it.
+        try { await ensureAuthReady(supabase); } catch (_e) { /* upload will report it */ }
 
-            const { error: uploadError } = await supabase.storage
-                .from('images')
-                .upload(filePath, file, { contentType: 'image/jpeg' });
-            if (uploadError) throw uploadError;
+        // Read the receipt in parallel with storing it. OCR does not depend on
+        // storage, and running it first means the extracted details survive an
+        // upload that has to retry, instead of being lost with the attempt.
+        const ocrPromise = runOcr(scan.blob, accessToken);
 
-            const { data: urlData } = supabase.storage.from('images').getPublicUrl(filePath);
-            const publicUrl = urlData && urlData.publicUrl;
-            if (!publicUrl) throw new Error('no-public-url');
-
+        let lastError = null;
+        for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
             if (!mountedRef.current) return;
+            setUploadAttempt(attempt);
+            try {
+                const publicUrl = await uploadBankrollImage(supabase, uid, scan.blob, 'image/jpeg');
+                if (!mountedRef.current) return;
 
-            // Only now is the previously saved receipt replaced.
-            setUploadedUrl(publicUrl);
-            setExtractedData(null);
-            setConfidenceScore(null);
-            setVerified(false);
+                // Only now is the previously saved receipt replaced.
+                setUploadedUrl(publicUrl);
+                setVerified(false);
+                setError(null);
+                await ocrPromise;
+                if (mountedRef.current) setIsUploading(false);
+                return;
+            } catch (err) {
+                lastError = err;
+                if (!isRetryableUploadError(err) || attempt === UPLOAD_ATTEMPTS) break;
+                await new Promise((r) => setTimeout(r, 400 * attempt));
+            }
+        }
 
-            // OCR runs against the same approved image, after the upload has
-            // succeeded. It is additive: a failure here still leaves a saveable
-            // receipt, which is why it is not awaited alongside the upload.
-            runOcr(scan.blob, accessToken);
-        } catch (err) {
-            console.warn('[ReceiptScanner] Upload failed:', err && err.message);
-            if (mountedRef.current) setError('UPLOAD FAILED - RETRY');
-        } finally {
-            if (mountedRef.current) setIsUploading(false);
+        console.warn('[ReceiptScanner] Upload failed:', lastError && (lastError.message || lastError));
+        if (mountedRef.current) {
+            // The scan itself is still held, so this is a retry prompt and not
+            // a dead end. Saying which failure it was matters: a refused policy
+            // will never succeed on a retry and the user should not keep trying.
+            const message = String((lastError && lastError.message) || '').toLowerCase();
+            setError(
+                message.includes('row-level security') || message.includes('unauthorized')
+                    ? 'SAVE BLOCKED - PERMISSION DENIED'
+                    : 'SAVE FAILED - TAP RETRY',
+            );
+            setIsUploading(false);
         }
         // runOcr is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,7 +285,14 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         setScannerSeed(null);
         setScannerOpen(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
+        setUploadAttempt(0);
     }, []);
+
+    /** Discard, but only after the user has been told what it costs. */
+    const requestReset = useCallback(() => {
+        if (!confirmDiscard()) return;
+        resetScanner();
+    }, [confirmDiscard, resetScanner]);
 
     const handleConfirm = useCallback(() => {
         if (uploadedUrl && onScanComplete) {
@@ -264,7 +329,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     <span>SCAN RECEIPT</span>
                 </div>
                 {(approvedScan || uploadedUrl) && (
-                    <button onClick={resetScanner} style={styles.resetBtn} type="button">
+                    <button onClick={requestReset} style={styles.resetBtn} type="button" disabled={isUploading}>
                         <RefreshCw size={12} />
                         NEW SCAN
                     </button>
@@ -309,7 +374,11 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     )}
                     <div style={styles.scanningInfo}>
                         <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>SAVING RECEIPT...</span>
+                        <span>
+                            {uploadAttempt > 1
+                                ? `SAVING RECEIPT - RETRY ${uploadAttempt} OF ${UPLOAD_ATTEMPTS}`
+                                : 'SAVING RECEIPT AND READING DETAILS...'}
+                        </span>
                     </div>
                 </div>
             )}
@@ -317,14 +386,35 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             {/* Upload failed. The approved scan is still held, so Retry does
                 not make the user scan again, and cannot attach twice. */}
             {error && !isUploading && (
-                <div style={styles.errorBox}>
-                    <AlertTriangle size={16} />
-                    <span>{error}</span>
-                    {approvedScan ? (
-                        <button onClick={retryUpload} style={styles.retryBtn} type="button">RETRY</button>
-                    ) : (
-                        <button onClick={resetScanner} style={styles.retryBtn} type="button">CLOSE</button>
+                <div style={styles.errorPanel}>
+                    {/* The scan stays on screen. Seeing it is the difference
+                        between "try again" and "that work is gone". */}
+                    {approvedScan && (
+                        <img src={approvedScan.previewUrl} alt="Scan waiting to save" style={styles.scanningImage} />
                     )}
+                    <div style={styles.errorRow}>
+                        <AlertTriangle size={16} />
+                        <span>{error}</span>
+                    </div>
+                    <p style={styles.errorHint}>
+                        {approvedScan
+                            ? 'Your Scan Is Still Here. It Is Not Saved Yet.'
+                            : 'Start A New Scan To Try Again.'}
+                    </p>
+                    <div style={styles.errorActions}>
+                        {approvedScan ? (
+                            <>
+                                <button onClick={retryUpload} style={styles.confirmBtn} type="button">
+                                    <RefreshCw size={14} /> RETRY SAVE
+                                </button>
+                                <button onClick={requestReset} style={styles.cancelBtn} type="button">
+                                    <X size={14} /> DISCARD
+                                </button>
+                            </>
+                        ) : (
+                            <button onClick={resetScanner} style={styles.confirmBtn} type="button">CLOSE</button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -604,6 +694,35 @@ const styles = {
         letterSpacing: '0.15em',
         color: METAL.primary,
     },
+    errorPanel: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        padding: 20,
+        margin: 16,
+        background: 'rgba(240,40,73,0.08)',
+        border: `2px solid ${METAL.danger}`,
+        borderRadius: 10,
+        textAlign: 'center',
+    },
+    errorRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: METAL.danger,
+        letterSpacing: '0.08em',
+    },
+    errorHint: {
+        margin: 0,
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        color: METAL.textSecondary,
+    },
+    errorActions: { display: 'flex', gap: 10, width: '100%' },
     errorBox: {
         display: 'flex',
         alignItems: 'center',

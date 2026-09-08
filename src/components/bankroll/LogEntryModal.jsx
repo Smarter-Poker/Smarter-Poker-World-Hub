@@ -14,6 +14,7 @@ import VenueSelector from './VenueSelector';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
+import { uploadBankrollImage } from '../../lib/bankroll/receiptStorage';
 
 // Clean SmarterPoker-style categories (no emojis)
 const CATEGORIES = [
@@ -558,20 +559,10 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           continue;
         }
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-        const filePath = `bankroll/${userId}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('images')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('images')
-          .getPublicUrl(filePath);
-
+        // Same bucket fix as the receipt scanner. `images` has no INSERT
+        // policy for browser clients, so every one of these uploads was being
+        // refused with "new row violates row-level security policy" too.
+        const publicUrl = await uploadBankrollImage(supabase, userId, file, file.type || 'image/jpeg');
         newUploads.push(publicUrl);
       }
 
