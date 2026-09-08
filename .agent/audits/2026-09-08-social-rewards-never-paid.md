@@ -133,3 +133,110 @@ this record rather than changed in isolation.
 - The one non-literal dynamic import in the repo is in `src/lib/scrapers/`
   and is unrelated, so the closure is not defeated.
 - All counts above are `select` only. Nothing was written.
+
+---
+
+# RESOLVED, same day - and it was far bigger than the two rewards above
+
+Dan, 2026-09-08: "FIND THOSE AND ANY OTHER REWARDS THAT ARE SUPPOSED TO BE
+GRANTED THAT AREN'T AND MAKE SURE THEY ARE ALL ENABLED AND USERS GET REWARDED
+WHEN THEY DO IT (HORSES INCLUDED) MAKE SURE THE ANTI FRAMING LIMITATIONS ARE
+ENABLED. (DO NOT BACK PAY, JUST FIX IT AND MAKE IT FUNCTIONAL FOR ALL OF THEM)"
+
+That instruction settles the RULE 10.6 question this record was opened on, so
+the work was done rather than filed.
+
+## The real number: 21 of 26, not 2
+
+A full sweep of every key in `src/config/diamondRewards.js` against
+`diamond_transactions` across ALL time. Everything that has ever paid:
+
+    daily_login       212 awards   17 players   6,448 diamonds
+    easter_egg          7            5          1,310
+    profile_pic         2            2             20
+    profile_complete    1            1             50
+    video_favorite      1            1              1
+
+Every other standard reward: zero, for the life of the platform.
+
+## The backend was never broken
+
+`diamond_reward_catalog` holds every action_key with `active = true`, and
+`award_diamonds_v2` pays correctly - a rolled-back probe returned reason `ok`,
+awarded 1 for reaction and 10 for social_post and share_content, with
+`daily_remaining` and `monthly_remaining` decrementing. It also already enforces
+the whole anti-farming set: `action_limit`, `already_claimed`, `duplicate`,
+`daily_cap`, `monthly_cap`, velocity, and a `diamond_issuance_frozen` switch.
+
+The single cause was that nothing reachable called it. `SocialService.js` holds
+the reaction/comment/follow claims and its nine importers are every one of them
+unreachable. `follow.js` additionally read `social_connections` - 0 rows, no
+writer, the data moved to `social_follows` in this very audit's backfill and the
+endpoint was never updated.
+
+## Fixed at the database, because of horses
+
+Four write paths, only one a browser: the feed writing straight to the tables,
+`/api/social/interactions`, the reels page, and `HorseSocialEngine`. A
+client-side claim can never cover the last one, and RULE 10.5 says horses earn
+exactly what a human earns. Seven AFTER INSERT triggers, on `social_posts`,
+`social_comments`, `social_likes`, `social_interactions`, `social_follows`,
+`share_events`, `daily_trivia_plays`.
+
+Migrations `20260908180000_social_rewards_are_actually_awarded.sql` and
+`20260908181000_share_and_trivia_rewards_are_awarded.sql`, both applied with
+pre-flight and post-apply assertions passing, both registered in
+`supabase_migrations.schema_migrations`.
+
+## Nothing pays twice
+
+Each trigger's reference id is byte-identical to the one its HTTP endpoint
+already builds. Proved: an endpoint call after a trigger returns reason
+`duplicate`, awarded 0.
+
+## Anti-farming, and two guards the schema already had
+
+In the triggers: 24h account age failing CLOSED on a profile that cannot be
+found, no earning from your own post, no self-follow, content floors of 20 for a
+post and 10 for a comment (the endpoints' own constants), and keys on
+(user, target) so unlike-then-relike cannot be farmed. Two more turned out to be
+enforced in the schema, which is stronger than any check I would have written:
+`social_likes` is UNIQUE on `(post_id, user_id, reaction_type)` and
+`daily_trivia_plays` on `(user_id, played_date)`.
+
+## Horses, proved rather than assumed
+
+All 1,000 horse profiles exist and are past the 24h gate; none is missing
+`created_at`. A rolled-back probe: a horse earns for a like, a human earns for
+the same like, and **the amounts are equal**; a horse earns for a post and for a
+comment.
+
+## Verification
+
+22 rolled-back probes, all PASS, in three batches (social, share/trivia,
+horse-vs-human). Table counts before and after are identical - nothing was
+committed. `__tests__/an-advertised-reward-is-actually-payable.law.test.mjs`
+is registered in CHECK 8 (1355 -> 1364) and was proved red five ways. One of
+those five found a genuine hole in the law: it matched a trigger name INSIDE a
+comment, so a commented-out trigger passed. It strips SQL comments now, with a
+control that fails if the stripper stops working.
+
+No back-pay. AFTER INSERT only; no historical row is revisited.
+
+## Still not paying, and why - for a future pass
+
+These are outside the social surface and were NOT changed here:
+
+- `first_training_session`, `training_level_complete` - referenced only in
+  tests. No award path exists anywhere in the codebase.
+- `gto_chart_study` - a constant in `DiamondRewardService.ts`, no call site.
+- `venue_review`, `video_watch`, `video_favorite` - endpoints ARE reachable and
+  correct; their source tables (`venue_reviews`, `video_watch_history`,
+  `video_favorites`) hold 0 rows, so there is nothing to pay yet. These will pay
+  the first time somebody uses the feature.
+- `hand_of_the_day`, `vip_stipend`, `email_verified`, `phone_verified`,
+  `first_purchase`, `referral_*` - hooks exist (`pages/api/training/
+  hand-of-the-day.js`, the `vip-stipend` cron, `claim.js`, `auth/callback.js`)
+  and were not exercised in this pass.
+
+The first three are the real gaps and belong to the training domain.
