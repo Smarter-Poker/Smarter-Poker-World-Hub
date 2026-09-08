@@ -29,7 +29,7 @@ const WORLD_ROUTES = [
   { id: 'trivia', route: '/hub/trivia', childRoute: '/hub/trivia/stats' },
   { id: 'social-media', route: '/hub/social-media', childRoute: '/hub/reels' },
   { id: 'diamond-arena', route: '/hub/diamond-arena', childRoute: '/hub/diamond-arena/stats' },
-  { id: 'my-clubs', route: '/hub/my-clubs', childRoute: '/hub/my-venues' },
+  { id: 'my-clubs', route: '/hub/my-venues', childRoute: '/hub/my-venues?view=saved' },
   { id: 'video-library', route: '/hub/video-library', childRoute: '/hub/video-library?filter=history' },
   { id: 'odds-calculator', route: '/hub/poker-tools', childRoute: '/hub/poker-tools#results' },
   { id: 'bankroll-manager', route: '/hub/bankroll-manager', childRoute: '/hub/bankroll-manager/export' },
