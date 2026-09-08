@@ -95,6 +95,7 @@ const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubP
 
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS as C, timeAgo } from '../../../src/lib/socialHelpers';
+import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import {
   VideoPostWrapper,
@@ -113,29 +114,6 @@ let _typingSendChannel = null;
 function getTypingChannel() {
   if (!_typingSendChannel) _typingSendChannel = supabase.channel('social-feed');
   return _typingSendChannel;
-}
-
-/*
- * ITEM 21 (2026-09-08): the feed carried 99 click handlers, 3 roles and ZERO
- * tabIndex. Primary actions - comment Like, Reply, Edit, Delete and its
- * confirm, "See More", the sidebar tiles, identity-switch rows, notification
- * rows, search results, every media thumbnail - were plain divs and spans.
- * None was reachable by keyboard; none announced itself to a screen reader.
- *
- * Activation goes through currentTarget.click() rather than re-invoking the
- * handler, so each control keeps exactly one behaviour: whatever its onClick
- * already does. A second copy of the handler is a second thing to keep in step.
- *
- * NOT applied to backdrops (the lightbox, sidebar and global-search scrims) or
- * to the stopPropagation wrapper: those are not controls, and making them
- * focusable buttons would put a tab stop on a sheet of glass. Dismissing a
- * dialog from the keyboard is Escape's job and is tracked separately.
- */
-function spKeyActivate(e) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  // Space scrolls the page; Enter can submit a surrounding form.
-  e.preventDefault();
-  e.currentTarget.click();
 }
 
 /*
