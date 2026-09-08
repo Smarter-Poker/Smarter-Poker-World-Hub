@@ -49,12 +49,16 @@ test('a missing service key is reported as itself, not as a timeout', () => {
 
 test('production health fails closed unless Training receipts use a dedicated signing secret', () => {
   assert.match(healthRoute, /TRAINING_GRADING_RECEIPT_SECRET/);
-  assert.match(healthRoute, /length >= 32/);
+  assert.match(healthRoute, /isDedicatedTrainingGradingReceiptSecret/);
+  const receiptSecretContract = readFileSync(
+    new URL('../src/lib/training/gradingReceiptSecret.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(receiptSecretContract, /secret\.length >= 32/);
+  assert.match(receiptSecretContract, /secret !== serviceRoleKey/);
+  assert.match(receiptSecretContract, /TRAINING_GRADING_RECEIPT_EXAMPLE_SENTINEL/);
   assert.match(healthRoute, /health\.checks\.trainingGradingReceipt/);
   assert.match(healthRoute, /configured: false/);
   assert.match(healthRoute, /health\.status = 'degraded'/);
-  assert.doesNotMatch(
-    readFileSync(new URL('../src/lib/training/gradingReceipt.mjs', import.meta.url), 'utf8'),
-    /TRAINING_GRADING_RECEIPT_SECRET[\s\S]{0,120}SUPABASE_SERVICE_ROLE_KEY/,
-  );
+  assert.match(healthRoute, /SUPABASE_SERVICE_ROLE_KEY/);
 });

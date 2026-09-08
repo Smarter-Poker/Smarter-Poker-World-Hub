@@ -19,12 +19,71 @@ attestation; legacy promotion cannot attest the new application.
 
 ## PR A: expand schema and deploy dual-write application
 
+### Mandatory receipt-signing-key gate
+
+Before the PR-A candidate deploys anywhere, provision
+`TRAINING_GRADING_RECEIPT_SECRET` as a dedicated Sensitive value in every
+serving and certification environment. It must be at least 32 characters, must
+not use the retired public sentinel, and must not equal
+`SUPABASE_SERVICE_ROLE_KEY`. Follow the no-value-exposure procedure in
+`2026-09-08-training-phase-6-production-delivery-attestation.md`; that document
+is part of this rollout, not optional follow-up reading.
+
+The runtime predicate also rejects whitespace, obvious placeholder families,
+and short repeated units. Passing that predicate is necessary but is not proof
+of randomness: release authority must separately confirm that the value came
+from at least 32 random bytes, without recording the value, a prefix, or a
+digest. High-entropy hexadecimal and base64 encodings remain valid.
+
+Vercel's control plane confirms Sensitive-variable presence and targeting but
+does not decrypt the value for local inspection. Therefore the immutable PR-A
+Preview must report `checks.trainingGradingReceipt.status = ok` from
+`/api/health` before the protected PR may merge. Immediately after the
+Production deployment, the same exact-build health check must pass; Production
+also evaluates the receipt secret against the loaded service-role key. A
+missing or degraded check blocks attestation and requires rollback or an
+authorized secret correction. Never print, hash, prefix, or persist either
+secret as evidence.
+
+The production delivery run must name one dedicated audit-account UUID through
+`TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID` and a new explicit evidence
+path. Its access-token subject and saved session user must both match that UUID
+before the first write. The path and sibling `.lock` must not already exist.
+The audit attempt, answer/event rows, seen-question effects, cache accounting,
+and deployment-wide first authority row are intentional immutable records; do
+not delete them as cleanup, and exclude the audit account from product
+competition/analytics.
+
+PR A is not release-closeable from a hand-authored administrator JSON file.
+The reviewed collector in
+`scripts/training-phase6-production-delivery-attestation.mjs` binds the exact
+public-file SHA, immutable build/URL/deployment ID, database identity and rows,
+six rolled-back negative probes, one explicitly classified predecessor proof,
+and the post-API settled Vercel runtime-error window. Only that uninterrupted
+process can pass a module-private proof directly to the finalizer; importing
+its fake-transport test core, editing JSON, or invoking the file-only finalizer
+still returns `TRAINING_PHASE6_MACHINE_ADMIN_COLLECTOR_REQUIRED`. Never bypass
+this fail-closed state.
+
+The collector requires external, authorized administrator PostgreSQL and
+Vercel credentials through environment values or absolute mode-`0600` files
+outside the repository. It never prints or persists them. Correlation is a
+parameterized repeatable-read read-only transaction. Each reviewed negative
+probe runs separately with short timeouts, has no commit path, and is followed
+by rollback and restoration verification. Use either an independently signed
+authentic predecessor artifact whose trusted public-key fingerprint was
+established separately, or the explicitly non-authentic disposable PostgreSQL
+rehearsal. See the production attestation document for the exact invocation;
+do not improvise fields or reuse output paths.
+
 The exact delivery-authority rollout file set for PR A is:
 
 - `supabase/migrations/20260907200000_training_cache_event_idempotent_replay.sql`
 - `supabase/migrations/20260907203000_training_attempt_decision_delivery_authority.sql`
 - `src/lib/training/gradingReceipt.mjs`
+- `src/lib/training/gradingReceiptSecret.mjs`
 - `src/lib/training/trainingAttemptDelivery.mjs`
+- `pages/api/health/index.js`
 - `pages/api/training/batch-preload.js`
 - `pages/api/training/custom-train.js`
 - `pages/api/training/get-question.js`
@@ -33,6 +92,10 @@ The exact delivery-authority rollout file set for PR A is:
 - `pages/api/training/record-question.js`
 - `pages/api/training/reissue-questions.js`
 - `scripts/verify-training-cache-replay-postgres.mjs`
+- `scripts/training-phase6-production-delivery-attestation.mjs`
+- `.agent/audits/2026-09-08-training-phase-6-production-delivery-attestation.md`
+- `.env.example`
+- `__tests__/deployment-version-stamp.test.mjs`
 - `__tests__/leak-engine-wiring.test.mjs`
 - `__tests__/training-batch-canonical-replacement.test.mjs`
 - `__tests__/training-blind-grading-boundary.test.mjs`
@@ -40,6 +103,7 @@ The exact delivery-authority rollout file set for PR A is:
 - `__tests__/training-custom-config-contract.test.mjs`
 - `__tests__/training-daily-challenge-authority.test.mjs`
 - `__tests__/training-grading-receipt.test.mjs`
+- `__tests__/training-production-delivery-attestation.test.mjs`
 - `__tests__/training-multistreet-hand-manager.test.mjs`
 - `__tests__/training-next-street-authority.test.mjs`
 - `__tests__/training-question-delivery-authority.test.mjs`
@@ -109,6 +173,14 @@ Do not infer production readiness from migration success. Record all of these:
 7. Rolling back the application to the PR-A predecessor is explicitly tested
    against the expanded schema; predecessor initial and continuation writes
    still succeed.
+
+All seven items must be produced in one machine collector run after the public
+artifact exists. Keep its admin/final output and sibling-lock paths unique.
+The audit account's attempt, answers, event/cache accounting, and the global
+first-attestation row are intentional immutable evidence and are not cleanup
+targets. If runtime-log access, database authorization, the designated account,
+or approved predecessor mode is unavailable, stop with Phase 6 open rather
+than hand-writing an attestation.
 
 ## PR B: contract schema after proven dual-write
 

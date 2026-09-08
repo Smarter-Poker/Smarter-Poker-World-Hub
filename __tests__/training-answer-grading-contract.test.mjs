@@ -5,6 +5,7 @@ import {
   TrainingAnswerContractError,
   gradeTrainingAnswer,
 } from '../src/lib/training/answerGradingContract.mjs';
+import { DIFFICULTY, simplifyActions } from '../src/engines/DifficultyEngine.js';
 import { applyDifficultyToQuestion } from '../src/lib/training/difficultyQuestionContract.mjs';
 import { buildRngRanges, resolveRngTarget } from '../src/lib/training/rngDecisionContract.mjs';
 import { validateTrainingQuestion } from '../src/lib/training/questionContract.mjs';
@@ -91,6 +92,76 @@ test('Sparse same-band solver actions fall back to the original solved choices',
   assert.equal(validateTrainingQuestion(transformed).valid, true);
 });
 
+test('Grouped presentation follows sealed policy sizes when option ids and labels disagree', () => {
+  const question = checkedToHeroQuestion({
+    correctAnswer: 'b33',
+    options: [
+      { id: 'x', text: 'Check' },
+      // The fixture seals the displayed percentages into the authoritative
+      // policy. These deliberately misleading ids reproduce the browser/SQL
+      // drift: the old browser parser trusted b33/b75/b125 instead.
+      { id: 'b33', text: 'Bet 150% Pot' },
+      { id: 'b75', text: 'Bet 33% Pot' },
+      { id: 'b125', text: 'Bet 75% Pot' },
+    ],
+    frequencies: { x: 10, b33: 60, b75: 20, b125: 10 },
+  });
+
+  assert.deepEqual(
+    question.solverPolicy.actions.map(({ id, family, size }) => [id, family, size.potFraction]),
+    [
+      ['x', 'check', null],
+      ['b33', 'bet', 1.5],
+      ['b75', 'bet', 0.33],
+      ['b125', 'bet', 0.75],
+    ],
+  );
+
+  const transformed = applyDifficultyToQuestion(question, 'standard');
+  assert.equal(transformed.correctAnswer, 'grouped_overbet');
+  assert.deepEqual(
+    transformed.options.map((option) => option.id),
+    ['x', 'grouped_small', 'grouped_medium', 'grouped_overbet'],
+  );
+  assert.deepEqual(transformed._difficultyMembers, {
+    x: ['x'],
+    grouped_small: ['b75'],
+    grouped_medium: ['b125'],
+    grouped_overbet: ['b33'],
+  });
+});
+
+test('Policy all_in remains an individual action when its option id resembles a sized bet', () => {
+  const question = checkedToHeroQuestion({
+    correctAnswer: 'b250',
+    options: [
+      { id: 'x', text: 'Check' },
+      { id: 'b250', text: 'Shove All-In' },
+      { id: 'mystery_small', text: 'Bet 33% Pot' },
+      { id: 'mystery_medium', text: 'Bet 75% Pot' },
+    ],
+    frequencies: { x: 10, b250: 60, mystery_small: 20, mystery_medium: 10 },
+  });
+
+  const transformed = applyDifficultyToQuestion(question, 'standard');
+  assert.equal(transformed.correctAnswer, 'b250');
+  assert.deepEqual(
+    transformed.options.map((option) => option.id),
+    ['x', 'b250', 'grouped_small', 'grouped_medium'],
+  );
+  assert.deepEqual(transformed._difficultyMembers.b250, ['b250']);
+});
+
+test('Explicit authoritative unsized aggression never falls back to parsing its id or copy', () => {
+  const transformed = simplifyActions([
+    { id: 'b33', text: 'Bet 33% Pot', action: 'bet', sizingPercent: null },
+    { id: 'legacy_bet', text: 'Bet 75% Pot', action: 'bet' },
+  ], DIFFICULTY.GROUPED, 10);
+
+  assert.deepEqual(transformed.map((option) => option.id), ['b33', 'grouped_medium']);
+  assert.deepEqual(transformed[1].mappedFrom.map((option) => option.id), ['legacy_bet']);
+});
+
 test('Randomizer ranges cover every integer exactly once in low and high modes', () => {
   const options = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
   const frequencies = { a: 95, b: 4, c: 1 };
@@ -125,6 +196,11 @@ test('Server authority grades strict RNG adherence and retains canonical solver 
   });
   assert.equal(followed.gradeMode, 'rng-adherence');
   assert.equal(followed.grade.isCorrect, true);
+  assert.equal(followed.grade.policyVersion, canonicalQuestion.solverPolicy.policyVersion);
+  assert.equal(
+    followed.grade.sourceChecksum,
+    canonicalQuestion.solverPolicy.sourceArtifact.sourceArtifactChecksum,
+  );
 
   const ignored = gradeTrainingAnswer({
     canonicalQuestion,

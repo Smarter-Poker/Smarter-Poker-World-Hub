@@ -118,6 +118,7 @@ function loadRecordQuestionHandler({
             optimalFrequency: 0.6,
             evLossMeasured: false,
             evLoss: 0,
+            sourceChecksum: '7'.repeat(64),
           },
           canonicalSolverGrade: {
             classification: 'best',
@@ -269,6 +270,11 @@ test('record-question reveals coaching data only after canonical grading persist
   assert.match(api, /villain_position: String\(canonicalScenario\.villainPosition/);
   assert.match(api, /street: String\(canonicalScenario\.street/);
   assert.match(api, /spot_type: String\(canonicalSpotType\)/);
+  assert.match(
+    api,
+    /\.\.\.\(verified \? \{ sourceChecksum: canonicalGrade\.sourceChecksum \} : \{\}\)/,
+    'only a verified canonical grade may propagate its source artifact checksum',
+  );
   assert.doesNotMatch(api, /const \{[\s\S]{0,240}heroPosition[\s\S]{0,240}\} = req\.body/);
 });
 
@@ -553,11 +559,45 @@ test('database receipt replay is immutable, cache-independent, service-only, and
     /changed question replay was accepted[\s\S]*changed user replay was accepted[\s\S]*changed checksum replay was accepted[\s\S]*changed verdict replay was accepted/,
   );
   assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /CREATE TABLE IF NOT EXISTS public\.training_attempt_decision_slots/);
+  assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /DO \$assert_delivery_authority_shapes\$/);
+  assert.match(
+    DECISION_AUTHORITY_MIGRATION_SOURCE,
+    /TRAINING_CONTINUATION_SLOT_TABLE_SHAPE_INVALID[\s\S]*TRAINING_DELIVERY_AUTHORITY_CUTOVER_TABLE_SHAPE_INVALID[\s\S]*TRAINING_DELIVERY_AUTHORITY_ATTESTATION_TABLE_SHAPE_INVALID/,
+  );
+  assert.match(
+    DECISION_AUTHORITY_MIGRATION_SOURCE,
+    /pg_get_expr\(actual\.conbin, actual\.conrelid\)[\s\S]*training_attempt_decision_slots_snapshot_idx[\s\S]*indnkeyatts = 1[\s\S]*indnatts = 1[\s\S]*indkey\[0\] = 4/,
+  );
+  assert.match(CACHE_REPLAY_VERIFIER_SOURCE, /const authorityShapeProbes = \[/);
+  assert.match(
+    CACHE_REPLAY_VERIFIER_SOURCE,
+    /training_attempt_decision_slots ADD COLUMN shape_probe[\s\S]*TRAINING_CONTINUATION_SLOT_TABLE_SHAPE_INVALID[\s\S]*training_delivery_authority_cutover ADD COLUMN shape_probe[\s\S]*TRAINING_DELIVERY_AUTHORITY_CUTOVER_TABLE_SHAPE_INVALID[\s\S]*training_delivery_authority_attestations ADD COLUMN shape_probe[\s\S]*TRAINING_DELIVERY_AUTHORITY_ATTESTATION_TABLE_SHAPE_INVALID/,
+  );
+  assert.match(
+    CACHE_REPLAY_VERIFIER_SOURCE,
+    /training_attempt_decision_slots_snapshot_idx[\s\S]*parent_snapshot_key[\s\S]*commandExpectFailure/,
+  );
   assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /fn_training_attempt_record_served_batch_v1/);
   assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /fn_training_authorize_attempt_decision_v1/);
   assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /fn_training_promote_legacy_signed_decision_v1/);
   assert.doesNotMatch(DECISION_AUTHORITY_MIGRATION_SOURCE, /CREATE OR REPLACE FUNCTION public\.fn_validate_training_answer_v2/);
   assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /training_delivery_authority_attestations/);
+  assert.match(
+    DECISION_AUTHORITY_MIGRATION_SOURCE,
+    /REVOKE ALL ON public\.training_attempt_decision_slots[\s\S]*FROM PUBLIC, anon, authenticated, service_role;[\s\S]*GRANT SELECT ON public\.training_attempt_decision_slots TO service_role/,
+  );
+  assert.match(
+    DECISION_AUTHORITY_MIGRATION_SOURCE,
+    /has_table_privilege\('service_role', 'public\.training_attempt_decision_slots', 'REFERENCES'\)[\s\S]*has_table_privilege\('service_role', 'public\.training_attempt_decision_slots', 'MAINTAIN'\)[\s\S]*has_any_column_privilege\('service_role', 'public\.training_attempt_decision_slots', 'REFERENCES'\)/,
+  );
+  assert.match(
+    DECISION_AUTHORITY_MIGRATION_SOURCE,
+    /REVOKE ALL ON FUNCTION public\.fn_training_reject_decision_slot_update_v1\(\)[\s\S]*FROM PUBLIC, anon, authenticated, service_role;[\s\S]*REVOKE ALL ON FUNCTION public\.fn_training_answer_cache_event\(\)[\s\S]*FROM PUBLIC, anon, authenticated, service_role;/,
+  );
+  assert.match(
+    DECISION_AUTHORITY_MIGRATION_SOURCE,
+    /VALUES \('anon'\), \('authenticated'\), \('service_role'\)[\s\S]*fn_training_reject_decision_slot_update_v1[\s\S]*fn_training_reject_delivery_cutover_mutation_v1[\s\S]*fn_training_answer_cache_event[\s\S]*has_function_privilege/,
+  );
   assert.match(DECISION_AUTHORITY_MIGRATION_SOURCE, /immutableSnapshotRecovery/);
   assert.match(
     DECISION_AUTHORITY_MIGRATION_SOURCE,

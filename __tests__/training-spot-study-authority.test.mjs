@@ -658,6 +658,16 @@ test('solver catalog admission requires complete payloads and centrally approved
   );
   assert.match(
     SPOT_SECURITY_HARDENING_SOURCE,
+    /public\.training_solver_provenance_authority'[\s\S]*\('REFERENCES'\), \('TRIGGER'\), \('MAINTAIN'\)[\s\S]*has_table_privilege/,
+    'the authority ledger assertion must cover every PostgreSQL 17 table privilege',
+  );
+  assert.match(
+    SPOT_SECURITY_HARDENING_SOURCE,
+    /pg_catalog\.aclexplode\(attributes\.attacl\)[\s\S]*pg_catalog\.to_regrole\('service_role'\)/,
+    'the authority ledger assertion must detect residual column ACLs',
+  );
+  assert.match(
+    SPOT_SECURITY_HARDENING_SOURCE,
     /CREATE OR REPLACE FUNCTION public\.fn_training_solver_artifact_servable_v2[\s\S]*jsonb_array_length\(p_matrix -> 'hand_evs_bb'\) <> 1326[\s\S]*v_live_combos > 0/,
   );
   assert.match(
@@ -692,6 +702,11 @@ test('solver catalog admission requires complete payloads and centrally approved
     [...CATALOG_VERIFIER_SOURCE.matchAll(/'-f', HARDENING_MIGRATION/g)].length,
     2,
     'the disposable PostgreSQL verifier must prove the security follow-up is idempotent',
+  );
+  assert.match(
+    CATALOG_VERIFIER_SOURCE,
+    /ALTER DEFAULT PRIVILEGES IN SCHEMA public[\s\S]*GRANT ALL ON TABLES TO anon, authenticated, service_role;[\s\S]*GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;[\s\S]*GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;/,
+    'the solver verifier must reproduce the live Supabase default ACLs',
   );
   assert.match(
     CATALOG_VERIFIER_SOURCE,
@@ -735,11 +750,17 @@ test('the request-path solver catalog is narrow, future-synchronized, private, a
   );
   assert.match(
     CATALOG_MIGRATION_SOURCE,
-    /REVOKE ALL ON public\.training_solver_artifact_catalog FROM PUBLIC, anon, authenticated[\s\S]*GRANT SELECT[\s\S]*TO service_role[\s\S]*REVOKE INSERT, UPDATE, DELETE, TRUNCATE/,
+    /REVOKE ALL ON public\.training_solver_artifact_catalog[\s\S]*FROM PUBLIC, anon, authenticated, service_role;[\s\S]*GRANT SELECT[\s\S]*TO service_role[\s\S]*REVOKE INSERT, UPDATE, DELETE, TRUNCATE/,
   );
   assert.match(
     CATALOG_MIGRATION_SOURCE,
-    /REVOKE ALL ON public\.solved_spots_gold FROM service_role;[\s\S]*GRANT SELECT, INSERT, UPDATE, DELETE[\s\S]*TO service_role/,
+    /REVOKE ALL ON public\.solved_spots_gold FROM service_role;[\s\S]*GRANT SELECT ON public\.solved_spots_gold TO service_role/,
+    'PR A retains only the predecessor read needed for rollback compatibility',
+  );
+  assert.doesNotMatch(
+    CATALOG_MIGRATION_SOURCE,
+    /GRANT\s+(?:ALL|[^;]*(?:INSERT|UPDATE|DELETE|TRUNCATE))[^;]*ON\s+(?:TABLE\s+)?public\.solved_spots_gold\s+TO\s+service_role/i,
+    'the service role cannot mutate the solver warehouse directly',
   );
   assert.match(
     CATALOG_MIGRATION_SOURCE,
@@ -751,6 +772,10 @@ test('the request-path solver catalog is narrow, future-synchronized, private, a
   );
   assert.match(CATALOG_MIGRATION_SOURCE, /ORDER BY entry\.key COLLATE "C"/);
   assert.match(CATALOG_MIGRATION_SOURCE, /SET search_path TO 'pg_catalog'/);
+  assert.match(
+    CATALOG_MIGRATION_SOURCE,
+    /has_function_privilege\([\s\S]*'anon', 'public\.fn_training_canonical_jsonb_text_v1\(jsonb\)', 'EXECUTE'[\s\S]*'anon', 'public\.sp_require_solver_write_provenance\(\)', 'EXECUTE'[\s\S]*'anon', 'public\.fn_training_solver_artifact_catalog_sync_v1\(\)', 'EXECUTE'/,
+  );
   assert.ok(
     [...CATALOG_VERIFIER_SOURCE.matchAll(/'-f', MIGRATION/g)].length >= 2,
     'the disposable PG17 verifier must prove catalog migration idempotency',

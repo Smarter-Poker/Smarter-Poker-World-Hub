@@ -457,6 +457,9 @@ test('worker transport is redirect-proof, service-key-free, bounded, and index-g
   assert.match(WORKER_MIGRATION_SOURCE, /artifact\.scenario_hash >= v_prefix/);
   assert.match(WORKER_MIGRATION_SOURCE, /artifact\.scenario_hash < v_upper_bound/);
   assert.match(WORKER_MIGRATION_SOURCE, /artifact\.scenario_hash > p_after_scenario/);
+  assert.match(WORKER_MIGRATION_SOURCE, /v_upper_bound := v_prefix \|\| 'Z'/);
+  assert.doesNotMatch(WORKER_MIGRATION_SOURCE, /v_upper_bound := v_prefix \|\| chr\(127\)/);
+  assert.match(WORKER_MIGRATION_SOURCE, /hu_cash_BTN_100bb_AsAhAd' < 'hu_cash_BTN_100bb_Z'/);
   assert.match(WORKER_MIGRATION_SOURCE, /AS admitted/);
   assert.match(WORKER_MIGRATION_SOURCE, /SOLVER_WORKER_REPLAY_ARTIFACT_NOT_CURRENT/);
   assert.equal((WORKER_MIGRATION_SOURCE.match(
@@ -466,7 +469,15 @@ test('worker transport is redirect-proof, service-key-free, bounded, and index-g
     /JOIN public\.training_solver_artifact_catalog catalog/g,
   ) || []).length >= 2, true);
   assert.match(WORKER_MIGRATION_SOURCE,
-    /REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER[\s\S]*ON public\.solved_spots_gold FROM service_role/);
+    /REVOKE ALL ON public\.solved_spots_gold FROM service_role/);
+  assert.match(WORKER_MIGRATION_SOURCE,
+    /REVOKE ALL PRIVILEGES \(%s\) ON public\.solved_spots_gold FROM service_role/);
+  assert.match(WORKER_MIGRATION_SOURCE,
+    /\('REFERENCES'\), \('TRIGGER'\), \('MAINTAIN'\)[\s\S]*has_table_privilege\([\s\S]*'service_role',[\s\S]*'public\.solved_spots_gold'/,
+    'the worker migration must prove service_role has no PostgreSQL 17 warehouse table privilege');
+  assert.match(WORKER_MIGRATION_SOURCE,
+    /has_function_privilege\([\s\S]*'anon',[\s\S]*training_claim_solver_worker_request_v1[\s\S]*NOT has_function_privilege\([\s\S]*'service_role',[\s\S]*training_claim_solver_worker_request_v1/,
+    'claim execution must be denied to browser roles and granted only to service_role');
   assert.equal((WORKER_MIGRATION_SOURCE.match(/FOR UPDATE SKIP LOCKED/g) || []).length, 2);
   assert.match(ENV_EXAMPLE_SOURCE, /^SOLVER_WORKER_M1_HMAC_SECRET=$/m);
   assert.match(ENV_EXAMPLE_SOURCE, /^SOLVER_WORKER_M2_HMAC_SECRET=$/m);

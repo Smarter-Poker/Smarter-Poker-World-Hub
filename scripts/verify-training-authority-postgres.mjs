@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -33,6 +33,15 @@ const STREAK_OUT_OF_ORDER_MIGRATION = path.join(
   'supabase/migrations/20260907202000_training_streak_out_of_order_completion.sql',
 );
 
+const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+`;
+
 function command(binary, args, { input, quiet = false } = {}) {
   const result = spawnSync(binary, args, {
     cwd: ROOT,
@@ -51,20 +60,52 @@ function command(binary, args, { input, quiet = false } = {}) {
   return result;
 }
 
+function commandExpectFailure(binary, args, { input, expected } = {}) {
+  const result = spawnSync(binary, args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    input,
+    env: process.env,
+  });
+  const output = [result.stdout, result.stderr].filter(Boolean).join('\n');
+  if (result.status === 0) {
+    throw new Error(`${path.basename(binary)} unexpectedly accepted an invalid streak arbiter`);
+  }
+  if (!expected || !output.includes(expected)) {
+    throw new Error([
+      `${path.basename(binary)} failed without the expected ${expected ?? 'error marker'}`,
+      output,
+    ].filter(Boolean).join('\n'));
+  }
+  return result;
+}
+
 function resolvePostgresBin() {
+  const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
     process.env.PHASE6_POSTGRES_BIN,
+    pgConfig.status === 0 ? pgConfig.stdout.trim() : null,
     '/opt/homebrew/opt/postgresql@17/bin',
     '/usr/local/opt/postgresql@17/bin',
+    '/usr/lib/postgresql/17/bin',
     '/usr/local/pgsql/bin',
   ].filter(Boolean);
   for (const candidate of candidates) {
-    if (existsSync(path.join(candidate, 'postgres'))) return candidate;
+    if (
+      ['postgres', 'initdb', 'pg_ctl', 'psql', 'createdb'].every((tool) => existsSync(path.join(candidate, tool)))
+    ) {
+      const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+      if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+    }
   }
   const resolved = spawnSync('sh', ['-c', 'command -v postgres'], { encoding: 'utf8' });
-  if (resolved.status === 0 && resolved.stdout.trim()) return path.dirname(resolved.stdout.trim());
+  if (resolved.status === 0 && resolved.stdout.trim()) {
+    const candidate = path.dirname(resolved.stdout.trim());
+    const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+    if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+  }
   throw new Error(
-    'PostgreSQL 17+ binaries are required. Set PHASE6_POSTGRES_BIN to the directory containing postgres, initdb, and pg_ctl.',
+    'PostgreSQL 17 binaries are required. Set PHASE6_POSTGRES_BIN to the directory containing postgres, initdb, pg_ctl, psql, and createdb.',
   );
 }
 
@@ -1314,6 +1355,69 @@ BEGIN
     'cccccccc-cccc-4ccc-8ccc-ccccccccccc2'
   );
 END $$;
+
+-- This player has a three-day materialized legacy interval with no retained
+-- completed-attempt rows. It proves the migration's private interval snapshot
+-- protects live completions across its first durable checkpoint.
+INSERT INTO auth.users(id)
+VALUES ('13131313-1313-4313-8313-131313131313');
+INSERT INTO public.training_streaks (
+  user_id, current_streak, longest_streak, last_training_date,
+  streak_start_date, milestones_claimed,
+  authority_current_streak, authority_longest_streak,
+  authority_last_training_date, authority_streak_start_date,
+  authority_milestones_claimed
+) VALUES (
+  '13131313-1313-4313-8313-131313131313', 3, 3,
+  timezone('America/Chicago', now())::date - 3,
+  timezone('America/Chicago', now())::date - 5,
+  '[]'::jsonb, 3, 3,
+  timezone('America/Chicago', now())::date - 3,
+  timezone('America/Chicago', now())::date - 5,
+  '[]'::jsonb
+);
+`;
+
+const STREAK_CHECKPOINT_BARRIER_SQL = String.raw`
+-- Execute after the migration's first COMMIT but before its attempt scan.
+-- The capture trigger must combine this live completion with all three private
+-- staged dates; reporting a one-day streak here is a rollout regression.
+INSERT INTO public.training_attempts (
+  id, user_id, client_nonce, game_id, level, session_kind, difficulty,
+  expected_hands, config_hash, practice_only, status, started_at, expires_at,
+  completed_at, answered_hands, correct_hands, accuracy_percentage, passed,
+  best_streak, reward_diamonds
+) VALUES (
+  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  '13131313-1313-4313-8313-131313131313',
+  'phase6-streak-checkpoint-barrier', 'cash-001', 1, 'campaign', 'grouped',
+  20, repeat('d', 64), false, 'completed',
+  ((timezone('America/Chicago', now())::date - 2)::timestamp + interval '12 hours')
+    AT TIME ZONE 'America/Chicago',
+  now() + interval '2 hours',
+  ((timezone('America/Chicago', now())::date - 2)::timestamp + interval '12 hours')
+    AT TIME ZONE 'America/Chicago',
+  20, 20, 100, true, 20, 0
+);
+DO $$
+BEGIN
+  IF (SELECT authority_current_streak FROM public.training_streaks
+      WHERE user_id = '13131313-1313-4313-8313-131313131313') <> 4
+     OR (SELECT authority_longest_streak FROM public.training_streaks
+         WHERE user_id = '13131313-1313-4313-8313-131313131313') <> 4
+     OR (SELECT authority_streak_start_date FROM public.training_streaks
+         WHERE user_id = '13131313-1313-4313-8313-131313131313')
+        <> timezone('America/Chicago', now())::date - 5
+     OR (SELECT authority_last_training_date FROM public.training_streaks
+         WHERE user_id = '13131313-1313-4313-8313-131313131313')
+        <> timezone('America/Chicago', now())::date - 2
+     OR (SELECT count(*) FROM public.training_streak_activity_days
+         WHERE user_id = '13131313-1313-4313-8313-131313131313') <> 1
+     OR (SELECT count(*) FROM public.training_streak_interval_migration_v1
+         WHERE user_id = '13131313-1313-4313-8313-131313131313') <> 3 THEN
+    RAISE EXCEPTION 'streak checkpoint capture lost the private legacy interval';
+  END IF;
+END $$;
 `;
 
 const DAILY_RECOVERY_BEHAVIOR_SQL = String.raw`
@@ -1570,6 +1674,25 @@ BEGIN
   END;
   IF NOT blocked THEN RAISE EXCEPTION 'streak activity evidence was deletable'; END IF;
 
+  -- Direct child deletion is forbidden above, while GDPR account erasure must
+  -- still cascade through the immutable ledger without leaving authority data.
+  DELETE FROM auth.users
+  WHERE id = '13131313-1313-4313-8313-131313131313';
+  IF EXISTS (
+       SELECT 1 FROM public.training_streak_activity_days
+       WHERE user_id = '13131313-1313-4313-8313-131313131313'
+     )
+     OR EXISTS (
+       SELECT 1 FROM public.training_streaks
+       WHERE user_id = '13131313-1313-4313-8313-131313131313'
+     )
+     OR EXISTS (
+       SELECT 1 FROM public.training_attempts
+       WHERE user_id = '13131313-1313-4313-8313-131313131313'
+     ) THEN
+    RAISE EXCEPTION 'auth.users deletion did not cascade immutable streak evidence';
+  END IF;
+
   -- A completion replay must revalidate immutable Daily identity before the
   -- function's ordinary idempotent-success return. Simulate a conflict that
   -- is discovered after settlement and prove replay cannot launder it.
@@ -1629,7 +1752,9 @@ const tool = (name) => path.join(postgresBin, name);
 const connection = ['-h', tempRoot, '-p', String(port), '-d', 'phase6'];
 
 try {
-  command(tool('initdb'), ['-D', dataDir, '-A', 'trust', '--no-locale'], { quiet: true });
+  command(tool('initdb'), [
+    '-D', dataDir, '-A', 'trust', '--locale=en_US.UTF-8', '--encoding=UTF8',
+  ], { quiet: true });
   command(tool('pg_ctl'), [
     '-D', dataDir,
     '-o', `-p ${port} -k ${tempRoot}`,
@@ -1639,6 +1764,21 @@ try {
   ], { quiet: true });
   started = true;
   command(tool('createdb'), ['-h', tempRoot, '-p', String(port), 'phase6'], { quiet: true });
+  const environment = command(tool('psql'), ['-X', '-qAt', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`SELECT current_setting('server_version_num'),
+      current_setting('server_encoding'),
+      datcollate
+    FROM pg_catalog.pg_database
+    WHERE datname = current_database();`,
+    quiet: true,
+  }).stdout.trim().split('|');
+  if (
+    !/^17\d{4}$/.test(environment[0] || '')
+    || environment[1] !== 'UTF8'
+    || environment[2] !== 'en_US.UTF-8'
+  ) {
+    throw new Error(`Training authority verifier requires PostgreSQL 17, UTF8, en_US.UTF-8; received ${environment.join('|')}`);
+  }
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BASELINE_SQL,
     quiet: true,
@@ -1663,6 +1803,69 @@ try {
     input: PRE_STREAK_LEDGER_SQL,
     quiet: true,
   });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: PRODUCTION_DEFAULT_ACL_SQL,
+    quiet: true,
+  });
+  const streakMigrationSql = readFileSync(STREAK_OUT_OF_ORDER_MIGRATION, 'utf8');
+  const firstStreakCheckpoint = streakMigrationSql.indexOf('\nCOMMIT;\n\nBEGIN;');
+  if (firstStreakCheckpoint < 0) {
+    throw new Error('Could not locate the first durable streak migration checkpoint.');
+  }
+  const firstStreakTransaction = streakMigrationSql.slice(
+    0,
+    firstStreakCheckpoint + '\nCOMMIT;'.length,
+  );
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `ALTER TABLE public.training_streaks
+      DROP CONSTRAINT training_streaks_user_id_key;
+      ALTER TABLE public.training_streaks
+      ADD CONSTRAINT training_streaks_user_id_key UNIQUE (user_id)
+      DEFERRABLE INITIALLY IMMEDIATE;`,
+    quiet: true,
+  });
+  commandExpectFailure(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: firstStreakTransaction,
+    expected: 'TRAINING_STREAK_CONFLICT_ARBITER_INVALID',
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `ALTER TABLE public.training_streaks
+      DROP CONSTRAINT training_streaks_user_id_key;
+      ALTER TABLE public.training_streaks
+      ADD CONSTRAINT training_streaks_user_id_key UNIQUE (user_id);`,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: firstStreakTransaction,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `ALTER TABLE public.training_streak_interval_migration_v1
+      DROP CONSTRAINT training_streak_interval_migration_v1_pkey;
+      ALTER TABLE public.training_streak_interval_migration_v1
+      ADD CONSTRAINT training_streak_interval_migration_v1_pkey
+      PRIMARY KEY (user_id, activity_date) DEFERRABLE INITIALLY IMMEDIATE;`,
+    quiet: true,
+  });
+  commandExpectFailure(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: firstStreakTransaction,
+    expected: 'TRAINING_STREAK_INTERVAL_STAGE_SHAPE_INVALID',
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `ALTER TABLE public.training_streak_interval_migration_v1
+      DROP CONSTRAINT training_streak_interval_migration_v1_pkey;
+      ALTER TABLE public.training_streak_interval_migration_v1
+      ADD CONSTRAINT training_streak_interval_migration_v1_pkey
+      PRIMARY KEY (user_id, activity_date);`,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: STREAK_CHECKPOINT_BARRIER_SQL,
+    quiet: true,
+  });
+  // Replaying the full migration after a checkpoint-only partial application
+  // must preserve staged history, finish the backfill, and drop staging only
+  // after the writer drain and function swap commit together.
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', STREAK_OUT_OF_ORDER_MIGRATION], {
     quiet: true,
   });
@@ -1681,6 +1884,27 @@ try {
   });
   const evidence = command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BEHAVIOR_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `ALTER TABLE public.training_streak_activity_days
+      DROP CONSTRAINT training_streak_activity_days_pkey;
+      ALTER TABLE public.training_streak_activity_days
+      ADD CONSTRAINT training_streak_activity_days_pkey
+      PRIMARY KEY (user_id, activity_date) DEFERRABLE INITIALLY IMMEDIATE;`,
+    quiet: true,
+  });
+  commandExpectFailure(
+    tool('psql'),
+    ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', STREAK_OUT_OF_ORDER_MIGRATION],
+    { expected: 'TRAINING_STREAK_ACTIVITY_TABLE_SHAPE_INVALID' },
+  );
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `ALTER TABLE public.training_streak_activity_days
+      DROP CONSTRAINT training_streak_activity_days_pkey;
+      ALTER TABLE public.training_streak_activity_days
+      ADD CONSTRAINT training_streak_activity_days_pkey
+      PRIMARY KEY (user_id, activity_date);`,
     quiet: true,
   });
   const evidenceLine = evidence.stdout

@@ -66,17 +66,36 @@ test('framework and audit-harness exports have explicit non-runtime dispositions
   );
   assert.equal(historicalStub?.disposition, 'historical-or-prohibition-comment');
   assert.equal(historicalStub?.review, 'accepted');
+
+  for (const [file, name] of [
+    ['src/config/hamburgerMenus.js', 'copyReferralLink'],
+    ['src/config/worldMenuNavigation.js', 'getWorldMenuById'],
+    ['src/config/worldMenuNavigation.js', 'getWorldMenuInventory'],
+    ['src/lib/world-menu/navigationState.mjs', 'isWorldMenuHrefActive'],
+  ]) {
+    const entry = classificationFor(file, name);
+    assert.equal(entry?.disposition, 'frozen-global-header-public-api', `${file}:${name}`);
+    assert.equal(entry?.review, 'accepted', `${file}:${name}`);
+  }
+});
+
+test('receipt placeholder words are classified as fail-closed secret guards', () => {
+  const receiptMarkers = inventory.classifications.markers.filter(
+    (entry) => entry.file === 'src/lib/training/gradingReceipt.mjs'
+      || entry.file === 'src/lib/training/gradingReceiptSecret.mjs',
+  );
+  assert.equal(receiptMarkers.length, 5);
+  for (const marker of receiptMarkers) {
+    assert.equal(marker.disposition, 'secret-validation-guard');
+    assert.equal(marker.review, 'accepted');
+  }
 });
 
 test('reviewed unused exports stay removed instead of being allowlisted', () => {
   const removed = [
     ['pages/api/training/next-street.js', 'chooseDeterministicEducationalCard'],
-    ['src/config/hamburgerMenus.js', 'copyReferralLink'],
     ['src/config/trainingConfig.js', 'checkLevelPassed'],
     ['src/config/trainingConfig.js', 'getDiamondReward'],
-    ['src/config/worldMenuNavigation.js', 'getWorldMenuById'],
-    ['src/config/worldMenuNavigation.js', 'getWorldMenuInventory'],
-    ['src/lib/world-menu/navigationState.mjs', 'isWorldMenuHrefActive'],
     ['src/stores/pageOverlayStore.js', 'closePageOverlay'],
     ['src/tutorials/index.js', 'listTutorialRoutes'],
     ['src/utils/trainingApiUtils.js', 'parseBoardFromHash'],

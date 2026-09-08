@@ -619,6 +619,7 @@ export default async function handler(req, res) {
           sourceClassification: evidencePolicy.source_classification,
           policyVersion: evidencePolicy.policy_version,
           policyChecksum: evidencePolicy.policy_checksum,
+          ...(verified ? { sourceChecksum: canonicalGrade.sourceChecksum } : {}),
           ...(verified ? {} : { reason: 'question_not_solver_verified' }),
         },
       };

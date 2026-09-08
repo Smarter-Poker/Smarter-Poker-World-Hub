@@ -10,14 +10,6 @@ SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '120s';
 SET LOCAL search_path = pg_catalog;
 
--- Freeze completion inputs and the materialized streak row while the ledger is
--- backfilled and the completion function is swapped. Runtime completion takes
--- locks in this same attempt -> streak order.
-LOCK TABLE
-  public.training_attempts,
-  public.training_streaks
-IN SHARE ROW EXCLUSIVE MODE;
-
 CREATE TABLE IF NOT EXISTS public.training_streak_activity_days (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   activity_date date NOT NULL,
@@ -69,6 +61,9 @@ BEGIN
        WHERE conrelid = activity_oid
          AND conname = 'training_streak_activity_days_pkey'
          AND contype = 'p'
+         AND convalidated
+         AND NOT condeferrable
+         AND NOT condeferred
          AND conkey = ARRAY[1, 2]::smallint[]
      )
      OR NOT EXISTS (
@@ -85,6 +80,32 @@ BEGIN
 END;
 $streak_activity_shape$;
 
+-- Both the transition trigger and the final completion function use
+-- ON CONFLICT (user_id). PostgreSQL cannot use a DEFERRABLE unique constraint
+-- as that arbiter, so reject compatible-looking predecessor drift up front.
+DO $streak_conflict_arbiter_shape$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_constraint constraint_row
+    WHERE constraint_row.conrelid = 'public.training_streaks'::pg_catalog.regclass
+      AND constraint_row.contype IN ('p', 'u')
+      AND constraint_row.convalidated
+      AND NOT constraint_row.condeferrable
+      AND NOT constraint_row.condeferred
+      AND constraint_row.conkey = ARRAY[
+        (SELECT attribute_row.attnum
+         FROM pg_catalog.pg_attribute attribute_row
+         WHERE attribute_row.attrelid = 'public.training_streaks'::pg_catalog.regclass
+           AND attribute_row.attname = 'user_id'
+           AND NOT attribute_row.attisdropped)
+      ]::smallint[]
+  ) THEN
+    RAISE EXCEPTION 'TRAINING_STREAK_CONFLICT_ARBITER_INVALID';
+  END IF;
+END;
+$streak_conflict_arbiter_shape$;
+
 COMMENT ON TABLE public.training_streak_activity_days IS
   'Immutable authoritative Training activity days used to derive order-independent streak islands.';
 
@@ -95,6 +116,14 @@ SECURITY DEFINER
 SET search_path TO pg_catalog
 AS $function$
 BEGIN
+  -- PostgreSQL executes child-table DELETE triggers during an ON DELETE
+  -- CASCADE. Account erasure is the sole legitimate delete path for this
+  -- otherwise immutable authority ledger.
+  IF TG_OP = 'DELETE' AND NOT EXISTS (
+    SELECT 1 FROM auth.users users WHERE users.id = OLD.user_id
+  ) THEN
+    RETURN OLD;
+  END IF;
   RAISE EXCEPTION USING
     ERRCODE = '23514',
     MESSAGE = 'TRAINING_STREAK_ACTIVITY_DAY_IMMUTABLE';
@@ -106,6 +135,289 @@ DROP TRIGGER IF EXISTS training_streak_activity_days_immutable_v1
 CREATE TRIGGER training_streak_activity_days_immutable_v1
   BEFORE UPDATE OR DELETE ON public.training_streak_activity_days
   FOR EACH ROW EXECUTE FUNCTION public.fn_training_streak_activity_immutable_v1();
+
+-- Snapshot the pre-migration authoritative intervals before publishing the
+-- capture trigger. This short lock prevents a predecessor completion from
+-- collapsing an interval whose middle days exist only in the materialized
+-- streak row. A private durable staging table survives a failed later
+-- transaction/retry and lets direct attempt evidence win every overlap. The
+-- expensive attempt scan stays outside this lock.
+LOCK TABLE public.training_streaks IN SHARE MODE;
+
+CREATE TABLE IF NOT EXISTS public.training_streak_interval_migration_v1 (
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  activity_date date NOT NULL,
+  PRIMARY KEY (user_id, activity_date)
+);
+
+DO $streak_interval_stage_shape$
+DECLARE
+  stage_oid pg_catalog.oid := pg_catalog.to_regclass(
+    'public.training_streak_interval_migration_v1'
+  );
+BEGIN
+  IF NOT EXISTS (
+       SELECT 1 FROM pg_catalog.pg_class
+       WHERE oid = stage_oid AND relkind = 'r'
+     )
+     OR (SELECT count(*) FROM pg_catalog.pg_attribute
+         WHERE attrelid = stage_oid AND attnum > 0 AND NOT attisdropped) <> 2
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('user_id', 1, 'uuid', true, NULL::text),
+         ('activity_date', 2, 'date', true, NULL::text)
+       ) expected(attname, attnum, type_name, not_null, default_expr)
+       LEFT JOIN pg_catalog.pg_attribute attributes
+         ON attributes.attrelid = stage_oid
+        AND attributes.attname = expected.attname
+        AND attributes.attnum = expected.attnum
+        AND NOT attributes.attisdropped
+       LEFT JOIN pg_catalog.pg_attrdef defaults
+         ON defaults.adrelid = attributes.attrelid
+        AND defaults.adnum = attributes.attnum
+       WHERE attributes.attname IS NULL
+          OR pg_catalog.format_type(attributes.atttypid, attributes.atttypmod)
+             IS DISTINCT FROM expected.type_name
+          OR attributes.attnotnull IS DISTINCT FROM expected.not_null
+          OR pg_catalog.pg_get_expr(defaults.adbin, defaults.adrelid)
+             IS DISTINCT FROM expected.default_expr
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = stage_oid
+         AND conname = 'training_streak_interval_migration_v1_pkey'
+         AND contype = 'p' AND convalidated
+         AND NOT condeferrable
+         AND NOT condeferred
+         AND conkey = ARRAY[1, 2]::smallint[]
+         AND pg_catalog.pg_get_constraintdef(oid, true)
+             = 'PRIMARY KEY (user_id, activity_date)'
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = stage_oid
+         AND conname = 'training_streak_interval_migration_v1_user_id_fkey'
+         AND contype = 'f' AND convalidated
+         AND conkey = ARRAY[1]::smallint[]
+         AND confrelid = 'auth.users'::pg_catalog.regclass
+         AND confdeltype = 'c'
+         AND pg_catalog.pg_get_constraintdef(oid, true)
+             = 'FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE'
+     )
+     OR (SELECT count(*) FROM pg_catalog.pg_constraint
+         WHERE conrelid = stage_oid) <> 2 THEN
+    RAISE EXCEPTION 'TRAINING_STREAK_INTERVAL_STAGE_SHAPE_INVALID';
+  END IF;
+END;
+$streak_interval_stage_shape$;
+
+ALTER TABLE public.training_streak_interval_migration_v1 ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.training_streak_interval_migration_v1
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL PRIVILEGES (user_id, activity_date)
+  ON public.training_streak_interval_migration_v1
+  FROM PUBLIC, anon, authenticated, service_role;
+
+INSERT INTO public.training_streak_interval_migration_v1 (
+  user_id, activity_date
+)
+SELECT
+  streaks.user_id,
+  inferred.activity_date::date
+FROM public.training_streaks streaks
+CROSS JOIN LATERAL generate_series(
+  coalesce(
+    streaks.authority_streak_start_date,
+    streaks.authority_last_training_date
+      - greatest(streaks.authority_current_streak - 1, 0)
+  )::timestamp,
+  streaks.authority_last_training_date::timestamp,
+  interval '1 day'
+) AS inferred(activity_date)
+WHERE streaks.authority_current_streak > 0
+  AND streaks.authority_last_training_date IS NOT NULL
+  AND coalesce(
+    streaks.authority_streak_start_date,
+    streaks.authority_last_training_date
+      - greatest(streaks.authority_current_streak - 1, 0)
+  ) <= streaks.authority_last_training_date
+ON CONFLICT (user_id, activity_date) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.fn_training_streak_summary_v1(
+  p_user_id uuid
+)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO pg_catalog
+AS $function$
+  -- Until the historical scan commits, the durable private interval snapshot
+  -- is part of the authority projection. Without this union, a live completion
+  -- between migration checkpoints could collapse a preserved streak to only
+  -- the newly captured day. UNION also prevents a staged/direct overlap from
+  -- appearing twice.
+  WITH authority_days AS (
+    SELECT activity_date
+    FROM public.training_streak_activity_days
+    WHERE user_id = p_user_id
+    UNION
+    SELECT activity_date
+    FROM public.training_streak_interval_migration_v1
+    WHERE user_id = p_user_id
+  ), ordered_days AS (
+    SELECT
+      activity_date,
+      activity_date
+        - row_number() OVER (ORDER BY activity_date)::integer AS island_key
+    FROM authority_days
+  ), islands AS (
+    SELECT
+      min(activity_date) AS start_date,
+      max(activity_date) AS last_date,
+      count(*)::integer AS day_count
+    FROM ordered_days
+    GROUP BY island_key
+  ), ranked AS (
+    SELECT
+      islands.*,
+      max(day_count) OVER () AS longest_count,
+      row_number() OVER (ORDER BY last_date DESC) AS recency_rank
+    FROM islands
+  )
+  SELECT jsonb_build_object(
+    'current', day_count,
+    'longest', longest_count,
+    'startDate', start_date,
+    'lastDate', last_date
+  )
+  FROM ranked
+  WHERE recency_rank = 1;
+$function$;
+
+-- Install a durable write-through projection before beginning any bulk
+-- backfill. This closes the deployment window without holding a table-wide
+-- completion lock for the duration of the historical scan: an old application
+-- completion that commits while the migration continues is captured and its
+-- materialized streak is corrected after the predecessor function's update.
+CREATE OR REPLACE FUNCTION public.fn_training_capture_streak_activity_v1()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO pg_catalog
+AS $function$
+DECLARE
+  v_activity_date date;
+  v_summary jsonb;
+BEGIN
+  IF NEW.status IS DISTINCT FROM 'completed'
+     OR NEW.practice_only
+     OR (
+       TG_OP = 'UPDATE'
+       AND OLD.status IS NOT DISTINCT FROM 'completed'
+     ) THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.session_kind = 'daily'
+     AND NOT public.fn_training_daily_attempt_matches_start_v1(
+       NEW.client_nonce,
+       NEW.started_at
+     ) THEN
+    RETURN NEW;
+  END IF;
+
+  v_activity_date := CASE
+    WHEN NEW.session_kind = 'daily'
+      THEN timezone('America/Chicago', NEW.started_at)::date
+    ELSE timezone('America/Chicago', NEW.completed_at)::date
+  END;
+  IF v_activity_date IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.training_streaks AS streaks (
+    user_id, current_streak, longest_streak, last_training_date,
+    streak_start_date, milestones_claimed,
+    authority_current_streak, authority_longest_streak,
+    authority_last_training_date, authority_streak_start_date,
+    authority_milestones_claimed, created_at, updated_at
+  ) VALUES (
+    NEW.user_id, 1, 1, v_activity_date,
+    v_activity_date, '[]'::jsonb,
+    1, 1, v_activity_date, v_activity_date, '[]'::jsonb, now(), now()
+  )
+  ON CONFLICT (user_id) DO NOTHING;
+
+  PERFORM 1
+  FROM public.training_streaks streaks
+  WHERE streaks.user_id = NEW.user_id
+  FOR UPDATE;
+
+  INSERT INTO public.training_streak_activity_days (
+    user_id, activity_date, first_attempt_id
+  ) VALUES (
+    NEW.user_id, v_activity_date, NEW.id
+  )
+  ON CONFLICT (user_id, activity_date) DO NOTHING;
+
+  v_summary := public.fn_training_streak_summary_v1(NEW.user_id);
+  UPDATE public.training_streaks AS streaks
+  SET
+    authority_current_streak = (v_summary ->> 'current')::integer,
+    authority_longest_streak = greatest(
+      streaks.authority_longest_streak,
+      (v_summary ->> 'longest')::integer
+    ),
+    authority_last_training_date = (v_summary ->> 'lastDate')::date,
+    authority_streak_start_date = (v_summary ->> 'startDate')::date,
+    current_streak = (v_summary ->> 'current')::integer,
+    longest_streak = greatest(
+      streaks.authority_longest_streak,
+      (v_summary ->> 'longest')::integer
+    ),
+    last_training_date = (v_summary ->> 'lastDate')::date,
+    streak_start_date = (v_summary ->> 'startDate')::date,
+    milestones_claimed = streaks.authority_milestones_claimed,
+    updated_at = now()
+  WHERE streaks.user_id = NEW.user_id;
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS training_attempts_capture_streak_activity_v1
+  ON public.training_attempts;
+CREATE TRIGGER training_attempts_capture_streak_activity_v1
+  AFTER INSERT OR UPDATE OF status ON public.training_attempts
+  FOR EACH ROW EXECUTE FUNCTION public.fn_training_capture_streak_activity_v1();
+
+-- The first durable boundary must already be private. Supabase production
+-- grants broad default privileges on new public tables, so committing before
+-- both table and per-column ACL cleanup would expose an INSERT poisoning
+-- window for the duration of the historical backfill.
+ALTER TABLE public.training_streak_activity_days ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.training_streak_activity_days
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL PRIVILEGES (user_id, activity_date, first_attempt_id, recorded_at)
+  ON public.training_streak_activity_days
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.fn_training_streak_activity_immutable_v1()
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.fn_training_streak_summary_v1(uuid)
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.fn_training_capture_streak_activity_v1()
+  FROM PUBLIC, anon, authenticated, service_role;
+
+-- Make the private write-through capture and preserved historical intervals
+-- visible before the completed-attempt scan. The second transaction can now
+-- backfill without blocking live completions for its full duration.
+COMMIT;
+
+BEGIN;
+
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '120s';
+SET LOCAL search_path = pg_catalog;
 
 -- Recover every date that has direct sealed completion evidence. The daily
 -- branch deliberately uses started_at and rejects malformed issuance identity;
@@ -144,78 +456,62 @@ SELECT user_id, activity_date, attempt_id
 FROM first_attempt_per_day
 ON CONFLICT (user_id, activity_date) DO NOTHING;
 
--- Preserve an existing authoritative interval even when it predates attempt
--- evidence retained by this release. NULL first_attempt_id explicitly marks an
--- inferred day from the immutable authority snapshot rather than invented
--- attempt evidence.
+-- Preserve snapshot-only historical days after direct evidence has won every
+-- overlap. NULL explicitly means the day came from the pre-cutover authority
+-- interval rather than from a retained completed attempt.
 INSERT INTO public.training_streak_activity_days (
   user_id, activity_date, first_attempt_id
 )
-SELECT
-  streaks.user_id,
-  inferred.activity_date::date,
-  NULL
-FROM public.training_streaks streaks
-CROSS JOIN LATERAL generate_series(
-  coalesce(
-    streaks.authority_streak_start_date,
-    streaks.authority_last_training_date
-      - greatest(streaks.authority_current_streak - 1, 0)
-  )::timestamp,
-  streaks.authority_last_training_date::timestamp,
-  interval '1 day'
-) AS inferred(activity_date)
-WHERE streaks.authority_current_streak > 0
-  AND streaks.authority_last_training_date IS NOT NULL
-  AND coalesce(
-    streaks.authority_streak_start_date,
-    streaks.authority_last_training_date
-      - greatest(streaks.authority_current_streak - 1, 0)
-  ) <= streaks.authority_last_training_date
+SELECT user_id, activity_date, NULL
+FROM public.training_streak_interval_migration_v1
 ON CONFLICT (user_id, activity_date) DO NOTHING;
 
-CREATE OR REPLACE FUNCTION public.fn_training_streak_summary_v1(
-  p_user_id uuid
-)
-RETURNS jsonb
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path TO pg_catalog
-AS $function$
-  WITH ordered_days AS (
-    SELECT
-      activity_date,
-      activity_date
-        - row_number() OVER (ORDER BY activity_date)::integer AS island_key
-    FROM public.training_streak_activity_days
-    WHERE user_id = p_user_id
-  ), islands AS (
-    SELECT
-      min(activity_date) AS start_date,
-      max(activity_date) AS last_date,
-      count(*)::integer AS day_count
-    FROM ordered_days
-    GROUP BY island_key
-  ), ranked AS (
-    SELECT
-      islands.*,
-      max(day_count) OVER () AS longest_count,
-      row_number() OVER (ORDER BY last_date DESC) AS recency_rank
-    FROM islands
-  )
-  SELECT jsonb_build_object(
-    'current', day_count,
-    'longest', longest_count,
-    'startDate', start_date,
-    'lastDate', last_date
-  )
-  FROM ranked
-  WHERE recency_rank = 1;
-$function$;
+-- Publish the complete historical ledger before reconciling its materialized
+-- projection. A completion captured during this transaction may temporarily
+-- compute from only the rows visible to its own snapshot; the final, bounded
+-- transaction below drains those pre-cutover writers and recomputes from the
+-- now-committed union.
+COMMIT;
+
+BEGIN;
+
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '120s';
+SET LOCAL search_path = pg_catalog;
+
+-- This dated migration has a verified production cardinality of one streak
+-- row. Fail closed instead of taking a long blocking lock if it is ever
+-- replayed against an unexpectedly large environment; that environment needs
+-- an explicit online/batched reconciliation plan.
+DO $bounded_final_reconciliation$
+DECLARE
+  v_rows integer;
+BEGIN
+  SELECT count(*)::integer INTO v_rows
+  FROM (
+    SELECT 1
+    FROM public.training_streaks
+    LIMIT 10001
+  ) bounded;
+  IF v_rows > 10000 THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '55000',
+      MESSAGE = 'TRAINING_STREAK_RECONCILIATION_REQUIRES_ONLINE_BACKFILL';
+  END IF;
+END;
+$bounded_final_reconciliation$;
+
+-- EXCLUSIVE conflicts with the RowShare lock obtained by completion's early
+-- SELECT ... FOR UPDATE while still allowing ordinary reads. This drains even
+-- a pre-backfill function invocation before the short final projection and
+-- function-swap window. The streak lock also serializes milestone writers.
+LOCK TABLE public.training_attempts IN EXCLUSIVE MODE;
+LOCK TABLE public.training_streaks IN SHARE ROW EXCLUSIVE MODE;
 
 -- Bring the materialized projection into agreement immediately; do not wait
--- for a player's next completion to repair already out-of-order history.
+-- for a player's next completion to repair already out-of-order history. Both
+-- the historical backfill and any write-through rows are committed and no old
+-- completion writer remains in flight while this snapshot is materialized.
 WITH summaries AS MATERIALIZED (
   SELECT
     streaks.user_id,
@@ -350,6 +646,59 @@ REVOKE ALL ON FUNCTION public.fn_training_streak_activity_immutable_v1()
   FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.fn_training_streak_summary_v1(uuid)
   FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.fn_training_capture_streak_activity_v1()
+  FROM PUBLIC, anon, authenticated, service_role;
+
+-- The historical ledger is now complete and the final writer drain has made
+-- the materialized projection exact. Remove the migration-stage dependency
+-- from the durable summary function before dropping private staging state.
+CREATE OR REPLACE FUNCTION public.fn_training_streak_summary_v1(
+  p_user_id uuid
+)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO pg_catalog
+AS $function$
+  WITH ordered_days AS (
+    SELECT
+      activity_date,
+      activity_date
+        - row_number() OVER (ORDER BY activity_date)::integer AS island_key
+    FROM public.training_streak_activity_days
+    WHERE user_id = p_user_id
+  ), islands AS (
+    SELECT
+      min(activity_date) AS start_date,
+      max(activity_date) AS last_date,
+      count(*)::integer AS day_count
+    FROM ordered_days
+    GROUP BY island_key
+  ), ranked AS (
+    SELECT
+      islands.*,
+      max(day_count) OVER () AS longest_count,
+      row_number() OVER (ORDER BY last_date DESC) AS recency_rank
+    FROM islands
+  )
+  SELECT jsonb_build_object(
+    'current', day_count,
+    'longest', longest_count,
+    'startDate', start_date,
+    'lastDate', last_date
+  )
+  FROM ranked
+  WHERE recency_rank = 1;
+$function$;
+REVOKE ALL ON FUNCTION public.fn_training_streak_summary_v1(uuid)
+  FROM PUBLIC, anon, authenticated, service_role;
+
+-- Remove migration-only state only in the same transaction that has drained
+-- predecessor completions, reconciled every projection, and swapped the
+-- completion function. A failure before here deliberately leaves the private
+-- snapshot available to the next retry.
+DROP TABLE public.training_streak_interval_migration_v1;
 
 DO $audit$
 DECLARE
@@ -359,6 +708,7 @@ BEGIN
     'public.fn_complete_training_attempt_v2(uuid,uuid)'::regprocedure
   ) INTO completion_definition;
   IF to_regclass('public.training_streak_activity_days') IS NULL
+     OR to_regclass('public.training_streak_interval_migration_v1') IS NOT NULL
      OR NOT EXISTS (
        SELECT 1 FROM pg_catalog.pg_class
        WHERE oid = 'public.training_streak_activity_days'::pg_catalog.regclass
@@ -370,9 +720,27 @@ BEGIN
          AND tgname = 'training_streak_activity_days_immutable_v1'
          AND NOT tgisinternal
      )
-     OR has_table_privilege('anon', 'public.training_streak_activity_days', 'SELECT')
-     OR has_table_privilege('authenticated', 'public.training_streak_activity_days', 'SELECT')
-     OR has_table_privilege('service_role', 'public.training_streak_activity_days', 'SELECT')
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_trigger
+       WHERE tgrelid = 'public.training_attempts'::regclass
+         AND tgname = 'training_attempts_capture_streak_activity_v1'
+         AND NOT tgisinternal
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES ('anon'), ('authenticated'), ('service_role'))
+         AS role_under_test(role_name)
+       CROSS JOIN (
+         VALUES
+           ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'),
+           ('REFERENCES'), ('TRIGGER'), ('MAINTAIN')
+       ) AS privilege_under_test(privilege_name)
+       WHERE has_table_privilege(
+         role_under_test.role_name,
+         'public.training_streak_activity_days',
+         privilege_under_test.privilege_name
+       )
+     )
      OR EXISTS (
        SELECT 1
        FROM pg_catalog.pg_attribute attributes
@@ -391,11 +759,12 @@ BEGIN
          FROM pg_catalog.pg_proc
          WHERE oid IN (
            'public.fn_training_streak_activity_immutable_v1()'::pg_catalog.regprocedure,
-           'public.fn_training_streak_summary_v1(uuid)'::pg_catalog.regprocedure
+           'public.fn_training_streak_summary_v1(uuid)'::pg_catalog.regprocedure,
+           'public.fn_training_capture_streak_activity_v1()'::pg_catalog.regprocedure
          )
            AND prosecdef
            AND coalesce(proconfig, ARRAY[]::text[])
-             @> ARRAY['search_path=pg_catalog']) <> 2
+             @> ARRAY['search_path=pg_catalog']) <> 3
      OR has_function_privilege(
        'anon', 'public.fn_training_streak_summary_v1(uuid)', 'EXECUTE'
      )
@@ -404,6 +773,24 @@ BEGIN
      )
      OR has_function_privilege(
        'service_role', 'public.fn_training_streak_summary_v1(uuid)', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon', 'public.fn_training_streak_activity_immutable_v1()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'authenticated', 'public.fn_training_streak_activity_immutable_v1()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'service_role', 'public.fn_training_streak_activity_immutable_v1()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon', 'public.fn_training_capture_streak_activity_v1()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'authenticated', 'public.fn_training_capture_streak_activity_v1()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'service_role', 'public.fn_training_capture_streak_activity_v1()', 'EXECUTE'
      )
      OR position('INSERT INTO public.training_streak_activity_days (' IN completion_definition) = 0
      OR position('fn_training_streak_summary_v1' IN completion_definition) = 0

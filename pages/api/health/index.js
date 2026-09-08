@@ -4,6 +4,7 @@
 // because health/index.js is not in the scanned API route patterns.
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { isDedicatedTrainingGradingReceiptSecret } from '../../../src/lib/training/gradingReceiptSecret.mjs';
 
 // Node.js runtime (default) — uses process.uptime and process.memoryUsage which are not edge-compatible
 
@@ -51,8 +52,10 @@ function usingServiceKey() {
 }
 
 function hasDedicatedTrainingGradingReceiptSecret() {
-    return typeof process.env.TRAINING_GRADING_RECEIPT_SECRET === 'string'
-        && process.env.TRAINING_GRADING_RECEIPT_SECRET.length >= 32;
+    return isDedicatedTrainingGradingReceiptSecret(
+        process.env.TRAINING_GRADING_RECEIPT_SECRET,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+    );
 }
 
 function getSupabase() {
@@ -143,7 +146,7 @@ export default async function handler(req, res) {
           health.checks.trainingGradingReceipt = {
               status: 'error',
               configured: false,
-              reason: 'TRAINING_GRADING_RECEIPT_SECRET must contain at least 32 characters',
+              reason: 'TRAINING_GRADING_RECEIPT_SECRET must be at least 32 characters, non-placeholder, and distinct from SUPABASE_SERVICE_ROLE_KEY',
           };
           health.status = 'degraded';
       }

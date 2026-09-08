@@ -9,6 +9,10 @@ import {
   verifyTrainingGradingReceipt,
 } from '../src/lib/training/gradingReceipt.mjs';
 import { resolveRngTarget } from '../src/lib/training/rngDecisionContract.mjs';
+import {
+  isDedicatedTrainingGradingReceiptSecret,
+  TRAINING_GRADING_RECEIPT_EXAMPLE_SENTINEL,
+} from '../src/lib/training/gradingReceiptSecret.mjs';
 
 const SECRET = 'phase-six-test-secret-that-is-long-enough-123456';
 const NOW = Date.UTC(2026, 8, 6, 12, 0, 0);
@@ -122,6 +126,69 @@ test('receipt signing fails closed without a dedicated secret and never reuses t
         && error.code === 'TRAINING_GRADING_RECEIPT_NOT_CONFIGURED'
         && error.status === 503,
     );
+    process.env.TRAINING_GRADING_RECEIPT_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    assert.throws(
+      () => issue({ secret: undefined }),
+      (error) => error instanceof TrainingGradingReceiptError
+        && error.code === 'TRAINING_GRADING_RECEIPT_SECRET_NOT_DEDICATED'
+        && error.status === 503,
+    );
+    assert.throws(
+      () => issue({ secret: TRAINING_GRADING_RECEIPT_EXAMPLE_SENTINEL }),
+      (error) => error instanceof TrainingGradingReceiptError
+        && error.code === 'TRAINING_GRADING_RECEIPT_SECRET_NOT_DEDICATED'
+        && error.status === 503,
+    );
+    assert.equal(
+      isDedicatedTrainingGradingReceiptSecret(
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      ),
+      false,
+    );
+    assert.equal(
+      isDedicatedTrainingGradingReceiptSecret(
+        TRAINING_GRADING_RECEIPT_EXAMPLE_SENTINEL,
+        'different-service-role-key-that-is-long-enough',
+      ),
+      false,
+    );
+    for (const weakSecret of [
+      ' '.repeat(32),
+      'x'.repeat(32),
+      'changeme'.repeat(4),
+      'replace-me-secret'.padEnd(32, '-'),
+      ` ${'aB7/'.repeat(8)}`,
+    ]) {
+      assert.equal(
+        isDedicatedTrainingGradingReceiptSecret(weakSecret, 'different-service-role'),
+        false,
+        `obviously weak receipt secret was accepted: ${JSON.stringify(weakSecret)}`,
+      );
+      assert.throws(
+        () => issue({ secret: weakSecret }),
+        (error) => error instanceof TrainingGradingReceiptError
+          && error.code === 'TRAINING_GRADING_RECEIPT_SECRET_NOT_DEDICATED'
+          && error.status === 503,
+      );
+    }
+    assert.equal(
+      isDedicatedTrainingGradingReceiptSecret(
+        '0123456789abcdef'.repeat(4),
+        'different-service-role',
+      ),
+      true,
+      'high-entropy-shaped hexadecimal material must remain supported',
+    );
+    assert.equal(
+      isDedicatedTrainingGradingReceiptSecret(
+        'QWxwaGE5L0JldGE3K0dhbW1hMkRlbHRhOE5vdEFQbGFjZWhvbGRlcg==',
+        'different-service-role',
+      ),
+      true,
+      'high-entropy-shaped base64 material must remain supported',
+    );
+    assert.equal(isDedicatedTrainingGradingReceiptSecret(SECRET, 'different-service-role'), true);
   } finally {
     if (originalReceiptSecret === undefined) delete process.env.TRAINING_GRADING_RECEIPT_SECRET;
     else process.env.TRAINING_GRADING_RECEIPT_SECRET = originalReceiptSecret;

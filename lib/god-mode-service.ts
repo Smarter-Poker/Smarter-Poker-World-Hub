@@ -321,18 +321,6 @@ export async function hasGTODataForScenario(params: LookupParams): Promise<boole
     }
 }
 
-export async function getGTOScenarioCount(): Promise<number> {
-    try {
-        const service = getPolicyService();
-        if (!service) return 0;
-        const result = await service.listSolvedMetadata({ limit: 1, range: [0, 0] }, { count: true });
-        return Number(result.count) || 0;
-    } catch (error) {
-        console.error('[GodMode] scenario count failed:', error);
-        return 0;
-    }
-}
-
 export async function getScenarioMetrics(params: LookupParams): Promise<GTOMacroMetrics | null> {
     const scenario = await getGTOStrategy(params);
     return scenario?.macro_metrics || null;
@@ -386,8 +374,6 @@ export async function generateLevelQuiz(userId: string, levelId: number): Promis
                 ? String(level.street_filter).toLowerCase()
                 : undefined,
             stackDepths: Array.isArray(level.stack_filter) ? level.stack_filter : undefined,
-            orderBy: 'scenario_hash',
-            ascending: true,
             limit: Math.min(1000, Math.max(200, count * 20)),
         });
         const candidates = records.map((record: any) => {
@@ -425,7 +411,6 @@ export default {
     getGTOStrategy,
     getGTOActionForHand,
     hasGTODataForScenario,
-    getGTOScenarioCount,
     getScenarioMetrics,
     generateLevelQuiz,
     generateScenarioHash,

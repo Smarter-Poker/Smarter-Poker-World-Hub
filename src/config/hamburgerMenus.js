@@ -26,6 +26,55 @@ import { getWorldMenuByKey, resolveWorldMenu } from './worldMenuNavigation';
 // sp-notif-count). The menu auto-appends a "Log Out" row whenever a config
 // does not already supply one, so configs must NOT define their own.
 
+// Helper to copy / share the current user's referral link.
+export const copyReferralLink = async (user) => {
+    const notify = async (kind, message) => {
+        try {
+            const { default: toast } = await import('react-hot-toast');
+            if (kind === 'error') toast.error(message);
+            else toast.success(message);
+        } catch (_) {
+            try { window.alert(message); } catch (__) { /* non-browser */ }
+        }
+    };
+
+    if (!user?.id) {
+        await notify('error', 'Please log in to use referral links.');
+        return;
+    }
+    try {
+        // Shared singleton — it is the only client configured with the
+        // `smarter-poker-auth` storage key, so the profiles read runs
+        // authenticated instead of anonymously failing RLS.
+        const { supabase } = await import('../lib/supabase');
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('player_number')
+            .eq('id', user.id)
+            .maybeSingle();
+        if (error || !data?.player_number) {
+            await notify('error', 'Could not find your player number. Please try again.');
+            return;
+        }
+        const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
+        // Safari revokes the user-gesture clipboard grant across an await, so
+        // prefer the native share sheet on mobile.
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({ title: 'Smarter Poker', text: 'Join me on Smarter Poker', url: link });
+                return;
+            } catch (shareErr) {
+                if (shareErr?.name === 'AbortError') return; // user dismissed
+            }
+        }
+        await navigator.clipboard.writeText(link);
+        await notify('success', 'Referral link copied - you earn 500 diamonds per signup.');
+    } catch (err) {
+        console.warn('Copy referral link error:', err);
+        await notify('error', 'Failed to copy referral link. Please try again.');
+    }
+};
+
 // Helper function to create menu items.
 // `opts` carries the structural flags the renderer understands:
 //   id       — stable identity used for de-duplication (never match on copy)
@@ -355,9 +404,13 @@ export const MENU_CONFIGS = {
     'messenger': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Conversations'),
-            createMenuItem.navigation('All Messages', '/hub/messenger?filter=all'),
+            // ITEM 13 (2026-09-08): these were ?filter=all / unread / archived.
+            // messenger.js reads no `filter` param and the word "archived"
+            // appears nowhere in it, so all three landed on the same default
+            // inbox. `unread` is now a real handler there; `all` is just the
+            // inbox; `archived` described a feature that does not exist.
+            createMenuItem.navigation('All Messages', '/hub/messenger'),
             createMenuItem.navigation('Unread', '/hub/messenger?filter=unread', null, state.unreadCount || null),
-            createMenuItem.navigation('Archived', '/hub/messenger?filter=archived'),
             createMenuItem.navigation('Message Requests', '/hub/messenger/requests', null, state.requestCount || null),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),

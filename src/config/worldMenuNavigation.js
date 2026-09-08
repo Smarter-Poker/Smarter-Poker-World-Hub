@@ -193,27 +193,39 @@ export const WORLD_MENU_DEFINITIONS = Object.freeze(
   }))
 );
 
+const WORLD_BY_ID = new Map(WORLD_MENU_DEFINITIONS.map((world) => [world.id, world]));
 const WORLD_BY_MENU_KEY = new Map(
   WORLD_MENU_DEFINITIONS.map((world) => [world.menuKey, world])
 );
 
+export const getWorldMenuById = (id) => WORLD_BY_ID.get(id) || null;
 export const getWorldMenuByKey = (menuKey) => WORLD_BY_MENU_KEY.get(menuKey) || null;
 
 export const resolveWorldMenu = (value) => {
   const path = cleanPath(value);
-  return (
-    [...WORLD_MENU_DEFINITIONS]
-      .sort((a, b) => {
-        const aLongest = Math.max(...a.routePrefixes.map((prefix) => prefix.length));
-        const bLongest = Math.max(...b.routePrefixes.map((prefix) => prefix.length));
-        return bLongest - aLongest;
-      })
-      .find((world) =>
-        world.routePrefixes.some(
-          (prefix) => path === prefix || path.startsWith(`${prefix}/`)
-        )
-      ) || null
-  );
+  /*
+   * ITEM 35 (2026-09-08): this used to sort by each world's longest prefix and
+   * take the first match. That ranks by a prefix that may have nothing to do
+   * with `path`, so with any overlap it can pick a world whose MATCHING prefix
+   * is shorter than another's - and resolveWorldFooter, which takes registry
+   * order, would then name a different world for the same URL. The footer and
+   * the command drawer disagreeing about where you are is the failure mode.
+   *
+   * Score by the longest prefix that actually matches. No overlaps exist today,
+   * so this changes nothing now and stays correct when one is added.
+   */
+  let best = null;
+  let bestLength = -1;
+  for (const world of WORLD_MENU_DEFINITIONS) {
+    for (const prefix of world.routePrefixes) {
+      if (path !== prefix && !path.startsWith(`${prefix}/`)) continue;
+      if (prefix.length > bestLength) {
+        bestLength = prefix.length;
+        best = world;
+      }
+    }
+  }
+  return best;
 };
 
 export const WORLD_NAVIGATION_CAPABILITIES = Object.freeze({
@@ -224,3 +236,13 @@ export const WORLD_NAVIGATION_CAPABILITIES = Object.freeze({
   CLUB_STAFF: 'club-staff',
   PLATFORM_STAFF: 'platform-staff',
 });
+
+export const getWorldMenuInventory = () =>
+  WORLD_MENU_DEFINITIONS.map((world) => ({
+    id: world.id,
+    label: world.label,
+    menuKey: world.menuKey,
+    purpose: world.purpose,
+    routePrefixes: [...world.routePrefixes],
+    primaryItems: world.primaryItems.map((item) => ({ ...item })),
+  }));

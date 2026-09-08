@@ -1154,18 +1154,33 @@ test('out-of-order Daily settlement is recomputed from an immutable activity-day
   );
   assert.equal(
     [...STREAK_RECOVERY_MIGRATION_SOURCE.matchAll(/SECURITY DEFINER\s+SET search_path TO pg_catalog/g)].length,
-    2,
-    'both streak authority definers must resolve only pg_catalog and qualified objects',
+    4,
+    'the immutable trigger, staged/final summary definitions, and capture trigger must resolve only pg_catalog and qualified objects',
   );
   assert.match(
     STREAK_RECOVERY_MIGRATION_SOURCE,
     /REVOKE ALL PRIVILEGES \(user_id, activity_date, first_attempt_id, recorded_at\)/,
     'the private ledger must also clear inherited column-level privileges',
   );
+  assert.match(
+    STREAK_RECOVERY_MIGRATION_SOURCE,
+    /\('SELECT'\), \('INSERT'\), \('UPDATE'\), \('DELETE'\), \('TRUNCATE'\),[\s\S]*\('REFERENCES'\), \('TRIGGER'\), \('MAINTAIN'\)[\s\S]*has_table_privilege/,
+    'the migration must audit every PostgreSQL 17 table privilege, including MAINTAIN',
+  );
+  assert.match(
+    STREAK_RECOVERY_MIGRATION_SOURCE,
+    /has_function_privilege\([\s\S]*'service_role', 'public\.fn_training_streak_activity_immutable_v1\(\)', 'EXECUTE'/,
+    'the trigger-only immutable helper must remain unavailable to service_role',
+  );
+  assert.match(
+    POSTGRES_VERIFIER_SOURCE,
+    /ALTER DEFAULT PRIVILEGES IN SCHEMA public[\s\S]*GRANT ALL ON TABLES TO anon, authenticated, service_role;[\s\S]*GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;[\s\S]*GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;/,
+    'the disposable verifier must reproduce the live Supabase default ACLs',
+  );
   assert.equal(
     [...POSTGRES_VERIFIER_SOURCE.matchAll(/'-f', STREAK_OUT_OF_ORDER_MIGRATION/g)].length,
-    2,
-    'the PG17 authority verifier must prove the streak patch is rerunnable',
+    3,
+    'the PG17 authority verifier must prove first application, rerun safety, and corrupt-shape refusal',
   );
   assert.match(
     POSTGRES_VERIFIER_SOURCE,

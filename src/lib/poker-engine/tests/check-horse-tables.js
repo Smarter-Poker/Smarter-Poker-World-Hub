@@ -50,9 +50,9 @@ async function run() {
         horseCheck.forEach(h => console.debug(`   🐴 ${h.alias || h.id.substring(0, 8)}`));
     }
 
-    // Phase 6 revoked service_role direct SELECT on the solver warehouse.
-    // Keep these two probes on a read-only DB-owner connection; horse-table
-    // checks above remain on the service client because they are unrelated.
+    // A service-role SELECT grant remains only for protected migration-first
+    // rollback compatibility. Operator probes must still use this read-only
+    // DB-owner connection; horse-table checks above are unrelated.
     let operatorPool;
     try {
         operatorPool = createSolverOperatorPool();
@@ -66,7 +66,7 @@ async function run() {
         console.debug(`✅ solved_spots_gold (PioSolver): EXISTS (has data: ${solvedRows.length > 0})`);
     } catch (error) {
         console.debug(`❌ Solver warehouse probes failed: ${error.message}`);
-        console.debug('   Set SUPABASE_DB_PASSWORD to run these required probes; service_role is intentionally rejected.');
+        console.debug('   Set SUPABASE_DB_PASSWORD; operator warehouse probes must not use service_role.');
         throw error;
     } finally {
         if (operatorPool) await operatorPool.end();

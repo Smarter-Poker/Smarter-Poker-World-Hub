@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Read-only operator verification for the solver warehouse tables.
 
-Phase 6 intentionally revoked service_role direct SELECT/DML on
-``solved_spots_gold``. This diagnostic therefore uses the database-owner
-credential and opens a transaction in PostgreSQL's read-only mode. It never
-uses the service-role JWT and cannot be used as an ingestion path.
+Phase 6 forbids operator tooling from using the service role for warehouse
+inspection. A temporary service-role SELECT grant remains only so a protected
+migration-first rollout can be rolled back without an outage; direct DML is
+revoked. This diagnostic therefore uses the database-owner credential and
+opens a transaction in PostgreSQL's read-only mode. It never uses the
+service-role JWT and cannot be used as an ingestion path.
 """
 
 import os
@@ -20,8 +22,8 @@ def db_config():
     if not url or not password:
         raise SystemExit(
             "Solver warehouse verification requires NEXT_PUBLIC_SUPABASE_URL and "
-            "SUPABASE_DB_PASSWORD. SUPABASE_SERVICE_ROLE_KEY cannot read "
-            "solved_spots_gold after Phase 6."
+            "SUPABASE_DB_PASSWORD. Operator diagnostics must not use "
+            "SUPABASE_SERVICE_ROLE_KEY for solved_spots_gold."
         )
     parsed_url = urlparse(url)
     if parsed_url.scheme != "https" or not re.fullmatch(

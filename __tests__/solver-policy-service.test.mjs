@@ -1024,6 +1024,61 @@ test('catalog reader binds exact artifact/scenario/street/position and rejects a
   );
 });
 
+test('catalog reader rejects fake non-ID ordering and unsupported exact counts', async () => {
+  const service = new SolverPolicyService({
+    db: { rpc: async () => ({ data: [], error: null }) },
+  });
+  await assert.rejects(
+    () => service.readSolvedRows(
+      { gameType: 'hu_cash', stackDepth: 100, orderBy: 'scenario_hash' },
+    ),
+    /solver_policy_read_order_unsupported/,
+  );
+  await assert.rejects(
+    () => service.listSolvedMetadata(
+      { gameType: 'hu_cash', stackDepth: 100, limit: 1 },
+      { count: true },
+    ),
+    /solver_policy_exact_count_unsupported/,
+  );
+});
+
+test('catalog reader exposes an exact ID-tail cursor with no page overlap or skip', async () => {
+  const makeId = (index) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
+  const catalogRows = [1, 2, 3].map((index) => v2Row({ id: makeId(index) }));
+  const calls = [];
+  const service = new SolverPolicyService({
+    db: {
+      async rpc(_name, args) {
+        calls.push(args);
+        const after = args.p_lower_exclusive;
+        return {
+          data: catalogRows
+            .filter(({ id }) => !after || id > after)
+            .slice(0, args.p_limit),
+          error: null,
+        };
+      },
+    },
+  });
+
+  const first = await service.readSolvedRows({
+    gameType: 'hu_cash', stackDepth: 100, orderBy: 'id', limit: 1,
+  });
+  const second = await service.readSolvedRows({
+    gameType: 'hu_cash', stackDepth: 100, orderBy: 'id', limit: 1,
+    idGt: first.nextCursor,
+  });
+
+  assert.deepEqual(first.rows.map(({ id }) => id), [makeId(1)]);
+  assert.equal(first.hasMore, true);
+  assert.equal(first.nextCursor, makeId(1));
+  assert.deepEqual(second.rows.map(({ id }) => id), [makeId(2)]);
+  assert.equal(second.nextCursor, makeId(2));
+  assert.equal(new Set([...first.rows, ...second.rows].map(({ id }) => id)).size, 2);
+  assert.equal(calls[1].p_lower_exclusive, makeId(1));
+});
+
 test('sparse local filtering scans full bounded keyset pages without street starvation', async () => {
   const makeId = (index) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
   const firstPage = Array.from({ length: 128 }, (_, index) => v2Row({ id: makeId(index + 1) }));

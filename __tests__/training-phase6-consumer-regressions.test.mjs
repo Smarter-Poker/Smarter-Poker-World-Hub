@@ -6,7 +6,7 @@ import test from 'node:test';
 const ROOT = process.cwd();
 const read = file => readFileSync(join(ROOT, file), 'utf8');
 
-test('Phase 6 warehouse consumers cannot issue service-role raw solved_spots_gold reads', () => {
+test('Phase 6 warehouse operator consumers never use service-role PostgREST reads', () => {
   const rawWarehouseConsumers = [
     'scripts/examine-pio-structure.js',
     'scripts/analyze-pio-data.js',
@@ -65,7 +65,9 @@ test('operator helper fails closed without DB password and enforces read-only mo
   assert.match(source, /SUPABASE_DB_PASSWORD/);
   assert.match(source, /default_transaction_read_only=on/);
   assert.match(source, /rejectUnauthorized:\s*true/);
-  assert.match(source, /service-role key cannot read solved_spots_gold/i);
+  assert.match(source, /Operator diagnostics must not use the service-role key/i);
+  assert.match(source, /rollback[\s*]+compatibility/i,
+    'helper must describe the temporary read grant honestly');
   assert.match(source, /\.supabase\\\.co/,
     'the project URL must be pinned to the Supabase origin shape before deriving a DB host');
 });

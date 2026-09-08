@@ -142,11 +142,13 @@ does not close again until that candidate merges normally, production serves
 it, and the production re-certification passes.
 
 The 2026-09-08 authority and solver sweep is integrated with protected-main
-baseline `4314b7e8d6` and passes the complete local release gate, including 715
-authority tests, 754 Training tests, 1,370 repository guards, 687 prebuild
-checks, 181 Leak Finder/Personal Assistant integrations, all five disposable
-PostgreSQL verifier families, 4,192-file lint, strict TypeScript, the complete
-Training inventory/route audit, and a 395-page optimized build. The approved
+baseline `4314b7e8d6` and passes the complete local release gate, including 721
+authority tests, 774 exhaustive Training tests, the permanent production-
+delivery attestation contract, all seven disposable PostgreSQL 17 verifier
+families, 4,196-file lint, strict TypeScript, the complete Training
+inventory/route audit, and a 395-page optimized build. The required protected
+PR gate now provisions and runs the same seven-family PostgreSQL 17 behavioral
+suite rather than relying on a manual release check. The approved
 global header remains unchanged. Publication uses the documented two-PR
 expand/contract sequence: strict delivery enforcement is held until the exact
 dual-write release is proven in production. Phase 6 and Phase 7 status do not

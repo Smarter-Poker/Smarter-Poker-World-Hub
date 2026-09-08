@@ -272,6 +272,8 @@ test('attempt serve auditing records one stable batch and rejects duplicate mani
           handOrdinal: 1,
           decisionOrdinal: 1,
           snapshotKey: 'c'.repeat(64),
+          difficultyMode: 'exact',
+          rngRolls: { low: 17, high: 83 },
         },
       },
       {
@@ -282,6 +284,8 @@ test('attempt serve auditing records one stable batch and rejects duplicate mani
           handOrdinal: 2,
           decisionOrdinal: 1,
           snapshotKey: 'd'.repeat(64),
+          difficultyMode: 'exact',
+          rngRolls: { low: 23, high: 77 },
         },
       },
     ],
@@ -302,6 +306,8 @@ test('attempt serve auditing records one stable batch and rejects duplicate mani
       snapshotKey: 'c'.repeat(64),
       questionId: 'question-1',
       policyChecksum: 'a'.repeat(64),
+      difficultyMode: 'exact',
+      rngRolls: { low: 17, high: 83 },
     },
     {
       handOrdinal: 2,
@@ -309,6 +315,8 @@ test('attempt serve auditing records one stable batch and rejects duplicate mani
       snapshotKey: 'd'.repeat(64),
       questionId: 'question-2',
       policyChecksum: 'b'.repeat(64),
+      difficultyMode: 'exact',
+      rngRolls: { low: 23, high: 77 },
     },
   ]);
 
@@ -328,6 +336,26 @@ test('attempt serve auditing records one stable batch and rejects duplicate mani
       questions: [{
         ...delivery.questions[0],
         _gradingContext: { ...delivery.questions[0]._gradingContext, snapshotKey: 'invalid' },
+      }],
+    },
+    {
+      ...delivery,
+      questions: [{
+        ...delivery.questions[0],
+        _gradingContext: {
+          ...delivery.questions[0]._gradingContext,
+          rngRolls: { low: 0, high: 83 },
+        },
+      }],
+    },
+    {
+      ...delivery,
+      questions: [{
+        ...delivery.questions[0],
+        _gradingContext: {
+          ...delivery.questions[0]._gradingContext,
+          difficultyMode: 'unrecognized-mode',
+        },
       }],
     },
   ]) {
@@ -364,6 +392,8 @@ test('attempt serve auditing covers a supported 100-hand custom manifest in boun
       handOrdinal: index + 1,
       decisionOrdinal: 1,
       snapshotKey: (index + 1).toString(16).padStart(64, '0'),
+      difficultyMode: 'grouped',
+      rngRolls: { low: (index % 100) + 1, high: 100 - (index % 100) },
     },
   }));
   const result = await recordTrainingQuestionsServedForAttempt(db, {

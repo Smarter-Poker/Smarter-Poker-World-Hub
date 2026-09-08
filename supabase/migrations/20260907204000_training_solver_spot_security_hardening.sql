@@ -9,6 +9,150 @@ BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '120s';
 
+-- This migration turns the small catalog into an active serving authority and
+-- uses artifact_id as an ON CONFLICT arbiter. Revalidate the complete durable
+-- shape before installing the active sync, even when the predecessor migration
+-- was applied separately or the object was pre-created.
+DO $assert_solver_artifact_catalog_shape$
+DECLARE
+  catalog_oid pg_catalog.oid := pg_catalog.to_regclass(
+    'public.training_solver_artifact_catalog'
+  );
+BEGIN
+  IF NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_class class_row
+       WHERE class_row.oid = catalog_oid
+         AND class_row.relkind = 'r'
+         AND class_row.relpersistence = 'p'
+     )
+     OR (
+       SELECT count(*)
+       FROM pg_catalog.pg_attribute attribute_row
+       WHERE attribute_row.attrelid = catalog_oid
+         AND attribute_row.attnum > 0
+         AND NOT attribute_row.attisdropped
+     ) <> 8
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('artifact_id', 1, 'uuid', true, NULL::text, false),
+         ('scenario_hash', 2, 'text', true, NULL::text, true),
+         ('game_type', 3, 'text', true, NULL::text, true),
+         ('stack_depth', 4, 'integer', true, NULL::text, false),
+         ('street', 5, 'text', true, NULL::text, true),
+         ('hero_position', 6, 'text', true, NULL::text, true),
+         ('registered_at', 7, 'timestamp with time zone', true, 'now()'::text, false),
+         ('updated_at', 8, 'timestamp with time zone', true, 'now()'::text, false)
+       ) AS expected(
+         attname, attnum, type_name, attnotnull, default_expr,
+         uses_default_collation
+       )
+       LEFT JOIN pg_catalog.pg_attribute actual
+         ON actual.attrelid = catalog_oid
+        AND actual.attname = expected.attname
+        AND actual.attnum = expected.attnum
+        AND NOT actual.attisdropped
+       LEFT JOIN pg_catalog.pg_attrdef default_row
+         ON default_row.adrelid = actual.attrelid
+        AND default_row.adnum = actual.attnum
+       WHERE actual.attname IS NULL
+          OR pg_catalog.format_type(actual.atttypid, actual.atttypmod)
+             IS DISTINCT FROM expected.type_name
+          OR actual.attnotnull IS DISTINCT FROM expected.attnotnull
+          OR pg_catalog.pg_get_expr(default_row.adbin, default_row.adrelid)
+             IS DISTINCT FROM expected.default_expr
+          OR actual.attcollation IS DISTINCT FROM CASE
+               WHEN expected.uses_default_collation
+                 THEN pg_catalog.to_regcollation('pg_catalog.default')::pg_catalog.oid
+               ELSE 0::pg_catalog.oid
+             END
+     )
+     OR (
+       SELECT count(*)
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+     ) <> 8
+     OR NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+         AND constraint_row.conname = 'training_solver_artifact_catalog_pkey'
+         AND constraint_row.contype = 'p'
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[1]::smallint[]
+         AND pg_catalog.pg_get_constraintdef(constraint_row.oid, true)
+             = 'PRIMARY KEY (artifact_id)'
+     )
+     OR NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+         AND constraint_row.conname =
+             'training_solver_artifact_catalog_scenario_hash_key'
+         AND constraint_row.contype = 'u'
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[2]::smallint[]
+         AND pg_catalog.pg_get_constraintdef(constraint_row.oid, true)
+             = 'UNIQUE (scenario_hash)'
+     )
+     OR NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+         AND constraint_row.conname =
+             'training_solver_artifact_catalog_artifact_id_fkey'
+         AND constraint_row.contype = 'f'
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[1]::smallint[]
+         AND constraint_row.confrelid = 'public.solved_spots_gold'::pg_catalog.regclass
+         AND constraint_row.confkey = ARRAY[
+           (SELECT attribute_row.attnum
+            FROM pg_catalog.pg_attribute attribute_row
+            WHERE attribute_row.attrelid =
+                  'public.solved_spots_gold'::pg_catalog.regclass
+              AND attribute_row.attname = 'id'
+              AND NOT attribute_row.attisdropped)
+         ]::smallint[]
+         AND constraint_row.confupdtype = 'a'
+         AND constraint_row.confdeltype = 'c'
+         AND constraint_row.confmatchtype = 's'
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('training_solver_artifact_catalog_scenario_check',
+          '((char_length(scenario_hash) >= 1) AND (char_length(scenario_hash) <= 512))'),
+         ('training_solver_artifact_catalog_stack_check',
+          '(stack_depth > 0)'),
+         ('training_solver_artifact_catalog_contract_check',
+          $$(((game_type = 'hu_cash'::text) AND (stack_depth = ANY (ARRAY[40, 100, 200]))) OR ((game_type = 'mtt_3max_chipev'::text) AND (stack_depth = 20)) OR ((game_type = 'mtt_6max_chipev'::text) AND (stack_depth = ANY (ARRAY[10, 20, 40, 100]))) OR ((game_type = 'mtt_6max_icm'::text) AND (stack_depth = ANY (ARRAY[20, 40]))) OR ((game_type = 'mtt_9max_chipev'::text) AND (stack_depth = ANY (ARRAY[20, 40, 80, 100]))) OR ((game_type = 'mtt_9max_icm'::text) AND (stack_depth = ANY (ARRAY[40, 60]))) OR ((game_type = 'mtt_hu_chipev'::text) AND (stack_depth = 40)) OR ((game_type = 'postflop_complete'::text) AND (stack_depth = 100)) OR ((game_type = 'spin_3max_chipev'::text) AND (stack_depth = ANY (ARRAY[20, 25]))) OR ((game_type = 'spin_3max_icm'::text) AND (stack_depth = ANY (ARRAY[20, 25]))) OR ((game_type = 'spin_hu_chipev'::text) AND (stack_depth = ANY (ARRAY[10, 20]))) OR ((game_type = 'spin_hu_icm'::text) AND (stack_depth = 10)))$$),
+         ('training_solver_artifact_catalog_street_check',
+          $$(street = ANY (ARRAY['flop'::text, 'turn'::text, 'river'::text]))$$),
+         ('training_solver_artifact_catalog_position_check',
+          $$(hero_position = ANY (ARRAY['UTG'::text, 'UTG+1'::text, 'UTG+2'::text, 'UTG1'::text, 'UTG2'::text, 'MP'::text, 'MP+1'::text, 'MP+2'::text, 'MP1'::text, 'MP2'::text, 'LJ'::text, 'HJ'::text, 'CO'::text, 'BTN'::text, 'SB'::text, 'BB'::text]))$$)
+       ) AS expected(conname, expression)
+       LEFT JOIN pg_catalog.pg_constraint actual
+         ON actual.conrelid = catalog_oid
+        AND actual.conname = expected.conname
+        AND actual.contype = 'c'
+       WHERE actual.oid IS NULL
+          OR NOT actual.convalidated
+          OR actual.connoinherit
+          OR pg_catalog.pg_get_expr(actual.conbin, actual.conrelid)
+             IS DISTINCT FROM expected.expression
+     ) THEN
+    RAISE EXCEPTION 'TRAINING_SOLVER_ARTIFACT_CATALOG_CONTRACT_INCOMPLETE';
+  END IF;
+END;
+$assert_solver_artifact_catalog_shape$;
+
 CREATE TABLE IF NOT EXISTS public.training_solver_provenance_authority (
   machine_id text NOT NULL,
   solver_version text NOT NULL,
@@ -93,61 +237,102 @@ $revoke_authority_columns$;
 -- the same name but a weaker schema.  Reject any pre-existing wrong shape
 -- before functions or indexes begin depending on it.
 DO $assert_authority_shape$
+DECLARE
+  authority_oid pg_catalog.oid := pg_catalog.to_regclass(
+    'public.training_solver_provenance_authority'
+  );
 BEGIN
-  IF (
+  IF NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_class class_row
+       WHERE class_row.oid = authority_oid
+         AND class_row.relkind = 'r'
+     )
+     OR (
        SELECT count(*)
-       FROM pg_attribute attribute_row
-       WHERE attribute_row.attrelid =
-         'public.training_solver_provenance_authority'::regclass
+       FROM pg_catalog.pg_attribute attribute_row
+       WHERE attribute_row.attrelid = authority_oid
          AND attribute_row.attnum > 0
          AND NOT attribute_row.attisdropped
      ) <> 12
      OR EXISTS (
        SELECT 1
        FROM (VALUES
-         ('machine_id', 'text'::regtype, true),
-         ('solver_version', 'text'::regtype, true),
-         ('solver_binary_checksum', 'text'::regtype, true),
-         ('pipeline_commit', 'text'::regtype, true),
-         ('manifest_version', 'text'::regtype, true),
-         ('manifest_checksum', 'text'::regtype, true),
-         ('source_combo_order_sha256', 'text'::regtype, true),
-         ('training_game_contracts_sha256', 'text'::regtype, true),
-         ('manifest_contracts', 'jsonb'::regtype, true),
-         ('approved_at', 'timestamp with time zone'::regtype, true),
-         ('approved_by', 'text'::regtype, true),
-         ('retired_at', 'timestamp with time zone'::regtype, false)
-       ) AS expected(attname, atttypid, attnotnull)
-       LEFT JOIN pg_attribute actual
-         ON actual.attrelid =
-              'public.training_solver_provenance_authority'::regclass
+         ('machine_id', 1, 'text', true, NULL::text),
+         ('solver_version', 2, 'text', true, NULL::text),
+         ('solver_binary_checksum', 3, 'text', true, NULL::text),
+         ('pipeline_commit', 4, 'text', true, NULL::text),
+         ('manifest_version', 5, 'text', true, NULL::text),
+         ('manifest_checksum', 6, 'text', true, NULL::text),
+         ('source_combo_order_sha256', 7, 'text', true, NULL::text),
+         ('training_game_contracts_sha256', 8, 'text', true, NULL::text),
+         ('manifest_contracts', 9, 'jsonb', true, NULL::text),
+         ('approved_at', 10, 'timestamp with time zone', true, 'now()'::text),
+         ('approved_by', 11, 'text', true, NULL::text),
+         ('retired_at', 12, 'timestamp with time zone', false, NULL::text)
+       ) AS expected(attname, attnum, type_name, attnotnull, default_expr)
+       LEFT JOIN pg_catalog.pg_attribute actual
+         ON actual.attrelid = authority_oid
         AND actual.attname = expected.attname
-        AND actual.attnum > 0
+        AND actual.attnum = expected.attnum
         AND NOT actual.attisdropped
+       LEFT JOIN pg_catalog.pg_attrdef default_row
+         ON default_row.adrelid = actual.attrelid
+        AND default_row.adnum = actual.attnum
        WHERE actual.attname IS NULL
-          OR actual.atttypid <> expected.atttypid
-          OR actual.attnotnull <> expected.attnotnull
+          OR pg_catalog.format_type(actual.atttypid, actual.atttypmod)
+             IS DISTINCT FROM expected.type_name
+          OR actual.attnotnull IS DISTINCT FROM expected.attnotnull
+          OR pg_catalog.pg_get_expr(default_row.adbin, default_row.adrelid)
+             IS DISTINCT FROM expected.default_expr
      )
+     OR (
+       SELECT count(*)
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = authority_oid
+     ) <> 10
      OR NOT EXISTS (
        SELECT 1
-       FROM pg_constraint constraint_row
-       WHERE constraint_row.conrelid =
-         'public.training_solver_provenance_authority'::regclass
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = authority_oid
+         AND constraint_row.conname =
+           'training_solver_provenance_authority_pkey'
          AND constraint_row.contype = 'p'
-         AND constraint_row.conkey = ARRAY[
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-              'public.training_solver_provenance_authority'::regclass AND attname = 'machine_id'),
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-              'public.training_solver_provenance_authority'::regclass AND attname = 'solver_version'),
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-              'public.training_solver_provenance_authority'::regclass AND attname = 'solver_binary_checksum'),
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-              'public.training_solver_provenance_authority'::regclass AND attname = 'pipeline_commit'),
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-              'public.training_solver_provenance_authority'::regclass AND attname = 'manifest_version'),
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-              'public.training_solver_provenance_authority'::regclass AND attname = 'manifest_checksum')
-         ]::smallint[]
+         AND constraint_row.convalidated
+         AND constraint_row.conkey = ARRAY[1, 2, 3, 4, 5, 6]::smallint[]
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('training_solver_provenance_authority_machine_check',
+          $$CHECK ((machine_id = ANY (ARRAY['M1'::text, 'M2'::text])))$$),
+         ('training_solver_provenance_authority_solver_checksum_check',
+          $$CHECK ((solver_binary_checksum ~ '^[0-9a-f]{64}$'::text))$$),
+         ('training_solver_provenance_authority_pipeline_check',
+          $$CHECK ((pipeline_commit ~ '^[0-9a-f]{40}$'::text))$$),
+         ('training_solver_provenance_authority_manifest_checksum_check',
+          $$CHECK ((manifest_checksum ~ '^[0-9a-f]{64}$'::text))$$),
+         ('training_solver_provenance_authority_source_order_check',
+          $$CHECK (((source_combo_order_sha256 ~ '^[0-9a-f]{64}$'::text) AND (source_combo_order_sha256 <> repeat('0'::text, 64))))$$),
+         ('training_solver_provenance_authority_game_scope_check',
+          $$CHECK (((training_game_contracts_sha256 ~ '^[0-9a-f]{64}$'::text) AND (training_game_contracts_sha256 <> repeat('0'::text, 64))))$$),
+         ('training_solver_provenance_authority_contracts_check',
+          $$CHECK ( CASE WHEN (jsonb_typeof(manifest_contracts) = 'array'::text) THEN ((jsonb_array_length(manifest_contracts) >= 1) AND (jsonb_array_length(manifest_contracts) <= 64)) ELSE false END)$$),
+         ('training_solver_provenance_authority_labels_check',
+          $$CHECK ((((char_length(btrim(solver_version)) >= 1) AND (char_length(btrim(solver_version)) <= 120)) AND ((char_length(btrim(manifest_version)) >= 1) AND (char_length(btrim(manifest_version)) <= 160)) AND ((char_length(btrim(approved_by)) >= 3) AND (char_length(btrim(approved_by)) <= 200))))$$),
+         ('training_solver_provenance_authority_retirement_check',
+          $$CHECK (((retired_at IS NULL) OR (retired_at >= approved_at)))$$)
+       ) expected(conname, definition)
+       LEFT JOIN pg_catalog.pg_constraint actual
+         ON actual.conrelid = authority_oid
+        AND actual.conname = expected.conname
+        AND actual.contype = 'c'
+       WHERE actual.oid IS NULL
+          OR NOT actual.convalidated
+          OR pg_catalog.btrim(pg_catalog.regexp_replace(
+               pg_catalog.pg_get_constraintdef(actual.oid, false),
+               '[[:space:]]+', ' ', 'g'
+             )) IS DISTINCT FROM expected.definition
      ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_PROVENANCE_AUTHORITY_CONTRACT_INCOMPLETE';
   END IF;
@@ -1009,25 +1194,26 @@ LANGUAGE sql
 STABLE
 SECURITY INVOKER
 SET search_path TO 'pg_catalog'
+SET statement_timeout TO '5s'
 AS $function$
   SELECT artifact.game_type, count(*)::bigint
   FROM public.solved_spots_gold artifact
-  WHERE p_game_type IS NULL OR artifact.game_type = p_game_type
+  WHERE coalesce(p_game_type, '') ~ '^[a-z0-9_]{1,64}$'
+    AND artifact.game_type = p_game_type
   GROUP BY artifact.game_type
   ORDER BY count(*) DESC
   LIMIT greatest(1, least(1000, coalesce(p_limit, 100)))
 $function$;
 
 REVOKE ALL ON FUNCTION public.analyze_spots_by_game_type(text, integer)
-  FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.analyze_spots_by_game_type(text, integer)
-  TO service_role;
+  FROM PUBLIC, anon, authenticated, service_role;
 
 DO $contract_assertions$
 DECLARE
   v_candidate_definition text;
   v_sync_definition text;
   v_validator_definition text;
+  v_analysis_definition text;
 BEGIN
   SELECT pg_get_functiondef(
     'public.training_solver_spot_candidates_v1(jsonb,text,uuid,uuid,uuid,integer,uuid,text,text,integer)'::regprocedure
@@ -1035,6 +1221,9 @@ BEGIN
   SELECT pg_get_functiondef(
     'public.fn_training_solver_artifact_catalog_sync_v1()'::regprocedure
   ) INTO v_sync_definition;
+  SELECT pg_get_functiondef(
+    'public.analyze_spots_by_game_type(text,integer)'::regprocedure
+  ) INTO v_analysis_definition;
   SELECT pg_get_functiondef(
     'public.fn_training_solver_artifact_servable_v2(text,text,integer,text,jsonb,text,text,text,text,text,text,text,text,timestamp with time zone)'::regprocedure
   ) INTO v_validator_definition;
@@ -1087,9 +1276,36 @@ BEGIN
        WHERE function_row.oid =
          'public.fn_training_solver_artifact_servable_v2(text,text,integer,text,jsonb,text,text,text,text,text,text,text,text,timestamp with time zone)'::regprocedure
      )
-     OR has_table_privilege('anon', 'public.training_solver_provenance_authority', 'SELECT')
-     OR has_table_privilege('authenticated', 'public.training_solver_provenance_authority', 'SELECT')
-     OR has_table_privilege('service_role', 'public.training_solver_provenance_authority', 'SELECT')
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES ('anon'), ('authenticated'), ('service_role'))
+         AS role_under_test(role_name)
+       CROSS JOIN (
+         VALUES
+           ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'),
+           ('REFERENCES'), ('TRIGGER'), ('MAINTAIN')
+       ) AS privilege_under_test(privilege_name)
+       WHERE has_table_privilege(
+         role_under_test.role_name,
+         'public.training_solver_provenance_authority',
+         privilege_under_test.privilege_name
+       )
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_attribute attributes
+       CROSS JOIN LATERAL pg_catalog.aclexplode(attributes.attacl) acl
+       WHERE attributes.attrelid =
+         'public.training_solver_provenance_authority'::pg_catalog.regclass
+         AND attributes.attnum > 0
+         AND NOT attributes.attisdropped
+         AND acl.grantee IN (
+           0,
+           pg_catalog.to_regrole('anon'),
+           pg_catalog.to_regrole('authenticated'),
+           pg_catalog.to_regrole('service_role')
+         )
+     )
      OR NOT (
        SELECT class_row.relrowsecurity
        FROM pg_class class_row
@@ -1100,6 +1316,22 @@ BEGIN
        'authenticated',
        'public.fn_training_solver_artifact_servable_v2(text,text,integer,text,jsonb,text,text,text,text,text,text,text,text,timestamp with time zone)',
        'EXECUTE'
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES ('anon'), ('authenticated'), ('service_role'))
+         AS role_under_test(role_name)
+       CROSS JOIN (
+         VALUES
+           ('public.fn_training_solver_artifact_servable_v2(text,text,integer,text,jsonb,text,text,text,text,text,text,text,text,timestamp with time zone)'),
+           ('public.fn_training_solver_artifact_catalog_sync_v1()'),
+           ('public.fn_training_solver_provenance_authority_invalidate_v1()')
+       ) AS function_under_test(function_signature)
+       WHERE has_function_privilege(
+         role_under_test.role_name,
+         function_under_test.function_signature,
+         'EXECUTE'
+       )
      )
      OR NOT EXISTS (
        SELECT 1
@@ -1118,6 +1350,11 @@ BEGIN
      )
      OR has_function_privilege(
        'authenticated',
+       'public.training_solver_spot_candidates_v1(jsonb,text,uuid,uuid,uuid,integer,uuid,text,text,integer)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon',
        'public.training_solver_spot_candidates_v1(jsonb,text,uuid,uuid,uuid,integer,uuid,text,text,integer)',
        'EXECUTE'
      )
@@ -1157,6 +1394,12 @@ BEGIN
        )
      )
      OR (
+       to_regprocedure('public.analyze_spots_by_game_type(text,integer)') IS NOT NULL
+       AND has_function_privilege(
+         'anon', 'public.analyze_spots_by_game_type(text,integer)', 'EXECUTE'
+       )
+     )
+     OR (
        SELECT function_row.prosecdef
        FROM pg_proc function_row
        WHERE function_row.oid =
@@ -1170,7 +1413,17 @@ BEGIN
            'public.analyze_spots_by_game_type(text,integer)'::regprocedure
        ), ','), '')
      ) = 0
-     OR NOT has_function_privilege(
+     OR position(
+       'statement_timeout=5s' IN coalesce(array_to_string((
+         SELECT function_row.proconfig
+         FROM pg_proc function_row
+         WHERE function_row.oid =
+           'public.analyze_spots_by_game_type(text,integer)'::regprocedure
+       ), ','), '')
+     ) = 0
+     OR position('artifact.game_type = p_game_type' IN v_analysis_definition) = 0
+     OR position('p_game_type IS NULL OR' IN v_analysis_definition) > 0
+     OR has_function_privilege(
        'service_role',
        'public.analyze_spots_by_game_type(text,integer)',
        'EXECUTE'

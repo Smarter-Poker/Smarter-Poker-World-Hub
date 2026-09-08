@@ -77,54 +77,98 @@ END;
 $revoke_worker_receipt_columns$;
 
 DO $assert_worker_receipt_shape$
+DECLARE
+  receipt_oid pg_catalog.oid := pg_catalog.to_regclass(
+    'public.training_solver_worker_receipts'
+  );
 BEGIN
-  IF (
+  IF NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_class class_row
+       WHERE class_row.oid = receipt_oid
+         AND class_row.relkind = 'r'
+     )
+     OR (
        SELECT count(*)
-       FROM pg_attribute attribute_row
-       WHERE attribute_row.attrelid =
-         'public.training_solver_worker_receipts'::regclass
+       FROM pg_catalog.pg_attribute attribute_row
+       WHERE attribute_row.attrelid = receipt_oid
          AND attribute_row.attnum > 0
          AND NOT attribute_row.attisdropped
      ) <> 14
      OR EXISTS (
        SELECT 1
        FROM (VALUES
-         ('machine_id', 'text'::regtype, true),
-         ('request_nonce', 'uuid'::regtype, true),
-         ('operation', 'text'::regtype, true),
-         ('signed_at', 'timestamp with time zone'::regtype, true),
-         ('body_sha256', 'text'::regtype, true),
-         ('solver_version', 'text'::regtype, true),
-         ('solver_binary_checksum', 'text'::regtype, true),
-         ('pipeline_commit', 'text'::regtype, true),
-         ('manifest_version', 'text'::regtype, true),
-         ('manifest_checksum', 'text'::regtype, true),
-         ('artifact_id', 'uuid'::regtype, false),
-         ('scenario_hash', 'text'::regtype, false),
-         ('source_artifact_checksum', 'text'::regtype, false),
-         ('received_at', 'timestamp with time zone'::regtype, true)
-       ) AS expected(attname, atttypid, attnotnull)
-       LEFT JOIN pg_attribute actual
-         ON actual.attrelid = 'public.training_solver_worker_receipts'::regclass
+         ('machine_id', 1, 'text', true, NULL::text),
+         ('request_nonce', 2, 'uuid', true, NULL::text),
+         ('operation', 3, 'text', true, NULL::text),
+         ('signed_at', 4, 'timestamp with time zone', true, NULL::text),
+         ('body_sha256', 5, 'text', true, NULL::text),
+         ('solver_version', 6, 'text', true, NULL::text),
+         ('solver_binary_checksum', 7, 'text', true, NULL::text),
+         ('pipeline_commit', 8, 'text', true, NULL::text),
+         ('manifest_version', 9, 'text', true, NULL::text),
+         ('manifest_checksum', 10, 'text', true, NULL::text),
+         ('artifact_id', 11, 'uuid', false, NULL::text),
+         ('scenario_hash', 12, 'text', false, NULL::text),
+         ('source_artifact_checksum', 13, 'text', false, NULL::text),
+         ('received_at', 14, 'timestamp with time zone', true,
+          'clock_timestamp()'::text)
+       ) AS expected(attname, attnum, type_name, attnotnull, default_expr)
+       LEFT JOIN pg_catalog.pg_attribute actual
+         ON actual.attrelid = receipt_oid
         AND actual.attname = expected.attname
-        AND actual.attnum > 0
+        AND actual.attnum = expected.attnum
         AND NOT actual.attisdropped
+       LEFT JOIN pg_catalog.pg_attrdef default_row
+         ON default_row.adrelid = actual.attrelid
+        AND default_row.adnum = actual.attnum
        WHERE actual.attname IS NULL
-          OR actual.atttypid <> expected.atttypid
-          OR actual.attnotnull <> expected.attnotnull
+          OR pg_catalog.format_type(actual.atttypid, actual.atttypmod)
+             IS DISTINCT FROM expected.type_name
+          OR actual.attnotnull IS DISTINCT FROM expected.attnotnull
+          OR pg_catalog.pg_get_expr(default_row.adbin, default_row.adrelid)
+             IS DISTINCT FROM expected.default_expr
      )
+     OR (
+       SELECT count(*)
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = receipt_oid
+     ) <> 6
      OR NOT EXISTS (
        SELECT 1
-       FROM pg_constraint constraint_row
-       WHERE constraint_row.conrelid =
-         'public.training_solver_worker_receipts'::regclass
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = receipt_oid
+         AND constraint_row.conname = 'training_solver_worker_receipts_pkey'
          AND constraint_row.contype = 'p'
-         AND constraint_row.conkey = ARRAY[
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-             'public.training_solver_worker_receipts'::regclass AND attname = 'machine_id'),
-           (SELECT attnum FROM pg_attribute WHERE attrelid =
-             'public.training_solver_worker_receipts'::regclass AND attname = 'request_nonce')
-         ]::smallint[]
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[1, 2]::smallint[]
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('training_solver_worker_receipts_machine_check',
+          $$CHECK ((machine_id = ANY (ARRAY['M1'::text, 'M2'::text])))$$),
+         ('training_solver_worker_receipts_operation_check',
+          $$CHECK ((operation = ANY (ARRAY['ingest_artifact'::text, 'row_states'::text, 'board_page'::text, 'heartbeat'::text])))$$),
+         ('training_solver_worker_receipts_body_check',
+          $$CHECK ((body_sha256 ~ '^[0-9a-f]{64}$'::text))$$),
+         ('training_solver_worker_receipts_provenance_check',
+          $$CHECK ((((char_length(btrim(solver_version)) >= 1) AND (char_length(btrim(solver_version)) <= 120)) AND (solver_binary_checksum ~ '^[0-9a-f]{64}$'::text) AND (pipeline_commit ~ '^[0-9a-f]{40}$'::text) AND ((char_length(btrim(manifest_version)) >= 1) AND (char_length(btrim(manifest_version)) <= 160)) AND (manifest_checksum ~ '^[0-9a-f]{64}$'::text)))$$),
+         ('training_solver_worker_receipts_artifact_check',
+          $$CHECK (((operation = 'ingest_artifact'::text) = ((artifact_id IS NOT NULL) AND (scenario_hash IS NOT NULL) AND ((char_length(scenario_hash) >= 1) AND (char_length(scenario_hash) <= 512)) AND (source_artifact_checksum ~ '^[0-9a-f]{64}$'::text))))$$)
+       ) expected(conname, definition)
+       LEFT JOIN pg_catalog.pg_constraint actual
+         ON actual.conrelid = receipt_oid
+        AND actual.conname = expected.conname
+        AND actual.contype = 'c'
+       WHERE actual.oid IS NULL
+          OR NOT actual.convalidated
+          OR pg_catalog.btrim(pg_catalog.regexp_replace(
+               pg_catalog.pg_get_constraintdef(actual.oid, false),
+               '[[:space:]]+', ' ', 'g'
+             )) IS DISTINCT FROM expected.definition
      ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_WORKER_RECEIPT_CONTRACT_INCOMPLETE';
   END IF;
@@ -149,8 +193,12 @@ BEGIN
     WHERE namespace_row.nspname = 'public'
       AND table_row.relname = 'solved_spots_gold'
       AND access_method.amname = 'btree'
+      AND index_class.relkind = 'i'
       AND index_row.indisvalid
       AND index_row.indisready
+      AND NOT index_row.indisunique
+      AND NOT index_row.indisprimary
+      AND NOT index_row.indisexclusion
       AND index_row.indpred IS NULL
       AND index_row.indexprs IS NULL
       AND index_row.indnkeyatts = 4
@@ -164,6 +212,21 @@ BEGIN
          AND attribute_row.attnum = key_column.attnum
         WHERE key_column.ordinality <= 4
       ) = ARRAY['game_type', 'stack_depth', 'street', 'scenario_hash']::text[]
+      AND NOT EXISTS (
+        SELECT 1
+        FROM pg_catalog.generate_series(0, 3) AS key_position(position)
+        JOIN pg_catalog.pg_attribute indexed_attribute
+          ON indexed_attribute.attrelid = index_row.indrelid
+         AND indexed_attribute.attnum = index_row.indkey[key_position.position]
+        JOIN pg_catalog.pg_opclass operator_class
+          ON operator_class.oid = index_row.indclass[key_position.position]
+        WHERE index_row.indoption[key_position.position] <> 0
+           OR index_row.indcollation[key_position.position]
+              IS DISTINCT FROM indexed_attribute.attcollation
+           OR operator_class.opcmethod <> index_class.relam
+           OR NOT operator_class.opcdefault
+           OR operator_class.opcintype <> indexed_attribute.atttypid
+      )
   ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_WORKER_BOARD_PAGE_INDEX_MISSING';
   END IF;
@@ -185,8 +248,12 @@ BEGIN
     WHERE table_schema.nspname = 'public'
       AND index_table.relname = 'solved_spots_gold'
       AND access_method.amname = 'btree'
+      AND physical_index.relkind = 'i'
       AND index_row.indisvalid
       AND index_row.indisready
+      AND NOT index_row.indisunique
+      AND NOT index_row.indisprimary
+      AND NOT index_row.indisexclusion
       AND index_row.indpred IS NULL
       AND index_row.indexprs IS NULL
       AND index_row.indnkeyatts = 1
@@ -199,6 +266,24 @@ BEGIN
           ON attribute_row.attrelid = index_row.indrelid
          AND attribute_row.attnum = key_column.attnum
       ) = ARRAY['scenario_hash']::text[]
+      AND index_row.indoption[0] = 0
+      AND index_row.indcollation[0] = (
+        SELECT indexed_attribute.attcollation
+        FROM pg_catalog.pg_attribute indexed_attribute
+        WHERE indexed_attribute.attrelid = index_row.indrelid
+          AND indexed_attribute.attnum = index_row.indkey[0]
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_opclass operator_class
+        JOIN pg_catalog.pg_attribute indexed_attribute
+          ON indexed_attribute.attrelid = index_row.indrelid
+         AND indexed_attribute.attnum = index_row.indkey[0]
+        WHERE operator_class.oid = index_row.indclass[0]
+          AND operator_class.opcmethod = physical_index.relam
+          AND operator_class.opcdefault
+          AND operator_class.opcintype = indexed_attribute.atttypid
+      )
   ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_WORKER_SCENARIO_HASH_INDEX_MISSING';
   END IF;
@@ -376,10 +461,11 @@ GRANT EXECUTE ON FUNCTION public.training_solver_worker_row_states_v1(text[])
   TO service_role;
 
 -- Board discovery is the only worker operation that needs to enumerate the
--- warehouse. Keep it behind a narrow function so the application service key
--- never receives direct SELECT on the 80 GB table. The explicit lower/upper
--- prefix bounds plus keyset cursor match the required four-column btree under
--- any production collation; no LIKE predicate is used.
+-- warehouse. This worker path stays behind a narrow function and has no raw
+-- write capability; PR A temporarily preserves predecessor read-only SELECT
+-- solely for migration-first rollback compatibility. The explicit bounds and
+-- keyset cursor match the required four-column btree; no LIKE predicate is
+-- used.
 CREATE OR REPLACE FUNCTION public.training_solver_worker_board_page_v1(
   p_game_type text,
   p_stack_depth integer,
@@ -419,11 +505,11 @@ BEGIN
 
   v_prefix := p_game_type || '_' || p_position || '_'
     || p_stack_depth::text || 'bb_';
-  -- The disposable verifier runs SQL_ASCII, where a Unicode escape above
-  -- U+00FF cannot be converted to text.  All canonical board/hash suffix
-  -- bytes are printable ASCII below DEL, so DEL is a portable strict upper
-  -- bound under the production C/UTF-8 collations as well.
-  v_upper_bound := v_prefix || chr(127);
+  -- Canonical suffixes begin with one of 2-9/T/J/Q/K/A. Z is therefore a
+  -- strict upper bound in both C and the production en_US.UTF-8 collation.
+  -- DEL is not safe here: locale-aware collations can sort printable board
+  -- text after DEL and silently turn the page into an empty range.
+  v_upper_bound := v_prefix || 'Z';
   IF p_after_scenario IS NOT NULL
      AND (
        NOT starts_with(p_after_scenario, v_prefix)
@@ -434,7 +520,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT artifact.scenario_hash
+  SELECT DISTINCT artifact.scenario_hash
   FROM public.solved_spots_gold artifact
   WHERE artifact.game_type = p_game_type
     AND artifact.stack_depth = p_stack_depth
@@ -761,12 +847,14 @@ GRANT EXECUTE ON FUNCTION public.training_ingest_solver_artifact_v1(
   text, text, text, text, text, text, uuid, timestamptz, text, jsonb
 ) TO service_role;
 
--- The service key may invoke the narrow SECURITY DEFINER read/write RPCs, but
--- it cannot bypass HMAC/nonces/catalog admission or enumerate the warehouse
--- directly. Operators retain postgres/migration-role access for explicit
--- quarantine and offline auditing.
-REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-  ON public.solved_spots_gold FROM service_role;
+-- The service key may invoke the narrow SECURITY DEFINER read/write RPCs. PR A
+-- also preserves the predecessor application's read-only warehouse SELECT so
+-- a migration-first rollout and rollback cannot outage Training. No raw write,
+-- ownership, trigger, reference, or maintenance privilege survives. The held
+-- enforcement migration removes SELECT only after live replacement and
+-- predecessor compatibility have both been attested.
+REVOKE ALL ON public.solved_spots_gold FROM service_role;
+GRANT SELECT ON public.solved_spots_gold TO service_role;
 DO $revoke_worker_warehouse_column_dml$
 DECLARE
   v_columns text;
@@ -779,20 +867,18 @@ BEGIN
     AND NOT attribute_row.attisdropped;
   IF v_columns IS NOT NULL THEN
     EXECUTE format(
-      'REVOKE SELECT (%s), INSERT (%s), UPDATE (%s) ON public.solved_spots_gold FROM service_role',
-      v_columns,
-      v_columns,
+      'REVOKE ALL PRIVILEGES (%s) ON public.solved_spots_gold FROM service_role',
       v_columns
     );
   END IF;
 END;
 $revoke_worker_warehouse_column_dml$;
 
--- Preserve the operator-facing aggregate without restoring raw warehouse
--- access to the service key. Its implementation is bounded to a narrow RPC
--- and remains unavailable to browser roles.
-ALTER FUNCTION public.analyze_spots_by_game_type(text, integer)
-  SECURITY DEFINER;
+-- The legacy aggregate has no runtime consumer and remains operator-only,
+-- invoker-rights, input-bounded, and unavailable to every application role.
+-- Do not turn it into a SECURITY DEFINER escape hatch around warehouse ACLs.
+REVOKE ALL ON FUNCTION public.analyze_spots_by_game_type(text, integer)
+  FROM PUBLIC, anon, authenticated, service_role;
 
 DO $worker_ingest_contract_assertions$
 DECLARE
@@ -819,15 +905,51 @@ BEGIN
        FROM pg_class class_row
        WHERE class_row.oid = 'public.training_solver_worker_receipts'::regclass
      )
-     OR has_table_privilege('anon', 'public.training_solver_worker_receipts', 'SELECT')
-     OR has_table_privilege('authenticated', 'public.training_solver_worker_receipts', 'SELECT')
-     OR has_table_privilege('service_role', 'public.training_solver_worker_receipts', 'SELECT')
-     OR has_table_privilege('service_role', 'public.solved_spots_gold', 'INSERT')
-     OR has_table_privilege('service_role', 'public.solved_spots_gold', 'UPDATE')
-     OR has_table_privilege('service_role', 'public.solved_spots_gold', 'DELETE')
-     OR has_table_privilege('service_role', 'public.solved_spots_gold', 'SELECT')
-     OR has_any_column_privilege(
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES ('anon'), ('authenticated'), ('service_role'))
+         AS role_under_test(role_name)
+       CROSS JOIN (
+         VALUES
+           ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'),
+           ('REFERENCES'), ('TRIGGER'), ('MAINTAIN')
+       ) AS privilege_under_test(privilege_name)
+       WHERE has_table_privilege(
+         role_under_test.role_name,
+         'public.training_solver_worker_receipts',
+         privilege_under_test.privilege_name
+       )
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_attribute attributes
+       CROSS JOIN LATERAL pg_catalog.aclexplode(attributes.attacl) acl
+       WHERE attributes.attrelid =
+         'public.training_solver_worker_receipts'::pg_catalog.regclass
+         AND attributes.attnum > 0
+         AND NOT attributes.attisdropped
+         AND acl.grantee IN (
+           0,
+           pg_catalog.to_regrole('anon'),
+           pg_catalog.to_regrole('authenticated'),
+           pg_catalog.to_regrole('service_role')
+         )
+     )
+     OR NOT has_table_privilege(
        'service_role', 'public.solved_spots_gold', 'SELECT'
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (
+         VALUES
+           ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'),
+           ('REFERENCES'), ('TRIGGER'), ('MAINTAIN')
+       ) AS privilege_under_test(privilege_name)
+       WHERE has_table_privilege(
+         'service_role',
+         'public.solved_spots_gold',
+         privilege_under_test.privilege_name
+       )
      )
      OR EXISTS (
        SELECT 1
@@ -836,10 +958,6 @@ BEGIN
          AND attribute_row.attnum > 0
          AND NOT attribute_row.attisdropped
          AND (
-           has_column_privilege(
-             'service_role', 'public.solved_spots_gold', attribute_row.attname, 'SELECT'
-           )
-           OR
            has_column_privilege(
              'service_role', 'public.solved_spots_gold', attribute_row.attname, 'INSERT'
            )
@@ -869,7 +987,22 @@ BEGIN
        'EXECUTE'
      )
      OR has_function_privilege(
+       'anon',
+       'public.training_claim_solver_worker_request_v1(text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
+       'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'service_role',
+       'public.training_claim_solver_worker_request_v1(text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
        'authenticated',
+       'public.training_solver_worker_row_states_v1(text[])',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon',
        'public.training_solver_worker_row_states_v1(text[])',
        'EXECUTE'
      )
@@ -883,6 +1016,11 @@ BEGIN
        'public.training_solver_worker_board_page_v1(text,integer,text,text,text,integer)',
        'EXECUTE'
      )
+     OR has_function_privilege(
+       'anon',
+       'public.training_solver_worker_board_page_v1(text,integer,text,text,text,integer)',
+       'EXECUTE'
+     )
      OR NOT has_function_privilege(
        'service_role',
        'public.training_solver_worker_board_page_v1(text,integer,text,text,text,integer)',
@@ -891,8 +1029,15 @@ BEGIN
      OR position('artifact.scenario_hash >= v_prefix' IN v_board_page_definition) = 0
      OR position('artifact.scenario_hash < v_upper_bound' IN v_board_page_definition) = 0
      OR position('artifact.scenario_hash > p_after_scenario' IN v_board_page_definition) = 0
+     OR position('SELECT DISTINCT artifact.scenario_hash' IN v_board_page_definition) = 0
      OR position('ORDER BY artifact.scenario_hash' IN v_board_page_definition) = 0
      OR position('LIMIT p_limit' IN v_board_page_definition) = 0
+     OR NOT (
+       'hu_cash_BTN_100bb_2c2d2h' >= 'hu_cash_BTN_100bb_'
+       AND 'hu_cash_BTN_100bb_2c2d2h' < 'hu_cash_BTN_100bb_Z'
+       AND 'hu_cash_BTN_100bb_AsAhAd' < 'hu_cash_BTN_100bb_Z'
+       AND 'hu_cash_BTN_100bb_TsKsQs' < 'hu_cash_BTN_100bb_Z'
+     )
      OR position('training_solver_artifact_catalog catalog' IN v_row_states_definition) = 0
      OR position('authority.retired_at IS NULL' IN v_row_states_definition) = 0
      OR position('LIMIT 150' IN v_row_states_definition) = 0
@@ -929,11 +1074,16 @@ BEGIN
            'public.training_ingest_solver_artifact_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)'::regprocedure
          ), ','), '')
      ) = 0
-     OR NOT (
+     OR (
        SELECT function_row.prosecdef
        FROM pg_proc function_row
        WHERE function_row.oid =
          'public.analyze_spots_by_game_type(text,integer)'::regprocedure
+     )
+     OR has_function_privilege(
+       'service_role',
+       'public.analyze_spots_by_game_type(text,integer)',
+       'EXECUTE'
      ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_WORKER_INGEST_CONTRACT_INCOMPLETE';
   END IF;

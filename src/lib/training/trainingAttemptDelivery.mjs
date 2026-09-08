@@ -654,6 +654,9 @@ export async function recordTrainingQuestionsServedForAttempt(
     const decisionOrdinal = Number(context.decisionOrdinal);
     const questionId = String(question?.id || '');
     const snapshotKey = String(context.snapshotKey || '');
+    const rawDifficultyMode = String(context.difficultyMode || '').toLowerCase();
+    const difficultyMode = normalizeTrainingDifficultyMode(context.difficultyMode);
+    const rngRolls = context.rngRolls || null;
     const decisionSlot = `${handOrdinal}:${decisionOrdinal}`;
     if (
       String(context.attemptId || '') !== attemptId
@@ -666,6 +669,15 @@ export async function recordTrainingQuestionsServedForAttempt(
       || !questionId
       || !/^[0-9a-f]{64}$/i.test(snapshotKey)
       || !/^[0-9a-f]{64}$/i.test(String(question.policyChecksum || ''))
+      || !['simple', 'grouped', 'exact'].includes(rawDifficultyMode)
+      || !['simple', 'grouped', 'exact'].includes(difficultyMode)
+      || !rngRolls
+      || !Number.isInteger(rngRolls.low)
+      || rngRolls.low < 1
+      || rngRolls.low > 100
+      || !Number.isInteger(rngRolls.high)
+      || rngRolls.high < 1
+      || rngRolls.high > 100
       || decisionSlots.has(decisionSlot)
     ) {
       throw new TrainingAttemptDeliveryError(
@@ -681,6 +693,8 @@ export async function recordTrainingQuestionsServedForAttempt(
       snapshotKey,
       questionId,
       policyChecksum: String(question.policyChecksum).toLowerCase(),
+      difficultyMode,
+      rngRolls: { low: rngRolls.low, high: rngRolls.high },
     });
   }
   let recordedCount = 0;

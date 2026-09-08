@@ -738,13 +738,15 @@ test('a fresh failed metric is dead and a partial metric is warning', () => {
   assert.equal(partial.status, 'warning');
 });
 
-test('migration retries reset aborted single-file transactions and fail closed for batches', () => {
+test('migration execution never blindly retries SQL and journals independent ambiguity', () => {
   const runner = fs.readFileSync('scripts/antigravity_sql_push.js', 'utf8');
+  const transactionControl = fs.readFileSync('scripts/lib/sql-transaction-control.js', 'utf8');
 
-  assert.match(runner, /canResetTransaction = false/);
-  assert.match(runner, /await client\.query\('ROLLBACK'\)/);
-  assert.match(runner, /Transactional batch aborted; retry the full batch after rollback/);
-  assert.match(runner, /canResetTransaction: !useTransaction/);
+  assert.doesNotMatch(runner, /MAX_SQL_RETRIES|TRANSIENT_CODES|canResetTransaction/);
+  assert.match(runner, /claimIndependentMigration[\s\S]*executeSqlFile[\s\S]*completeIndependentMigration/);
+  assert.match(runner, /commitAttempted[\s\S]*!String\(error\?\.code \|\| ''\)\.startsWith\('08'\)/);
+  assert.match(transactionControl, /SQL_RUNNER_AMBIGUOUS_PRIOR_ATTEMPT/);
+  assert.match(transactionControl, /commitAttempted[\s\S]*!String\(error\?\.code \|\| ''\)\.startsWith\('08'\)/);
 });
 
 test('Poker Near Me schema migrations acquire the optional realtime lock first', () => {

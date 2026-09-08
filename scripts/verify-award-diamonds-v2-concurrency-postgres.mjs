@@ -61,12 +61,13 @@ function runAsync(binary, args, { input } = {}) {
 }
 
 function resolvePostgresBin() {
+  const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
     process.env.AWARD_V2_POSTGRES_BIN,
+    pgConfig.status === 0 ? pgConfig.stdout.trim() : null,
     '/opt/homebrew/opt/postgresql@17/bin',
-    '/opt/homebrew/opt/postgresql@16/bin',
     '/usr/local/opt/postgresql@17/bin',
-    '/usr/local/opt/postgresql@16/bin',
+    '/usr/lib/postgresql/17/bin',
     '/usr/local/pgsql/bin',
   ].filter(Boolean);
   for (const candidate of candidates) {
@@ -75,17 +76,21 @@ function resolvePostgresBin() {
       && existsSync(path.join(candidate, 'initdb'))
       && existsSync(path.join(candidate, 'pg_ctl'))
       && existsSync(path.join(candidate, 'psql'))
+      && existsSync(path.join(candidate, 'createdb'))
     ) {
-      return candidate;
+      const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+      if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
     }
   }
 
   const resolved = spawnSync('sh', ['-c', 'command -v postgres'], { encoding: 'utf8' });
   if (resolved.status === 0 && resolved.stdout.trim()) {
-    return path.dirname(resolved.stdout.trim());
+    const candidate = path.dirname(resolved.stdout.trim());
+    const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+    if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
   }
   throw new Error(
-    'PostgreSQL binaries are required. Set AWARD_V2_POSTGRES_BIN to the directory containing postgres, initdb, pg_ctl, and psql.',
+    'PostgreSQL 17 binaries are required. Set AWARD_V2_POSTGRES_BIN to the directory containing postgres, initdb, pg_ctl, psql, and createdb.',
   );
 }
 
@@ -301,7 +306,7 @@ try {
     '-D', dataDir,
     '--username=postgres',
     '--auth=trust',
-    '--no-locale',
+    '--locale=en_US.UTF-8',
     '--encoding=UTF8',
   ], { quiet: true });
   mkdirSync(socketDir, { recursive: true });
@@ -312,6 +317,22 @@ try {
     '-w', 'start',
   ], { quiet: true });
   started = true;
+
+  const environment = run(psql, [...connectionArgs], {
+    input: String.raw`SELECT current_setting('server_version_num'),
+      current_setting('server_encoding'),
+      datcollate
+    FROM pg_catalog.pg_database
+    WHERE datname = current_database();`,
+    quiet: true,
+  }).trim().split('|');
+  if (
+    !/^17\d{4}$/.test(environment[0] || '')
+    || environment[1] !== 'UTF8'
+    || environment[2] !== 'en_US.UTF-8'
+  ) {
+    throw new Error(`Award verifier requires PostgreSQL 17, UTF8, en_US.UTF-8; received ${environment.join('|')}`);
+  }
 
   run(psql, connectionArgs, { input: BASELINE_SQL, quiet: true });
   run(psql, [...connectionArgs, '-f', MIGRATION], { quiet: true });

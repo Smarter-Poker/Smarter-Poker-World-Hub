@@ -62,6 +62,9 @@ export const getActiveWorldMenuHref = (currentHref, items = []) => {
   return defaultItem?.href || null;
 };
 
+export const isWorldMenuHrefActive = (currentHref, candidateHref, items = []) =>
+  Boolean(candidateHref) && getActiveWorldMenuHref(currentHref, items) === candidateHref;
+
 export const isModifiedNavigationEvent = (event) =>
   Boolean(
     event?.metaKey || event?.ctrlKey || event?.shiftKey || event?.altKey ||

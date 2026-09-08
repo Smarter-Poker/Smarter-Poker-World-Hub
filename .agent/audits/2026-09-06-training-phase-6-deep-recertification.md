@@ -282,13 +282,14 @@ marker classification.
 
 Current integrated local evidence:
 
-- Phase 6 authority suite: 715/715 passed.
-- Every `training-*.test.mjs` suite: 754/754 passed.
+- Phase 6 authority suite: 721/721 passed, plus 23/23 production-attestation
+  preflight and Windows-retirement tests.
+- Every `training-*.test.mjs` suite: 774/774 passed.
 - Repository guard and reachability suite: 1,370/1,370 passed.
 - Cross-domain prebuild suite: 687/687 passed.
 - Leak Finder and Personal Assistant integration suite: 181/181 passed.
 - Focused solver ingestion and policy suite: 84/84 passed.
-- Full lint: 4,192/4,192 source and test files passed.
+- Full lint: 4,196/4,196 source and test files passed.
 - Strict TypeScript, whitespace, inventory generation/verification, and the
   94-page Training route/link/API audit passed. The generated inventory records
   107 canonical games, 214 play/arena expansions, 54 API templates, and zero
@@ -300,7 +301,16 @@ Current integrated local evidence:
   admission. Its authority evidence includes 14 reward invariants, 18 canonical
   attempts, 13 completions, and 54 immutable first decisions with the expected
   access-control, write-protection, rollback, cap, idempotency, and key-binding
-  assertions.
+  assertions. A sixth PostgreSQL 17 verifier proves the corrective ACL
+  contract with 288 exact privilege checks, 13/13 behavioral isolation/read
+  checks, 27/27 RLS-enabled tables, six exact browser read policies, zero
+  extra browser policies, zero protected column or PUBLIC ACL entries, two
+  idempotent applications, and two deliberately rejected adversarial schemas.
+  The required protected PR safety context now installs or resolves exact
+  PostgreSQL 17 binaries and executes the seven-family behavioral gate,
+  including the final cache/grading/level-stat truth verifier;
+  every verifier rejects PostgreSQL 16 instead of silently weakening the
+  production privilege model.
 - The optimized production build passed and generated 395/395 pages. Every
   declared Personal Assistant route, client, and server performance budget
   remained below its cap.
@@ -313,6 +323,42 @@ family/stack contracts, but remains deliberately `CLOSED` and unapproved for
 M1/M2 activation. No solver host was restarted or retargeted. The separate
 `strategy_matrix_v2` backfill remains blocked by its production disk-headroom
 gate and was not run.
+
+The final adversarial migration review also found and closed three defects
+before publication:
+
+- Supabase production's broad default ACLs had left table maintenance and
+  browser-access drift on previously applied authority objects. The additive
+  ACL closeout now reasserts exact table, column, function, RLS-policy, and
+  owned-sequence contracts. It also replaces any same-named widened owner-read
+  policy and rejects a second permissive browser read policy.
+- The delivery-authority migration used `CREATE TABLE IF NOT EXISTS` without
+  proving that a pre-existing same-named object had the expected shape. It now
+  checks every column, type, nullability, default, primary key, foreign key,
+  check constraint, and the exact continuation index before proceeding. The
+  disposable verifier corrupts each shape independently and proves a
+  fail-closed rollback.
+- The signed worker's board-page bound used DEL as an ASCII suffix ceiling.
+  Production's `en_US.UTF-8` collation can sort canonical printable board
+  suffixes after DEL, silently producing an empty page. The worker now uses
+  `Z`, a strict ceiling above the canonical `2-9/T/J/Q/K/A` card alphabet, and
+  both the production collation proof and PostgreSQL verifier require a real
+  canonical board to be returned through the indexed RPC.
+
+The immutable-deployment public attestation is a permanent fail-closed gate.
+It requires an exact Hub Vanguard deployment hostname, exact 40-character
+build, one origin-scoped authenticated state, and an explicit production-write
+acknowledgement. Its contract rejects malformed receipt signatures, embedded
+attempt/hand/decision JTI mismatches, response/replay binding changes, and
+cross-origin auth transfer. A real run answers the entire 20-hand manifest
+through both the original and reissued receipts so every emitted signature is
+server-verified, stays below a 28-request rolling-minute write ceiling, proves
+response-loss recovery and exact replay, rejects changed-answer and changed-
+submission replays, then proves a real next-street child and the child's exact
+answer replay. Its CLI exits nonzero and it still reports
+`releaseGateReady: false`
+until independent administrator correlation, negative probes, predecessor
+compatibility, and production error-stream review pass.
 
 Delivery authority uses a two-protected-PR expand/contract release. The strict
 enforcement migration and its verifier are excluded from PR A. PR B may not be

@@ -281,9 +281,10 @@ async function rowStates(supabase, payload) {
 
 async function boardPage(supabase, payload) {
     const prefix = `${payload.game_type}_${payload.position}_${payload.stack_depth}bb_`;
-    // The service key has no direct warehouse SELECT. This bounded definer RPC
-    // enforces the exact family/street/prefix/keyset contract against the
-    // required physical btree in one database statement.
+    // The worker must use this bounded RPC even while a temporary read-only
+    // service grant exists for protected migration-first rollback. It enforces
+    // the exact family/street/prefix/keyset contract against the required
+    // physical btree in one database statement and permits no raw writes.
     const query = supabase.rpc('training_solver_worker_board_page_v1', {
         p_game_type: payload.game_type,
         p_stack_depth: payload.stack_depth,

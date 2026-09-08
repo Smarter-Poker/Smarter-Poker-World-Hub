@@ -10,6 +10,12 @@ const { parse } = require('@babel/parser');
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, '.agent/audits/2026-08-31-training-phase-2-inventory.json');
 const SOURCE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs'];
+const FROZEN_GLOBAL_HEADER_PUBLIC_EXPORTS = new Set([
+  'src/config/hamburgerMenus.js:copyReferralLink',
+  'src/config/worldMenuNavigation.js:getWorldMenuById',
+  'src/config/worldMenuNavigation.js:getWorldMenuInventory',
+  'src/lib/world-menu/navigationState.mjs:isWorldMenuHrefActive',
+]);
 
 const posix = (value) => value.split(sep).join('/');
 const rel = (value) => posix(relative(ROOT, value));
@@ -313,6 +319,20 @@ function classifyMarker(file, marker) {
   if (file === 'src/lib/supabase.js' && kind === 'STUB') {
     return { disposition: 'build-alias-sentinel', review: 'accepted', rationale: 'Fail-loud compatibility sentinel documents and enforces the webpack alias to the real TypeScript Supabase client.' };
   }
+  if (
+    file === 'src/lib/training/gradingReceipt.mjs'
+    && kind === 'PLACEHOLDER'
+    && /require non-placeholder key material/.test(marker.excerpt)
+  ) {
+    return { disposition: 'secret-validation-guard', review: 'accepted', rationale: 'Fail-closed receipt-secret validation rejects placeholder key material; it is not an unfinished implementation.' };
+  }
+  if (
+    file === 'src/lib/training/gradingReceiptSecret.mjs'
+    && ['PLACEHOLDER', 'TODO'].includes(kind)
+    && /(?:OBVIOUS_PLACEHOLDER_RE|changeme\|replaceme\|placeholder)/.test(marker.excerpt)
+  ) {
+    return { disposition: 'secret-validation-guard', review: 'accepted', rationale: 'The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers.' };
+  }
   if (kind === 'PLACEHOLDER' && /\bplaceholder\s*=/.test(marker.excerpt)) {
     return { disposition: 'ui-input-copy', review: 'accepted', rationale: 'JSX placeholder attribute, not placeholder implementation.' };
   }
@@ -563,6 +583,10 @@ function main() {
         disposition = 'imported-default-entrypoint';
         review = 'accepted';
         rationale = 'Default export is imported by another repository source file.';
+      } else if (entry.exported && FROZEN_GLOBAL_HEADER_PUBLIC_EXPORTS.has(`${row.file}:${entry.name}`)) {
+        disposition = 'frozen-global-header-public-api';
+        review = 'accepted';
+        rationale = 'Public navigation export is preserved because the approved global header contract is frozen.';
       } else if (entry.exported
         && externalReferenceFiles.length
         && testOrAuditReferenceFiles.length === externalReferenceFiles.length) {

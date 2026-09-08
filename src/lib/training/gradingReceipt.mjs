@@ -10,6 +10,10 @@ import { applyDifficultyToQuestion, normalizeTrainingDifficultyMode } from './di
 import { normalizeRngMode } from './rngDecisionContract.mjs';
 import { normalizeTrainingAttemptReceiptFields } from './sessionAttemptContract.mjs';
 import { isVerifiedSolverQuestion } from './solverDecisionEvidence.js';
+import {
+  isDedicatedTrainingGradingReceiptSecret,
+  TRAINING_GRADING_RECEIPT_EXAMPLE_SENTINEL,
+} from './gradingReceiptSecret.mjs';
 
 const RECEIPT_VERSION = 2;
 const DEFAULT_TTL_SECONDS = 12 * 60 * 60;
@@ -31,6 +35,18 @@ function receiptSecret(explicitSecret) {
     throw new TrainingGradingReceiptError(
       'Training grading receipts are not configured.',
       'TRAINING_GRADING_RECEIPT_NOT_CONFIGURED',
+      503,
+    );
+  }
+  if (!isDedicatedTrainingGradingReceiptSecret(
+    secret,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+  )) {
+    throw new TrainingGradingReceiptError(
+      secret === TRAINING_GRADING_RECEIPT_EXAMPLE_SENTINEL
+        ? 'Training grading receipts cannot use the retired public sentinel.'
+        : 'Training grading receipts require non-placeholder key material distinct from the Supabase service role.',
+      'TRAINING_GRADING_RECEIPT_SECRET_NOT_DEDICATED',
       503,
     );
   }

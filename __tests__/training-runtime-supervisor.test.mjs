@@ -84,6 +84,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'chart-question-node',
     'leak-engine-wiring',
     'preflop-local-practice-authority',
+    'training-acl-closeout-authority',
     'training-advisor-followup-migration',
     'training-answer-grading-contract',
     'training-arena-auxiliary-mode-authority',
@@ -130,6 +131,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-next-street-authority',
     'training-phase-2-adversarial',
     'training-phase-3-adversarial',
+    'training-phase6-truth-closeout',
     'training-polling-lifecycle-authority',
     'training-postflop-heuristic-provenance',
     'training-practice-session-boundary',
@@ -174,6 +176,11 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-verified-report-authority',
   ].map((name) => `__tests__/${name}.test.mjs`).sort();
   const authorityCommand = packageJson.scripts['test:training:phase6-authority'];
+  assert.match(
+    packageJson.scripts['pretest:training:phase6-authority'],
+    /__tests__\/training-production-delivery-attestation\.test\.mjs/,
+    'the production delivery attestation contract must run in the permanent Phase 6 gate',
+  );
   assert.match(authorityCommand, /^node --experimental-vm-modules --test /);
   assert.deepEqual(
     [...authorityCommand.matchAll(/__tests__\/[^ ]+\.test\.mjs/g)].map(([path]) => path).sort(),
@@ -182,7 +189,12 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   assert.match(packageJson.scripts.build, /npm run test:training:phase6-authority/);
   assert.equal(
     packageJson.scripts['audit:training:phase6-db'],
-    'npm run audit:training:award-db && npm run audit:training:authority-db && npm run audit:training:cross-rpc-db && npm run audit:training:delivery-db && npm run audit:training:solver-catalog-db',
+    'npm run audit:training:award-db && npm run audit:training:authority-db && npm run audit:training:cross-rpc-db && npm run audit:training:delivery-db && npm run audit:training:acl-db && npm run audit:training:truth-db && npm run audit:training:migration-runner-db && npm run audit:training:solver-catalog-db',
+  );
+  assert.equal(
+    packageJson.scripts['audit:training:migration-runner-db'],
+    'node --test __tests__/sql-migration-runner-postgres.test.mjs',
+    'the permanent PostgreSQL gate must exercise the hardened migration runner against a real PG17 server',
   );
 
   const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
@@ -194,11 +206,59 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   );
   assert.match(safetyGate, /CHECK 24: Training server-authority contracts/);
   assert.match(safetyGate, /node-version: '24\.12\.0'/);
+  assert.match(safetyGate, /Restore node_modules For Training Authority/);
+  assert.match(safetyGate, /npm ci --ignore-scripts/);
+  assert.ok(
+    safetyGate.indexOf('Install Dependencies For Training Authority')
+      < safetyGate.indexOf('CHECK 24: Training server-authority contracts'),
+    'the clean required runner must install authority-test dependencies before CHECK 24',
+  );
+  const authorityInstallBlock = safetyGate.slice(
+    safetyGate.indexOf('Install Dependencies For Training Authority'),
+    safetyGate.indexOf('CHECK 24: Training server-authority contracts'),
+  );
+  assert.doesNotMatch(
+    authorityInstallBlock,
+    /npm install/,
+    'the required authority gate must fail closed on a non-reproducible npm ci failure',
+  );
   assert.equal(
     (safetyGate.match(/run: npm run test:training:phase6-authority/g) || []).length,
     1,
     'the required PR safety context must run the authority suite exactly once',
   );
+  assert.match(safetyGate, /postgresql-17/);
+  assert.match(safetyGate, /PHASE6_POSTGRES_BIN=\$postgres_bin/);
+  assert.match(safetyGate, /AWARD_V2_POSTGRES_BIN=\$postgres_bin/);
+  assert.match(safetyGate, /CHECK 24C: Training PostgreSQL 17 Behavioral Authority/);
+  assert.equal(
+    (safetyGate.match(/run: npm run audit:training:phase6-db/g) || []).length,
+    1,
+    'the required PR safety context must run the PostgreSQL 17 behavior suite exactly once',
+  );
+});
+
+test('every Phase 6 database verifier requires exact PostgreSQL 17 binaries', () => {
+  for (const file of [
+    'scripts/verify-award-diamonds-v2-concurrency-postgres.mjs',
+    'scripts/verify-training-authority-postgres.mjs',
+    'scripts/verify-training-cross-rpc-concurrency-postgres.mjs',
+    'scripts/verify-training-cache-replay-postgres.mjs',
+    'scripts/verify-training-acl-closeout-postgres.mjs',
+    'scripts/verify-training-phase6-truth-postgres.mjs',
+    'scripts/verify-training-solver-catalog-postgres.mjs',
+  ]) {
+    const source = readFileSync(join(ROOT, file), 'utf8');
+    assert.match(source, /\/usr\/lib\/postgresql\/17\/bin/, file);
+    assert.match(source, /pg_config', \['--bindir'\]/, file);
+    assert.match(source, /\\b17\\\.\\d\+\\b/, file);
+    assert.doesNotMatch(source, /postgresql@16/, file);
+    assert.match(source, /createdb/, `${file} must require createdb`);
+    assert.match(source, /--locale=en_US\.UTF-8/, `${file} must use production-like collation`);
+    assert.match(source, /server_version_num/, `${file} must assert the running server major`);
+    assert.match(source, /server_encoding/, `${file} must assert UTF8`);
+    assert.match(source, /datcollate/, `${file} must assert production-like collation`);
+  }
 });
 
 test('supervisor retries with the same checkpoint environment and then succeeds', async () => {

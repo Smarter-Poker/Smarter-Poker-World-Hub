@@ -12,14 +12,16 @@ SET LOCAL statement_timeout = '120s';
 -- The original warehouse migration granted every signed-in browser direct
 -- write access. Provenance-shaped strings are not provenance: an untrusted
 -- client could otherwise manufacture a row that the catalog would promote.
--- Keep every application role, including the historically copied service key,
--- out of the 80 GB reference warehouse. A later migration installs the narrow
--- signed-ingestion RPC; no committed migration boundary may re-open raw DML.
+-- Remove every browser privilege immediately. The protected predecessor still
+-- performs one service-role SELECT while migrations lead the application
+-- deployment, so PR A preserves read-only rollback compatibility. The later
+-- enforcement migration revokes that final SELECT only after production has
+-- proved every replacement RPC and the predecessor rollback rehearsal.
 ALTER TABLE public.solved_spots_gold ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read access" ON public.solved_spots_gold;
 REVOKE ALL ON public.solved_spots_gold FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON public.solved_spots_gold FROM service_role;
--- Contract marker (must remain absent): GRANT SELECT, INSERT, UPDATE, DELETE ON public.solved_spots_gold TO service_role;
+GRANT SELECT ON public.solved_spots_gold TO service_role;
 DO $revoke_warehouse_columns$
 DECLARE
   v_columns text;
@@ -204,6 +206,149 @@ CREATE TABLE IF NOT EXISTS public.training_solver_artifact_catalog (
     ))
 );
 
+-- CREATE TABLE IF NOT EXISTS is safe only when a pre-existing object is the
+-- exact durable authority contract. In particular, the active sync installed
+-- by the follow-on migration requires an immediate artifact_id arbiter.
+DO $assert_solver_artifact_catalog_shape$
+DECLARE
+  catalog_oid pg_catalog.oid := pg_catalog.to_regclass(
+    'public.training_solver_artifact_catalog'
+  );
+BEGIN
+  IF NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_class class_row
+       WHERE class_row.oid = catalog_oid
+         AND class_row.relkind = 'r'
+         AND class_row.relpersistence = 'p'
+     )
+     OR (
+       SELECT count(*)
+       FROM pg_catalog.pg_attribute attribute_row
+       WHERE attribute_row.attrelid = catalog_oid
+         AND attribute_row.attnum > 0
+         AND NOT attribute_row.attisdropped
+     ) <> 8
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('artifact_id', 1, 'uuid', true, NULL::text, false),
+         ('scenario_hash', 2, 'text', true, NULL::text, true),
+         ('game_type', 3, 'text', true, NULL::text, true),
+         ('stack_depth', 4, 'integer', true, NULL::text, false),
+         ('street', 5, 'text', true, NULL::text, true),
+         ('hero_position', 6, 'text', true, NULL::text, true),
+         ('registered_at', 7, 'timestamp with time zone', true, 'now()'::text, false),
+         ('updated_at', 8, 'timestamp with time zone', true, 'now()'::text, false)
+       ) AS expected(
+         attname, attnum, type_name, attnotnull, default_expr,
+         uses_default_collation
+       )
+       LEFT JOIN pg_catalog.pg_attribute actual
+         ON actual.attrelid = catalog_oid
+        AND actual.attname = expected.attname
+        AND actual.attnum = expected.attnum
+        AND NOT actual.attisdropped
+       LEFT JOIN pg_catalog.pg_attrdef default_row
+         ON default_row.adrelid = actual.attrelid
+        AND default_row.adnum = actual.attnum
+       WHERE actual.attname IS NULL
+          OR pg_catalog.format_type(actual.atttypid, actual.atttypmod)
+             IS DISTINCT FROM expected.type_name
+          OR actual.attnotnull IS DISTINCT FROM expected.attnotnull
+          OR pg_catalog.pg_get_expr(default_row.adbin, default_row.adrelid)
+             IS DISTINCT FROM expected.default_expr
+          OR actual.attcollation IS DISTINCT FROM CASE
+               WHEN expected.uses_default_collation
+                 THEN pg_catalog.to_regcollation('pg_catalog.default')::pg_catalog.oid
+               ELSE 0::pg_catalog.oid
+             END
+     )
+     OR (
+       SELECT count(*)
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+     ) <> 8
+     OR NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+         AND constraint_row.conname = 'training_solver_artifact_catalog_pkey'
+         AND constraint_row.contype = 'p'
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[1]::smallint[]
+         AND pg_catalog.pg_get_constraintdef(constraint_row.oid, true)
+             = 'PRIMARY KEY (artifact_id)'
+     )
+     OR NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+         AND constraint_row.conname =
+             'training_solver_artifact_catalog_scenario_hash_key'
+         AND constraint_row.contype = 'u'
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[2]::smallint[]
+         AND pg_catalog.pg_get_constraintdef(constraint_row.oid, true)
+             = 'UNIQUE (scenario_hash)'
+     )
+     OR NOT EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_constraint constraint_row
+       WHERE constraint_row.conrelid = catalog_oid
+         AND constraint_row.conname =
+             'training_solver_artifact_catalog_artifact_id_fkey'
+         AND constraint_row.contype = 'f'
+         AND constraint_row.convalidated
+         AND NOT constraint_row.condeferrable
+         AND NOT constraint_row.condeferred
+         AND constraint_row.conkey = ARRAY[1]::smallint[]
+         AND constraint_row.confrelid = 'public.solved_spots_gold'::pg_catalog.regclass
+         AND constraint_row.confkey = ARRAY[
+           (SELECT attribute_row.attnum
+            FROM pg_catalog.pg_attribute attribute_row
+            WHERE attribute_row.attrelid =
+                  'public.solved_spots_gold'::pg_catalog.regclass
+              AND attribute_row.attname = 'id'
+              AND NOT attribute_row.attisdropped)
+         ]::smallint[]
+         AND constraint_row.confupdtype = 'a'
+         AND constraint_row.confdeltype = 'c'
+         AND constraint_row.confmatchtype = 's'
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM (VALUES
+         ('training_solver_artifact_catalog_scenario_check',
+          '((char_length(scenario_hash) >= 1) AND (char_length(scenario_hash) <= 512))'),
+         ('training_solver_artifact_catalog_stack_check',
+          '(stack_depth > 0)'),
+         ('training_solver_artifact_catalog_contract_check',
+         $$(((game_type = 'hu_cash'::text) AND (stack_depth = ANY (ARRAY[40, 100, 200]))) OR ((game_type = 'mtt_3max_chipev'::text) AND (stack_depth = 20)) OR ((game_type = 'mtt_6max_chipev'::text) AND (stack_depth = ANY (ARRAY[10, 20, 40, 100]))) OR ((game_type = 'mtt_6max_icm'::text) AND (stack_depth = ANY (ARRAY[20, 40]))) OR ((game_type = 'mtt_9max_chipev'::text) AND (stack_depth = ANY (ARRAY[20, 40, 80, 100]))) OR ((game_type = 'mtt_9max_icm'::text) AND (stack_depth = ANY (ARRAY[40, 60]))) OR ((game_type = 'mtt_hu_chipev'::text) AND (stack_depth = 40)) OR ((game_type = 'postflop_complete'::text) AND (stack_depth = 100)) OR ((game_type = 'spin_3max_chipev'::text) AND (stack_depth = ANY (ARRAY[20, 25]))) OR ((game_type = 'spin_3max_icm'::text) AND (stack_depth = ANY (ARRAY[20, 25]))) OR ((game_type = 'spin_hu_chipev'::text) AND (stack_depth = ANY (ARRAY[10, 20]))) OR ((game_type = 'spin_hu_icm'::text) AND (stack_depth = 10)))$$),
+         ('training_solver_artifact_catalog_street_check',
+          $$(street = ANY (ARRAY['flop'::text, 'turn'::text, 'river'::text]))$$),
+         ('training_solver_artifact_catalog_position_check',
+          $$(hero_position = ANY (ARRAY['UTG'::text, 'UTG+1'::text, 'UTG+2'::text, 'UTG1'::text, 'UTG2'::text, 'MP'::text, 'MP+1'::text, 'MP+2'::text, 'MP1'::text, 'MP2'::text, 'LJ'::text, 'HJ'::text, 'CO'::text, 'BTN'::text, 'SB'::text, 'BB'::text]))$$)
+       ) AS expected(conname, expression)
+       LEFT JOIN pg_catalog.pg_constraint actual
+         ON actual.conrelid = catalog_oid
+        AND actual.conname = expected.conname
+        AND actual.contype = 'c'
+       WHERE actual.oid IS NULL
+          OR NOT actual.convalidated
+          OR actual.connoinherit
+          OR pg_catalog.pg_get_expr(actual.conbin, actual.conrelid)
+             IS DISTINCT FROM expected.expression
+     ) THEN
+    RAISE EXCEPTION 'TRAINING_SOLVER_ARTIFACT_CATALOG_CONTRACT_INCOMPLETE';
+  END IF;
+END;
+$assert_solver_artifact_catalog_shape$;
+
 CREATE INDEX IF NOT EXISTS idx_training_solver_artifact_catalog_filter
   ON public.training_solver_artifact_catalog (
     game_type, stack_depth, hero_position, street, artifact_id
@@ -241,7 +386,11 @@ COMMENT ON TABLE public.training_solver_artifact_catalog IS
   'Small request-path registry of provenance-complete validated solver artifacts. Historical warehouse rows are deliberately not scanned or inferred.';
 
 ALTER TABLE public.training_solver_artifact_catalog ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.training_solver_artifact_catalog FROM PUBLIC, anon, authenticated;
+-- Supabase production grants service_role broad default privileges on newly
+-- created public tables. Clear that inherited deployment-time ACL before
+-- restoring the one read privilege this private registry actually needs.
+REVOKE ALL ON public.training_solver_artifact_catalog
+  FROM PUBLIC, anon, authenticated, service_role;
 DO $revoke_catalog_columns$
 DECLARE
   v_columns text;
@@ -336,9 +485,11 @@ BEGIN
      OR has_table_privilege('anon', 'public.solved_spots_gold', 'TRUNCATE')
      OR has_table_privilege('anon', 'public.solved_spots_gold', 'REFERENCES')
      OR has_table_privilege('anon', 'public.solved_spots_gold', 'TRIGGER')
+     OR has_table_privilege('anon', 'public.solved_spots_gold', 'MAINTAIN')
      OR has_table_privilege('authenticated', 'public.solved_spots_gold', 'TRUNCATE')
      OR has_table_privilege('authenticated', 'public.solved_spots_gold', 'REFERENCES')
      OR has_table_privilege('authenticated', 'public.solved_spots_gold', 'TRIGGER')
+     OR has_table_privilege('authenticated', 'public.solved_spots_gold', 'MAINTAIN')
      OR has_any_column_privilege('anon', 'public.solved_spots_gold', 'SELECT')
      OR has_any_column_privilege('anon', 'public.solved_spots_gold', 'INSERT')
      OR has_any_column_privilege('anon', 'public.solved_spots_gold', 'UPDATE')
@@ -347,14 +498,14 @@ BEGIN
      OR has_any_column_privilege('authenticated', 'public.solved_spots_gold', 'INSERT')
      OR has_any_column_privilege('authenticated', 'public.solved_spots_gold', 'UPDATE')
      OR has_any_column_privilege('authenticated', 'public.solved_spots_gold', 'REFERENCES')
-     OR has_table_privilege('service_role', 'public.solved_spots_gold', 'SELECT')
+     OR NOT has_table_privilege('service_role', 'public.solved_spots_gold', 'SELECT')
      OR has_table_privilege('service_role', 'public.solved_spots_gold', 'INSERT')
      OR has_table_privilege('service_role', 'public.solved_spots_gold', 'UPDATE')
      OR has_table_privilege('service_role', 'public.solved_spots_gold', 'DELETE')
      OR has_table_privilege('service_role', 'public.solved_spots_gold', 'TRUNCATE')
      OR has_table_privilege('service_role', 'public.solved_spots_gold', 'REFERENCES')
      OR has_table_privilege('service_role', 'public.solved_spots_gold', 'TRIGGER')
-     OR has_any_column_privilege('service_role', 'public.solved_spots_gold', 'SELECT')
+     OR has_table_privilege('service_role', 'public.solved_spots_gold', 'MAINTAIN')
      OR has_any_column_privilege('service_role', 'public.solved_spots_gold', 'INSERT')
      OR has_any_column_privilege('service_role', 'public.solved_spots_gold', 'UPDATE')
      OR has_any_column_privilege('service_role', 'public.solved_spots_gold', 'REFERENCES')
@@ -423,9 +574,11 @@ BEGIN
      OR has_table_privilege('anon', 'public.training_solver_artifact_catalog', 'TRUNCATE')
      OR has_table_privilege('anon', 'public.training_solver_artifact_catalog', 'REFERENCES')
      OR has_table_privilege('anon', 'public.training_solver_artifact_catalog', 'TRIGGER')
+     OR has_table_privilege('anon', 'public.training_solver_artifact_catalog', 'MAINTAIN')
      OR has_table_privilege('authenticated', 'public.training_solver_artifact_catalog', 'TRUNCATE')
      OR has_table_privilege('authenticated', 'public.training_solver_artifact_catalog', 'REFERENCES')
      OR has_table_privilege('authenticated', 'public.training_solver_artifact_catalog', 'TRIGGER')
+     OR has_table_privilege('authenticated', 'public.training_solver_artifact_catalog', 'MAINTAIN')
      OR has_any_column_privilege('anon', 'public.training_solver_artifact_catalog', 'SELECT')
      OR has_any_column_privilege('anon', 'public.training_solver_artifact_catalog', 'INSERT')
      OR has_any_column_privilege('anon', 'public.training_solver_artifact_catalog', 'UPDATE')
@@ -441,6 +594,7 @@ BEGIN
      OR has_table_privilege('service_role', 'public.training_solver_artifact_catalog', 'TRUNCATE')
      OR has_table_privilege('service_role', 'public.training_solver_artifact_catalog', 'REFERENCES')
      OR has_table_privilege('service_role', 'public.training_solver_artifact_catalog', 'TRIGGER')
+     OR has_table_privilege('service_role', 'public.training_solver_artifact_catalog', 'MAINTAIN')
      OR has_any_column_privilege('service_role', 'public.training_solver_artifact_catalog', 'INSERT')
      OR has_any_column_privilege('service_role', 'public.training_solver_artifact_catalog', 'UPDATE')
      OR has_any_column_privilege('service_role', 'public.training_solver_artifact_catalog', 'REFERENCES')
@@ -461,6 +615,15 @@ BEGIN
      )
      OR has_function_privilege(
        'authenticated', 'public.fn_training_solver_artifact_catalog_sync_v1()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon', 'public.fn_training_canonical_jsonb_text_v1(jsonb)', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon', 'public.sp_require_solver_write_provenance()', 'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon', 'public.fn_training_solver_artifact_catalog_sync_v1()', 'EXECUTE'
      ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_ARTIFACT_CATALOG_CONTRACT_INCOMPLETE';
   END IF;

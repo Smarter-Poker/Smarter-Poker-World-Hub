@@ -13,6 +13,27 @@ function actionToken(option) {
   return text.split(' ')[0] || id;
 }
 
+function policyActionToken(policyAction) {
+  const family = String(policyAction?.family || '').trim().toLowerCase();
+  // The policy contract and Postgres use `all_in`; DifficultyEngine uses the
+  // historical `allin` token. Normalize only this vocabulary boundary rather
+  // than re-inferring the family from player-facing copy.
+  if (/^all(?:[_\s-]?in)$/.test(family)) return 'allin';
+  return family || 'other';
+}
+
+function policySizingPercent(policyAction) {
+  const potFraction = policyAction?.size?.potFraction;
+  // Match the database grader exactly: only a JSON number is authoritative.
+  // A present action with no numeric pot fraction is deliberately unsized and
+  // must not fall back to parsing a potentially misleading option id/label.
+  return typeof potFraction === 'number'
+    && Number.isFinite(potFraction)
+    && potFraction >= 0
+    ? potFraction * 100
+    : null;
+}
+
 export function normalizeTrainingDifficultyMode(difficultyMode) {
   const normalized = String(difficultyMode || '').toLowerCase();
   // Keep the canonical contract vocabulary unambiguous. `standard` is the UI
@@ -39,12 +60,23 @@ export function applyDifficultyToQuestion(question, difficultyMode) {
 
   try {
     const potSize = question.scenario?.pot || 10;
-    const enriched = question.options.map((option) => ({
-      id: option.id,
-      text: option.text,
-      action: actionToken(option),
-      frequency: question.gtoFrequencies?.[option.id] || 0,
-    }));
+    const policyActionById = new Map(
+      (Array.isArray(question.solverPolicy?.actions) ? question.solverPolicy.actions : [])
+        .map((action) => [String(action?.id || '').trim().toLowerCase(), action])
+        .filter(([id]) => id.length > 0),
+    );
+    const enriched = question.options.map((option) => {
+      const policyAction = policyActionById.get(String(option?.id || '').trim().toLowerCase());
+      return {
+        id: option.id,
+        text: option.text,
+        // A matching sealed action is the same authority Postgres grades.
+        // Legacy questions without one retain the historical id/text parser.
+        action: policyAction ? policyActionToken(policyAction) : actionToken(option),
+        ...(policyAction ? { sizingPercent: policySizingPercent(policyAction) } : {}),
+        frequency: question.gtoFrequencies?.[option.id] || 0,
+      };
+    });
     // The product contract requires four meaningful choices except literal
     // Yes/No and Push/Fold decisions. The legacy SIMPLE engine collapses a
     // node to at most three generic actions (for example Check | Bet), which

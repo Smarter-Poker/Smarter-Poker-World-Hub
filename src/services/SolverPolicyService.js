@@ -1080,6 +1080,9 @@ export class SolverPolicyService {
 
   async readSolvedRows(filters = {}, { metadataOnly = false, count = false } = {}) {
     const normalized = normalizeFilters(filters);
+    if (count) {
+      throw new Error('solver_policy_exact_count_unsupported');
+    }
     if (this.solvedRowReader) {
       const result = await this.solvedRowReader(normalized, { metadataOnly, count });
       return Array.isArray(result) ? { rows: result, count: result.length } : result;
@@ -1087,14 +1090,13 @@ export class SolverPolicyService {
     if (normalized.ascending === false) {
       throw new Error('solver_policy_read_descending_order_unsupported');
     }
-    if (normalized.orderBy
-      && !['id', 'scenario_hash', 'street', 'stack_depth', 'game_type'].includes(normalized.orderBy)) {
+    if (normalized.orderBy && normalized.orderBy !== 'id') {
       throw new Error('solver_policy_read_order_unsupported');
     }
 
     const familyStacks = catalogFamilyStacks(normalized);
     if (familyStacks.length === 0) {
-      return { rows: [], count: count ? 0 : 0, hasMore: false, nextCursor: null };
+      return { rows: [], count: 0, hasMore: false, nextCursor: null };
     }
     const familyStackKeys = new Set(
       familyStacks.map(({ game_type: gameType, stack_depth: stackDepth }) => (
@@ -1169,20 +1171,10 @@ export class SolverPolicyService {
 
     const hasMore = rows.length > requestedLimit;
     const selected = rows.slice(0, requestedLimit);
-    if (normalized.orderBy && normalized.orderBy !== 'id') {
-      selected.sort((left, right) => {
-        const a = left[normalized.orderBy];
-        const b = right[normalized.orderBy];
-        return typeof a === 'number' && typeof b === 'number'
-          ? a - b
-          : clean(a).localeCompare(clean(b));
-      });
-    }
     const returnedRows = metadataOnly ? selected.map(solverMetadataRow) : selected;
-    const exactCount = exhausted && initialOffset === 0 ? rows.length : null;
     return {
       rows: returnedRows,
-      count: count ? exactCount : returnedRows.length,
+      count: returnedRows.length,
       hasMore,
       nextCursor: hasMore ? clean(selected.at(-1)?.id) || null : null,
     };
@@ -1857,8 +1849,6 @@ export class SolverPolicyService {
     if (allowStateApproximation || key.board.length === 0) {
       const { records } = await this.listSolvedRecords({
         ...base,
-        orderBy: 'scenario_hash',
-        ascending: true,
       });
       for (const record of records) {
         const answer = this.answerFromRecord(record, key, {

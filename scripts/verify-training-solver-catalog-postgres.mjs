@@ -21,6 +21,15 @@ const WORKER_INGEST_MIGRATION = path.join(
   'supabase/migrations/20260907204100_training_solver_worker_signed_ingestion.sql',
 );
 
+const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+`;
+
 function command(binary, args, { input, quiet = false } = {}) {
   const result = spawnSync(binary, args, {
     cwd: ROOT,
@@ -36,6 +45,26 @@ function command(binary, args, { input, quiet = false } = {}) {
     ].filter(Boolean).join('\n'));
   }
   if (!quiet && result.stdout?.trim()) process.stdout.write(result.stdout);
+  return result;
+}
+
+function commandExpectFailure(binary, args, { input, expected } = {}) {
+  const result = spawnSync(binary, args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    input,
+    env: process.env,
+  });
+  const output = [result.stdout, result.stderr].filter(Boolean).join('\n');
+  if (result.status === 0) {
+    throw new Error(`${path.basename(binary)} unexpectedly accepted an invalid solver object`);
+  }
+  if (!expected || !output.includes(expected)) {
+    throw new Error([
+      `${path.basename(binary)} failed without the expected ${expected ?? 'error marker'}`,
+      output,
+    ].filter(Boolean).join('\n'));
+  }
   return result;
 }
 
@@ -69,18 +98,32 @@ function commandAsync(binary, args, { input } = {}) {
 }
 
 function resolvePostgresBin() {
+  const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
     process.env.PHASE6_POSTGRES_BIN,
+    pgConfig.status === 0 ? pgConfig.stdout.trim() : null,
     '/opt/homebrew/opt/postgresql@17/bin',
     '/usr/local/opt/postgresql@17/bin',
+    '/usr/lib/postgresql/17/bin',
     '/usr/local/pgsql/bin',
   ].filter(Boolean);
   for (const candidate of candidates) {
-    if (existsSync(path.join(candidate, 'postgres'))) return candidate;
+    if (
+      ['postgres', 'initdb', 'pg_ctl', 'psql', 'createdb'].every((tool) => existsSync(path.join(candidate, tool)))
+    ) {
+      const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+      if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+    }
   }
   const resolved = spawnSync('sh', ['-c', 'command -v postgres'], { encoding: 'utf8' });
-  if (resolved.status === 0 && resolved.stdout.trim()) return path.dirname(resolved.stdout.trim());
-  throw new Error('PostgreSQL 17+ binaries are required for the Training solver catalog verifier.');
+  if (resolved.status === 0 && resolved.stdout.trim()) {
+    const candidate = path.dirname(resolved.stdout.trim());
+    const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+    if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+  }
+  throw new Error(
+    'PostgreSQL 17 binaries are required for the Training solver catalog verifier, including createdb.',
+  );
 }
 
 async function reservePort() {
@@ -105,7 +148,7 @@ CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE service_role NOLOGIN BYPASSRLS;
 CREATE TABLE public.solved_spots_gold (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  scenario_hash text NOT NULL UNIQUE,
+  scenario_hash text NOT NULL,
   game_type text NOT NULL,
   stack_depth integer NOT NULL,
   street text NOT NULL,
@@ -155,6 +198,12 @@ INSERT INTO public.solved_spots_gold (
 ), (
   '90000000-0000-4000-8000-000000000009',
   'hu_cash_BB_100bb_KhQd2s', 'hu_cash', 100, 'flop', NULL
+), (
+  'a1000000-0000-4000-8000-0000000000a1',
+  'hu_cash_BB_100bb_2c3d4h', 'hu_cash', 100, 'flop', NULL
+), (
+  'a2000000-0000-4000-8000-0000000000a2',
+  'hu_cash_BB_100bb_2c3d4h', 'hu_cash', 100, 'flop', NULL
 );
 `;
 
@@ -1363,7 +1412,7 @@ DECLARE
   warehouse_truncate_blocked boolean := false;
   trigger_execute_blocked boolean := false;
   validator_execute_blocked boolean := false;
-  analysis_execute_succeeded boolean := false;
+  analysis_execute_blocked boolean := false;
   candidate_rpc_succeeded boolean := false;
   warehouse_insert_blocked boolean := false;
   warehouse_update_blocked boolean := false;
@@ -1434,7 +1483,7 @@ BEGIN
   END;
   BEGIN
     PERFORM 1 FROM public.analyze_spots_by_game_type(NULL, 1);
-    analysis_execute_succeeded := true;
+  EXCEPTION WHEN insufficient_privilege THEN analysis_execute_blocked := true;
   END;
   IF NOT catalog_write_blocked THEN
     RAISE EXCEPTION 'service role could write the trigger-owned catalog directly';
@@ -1451,8 +1500,8 @@ BEGIN
   IF NOT validator_execute_blocked THEN
     RAISE EXCEPTION 'service role could directly execute the catalog admission validator';
   END IF;
-  IF NOT analysis_execute_succeeded THEN
-    RAISE EXCEPTION 'service role lost its server-side analysis RPC';
+  IF NOT analysis_execute_blocked THEN
+    RAISE EXCEPTION 'service role retained the retired warehouse analysis aggregate';
   END IF;
   IF NOT candidate_rpc_succeeded THEN
     RAISE EXCEPTION 'service-only bounded solver candidate RPC did not return the valid exact pair';
@@ -1612,7 +1661,9 @@ const tool = (name) => path.join(postgresBin, name);
 const connection = ['-h', tempRoot, '-p', String(port), '-d', 'phase6_solver_catalog'];
 
 try {
-  command(tool('initdb'), ['-D', dataDir, '-A', 'trust', '--no-locale'], { quiet: true });
+  command(tool('initdb'), [
+    '-D', dataDir, '-A', 'trust', '--locale=en_US.UTF-8',
+  ], { quiet: true });
   command(tool('pg_ctl'), [
     '-D', dataDir,
     '-o', `-p ${port} -k ${tempRoot}`,
@@ -1622,8 +1673,29 @@ try {
   ], { quiet: true });
   started = true;
   command(tool('createdb'), ['-h', tempRoot, '-p', String(port), 'phase6_solver_catalog'], { quiet: true });
+  const environment = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`SELECT current_setting('server_version_num'),
+      current_setting('server_encoding'),
+      datcollate
+    FROM pg_catalog.pg_database
+    WHERE datname = current_database();`,
+    quiet: true,
+  }).stdout.trim().split('|');
+  if (
+    !/^17\d{4}$/.test(environment[0] || '')
+    || environment[1] !== 'UTF8'
+    || environment[2] !== 'en_US.UTF-8'
+  ) {
+    throw new Error(`Solver verifier requires PostgreSQL 17, UTF8, en_US.UTF-8; received ${environment.join('|')}`);
+  }
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BASELINE_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: PRODUCTION_DEFAULT_ACL_SQL,
     quiet: true,
   });
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', MIGRATION], {
@@ -1659,21 +1731,72 @@ try {
       SET enable_seqscan = off;
       SET enable_bitmapscan = off;
       EXPLAIN (COSTS OFF)
-      SELECT scenario_hash
-      FROM public.solved_spots_gold
-      WHERE game_type = 'hu_cash'
-        AND stack_depth = 100
-        AND street = 'flop'
-        AND scenario_hash >= 'hu_cash_BB_100bb_'
-        AND scenario_hash < 'hu_cash_BB_100bb_￿'
-        AND scenario_hash > 'hu_cash_BB_100bb_AsKdQc'
-      ORDER BY game_type, stack_depth, street, scenario_hash
+      SELECT DISTINCT artifact.scenario_hash
+      FROM public.solved_spots_gold artifact
+      WHERE artifact.game_type = 'hu_cash'
+        AND artifact.stack_depth = 100
+        AND artifact.street = 'flop'
+        AND artifact.scenario_hash >= 'hu_cash_BB_100bb_'
+        AND artifact.scenario_hash < 'hu_cash_BB_100bb_Z'
+        AND artifact.scenario_hash > 'hu_cash_BB_100bb_2c3d4h'
+      ORDER BY artifact.scenario_hash
       LIMIT 500;
     `,
     quiet: true,
   }).stdout;
-  if (/Seq Scan/i.test(boardPagePlan) || !/idx_ssg_next_street/i.test(boardPagePlan)) {
+  if (/Seq Scan/i.test(boardPagePlan)
+      || !/idx_ssg_next_street/i.test(boardPagePlan)
+      || !/\bUnique\b/i.test(boardPagePlan)) {
     throw new Error(`Bounded board-page query did not use the exact four-key index.\n${boardPagePlan}`);
+  }
+  const boardPageRows = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`
+      SELECT scenario_hash
+      FROM public.training_solver_worker_board_page_v1(
+        'hu_cash', 100, 'flop', 'BB', NULL, 500
+      )
+      ORDER BY scenario_hash;
+    `,
+    quiet: true,
+  }).stdout.trim().split('\n').filter(Boolean);
+  const expectedBoardPageRows = [
+    'hu_cash_BB_100bb_2c3d4h',
+    'hu_cash_BB_100bb_KhQd2s',
+  ];
+  if (JSON.stringify(boardPageRows) !== JSON.stringify(expectedBoardPageRows)) {
+    throw new Error([
+      'Bounded board-page RPC did not de-duplicate canonical warehouse hashes.',
+      `Expected: ${expectedBoardPageRows.join(', ')}`,
+      `Actual: ${boardPageRows.join(', ')}`,
+    ].join('\n'));
+  }
+  const readBoardPage = (afterScenario) => command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`
+      SELECT scenario_hash
+      FROM public.training_solver_worker_board_page_v1(
+        'hu_cash', 100, 'flop', 'BB', ${afterScenario === null
+    ? 'NULL'
+    : `'${afterScenario}'`}, 1
+      );
+    `,
+    quiet: true,
+  }).stdout.trim().split('\n').filter(Boolean);
+  const firstBoardPage = readBoardPage(null);
+  const secondBoardPage = readBoardPage(firstBoardPage[0]);
+  const terminalBoardPage = readBoardPage(secondBoardPage[0]);
+  if (JSON.stringify([...firstBoardPage, ...secondBoardPage])
+        !== JSON.stringify(expectedBoardPageRows)
+      || terminalBoardPage.length !== 0) {
+    throw new Error([
+      'Board-page keyset traversal skipped or duplicated a canonical hash.',
+      `Page 1: ${firstBoardPage.join(', ')}`,
+      `Page 2: ${secondBoardPage.join(', ')}`,
+      `Terminal page: ${terminalBoardPage.join(', ')}`,
+    ].join('\n'));
   }
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: 'CREATE INDEX idx_god_mode_hash ON public.solved_spots_gold (scenario_hash);\n',
@@ -1824,6 +1947,119 @@ try {
       secondIngestResult.stdout,
     ].join('\n'));
   }
+
+  // Both catalog migrations must reject subtle same-name drift before the
+  // catalog becomes an active serving authority. These probes cover immediate
+  // conflict arbiters, crash durability, defaults, collation, and a weakened
+  // semantic check; every mutation is repaired before the next probe.
+  const catalogShapeProbes = [
+    {
+      mutate: `
+        ALTER TABLE public.training_solver_artifact_catalog
+          DROP CONSTRAINT training_solver_artifact_catalog_pkey;
+        ALTER TABLE public.training_solver_artifact_catalog
+          ADD CONSTRAINT training_solver_artifact_catalog_pkey
+          PRIMARY KEY (artifact_id) DEFERRABLE INITIALLY IMMEDIATE;
+      `,
+      repair: `
+        ALTER TABLE public.training_solver_artifact_catalog
+          DROP CONSTRAINT training_solver_artifact_catalog_pkey;
+        ALTER TABLE public.training_solver_artifact_catalog
+          ADD CONSTRAINT training_solver_artifact_catalog_pkey PRIMARY KEY (artifact_id);
+      `,
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_solver_artifact_catalog
+          DROP CONSTRAINT training_solver_artifact_catalog_scenario_hash_key;
+        ALTER TABLE public.training_solver_artifact_catalog
+          ADD CONSTRAINT training_solver_artifact_catalog_scenario_hash_key
+          UNIQUE (scenario_hash) DEFERRABLE INITIALLY DEFERRED;
+      `,
+      repair: `
+        ALTER TABLE public.training_solver_artifact_catalog
+          DROP CONSTRAINT training_solver_artifact_catalog_scenario_hash_key;
+        ALTER TABLE public.training_solver_artifact_catalog
+          ADD CONSTRAINT training_solver_artifact_catalog_scenario_hash_key UNIQUE (scenario_hash);
+      `,
+    },
+    {
+      mutate: `ALTER TABLE public.training_solver_artifact_catalog
+        ALTER COLUMN updated_at SET DEFAULT clock_timestamp();`,
+      repair: `ALTER TABLE public.training_solver_artifact_catalog
+        ALTER COLUMN updated_at SET DEFAULT now();`,
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_solver_artifact_catalog
+          DROP CONSTRAINT training_solver_artifact_catalog_stack_check;
+        ALTER TABLE public.training_solver_artifact_catalog
+          ADD CONSTRAINT training_solver_artifact_catalog_stack_check
+          CHECK (stack_depth >= 0);
+      `,
+      repair: `
+        ALTER TABLE public.training_solver_artifact_catalog
+          DROP CONSTRAINT training_solver_artifact_catalog_stack_check;
+        ALTER TABLE public.training_solver_artifact_catalog
+          ADD CONSTRAINT training_solver_artifact_catalog_stack_check
+          CHECK (stack_depth > 0);
+      `,
+    },
+    {
+      mutate: `ALTER TABLE public.training_solver_artifact_catalog
+        ALTER COLUMN scenario_hash TYPE text COLLATE "C";`,
+      repair: `ALTER TABLE public.training_solver_artifact_catalog
+        ALTER COLUMN scenario_hash TYPE text COLLATE pg_catalog."default";`,
+    },
+    {
+      mutate: 'ALTER TABLE public.training_solver_artifact_catalog SET UNLOGGED;',
+      repair: 'ALTER TABLE public.training_solver_artifact_catalog SET LOGGED;',
+    },
+  ];
+  for (const probe of catalogShapeProbes) {
+    command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+      input: probe.mutate,
+      quiet: true,
+    });
+    for (const migration of [MIGRATION, HARDENING_MIGRATION]) {
+      commandExpectFailure(
+        tool('psql'),
+        ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', migration],
+        { expected: 'TRAINING_SOLVER_ARTIFACT_CATALOG_CONTRACT_INCOMPLETE' },
+      );
+    }
+    command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+      input: probe.repair,
+      quiet: true,
+    });
+  }
+
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `
+      ALTER TABLE public.training_solver_worker_receipts
+        DROP CONSTRAINT training_solver_worker_receipts_pkey;
+      ALTER TABLE public.training_solver_worker_receipts
+        ADD CONSTRAINT training_solver_worker_receipts_pkey
+        PRIMARY KEY (machine_id, request_nonce) DEFERRABLE INITIALLY IMMEDIATE;
+    `,
+    quiet: true,
+  });
+  commandExpectFailure(
+    tool('psql'),
+    ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', WORKER_INGEST_MIGRATION],
+    { expected: 'TRAINING_SOLVER_WORKER_RECEIPT_CONTRACT_INCOMPLETE' },
+  );
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `
+      ALTER TABLE public.training_solver_worker_receipts
+        DROP CONSTRAINT training_solver_worker_receipts_pkey;
+      ALTER TABLE public.training_solver_worker_receipts
+        ADD CONSTRAINT training_solver_worker_receipts_pkey
+        PRIMARY KEY (machine_id, request_nonce);
+    `,
+    quiet: true,
+  });
+
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: `ALTER TABLE public.training_solver_artifact_catalog
       DROP CONSTRAINT training_solver_artifact_catalog_artifact_id_fkey;`,
@@ -1870,6 +2106,79 @@ try {
         .includes('TRAINING_SOLVER_PROVENANCE_AUTHORITY_CONTRACT_INCOMPLETE')) {
     throw new Error('Hardening migration did not reject a pre-existing wrong-shape authority table.');
   }
+  const wrongAuthorityDefaultDatabase = 'phase6_solver_authority_wrongdefault';
+  command(tool('createdb'), [
+    '-h', tempRoot, '-p', String(port), wrongAuthorityDefaultDatabase,
+  ], { quiet: true });
+  const wrongAuthorityDefaultConnection = [
+    '-h', tempRoot, '-p', String(port), '-d', wrongAuthorityDefaultDatabase,
+  ];
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityDefaultConnection,
+  ], { input: baselineWithoutClusterRoles, quiet: true });
+  for (const migration of [MIGRATION, HARDENING_MIGRATION]) {
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityDefaultConnection, '-f', migration,
+    ], { quiet: true });
+  }
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityDefaultConnection,
+  ], {
+    input: `ALTER TABLE public.training_solver_provenance_authority
+      ALTER COLUMN approved_at SET DEFAULT clock_timestamp();`,
+    quiet: true,
+  });
+  const incompatibleAuthorityDefault = spawnSync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityDefaultConnection,
+    '--file', HARDENING_MIGRATION,
+  ], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  if (incompatibleAuthorityDefault.status === 0
+      || !`${incompatibleAuthorityDefault.stdout}\n${incompatibleAuthorityDefault.stderr}`
+        .includes('TRAINING_SOLVER_PROVENANCE_AUTHORITY_CONTRACT_INCOMPLETE')) {
+    throw new Error('Hardening migration accepted a provenance authority with the wrong default.');
+  }
+  const wrongAuthorityConstraintDatabase = 'phase6_solver_authority_wrongconstraint';
+  command(tool('createdb'), [
+    '-h', tempRoot, '-p', String(port), wrongAuthorityConstraintDatabase,
+  ], { quiet: true });
+  const wrongAuthorityConstraintConnection = [
+    '-h', tempRoot, '-p', String(port), '-d', wrongAuthorityConstraintDatabase,
+  ];
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityConstraintConnection,
+  ], { input: baselineWithoutClusterRoles, quiet: true });
+  for (const migration of [MIGRATION, HARDENING_MIGRATION]) {
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityConstraintConnection, '-f', migration,
+    ], { quiet: true });
+  }
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityConstraintConnection,
+  ], {
+    input: `ALTER TABLE public.training_solver_provenance_authority
+      DROP CONSTRAINT training_solver_provenance_authority_labels_check;
+      ALTER TABLE public.training_solver_provenance_authority
+      ADD CONSTRAINT training_solver_provenance_authority_labels_check
+      CHECK (char_length(btrim(solver_version)) >= 1);`,
+    quiet: true,
+  });
+  const incompatibleAuthorityConstraint = spawnSync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongAuthorityConstraintConnection,
+    '--file', HARDENING_MIGRATION,
+  ], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  if (incompatibleAuthorityConstraint.status === 0
+      || !`${incompatibleAuthorityConstraint.stdout}\n${incompatibleAuthorityConstraint.stderr}`
+        .includes('TRAINING_SOLVER_PROVENANCE_AUTHORITY_CONTRACT_INCOMPLETE')) {
+    throw new Error('Hardening migration accepted a provenance authority with a weaker check.');
+  }
   const wrongIndexDatabase = 'phase6_solver_index_wrongshape';
   command(tool('createdb'), ['-h', tempRoot, '-p', String(port), wrongIndexDatabase], { quiet: true });
   const wrongIndexConnection = [
@@ -1877,7 +2186,7 @@ try {
   ];
   const baselineWithWrongIndex = baselineWithoutClusterRoles.replace(
     'ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash);',
-    'ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash, id);',
+    'ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash DESC);',
   );
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...wrongIndexConnection], {
     input: baselineWithWrongIndex,
@@ -1898,7 +2207,42 @@ try {
   if (incompatibleIndex.status === 0
       || !`${incompatibleIndex.stdout}\n${incompatibleIndex.stderr}`
         .includes('TRAINING_SOLVER_WORKER_BOARD_PAGE_INDEX_MISSING')) {
-    throw new Error('Worker-ingress migration accepted an inexact five-column board-page index.');
+    throw new Error('Worker-ingress migration accepted a descending board-page keyset index.');
+  }
+  const wrongCollationIndexDatabase = 'phase6_solver_index_wrongcollation';
+  command(tool('createdb'), [
+    '-h', tempRoot, '-p', String(port), wrongCollationIndexDatabase,
+  ], { quiet: true });
+  const wrongCollationIndexConnection = [
+    '-h', tempRoot, '-p', String(port), '-d', wrongCollationIndexDatabase,
+  ];
+  const baselineWithWrongCollationIndex = baselineWithoutClusterRoles.replace(
+    'ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash);',
+    'ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash COLLATE "C");',
+  );
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongCollationIndexConnection,
+  ], {
+    input: baselineWithWrongCollationIndex,
+    quiet: true,
+  });
+  for (const migration of [MIGRATION, HARDENING_MIGRATION]) {
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...wrongCollationIndexConnection, '-f', migration,
+    ], { quiet: true });
+  }
+  const incompatibleCollationIndex = spawnSync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongCollationIndexConnection,
+    '--file', WORKER_INGEST_MIGRATION,
+  ], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  if (incompatibleCollationIndex.status === 0
+      || !`${incompatibleCollationIndex.stdout}\n${incompatibleCollationIndex.stderr}`
+        .includes('TRAINING_SOLVER_WORKER_BOARD_PAGE_INDEX_MISSING')) {
+    throw new Error('Worker-ingress migration accepted a board-page index with the wrong collation.');
   }
   const wrongHashIndexDatabase = 'phase6_solver_hash_index_wrongshape';
   command(tool('createdb'), [
@@ -1907,12 +2251,10 @@ try {
   const wrongHashIndexConnection = [
     '-h', tempRoot, '-p', String(port), '-d', wrongHashIndexDatabase,
   ];
-  const baselineWithWrongHashIndex = baselineWithoutClusterRoles
-    .replace('scenario_hash text NOT NULL UNIQUE,', 'scenario_hash text NOT NULL,')
-    .replace(
-      'ON public.solved_spots_gold (scenario_hash);',
-      'ON public.solved_spots_gold (scenario_hash, id);',
-    );
+  const baselineWithWrongHashIndex = baselineWithoutClusterRoles.replace(
+    'ON public.solved_spots_gold (scenario_hash);',
+    'ON public.solved_spots_gold (scenario_hash text_pattern_ops);',
+  );
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...wrongHashIndexConnection], {
     input: baselineWithWrongHashIndex,
     quiet: true,
@@ -1933,7 +2275,7 @@ try {
   if (incompatibleHashIndex.status === 0
       || !`${incompatibleHashIndex.stdout}\n${incompatibleHashIndex.stderr}`
         .includes('TRAINING_SOLVER_WORKER_SCENARIO_HASH_INDEX_MISSING')) {
-    throw new Error('Worker-ingress migration accepted an inexact two-column scenario index.');
+    throw new Error('Worker-ingress migration accepted a non-default scenario-hash opclass.');
   }
   const wrongReceiptDatabase = 'phase6_solver_receipt_wrongshape';
   command(tool('createdb'), ['-h', tempRoot, '-p', String(port), wrongReceiptDatabase], { quiet: true });
@@ -1965,6 +2307,79 @@ try {
       || !`${incompatibleReceipt.stdout}\n${incompatibleReceipt.stderr}`
         .includes('TRAINING_SOLVER_WORKER_RECEIPT_CONTRACT_INCOMPLETE')) {
     throw new Error('Worker-ingress migration did not reject a wrong-shape receipt ledger.');
+  }
+  const wrongReceiptDefaultDatabase = 'phase6_solver_receipt_wrongdefault';
+  command(tool('createdb'), [
+    '-h', tempRoot, '-p', String(port), wrongReceiptDefaultDatabase,
+  ], { quiet: true });
+  const wrongReceiptDefaultConnection = [
+    '-h', tempRoot, '-p', String(port), '-d', wrongReceiptDefaultDatabase,
+  ];
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptDefaultConnection,
+  ], { input: baselineWithoutClusterRoles, quiet: true });
+  for (const migration of [MIGRATION, HARDENING_MIGRATION, WORKER_INGEST_MIGRATION]) {
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptDefaultConnection, '-f', migration,
+    ], { quiet: true });
+  }
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptDefaultConnection,
+  ], {
+    input: `ALTER TABLE public.training_solver_worker_receipts
+      ALTER COLUMN received_at SET DEFAULT now();`,
+    quiet: true,
+  });
+  const incompatibleReceiptDefault = spawnSync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptDefaultConnection,
+    '--file', WORKER_INGEST_MIGRATION,
+  ], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  if (incompatibleReceiptDefault.status === 0
+      || !`${incompatibleReceiptDefault.stdout}\n${incompatibleReceiptDefault.stderr}`
+        .includes('TRAINING_SOLVER_WORKER_RECEIPT_CONTRACT_INCOMPLETE')) {
+    throw new Error('Worker-ingress migration accepted a receipt ledger with the wrong default.');
+  }
+  const wrongReceiptConstraintDatabase = 'phase6_solver_receipt_wrongconstraint';
+  command(tool('createdb'), [
+    '-h', tempRoot, '-p', String(port), wrongReceiptConstraintDatabase,
+  ], { quiet: true });
+  const wrongReceiptConstraintConnection = [
+    '-h', tempRoot, '-p', String(port), '-d', wrongReceiptConstraintDatabase,
+  ];
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptConstraintConnection,
+  ], { input: baselineWithoutClusterRoles, quiet: true });
+  for (const migration of [MIGRATION, HARDENING_MIGRATION, WORKER_INGEST_MIGRATION]) {
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptConstraintConnection, '-f', migration,
+    ], { quiet: true });
+  }
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptConstraintConnection,
+  ], {
+    input: `ALTER TABLE public.training_solver_worker_receipts
+      DROP CONSTRAINT training_solver_worker_receipts_body_check;
+      ALTER TABLE public.training_solver_worker_receipts
+      ADD CONSTRAINT training_solver_worker_receipts_body_check
+      CHECK (body_sha256 ~ '^[0-9A-Fa-f]{64}$');`,
+    quiet: true,
+  });
+  const incompatibleReceiptConstraint = spawnSync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongReceiptConstraintConnection,
+    '--file', WORKER_INGEST_MIGRATION,
+  ], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  if (incompatibleReceiptConstraint.status === 0
+      || !`${incompatibleReceiptConstraint.stdout}\n${incompatibleReceiptConstraint.stderr}`
+        .includes('TRAINING_SOLVER_WORKER_RECEIPT_CONTRACT_INCOMPLETE')) {
+    throw new Error('Worker-ingress migration accepted a receipt ledger with a weaker check.');
   }
   const evidenceLine = evidence.stdout
     .split('\n')

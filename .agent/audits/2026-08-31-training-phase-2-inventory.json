@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 327,
+    "dependencyFiles": 328,
     "componentFiles": 49,
     "hookFiles": 14,
     "ctas": 342,
     "dialogs": 12,
     "persistenceFiles": 74,
     "realtimeFiles": 6,
-    "tests": 127,
-    "markerCandidates": 324,
-    "possibleUnwiredFunctions": 346,
+    "tests": 130,
+    "markerCandidates": 329,
+    "possibleUnwiredFunctions": 350,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -4707,6 +4707,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -4758,6 +4759,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -5904,6 +5906,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -5942,6 +5945,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -6280,6 +6284,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useTrainingProgress.js",
@@ -6319,6 +6324,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -6511,6 +6517,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -6563,6 +6570,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -6759,6 +6767,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -6793,6 +6802,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -8151,6 +8161,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -8185,6 +8196,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -9369,6 +9381,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -9407,6 +9420,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -9862,6 +9876,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -9903,6 +9918,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -10097,6 +10113,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/usePersistedFilters.js",
@@ -10151,6 +10168,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -10344,6 +10362,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -10378,6 +10397,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -11667,6 +11687,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -11717,6 +11738,7 @@
             "src/components/training/LevelSelector.tsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -12430,6 +12452,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -12500,6 +12523,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -12737,6 +12761,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -12775,6 +12800,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -15320,6 +15346,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -15366,6 +15393,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -15558,6 +15586,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -15603,6 +15632,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -16039,6 +16069,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -16073,6 +16104,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -16421,6 +16453,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -16461,6 +16494,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -16646,6 +16680,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -16684,6 +16719,7 @@
             "src/components/store/StoreToast.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -16869,6 +16905,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
@@ -16918,6 +16955,7 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useDiamondBalance.js",
@@ -21725,7 +21763,7 @@
         },
         {
           "name": "heartbeat",
-          "line": 306,
+          "line": 307,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -21733,7 +21771,7 @@
         },
         {
           "name": "handler",
-          "line": 321,
+          "line": 322,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -41198,7 +41236,8 @@
     {
       "file": "src/config/hamburgerMenus.js",
       "imports": [
-        "src/config/worldMenuNavigation.js"
+        "src/config/worldMenuNavigation.js",
+        "src/lib/supabase.js"
       ],
       "links": [
         "/hub/training",
@@ -41219,11 +41258,11 @@
       "states": {
         "loading": false,
         "empty": true,
-        "error": false,
+        "error": true,
         "retry": false,
         "offline": false,
         "stale": false,
-        "success": false,
+        "success": true,
         "authExpiry": false
       },
       "persistenceWrites": {
@@ -41243,7 +41282,7 @@
       "functions": [
         {
           "name": "applyWorldMenuDeck",
-          "line": 1388,
+          "line": 1441,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -41251,7 +41290,7 @@
         },
         {
           "name": "getMenuConfig",
-          "line": 1423,
+          "line": 1476,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -41259,15 +41298,31 @@
         },
         {
           "name": "getMenuConfigForPath",
-          "line": 1461,
+          "line": 1514,
           "references": 1,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "copyReferralLink",
+          "line": 30,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "notify",
+          "line": 31,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "hasItemWithId",
-          "line": 1336,
+          "line": 1389,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41275,7 +41330,7 @@
         },
         {
           "name": "worldPrimaryDeck",
-          "line": 1338,
+          "line": 1391,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41283,7 +41338,7 @@
         },
         {
           "name": "removePrimaryDuplicates",
-          "line": 1367,
+          "line": 1420,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41291,12 +41346,13 @@
         }
       ],
       "possibleUnwiredFunctions": [
-        "getMenuConfigForPath"
+        "getMenuConfigForPath",
+        "copyReferralLink"
       ],
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 292,
+          "line": 341,
           "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -41714,8 +41770,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "getWorldMenuById",
+          "line": 201,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getWorldMenuByKey",
-          "line": 200,
+          "line": 202,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41723,7 +41787,15 @@
         },
         {
           "name": "resolveWorldMenu",
-          "line": 202,
+          "line": 204,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getWorldMenuInventory",
+          "line": 240,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41732,8 +41804,10 @@
       ],
       "possibleUnwiredFunctions": [
         "getWorldMenuStyleVariables",
+        "getWorldMenuById",
         "getWorldMenuByKey",
-        "resolveWorldMenu"
+        "resolveWorldMenu",
+        "getWorldMenuInventory"
       ],
       "markers": [
         {
@@ -43523,7 +43597,7 @@
         },
         {
           "name": "filterScenarios",
-          "line": 268,
+          "line": 287,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -43531,7 +43605,7 @@
         },
         {
           "name": "isPremiumHand",
-          "line": 304,
+          "line": 323,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43539,7 +43613,7 @@
         },
         {
           "name": "calculateDifficultyScore",
-          "line": 325,
+          "line": 344,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50145,8 +50219,24 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "normalizeTrainingDifficultyMode",
+          "name": "policyActionToken",
           "line": 16,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "policySizingPercent",
+          "line": 25,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeTrainingDifficultyMode",
+          "line": 37,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50154,7 +50244,7 @@
         },
         {
           "name": "applyDifficultyToQuestion",
-          "line": 33,
+          "line": 54,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50162,7 +50252,7 @@
         },
         {
           "name": "memberIds",
-          "line": 65,
+          "line": 97,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -50170,7 +50260,7 @@
         },
         {
           "name": "remapEVs",
-          "line": 122,
+          "line": 154,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50186,6 +50276,7 @@
       "file": "src/lib/training/gradingReceipt.mjs",
       "imports": [
         "src/lib/training/difficultyQuestionContract.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionAttemptContract.mjs",
         "src/lib/training/solverDecisionEvidence.js"
@@ -50226,7 +50317,7 @@
       "functions": [
         {
           "name": "receiptSecret",
-          "line": 27,
+          "line": 31,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50234,7 +50325,7 @@
         },
         {
           "name": "normalizedJsonValue",
-          "line": 40,
+          "line": 56,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -50242,7 +50333,7 @@
         },
         {
           "name": "stableTrainingQuestionJson",
-          "line": 54,
+          "line": 70,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50250,7 +50341,7 @@
         },
         {
           "name": "trainingQuestionDigest",
-          "line": 58,
+          "line": 74,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -50258,7 +50349,7 @@
         },
         {
           "name": "encodePayload",
-          "line": 64,
+          "line": 80,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50266,7 +50357,7 @@
         },
         {
           "name": "signPayload",
-          "line": 68,
+          "line": 84,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50274,7 +50365,7 @@
         },
         {
           "name": "deterministicReceiptRoll",
-          "line": 72,
+          "line": 88,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50282,7 +50373,7 @@
         },
         {
           "name": "receiptRngRolls",
-          "line": 95,
+          "line": 111,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50290,7 +50381,7 @@
         },
         {
           "name": "safeSignatureMatch",
-          "line": 104,
+          "line": 120,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50298,7 +50389,7 @@
         },
         {
           "name": "receiptFailure",
-          "line": 114,
+          "line": 130,
           "references": 18,
           "exported": false,
           "defaultExport": false,
@@ -50306,7 +50397,7 @@
         },
         {
           "name": "normalizedPrivateKey",
-          "line": 188,
+          "line": 204,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50314,7 +50405,7 @@
         },
         {
           "name": "isPrivateGradingKey",
-          "line": 192,
+          "line": 208,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50322,7 +50413,7 @@
         },
         {
           "name": "stripPrivateGradingData",
-          "line": 226,
+          "line": 242,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -50330,7 +50421,7 @@
         },
         {
           "name": "toPublicTrainingQuestion",
-          "line": 243,
+          "line": 259,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50338,7 +50429,7 @@
         },
         {
           "name": "createTrainingSessionId",
-          "line": 247,
+          "line": 263,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50346,7 +50437,7 @@
         },
         {
           "name": "prepareTrainingQuestionForDelivery",
-          "line": 258,
+          "line": 274,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50354,7 +50445,7 @@
         },
         {
           "name": "verifyTrainingGradingReceiptEnvelope",
-          "line": 360,
+          "line": 376,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50362,7 +50453,7 @@
         },
         {
           "name": "verifyTrainingGradingReceipt",
-          "line": 440,
+          "line": 456,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50370,7 +50461,7 @@
         },
         {
           "name": "deriveReceiptRng",
-          "line": 484,
+          "line": 500,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50383,7 +50474,116 @@
         "verifyTrainingGradingReceipt",
         "deriveReceiptRng"
       ],
-      "markers": []
+      "markers": [
+        {
+          "kind": "PLACEHOLDER",
+          "line": 48,
+          "excerpt": ": 'Training grading receipts require non-placeholder key material distinct from the Supabase service role.',",
+          "disposition": "secret-validation-guard",
+          "review": "accepted",
+          "rationale": "Fail-closed receipt-secret validation rejects placeholder key material; it is not an unfinished implementation."
+        }
+      ]
+    },
+    {
+      "file": "src/lib/training/gradingReceiptSecret.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "hasShortRepeatingUnit",
+          "line": 6,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isObviousPlaceholder",
+          "line": 15,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isDedicatedTrainingGradingReceiptSecret",
+          "line": 21,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "isDedicatedTrainingGradingReceiptSecret"
+      ],
+      "markers": [
+        {
+          "kind": "PLACEHOLDER",
+          "line": 4,
+          "excerpt": "const OBVIOUS_PLACEHOLDER_RE = /^(?:changeme|replaceme|placeholder|password|example|default|todo|test)(?:secret|key|value|now|please|123|1234)*$/i;",
+          "disposition": "secret-validation-guard",
+          "review": "accepted",
+          "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+        },
+        {
+          "kind": "TODO",
+          "line": 4,
+          "excerpt": "const OBVIOUS_PLACEHOLDER_RE = /^(?:changeme|replaceme|placeholder|password|example|default|todo|test)(?:secret|key|value|now|please|123|1234)*$/i;",
+          "disposition": "secret-validation-guard",
+          "review": "accepted",
+          "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+        },
+        {
+          "kind": "PLACEHOLDER",
+          "line": 18,
+          "excerpt": "|| /^(?:changeme|replaceme|placeholder|password|example|default|todo)/.test(normalized);",
+          "disposition": "secret-validation-guard",
+          "review": "accepted",
+          "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+        },
+        {
+          "kind": "TODO",
+          "line": 18,
+          "excerpt": "|| /^(?:changeme|replaceme|placeholder|password|example|default|todo)/.test(normalized);",
+          "disposition": "secret-validation-guard",
+          "review": "accepted",
+          "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+        }
+      ]
     },
     {
       "file": "src/lib/training/handAuditEngine.js",
@@ -52651,7 +52851,7 @@
         },
         {
           "name": "safeSlug",
-          "line": 224,
+          "line": 235,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -52659,7 +52859,7 @@
         },
         {
           "name": "displayToken",
-          "line": 233,
+          "line": 244,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -52667,14 +52867,6 @@
         },
         {
           "name": "solverDecisionGroupKey",
-          "line": 238,
-          "references": 3,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "summarizeSolverDecisionGroups",
           "line": 249,
           "references": 3,
           "exported": true,
@@ -52682,8 +52874,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "summarizeSolverDecisionGroups",
+          "line": 260,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "canResolveSolverLeakScope",
-          "line": 305,
+          "line": 316,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -52691,7 +52891,7 @@
         },
         {
           "name": "aggregateSolverLeaks",
-          "line": 332,
+          "line": 343,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -52704,7 +52904,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 224,
+          "line": 235,
           "excerpt": "function safeSlug(value, fallback) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -52712,7 +52912,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 225,
+          "line": 236,
           "excerpt": "const slug = String(value || fallback || 'unknown')",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -52720,7 +52920,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 230,
+          "line": 241,
           "excerpt": "return slug || fallback || 'unknown';",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -52728,7 +52928,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 233,
+          "line": 244,
           "excerpt": "function displayToken(value, fallback) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -52736,7 +52936,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 234,
+          "line": 245,
           "excerpt": "const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -53908,7 +54108,7 @@
         },
         {
           "name": "readTrainingAttemptContinuation",
-          "line": 705,
+          "line": 719,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -53916,7 +54116,7 @@
         },
         {
           "name": "registerTrainingAttemptContinuation",
-          "line": 742,
+          "line": 756,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -53924,7 +54124,7 @@
         },
         {
           "name": "recoverTrainingAttemptHand",
-          "line": 799,
+          "line": 813,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -53932,7 +54132,7 @@
         },
         {
           "name": "prepareTrainingAttemptDelivery",
-          "line": 891,
+          "line": 905,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -53940,7 +54140,7 @@
         },
         {
           "name": "isTrainingAttemptContractError",
-          "line": 1029,
+          "line": 1043,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54284,6 +54484,14 @@
         {
           "name": "getActiveWorldMenuHref",
           "line": 42,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isWorldMenuHrefActive",
+          "line": 65,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54291,7 +54499,7 @@
         },
         {
           "name": "isModifiedNavigationEvent",
-          "line": 65,
+          "line": 68,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54299,7 +54507,7 @@
         }
       ],
       "possibleUnwiredFunctions": [
-        "getActiveWorldMenuHref"
+        "isWorldMenuHrefActive"
       ],
       "markers": []
     },
@@ -54735,7 +54943,7 @@
         {
           "name": "clean",
           "line": 248,
-          "references": 39,
+          "references": 37,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -54769,7 +54977,7 @@
       "markers": [
         {
           "kind": "SIMULATED",
-          "line": 1426,
+          "line": 1418,
           "excerpt": "const isHeuristic = qualityName === 'SIMULATED'",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -59373,6 +59581,10 @@
       "to": "src/config/worldMenuNavigation.js"
     },
     {
+      "from": "src/config/hamburgerMenus.js",
+      "to": "src/lib/supabase.js"
+    },
+    {
       "from": "src/config/trainingConfig.js",
       "to": "src/config/LevelRegistry.ts"
     },
@@ -59766,6 +59978,10 @@
     },
     {
       "from": "src/lib/training/gradingReceipt.mjs",
+      "to": "src/lib/training/gradingReceiptSecret.mjs"
+    },
+    {
+      "from": "src/lib/training/gradingReceipt.mjs",
       "to": "src/lib/training/rngDecisionContract.mjs"
     },
     {
@@ -59980,6 +60196,7 @@
     "__tests__/no-slide-to-see.law.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
     "__tests__/scroll-lock.test.mjs",
+    "__tests__/training-acl-closeout-authority.test.mjs",
     "__tests__/training-advisor-followup-migration.test.mjs",
     "__tests__/training-analysis-suite-phase-8.test.mjs",
     "__tests__/training-answer-grading-contract.test.mjs",
@@ -60042,12 +60259,14 @@
     "__tests__/training-phase-4-question-truth.test.mjs",
     "__tests__/training-phase6-consumer-regressions.test.mjs",
     "__tests__/training-phase6-release-harness.test.mjs",
+    "__tests__/training-phase6-truth-closeout.test.mjs",
     "__tests__/training-polling-lifecycle-authority.test.mjs",
     "__tests__/training-postflop-heuristic-provenance.test.mjs",
     "__tests__/training-practice-session-boundary.test.mjs",
     "__tests__/training-preflop-chart-authority.test.mjs",
     "__tests__/training-preflop-daily-practice-authority.test.mjs",
     "__tests__/training-preloader-eligibility.test.mjs",
+    "__tests__/training-production-delivery-attestation.test.mjs",
     "__tests__/training-production-smoke-auth.test.mjs",
     "__tests__/training-production-smoke-contract.test.mjs",
     "__tests__/training-progress-authority-read.test.mjs",
@@ -65676,6 +65895,7 @@
         "src/lib/training/declaredStreet.js",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionOrderContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
@@ -65961,6 +66181,7 @@
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -66236,6 +66457,7 @@
         "src/lib/training/declaredStreet.js",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -66490,6 +66712,7 @@
         "src/lib/training/cacheTruthPersistence.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -66746,6 +66969,7 @@
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -66983,6 +67207,7 @@
         "src/lib/training/cacheTruthPersistence.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -67086,6 +67311,7 @@
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -78762,7 +78988,8 @@
       "file": "src/config/hamburgerMenus.js",
       "reachableFiles": [
         "src/config/hamburgerMenus.js",
-        "src/config/worldMenuNavigation.js"
+        "src/config/worldMenuNavigation.js",
+        "src/lib/supabase.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -79206,7 +79433,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-answer-grading-contract.test.mjs"
+      ]
     },
     {
       "file": "src/engines/EVCalculator.js",
@@ -80719,6 +80948,7 @@
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionAttemptContract.mjs",
@@ -80750,7 +80980,21 @@
         "__tests__/training-question-delivery-authority.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
-        "__tests__/training-single-question-recovery-contract.test.mjs"
+        "__tests__/training-single-question-recovery-contract.test.mjs",
+        "__tests__/training-surface-inventory-classifier.test.mjs"
+      ]
+    },
+    {
+      "file": "src/lib/training/gradingReceiptSecret.mjs",
+      "reachableFiles": [
+        "src/lib/training/gradingReceiptSecret.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-grading-receipt.test.mjs",
+        "__tests__/training-surface-inventory-classifier.test.mjs"
       ]
     },
     {
@@ -81171,6 +81415,7 @@
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
+        "src/lib/training/gradingReceiptSecret.mjs",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/rngDecisionContract.mjs",
@@ -81224,6 +81469,7 @@
         "__tests__/training-custom-config-contract.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-phase6-truth-closeout.test.mjs",
         "__tests__/training-question-delivery-authority.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -82982,7 +83228,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 292,
+        "line": 341,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84134,6 +84380,51 @@
         "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
+        "file": "src/lib/training/gradingReceipt.mjs",
+        "kind": "PLACEHOLDER",
+        "line": 48,
+        "excerpt": ": 'Training grading receipts require non-placeholder key material distinct from the Supabase service role.',",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "Fail-closed receipt-secret validation rejects placeholder key material; it is not an unfinished implementation."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "PLACEHOLDER",
+        "line": 4,
+        "excerpt": "const OBVIOUS_PLACEHOLDER_RE = /^(?:changeme|replaceme|placeholder|password|example|default|todo|test)(?:secret|key|value|now|please|123|1234)*$/i;",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "TODO",
+        "line": 4,
+        "excerpt": "const OBVIOUS_PLACEHOLDER_RE = /^(?:changeme|replaceme|placeholder|password|example|default|todo|test)(?:secret|key|value|now|please|123|1234)*$/i;",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "PLACEHOLDER",
+        "line": 18,
+        "excerpt": "|| /^(?:changeme|replaceme|placeholder|password|example|default|todo)/.test(normalized);",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "TODO",
+        "line": 18,
+        "excerpt": "|| /^(?:changeme|replaceme|placeholder|password|example|default|todo)/.test(normalized);",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
         "file": "src/lib/training/handHistoryEntry.js",
         "kind": "PLACEHOLDER",
         "line": 14,
@@ -84429,7 +84720,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 224,
+        "line": 235,
         "excerpt": "function safeSlug(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84438,7 +84729,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 225,
+        "line": 236,
         "excerpt": "const slug = String(value || fallback || 'unknown')",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84447,7 +84738,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 230,
+        "line": 241,
         "excerpt": "return slug || fallback || 'unknown';",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84456,7 +84747,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 233,
+        "line": 244,
         "excerpt": "function displayToken(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84465,7 +84756,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 234,
+        "line": 245,
         "excerpt": "const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84555,7 +84846,7 @@
       {
         "file": "src/services/SolverPolicyService.js",
         "kind": "SIMULATED",
-        "line": 1426,
+        "line": 1418,
         "excerpt": "const isHeuristic = qualityName === 'SIMULATED'",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -85112,7 +85403,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 321,
+        "line": 322,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -87070,7 +87361,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1461,
+        "line": 1514,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -87082,6 +87373,19 @@
           "src/components/ui/HamburgerMenu.jsx",
           "src/components/ui/WorldCommandDock.jsx"
         ]
+      },
+      {
+        "file": "src/config/hamburgerMenus.js",
+        "name": "copyReferralLink",
+        "line": 30,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "frozen-global-header-public-api",
+        "review": "accepted",
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
       },
       {
         "file": "src/config/postflopSolverData.js",
@@ -87340,8 +87644,21 @@
       },
       {
         "file": "src/config/worldMenuNavigation.js",
+        "name": "getWorldMenuById",
+        "line": 201,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "frozen-global-header-public-api",
+        "review": "accepted",
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
+      },
+      {
+        "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuByKey",
-        "line": 200,
+        "line": 202,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -87356,7 +87673,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "resolveWorldMenu",
-        "line": 202,
+        "line": 204,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -87370,6 +87687,19 @@
           "src/components/ui/WorldCommandDock.jsx",
           "src/config/hamburgerMenus.js"
         ]
+      },
+      {
+        "file": "src/config/worldMenuNavigation.js",
+        "name": "getWorldMenuInventory",
+        "line": 240,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "frozen-global-header-public-api",
+        "review": "accepted",
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
       },
       {
         "file": "src/contexts/ActiveIdentityContext.jsx",
@@ -88603,7 +88933,7 @@
       {
         "file": "src/lib/training/difficultyQuestionContract.mjs",
         "name": "applyDifficultyToQuestion",
-        "line": 33,
+        "line": 54,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88621,7 +88951,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "createTrainingSessionId",
-        "line": 247,
+        "line": 263,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88638,7 +88968,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "prepareTrainingQuestionForDelivery",
-        "line": 258,
+        "line": 274,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88656,7 +88986,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "verifyTrainingGradingReceipt",
-        "line": 440,
+        "line": 456,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88673,7 +89003,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "deriveReceiptRng",
-        "line": 484,
+        "line": 500,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88684,6 +89014,23 @@
         "externalReferenceFiles": [
           "__tests__/training-grading-receipt.test.mjs",
           "pages/api/training/record-question.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "name": "isDedicatedTrainingGradingReceiptSecret",
+        "line": 21,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-grading-receipt.test.mjs",
+          "pages/api/health/index.js",
+          "src/lib/training/gradingReceipt.mjs"
         ]
       },
       {
@@ -89362,7 +89709,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "registerTrainingAttemptContinuation",
-        "line": 742,
+        "line": 756,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -89378,7 +89725,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "recoverTrainingAttemptHand",
-        "line": 799,
+        "line": 813,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -89395,7 +89742,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "prepareTrainingAttemptDelivery",
-        "line": 891,
+        "line": 905,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -89415,7 +89762,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "isTrainingAttemptContractError",
-        "line": 1029,
+        "line": 1043,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -89524,19 +89871,16 @@
       },
       {
         "file": "src/lib/world-menu/navigationState.mjs",
-        "name": "getActiveWorldMenuHref",
-        "line": 42,
+        "name": "isWorldMenuHrefActive",
+        "line": 65,
         "references": 1,
         "exported": true,
         "defaultExport": false,
         "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
+        "disposition": "frozen-global-header-public-api",
         "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/world-command-navigation-state.test.mjs",
-          "src/components/ui/HamburgerMenu.jsx"
-        ]
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
       },
       {
         "file": "src/stores/pageOverlayStore.js",
@@ -91362,7 +91706,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 292,
+        "line": 341,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -92514,6 +92858,51 @@
         "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
+        "file": "src/lib/training/gradingReceipt.mjs",
+        "kind": "PLACEHOLDER",
+        "line": 48,
+        "excerpt": ": 'Training grading receipts require non-placeholder key material distinct from the Supabase service role.',",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "Fail-closed receipt-secret validation rejects placeholder key material; it is not an unfinished implementation."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "PLACEHOLDER",
+        "line": 4,
+        "excerpt": "const OBVIOUS_PLACEHOLDER_RE = /^(?:changeme|replaceme|placeholder|password|example|default|todo|test)(?:secret|key|value|now|please|123|1234)*$/i;",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "TODO",
+        "line": 4,
+        "excerpt": "const OBVIOUS_PLACEHOLDER_RE = /^(?:changeme|replaceme|placeholder|password|example|default|todo|test)(?:secret|key|value|now|please|123|1234)*$/i;",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "PLACEHOLDER",
+        "line": 18,
+        "excerpt": "|| /^(?:changeme|replaceme|placeholder|password|example|default|todo)/.test(normalized);",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "kind": "TODO",
+        "line": 18,
+        "excerpt": "|| /^(?:changeme|replaceme|placeholder|password|example|default|todo)/.test(normalized);",
+        "disposition": "secret-validation-guard",
+        "review": "accepted",
+        "rationale": "The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers."
+      },
+      {
         "file": "src/lib/training/handHistoryEntry.js",
         "kind": "PLACEHOLDER",
         "line": 14,
@@ -92809,7 +93198,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 224,
+        "line": 235,
         "excerpt": "function safeSlug(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -92818,7 +93207,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 225,
+        "line": 236,
         "excerpt": "const slug = String(value || fallback || 'unknown')",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -92827,7 +93216,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 230,
+        "line": 241,
         "excerpt": "return slug || fallback || 'unknown';",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -92836,7 +93225,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 233,
+        "line": 244,
         "excerpt": "function displayToken(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -92845,7 +93234,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 234,
+        "line": 245,
         "excerpt": "const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -92935,7 +93324,7 @@
       {
         "file": "src/services/SolverPolicyService.js",
         "kind": "SIMULATED",
-        "line": 1426,
+        "line": 1418,
         "excerpt": "const isHeuristic = qualityName === 'SIMULATED'",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -93492,7 +93881,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 321,
+        "line": 322,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95450,7 +95839,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1461,
+        "line": 1514,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95462,6 +95851,19 @@
           "src/components/ui/HamburgerMenu.jsx",
           "src/components/ui/WorldCommandDock.jsx"
         ]
+      },
+      {
+        "file": "src/config/hamburgerMenus.js",
+        "name": "copyReferralLink",
+        "line": 30,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "frozen-global-header-public-api",
+        "review": "accepted",
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
       },
       {
         "file": "src/config/postflopSolverData.js",
@@ -95720,8 +96122,21 @@
       },
       {
         "file": "src/config/worldMenuNavigation.js",
+        "name": "getWorldMenuById",
+        "line": 201,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "frozen-global-header-public-api",
+        "review": "accepted",
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
+      },
+      {
+        "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuByKey",
-        "line": 200,
+        "line": 202,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95736,7 +96151,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "resolveWorldMenu",
-        "line": 202,
+        "line": 204,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95750,6 +96165,19 @@
           "src/components/ui/WorldCommandDock.jsx",
           "src/config/hamburgerMenus.js"
         ]
+      },
+      {
+        "file": "src/config/worldMenuNavigation.js",
+        "name": "getWorldMenuInventory",
+        "line": 240,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "frozen-global-header-public-api",
+        "review": "accepted",
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
       },
       {
         "file": "src/contexts/ActiveIdentityContext.jsx",
@@ -96983,7 +97411,7 @@
       {
         "file": "src/lib/training/difficultyQuestionContract.mjs",
         "name": "applyDifficultyToQuestion",
-        "line": 33,
+        "line": 54,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97001,7 +97429,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "createTrainingSessionId",
-        "line": 247,
+        "line": 263,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97018,7 +97446,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "prepareTrainingQuestionForDelivery",
-        "line": 258,
+        "line": 274,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97036,7 +97464,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "verifyTrainingGradingReceipt",
-        "line": 440,
+        "line": 456,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97053,7 +97481,7 @@
       {
         "file": "src/lib/training/gradingReceipt.mjs",
         "name": "deriveReceiptRng",
-        "line": 484,
+        "line": 500,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97064,6 +97492,23 @@
         "externalReferenceFiles": [
           "__tests__/training-grading-receipt.test.mjs",
           "pages/api/training/record-question.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/gradingReceiptSecret.mjs",
+        "name": "isDedicatedTrainingGradingReceiptSecret",
+        "line": 21,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-grading-receipt.test.mjs",
+          "pages/api/health/index.js",
+          "src/lib/training/gradingReceipt.mjs"
         ]
       },
       {
@@ -97742,7 +98187,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "registerTrainingAttemptContinuation",
-        "line": 742,
+        "line": 756,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97758,7 +98203,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "recoverTrainingAttemptHand",
-        "line": 799,
+        "line": 813,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97775,7 +98220,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "prepareTrainingAttemptDelivery",
-        "line": 891,
+        "line": 905,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97795,7 +98240,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "isTrainingAttemptContractError",
-        "line": 1029,
+        "line": 1043,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97904,19 +98349,16 @@
       },
       {
         "file": "src/lib/world-menu/navigationState.mjs",
-        "name": "getActiveWorldMenuHref",
-        "line": 42,
+        "name": "isWorldMenuHrefActive",
+        "line": 65,
         "references": 1,
         "exported": true,
         "defaultExport": false,
         "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
+        "disposition": "frozen-global-header-public-api",
         "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/world-command-navigation-state.test.mjs",
-          "src/components/ui/HamburgerMenu.jsx"
-        ]
+        "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
+        "externalReferenceFiles": []
       },
       {
         "file": "src/stores/pageOverlayStore.js",

@@ -5,10 +5,11 @@ const { Pool } = require('pg');
 /**
  * Open the operator-only connection used by offline warehouse inspections.
  *
- * The service_role JWT is deliberately not accepted here: Phase 6 revokes
- * its direct privileges on solved_spots_gold.  Keep this pool read-only even
- * though the postgres password is an operator credential, so a diagnostic
- * script cannot accidentally become an ingestion path.
+ * The service_role JWT is deliberately not accepted here. A temporary
+ * read-only grant exists solely for protected migration-first rollback
+ * compatibility; operator diagnostics must still use this DB-owner path.
+ * Keep this pool read-only even though the postgres password is an operator
+ * credential, so a diagnostic script cannot accidentally become ingestion.
  */
 function createSolverOperatorPool({ statementTimeout = 30_000, max = 2 } = {}) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,7 +17,7 @@ function createSolverOperatorPool({ statementTimeout = 30_000, max = 2 } = {}) {
     if (!supabaseUrl || !password) {
         throw new Error(
             'Solver warehouse inspection requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_DB_PASSWORD. '
-            + 'The service-role key cannot read solved_spots_gold after Phase 6.',
+            + 'Operator diagnostics must not use the service-role key for solved_spots_gold.',
         );
     }
 

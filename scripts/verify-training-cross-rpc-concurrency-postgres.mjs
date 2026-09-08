@@ -139,12 +139,13 @@ function runAsync(binary, args, { input, env } = {}) {
 }
 
 function resolvePostgresBin() {
+  const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
     process.env.PHASE6_POSTGRES_BIN,
+    pgConfig.status === 0 ? pgConfig.stdout.trim() : null,
     '/opt/homebrew/opt/postgresql@17/bin',
-    '/opt/homebrew/opt/postgresql@16/bin',
     '/usr/local/opt/postgresql@17/bin',
-    '/usr/local/opt/postgresql@16/bin',
+    '/usr/lib/postgresql/17/bin',
     '/usr/local/pgsql/bin',
   ].filter(Boolean);
   for (const candidate of candidates) {
@@ -153,12 +154,20 @@ function resolvePostgresBin() {
       && existsSync(path.join(candidate, 'initdb'))
       && existsSync(path.join(candidate, 'pg_ctl'))
       && existsSync(path.join(candidate, 'psql'))
-    ) return candidate;
+      && existsSync(path.join(candidate, 'createdb'))
+    ) {
+      const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+      if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+    }
   }
   const resolved = spawnSync('sh', ['-c', 'command -v postgres'], { encoding: 'utf8' });
-  if (resolved.status === 0 && resolved.stdout.trim()) return path.dirname(resolved.stdout.trim());
+  if (resolved.status === 0 && resolved.stdout.trim()) {
+    const candidate = path.dirname(resolved.stdout.trim());
+    const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+    if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+  }
   throw new Error(
-    'PostgreSQL binaries are required. Set PHASE6_POSTGRES_BIN to their directory.',
+    'PostgreSQL 17 binaries are required. Set PHASE6_POSTGRES_BIN to the directory containing postgres, initdb, pg_ctl, psql, and createdb.',
   );
 }
 
@@ -415,7 +424,9 @@ function callJson(statement) {
 }
 
 try {
-  run(tool('initdb'), ['-D', dataDir, '-A', 'trust', '--no-locale'], { quiet: true });
+  run(tool('initdb'), [
+    '-D', dataDir, '-A', 'trust', '--locale=en_US.UTF-8', '--encoding=UTF8',
+  ], { quiet: true });
   run(tool('pg_ctl'), [
     '-D', dataDir,
     '-o', `-p ${port} -k ${tempRoot}`,
@@ -424,6 +435,21 @@ try {
   ], { quiet: true });
   started = true;
   run(tool('createdb'), ['-h', tempRoot, '-p', String(port), 'phase6'], { quiet: true });
+  const environment = run(tool('psql'), ['-X', '-qAt', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`SELECT current_setting('server_version_num'),
+      current_setting('server_encoding'),
+      datcollate
+    FROM pg_catalog.pg_database
+    WHERE datname = current_database();`,
+    quiet: true,
+  }).stdout.trim().split('|');
+  if (
+    !/^17\d{4}$/.test(environment[0] || '')
+    || environment[1] !== 'UTF8'
+    || environment[2] !== 'en_US.UTF-8'
+  ) {
+    throw new Error(`Training cross-RPC verifier requires PostgreSQL 17, UTF8, en_US.UTF-8; received ${environment.join('|')}`);
+  }
   sql(BASELINE_SQL);
   sql(LEGACY_FIXTURE_SQL);
   run(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', AWARD_MIGRATION], { quiet: true });

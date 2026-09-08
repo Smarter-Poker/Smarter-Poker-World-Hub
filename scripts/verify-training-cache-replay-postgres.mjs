@@ -3,7 +3,7 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 
@@ -35,19 +35,51 @@ function command(binary, args, { input, quiet = false } = {}) {
   return result;
 }
 
+function commandExpectFailure(binary, args, { input, expected } = {}) {
+  const result = spawnSync(binary, args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    input,
+    env: process.env,
+  });
+  const output = [result.stdout, result.stderr].filter(Boolean).join('\n');
+  if (result.status === 0) {
+    throw new Error(`${path.basename(binary)} unexpectedly accepted an invalid authority object`);
+  }
+  if (!expected || !output.includes(expected)) {
+    throw new Error([
+      `${path.basename(binary)} failed without the expected ${expected ?? 'error marker'}`,
+      output,
+    ].filter(Boolean).join('\n'));
+  }
+  return result;
+}
+
 function resolvePostgresBin() {
+  const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
     process.env.PHASE6_POSTGRES_BIN,
+    pgConfig.status === 0 ? pgConfig.stdout.trim() : null,
     '/opt/homebrew/opt/postgresql@17/bin',
     '/usr/local/opt/postgresql@17/bin',
+    '/usr/lib/postgresql/17/bin',
     '/usr/local/pgsql/bin',
   ].filter(Boolean);
   for (const candidate of candidates) {
-    if (existsSync(path.join(candidate, 'postgres'))) return candidate;
+    if (
+      ['postgres', 'initdb', 'pg_ctl', 'psql', 'createdb'].every((tool) => existsSync(path.join(candidate, tool)))
+    ) {
+      const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+      if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+    }
   }
   const resolved = spawnSync('sh', ['-c', 'command -v postgres'], { encoding: 'utf8' });
-  if (resolved.status === 0 && resolved.stdout.trim()) return path.dirname(resolved.stdout.trim());
-  throw new Error('PostgreSQL 17+ binaries are required for the Training cache replay verifier.');
+  if (resolved.status === 0 && resolved.stdout.trim()) {
+    const candidate = path.dirname(resolved.stdout.trim());
+    const version = spawnSync(path.join(candidate, 'postgres'), ['--version'], { encoding: 'utf8' });
+    if (version.status === 0 && /\b17\.\d+\b/.test(version.stdout)) return candidate;
+  }
+  throw new Error('PostgreSQL 17 binaries are required for the Training cache replay verifier.');
 }
 
 async function reservePort() {
@@ -63,6 +95,62 @@ async function reservePort() {
   return port;
 }
 
+function spawnPsql(binary, args, input, { readyMarker } = {}) {
+  const child = spawn(binary, args, {
+    cwd: ROOT,
+    env: process.env,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  let stdout = '';
+  let stderr = '';
+  let readySettled = !readyMarker;
+  let resolveReady;
+  let rejectReady;
+  const ready = readyMarker
+    ? new Promise((resolve, reject) => {
+      resolveReady = resolve;
+      rejectReady = reject;
+    })
+    : Promise.resolve();
+  const readyTimeout = readyMarker
+    ? setTimeout(() => {
+      if (readySettled) return;
+      readySettled = true;
+      child.kill('SIGTERM');
+      rejectReady(new Error(`Timed out waiting for PostgreSQL marker ${readyMarker}.\n${stdout}\n${stderr}`));
+    }, 10_000)
+    : null;
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk.toString();
+    if (!readySettled && stdout.includes(readyMarker)) {
+      readySettled = true;
+      clearTimeout(readyTimeout);
+      resolveReady();
+    }
+  });
+  child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+  const completed = new Promise((resolve, reject) => {
+    child.once('error', (error) => {
+      if (!readySettled) {
+        readySettled = true;
+        clearTimeout(readyTimeout);
+        rejectReady(error);
+      }
+      reject(error);
+    });
+    child.once('close', (status, signal) => {
+      if (!readySettled) {
+        readySettled = true;
+        clearTimeout(readyTimeout);
+        rejectReady(new Error(`PostgreSQL exited before ${readyMarker}.\n${stdout}\n${stderr}`));
+      }
+      resolve({ status, signal, stdout, stderr });
+    });
+  });
+  child.stdin.end(input);
+  return { ready, completed };
+}
+
 const BASELINE_SQL = String.raw`
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
@@ -71,11 +159,24 @@ CREATE SCHEMA extensions;
 CREATE SCHEMA auth;
 CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
 
+-- Match Supabase production's broad public-schema defaults so every
+-- migration must explicitly remove grants from private tables and helpers.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 
 CREATE TABLE public.training_question_cache (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   question_id text NOT NULL UNIQUE,
+  question_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  canonical_policy jsonb,
+  source_classification text,
+  policy_version text,
   quality_status text NOT NULL,
   policy_checksum text NOT NULL,
   served_count integer NOT NULL DEFAULT 0,
@@ -164,12 +265,86 @@ CREATE TABLE public.training_answers (
   snapshot_key text,
   classification text,
   solver_verified boolean,
+  solver_source text,
+  selected_frequency numeric,
+  optimal_frequency numeric,
+  ev_loss_measured boolean NOT NULL DEFAULT false,
+  ev_loss numeric NOT NULL DEFAULT 0,
   evidence_metadata jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
 CREATE UNIQUE INDEX training_answers_attempt_decision_key
   ON public.training_answers(attempt_id, hand_ordinal, decision_ordinal)
   WHERE attempt_id IS NOT NULL;
+
+CREATE FUNCTION public.test_training_policy()
+RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT jsonb_build_object(
+    'contractVersion','smarter-poker.solver-policy.v1',
+    'policyVersion','cache-replay-verifier-v1',
+    'qualitySeal','SOLVER_EXACT',
+    'actions',jsonb_build_array(
+      jsonb_build_object('id','fold','family','fold','legal',true,'size',jsonb_build_object('potFraction',NULL)),
+      jsonb_build_object('id','call','family','call','legal',true,'size',jsonb_build_object('potFraction',NULL)),
+      jsonb_build_object('id','raise','family','raise','legal',true,'size',jsonb_build_object('potFraction',NULL)),
+      jsonb_build_object('id','all_in','family','all_in','legal',true,'size',jsonb_build_object('potFraction',NULL))
+    ),
+    'distribution',jsonb_build_object('fold',0.1,'call',0.6,'raise',0.2,'all_in',0.1),
+    'chipEv',jsonb_build_object('measuredByAction',false,'byAction',jsonb_build_object()),
+    'sourceArtifact',jsonb_build_object(
+      'system','cache-replay-verifier','sourceArtifactChecksum',repeat('d',64)
+    )
+  )
+$$;
+CREATE FUNCTION public.test_training_policy_checksum()
+RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT encode(extensions.digest(public.test_training_policy()::text,'sha256'),'hex')
+$$;
+CREATE FUNCTION public.test_training_question(p_question_id text)
+RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT jsonb_build_object(
+    'id',p_question_id,'dataQuality','SOLVER_EXACT',
+    'sourceClassification','SOLVER_EXACT','correctAnswer','call',
+    'options',jsonb_build_array(
+      jsonb_build_object('id','fold','text','Fold'),
+      jsonb_build_object('id','call','text','Call'),
+      jsonb_build_object('id','raise','text','Raise'),
+      jsonb_build_object('id','all_in','text','All-In')
+    ),
+    'solverPolicy',public.test_training_policy(),
+    'policyChecksum',public.test_training_policy_checksum()
+  )
+$$;
+CREATE FUNCTION public.fn_training_cache_policy_seal_is_valid(p_policy jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT p_policy = public.test_training_policy()
+$$;
+CREATE FUNCTION public.fn_training_cache_grade(p_policy jsonb,p_answer_id text)
+RETURNS jsonb LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog AS $$
+DECLARE
+  v_answer text := lower(nullif(btrim(p_answer_id),''));
+  v_selected numeric;
+  v_optimal numeric;
+  v_classification text;
+BEGIN
+  IF NOT public.fn_training_cache_policy_seal_is_valid(p_policy)
+     OR jsonb_typeof(p_policy -> 'distribution' -> v_answer) IS DISTINCT FROM 'number' THEN
+    RETURN jsonb_build_object('valid',false);
+  END IF;
+  v_selected := (p_policy -> 'distribution' ->> v_answer)::numeric;
+  SELECT max((value #>> '{}')::numeric) INTO v_optimal FROM jsonb_each(p_policy -> 'distribution');
+  v_classification := CASE WHEN v_selected >= v_optimal-0.000000001 THEN 'best'
+    WHEN v_selected >= 0.20 THEN 'best' WHEN v_selected >= 0.05 THEN 'correct'
+    WHEN v_selected >= 0.01 THEN 'inaccuracy' ELSE 'wrong' END;
+  RETURN jsonb_build_object(
+    'valid',true,'classification',v_classification,
+    'isCorrect',v_classification IN ('best','correct'),'solverVerified',true,
+    'selectedFrequency',round(v_selected*100,2),'optimalFrequency',round(v_optimal*100,2),
+    'evLossMeasured',false,'evLoss',NULL,'policyVersion','cache-replay-verifier-v1',
+    'solverSource','cache-replay-verifier','sourceChecksum',repeat('d',64)
+  );
+END;
+$$;
 
 -- Model the production predecessor trigger before the schema-first Phase 6
 -- expansion lands. PR A must leave this validator unchanged; its separate
@@ -321,7 +496,7 @@ INSERT INTO public.training_question_snapshots (
   snapshot_key, source_question_id, game_id, level, content_digest, question_data
 ) VALUES
   (repeat('1', 64), 'recovered-old-policy', 'cash-6max', 2, repeat('a', 64),
-   jsonb_build_object('id', 'recovered-old-policy', 'policyChecksum', repeat('a', 64))),
+   public.test_training_question('recovered-old-policy')),
   (repeat('2', 64), 'never-served-policy', 'cash-6max', 2, repeat('b', 64),
    jsonb_build_object('id', 'never-served-policy', 'policyChecksum', repeat('b', 64))),
   (repeat('3', 64), 'continuation-a', 'cash-6max', 2, repeat('c', 64),
@@ -341,10 +516,17 @@ INSERT INTO public.training_attempt_hands(attempt_id, hand_ordinal, snapshot_key
 VALUES
   ('22222222-2222-4222-8222-222222222222', 1, repeat('1', 64)),
   ('22222222-2222-4222-8222-222222222222', 2, repeat('2', 64));
-INSERT INTO public.training_question_cache(question_id, quality_status, policy_checksum)
+INSERT INTO public.training_question_cache(
+  question_id, question_data, canonical_policy, source_classification,
+  policy_version, quality_status, policy_checksum
+)
 VALUES
-  ('recovered-old-policy', 'active', repeat('a', 64)),
-  ('continuation-a', 'active', repeat('c', 64));
+  ('recovered-old-policy', public.test_training_question('recovered-old-policy'),
+   public.test_training_policy(), 'SOLVER_EXACT', 'cache-replay-verifier-v1',
+   'active', public.test_training_policy_checksum()),
+  ('continuation-a', jsonb_build_object(
+     'id','continuation-a','policyChecksum',repeat('c',64)
+   ), NULL, NULL, NULL, 'active', repeat('c',64));
 
 DO $$
 DECLARE
@@ -502,7 +684,8 @@ BEGIN
       jsonb_build_array(jsonb_build_object(
         'handOrdinal', 2, 'decisionOrdinal', 1,
         'snapshotKey', repeat('2', 64), 'questionId', 'never-served-policy',
-        'policyChecksum', repeat('b', 64)
+        'policyChecksum', repeat('b', 64), 'difficultyMode', 'exact',
+        'rngRolls', jsonb_build_object('low', 17, 'high', 83)
       ))
     );
   EXCEPTION WHEN OTHERS THEN
@@ -521,7 +704,8 @@ BEGIN
     jsonb_build_array(jsonb_build_object(
       'handOrdinal', 1, 'decisionOrdinal', 1,
       'snapshotKey', repeat('1', 64), 'questionId', 'recovered-old-policy',
-      'policyChecksum', repeat('a', 64)
+      'policyChecksum', public.test_training_policy_checksum(), 'difficultyMode', 'exact',
+      'rngRolls', jsonb_build_object('low', 17, 'high', 83)
     ))
   );
   IF (v_first ->> 'questionCount')::integer <> 1 THEN
@@ -535,7 +719,7 @@ BEGIN
   v_authority := public.fn_training_authorize_attempt_decision_v1(
     '22222222-2222-4222-8222-222222222222',
     '11111111-1111-4111-8111-111111111111', 1, 1,
-    repeat('1', 64), 'recovered-old-policy', repeat('a', 64)
+    repeat('1', 64), 'recovered-old-policy', public.test_training_policy_checksum()
   );
   IF coalesce((v_authority ->> 'authorized')::boolean, false) IS TRUE THEN
     RAISE EXCEPTION 'served event with incomplete slot metadata was authorized';
@@ -556,13 +740,14 @@ BEGIN
     jsonb_build_array(jsonb_build_object(
       'handOrdinal', 1, 'decisionOrdinal', 1,
       'snapshotKey', repeat('1', 64), 'questionId', 'recovered-old-policy',
-      'policyChecksum', repeat('a', 64)
+      'policyChecksum', public.test_training_policy_checksum(), 'difficultyMode', 'exact',
+      'rngRolls', jsonb_build_object('low', 17, 'high', 83)
     ))
   );
   v_authority := public.fn_training_authorize_attempt_decision_v1(
     '22222222-2222-4222-8222-222222222222',
     '11111111-1111-4111-8111-111111111111', 1, 1,
-    repeat('1', 64), 'recovered-old-policy', repeat('a', 64)
+    repeat('1', 64), 'recovered-old-policy', public.test_training_policy_checksum()
   );
   IF coalesce((v_authority ->> 'authorized')::boolean, false) IS NOT TRUE THEN
     RAISE EXCEPTION 'recovered old policy was not authorized: %', v_authority;
@@ -579,13 +764,22 @@ BEGIN
   INSERT INTO public.training_answers (
     user_id, game_id, question_id, answer_id, is_correct, level,
     submission_id, session_id, attempt_id, hand_ordinal, decision_ordinal,
-    snapshot_key, classification, solver_verified, evidence_metadata
+    snapshot_key, classification, solver_verified, solver_source,
+    selected_frequency, optimal_frequency, ev_loss_measured, ev_loss,
+    evidence_metadata
   ) VALUES (
     '11111111-1111-4111-8111-111111111111', 'cash-6max',
     'recovered-old-policy', 'call', true, 2, 'parent-submission',
     'decision-authority-session', '22222222-2222-4222-8222-222222222222',
-    1, 1, repeat('1', 64), 'SOLVER_EXACT', true,
-    jsonb_build_object('difficultyMode', 'exact', 'policyChecksum', repeat('a', 64))
+    1, 1, repeat('1', 64), 'best', true, 'cache-replay-verifier',
+    60, 60, false, 0,
+    jsonb_build_object(
+      'gradeMode', 'solver-decision', 'difficultyMode', 'exact',
+      'policyChecksum', public.test_training_policy_checksum(),
+      'policyVersion', 'cache-replay-verifier-v1', 'dataQuality', 'SOLVER_EXACT',
+      'sourceChecksum', repeat('d',64),
+      'canonicalSolverClassification', 'best', 'canonicalSolverIsCorrect', true
+    )
   );
   IF (SELECT answered_count FROM public.training_question_cache
       WHERE question_id = 'recovered-old-policy') <> 0
@@ -605,7 +799,8 @@ BEGIN
       jsonb_build_array(jsonb_build_object(
         'handOrdinal', 1, 'decisionOrdinal', 1,
         'snapshotKey', repeat('1', 64), 'questionId', 'recovered-old-policy',
-        'policyChecksum', repeat('a', 64)
+        'policyChecksum', public.test_training_policy_checksum(), 'difficultyMode', 'exact',
+        'rngRolls', jsonb_build_object('low', 17, 'high', 83)
       ))
     );
   EXCEPTION WHEN OTHERS THEN
@@ -616,7 +811,7 @@ BEGIN
   v_legacy_promotion := public.fn_training_promote_legacy_signed_decision_v1(
     '22222222-2222-4222-8222-222222222222',
     '11111111-1111-4111-8111-111111111111', 1, 1,
-    repeat('1', 64), 'recovered-old-policy', repeat('a', 64),
+    repeat('1', 64), 'recovered-old-policy', public.test_training_policy_checksum(),
     '19191919-1919-4191-8191-191919191919', extract(epoch FROM now())::bigint,
     extract(epoch FROM now() + interval '1 hour')::bigint
   );
@@ -721,7 +916,8 @@ BEGIN
     jsonb_build_array(jsonb_build_object(
       'handOrdinal', 1, 'decisionOrdinal', 2,
       'snapshotKey', repeat('3', 64), 'questionId', 'continuation-a',
-      'policyChecksum', repeat('c', 64)
+      'policyChecksum', repeat('c', 64), 'difficultyMode', 'exact',
+      'rngRolls', jsonb_build_object('low', 29, 'high', 71)
     ))
   );
   PERFORM public.fn_training_attempt_record_served_batch_v1(
@@ -730,7 +926,8 @@ BEGIN
     jsonb_build_array(jsonb_build_object(
       'handOrdinal', 1, 'decisionOrdinal', 2,
       'snapshotKey', repeat('3', 64), 'questionId', 'continuation-a',
-      'policyChecksum', repeat('c', 64)
+      'policyChecksum', repeat('c', 64), 'difficultyMode', 'exact',
+      'rngRolls', jsonb_build_object('low', 29, 'high', 71)
     ))
   );
   IF (SELECT served_count FROM public.training_question_cache
@@ -763,7 +960,8 @@ BEGIN
       jsonb_build_array(jsonb_build_object(
         'handOrdinal', 1, 'decisionOrdinal', 2,
         'snapshotKey', repeat('3', 64), 'questionId', 'continuation-a',
-        'policyChecksum', repeat('c', 64)
+        'policyChecksum', repeat('c', 64), 'difficultyMode', 'exact',
+        'rngRolls', jsonb_build_object('low', 29, 'high', 71)
       ))
     );
   EXCEPTION WHEN OTHERS THEN
@@ -815,7 +1013,7 @@ BEGIN
     PERFORM public.fn_training_authorize_attempt_decision_v1(
       '22222222-2222-4222-8222-222222222222',
       '11111111-1111-4111-8111-111111111111', 1, 1,
-      repeat('1', 64), 'recovered-old-policy', repeat('a', 64)
+      repeat('1', 64), 'recovered-old-policy', public.test_training_policy_checksum()
     );
   EXCEPTION WHEN insufficient_privilege THEN blocked_authorize := true;
   END;
@@ -823,7 +1021,7 @@ BEGIN
     PERFORM public.fn_training_promote_legacy_signed_decision_v1(
       '22222222-2222-4222-8222-222222222222',
       '11111111-1111-4111-8111-111111111111', 1, 1,
-      repeat('1', 64), 'recovered-old-policy', repeat('a', 64),
+      repeat('1', 64), 'recovered-old-policy', public.test_training_policy_checksum(),
       '15151515-1515-4151-8151-151515151515', extract(epoch FROM now())::bigint,
       extract(epoch FROM now() + interval '1 hour')::bigint
     );
@@ -895,6 +1093,91 @@ BEGIN
 END;
 $$;
 RESET ROLE;
+`;
+
+const SERVE_ANSWER_RACE_FIXTURE_SQL = String.raw`
+INSERT INTO auth.users(id)
+VALUES ('33333333-3333-4333-8333-333333333333')
+ON CONFLICT DO NOTHING;
+INSERT INTO public.training_question_snapshots (
+  snapshot_key, source_question_id, game_id, level, content_digest, question_data
+) VALUES (
+  repeat('6', 64), 'serve-answer-race', 'cash-6max', 2, repeat('6', 64),
+  public.test_training_question('serve-answer-race')
+);
+INSERT INTO public.training_attempts (
+  id, user_id, client_nonce, game_id, level, session_kind, difficulty,
+  expected_hands, config_hash, practice_only, status, expires_at
+) VALUES (
+  '33333333-3333-4333-8333-333333333334',
+  '33333333-3333-4333-8333-333333333333', 'serve-answer-race-session',
+  'cash-6max', 2, 'campaign', 'exact', 2, repeat('6', 64), false,
+  'open', now() + interval '1 hour'
+);
+INSERT INTO public.training_attempt_hands(attempt_id, hand_ordinal, snapshot_key)
+VALUES ('33333333-3333-4333-8333-333333333334', 1, repeat('6', 64));
+INSERT INTO public.training_question_cache(
+  question_id,question_data,canonical_policy,source_classification,
+  policy_version,quality_status,policy_checksum
+)
+VALUES (
+  'serve-answer-race',public.test_training_question('serve-answer-race'),
+  public.test_training_policy(),'SOLVER_EXACT','cache-replay-verifier-v1','active',
+  public.test_training_policy_checksum()
+);
+SELECT public.fn_training_attempt_record_served_batch_v1(
+  '33333333-3333-4333-8333-333333333334',
+  '33333333-3333-4333-8333-333333333333',
+  jsonb_build_array(jsonb_build_object(
+    'handOrdinal', 1, 'decisionOrdinal', 1,
+    'snapshotKey', repeat('6', 64), 'questionId', 'serve-answer-race',
+    'policyChecksum', public.test_training_policy_checksum(), 'difficultyMode', 'exact',
+    'rngRolls', jsonb_build_object('low', 31, 'high', 69)
+  ))
+);
+`;
+
+const ANSWER_HOLDS_ATTEMPT_LOCK_SQL = String.raw`
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+INSERT INTO public.training_answers (
+  user_id, game_id, question_id, answer_id, is_correct, level,
+  submission_id, session_id, attempt_id, hand_ordinal, decision_ordinal,
+  snapshot_key, classification, solver_verified, solver_source,
+  selected_frequency, optimal_frequency, ev_loss_measured, ev_loss,
+  evidence_metadata
+) VALUES (
+  '33333333-3333-4333-8333-333333333333', 'cash-6max',
+  'serve-answer-race', 'call', true, 2,
+  'training-attempt:33333333-3333-4333-8333-333333333334:hand:1:decision:1',
+  'serve-answer-race-session', '33333333-3333-4333-8333-333333333334',
+  1, 1, repeat('6', 64), 'best', true, 'cache-replay-verifier',
+  60, 60, false, 0,
+  jsonb_build_object(
+    'gradeMode','solver-decision','difficultyMode','exact',
+    'policyChecksum',public.test_training_policy_checksum(),
+    'policyVersion','cache-replay-verifier-v1','dataQuality','SOLVER_EXACT',
+    'sourceChecksum',repeat('d',64),
+    'canonicalSolverClassification','best','canonicalSolverIsCorrect',true
+  )
+);
+\echo ANSWER_ATTEMPT_LOCK_HELD
+SELECT pg_sleep(2);
+COMMIT;
+`;
+
+const CONCURRENT_SERVE_SQL = String.raw`
+SET lock_timeout = '5s';
+SELECT public.fn_training_attempt_record_served_batch_v1(
+  '33333333-3333-4333-8333-333333333334',
+  '33333333-3333-4333-8333-333333333333',
+  jsonb_build_array(jsonb_build_object(
+    'handOrdinal', 1, 'decisionOrdinal', 1,
+    'snapshotKey', repeat('6', 64), 'questionId', 'serve-answer-race',
+    'policyChecksum', public.test_training_policy_checksum(), 'difficultyMode', 'exact',
+    'rngRolls', jsonb_build_object('low', 31, 'high', 69)
+  ))
+);
 `;
 
 const LEGACY_BACKFILL_FIXTURE_SQL = String.raw`
@@ -1262,7 +1545,9 @@ const tool = (name) => path.join(postgresBin, name);
 const connection = ['-h', tempRoot, '-p', String(port), '-d', 'phase6_cache_replay'];
 
 try {
-  command(tool('initdb'), ['-D', dataDir, '-A', 'trust', '--no-locale'], { quiet: true });
+  command(tool('initdb'), [
+    '-D', dataDir, '-A', 'trust', '--locale=en_US.UTF-8', '--encoding=UTF8',
+  ], { quiet: true });
   command(tool('pg_ctl'), [
     '-D', dataDir,
     '-o', `-p ${port} -k ${tempRoot}`,
@@ -1272,6 +1557,25 @@ try {
   ], { quiet: true });
   started = true;
   command(tool('createdb'), ['-h', tempRoot, '-p', String(port), 'phase6_cache_replay'], { quiet: true });
+  const environment = command(
+    tool('psql'),
+    ['-X', '-qAt', '-v', 'ON_ERROR_STOP=1', ...connection],
+    {
+      input: String.raw`SELECT current_setting('server_version_num'),
+        current_setting('server_encoding'),
+        datcollate
+      FROM pg_catalog.pg_database
+      WHERE datname = current_database();`,
+      quiet: true,
+    },
+  ).stdout.trim().split('|');
+  if (
+    !/^17\d{4}$/.test(environment[0] || '')
+    || environment[1] !== 'UTF8'
+    || environment[2] !== 'en_US.UTF-8'
+  ) {
+    throw new Error(`Training cache verifier requires PostgreSQL 17, UTF8, en_US.UTF-8; received ${environment.join('|')}`);
+  }
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BASELINE_SQL,
     quiet: true,
@@ -1289,6 +1593,123 @@ try {
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', DECISION_AUTHORITY_MIGRATION], {
     quiet: true,
   });
+  // CREATE TABLE/INDEX IF NOT EXISTS must fail closed when a deployment finds
+  // a same-named object whose physical authority contract has drifted. Probe
+  // every table plus the named lookup index, repair the disposable fixture,
+  // and only then perform the ordinary idempotency replay.
+  const authorityShapeProbes = [
+    {
+      mutate: 'ALTER TABLE public.training_attempt_decision_slots ADD COLUMN shape_probe boolean;',
+      repair: 'ALTER TABLE public.training_attempt_decision_slots DROP COLUMN shape_probe;',
+      expected: 'TRAINING_CONTINUATION_SLOT_TABLE_SHAPE_INVALID',
+    },
+    {
+      mutate: 'ALTER TABLE public.training_delivery_authority_cutover ADD COLUMN shape_probe boolean;',
+      repair: 'ALTER TABLE public.training_delivery_authority_cutover DROP COLUMN shape_probe;',
+      expected: 'TRAINING_DELIVERY_AUTHORITY_CUTOVER_TABLE_SHAPE_INVALID',
+    },
+    {
+      mutate: 'ALTER TABLE public.training_delivery_authority_attestations ADD COLUMN shape_probe boolean;',
+      repair: 'ALTER TABLE public.training_delivery_authority_attestations DROP COLUMN shape_probe;',
+      expected: 'TRAINING_DELIVERY_AUTHORITY_ATTESTATION_TABLE_SHAPE_INVALID',
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_attempt_decision_slots
+          DROP CONSTRAINT training_attempt_decision_slots_pkey;
+        ALTER TABLE public.training_attempt_decision_slots
+          ADD CONSTRAINT training_attempt_decision_slots_pkey
+          PRIMARY KEY (attempt_id, hand_ordinal, decision_ordinal)
+          DEFERRABLE INITIALLY IMMEDIATE;
+      `,
+      repair: `
+        ALTER TABLE public.training_attempt_decision_slots
+          DROP CONSTRAINT training_attempt_decision_slots_pkey;
+        ALTER TABLE public.training_attempt_decision_slots
+          ADD CONSTRAINT training_attempt_decision_slots_pkey
+          PRIMARY KEY (attempt_id, hand_ordinal, decision_ordinal);
+      `,
+      expected: 'TRAINING_CONTINUATION_SLOT_TABLE_SHAPE_INVALID',
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_delivery_authority_cutover
+          DROP CONSTRAINT training_delivery_authority_cutover_pkey;
+        ALTER TABLE public.training_delivery_authority_cutover
+          ADD CONSTRAINT training_delivery_authority_cutover_pkey
+          PRIMARY KEY (singleton) DEFERRABLE INITIALLY IMMEDIATE;
+      `,
+      repair: `
+        ALTER TABLE public.training_delivery_authority_cutover
+          DROP CONSTRAINT training_delivery_authority_cutover_pkey;
+        ALTER TABLE public.training_delivery_authority_cutover
+          ADD CONSTRAINT training_delivery_authority_cutover_pkey PRIMARY KEY (singleton);
+      `,
+      expected: 'TRAINING_DELIVERY_AUTHORITY_CUTOVER_TABLE_SHAPE_INVALID',
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_delivery_authority_attestations
+          DROP CONSTRAINT training_delivery_authority_attestations_pkey;
+        ALTER TABLE public.training_delivery_authority_attestations
+          ADD CONSTRAINT training_delivery_authority_attestations_pkey
+          PRIMARY KEY (contract_version) DEFERRABLE INITIALLY IMMEDIATE;
+      `,
+      repair: `
+        ALTER TABLE public.training_delivery_authority_attestations
+          DROP CONSTRAINT training_delivery_authority_attestations_pkey;
+        ALTER TABLE public.training_delivery_authority_attestations
+          ADD CONSTRAINT training_delivery_authority_attestations_pkey
+          PRIMARY KEY (contract_version);
+      `,
+      expected: 'TRAINING_DELIVERY_AUTHORITY_ATTESTATION_TABLE_SHAPE_INVALID',
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_question_events
+          DROP CONSTRAINT training_question_events_event_type_event_key_key;
+        ALTER TABLE public.training_question_events
+          ADD CONSTRAINT training_question_events_event_type_event_key_key
+          UNIQUE (event_type, event_key) DEFERRABLE INITIALLY IMMEDIATE;
+      `,
+      repair: `
+        ALTER TABLE public.training_question_events
+          DROP CONSTRAINT training_question_events_event_type_event_key_key;
+        ALTER TABLE public.training_question_events
+          ADD CONSTRAINT training_question_events_event_type_event_key_key
+          UNIQUE (event_type, event_key);
+      `,
+      expected: 'TRAINING_QUESTION_EVENT_CONFLICT_ARBITER_INVALID',
+    },
+    {
+      mutate: `
+        DROP INDEX public.training_attempt_decision_slots_snapshot_idx;
+        CREATE INDEX training_attempt_decision_slots_snapshot_idx
+          ON public.training_attempt_decision_slots(parent_snapshot_key);
+      `,
+      repair: `
+        DROP INDEX public.training_attempt_decision_slots_snapshot_idx;
+        CREATE INDEX training_attempt_decision_slots_snapshot_idx
+          ON public.training_attempt_decision_slots(snapshot_key);
+      `,
+      expected: 'TRAINING_CONTINUATION_SLOT_TABLE_SHAPE_INVALID',
+    },
+  ];
+  for (const probe of authorityShapeProbes) {
+    command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+      input: probe.mutate,
+      quiet: true,
+    });
+    commandExpectFailure(
+      tool('psql'),
+      ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', DECISION_AUTHORITY_MIGRATION],
+      { expected: probe.expected },
+    );
+    command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+      input: probe.repair,
+      quiet: true,
+    });
+  }
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', DECISION_AUTHORITY_MIGRATION], {
     quiet: true,
   });
@@ -1301,6 +1722,62 @@ try {
   });
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: DECISION_BEHAVIOR_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: SERVE_ANSWER_RACE_FIXTURE_SQL,
+    quiet: true,
+  });
+  const answerWriter = spawnPsql(
+    tool('psql'),
+    ['-X', '-v', 'ON_ERROR_STOP=1', ...connection],
+    ANSWER_HOLDS_ATTEMPT_LOCK_SQL,
+    { readyMarker: 'ANSWER_ATTEMPT_LOCK_HELD' },
+  );
+  await answerWriter.ready;
+  const serveStartedAt = Date.now();
+  const serveWriter = spawnPsql(
+    tool('psql'),
+    ['-X', '-v', 'ON_ERROR_STOP=1', ...connection],
+    CONCURRENT_SERVE_SQL,
+  );
+  const [answerResult, serveResult] = await Promise.all([
+    answerWriter.completed,
+    serveWriter.completed,
+  ]);
+  const serveWaitMs = Date.now() - serveStartedAt;
+  if (answerResult.status !== 0) {
+    throw new Error(`Concurrent answer writer failed.\n${answerResult.stdout}\n${answerResult.stderr}`);
+  }
+  const serveOutput = `${serveResult.stdout}\n${serveResult.stderr}`;
+  if (serveResult.status === 0
+      || !serveOutput.includes('TRAINING_ATTEMPT_DECISION_ALREADY_ANSWERED')
+      || serveWaitMs < 1_500) {
+    throw new Error([
+      'Serve/answer race did not serialize on the attempt row and fail closed after the answer commit.',
+      `serveWaitMs=${serveWaitMs}`,
+      serveOutput,
+    ].join('\n'));
+  }
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`
+      DO $$
+      BEGIN
+        IF (SELECT count(*) FROM public.training_answers
+            WHERE attempt_id = '33333333-3333-4333-8333-333333333334'
+              AND hand_ordinal = 1 AND decision_ordinal = 1) <> 1
+           OR (SELECT count(*) FROM public.training_question_events
+               WHERE event_type = 'served'
+                 AND event_key = 'training-attempt:33333333-3333-4333-8333-333333333334:hand:1:decision:1') <> 1
+           OR (SELECT count(*) FROM public.training_question_events
+               WHERE event_type = 'answered'
+                 AND question_id = 'serve-answer-race'
+                 AND metadata ->> 'submissionId'
+                   = 'training-attempt:33333333-3333-4333-8333-333333333334:hand:1:decision:1') <> 1 THEN
+          RAISE EXCEPTION 'serve/answer race created duplicate or missing decision evidence';
+        END IF;
+      END $$;
+    `,
     quiet: true,
   });
   const evidence = command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
