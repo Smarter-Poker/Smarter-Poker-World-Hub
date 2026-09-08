@@ -40,6 +40,8 @@
  * or less indefinitely, which would make this expensive to reverse.
  */
 
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
+
 const MY_CLUBS_DESTINATION = '/hub/social-pages?tab=managed';
 
 export async function getServerSideProps() {
@@ -51,8 +53,16 @@ export async function getServerSideProps() {
     };
 }
 
-// Never rendered: getServerSideProps always redirects. Next.js still requires
-// a default export for the file to be a valid page.
+// Never reached: getServerSideProps returns a redirect, so Next never renders
+// this component or ships its HTML. It exists because a page file needs a
+// default export, and it carries UniversalHeader because
+// __tests__/global-header-approved.test.mjs requires every one of the 264
+// modules under pages/hub to either render the shared header itself or be
+// listed in HUB_ROUTES_WITHOUT_SHARED_HEADER in pages/_app.js. The two are
+// mutually exclusive - the same test asserts a route cannot do both - and the
+// fallback list is the wrong side of that choice here anyway: _app.js would
+// then mount a header for a route that never paints. Owning it is the honest
+// answer, and it costs nothing at runtime because this never runs.
 export default function MyClubsRetired() {
-    return null;
+    return <UniversalHeader pageDepth={1} />;
 }
