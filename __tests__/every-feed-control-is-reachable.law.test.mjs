@@ -19,8 +19,22 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 const ROOT = process.cwd();
-const FEED = 'pages/hub/social-media/index.js';
-const src = readFileSync(join(ROOT, FEED), 'utf8');
+/*
+ * 2026-09-08, second pass: the feed was fixed first and its four neighbours
+ * were not, so 39 controls on the sibling social surfaces were still
+ * mouse-only. All five are covered now, and spKeyActivate lives in one module
+ * rather than being copied into each - which is exactly how the feed page
+ * ended up duplicated into four components in the first place.
+ */
+const HELPER = 'src/lib/keyboardActivate.js';
+const SURFACES = [
+  'pages/hub/social-media/index.js',
+  'pages/hub/social-pages/[pageId].js',
+  'pages/hub/social-pages/index.js',
+  'pages/hub/reels.js',
+  'pages/hub/messenger.js',
+];
+const read = (f) => readFileSync(join(ROOT, f), 'utf8');
 
 /** Opening tag of every element of these types, with its attributes. */
 function* openingTags(text, types) {
@@ -43,19 +57,33 @@ function* openingTags(text, types) {
 const NON_INTERACTIVE = ['div', 'span', 'li', 'td', 'tr', 'section', 'img'];
 
 test('the keyboard activation helper still exists and still prevents default', () => {
-  assert.match(src, /function spKeyActivate\(e\)/, 'spKeyActivate is gone');
-  assert.match(src, /e\.key !== 'Enter' && e\.key !== ' '/, 'must handle Enter and Space');
-  assert.match(src, /e\.preventDefault\(\)/, 'Space scrolls the page unless default is prevented');
+  const helper = read(HELPER);
+  assert.match(helper, /export function spKeyActivate\(e\)/, 'the shared helper is gone');
+  assert.match(helper, /e\.key !== 'Enter' && e\.key !== ' '/, 'must handle Enter and Space');
+  assert.match(helper, /e\.preventDefault\(\)/, 'Space scrolls the page unless default is prevented');
   assert.match(
-    src,
+    helper,
     /e\.currentTarget\.click\(\)/,
     'activation must reuse the element own onClick, not a second copy of the handler'
   );
 });
 
+test('every social surface imports the ONE helper, and none redefines it', () => {
+  for (const f of SURFACES) {
+    const s = read(f);
+    if (!/onKeyDown=\{spKeyActivate\}/.test(s)) continue;   // no patched controls here
+    assert.match(s, /import \{ spKeyActivate \} from '[^']*lib\/keyboardActivate'/,
+      `${f} uses spKeyActivate without importing the shared one`);
+    assert.ok(!/function spKeyActivate\(/.test(s),
+      `${f} defines its own spKeyActivate - one implementation, imported`);
+  }
+});
+
 test('no clickable non-interactive element is unreachable from the keyboard', () => {
   const offenders = [];
   let checked = 0;
+  for (const f of SURFACES) {
+  const src = read(f);
   for (const { attrs, index } of openingTags(src, NON_INTERACTIVE)) {
     if (!attrs.includes('onClick')) continue;
     checked++;
@@ -71,12 +99,13 @@ test('no clickable non-interactive element is unreachable from the keyboard', ()
     if (role && role[1] !== 'button') continue;
     if (role && attrs.includes('tabIndex') && attrs.includes('onKeyDown')) continue;
     if (!role && attrs.includes('tabIndex') && attrs.includes('onKeyDown')) continue;
-    offenders.push(src.slice(0, index).split('\n').length);
+    offenders.push(`${f}:${src.slice(0, index).split('\n').length}`);
+  }
   }
 
   // Control: if this stops finding clickable divs at all, it would pass on an
   // empty file and tell us nothing.
-  assert.ok(checked > 20, `only ${checked} clickable non-interactive elements seen - scan is broken`);
+  assert.ok(checked > 40, `only ${checked} clickable non-interactive elements seen - scan is broken`);
 
   assert.deepEqual(
     offenders,
@@ -89,7 +118,7 @@ test('no clickable non-interactive element is unreachable from the keyboard', ()
 });
 
 test('every a11y exemption says why', () => {
-  const marks = src.match(/data-sp-skip-a11y="[^"]*"/g) || [];
+  const marks = SURFACES.flatMap((f) => read(f).match(/data-sp-skip-a11y="[^"]*"/g) || []);
   assert.ok(marks.length > 0, 'the exemption marker is gone - check the skip list is still needed');
   for (const m of marks) {
     assert.ok(
