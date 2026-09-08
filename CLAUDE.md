@@ -536,6 +536,33 @@ User logs into smarter.poker, all sub-apps share the session.
 
 ---
 
+## 10.4 THE HEADER PORTRAIT FRAME IS A HAIRLINE; THE RING IS MASKED (Dan, 2026-09-07, BINDING)
+
+Full text: `GLOBAL_HEADER_PROFILE_FRAME_LAW.md`. Test:
+`__tests__/global-header-profile-frame-law.test.mjs`.
+
+Dan, 2026-09-07, with a screenshot of the artwork's chrome ring showing around
+his photo: "the profile pic is supposed to be a .5 pixel black frame that
+'appears invisible' instead of this thick broken frame that exists now." Fourth
+time he has said it (08-31, 09-03, 09-05, 09-07).
+
+The approved header artwork bakes a silver ring with a blue glow around the
+profile slot. **That ring is never shown.** In both headers this repo ships
+(`src/components/ui/UniversalHeader.js` and the vendored
+`CommanderLayout.jsx`) the profile button paints an opaque black disc over the
+whole ornament at every width, and the photo's only frame is the 0.5px hairline
+on the avatar slot, declared once.
+
+**How it regressed, so you do not do it again:** on 2026-09-01 "the profile
+image needs to be fixed" was read as "show the ring" - the disc was removed,
+the photo was seated in the ring's aperture, and tests were written calling
+the disc "a shape drawn over approved artwork". Every later agent obeyed those
+tests and fixed everything except the ring. If a request about the profile
+image seems to call for showing the ring, it does not - ask Dan before touching
+the disc. "NO BOXES OVER HEADER ICONS" is about focus rings on icons; the disc
+is its one deliberate exception. Club Arena carries the identical rule
+(`tests/the-header-portrait-frame-is-a-hairline.law.test.ts`, `docs/LAWS.md`).
+
 ## 10.5 HORSES ARE PLAYERS (Dan, 2026-08-27, BINDING — NO EXCEPTIONS)
 
 **Dan, verbatim: "HORSES ARE NEVER EVER DISCLUDED BY DESIGN ON ANYTHING! THEY

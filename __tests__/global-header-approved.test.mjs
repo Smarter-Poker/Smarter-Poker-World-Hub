@@ -107,27 +107,29 @@ test('World Hub header wires all approved controls and replaces the profile icon
 });
 
 /*
- * UPDATED 2026-09-01. This used to pin an opaque black disc over the baked
- * ornament plus a 72% portrait centred at 50%/50%. Measured against the artwork
- * the header actually renders (public/images/global-header/global-header-desktop.png,
- * 1648x168) the ornament is a circle centred at (1159.75, 80.5) with a 94-unit
- * outer diameter and an 81-unit aperture inside its chrome band. The disc was
- * 117.8 units - wider than the whole ornament - so it painted out the ring and
- * its blue glow; the 72% portrait was 84.8 units sitting 3.6 units low, so it
- * covered the band. Dan, 2026-09-01: "the profile image needs to be fixed on
- * most of them as well." The portrait now fills the measured aperture and the
- * approved ring frames it. The header also no longer paints a background of its
- * own, which was only ever visible on mobile in the safe-area/standalone bands.
+ * UPDATED 2026-09-07. From 2026-09-01 this block pinned the OPPOSITE of what
+ * Dan asked for: that the profile button "paints nothing", that the photo sits
+ * in the baked ring's aperture (46.9% / 50.7% / 68.7%), and that the black disc
+ * is "a shape drawn over approved artwork". That reading came from one sentence
+ * ("the profile image needs to be fixed on most of them") and produced the
+ * header Dan then reported on 09-03, 09-05 and 09-07 ("this thick broken
+ * frame") - because these assertions forbade the fix. The ring is never shown.
+ * The button is an opaque black disc over the whole ornament and the photo's
+ * only frame is the 0.5px hairline. The binding version, by arithmetic, is
+ * __tests__/global-header-profile-frame-law.test.mjs and
+ * GLOBAL_HEADER_PROFILE_FRAME_LAW.md; this block keeps the wiring. The header
+ * still paints no background of its own (Dan, 2026-09-01) - that part stands.
  */
-test('World Hub seats the portrait in the measured ornament aperture and paints no background', () => {
+test('World Hub masks the ornament with a black disc, seats the hairlined portrait in it, and paints no header background', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
   assert.match(header, /\.approved-global-header\s*\{[\s\S]*?background: transparent;/);
-  assert.doesNotMatch(header, /\.approved-global-header\s*\{[\s\S]*?background: #000;/);
+  // the header's own rule only: the profile disc below is #000 on purpose.
+  assert.doesNotMatch(header, /\.approved-global-header\s*\{[^}]*background: #000;/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
-  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;/);
-  // The hit region paints nothing: a shape drawn over approved artwork is a defect.
-  assert.doesNotMatch(header, /\.approved-global-header__profile\s*\{[^}]*background: #000;/);
-  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?top: 46\.9% !important;[\s\S]*?left: 50\.7% !important;[\s\S]*?width: 68\.7%;[\s\S]*?aspect-ratio: 1;[\s\S]*?transform: translate\(-50%, -50%\) !important;[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
+  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?aspect-ratio: 1;/);
+  // THE MASK. Opaque, round, over the ring and its glow.
+  assert.match(header, /\.approved-global-header__profile\s*\{[^}]*border-radius: 50%;[^}]*background: #000;/);
+  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?top: 50% !important;[\s\S]*?left: 50% !important;[\s\S]*?width: 72%;[\s\S]*?aspect-ratio: 1;[\s\S]*?transform: translate\(-50%, -50%\) !important;[\s\S]*?border: 0\.5px solid rgba\(0, 0, 0, 0?\.94\);[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
   assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
   assert.match(header, /object-fit: cover !important/);
   assert.match(header, /resolveHeaderPortrait\([\s\S]*?user\?\.useAvatarAsProfilePic === true/);
@@ -144,11 +146,12 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /cmd-approved-header__avatar/);
   assert.match(commander, /src=\{profileAvatar\}/);
   assert.match(commander, /resolveHeaderPortrait\(profilePhotoUrl, arenaAvatarUrl, useAvatarAsProfilePic\)/);
-  // Same measured aperture as the World Hub header above, and the same removal
-  // of the header's own background. Club Commander renders the identical row.
+  // Same mask as the World Hub header above (the disc over the ornament, the
+  // hairlined 72% portrait) and the same removal of the header's own
+  // background. Club Commander renders the identical row.
   assert.match(commander, /\.cmd-approved-header\s*\{[\s\S]*?background: transparent;/);
-  assert.doesNotMatch(commander, /\.cmd-approved-header__profile\s*\{[^}]*background: #000;/);
-  assert.match(commander, /\.cmd-approved-header__avatar-slot\s*\{[\s\S]*?top: 46\.9% !important;[\s\S]*?left: 50\.7% !important;[\s\S]*?width: 68\.7%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
+  assert.match(commander, /\.cmd-approved-header__profile\s*\{[^}]*border-radius: 50%;[^}]*background: #000;/);
+  assert.match(commander, /\.cmd-approved-header__avatar-slot\s*\{[\s\S]*?top: 50% !important;[\s\S]*?left: 50% !important;[\s\S]*?width: 72%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 0\.5px solid rgba\(0, 0, 0, 0?\.94\);[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
   assert.match(commander, /object-fit: cover !important/);
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
@@ -172,6 +175,11 @@ test('Commander consumes the same approved row and live profile image', () => {
  * Pinning the percentages alone could never have caught that; they were right
  * the whole time. So this test pins the PRECONDITIONS the percentages depend
  * on, in all three files that can break them.
+ *
+ * 2026-09-07: the "thick broken frame" in that report was the artwork's baked
+ * chrome ring, which the 09-01 change had uncovered. The edge and the square
+ * button below were necessary and were not the fix Dan was asking for; the
+ * ring is masked again - see __tests__/global-header-profile-frame-law.test.mjs.
  */
 test('the portrait keeps its half-pixel edge and a square button to sit in', () => {
   // 1. The edge itself, in both headers. Not 0, not 1px - half a pixel.
@@ -182,7 +190,7 @@ test('the portrait keeps its half-pixel edge and a square button to sit in', () 
     assert.match(
       source,
       new RegExp(
-        `\\.${slot}__avatar-slot\\s*\\{[\\s\\S]*?border: 0\\.5px solid rgba\\(0, 0, 0, \\.94\\);`
+        `\\.${slot}__avatar-slot\\s*\\{[\\s\\S]*?border: 0\\.5px solid rgba\\(0, 0, 0, 0?\\.94\\);`
       ),
       `${name}: the portrait's half-pixel edge is gone again`
     );
