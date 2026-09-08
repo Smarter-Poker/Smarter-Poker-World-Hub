@@ -14,11 +14,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { toast } from '../../../src/stores/toastStore';
 // TRAIN-WIRE-EMPTY-2c — adoption: shared empty-state primitive
 
 const RARITY_COLORS = {
@@ -130,7 +129,6 @@ export default function TrainingAchievements() {
   const { mutate } = useSWRConfig();
   const [user, setUser] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [sharingId, setSharingId] = useState(null);
 
   // Load auth user once
   useEffect(() => {
@@ -143,8 +141,13 @@ export default function TrainingAchievements() {
   const swrKey = user ? `/api/training/achievements?userId=${user.id}` : null;
   const { data: swrData, isLoading: loading, error: swrError, mutate: mutateAchievements } = useSWR(swrKey, (url) =>
     authedFetch(url)
-      .then((r) => r.json())
-      .then((d) => (d.success ? d.achievements || [] : []))
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok || body?.success !== true || !Array.isArray(body.achievements)) {
+          throw new Error(body?.error || 'Unable to load achievements');
+        }
+        return body.achievements;
+      })
   );
   const achievements = swrData || [];
 
@@ -163,10 +166,7 @@ export default function TrainingAchievements() {
       ? achievements
       : achievements.filter((a) => a.category === activeCategory);
 
-  const unlockedCount = achievements.filter((a) => a.unlocked).length;
-  const totalDiamonds = achievements
-    .filter((a) => a.unlocked)
-    .reduce((sum, a) => sum + (a.diamond_reward || 0), 0);
+  const historicalUnlockedCount = achievements.filter((a) => a.historicallyUnlocked).length;
 
   return (
     <PageTransition>
@@ -195,14 +195,14 @@ export default function TrainingAchievements() {
             <div className="sp-journey-stat-card" style={styles.statBox}>
               {/* TRAIN-ACHIEVEMENTS-A11Y-1: role=status so screen readers
                   announce unlock-count updates after SESSION_END refetch. */}
-              <div style={styles.statValue} role="status" aria-label={`${unlockedCount} of ${achievements.length} achievements unlocked`}>
-                {unlockedCount}/{achievements.length}
+              <div style={styles.statValue} role="status" aria-label={`${historicalUnlockedCount} historical achievement snapshots`}>
+                {historicalUnlockedCount}/{achievements.length}
               </div>
-              <div style={styles.statLabel}>Unlocked</div>
+              <div style={styles.statLabel}>Historical Snapshots</div>
             </div>
             <div className="sp-journey-stat-card" style={styles.statBox}>
-              <div style={{ ...styles.statValue, color: '#00E0FF' }} role="status" aria-label={`${totalDiamonds} diamonds earned`}>{totalDiamonds}</div>
-              <div style={styles.statLabel}>Diamonds Earned</div>
+              <div style={{ ...styles.statValue, color: '#00E0FF', fontSize: 16 }} role="status">Paused</div>
+              <div style={styles.statLabel}>New Achievement Awards</div>
             </div>
           </div>
 
@@ -247,8 +247,8 @@ export default function TrainingAchievements() {
                   className="sp-journey-achievement-card"
                   style={{
                     ...styles.achCard,
-                    opacity: ach.unlocked ? 1 : 0.5,
-                    borderColor: ach.unlocked ? RARITY_COLORS[ach.rarity] : '#333',
+                    opacity: ach.historicallyUnlocked ? 0.82 : 0.5,
+                    borderColor: ach.historicallyUnlocked ? RARITY_COLORS[ach.rarity] : '#333',
                   }}
                 >
                   {/* TRAIN-ACHIEVEMENTS-A11Y-1: ach.icon may be an emoji string
@@ -266,80 +266,21 @@ export default function TrainingAchievements() {
                     </div>
                   </div>
                   <div style={styles.reward}>
-                    <span style={styles.diamonds}>{ach.diamond_reward}</span>
-                    {ach.unlocked ? (
+                    {ach.historicallyUnlocked ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {/* TRAIN-ACHIEVEMENTS-A11Y-1: SVG CheckIcon + aria-label
                             replaces bare '✓' text. */}
-                        <span style={styles.unlocked} role="img" aria-label="Unlocked">
+                        <span style={styles.unlocked} role="img" aria-label="Historical achievement snapshot">
                           <CheckIcon size={18} />
                         </span>
-                        {/* TRAIN-ACHIEVEMENTS-A11Y-1: explicit type="button" + aria-label
-                            on the share button (was unlabeled, just "Share"). */}
-                        <button
-                          type="button"
-                          aria-label={`Share '${ach.name}' achievement to your feed`}
-                          disabled={sharingId === ach.id}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (sharingId) return;
-                            setSharingId(ach.id);
-                            try {
-                              const res = await authedFetch('/api/training/share', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  userId: user.id,
-                                  shareType: 'achievement',
-                                  data: { name: ach.name, description: ach.description },
-                                }),
-                              });
-                              const d = await res.json();
-                              if (d.success) toast.success('Achievement Shared To Your Feed!');
-                              else toast.error(d.error || 'Failed To Share Achievement.');
-                            } catch (err) {
-                              console.warn('Share error:', err);
-                              toast.error('Failed To Share Achievement. Try Again.');
-                            } finally {
-                              setSharingId(null);
-                            }
-                          }}
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: 4,
-                            border: 'none',
-                            background: 'rgba(168,85,247,0.1)',
-                            color: 'var(--sp-accent-purple)',
-                            fontSize: 9,
-                            fontWeight: 700,
-                            cursor: sharingId === ach.id ? 'not-allowed' : 'pointer',
-                            opacity: sharingId === ach.id ? 0.5 : 1,
-                          }}
-                        >
-                          {sharingId === ach.id ? '...' : 'Share'}
-                        </button>
+                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 9, fontWeight: 700 }}>
+                          Historical Snapshot
+                        </span>
                       </div>
                     ) : (
-                      <div style={{
-                        width: 48,
-                        height: 4,
-                        borderRadius: 2,
-                        background: 'rgba(255,255,255,0.08)',
-                        marginTop: 6,
-                        overflow: 'hidden',
-                      }}
-                      role="progressbar"
-                      aria-label={`${ach.name} progress`}
-                      aria-valuenow={Math.min(100, Math.round(ach.progress || 0))}
-                      aria-valuemin={0}
-                      aria-valuemax={100}>
-                        <div style={{
-                          width: `${Math.min(100, (ach.progress || 0))}%`,
-                          height: '100%',
-                          borderRadius: 2,
-                          background: RARITY_COLORS[ach.rarity] || 'var(--sp-fg-muted)',
-                        }} />
-                      </div>
+                      <span style={{ color: 'var(--sp-fg-dim)', fontSize: 9, fontWeight: 700 }}>
+                        Earning Paused
+                      </span>
                     )}
                   </div>
                 </div>
@@ -349,7 +290,7 @@ export default function TrainingAchievements() {
                 <TrainerEmptyState
                   variant={user ? 'no-data' : 'locked'}
                   title={user ? 'No achievements yet' : 'Sign in required'}
-                  message={user ? 'Complete training sessions to unlock achievements in this category.' : 'Sign in to track your achievements.'}
+                  message={user ? 'No historical achievement definitions are available in this category.' : 'Sign in to view historical achievement snapshots.'}
                   compact
                 />
               )}

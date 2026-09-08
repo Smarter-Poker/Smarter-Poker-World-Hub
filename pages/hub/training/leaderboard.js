@@ -9,7 +9,6 @@
 // TRAIN-CSS-TOKENS-BATCH5-27 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-10 — hex sweep batch 6: extended palette literals routed
 import SEOHead from '../../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -81,22 +80,6 @@ export default function TrainingLeaderboard() {
     if (u) setUser(u);
   }, []);
 
-  // Friends list for "Friends" tab
-  const [friendIds, setFriendIds] = useState(null);
-  useEffect(() => {
-    if (!user) return;
-    authedFetch('/api/friends?action=list')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.success && data.data?.friends) {
-          setFriendIds(data.data.friends.map(f => f.id));
-        } else {
-          setFriendIds([]);
-        }
-      })
-      .catch(() => setFriendIds([]));
-  }, [user]);
-
   // Bus listener: auto-refresh leaderboard when a training session completes
   const { mutate } = useSWRConfig();
   useEffect(() => {
@@ -111,31 +94,22 @@ export default function TrainingLeaderboard() {
   const period = periodMap[timeframe] || 'alltime';
 
   // SWR-backed leaderboard fetch — cached 60s, instant on timeframe/category switch
-  const categoryParam = view && view !== 'global' && view !== 'friends' ? `&category=${view}` : '';
+  const categoryParam = view && view !== 'global' ? `&category=${view}` : '';
   const swrKey = `/api/training/leaderboard?period=${period}&limit=100${categoryParam}`;
   const { data: swrData, isLoading: loading, error: swrError, mutate: mutateLeaderboard } = useSWR(swrKey, (url) =>
     authedFetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (!data.success) throw new Error(data.error || 'Failed to load leaderboard');
-        return data.leaderboard.map((entry) => ({
-          userId: entry.userId,
-          username: entry.username,
-          avatarUrl: entry.avatarUrl,
-          totalQuestions: entry.questionsCorrect || 0,
-          correctAnswers: entry.questionsCorrect || 0,
-          accuracy: entry.accuracy || 0,
-          score: (entry.questionsCorrect || 0) * (1 + (entry.accuracy || 0) / 100),
-        }));
+        return {
+          leaderboard: data.leaderboard,
+          myRank: data.myRank,
+          myEntry: data.myEntry,
+        };
       })
   );
-  const leaderboard = swrData || [];
-  const userRank = user
-    ? (() => {
-        const r = leaderboard.findIndex((s) => s.userId === user.id);
-        return r >= 0 ? r + 1 : null;
-      })()
-    : null;
+  const leaderboard = swrData?.leaderboard || [];
+  const userRank = user ? swrData?.myRank ?? null : null;
 
   return (
     <PageTransition>
@@ -190,7 +164,6 @@ export default function TrainingLeaderboard() {
             <div style={{ ...styles.filterGroup, marginTop: 8 }}>
             {[
                 { id: 'global', label: 'All Games' },
-                { id: 'friends', label: 'Friends' },
                 { id: 'mtt', label: 'MTT' },
                 { id: 'cash', label: 'Cash' },
                 { id: 'spins', label: 'Spins' },
@@ -229,19 +202,7 @@ export default function TrainingLeaderboard() {
           ) : (
             <div style={styles.leaderboardList}>
               {(() => {
-                const displayList = view === 'friends' && friendIds
-                  ? leaderboard.filter(e => friendIds.includes(e.userId))
-                  : leaderboard;
-                if (displayList.length === 0 && view === 'friends') {
-                  return (
-                    <TrainerEmptyState
-                      variant="no-data"
-                      title="No friends on the leaderboard yet"
-                      message="Invite friends to train together and compete!"
-                      cta={{ label: 'Find Friends', onClick: () => { try { window.location.href = '/hub/friends'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
-                    />
-                  );
-                }
+                const displayList = leaderboard;
                 if (displayList.length === 0) {
                   return (
                     <TrainerEmptyState
@@ -252,10 +213,10 @@ export default function TrainingLeaderboard() {
                     />
                   );
                 }
-                return displayList.map((entry, index) => (
+                return displayList.map((entry) => (
                   <LeaderboardEntry
                     key={entry.userId}
-                    rank={index + 1}
+                    rank={entry.rank}
                     {...entry}
                     isCurrentUser={user?.id === entry.userId}
                   />
@@ -278,10 +239,9 @@ function LeaderboardEntry({
   rank,
   username,
   avatarUrl,
-  totalQuestions,
-  correctAnswers,
+  questionsAnswered,
+  questionsCorrect,
   accuracy,
-  score,
   isCurrentUser,
 }) {
   const getRankColor = () => {
@@ -327,14 +287,14 @@ function LeaderboardEntry({
             {isCurrentUser && <span style={styles.youBadge}>YOU</span>}
           </div>
           <div style={styles.userStats}>
-            {totalQuestions} Questions • {accuracy}% Accuracy
+            {questionsAnswered || 0} Questions • {accuracy}% Accuracy
           </div>
         </div>
       </div>
 
       <div style={styles.scoreSection}>
-        <div style={styles.score}>{Math.round(score)}</div>
-        <div style={styles.scoreLabel}>Points</div>
+        <div style={styles.score}>{questionsCorrect || 0}</div>
+        <div style={styles.scoreLabel}>Correct</div>
       </div>
     </div>
   );

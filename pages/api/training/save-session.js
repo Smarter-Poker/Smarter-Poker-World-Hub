@@ -1,22 +1,17 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-/**
- * POST /api/training/save-session
- * Saves a complete training session with GTOW scoring, hand history,
- * per-position stats, and trainer configuration.
- *
- * This extends the basic save-progress by capturing rich session data
- * for lifetime tracking and historical replay.
- */
-
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { safeAward } from '../../../src/lib/rewards/awardGuard';
-import { compactHandHistoryEntry } from '../../../src/lib/training/handHistoryEntry';
+import {
+    isTrainingPersistenceUnavailable,
+    runTrainingPersistenceQuery,
+    trainingPersistenceUnavailableBody,
+} from '../../../src/lib/training/trainingPersistence.mjs';
 
-// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ALLOWED_BODY_KEYS = new Set(['attemptId']);
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -28,283 +23,144 @@ function getSupabase() {
     return _supabase;
 }
 
-// 2026-07-19 AUDIT FIX (E2E defect D1): session payloads with 100-hand
-// histories exceeded the 1MB Next.js default body limit -> 413 on every
-// level completion -> sessions never saved. The client now strips the bulk
-// solver matrices, but older cached clients still send fat payloads; accept
-// up to 4MB so their sessions save too.
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '4mb',
-        },
-    },
-};
+function resultStatus(result) {
+    const explicit = Number(result?.status);
+    if (Number.isInteger(explicit) && explicit >= 400 && explicit <= 499) return explicit;
 
-// Strip the two per-169-hand bulk matrices from a hand-history entry before
-// persisting — they are review-time UI data, not reporting data.
-//
-// 2026-08-15: the previous implementation read `h.handData` and returned the
-// entry untouched when it was absent — which it always is, because
-// useGTOWScore.recordMove spreads handData FLAT onto the entry. `if (!hd)
-// return h;` was taken on every entry of every session, so this function has
-// never once removed a byte. The shared helper handles both shapes; see
-// src/lib/training/handHistoryEntry.js for the full account of that defect
-// class. The implementation now lives in that module and is imported above.
+    const code = String(result?.code || '').toUpperCase();
+    if (code.includes('NOT_FOUND')) return 404;
+    if (code.includes('NOT_COMPLETED') || code.includes('INCOMPLETE')) return 409;
+    if (code.includes('INVALID')) return 400;
+    return 409;
+}
 
+function reportFailure(error, req) {
+    try {
+        reportApiError(error, req);
+        return true;
+    } catch (reportingError) {
+        console.warn('[SaveSession] Error reporting failed:', reportingError?.message || reportingError);
+        return false;
+    }
+}
+
+/**
+ * Materialize the analytics projection for a completed Training attempt.
+ *
+ * The browser may identify the attempt but may not submit scores, totals,
+ * accuracy, pass/fail, streaks, EV, hand history, or rewards. The database RPC
+ * derives every persisted field from the immutable attempt and its verified
+ * answer rows. Its unique attempt_id projection makes network retries safe.
+ */
 export default async function handler(req, res) {
-  try {
-      withTiming(res);
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    try {
+        withTiming(res);
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('Vary', 'Authorization');
 
-      // Auth
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+        if (req.method !== 'POST') {
+            res.setHeader('Allow', 'POST');
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-      // Body size guard (100KB max)
-      // 2026-07-19 AUDIT FIX (wave-1 E2E): this in-handler guard was 100KB —
-      // real 20-hand sessions with compacted histories are ~400KB, so EVERY
-      // level completion still 413'd here even after the bodyParser limit was
-      // raised. 2MB comfortably fits compacted histories while still bounding
-      // abuse (bodyParser itself caps at 4MB).
-      const bodySize = JSON.stringify(req.body || {}).length;
-      if (bodySize > 2097152) {
-          return res.status(413).json({ success: false, error: 'Request body too large' });
-      }
+        const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
+        }
 
-      try {
-          // Accept both camelCase (new standard) and snake_case (legacy/existing pages)
-          const parsedGameId = req.body.gameId || req.body.game_id;
-          const rawHandsPlayed = req.body.handsPlayed
-              ?? req.body.hands_played
-              ?? req.body.questionsAnswered
-              ?? req.body.total_questions
-              ?? 0;
-          const rawCorrectCount = req.body.correctCount
-              ?? req.body.correct_answers
-              ?? req.body.questionsCorrect
-              ?? 0;
-          const parsedHandsPlayed = Math.max(0, Math.min(1000, Math.trunc(Number(rawHandsPlayed) || 0)));
-          const parsedCorrectCount = Math.max(0, Math.min(parsedHandsPlayed, Math.trunc(Number(rawCorrectCount) || 0)));
-          const parsedTotalEVLoss = Number.isFinite(Number(req.body.totalEVLoss ?? req.body.ev_loss))
-              ? Number(req.body.totalEVLoss ?? req.body.ev_loss)
-              : 0;
-          const derivedAccuracy = parsedHandsPlayed > 0
-              ? Math.round((parsedCorrectCount / parsedHandsPlayed) * 10000) / 100
-              : 0;
-          const rawAccuracy = req.body.accuracy ?? req.body.score ?? derivedAccuracy;
-          const parsedAccuracy = Math.max(0, Math.min(100, Number(rawAccuracy) || 0));
-          const rawMistakes = req.body.mistakeCount ?? (parsedHandsPlayed - parsedCorrectCount);
-          const parsedMistakeCount = Math.max(0, Math.min(parsedHandsPlayed, Math.trunc(Number(rawMistakes) || 0)));
-          const parsedGtowScore = Number.isFinite(Number(req.body.gtowScore))
-              ? Math.max(-100, Math.min(100, Number(req.body.gtowScore)))
-              : parsedAccuracy;
+        const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
+        if (authError || !user?.id) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
 
-          const {
-              gameName,
-              avgEVLossPerHand,
-              avgEVLossPerMistake,
-              avgFrequencyDiff,
-              bestStreak,
-              levelPassed,
-              level,
-              // Detailed data
-              handHistory,         // Full hand-by-hand data
-              positionStats,       // Per-position breakdown
-              classificationCounts, // Classification distribution
-              // Trainer config (if custom)
-              trainerConfig,
-              // BUG-05 FIX: Speed bonus diamonds
-              speedBonusDiamonds,
-          } = req.body;
+        const body = req.body;
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return res.status(400).json({ success: false, error: 'A valid attemptId is required' });
+        }
 
-          if (!parsedGameId) {
-              return res.status(400).json({ success: false, error: 'gameId or game_id required' });
-          }
-          if (parsedHandsPlayed < 1) {
-              return res.status(400).json({ success: false, error: 'A graded session must contain at least one answered decision' });
-          }
+        const bodyKeys = Object.keys(body);
+        if (
+            bodyKeys.length !== 1
+            || !Object.hasOwn(body, 'attemptId')
+            || bodyKeys.some((key) => !ALLOWED_BODY_KEYS.has(key))
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Only attemptId may be supplied; session analytics are server-owned',
+            });
+        }
 
-          const userId = user.id;
-          const now = new Date().toISOString();
+        const attemptId = typeof body.attemptId === 'string' ? body.attemptId.trim() : '';
+        if (!UUID_RE.test(attemptId)) {
+            return res.status(400).json({ success: false, error: 'A valid attemptId is required' });
+        }
 
-          // NOTE: training_progress is managed exclusively by save-progress.js
-          // to avoid double-write race conditions. This endpoint only writes
-          // to training_sessions for detailed session history.
+        let saveResult;
+        try {
+            saveResult = await runTrainingPersistenceQuery(
+                () => getSupabase().rpc('fn_save_training_session_v2', {
+                    p_user_id: user.id,
+                    p_attempt_id: attemptId,
+                }),
+                { label: 'SaveSession:materialize-attempt' },
+            );
+        } catch (error) {
+            if (isTrainingPersistenceUnavailable(error)) {
+                return res.status(503).json(trainingPersistenceUnavailableBody());
+            }
+            throw error;
+        }
 
-          // 3. Save detailed session to training_sessions (JSONB-rich table)
-          // Try to save to training_sessions if the table exists
-          const detailedSession = {
-              user_id: userId,
-              game_id: parsedGameId,
-              game_name: gameName || parsedGameId,
-              gtow_score: parsedGtowScore,
-              // roadmap #25 — mark the scale this row was written on. The
-              // column defaults to 1 (legacy 0..100) so that any older deploy
-              // still running the unsigned scorer labels its rows correctly;
-              // this build emits the signed -100..+100 score, so it says so.
-              score_scale: 2,
-              total_ev_loss: parsedTotalEVLoss,
-              hands_played: parsedHandsPlayed,
-              mistake_count: parsedMistakeCount,
-              accuracy: parsedAccuracy,
-              correct_count: parsedCorrectCount,
-              best_streak: bestStreak || 0,
-              level_passed: levelPassed || false,
-              level: level || 1,
-              // JSONB fields — Supabase client handles objects natively, DO NOT stringify
-              // 2026-07-19: compact server-side too (older clients send bulk matrices)
-              hand_history: handHistory
-                  ? handHistory.slice(0, 100).map(compactHandHistoryEntry)
-                  : [],
-              position_stats: positionStats || {},
-              classification_counts: classificationCounts || {},
-              trainer_config: trainerConfig || null,
-              avg_ev_loss_per_hand: avgEVLossPerHand || 0,
-              // roadmap #28 — this value has been computed, exported, and
-              // forwarded through five layers since the metric shipped, and
-              // was destructured above only to be dropped here because the
-              // column did not exist. Added by migration
-              // 20260806171246_training_sessions_avg_ev_loss_per_mistake.
-              avg_ev_loss_per_mistake: avgEVLossPerMistake || 0,
-              avg_frequency_diff: avgFrequencyDiff || 0,
-              created_at: now,
-          };
+        const { data, error } = saveResult;
+        if (error) {
+            console.warn('[SaveSession] analytics RPC failed:', error.message);
+            return res.status(503).json(trainingPersistenceUnavailableBody());
+        }
 
-          const { error: sessErr } = await withRetry(
-              () => getSupabase()
-                  .from('training_sessions')
-                  .insert(detailedSession),
-              { label: 'SaveSession:insert' }
-          );
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            console.warn('[SaveSession] analytics RPC returned an invalid contract');
+            return res.status(502).json({
+                success: false,
+                code: 'TRAINING_SESSION_INVALID_RESPONSE',
+                error: 'Training analytics could not be verified',
+            });
+        }
 
-          if (sessErr) {
-              console.warn('[SaveSession] training_sessions insert failed:', sessErr.message);
-              return res.status(500).json({ success: false, error: 'Training session could not be saved' });
-          }
+        if (data.success !== true) {
+            return res.status(resultStatus(data)).json({
+                ...data,
+                success: false,
+            });
+        }
 
-          // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance
-          // SECURITY: Server-side cap — max legitimate speed bonus is ~50 diamonds
-          const safeSpeedBonus = Math.max(0, Math.min(parseInt(speedBonusDiamonds, 10) || 0, 50));
-          // ●●● 2026-07-26 AUDIT FIX: record the training streak ●●●
-          // POST /api/training/streak was the only writer of training_streaks
-          // and had no live caller (its callers are components with zero
-          // importers, sending no auth header). The table had 0 rows, so
-          // streaks, streak milestones, daily-bonus streak multipliers and the
-          // challenges streak_days metric all read zero forever. Record it
-          // here, where every completed session already lands. Non-blocking:
-          // a streak failure must never fail a session save.
-          try {
-              // Anchor the streak day to America/Chicago, matching streak.js --
-              // UTC days would double-count an evening session.
-              const todayCST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-              const { data: streakRow } = await getSupabase()
-                  .from('training_streaks')
-                  .select('id, current_streak, longest_streak, last_training_date, streak_start_date')
-                  .eq('user_id', userId)
-                  .maybeSingle();
+        const returnedAttemptId = String(data.attemptId || '').toLowerCase();
+        const sessionAttemptId = String(data.session?.attempt_id || '').toLowerCase();
+        if (
+            returnedAttemptId !== attemptId.toLowerCase()
+            || sessionAttemptId !== attemptId.toLowerCase()
+            || Number(data.diamondsEarned) !== 0
+        ) {
+            console.warn('[SaveSession] analytics RPC returned a mismatched or reward-bearing session');
+            return res.status(502).json({
+                success: false,
+                code: 'TRAINING_SESSION_INVALID_RESPONSE',
+                error: 'Training analytics could not be verified',
+            });
+        }
 
-              if (!streakRow) {
-                  await getSupabase().from('training_streaks').insert({
-                      user_id: userId,
-                      current_streak: 1,
-                      longest_streak: 1,
-                      last_training_date: todayCST,
-                      streak_start_date: todayCST,
-                      milestones_claimed: [],
-                  });
-              } else if (streakRow.last_training_date !== todayCST) {
-                  let daysDiff = null;
-                  if (streakRow.last_training_date) {
-                      const last = new Date(`${streakRow.last_training_date}T00:00:00Z`);
-                      const today = new Date(`${todayCST}T00:00:00Z`);
-                      daysDiff = Math.round((today - last) / 86400000);
-                  }
-                  const continues = daysDiff === 1;
-                  const newStreak = continues ? (streakRow.current_streak || 0) + 1 : 1;
-                  await getSupabase()
-                      .from('training_streaks')
-                      .update({
-                          current_streak: newStreak,
-                          longest_streak: Math.max(streakRow.longest_streak || 0, newStreak),
-                          last_training_date: todayCST,
-                          streak_start_date: continues
-                              ? (streakRow.streak_start_date || todayCST)
-                              : todayCST,
-                          updated_at: new Date().toISOString(),
-                      })
-                      .eq('id', streakRow.id);
-              }
-          } catch (streakErr) {
-              console.warn('[SaveSession] streak update failed (non-blocking):', streakErr.message);
-          }
-
-          let speedBonusAwarded = 0;
-          if (safeSpeedBonus > 0) {
-              try {
-                  // Award via award_diamonds_v2 (training_reward catalog key).
-                  // Amount passed in metadata.reward_diamonds. Idempotency key
-                  // bucketed to per-(user, game, level, UTC-day) so replays and
-                  // network retries don't double-credit. The 1,500 ◆/month family
-                  // ceiling and 2.5M platform breaker are enforced by the SQL function.
-                  const _dayBucket = Math.floor(Date.now() / 86400000);
-                  const { ok: rpcOk } = await safeAward(getSupabase(), {
-                      p_user_id: userId,
-                      p_action_key: 'training_reward',
-                      p_reference_id: `speed_${userId}_${parsedGameId}_${level || 0}_${_dayBucket}`,
-                      p_metadata: {
-                          reward_diamonds: safeSpeedBonus,
-                          source_type: 'speed_bonus',
-                          game_id: parsedGameId,
-                          level: level || 0,
-                          _source: 'api/training/save-session',
-                      },
-                  });
-
-                  if (rpcOk) {
-                      speedBonusAwarded = safeSpeedBonus;
-                  } else {
-                      console.warn('[SaveSession] award_diamonds_v2 failed - no diamonds awarded');
-                  }
-
-                  console.info(`[SaveSession] Speed bonus diamonds awarded: ${speedBonusAwarded}`);
-              } catch (diamondErr) {
-                  console.warn('[SaveSession] Diamond award failed (non-blocking):', diamondErr.message);
-              }
-          }
-
-          // 5. Update lifetime stats aggregate
-          // Upsert into a simple lifetime_stats concept in training_progress
-          // We use training_progress metadata for now
-
-          console.info(`[SaveSession] Session saved - GTOW ${parsedGtowScore}% | ${parsedHandsPlayed} hands played`);
-
-          return res.status(200).json({
-              success: true,
-              saved: {
-                  gtowScore: parsedGtowScore,
-                  handsPlayed: parsedHandsPlayed,
-                  totalEVLoss: parsedTotalEVLoss,
-                  speedBonusAwarded,
-              },
-          });
-
-      } catch (err) {
-          console.warn('[SaveSession] Error:', err);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
-      }
-
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+        return res.status(200).json({
+            ...data,
+            success: true,
+            attemptId,
+            diamondsEarned: 0,
+        });
+    } catch (error) {
+        reportFailure(error, req);
+        console.warn('[SaveSession] Unhandled error:', error?.message || error);
+        if (!res.headersSent) {
+            return res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+    }
 }

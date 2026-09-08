@@ -4,6 +4,7 @@
 // because health/index.js is not in the scanned API route patterns.
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { isDedicatedTrainingGradingReceiptSecret } from '../../../src/lib/training/gradingReceiptSecret.mjs';
 
 // Node.js runtime (default) — uses process.uptime and process.memoryUsage which are not edge-compatible
 
@@ -48,6 +49,13 @@ function dbHealthTimeoutMs() {
  */
 function usingServiceKey() {
     return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+function hasDedicatedTrainingGradingReceiptSecret() {
+    return isDedicatedTrainingGradingReceiptSecret(
+        process.env.TRAINING_GRADING_RECEIPT_SECRET,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+    );
 }
 
 function getSupabase() {
@@ -113,16 +121,35 @@ export default async function handler(req, res) {
   try {
       const start = Date.now();
 
+      const commitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local';
       const health = {
           status: 'ok',
           timestamp: new Date().toISOString(),
           // Keep the full immutable SHA. Release gates compare this value with
-          // the exact merge commit; an eight-character prefix can collide and
-          // cannot prove which build Vercel is actually serving.
-          version: process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local',
+          // the exact merge commit; an eight-character prefix cannot prove
+          // which build Vercel is actually serving.
+          version: commitSha,
+          commitSha,
+          deploymentUrl: process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || null,
+          deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
           uptime: Math.floor(process.uptime()),
           checks: {},
       };
+
+      // Training receipts deliberately use a dedicated signing boundary. The
+      // Supabase service-role key must never double as an application-token
+      // secret: independent rotation and blast-radius containment are part of
+      // the server-authoritative grading contract.
+      if (hasDedicatedTrainingGradingReceiptSecret()) {
+          health.checks.trainingGradingReceipt = { status: 'ok', configured: true };
+      } else {
+          health.checks.trainingGradingReceipt = {
+              status: 'error',
+              configured: false,
+              reason: 'TRAINING_GRADING_RECEIPT_SECRET must be at least 32 characters, non-placeholder, and distinct from SUPABASE_SERVICE_ROLE_KEY',
+          };
+          health.status = 'degraded';
+      }
 
       // ── Database Connectivity Check ──
       try {

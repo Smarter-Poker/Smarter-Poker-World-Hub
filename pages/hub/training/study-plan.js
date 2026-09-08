@@ -1,5 +1,5 @@
 /**
- * STUDY PLAN GENERATOR — Personalized Weekly Training Schedule
+ * STUDY PLAN GENERATOR — Verified Or Authored Weekly Training Schedule
  * ═══════════════════════════════════════════════════════════════════════════
  * Analyzes user session data to identify weak spots and generates a 7-day
  * training plan with recommended games and daily goals.
@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -34,6 +35,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 const FOCUS_AREAS = [
   {
     id: 'bb-defense',
+    gameId: 'cash-003',
     name: 'BB Defense',
     positions: ['BB'],
     streets: ['preflop'],
@@ -42,14 +44,16 @@ const FOCUS_AREAS = [
   },
   {
     id: 'btn-play',
+    gameId: 'cash-001',
     name: 'BTN Play',
     positions: ['BTN'],
-    streets: ['preflop', 'flop'],
+    streets: ['preflop'],
     color: 'var(--sp-accent-green)',
     icon: '',
   },
   {
     id: 'cbet-decisions',
+    gameId: 'cash-002',
     name: 'C-Bet Decisions',
     positions: [],
     streets: ['flop'],
@@ -58,6 +62,7 @@ const FOCUS_AREAS = [
   },
   {
     id: 'turn-play',
+    gameId: 'cash-024',
     name: 'Turn Play',
     positions: [],
     streets: ['turn'],
@@ -66,6 +71,7 @@ const FOCUS_AREAS = [
   },
   {
     id: 'river-decisions',
+    gameId: 'cash-012',
     name: 'River Decisions',
     positions: [],
     streets: ['river'],
@@ -74,14 +80,16 @@ const FOCUS_AREAS = [
   },
   {
     id: '3bet-pots',
+    gameId: 'cash-007',
     name: '3-Bet Pots',
     positions: [],
-    streets: ['preflop', 'flop'],
+    streets: ['flop'],
     color: '#ec4899',
     icon: '',
   },
   {
     id: 'mtt-push-fold',
+    gameId: 'mtt-001',
     name: 'MTT Push/Fold',
     positions: [],
     streets: ['preflop'],
@@ -90,6 +98,7 @@ const FOCUS_AREAS = [
   },
   {
     id: 'position-awareness',
+    gameId: 'cash-006',
     name: 'Position Play',
     positions: ['CO', 'HJ', 'MP'],
     streets: ['preflop'],
@@ -98,17 +107,19 @@ const FOCUS_AREAS = [
   },
   {
     id: 'sb-play',
+    gameId: 'cash-018',
     name: 'SB Strategy',
     positions: ['SB'],
-    streets: ['preflop', 'flop'],
+    streets: ['preflop'],
     color: 'var(--sp-accent-purple)',
     icon: '♠',
   },
   {
     id: 'bluffing',
+    gameId: 'mtt-024',
     name: 'Bluffing Spots',
     positions: [],
-    streets: ['turn', 'river'],
+    streets: ['river'],
     color: '#f43f5e',
     icon: '',
   },
@@ -170,7 +181,8 @@ function generateStudyPlan(sessions) {
       // Every other day: add a challenge drill
       if (i % 2 === 0) {
         dayAreas.push({
-          id: 'challenge',
+        id: 'challenge',
+        gameId: 'quiz-gauntlet',
           name: 'Daily Challenge',
           color: 'var(--sp-accent-amber)',
           icon: '★',
@@ -205,12 +217,19 @@ function analyzeWeaknesses(sessions) {
   sessions.forEach((s) => {
     const category = (s.game_id || '').split('-')[0] || 'unknown';
     if (!categoryStats[category]) {
-      categoryStats[category] = { total: 0, correct: 0, sessions: 0, evLoss: 0 };
+      categoryStats[category] = { total: 0, correct: 0, sessions: 0, evLoss: 0, measuredEvDecisions: 0 };
     }
     categoryStats[category].total += s.hands_played || s.total_questions || 0;
     categoryStats[category].correct += s.correct_count || s.correct_answers || 0;
     categoryStats[category].sessions += 1;
-    categoryStats[category].evLoss += s.total_ev_loss || 0;
+    const measuredDecisions = Number(s.measured_ev_decisions) || 0;
+    const measuredLoss = s.total_ev_loss === null || s.total_ev_loss === undefined
+      ? null
+      : Number(s.total_ev_loss);
+    if (measuredDecisions > 0 && Number.isFinite(measuredLoss)) {
+      categoryStats[category].evLoss += measuredLoss;
+      categoryStats[category].measuredEvDecisions += measuredDecisions;
+    }
   });
 
   // Compute accuracy per category and rank by weakness
@@ -218,7 +237,8 @@ function analyzeWeaknesses(sessions) {
     .map(([cat, stats]) => ({
       category: cat,
       accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
-      evLoss: stats.evLoss,
+      evLoss: stats.measuredEvDecisions > 0 ? stats.evLoss : null,
+      measuredEvDecisions: stats.measuredEvDecisions,
       sessions: stats.sessions,
     }))
     .sort((a, b) => a.accuracy - b.accuracy);
@@ -245,11 +265,9 @@ function analyzeWeaknesses(sessions) {
 // DAY CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
+function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
   const [expanded, setExpanded] = useState(isToday);
-  const allDone = dayPlan.areas.every((_, i) =>
-    completedAreas.includes(`${dayPlan.dayIndex}-${i}`)
-  );
+  const allDone = dayPlan.areas.every((area) => completedGames.has(area.gameId));
 
   return (
     <motion.div
@@ -375,20 +393,19 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
               style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}
             >
               {dayPlan.areas.map((area, areaIdx) => {
-                const areaKey = `${dayPlan.dayIndex}-${areaIdx}`;
-                const isDone = completedAreas.includes(areaKey);
+                const isDone = completedGames.has(area.gameId);
 
                 return (
                   <motion.div
                     key={areaIdx}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => !isDone && onStartArea(area, areaKey)}
+                    onClick={() => onStartArea(area)}
                     style={{
                       padding: '12px 14px',
                       borderRadius: 10,
                       background: isDone ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
                       border: `1px solid ${isDone ? 'rgba(34,197,94,0.15)' : `${area.color}18`}`,
-                      cursor: isDone ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -408,7 +425,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                           {area.name}
                           {isDone && (
                             <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--sp-accent-green)' }}>
-                              ✓ Done
+                              ✓ Practiced This Week
                             </span>
                           )}
                         </div>
@@ -443,52 +460,53 @@ export default function StudyPlanPage() {
   useTrainingBus('study-plan');
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sessions, setSessions] = useState([]);
-  const [completedAreas, setCompletedAreas] = useState([]);
+  // `null` means session history is unavailable or has not been verified. An
+  // empty array means the server successfully verified that this player has no
+  // completed sessions yet, which is the only state that may use a starter plan.
+  const [sessions, setSessions] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   // Get current day of week (0 = Monday)
   const today = new Date();
   const todayIdx = (today.getDay() + 6) % 7; // JS Sunday=0 → shift so Monday=0
 
   const fetchSessions = useCallback(async () => {
+    setLoading(true);
     setFetchError(null);
+    setPlan(null);
     const user = getAuthUser();
     if (!user?.id) {
+      setSignedOut(true);
+      setSessions(null);
       setLoading(false);
       return;
     }
+    setSignedOut(false);
     try {
       const res = await authedFetch(`/api/training/get-sessions?limit=100`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success && data.sessions) {
-        setSessions(data.sessions);
+      if (data?.success !== true || !Array.isArray(data.sessions)) {
+        throw new Error('Verified Training history was not returned.');
       }
+      setSessions(data.sessions);
     } catch (e) {
       console.warn('[StudyPlan] Fetch error:', e);
-      setFetchError('Unable to load study plan data. Please try again.');
+      setSessions(null);
+      setFetchError('Unable To Load Study Plan Data. Please Try Again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Generate plan from sessions
   useEffect(() => {
-    if (!loading && sessions !== null) {
+    if (!loading && !fetchError && !signedOut && Array.isArray(sessions)) {
       const newPlan = generateStudyPlan(sessions);
       setPlan(newPlan);
-
-      // Restore completed areas from localStorage
-      try {
-        const saved = localStorage.getItem('study-plan-completed');
-        const savedWeek = localStorage.getItem('study-plan-week');
-        const currentWeek = getWeekNumber();
-        if (saved && savedWeek === String(currentWeek)) {
-          setCompletedAreas(JSON.parse(saved));
-        }
-      } catch (e) { console.warn('[App] Handled exception:', e); }
     }
-  }, [loading, sessions]);
+  }, [fetchError, loading, sessions, signedOut]);
 
   // Fetch on mount
   useEffect(() => {
@@ -501,45 +519,49 @@ export default function StudyPlanPage() {
     return unsub;
   }, [fetchSessions]);
 
-  const handleStartArea = (area, areaKey) => {
-    // Navigate to arena with focus params
-    const params = new URLSearchParams({
-      format: 'cash',
-      positions: (area.positions || []).join(','),
-      streets: (area.streets || []).join(','),
-      stackMin: '80',
-      stackMax: '200',
-    });
-    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
-
-    // Mark as completed (optimistic)
-    const newCompleted = [...completedAreas, areaKey];
-    setCompletedAreas(newCompleted);
-    try {
-      localStorage.setItem('study-plan-completed', JSON.stringify(newCompleted));
-      localStorage.setItem('study-plan-week', String(getWeekNumber()));
-    } catch (e) { console.warn('[App] Handled exception:', e); }
+  const handleStartArea = (area) => {
+    if (area.id === 'challenge') {
+      router.push('/hub/training/arena/quiz-gauntlet?level=1&source=study-plan');
+      return;
+    }
+    router.push(buildCustomTrainingArenaHref({
+      gameId: area.gameId,
+      format: area.gameId?.startsWith('mtt-') ? 'mtt' : 'cash',
+      positions: area.positions,
+      streets: area.streets,
+      stackDepth: area.gameId === 'mtt-001' ? 10 : 100,
+    }, 'study-plan'));
   };
 
   const regeneratePlan = () => {
+    if (!Array.isArray(sessions)) return;
     const newPlan = generateStudyPlan(sessions);
     setPlan(newPlan);
-    setCompletedAreas([]);
-    try {
-      localStorage.removeItem('study-plan-completed');
-    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
-  // Week number helper
-  function getWeekNumber() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    return 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
-  }
-
-  const totalCompleted = completedAreas.length;
+  // Only server-returned completed sessions can mark a plan item practiced.
+  // Navigation itself never authors completion.
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const verifiedSessions = Array.isArray(sessions) ? sessions : [];
+  const hasVerifiedHistory = verifiedSessions.length > 0;
+  const isAuthoredStarterPlan = Array.isArray(sessions) && sessions.length === 0;
+  const completedGames = new Set(
+    verifiedSessions
+      .filter((session) => {
+        const timestamp = new Date(session.completed_at || session.created_at || 0).getTime();
+        return Number.isFinite(timestamp) && timestamp >= weekStart.getTime();
+      })
+      .map((session) => session.game_id)
+      .filter(Boolean),
+  );
+  const totalCompleted = plan
+    ? plan.reduce(
+        (sum, day) => sum + day.areas.filter((area) => completedGames.has(area.gameId)).length,
+        0,
+      )
+    : 0;
   const totalAreas = plan ? plan.reduce((sum, d) => sum + d.areas.length, 0) : 0;
   const progress = totalAreas > 0 ? Math.round((totalCompleted / totalAreas) * 100) : 0;
 
@@ -591,31 +613,85 @@ export default function StudyPlanPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
                 Weekly Study Plan
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Personalized Training Schedule</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                {loading
+                  ? 'Loading Verified Training History'
+                  : signedOut
+                    ? 'Sign In To Build Your Schedule'
+                    : fetchError
+                      ? 'Training History Unavailable'
+                      : isAuthoredStarterPlan
+                        ? 'Authored Starter Schedule'
+                        : 'Personalized From Verified Training History'}
+              </div>
             </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={regeneratePlan}
-            style={{
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.03)',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            New Plan
-          </motion.button>
+          {plan && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={regeneratePlan}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.03)',
+                color: 'var(--sp-fg-muted)',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              New Plan
+            </motion.button>
+          )}
         </div>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
+          {!loading && signedOut && (
+            <div
+              role="status"
+              style={{
+                padding: '18px 16px',
+                borderRadius: 12,
+                border: '1px solid rgba(0,212,255,0.18)',
+                background: 'rgba(0,212,255,0.05)',
+                color: 'var(--sp-fg-muted)',
+                lineHeight: 1.6,
+                marginBottom: 16,
+              }}
+            >
+              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
+                Sign In To Build Your Study Plan
+              </strong>
+              Personalized Progress Requires Verified Training History. No Schedule Or Completion Totals Are Inferred While Signed Out.
+              <button
+                type="button"
+                onClick={() => router.push('/auth/login?redirect=/hub/training/study-plan')}
+                style={{
+                  display: 'block',
+                  marginTop: 12,
+                  padding: '9px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,212,255,0.3)',
+                  background: 'rgba(0,212,255,0.1)',
+                  color: 'var(--sp-accent-cyan)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+          {!loading && !signedOut && (fetchError || !Array.isArray(sessions)) && (
+            <ErrorBanner
+              message={fetchError || 'Verified Training History Is Unavailable.'}
+              onRetry={fetchSessions}
+            />
+          )}
           {/* Progress Overview */}
-          <motion.div
+          {plan && !loading && !fetchError && !signedOut && (
+            <motion.div
             className="sp-journey-spotlight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -684,7 +760,8 @@ export default function StudyPlanPage() {
                 }}
               />
             </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Loading State */}
           {loading && (
@@ -694,8 +771,8 @@ export default function StudyPlanPage() {
           )}
 
           {/* Weakness Insights (data-driven transparency) */}
-          {plan && sessions.length > 0 && (() => {
-            const weaknesses = analyzeWeaknesses(sessions);
+          {plan && hasVerifiedHistory && (() => {
+            const weaknesses = analyzeWeaknesses(verifiedSessions);
             const dataWeaknesses = weaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
             if (dataWeaknesses.length === 0) return null;
             return (
@@ -752,9 +829,9 @@ export default function StudyPlanPage() {
                         >
                           {w.accuracy}%
                         </span>
-                        {w.evLoss > 0 && (
+                        {w.measuredEvDecisions > 0 && w.evLoss !== null && (
                           <span style={{ fontSize: 10, color: 'var(--sp-accent-red)' }}>
-                            -{Math.round(w.evLoss * 10) / 10} EV
+                            {Math.round(w.evLoss * 10) / 10} BB Measured EV Loss
                           </span>
                         )}
                       </div>
@@ -766,8 +843,8 @@ export default function StudyPlanPage() {
           })()}
 
           {/* Today's Focus — CTA */}
-          {sessions.length > 0 && (() => {
-            const allWeaknesses = analyzeWeaknesses(sessions);
+          {hasVerifiedHistory && (() => {
+            const allWeaknesses = analyzeWeaknesses(verifiedSessions);
             const focusWeaknesses = allWeaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
             if (focusWeaknesses.length === 0) return null;
             const focus = focusWeaknesses[Math.floor(Date.now() / 86400000) % focusWeaknesses.length];
@@ -827,7 +904,7 @@ export default function StudyPlanPage() {
                 dayPlan={dayPlan}
                 isToday={idx === todayIdx}
                 onStartArea={handleStartArea}
-                completedAreas={completedAreas}
+                completedGames={completedGames}
               />
             ))}
 
@@ -842,9 +919,11 @@ export default function StudyPlanPage() {
                 lineHeight: 1.5,
               }}
             >
-              Plan Regenerates Each Week Based On Your Latest Performance.
+              {isAuthoredStarterPlan
+                ? 'This Is An Authored Starter Plan Because No Verified Sessions Were Found.'
+                : 'Plan Regenerates Each Week From Your Latest Verified Performance.'}
               <br />
-              Complete At Least 4 Days To Maintain Your Streak Bonus.
+              Training Completion And Streaks Are Recorded Only By The Server.
             </div>
           )}
         </div>

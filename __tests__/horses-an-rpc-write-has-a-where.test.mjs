@@ -73,15 +73,14 @@ const MIGRATIONS = path.join(process.cwd(), 'supabase', 'migrations');
  * grow it - a new name here means the guard was silenced rather than heeded.
  */
 const KNOWN_BEFORE_THIS_GUARD = new Set([
-  'commander_entries_sync_reentry_marker',
-  'fn_normalize_username',
-  'fn_notification_fill_action_url',
-  'fn_url_encode_segment',
   'pnm_refresh_venue_integrity_state_basics',
 ]);
 
 const stripLiteralsAndComments = (sql) =>
-  sql.replace(/--[^\n]*/g, ' ').replace(/'(?:[^']|'')*'/g, "''");
+  sql
+    .replace(/--[^\n]*/g, ' ')
+    .replace(/'(?:[^']|'')*'/g, "''")
+    .replace(/\s+/g, ' ');
 
 function lastDefinitionOfEveryFunction() {
   const last = new Map();

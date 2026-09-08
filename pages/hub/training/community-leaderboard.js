@@ -47,6 +47,7 @@ function TrophyIcon({ size=14 })  { return <_Svg size={size}><path d="M6 9H4.5a2
 function CardsIcon({ size=14 })   { return <_Svg size={size}><rect x="3" y="5" width="13" height="16" rx="2"/><path d="M8 5V3a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/></_Svg>; }
 function TargetIcon({ size=14 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
 function FlameIcon({ size=14 })   { return <_Svg size={size}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.5-.5-2.5-2-3.5l-2 2c-.5-.5-1-1-1-2 0-1 1.5-2 1.5-2s-3 1-4 3.5C5 14 6 17 8.5 19c1.5 1.5 4 2 5.5 1.5C17 19.5 19 17 19 13c0-3-1-5-2.5-7C15 4 12 2 12 2s1 4-1 7c-.7 1-1.5 1.5-2.5 2.5z"/></_Svg>; }
+function DiamondIcon({ size=14 }) { return <_Svg size={size}><path d="m12 2 8 7-8 13L4 9l8-7Z"/><path d="m4 9 8 4 8-4"/></_Svg>; }
 function MedalIcon({ size=18 })   {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -64,15 +65,18 @@ function CategoryIcon({ kind, size=14 }) {
     case 'cards':  return <CardsIcon size={size}/>;
     case 'target': return <TargetIcon size={size}/>;
     case 'flame':  return <FlameIcon size={size}/>;
+    case 'diamond': return <DiamondIcon size={size}/>;
     default:       return null;
   }
 }
 
 const CATEGORIES = [
   { id: 'overall', label: 'Overall', iconKind: 'trophy', icon: '★' },
-  { id: 'preflop', label: 'Preflop', iconKind: 'cards', icon: '◇' },
-  { id: 'postflop', label: 'Postflop', iconKind: 'target', icon: '◆' },
-  { id: 'streaks', label: 'Streaks', iconKind: 'flame', icon: '▲' },
+  { id: 'cash', label: 'Cash', iconKind: 'cards', icon: '◇' },
+  { id: 'mtt', label: 'MTT', iconKind: 'trophy', icon: '◆' },
+  { id: 'spins', label: 'Spins', iconKind: 'target', icon: '▲' },
+  { id: 'psychology', label: 'Psychology', iconKind: 'flame', icon: '▲' },
+  { id: 'advanced', label: 'Advanced', iconKind: 'diamond', icon: '◆' },
 ];
 
 function getAvatarColor(str) {
@@ -110,31 +114,46 @@ export default function CommunityLeaderboardPage() {
   }, [mutate]);
 
   // Fetch real leaderboard data
-  const swrKey = `/api/training/leaderboard?period=${period === 'weekly' ? 'weekly' : 'alltime'}&limit=50`;
+  const categoryParam = category === 'overall' ? '' : `&category=${category}`;
+  const swrKey = `/api/training/leaderboard?period=${period === 'weekly' ? 'weekly' : 'alltime'}&limit=50${categoryParam}`;
   const { data: swrData, isLoading: loading, error: swrError, mutate: mutateLeaderboard } = useSWR(swrKey, (url) =>
     authedFetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (!data.success) throw new Error('Failed to load leaderboard');
-        return data.leaderboard.map((entry) => ({
-          id: entry.userId,
-          name: entry.username || 'Anonymous',
-          accuracy: entry.accuracy || 0,
-          sessions: entry.sessionsCompleted || 0,
-          hands: entry.questionsCorrect || 0, // Approx
-          streak: entry.bestStreak || 0,
-          avatarColor: getAvatarColor(entry.userId),
-        }));
+        return {
+          entries: data.leaderboard.map((entry) => ({
+            id: entry.userId,
+            rank: entry.rank,
+            name: entry.username || 'Anonymous',
+            accuracy: entry.accuracy || 0,
+            sessions: entry.sessionsCompleted || 0,
+            correctAnswers: entry.questionsCorrect || 0,
+            avatarColor: getAvatarColor(entry.userId),
+          })),
+          myRank: data.myRank ?? null,
+          myEntry: data.myEntry || null,
+        };
       })
   );
 
-  // Sort and rank entries — score computed at render-time so it reflects the current category tab
-  const entries = (swrData || [])
-    .map((e) => ({ ...e, score: category === 'streaks' ? e.streak : e.accuracy }))
-    .sort((a, b) => b.score - a.score)
-    .map((e, i) => ({ ...e, rank: i + 1, isYou: user?.id === e.id }));
+  // Ranking and category membership are server-owned. The browser must not
+  // re-rank a truncated page or pretend that one overall data set represents
+  // several different leaderboards.
+  const entries = (swrData?.entries || []).map((entry) => ({
+    ...entry,
+    score: entry.accuracy,
+    isYou: user?.id === entry.id,
+  }));
 
-  const userEntry = entries.find((e) => e.isYou);
+  const listedUserEntry = entries.find((entry) => entry.isYou);
+  const userEntry = listedUserEntry || (swrData?.myEntry && swrData?.myRank
+    ? {
+        id: swrData.myEntry.userId,
+        rank: swrData.myRank,
+        score: swrData.myEntry.accuracy || 0,
+      }
+    : null);
   const topThree = entries.slice(0, 3);
   const restEntries = entries.slice(3);
 
@@ -354,7 +373,7 @@ export default function CommunityLeaderboardPage() {
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                 {userEntry.score}
-                {category !== 'streaks' ? '%' : 'd'}
+                %
               </div>
             </div>
           )}
@@ -417,7 +436,7 @@ export default function CommunityLeaderboardPage() {
                       {entry.name}
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
-                      {entry.hands} Hands · {entry.sessions} Sessions
+                      {entry.correctAnswers} Correct Answers · {entry.sessions} Sessions
                     </div>
                   </div>
                 </div>
@@ -430,7 +449,7 @@ export default function CommunityLeaderboardPage() {
                   }}
                 >
                   {entry.score}
-                  {category !== 'streaks' ? '%' : 'd'}
+                  %
                 </div>
               </motion.div>
             ))}

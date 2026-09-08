@@ -4,22 +4,14 @@
  * Queries solved_spots_gold and memory_charts_gold to understand data coverage
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const { createSolverOperatorPool } = require('./lib/solver-operator-db');
 require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ Missing Supabase credentials');
-    process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 async function analyzePIOData() {
-    console.log('🔍 DEEP DIVE: PIO Solver Database Analysis\n');
-    console.log('═'.repeat(80));
+    const pool = createSolverOperatorPool({ statementTimeout: 120_000 });
+    try {
+        console.log('🔍 DEEP DIVE: PIO Solver Database Analysis\n');
+        console.log('═'.repeat(80));
 
     // ═══════════════════════════════════════════════════════════════════════
     // 1. Check if tables exist and count rows
@@ -27,16 +19,12 @@ async function analyzePIOData() {
     console.log('\n📊 TABLE 1: solved_spots_gold (Postflop Engine)');
     console.log('─'.repeat(80));
 
-    const { data: spotsData, error: spotsError, count: spotsCount } = await supabase
-        .from('solved_spots_gold')
-        .select('*', { count: 'exact', head: true });
-
-    if (spotsError) {
-        console.error('❌ Error querying solved_spots_gold:', spotsError.message);
-    } else {
-        console.log(`✅ Table exists`);
-        console.log(`📈 Total rows: ${spotsCount || 0}`);
-    }
+    const { rows: spotCountRows } = await pool.query(
+        'SELECT count(*)::integer AS count FROM public.solved_spots_gold',
+    );
+    const spotsCount = Number(spotCountRows[0]?.count || 0);
+    console.log('✅ Table exists');
+    console.log(`📈 Total rows: ${spotsCount}`);
 
     // ═══════════════════════════════════════════════════════════════════════
     // 2. Analyze data coverage if rows exist
@@ -46,70 +34,18 @@ async function analyzePIOData() {
         console.log('─'.repeat(80));
 
         // Group by game_type
-        const { data: byGameType } = await supabase
-            .rpc('analyze_spots_by_game_type');
-
-        if (byGameType) {
-            console.log('\n📊 By Game Type:');
-            byGameType.forEach(row => {
-                console.log(`  ${row.game_type}: ${row.count} scenarios`);
-            });
-        } else {
-            // Manual query if RPC doesn't exist
-            const { data: allSpots } = await supabase
-                .from('solved_spots_gold')
-                .select('game_type, topology, stack_depth, street');
-
-            if (allSpots) {
-                const coverage = {};
-                allSpots.forEach(spot => {
-                    const key = `${spot.game_type}`;
-                    coverage[key] = (coverage[key] || 0) + 1;
-                });
-
-                console.log('\n📊 By Game Type:');
-                Object.entries(coverage).forEach(([type, count]) => {
-                    console.log(`  ${type}: ${count} scenarios`);
-                });
-
-                // By topology
-                const topologyCoverage = {};
-                allSpots.forEach(spot => {
-                    const key = `${spot.topology}`;
-                    topologyCoverage[key] = (topologyCoverage[key] || 0) + 1;
-                });
-
-                console.log('\n📊 By Topology:');
-                Object.entries(topologyCoverage).forEach(([topology, count]) => {
-                    console.log(`  ${topology}: ${count} scenarios`);
-                });
-
-                // By stack depth
-                const stackCoverage = {};
-                allSpots.forEach(spot => {
-                    const key = `${spot.stack_depth}BB`;
-                    stackCoverage[key] = (stackCoverage[key] || 0) + 1;
-                });
-
-                console.log('\n📊 By Stack Depth:');
-                Object.entries(stackCoverage).sort((a, b) => {
-                    return parseInt(a[0]) - parseInt(b[0]);
-                }).forEach(([stack, count]) => {
-                    console.log(`  ${stack}: ${count} scenarios`);
-                });
-
-                // By street
-                const streetCoverage = {};
-                allSpots.forEach(spot => {
-                    const key = `${spot.street}`;
-                    streetCoverage[key] = (streetCoverage[key] || 0) + 1;
-                });
-
-                console.log('\n📊 By Street:');
-                Object.entries(streetCoverage).forEach(([street, count]) => {
-                    console.log(`  ${street}: ${count} scenarios`);
-                });
-            }
+        const groupedQueries = [
+            ['Game Type', 'game_type', 'ORDER BY game_type'],
+            ['Topology', 'topology', 'ORDER BY topology'],
+            ['Stack Depth', 'stack_depth', 'ORDER BY stack_depth'],
+            ['Street', 'street', 'ORDER BY street'],
+        ];
+        for (const [label, column, order] of groupedQueries) {
+            const { rows } = await pool.query(
+                `SELECT ${column}, count(*)::integer AS count FROM public.solved_spots_gold GROUP BY ${column} ${order}`,
+            );
+            console.log(`\n📊 By ${label}:`);
+            rows.forEach(row => console.log(`  ${row[column]}: ${row.count} scenarios`));
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -118,10 +54,9 @@ async function analyzePIOData() {
         console.log('\n📝 Sample Scenarios:');
         console.log('─'.repeat(80));
 
-        const { data: samples } = await supabase
-            .from('solved_spots_gold')
-            .select('*')
-            .limit(3);
+        const { rows: samples } = await pool.query(
+            'SELECT * FROM public.solved_spots_gold ORDER BY id LIMIT 3',
+        );
 
         if (samples && samples.length > 0) {
             samples.forEach((sample, idx) => {
@@ -156,64 +91,62 @@ async function analyzePIOData() {
     console.log('\n\n📊 TABLE 2: memory_charts_gold (Preflop Engine)');
     console.log('─'.repeat(80));
 
-    const { data: chartsData, error: chartsError, count: chartsCount } = await supabase
-        .from('memory_charts_gold')
-        .select('*', { count: 'exact', head: true });
-
-    if (chartsError) {
-        console.error('❌ Error querying memory_charts_gold:', chartsError.message);
-    } else {
-        console.log(`✅ Table exists`);
-        console.log(`📈 Total rows: ${chartsCount || 0}`);
-    }
+    const { rows: chartCountRows } = await pool.query(
+        'SELECT count(*)::integer AS count FROM public.memory_charts_gold',
+    );
+    const chartsCount = Number(chartCountRows[0]?.count || 0);
+    console.log('✅ Table exists');
+    console.log(`📈 Total rows: ${chartsCount}`);
 
     if (chartsCount && chartsCount > 0) {
         console.log('\n🔬 Chart Coverage Analysis:');
         console.log('─'.repeat(80));
 
-        const { data: allCharts } = await supabase
-            .from('memory_charts_gold')
-            .select('*');
+        const { rows: categoryRows } = await pool.query(
+            `SELECT game_type, count(*)::integer AS count
+             FROM public.memory_charts_gold
+             GROUP BY game_type
+             ORDER BY game_type`,
+        );
+        console.log('\n📊 By Game Type:');
+        categoryRows.forEach(row => console.log(`  ${row.game_type}: ${row.count} charts`));
 
-        if (allCharts) {
-            // By category
-            const categoryCoverage = {};
-            allCharts.forEach(chart => {
-                const key = chart.category;
-                categoryCoverage[key] = (categoryCoverage[key] || 0) + 1;
-            });
+        // Keep the full inventory exact without transferring every chart's
+        // potentially large JSON grid merely to print its name.
+        const { rows: chartNames } = await pool.query(
+            `SELECT chart_id, game_type, stack_depth, hero_position, villain_action
+             FROM public.memory_charts_gold
+             ORDER BY chart_id`,
+        );
+        console.log('\n📋 All Charts:');
+        chartNames.forEach(chart => console.log(
+            `  - ${chart.chart_id} (${chart.game_type || 'unknown'}, ${chart.hero_position || 'unknown'}, ${chart.stack_depth || '?'}BB, ${chart.villain_action || 'unknown'})`,
+        ));
 
-            console.log('\n📊 By Category:');
-            Object.entries(categoryCoverage).forEach(([category, count]) => {
-                console.log(`  ${category}: ${count} charts`);
-            });
+        const { rows: samples } = await pool.query(
+            `SELECT chart_id, game_type, stack_depth, hero_position, villain_action, hand_matrix
+             FROM public.memory_charts_gold
+             ORDER BY chart_id
+             LIMIT 1`,
+        );
+        const sample = samples[0];
+        if (sample) {
+            console.log('\n📝 Sample Chart:');
+            console.log('─'.repeat(80));
+            console.log(`  Chart ID: ${sample.chart_id}`);
+            console.log(`  Game Type: ${sample.game_type}`);
+            console.log(`  Stack Depth: ${sample.stack_depth}BB`);
+            console.log(`  Hero Position: ${sample.hero_position}`);
+            console.log(`  Villain Action: ${sample.villain_action}`);
 
-            // List all chart names
-            console.log('\n📋 All Charts:');
-            allCharts.forEach(chart => {
-                console.log(`  - ${chart.chart_name} (${chart.category})`);
-            });
-
-            // Sample a chart
-            if (allCharts.length > 0) {
-                console.log('\n📝 Sample Chart:');
-                console.log('─'.repeat(80));
-                const sample = allCharts[0];
-                console.log(`  Chart Name: ${sample.chart_name}`);
-                console.log(`  Category: ${sample.category}`);
-                console.log(`  Stack Depth: ${sample.stack_depth}BB`);
-                console.log(`  Topology: ${sample.topology}`);
-                console.log(`  Position: ${sample.position}`);
-
-                if (sample.chart_grid) {
-                    const hands = Object.keys(sample.chart_grid);
-                    console.log(`  Total Hands: ${hands.length}`);
-                    console.log(`  Sample Hands:`);
-                    hands.slice(0, 5).forEach(hand => {
-                        const action = sample.chart_grid[hand];
-                        console.log(`    ${hand}: ${JSON.stringify(action)}`);
-                    });
-                }
+            if (sample.hand_matrix) {
+                const hands = Object.keys(sample.hand_matrix);
+                console.log(`  Total Hands: ${hands.length}`);
+                console.log('  Sample Hands:');
+                hands.slice(0, 5).forEach(hand => {
+                    const action = sample.hand_matrix[hand];
+                    console.log(`    ${hand}: ${JSON.stringify(action)}`);
+                });
             }
         }
     }
@@ -224,25 +157,22 @@ async function analyzePIOData() {
     console.log('\n\n📋 SUMMARY & RECOMMENDATIONS');
     console.log('═'.repeat(80));
 
-    if (spotsCount === 0 && chartsCount === 0) {
-        console.log('\n❌ NO DATA FOUND');
-        console.log('   Both tables are empty. You need to:');
-        console.log('   1. Ingest PioSolver files into solved_spots_gold');
-        console.log('   2. Import preflop charts into memory_charts_gold');
-        console.log('   3. Use Grok AI as the primary question source until data is loaded');
-    } else if (spotsCount > 0 || chartsCount > 0) {
-        console.log('\n✅ DATA EXISTS!');
-        console.log(`   - Postflop scenarios: ${spotsCount || 0}`);
-        console.log(`   - Preflop charts: ${chartsCount || 0}`);
-        console.log('\n   Next steps:');
-        console.log('   1. Map the 100 training games to PIO queries');
-        console.log('   2. Update get-question.js API to query PIO first');
-        console.log('   3. Implement suit isomorphism for uniqueness');
-        console.log('   4. Add no-repeat tracking');
-        console.log('   5. Fall back to Grok only when PIO data doesn\'t exist');
+    console.log(`   - Postflop scenarios: ${spotsCount}`);
+    console.log(`   - Preflop charts: ${chartsCount}`);
+    if (spotsCount === 0 || chartsCount === 0) {
+        throw new Error(
+            'Required solver warehouse data is absent; no readiness conclusion can be issued.',
+        );
     }
+    console.log('\n✅ Both solver warehouse sources contain data.');
+    console.log('   This command is an inspection only. It does not admit artifacts,');
+    console.log('   certify Training coverage, ingest rows, or authorize either solver host.');
+    console.log('   Use the protected catalog and 107-game runtime audits for those decisions.');
 
-    console.log('\n' + '═'.repeat(80));
+        console.log('\n' + '═'.repeat(80));
+    } finally {
+        await pool.end();
+    }
 }
 
 // Run the analysis

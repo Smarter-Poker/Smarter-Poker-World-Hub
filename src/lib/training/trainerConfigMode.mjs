@@ -7,6 +7,7 @@ const CUSTOM_TRAINER_KEYS = [
   'street',
   'handClass',
   'boardTexture',
+  'spotType',
 ];
 
 /**

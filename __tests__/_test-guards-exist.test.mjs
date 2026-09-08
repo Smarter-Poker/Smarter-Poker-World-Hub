@@ -76,10 +76,9 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 // with the `workflow` permission, which the automation PAT does not have.
 // node:test registers every case declared during module evaluation.
 //
-// THREE ARE DELIBERATELY NOT IMPORTED, and the meta-guard below allowlists
-// them by name with the reason. Two run their own harness and call
-// process.exit() on import, which would truncate this whole run; one asserts
-// that no Phase 2 training item is deferred, which is a roadmap state.
+// TWO ARE DELIBERATELY NOT IMPORTED, and the meta-guard below allowlists
+// them by name with the reason. Both run their own harness and call
+// process.exit() on import, which would truncate this whole run.
 import './api-routes-exist.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
@@ -189,6 +188,8 @@ import './solver-policy-service.test.mjs';
 import './horse-phase3-training-cache-truth.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
+import './training-history-outage-honesty.test.mjs';
+import './training-hub-outage-honesty.test.mjs';
 import './training-hub-media-audit.test.mjs';
 import './training-immersive-gameplay.test.mjs';
 import './training-phase-3-closeout.test.mjs';
@@ -196,6 +197,8 @@ import './training-phase6-release-harness.test.mjs';
 import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
+import './training-request-deadline.test.mjs';
+import './training-surface-inventory.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 import './trivia-ui-foundation.test.mjs';
@@ -387,12 +390,6 @@ const CI_UNREACHABLE_ON_PURPOSE = {
     // them. They pass standalone; they are simply not importable suites.
     'messenger-utils.test.mjs': 'self-executing harness, process.exit() on import',
     'server-auth-asymmetric.test.mjs': 'self-executing harness, process.exit() on import',
-    // Asserts counts.functionPhaseReview === 0, i.e. that no Phase 2 training
-    // item is deferred. Six are, each dispositioned with a followUpPhase. That
-    // is a roadmap state, not a defect, and wiring it in would block every pull
-    // request on unfinished product work. Its CRASH is fixed (it fed a .json
-    // file to @babel/parser); re-enable when Phase 2 closes.
-    'training-surface-inventory.test.mjs': 'asserts zero deferred Phase 2 items - roadmap state, see #1312',
 };
 
 test('every guard in __tests__ is reachable by CI', () => {

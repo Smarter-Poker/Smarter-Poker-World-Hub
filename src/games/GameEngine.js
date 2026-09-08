@@ -371,10 +371,10 @@ export const LEVELS = [
     { level: 4, name: '3-Bet Ignition', focus: '3-Bet Ranges (IP & OOP)' },
     { level: 5, name: 'Call Protocol', focus: 'Flatting Ranges' },
     { level: 6, name: '4-Bet Override', focus: '4-Bet/5-Bet Polarization' },
-    { level: 7, name: 'Flop Architect', focus: 'C-Bet Frequencies' },
-    { level: 8, name: 'Turn Calibration', focus: 'Turn Decisions' },
-    { level: 9, name: 'River Execute', focus: 'Value/Bluff Ratios' },
-    { level: 10, name: 'GTO MASTER', focus: 'All Spots + Mixed' },
+    { level: 7, name: 'Squeeze Circuit', focus: 'Preflop Squeeze Ranges' },
+    { level: 8, name: 'Flop Architect', focus: 'Flop Decisions' },
+    { level: 9, name: 'Turn Calibration', focus: 'Turn Decisions' },
+    { level: 10, name: 'River Execute', focus: 'River Decisions' },
 ];
 
 export const MASTERY_THRESHOLD = 85; // 85% required to advance

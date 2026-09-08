@@ -14,7 +14,7 @@ import { getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEng
 const CARD_WIDTH = 600;
 const CARD_HEIGHT = 400;
 
-function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCount, totalEVLoss, bestStreak, classificationCounts, sessionMistakes }) {
+function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCount, totalEVLoss, measuredEVDecisions, bestStreak, classificationCounts, sessionMistakes }) {
     const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
     // GTOW parity #25: gtowScore is on the signed -100..+100 scale. The legacy
     // 80/60 ramp and the 90/80/70/60/50 grade ladder were written for 0-100 and
@@ -43,7 +43,11 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
     });
 
     // Stats
-    const evPerHand = totalQuestions > 0 ? (totalEVLoss / totalQuestions).toFixed(2) : '0.00';
+    const hasMeasuredEV =
+        measuredEVDecisions > 0 && Number.isFinite(Number(totalEVLoss));
+    const evPerDecision = hasMeasuredEV
+        ? (Number(totalEVLoss) / measuredEVDecisions).toFixed(2)
+        : '-';
     const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return `
@@ -94,8 +98,8 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
         <text x="320" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#fbbf24">${bestStreak || 0}</text>
         <text x="320" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">BEST STREAK</text>
 
-        <text x="440" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="${totalEVLoss > 5 ? '#ef4444' : '#22c55e'}">${evPerHand}</text>
-        <text x="440" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">EV/HAND</text>
+        <text x="440" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="${hasMeasuredEV ? (totalEVLoss > 5 ? '#ef4444' : '#22c55e') : '#64748b'}">${evPerDecision}</text>
+        <text x="440" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">MEASURED EV/DECISION</text>
 
         <text x="540" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="${sessionMistakes > 5 ? '#ef4444' : '#22c55e'}">${sessionMistakes || 0}</text>
         <text x="540" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">MISTAKES</text>
@@ -124,7 +128,7 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
 
 export default function SessionShareCard({
     gameName, level, gtowScore, totalQuestions, correctCount,
-    totalEVLoss, bestStreak, classificationCounts, sessionMistakes,
+    totalEVLoss, measuredEVDecisions, bestStreak, classificationCounts, sessionMistakes,
     onClose,
 }) {
     const canvasRef = useRef(null);
@@ -136,7 +140,7 @@ export default function SessionShareCard({
         try {
             const svg = generateCardSVG({
                 gameName, level, gtowScore, totalQuestions, correctCount,
-                totalEVLoss, bestStreak, classificationCounts, sessionMistakes,
+                totalEVLoss, measuredEVDecisions, bestStreak, classificationCounts, sessionMistakes,
             });
 
             const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
@@ -168,7 +172,7 @@ export default function SessionShareCard({
             console.warn('[ShareCard] Generation error:', err);
             setStatus('error');
         }
-    }, [gameName, level, gtowScore, totalQuestions, correctCount, totalEVLoss, bestStreak, classificationCounts, sessionMistakes]);
+    }, [gameName, level, gtowScore, totalQuestions, correctCount, totalEVLoss, measuredEVDecisions, bestStreak, classificationCounts, sessionMistakes]);
 
     // Auto-generate on mount
     React.useEffect(() => { generateImage(); }, [generateImage]);

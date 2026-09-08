@@ -1,156 +1,322 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-/**
- * API: Browse Solutions — Query solver data for the Solutions Browser
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * GET /api/training/browse-solutions
- * 
- * Query params:
- *   gameType: 'hu_cash' | 'mtt_6max_icm' | 'mtt_9max_icm' | 'postflop_complete' | 'turn_spin'
- *   stackDepth: number (e.g., 100)
- *   street: 'flop' | 'turn' | 'river' (default: flop)
- *   position: 'BTN' | 'SB' | 'BB' | etc (optional filter)
- *   spotId: string (optional — specific scenario_hash to load)
- *   page: number (default: 1)
- *   limit: number (default: 20, max: 50)
- * 
- * Returns:
- *   { spots: [...], total: number, page: number }
- *   Each spot: { id, scenario_hash, game_type, stack_depth, board, heroPosition, actions, handCount }
- *   If spotId is provided: full strategy_matrix with frequencies for all 1326 hands
- */
-
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { parseBoardFromHash, extractPositionFromHash, getAllHands, sanitizeParam, VALID_STREETS, withTiming } from '../../../src/utils/trainingApiUtils';
+import { getAllHands, sanitizeParam, VALID_STREETS, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
+import {
+    parseSolverScenarioHash,
+    SOLVER_POSITIONS,
+    validateSolverRowIdentity,
+} from '../../../src/lib/training/solverRowIdentity.mjs';
 
-// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●
+/**
+ * Browse only provenance-complete PioSOLVER v2 artifacts.
+ *
+ * The historical implementation silently fell back to `strategy_matrix` and
+ * displayed unaudited rows as GTO truth. It also derived a made-up equity
+ * percentage from hand EV. Both behaviours are forbidden: a row is visible
+ * only when its relational identity, embedded v2 identity, source artifact,
+ * machine, pipeline, manifest, quality status, and solve geometry all pass.
+ */
+
+const TRAINING_SOLVER_CONTRACTS = new Map(Object.entries({
+    hu_cash: [40, 100, 200],
+    mtt_3max_chipev: [20],
+    mtt_6max_chipev: [10, 20, 40, 100],
+    mtt_9max_chipev: [20, 40, 80, 100],
+    mtt_hu_chipev: [40],
+    postflop_complete: [100],
+    spin_3max_chipev: [20, 25],
+    spin_hu_chipev: [10, 20],
+}).map(([family, stacks]) => [family, new Set(stacks)]));
+const POSITION_SET = new Set(SOLVER_POSITIONS);
+const FAMILY_STACK_PAIRS = [...TRAINING_SOLVER_CONTRACTS.entries()].flatMap(
+    ([gameType, stacks]) => [...stacks].map((stackDepth) => ({
+        game_type: gameType,
+        stack_depth: stackDepth,
+    })),
+);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SOLVER_QUERY_TIMEOUT_MS = 8_000;
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            throw new Error('Solver service is not configured');
+        }
         _supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
         );
     }
     return _supabase;
 }
+
+function verifiedIdentity(row) {
+    const validation = validateSolverRowIdentity(row);
+    return validation.ok ? validation.identity : null;
+}
+
+function listSpot(row) {
+    const identity = verifiedIdentity(row);
+    if (!identity) return null;
+    const v2 = row.strategy_matrix_v2;
+    return {
+        id: row.id,
+        scenarioHash: row.scenario_hash,
+        gameType: row.game_type,
+        stackDepth: row.stack_depth,
+        street: row.street,
+        board: identity.boardCards,
+        heroPosition: identity.heroPosition,
+        actorRole: v2.hero,
+        node: v2.node,
+        source: 'PioSOLVER',
+        auditedAt: row.audited_at,
+    };
+}
+
+function buildGridData(matrix) {
+    const actions = Array.isArray(matrix?.actions) ? matrix.actions : [];
+    const frequencies = matrix?.frequencies || {};
+    const gridData = {};
+
+    for (const hand of getAllHands()) {
+        const values = actions.map((action) => Number(frequencies[action]?.[hand]));
+        if (values.some((value) => !Number.isFinite(value) || value < 0)) {
+            gridData[hand] = null;
+            continue;
+        }
+        const total = values.reduce((sum, value) => sum + value, 0);
+        if (total <= 0) {
+            gridData[hand] = null;
+            continue;
+        }
+        gridData[hand] = {};
+        actions.forEach((action, index) => {
+            gridData[hand][action] = Math.round((values[index] / total) * 1000) / 10;
+        });
+    }
+
+    return gridData;
+}
+
+function fullSpot(row) {
+    const summary = listSpot(row);
+    if (!summary) return null;
+    const matrix = v2ToAppMatrix(row.strategy_matrix_v2);
+    if (!matrix) return null;
+    const actions = Array.isArray(matrix.actions) ? matrix.actions : [];
+    if (actions.length < 2) return null;
+    const gridData = buildGridData(matrix);
+    const handCount = Object.values(gridData).filter(Boolean).length;
+    if (handCount === 0) return null;
+
+    return {
+        ...summary,
+        actions,
+        gridData,
+        handEVs: matrix.hand_evs || {},
+        rawFrequencies: matrix.frequencies || {},
+        handCount,
+        decisionNode: {
+            node: matrix.node,
+            actorRole: matrix.hero,
+            oopPosition: matrix.oop_player,
+            ipPosition: matrix.ip_player,
+            potBb: matrix.pot_bb,
+            effectiveStackBb: matrix.eff_stack_bb,
+        },
+        provenance: {
+            verified: true,
+            source: 'PioSOLVER',
+            solverVersion: row.solver_version,
+            machineId: row.machine_id,
+            pipelineCommit: row.pipeline_commit,
+            manifestVersion: row.manifest_version,
+            qualityStatus: row.quality_status,
+            auditedAt: row.audited_at,
+        },
+    };
+}
+
+async function catalogCandidates(args) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SOLVER_QUERY_TIMEOUT_MS);
+    try {
+        const query = getSupabase().rpc('training_solver_spot_candidates_v1', args);
+        if (typeof query?.abortSignal !== 'function') {
+            throw new Error('Solver catalog query does not support cancellation');
+        }
+        return await query.abortSignal(controller.signal);
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function requireUser(req) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return null;
+    const { user, error } = await getServerUserWithFallback(req, getSupabase());
+    return error ? null : user;
+}
+
 export default async function handler(req, res) {
-  try {
-      withTiming(res);
-      if (!applyRateLimit(req, res, LIMITS.read)) return;
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Vary', 'Authorization');
 
-      if (req.method !== 'GET') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+    try {
+        withTiming(res);
+        if (!applyRateLimit(req, res, LIMITS.read)) return;
+        if (req.method !== 'GET') {
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
 
-      // BUG FIX: No auth — paid GTO solver database exposed without gate
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+        const user = await requireUser(req);
+        if (!user) return res.status(401).json({ success: false, error: 'Authentication required' });
 
-      try {
-          const {
-              gameType = 'hu_cash',
-              stackDepth = '100',
-              street = 'flop',
-              position,
-              spotId,
-              page = '1',
-              limit = '20',
-          } = req.query;
+        const spotId = req.query.spotId ? sanitizeParam(req.query.spotId, 180) : null;
+        const scenarioHash = req.query.scenarioHash ? sanitizeParam(req.query.scenarioHash, 200) : null;
 
-          const pageNum = Math.max(1, parseInt(page, 10) || 1);
-          const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
-          const offset = (pageNum - 1) * limitNum;
+        if (spotId || scenarioHash) {
+            const parsedScenario = scenarioHash ? parseSolverScenarioHash(scenarioHash) : null;
+            if (scenarioHash && !parsedScenario.ok) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'SOLVER_SCENARIO_IDENTITY_INVALID',
+                    error: 'scenarioHash is not a canonical solver identity',
+                });
+            }
+            if (spotId && !UUID.test(spotId)) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'SOLVER_ARTIFACT_ID_INVALID',
+                    error: 'spotId is not a canonical artifact identifier',
+                });
+            }
 
-          // Input validation
-          const safeStreet = VALID_STREETS.includes(street) ? street : 'flop';
+            const familyStacks = parsedScenario?.ok
+                ? [{
+                    game_type: parsedScenario.identity.gameType,
+                    stack_depth: parsedScenario.identity.stackDepth,
+                }]
+                : FAMILY_STACK_PAIRS;
+            const { data, error } = await catalogCandidates({
+                p_family_stacks: familyStacks,
+                p_position: null,
+                p_lower_inclusive: null,
+                p_lower_exclusive: null,
+                p_upper_exclusive: null,
+                p_limit: 3,
+                p_artifact_id: spotId,
+                p_scenario_hash: scenarioHash,
+                p_street: parsedScenario?.identity?.street || null,
+                p_offset: 0,
+            });
+            if (error) {
+                console.warn('[BrowseSolutions] Exact lookup failed:', error.message);
+                return res.status(503).json({
+                    success: false,
+                    code: 'SOLVER_LOOKUP_UNAVAILABLE',
+                    error: 'Audited solver lookup is temporarily unavailable',
+                    retryable: true,
+                });
+            }
 
-          // 2026-07-19: also allow lookup by scenario_hash — saved session
-          // histories are compacted (bulk matrices stripped) and the replay
-          // viewer re-fetches the solver matrix by hash on demand.
-          const scenarioHash = req.query.scenarioHash ? sanitizeParam(req.query.scenarioHash, 200) : null;
+            const matches = (data || []).map(fullSpot).filter(Boolean);
+            if (matches.length > 1) {
+                return res.status(503).json({
+                    success: false,
+                    code: 'SOLVER_IDENTITY_AMBIGUOUS',
+                    error: 'Multiple audited artifacts claim this solver identity',
+                });
+            }
+            if (matches.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    code: 'AUDITED_SOLVER_ARTIFACT_NOT_FOUND',
+                    error: 'No provenance-complete solver artifact exists for this exact identity',
+                });
+            }
+            return res.status(200).json({ success: true, spot: matches[0] });
+        }
 
-          const policyService = new SolverPolicyService({ db: getSupabase() });
+        const gameType = sanitizeParam(req.query.gameType || 'hu_cash', 40);
+        const stackDepth = Number(req.query.stackDepth || 100);
+        const street = sanitizeParam(req.query.street || 'flop', 10);
+        const position = req.query.position ? sanitizeParam(req.query.position, 10).toUpperCase() : null;
+        const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+        const offset = (page - 1) * limit;
 
-          if (spotId || scenarioHash) {
-              const { records } = await policyService.listSolvedRecords({
-                  id: spotId || undefined,
-                  scenarioHash: spotId ? undefined : scenarioHash,
-                  limit: 1,
-              });
-              const record = records[0];
-              if (!record) {
-                  return res.status(404).json({ success: false, error: 'Trusted spot not found' });
-              }
-              const range = policyService.rangeGrid(record, getAllHands());
-              const answer = policyService.consumerEnvelope(range.answer, 'browse-solutions');
-              const handEVs = range.handEvs;
-              let heroEqSum = 0;
-              let villainEqSum = 0;
-              let eqCount = 0;
-              for (const hand of getAllHands()) {
-                  const ev = handEVs[hand];
-                  if (Number.isFinite(ev) && range.sourceGridData[hand]) {
-                      const handEq = Math.max(0, Math.min(100, 50 + (ev * 2)));
-                      heroEqSum += handEq;
-                      villainEqSum += 100 - handEq;
-                      eqCount += 1;
-                  }
-              }
-              const rangeEquity = eqCount > 0 ? {
-                  hero: Math.round((heroEqSum / eqCount) * 10) / 10,
-                  villain: Math.round((villainEqSum / eqCount) * 10) / 10,
-              } : { hero: 50, villain: 50 };
-              const spot = record.metadata;
-              return res.status(200).json({
-                  success: true,
-                  spot: {
-                      id: spot.id, scenarioHash: spot.scenario_hash, gameType: spot.game_type,
-                      stackDepth: spot.stack_depth, board: parseBoardFromHash(spot.scenario_hash),
-                      heroPosition: extractPositionFromHash(spot.scenario_hash),
-                      actions: range.sourceActions, actionDefinitions: answer.actions,
-                      gridData: range.sourceGridData, canonicalGridData: range.gridData,
-                      handEVs, rawFrequencies: range.rawFrequencies,
-                      handCount: range.handCount, rangeEquity, solverPolicy: answer,
-                  },
-              });
-          }
+        if (!TRAINING_SOLVER_CONTRACTS.has(gameType)
+            || !Number.isSafeInteger(stackDepth)
+            || stackDepth <= 0
+            || stackDepth > 1000
+            || !TRAINING_SOLVER_CONTRACTS.get(gameType)?.has(stackDepth)
+            || !VALID_STREETS.includes(street)
+            || (position && !POSITION_SET.has(position))
+            || offset > 4096) {
+            return res.status(400).json({
+                success: false,
+                code: 'SOLVER_BROWSE_FILTER_INVALID',
+                error: 'One or more solver browse filters are invalid',
+            });
+        }
 
-          const safePosition = position ? sanitizeParam(position, 10) : null;
-          const metadata = await policyService.listSolvedMetadata({
-              gameType: sanitizeParam(gameType, 80),
-              stackDepth: parseInt(stackDepth, 10),
-              street: safeStreet,
-              position: safePosition || undefined,
-              orderBy: 'scenario_hash',
-              ascending: true,
-              range: [offset, offset + limitNum - 1],
-              limit: limitNum,
-          }, { count: true });
-          const enriched = metadata.rows.map((spot) => ({
-              id: spot.id, scenarioHash: spot.scenario_hash, gameType: spot.game_type,
-              stackDepth: spot.stack_depth, board: parseBoardFromHash(spot.scenario_hash),
-              heroPosition: extractPositionFromHash(spot.scenario_hash),
-          }));
-          return res.status(200).json({
-              success: true, spots: enriched, total: metadata.count || 0,
-              page: pageNum, limit: limitNum,
-              totalPages: Math.ceil((metadata.count || 0) / limitNum),
-          });
-      } catch (err) {
-          console.warn('[BrowseSolutions] Error:', err);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
-      }
+        const { data, error } = await catalogCandidates({
+            p_family_stacks: [{ game_type: gameType, stack_depth: stackDepth }],
+            p_position: position,
+            p_lower_inclusive: null,
+            p_lower_exclusive: null,
+            p_upper_exclusive: null,
+            p_limit: limit + 1,
+            p_artifact_id: null,
+            p_scenario_hash: null,
+            p_street: street,
+            p_offset: offset,
+        });
 
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+        if (error) {
+            console.warn('[BrowseSolutions] Catalog lookup failed:', error.message);
+            return res.status(503).json({
+                success: false,
+                code: 'SOLVER_LOOKUP_UNAVAILABLE',
+                error: 'Audited solver catalog is temporarily unavailable',
+                retryable: true,
+            });
+        }
+
+        const queried = data || [];
+        const hasMore = queried.length > limit;
+        const spots = queried.slice(0, limit).map(listSpot).filter(Boolean);
+        return res.status(200).json({
+            success: true,
+            spots,
+            page,
+            limit,
+            returnedCount: spots.length,
+            hasMore,
+            total: null,
+            totalIsExact: false,
+            totalPages: hasMore ? page + 1 : page,
+            authority: 'provenance_complete_piosolver_v2_only',
+        });
+    } catch (error) {
+        try { reportApiError(error, req); } catch (reportError) {
+            console.warn('[BrowseSolutions] Error reporting failed:', reportError?.message || reportError);
+        }
+        console.warn('[BrowseSolutions] Unhandled error:', error?.message || error);
+        if (!res.headersSent) {
+            return res.status(503).json({
+                success: false,
+                code: 'SOLVER_LOOKUP_UNAVAILABLE',
+                error: 'Audited solver lookup is temporarily unavailable',
+                retryable: true,
+            });
+        }
+        return undefined;
+    }
 }

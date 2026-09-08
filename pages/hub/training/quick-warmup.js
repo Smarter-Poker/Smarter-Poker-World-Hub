@@ -20,6 +20,7 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -39,34 +40,46 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
   ),
 });
 
+// Quick Warmup is intentionally embedded, but it is still the same canonical,
+// server-signed Arena. A fixed config avoids a second setup screen and prevents
+// legacy pseudo-mode values from changing the delivery contract.
+const WARMUP_ARENA_CONFIG = Object.freeze(normalizeTrainingSessionConfig({
+  difficulty: 'standard',
+  timer: 'standard',
+  mode: 'standard',
+  gameMode: 'full',
+  tables: '1',
+  handSelection: 'all',
+}));
+
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // WARMUP CONFIG
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const WARMUP_DURATION = 300; // 5 minutes in seconds
 const WARMUP_GAMES = [
-  { id: 'cash-preflop', name: 'Preflop Opens' },
-  { id: 'cash-bb-defense', name: 'BB Defense' },
-  { id: 'cash-cbet', name: 'C-Betting' },
-  { id: 'cash-turn-play', name: 'Turn Play' },
-  { id: 'cash-river-bluffs', name: 'River Decisions' },
-  { id: 'cash-threeBet-spots', name: '3-Bet Pots' },
+  { id: 'cash-001', name: 'Preflop Blueprint' },
+  { id: 'cash-003', name: 'Defense Matrix' },
+  { id: 'cash-002', name: 'C-Bet Academy' },
+  { id: 'cash-024', name: 'Pot Control' },
+  { id: 'cash-012', name: 'River Decisions' },
+  { id: 'cash-007', name: '3-Bet Pots' },
 ];
 
 const POSITION_GAMES = [
-  { id: 'cash-bb-defense', name: 'BB Defense' },
-  { id: 'cash-btn-play', name: 'BTN Play' },
-  { id: 'cash-sb-3bet', name: 'SB 3-Bet' },
-  { id: 'cash-co-opens', name: 'CO Opens' },
-  { id: 'cash-preflop', name: 'Preflop Opens' },
+  { id: 'cash-003', name: 'Defense Matrix' },
+  { id: 'cash-006', name: 'Position Power' },
+  { id: 'cash-018', name: 'Blind Vs Blind' },
+  { id: 'cash-001', name: 'Preflop Blueprint' },
+  { id: 'cash-007', name: '3-Bet Pots' },
 ];
 
 const POSTFLOP_GAMES = [
-  { id: 'cash-cbet', name: 'C-Betting' },
-  { id: 'cash-turn-play', name: 'Turn Play' },
-  { id: 'cash-river-bluffs', name: 'River Decisions' },
-  { id: 'cash-probe-bets', name: 'Probe Bets' },
-  { id: 'cash-delayed-cbet', name: 'Delayed C-Bet' },
+  { id: 'cash-002', name: 'C-Bet Academy' },
+  { id: 'cash-024', name: 'Pot Control' },
+  { id: 'cash-012', name: 'River Decisions' },
+  { id: 'cash-013', name: 'Probe Betting' },
+  { id: 'cash-014', name: 'Check-Raise Art' },
 ];
 
 function selectWarmupGame(sessions, mode) {
@@ -106,6 +119,14 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function createWarmupRunId() {
+  const randomUUID = globalThis?.crypto?.randomUUID;
+  const suffix = typeof randomUUID === 'function'
+    ? randomUUID.call(globalThis.crypto)
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+  return `warmup-${suffix}`;
+}
+
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -119,7 +140,9 @@ export default function QuickWarmupPage() {
   const [results, setResults] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [warmupMode, setWarmupMode] = useState('auto');
+  const [arenaSessionId, setArenaSessionId] = useState(null);
   const timerRef = useRef(null);
+  const [arenaUserId, setArenaUserId] = useState(null);
   const [fetchError, setFetchError] = useState(null);
 
   // Fetch user data for weakness detection
@@ -166,15 +189,19 @@ export default function QuickWarmupPage() {
     }
   }, [phase]);
 
-  // Time's up
-  useEffect(() => {
-    if (timeLeft === 0 && phase === 'playing') {
-      setPhase('results');
-    }
-  }, [timeLeft, phase]);
+  // At 0:00 the clock stops, but the signed Arena stays mounted until it can
+  // return its authoritative completion totals. Unmounting here used to show a
+  // fabricated 0% / 0-question result for players who had already answered.
 
   const startWarmup = () => {
+    const user = getAuthUser();
+    if (!user?.id) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath || '/hub/training/quick-warmup')}`);
+      return;
+    }
     const game = selectWarmupGame(sessions, warmupMode);
+    setArenaSessionId(createWarmupRunId());
+    setArenaUserId(user.id);
     setSelectedGame(game);
     setTimeLeft(WARMUP_DURATION);
     setResults(null);
@@ -192,24 +219,8 @@ export default function QuickWarmupPage() {
     setPhase('results');
   };
 
-  const handleArenaExit = () => {
-    clearInterval(timerRef.current);
-    if (timeLeft < WARMUP_DURATION - 10) {
-      // User played at least 10 seconds
-      setResults({
-        accuracy: 0,
-        questionsAnswered: 0,
-        timeUsed: WARMUP_DURATION - timeLeft,
-        game: selectedGame,
-      });
-      setPhase('results');
-    } else {
-      setPhase('ready');
-    }
-  };
-
   // Active arena with timer overlay
-  if (phase === 'playing' && selectedGame) {
+  if (phase === 'playing' && selectedGame && arenaUserId && arenaSessionId) {
     return (
       <div style={{ position: 'relative' }}>
         {/* Timer overlay */}
@@ -228,23 +239,30 @@ export default function QuickWarmupPage() {
         >
           <div
             style={{
-              fontSize: 18,
+              fontSize: timeLeft === 0 ? 11 : 18,
               fontWeight: 900,
               color: timeLeft <= 30 ? '#fff' : 'var(--sp-accent-cyan)',
               fontFamily: "'Inter', monospace",
+              maxWidth: timeLeft === 0 ? 170 : 'none',
+              textAlign: 'center',
             }}
+            role="status"
+            aria-live="polite"
           >
-            {formatTime(timeLeft)}
+            {timeLeft === 0
+              ? 'Time Complete - Finish The Signed Arena For Verified Results'
+              : formatTime(timeLeft)}
           </div>
         </div>
         <GodModeArena
-          userId={getAuthUser()?.id || `anon-${Date.now()}`}
+          key={`${arenaSessionId}:${selectedGame.id}`}
+          userId={arenaUserId}
           gameId={selectedGame.id}
           gameName={`Warmup: ${selectedGame.name}`}
           level={1}
-          sessionId={`warmup-${Date.now()}`}
+          sessionId={arenaSessionId}
+          initialConfig={WARMUP_ARENA_CONFIG}
           onComplete={handleArenaComplete}
-          onExit={handleArenaExit}
         />
       </div>
     );
@@ -407,13 +425,13 @@ export default function QuickWarmupPage() {
                   HOW IT WORKS
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.7 }}>
-                  1. Timer Starts At 5:00
+                  1. Five-Minute Clock Tracks Your Pace
                   <br />
                   2. Answer GTO Questions As Fast As You Can
                   <br />
                   3. Game Auto-Selects Your Weakest Area
                   <br />
-                  4. See Your Speed + Accuracy Results
+                  4. Finish The Signed Arena To See Verified Results
                 </div>
               </div>
             </motion.div>

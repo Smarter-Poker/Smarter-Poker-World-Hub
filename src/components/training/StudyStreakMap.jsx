@@ -223,7 +223,30 @@ const styles = {
         fontSize: 10,
         color: 'rgba(255,255,255,0.4)',
         margin: '0 4px',
-    }
+    },
+    stateText: {
+        color: 'rgba(255,255,255,0.55)',
+        fontSize: 12,
+        lineHeight: 1.5,
+    },
+    errorText: {
+        color: '#fbbf24',
+        fontSize: 13,
+        fontWeight: 700,
+        marginBottom: 4,
+    },
+    retryButton: {
+        minHeight: 44,
+        marginTop: 12,
+        padding: '0 18px',
+        border: '1px solid rgba(34, 211, 238, 0.55)',
+        borderRadius: 8,
+        background: 'rgba(34, 211, 238, 0.1)',
+        color: '#e2e8f0',
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer',
+    },
 };
 
 /**
@@ -232,31 +255,62 @@ const styles = {
  * Use this in contexts where session data isn't available as a prop.
  */
 export function StudyStreakMapAuto({ userId, gameId }) {
-    const [sessions, setSessions] = useState([]);
+    const [sessions, setSessions] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const fetchAllSessions = useCallback(async () => {
-        if (!userId) { setLoading(false); return; }
+        if (!userId) {
+            setSessions(null);
+            setError(null);
+            setLoading(false);
+            return;
+        }
+        setSessions(null);
+        setError(null);
+        setLoading(true);
         try {
             const params = new URLSearchParams({ limit: '500' });
             if (gameId) params.set('gameId', gameId);
             const res = await authedFetch(`/api/training/get-sessions?${params}`);
             const data = await res.json();
-            if (data.success && data.sessions) {
-                setSessions(data.sessions);
+            if (!res.ok || data?.success !== true || !Array.isArray(data.sessions)) {
+                throw new Error(`session history unavailable (${res.status})`);
             }
+            setSessions(data.sessions);
         } catch (err) {
+            setSessions(null);
+            setError('Study routine history is temporarily unavailable.');
             console.warn('[StudyStreakMap] Fetch error:', err.message);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [userId, gameId]);
 
     useEffect(() => { fetchAllSessions(); }, [fetchAllSessions]);
 
-    if (loading) {
+    if (!userId) {
+        return (
+            <div style={{ ...styles.container, textAlign: 'center', padding: 20 }} role="status">
+                <div style={styles.stateText}>Sign In To View Your Study Routine.</div>
+            </div>
+        );
+    }
+
+    if (loading || (!error && sessions === null)) {
         return (
             <div style={{ ...styles.container, textAlign: 'center', padding: 20 }}>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Loading Study Routine...</div>
+            </div>
+        );
+    }
+
+    if (error || !Array.isArray(sessions)) {
+        return (
+            <div style={{ ...styles.container, textAlign: 'center', padding: 20 }} role="alert">
+                <div style={styles.errorText}>Study Routine Is Temporarily Unavailable.</div>
+                <div style={styles.stateText}>No Empty Routine Or Streak Was Assumed.</div>
+                <button type="button" style={styles.retryButton} onClick={fetchAllSessions}>Retry</button>
             </div>
         );
     }

@@ -9,6 +9,9 @@ const TEXT_FIELDS = [
   'classification',
   'spot_type',
   'submission_id',
+  'session_id',
+  'attempt_id',
+  'snapshot_key',
   'solver_source',
 ];
 
@@ -17,6 +20,8 @@ const NUMBER_FIELDS = [
   'ev_loss',
   'selected_frequency',
   'optimal_frequency',
+  'hand_ordinal',
+  'decision_ordinal',
 ];
 
 const BOOLEAN_FIELDS = [

@@ -73,8 +73,8 @@ export default function CoachingWorkspace({
   userId,
   leaks = [],
   onOpenLeak,
-  onPractice,
-  onPracticeExample,
+  onOpenHandReview,
+  onReviewExample,
   onTrain,
 }) {
   const [workspace, setWorkspace] = useState(null);
@@ -339,7 +339,7 @@ export default function CoachingWorkspace({
                 <strong>{snapshot.nextBestAction.title}</strong>
                 <p>{snapshot.nextBestAction.reason}</p>
                 <div className={styles.actionRow}>
-                  <button type="button" className={styles.primaryButton} onClick={() => onPractice?.(findLeak(leaks, snapshot.nextBestAction.leakId))}>Open Corrective Review</button>
+                  <button type="button" className={styles.primaryButton} onClick={() => onOpenHandReview?.(findLeak(leaks, snapshot.nextBestAction.leakId))}>Open Audited Hand Review</button>
                   <button type="button" className={styles.secondaryButton} onClick={() => onOpenLeak?.(snapshot.nextBestAction.leakId)}>Inspect Evidence</button>
                 </div>
               </>
@@ -411,14 +411,14 @@ export default function CoachingWorkspace({
                 <Progress value={selectedPriority.confidence.score} label="Measured Confidence" />
                 <ul className={styles.reasonList}>{selectedPriority.confidence.reasons.slice(0, analysisDepth === 'guided' ? 1 : analysisDepth === 'detailed' ? 2 : undefined).map(reason => <li key={reason}><Check size={15} aria-hidden="true" />{reason}</li>)}</ul>
                 <div className={styles.actionRow}>
-                  <button type="button" className={styles.primaryButton} disabled={examplesLoading} onClick={() => exactExample ? onPracticeExample?.(selectedLeak, exactExample) : onPractice?.(selectedLeak)}>
-                    {examplesLoading ? 'Loading Exact Hand' : exactExample ? 'Open Exact Sandbox Spot' : 'Open Corrective Sandbox'}
+                  <button type="button" className={styles.primaryButton} disabled={examplesLoading} onClick={() => exactExample ? onReviewExample?.(selectedLeak, exactExample) : onOpenHandReview?.(selectedLeak)}>
+                    {examplesLoading ? 'Loading Hand Evidence' : 'Open Audited Hand Review'}
                   </button>
                   <button type="button" className={styles.secondaryButton} onClick={() => onTrain?.(selectedLeak)}>Open Training Game</button>
                   <button type="button" className={styles.secondaryButton} onClick={() => onOpenLeak?.(selectedPriority.id)}>Open Leak Details</button>
                 </div>
                 {examplesError && <div className={styles.inlineNotice} role="status">Exact Hand Evidence Could Not Be Loaded. <button type="button" onClick={refetchExamples}>Retry</button></div>}
-                {!examplesLoading && !examplesError && !exactExample && <div className={styles.inlineNotice}>No Persisted Example Hand Is Attached. The Sandbox Will Open With The Leak Target Only.</div>}
+                {!examplesLoading && !examplesError && !exactExample && <div className={styles.inlineNotice}>No Persisted Example Hand Is Attached. Upload The Original Hand History For An Audited Review.</div>}
               </>
             ) : <p>No Evidence Is Available Yet.</p>}
           </div>
@@ -511,7 +511,7 @@ export default function CoachingWorkspace({
             <div><span>Review Load</span><strong>{snapshot?.weeklyReport?.reviewLoad || 0}</strong></div>
             <div><span>Measured EV Loss</span><strong>{number(snapshot?.weeklyReport?.measuredEvLoss).toFixed(2)} BB</strong></div>
           </div>
-          <ol className={styles.reportList}>{(snapshot?.weeklyReport?.focus || []).map(item => <li key={item.id}><span>Priority {item.rank}</span><strong>{item.title}</strong><small>{item.targetReviews} Corrective Reviews, Then Reassess With Fresh Club Arena Hands</small><button type="button" className={styles.secondaryButton} onClick={() => onPractice?.(findLeak(leaks, item.id))}>Start Review</button></li>)}</ol>
+          <ol className={styles.reportList}>{(snapshot?.weeklyReport?.focus || []).map(item => <li key={item.id}><span>Priority {item.rank}</span><strong>{item.title}</strong><small>{item.targetReviews} Corrective Reviews, Then Reassess With Fresh Club Arena Hands</small><button type="button" className={styles.secondaryButton} onClick={() => onOpenHandReview?.(findLeak(leaks, item.id))}>Open Audited Review</button></li>)}</ol>
           {!snapshot?.weeklyReport?.focus?.length && <p>Run A Fresh Deterministic Audit To Build This Week's Plan.</p>}
           <footer className={styles.reportFooter}><BookOpen size={17} aria-hidden="true" /><span>Corrective Mastery Never Resolves A Real-Play Leak By Itself. Fresh Club Arena Evidence Must Confirm Improvement.</span></footer>
         </article>

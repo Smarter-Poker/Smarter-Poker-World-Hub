@@ -147,7 +147,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     const response = await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
     await expect(page.getByRole('heading', { name: /Meet Jarvis/i })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Scenario Analysis Archive', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Leak Finder', exact: true })).toBeVisible();
     await expectHealthyLayout(page);
   });
@@ -195,17 +195,17 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     });
   });
 
-  test('expired one-time shared hand-off reports the problem and cleans its URL', async ({ page }) => {
-    await page.addInitScript(() => window.sessionStorage.removeItem('shared-sandbox-state'));
+  test('legacy shared hand-offs cannot reopen approximate Sandbox analysis', async ({ page }) => {
     await page.goto('/hub/personal-assistant/sandbox?loadShared=true', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('That Shared Scenario Has Expired · Open The Original Link Again')).toBeVisible();
-    await expect.poll(() => new URL(page.url()).searchParams.has('loadShared')).toBe(false);
+    await expect(page.getByRole('heading', { name: 'Verified Evidence Required' })).toBeVisible();
+    await expect(page.getByText('Approximate Analysis Retired')).toBeVisible();
+    await expect(page.locator('#sandbox-table')).toHaveCount(0);
   });
 
   test('strategy hub keeps its primary command fully inside the mobile hero bay', async ({ page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('mobile'), 'mobile project only');
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
-    const command = page.getByRole('button', { name: 'Start New Scenario' });
+    const command = page.getByRole('button', { name: 'Open Verified Training' }).first();
     const hero = page.locator('section').filter({ has: command }).first();
     await expect(command).toBeVisible();
     const [commandBox, heroBox] = await Promise.all([command.boundingBox(), hero.boundingBox()]);
@@ -242,7 +242,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(dailySection.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
     await expect(dailySection.getByText('BTN · Pot 6 BB')).toBeVisible();
     await expect(dailySection.getByLabel('Hero Hand Ts9s')).toBeVisible();
-    await expect(dailySection.getByRole('button', { name: /Load In Sandbox/i })).toBeVisible();
+    await expect(dailySection.getByRole('button', { name: /Open Verified Training/i })).toBeVisible();
     await expectHealthyLayout(page);
   });
 
@@ -290,101 +290,24 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
-  test('Sandbox setup sheet opens, traps context, and closes with Escape', async ({ page }, testInfo) => {
+  test('Sandbox route fails closed and exposes only evidence-backed destinations', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeAttached();
-    await expect(page.locator('#sandbox-table')).toBeVisible();
-    await activateControl(page.getByRole('button', { name: 'Open setup' }), testInfo.project.name);
-    const dialog = page.getByRole('dialog', { name: /Setup/i });
-    await expect(dialog).toBeVisible();
-    const focusable = dialog.locator('a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])');
-    const first = focusable.first();
-    const last = focusable.last();
-    // BottomSheet schedules initial focus after mount. Wait for that contract
-    // before exercising wraparound so its 60ms focus timer cannot race the
-    // Shift+Tab assertion and move focus back to the first control.
-    await expect(first).toBeFocused({ timeout: 5_000 });
-    await first.press('Shift+Tab');
-    await expect(last).toBeFocused();
-    await last.press('Tab');
-    await expect(first).toBeFocused();
-    await page.keyboard.press('Escape');
-    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Verified Evidence Required' })).toBeVisible();
+    await expect(page.getByText('No Answer, Frequency, EV, Accuracy, Streak, Reward, Study Record, Or Progress Is Created On This Page.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Open Verified Spot Trainer/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Open Hand History Review/i })).toBeVisible();
+    await expect(page.locator('[data-training-authority="verified-evidence-required"]')).toBeVisible();
+    await expect(page.locator('#sandbox-table, #run-analysis')).toHaveCount(0);
     await expectHealthyLayout(page);
   });
 
-  test('Sandbox card picker and history subflows remain wired', async ({ page }, testInfo) => {
-    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
-
-    await activateControl(page.getByRole('button', { name: 'Load a saved hand' }), testInfo.project.name);
-    await expect(page.getByRole('dialog', { name: /History/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Sessions' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Bookmarks' })).toBeVisible();
-    await page.keyboard.press('Escape');
-
-    await activateControl(page.getByRole('button', { name: 'Pick my cards' }), testInfo.project.name);
-    await expect(page.getByRole('dialog', { name: /Pick card 1 of 2/i })).toBeVisible();
-    if (testInfo.project.name.includes('mobile')) {
-      await page.getByRole('button', { name: /Rank A,/i }).click();
-      await expect(page.getByText('Choose a suit for A')).toBeVisible();
-    }
-    await page.getByRole('button', { name: 'A of spades' }).click();
-    await expect(page.getByRole('dialog', { name: /Pick card 2 of 2/i })).toBeVisible();
-    await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByRole('dialog', { name: /Pick card/i })).toHaveCount(0);
-    await expectHealthyLayout(page);
-  });
-
-  test('Sandbox templates and study analytics subpages open from their real controls', async ({ page }) => {
-    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
-
-    await page.getByRole('button', { name: 'Open setup' }).click();
-    await page.getByRole('button', { name: 'Templates', exact: true }).click();
-    await expect(page.getByRole('dialog', { name: /My templates/i })).toBeVisible();
-    await page.keyboard.press('Escape');
-
-    await page.getByRole('button', { name: 'Load a saved hand' }).click();
-    await page.getByRole('button', { name: /Study analytics/i }).click();
-    await expect(page.getByRole('dialog', { name: /Study analytics/i })).toBeVisible();
-    await expectHealthyLayout(page);
-  });
-
-  test('Sandbox imports a native solver node without inventing missing state', async ({ page }, testInfo) => {
-    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
-    await activateControl(page.getByRole('button', { name: /Open .* Command Menu|Open Menu/i }), testInfo.project.name);
-    const commandMenu = page.getByRole('dialog', { name: /Command Menu/i });
-    await expect(commandMenu).toBeVisible();
-    await commandMenu.getByLabel('Search Menu').fill('Pro Import');
-    await activateControl(commandMenu.getByRole('button', { name: 'Pro Import' }), testInfo.project.name);
-    const importer = page.getByRole('dialog', { name: 'Import Native Solver Scenario' });
-    await expect(importer).toBeVisible();
-    await importer.getByLabel('Solver Export Text').fill(`PioSOLVER
-Board: Kh Jd 3c
-Pot: 75
-Effective Stack: 120
-Hero Position: CO
-Villain Position: BB
-Villain Range: AA,KK,QQ,AKs`);
-    await activateControl(importer.getByRole('button', { name: 'Check Scenario' }), testInfo.project.name);
-    await expect(importer.getByText('PioSolver Import Verified.')).toBeVisible();
-    await expect(importer.getByText('CO', { exact: true })).toBeVisible();
-    await expect(importer.getByText('BB', { exact: true })).toBeVisible();
-    await activateControl(importer.getByRole('button', { name: 'Load Scenario' }), testInfo.project.name);
-    await expect(importer).toHaveCount(0);
-    await expectHealthyLayout(page);
-  });
-
-  test('Sandbox mobile controls remain one-handed and overflow-free', async ({ page }, testInfo) => {
+  test('Sandbox retirement boundary remains mobile legible and overflow-free', async ({ page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('mobile'), 'mobile project only');
     await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#run-analysis')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open setup' })).toBeVisible();
-    await expect(page.locator('#sandbox-table')).toBeVisible();
-    await page.getByRole('button', { name: 'Deal a random flop' }).click();
-    const removers = page.getByRole('button', { name: /^Remove / });
-    await expect(removers).toHaveCount(3);
-    for (const button of await removers.all()) {
+    const destinations = page.locator('.destination');
+    await expect(destinations).toHaveCount(3);
+    for (const button of await destinations.all()) {
       const box = await button.boundingBox();
       expect(box?.width).toBeGreaterThanOrEqual(44);
       expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -392,26 +315,17 @@ Villain Range: AA,KK,QQ,AKs`);
     await expectHealthyLayout(page);
   });
 
-  test('Sandbox preflop grid has one tab stop, arrow navigation, and mobile-sized cells', async ({ page }, testInfo) => {
-    await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
-    const toggle = page.getByRole('button', { name: /Range Chart/i });
-    await activateControl(toggle, testInfo.project.name);
-    const grid = page.getByRole('grid', { name: /Preflop Range/i });
-    await expect(grid).toBeVisible();
-    const cells = grid.getByRole('gridcell');
-    await expect(cells).toHaveCount(169);
-    expect(await cells.evaluateAll(nodes => nodes.filter(node => node.getAttribute('tabindex') === '0').length)).toBe(1);
-    await cells.first().focus();
-    await page.keyboard.press('ArrowRight');
-    await expect(cells.nth(1)).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(cells.nth(14)).toBeFocused();
-    if (testInfo.project.name.includes('mobile')) {
-      const box = await cells.nth(14).boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.width).toBeGreaterThanOrEqual(44);
-      expect(box!.height).toBeGreaterThanOrEqual(44);
-    }
+  test('Sandbox analysis API returns an explicit retired contract', async ({ request }) => {
+    const response = await request.post('/api/assistant/sandbox/analyze', { data: {} });
+    expect(response.status()).toBe(410);
+    expect(response.headers()['cache-control']).toContain('no-store');
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: false,
+      retired: true,
+      code: 'SANDBOX_ANALYSIS_REQUIRES_VERIFIED_EVIDENCE',
+      verifiedRoute: '/hub/training',
+    });
   });
 
   test('Leak Finder switches between leaks and every analytics sub-surface', async ({ page }, testInfo) => {
@@ -426,7 +340,7 @@ Villain Range: AA,KK,QQ,AKs`);
     const insightsButton = page.getByRole('button', { name: 'Insights' });
     await activateControl(insightsButton, testInfo.project.name);
     await expect(page.locator('#leak-insights')).toBeVisible();
-    await expect(page.getByText('Worst Coach-Mode Spots')).toBeVisible();
+    await expect(page.getByText('Archived Coach-Mode Records')).toBeVisible();
     await expect(page.getByText('Weekly Leaderboard')).toBeVisible();
     await expect(page.getByText('Macro Leak Detector')).toBeVisible();
     await expect(page.getByText('Position Leak Map')).toBeVisible();
@@ -595,7 +509,7 @@ Villain Range: AA,KK,QQ,AKs`);
     await expect(details.getByRole('heading', { name: 'Corrective Review' })).toBeVisible();
     await expect(details.getByText('Exact Training Game', { exact: true })).toBeVisible();
     await expect(details.getByRole('button', { name: 'Start Corrective Review' })).toBeVisible();
-    await expect(details.getByRole('button', { name: 'Practice Leak in Sandbox' })).toBeVisible();
+    await expect(details.getByRole('button', { name: 'Open Hand History Review' })).toBeVisible();
     const exactTraining = details.getByRole('button', { name: 'Open Exact Training Game' });
     await expect(exactTraining).toBeVisible();
     const guidance = details.getByRole('switch');

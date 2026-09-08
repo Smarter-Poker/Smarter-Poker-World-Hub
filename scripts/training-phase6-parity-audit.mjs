@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -16,10 +24,29 @@ const BASE_URL = String(process.env.TRAINING_PHASE6_BASE_URL || 'https://smarter
 const AUTH_STATE = resolve(process.env.TRAINING_PHASE6_AUTH_STATE || resolve(ROOT, 'playwright/.auth/user.json'));
 const OUT = resolve(process.env.TRAINING_PHASE6_OUT || resolve(ROOT, '.agent/audits/2026-09-01-training-phase-6-runtime.json'));
 const SHOTS = resolve(process.env.TRAINING_PHASE6_SHOTS || '/tmp/training-phase6-parity');
+const EXPECTED_BUILD = String(process.env.TRAINING_PHASE6_EXPECTED_BUILD || '').trim();
+const REQUIRE_FULL = process.env.TRAINING_PHASE6_ALLOW_PARTIAL !== '1';
 
-assert.ok(existsSync(AUTH_STATE), `Authenticated storage state is missing: ${AUTH_STATE}`);
 mkdirSync(dirname(OUT), { recursive: true });
 mkdirSync(SHOTS, { recursive: true });
+
+function writeOutputAtomic(value) {
+  const temporaryOutput = `${OUT}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    writeFileSync(temporaryOutput, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
+    renameSync(temporaryOutput, OUT);
+  } finally {
+    if (existsSync(temporaryOutput)) unlinkSync(temporaryOutput);
+  }
+}
+
+writeOutputAtomic({
+  success: false,
+  status: 'in_progress',
+  startedAt: new Date().toISOString(),
+  expectedBuild: EXPECTED_BUILD || null,
+});
+assert.ok(existsSync(AUTH_STATE), `Authenticated storage state is missing: ${AUTH_STATE}`);
 
 const ALL_VIEWPORTS = [
   { name: 'mobile', width: 390, height: 844 },
@@ -48,6 +75,75 @@ const CASES = requestedGames.size > 0
   : ALL_CASES;
 assert.ok(VIEWPORTS.length > 0, 'Phase 6 viewport filter matched no canonical viewport');
 assert.ok(CASES.length > 0, 'Phase 6 game filter matched no canonical case');
+if (REQUIRE_FULL) {
+  assert.match(
+    EXPECTED_BUILD,
+    /^[0-9a-f]{40}$/i,
+    'full Phase 6 parity certification requires a 40-character TRAINING_PHASE6_EXPECTED_BUILD',
+  );
+  assert.equal(requestedViewports.size, 0, 'full Phase 6 parity certification cannot filter viewports');
+  assert.equal(requestedGames.size, 0, 'full Phase 6 parity certification cannot filter games');
+  assert.equal(VIEWPORTS.length, 2, 'full Phase 6 parity certification requires both viewports');
+  assert.equal(CASES.length, 9, 'full Phase 6 parity certification requires all nine canonical cases');
+}
+
+async function readDeploymentIdentity() {
+  const response = await fetch(`${BASE_URL}/api/health?phase6Audit=${Date.now()}`, {
+    cache: 'no-store',
+    headers: { 'cache-control': 'no-cache' },
+    signal: AbortSignal.timeout(20_000),
+  });
+  assert.equal(response.ok, true, `Phase 6 parity could not read deployment health: HTTP ${response.status}`);
+  const health = await response.json();
+  const version = String(health?.version || '').trim();
+  const commitSha = String(health?.commitSha || '').trim();
+  assert.ok(version, 'Phase 6 deployment health did not expose a build version');
+  if (EXPECTED_BUILD) {
+    assert.equal(commitSha, EXPECTED_BUILD,
+      `Phase 6 parity expected exact build ${EXPECTED_BUILD} but found ${commitSha || version}`);
+  }
+  return {
+    version,
+    commitSha: commitSha || null,
+    expectedCommitSha: EXPECTED_BUILD || null,
+    deploymentUrl: health?.deploymentUrl || null,
+    deploymentId: health?.deploymentId || null,
+  };
+}
+
+const targetDeployment = await readDeploymentIdentity();
+
+async function assertDeploymentUnchanged() {
+  assert.deepEqual(
+    await readDeploymentIdentity(),
+    targetDeployment,
+    'Phase 6 deployment changed during the parity audit',
+  );
+}
+
+function classificationCorrectness(classification) {
+  const normalized = String(classification || '').toLowerCase();
+  if (normalized === 'best' || normalized === 'correct') return true;
+  if (normalized === 'inaccuracy' || normalized === 'wrong' || normalized === 'blunder') return false;
+  assert.fail(`unsupported canonical answer classification: ${classification || 'missing'}`);
+}
+
+async function verifyPersistedVerdict(page, response, label) {
+  assert.equal(response.status(), 200, `${label}: record-question HTTP ${response.status()}`);
+  const body = await response.json();
+  assert.equal(body?.success, true, `${label}: persistence response did not succeed`);
+  assert.equal(typeof body?.evidence?.classification, 'string',
+    `${label}: persistence response omitted canonical classification`);
+  assert.equal(typeof body?.evidence?.isCorrect, 'boolean',
+    `${label}: persistence response omitted canonical correctness`);
+  const visibleVerdict = (await page.getByText(/^(?:Correct|Incorrect)$/).first().innerText()).trim();
+  const visibleCorrect = visibleVerdict === 'Correct';
+  assert.equal(body.evidence.isCorrect, visibleCorrect,
+    `${label}: server correctness did not match visible verdict ${visibleVerdict}`);
+  assert.equal(classificationCorrectness(body.evidence.classification), visibleCorrect,
+    `${label}: server classification did not match visible verdict ${visibleVerdict}`);
+  return { status: response.status(), evidence: body.evidence, visibleVerdict };
+}
 
 async function snapshot(page, label) {
   await page.waitForTimeout(500);
@@ -89,6 +185,9 @@ async function snapshot(page, label) {
       tableShape: table?.getAttribute('data-training-table-shape') || null,
       approvedHeaders: document.querySelectorAll('.approved-global-header').length,
       trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+      scanlineElements: document.querySelectorAll(
+        '.scanline, .scan-line, .hud-scanline, [class*="scanline"], [class*="scan-line"]',
+      ).length,
       overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
       viewport: { width: innerWidth, height: innerHeight },
       root: root ? rect(root) : null,
@@ -154,6 +253,7 @@ async function snapshot(page, label) {
 
   assert.equal(state.approvedHeaders, 1, `${label}: approved header count`);
   assert.equal(state.trainingFooters, 0, `${label}: immersive gameplay must not mount the library footer`);
+  assert.equal(state.scanlineElements, 0, `${label}: scanline elements`);
   assert.ok(state.root && state.table && state.actions && state.question, `${label}: parity surfaces missing`);
   assert.ok(state.root.y >= -1, `${label}: gameplay inherited a negative setup scroll (${state.root.y}px)`);
   assert.ok(state.root.bottom <= state.viewport.height + 1, `${label}: gameplay root escaped below the viewport`);
@@ -340,6 +440,9 @@ async function openArena(page, viewport, testCase, diagnostics) {
     return {
       approvedHeaders: document.querySelectorAll('.approved-global-header').length,
       trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+      scanlineElements: document.querySelectorAll(
+        '.scanline, .scan-line, .hud-scanline, [class*="scanline"], [class*="scan-line"]',
+      ).length,
       overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
       start: box ? { x: box.x, y: box.y, width: box.width, height: box.height, right: box.right, bottom: box.bottom } : null,
       viewport: { width: innerWidth, height: innerHeight },
@@ -347,6 +450,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
   });
   assert.equal(idle.approvedHeaders, 1, `${testCase.gameId}: setup approved header count`);
   assert.equal(idle.trainingFooters, 0, `${testCase.gameId}: arena setup must preserve immersive route ownership`);
+  assert.equal(idle.scanlineElements, 0, `${testCase.gameId}: setup scanline elements`);
   assert.ok(idle.overflow <= 1, `${testCase.gameId}: setup horizontal overflow ${idle.overflow}px`);
   assert.ok(idle.start && idle.start.x >= 0 && idle.start.right <= idle.viewport.width + 1,
     `${testCase.gameId}: setup Start escaped the viewport`);
@@ -384,12 +488,27 @@ async function openArena(page, viewport, testCase, diagnostics) {
   stage('verdict-visible');
   const recordResponse = await recordResponsePromise;
   stage('record-response');
-  // The player runtime uses response.ok and intentionally does not consume the
-  // success body. Certify that same public contract. Reading a service-worker
-  // intercepted response body through Playwright can wait on the browser's
-  // stream even after Vercel has logged the authoritative HTTP 200.
-  assert.ok(recordResponse.status() < 400,
-    `${testCase.gameId}: record-question HTTP ${recordResponse.status()}`);
+  diagnostics.recordQuestions = [await verifyPersistedVerdict(
+    page,
+    recordResponse,
+    `${viewport.name}/${auditCaseId}/answer-1`,
+  )];
+  const persistedEV = diagnostics.recordQuestions[0].evidence;
+  if (persistedEV.evLossMeasured === true) {
+    const measuredLoss = Number(persistedEV.evLoss);
+    assert.equal(Number.isFinite(measuredLoss), true,
+      `${testCase.gameId}: measured EV receipt omitted its numeric loss`);
+    const expectedEVText = measuredLoss > 0 ? /^EV COST/ : 'NO MEASURED EV LOSS';
+    await page.getByText(expectedEVText, { exact: typeof expectedEVText === 'string' })
+      .first()
+      .waitFor({ state: 'visible', timeout: 15_000 });
+  } else {
+    await page.getByText('EV NOT MEASURED', { exact: true })
+      .first()
+      .waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal(await page.getByText('NO EV LOSS', { exact: true }).count(), 0,
+      `${testCase.gameId}: missing EV evidence was labeled as zero loss`);
+  }
   const persistentNext = page.locator('.sp-training-next-button:visible')
     .filter({ hasText: /Next Question|Next - Continue Hand/ })
     .first();
@@ -454,8 +573,17 @@ async function openArena(page, viewport, testCase, diagnostics) {
 
       const actionButton = page.locator('.sp-club-gto-actions [data-action]:not([disabled])').first();
       await actionButton.waitFor({ state: 'visible', timeout: 30_000 });
+      const nextRecordResponsePromise = page.waitForResponse(
+        (candidate) => candidate.url().includes('/api/training/record-question'),
+        { timeout: 30_000 },
+      );
       await actionButton.click();
       await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+      diagnostics.recordQuestions.push(await verifyPersistedVerdict(
+        page,
+        await nextRecordResponsePromise,
+        `${viewport.name}/${auditCaseId}/answer-${diagnostics.recordQuestions.length + 1}`,
+      ));
     }
 
     const complete = page.locator('[data-training-ui="club-arena-completion"]');
@@ -481,6 +609,9 @@ async function openArena(page, viewport, testCase, diagnostics) {
         visualState: root?.getAttribute('data-training-visual-state') || null,
         approvedHeaders: document.querySelectorAll('.approved-global-header').length,
         trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+        scanlineElements: document.querySelectorAll(
+          '.scanline, .scan-line, .hud-scanline, [class*="scanline"], [class*="scan-line"]',
+        ).length,
         overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
         root: box ? { x: box.x, y: box.y, width: box.width, height: box.height, right: box.right, bottom: box.bottom } : null,
         title: root?.querySelector('.sp-arena-review__title')?.textContent?.trim() || null,
@@ -494,6 +625,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
     assert.equal(completion.visualState, 'completion', `${testCase.gameId}: completion state`);
     assert.equal(completion.approvedHeaders, 1, `${testCase.gameId}: completion approved header count`);
     assert.equal(completion.trainingFooters, 0, `${testCase.gameId}: completion must preserve immersive route ownership`);
+    assert.equal(completion.scanlineElements, 0, `${testCase.gameId}: completion scanline elements`);
     assert.ok(completion.root && completion.root.x >= -1 && completion.root.right <= viewport.width + 1,
       `${testCase.gameId}: completion escaped the viewport`);
     assert.ok(completion.overflow <= 1, `${testCase.gameId}: completion horizontal overflow ${completion.overflow}px`);
@@ -501,6 +633,17 @@ async function openArena(page, viewport, testCase, diagnostics) {
     assert.equal(completion.backButtons >= 1, true, `${testCase.gameId}: completion exit missing`);
     assert.deepEqual(completion.brokenVisibleImages, [], `${testCase.gameId}: completion broken visible images`);
     await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${auditCaseId}-completion.png`), fullPage: false });
+    assert.equal(
+      diagnostics.recordQuestions.length,
+      20,
+      `${testCase.gameId}: completion did not persist all 20 answers`,
+    );
+  } else {
+    assert.equal(
+      diagnostics.recordQuestions.length,
+      1,
+      `${testCase.gameId}: canonical verdict must persist exactly one answer`,
+    );
   }
 
   await page.waitForTimeout(500);
@@ -525,7 +668,16 @@ async function openArena(page, viewport, testCase, diagnostics) {
   };
 }
 
-const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), baseUrl: BASE_URL, success: false, viewports: [] };
+const result = {
+  schemaVersion: 2,
+  generatedAt: new Date().toISOString(),
+  baseUrl: BASE_URL,
+  targetDeployment,
+  certificationMode: REQUIRE_FULL ? 'full' : 'partial',
+  expectedCaseChecks: VIEWPORTS.length * CASES.length,
+  success: false,
+  viewports: [],
+};
 try {
   // Playwright applies saved localStorage only to its original production
   // origin. Protected previews use another hostname, while the authenticated
@@ -553,6 +705,7 @@ try {
         for (const entry of entries) localStorage.setItem(entry.name, entry.value);
       }, { host: auditHost, entries: savedLocalStorage });
       for (const testCase of CASES) {
+        await assertDeploymentUnchanged();
         // A fresh page per canonical family prevents an in-flight persistence
         // response from the previous game being charged to the next game's
         // browser-error ledger.
@@ -591,9 +744,23 @@ try {
       await browser.close();
     }
   }
+  await assertDeploymentUnchanged();
+  const completedCaseChecks = result.viewports.reduce(
+    (total, entry) => total + entry.cases.length,
+    0,
+  );
+  assert.equal(completedCaseChecks, VIEWPORTS.length * CASES.length,
+    'Phase 6 parity result ledger is incomplete');
+  if (REQUIRE_FULL) {
+    assert.equal(completedCaseChecks, 18, 'full Phase 6 parity certification requires 18 case checks');
+  }
+  result.completedCaseChecks = completedCaseChecks;
   result.success = true;
+  result.status = 'complete';
 } finally {
-  writeFileSync(OUT, `${JSON.stringify(result, null, 2)}\n`);
+  result.completedAt = new Date().toISOString();
+  if (!result.success) result.status = 'failed';
+  writeOutputAtomic(result);
 }
 
 process.stdout.write(`${JSON.stringify({ success: result.success, output: OUT, screenshots: SHOTS }, null, 2)}\n`);

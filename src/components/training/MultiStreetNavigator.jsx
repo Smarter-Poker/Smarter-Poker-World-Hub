@@ -2,14 +2,14 @@
  * MULTI-STREET HAND NAVIGATOR — Connected Street-by-Street Walkthrough
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
- * GTO Wizard-style multi-street navigator that shows how a complete hand
+ * Multi-street navigator that shows how a complete hand
  * evolves from preflop through river. Key features:
  *   - Connected timeline showing all streets with animated transitions
- *   - Per-street solver strategy with frequency bars
+ *   - Per-street illustrative local weights when no solved node is supplied
  *   - Board dealing animation as you progress through streets
  *   - Pot growth tracker and SPR indicator
  *   - Action history timeline with decision tree branching
- *   - "What would solver do?" at each node
+ *   - Local practice comparisons at each node
  *
  * Unlike SolverComparisonReplay (which shows one decision at a time),
  * this shows the FULL hand structure and how decisions connect.
@@ -205,7 +205,9 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     </div>
                     {handData.correctAction && handData.action !== handData.correctAction && (
                         <div>
-                            <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>GTO</div>
+                            <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>
+                                {handData.solverVerified === true ? 'VERIFIED SOLVER' : 'REFERENCE'}
+                            </div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>
                                 {handData.correctAction}
                             </div>
@@ -229,7 +231,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     marginTop: 4,
                 }}>
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
-                        Solver Frequencies
+                        Illustrative Local Weights - Not Solver Frequencies
                     </div>
                     {Object.entries(strategy.actions || {})
                         .filter(([, d]) => d.frequency > 0.02)

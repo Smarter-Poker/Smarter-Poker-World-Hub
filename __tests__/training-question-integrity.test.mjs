@@ -133,9 +133,24 @@ test('only literal Yes/No and Push/Fold decisions may have two choices', () => {
     ],
   });
   assert.deepEqual(yesNo.options.map((option) => option.text), ['Yes', 'No']);
-  assert.match(yesNo.question, /Action folds to the Button, who raises all-in/i);
+  assert.match(yesNo.question, /The Button is all-in at 11 BB effective/i);
   assert.equal(getDecisionType(yesNo), 'yes-no');
   assert.equal(validateTrainingQuestion(yesNo).valid, true);
+
+  const priorAction = enforceTrainingQuestionContract({
+    question: 'You raised from the Cutoff to 2.5 BB; the Button raises all-in to 20 BB. What is your best action?',
+    scenario: {
+      street: 'preflop', heroPosition: 'CO', villainPosition: 'BTN', stackDepth: 20,
+      action: 'You raised from the Cutoff to 2.5 BB; the Button raises all-in to 20 BB.',
+    },
+    options: [
+      { id: 'call', text: 'Call', isCorrect: true },
+      { id: 'fold', text: 'Fold' },
+    ],
+  });
+  assert.match(priorAction.question, /^You raised from the Cutoff to 2\.5 BB; the Button raises all-in to 20 BB\./i);
+  assert.doesNotMatch(priorAction.question, /Action folds to the Button/i);
+  assert.match(priorAction.question, /Should you call\?$/i);
 
   const pushFold = enforceTrainingQuestionContract({
     question: 'At 8 BB effective, should you Push or Fold K♥5♣ from Under The Gun?',
@@ -196,6 +211,40 @@ test('preflop response labels advance beyond the action already taken', () => {
     '5-Bet All-In',
   ]);
   assert.equal(validateTrainingQuestion(facingFourBet).valid, true);
+
+  const shortExactFiveBet = enforceTrainingQuestionContract({
+    question: 'You raised to 9 BB; the Small Blind 4-bets all-in to 20 BB. What is your best action?',
+    scenario: {
+      street: 'preflop', heroPosition: 'BTN', villainPosition: 'SB', stackDepth: 20,
+      action: 'You raised to 9 BB; the Small Blind 4-bets all-in to 20 BB.',
+    },
+    dataQuality: 'SOLVER_EXACT',
+    solverProvenance: { verified: true },
+    correctAnswer: 'call',
+    options: [
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'allin', text: '5-Bet All-In' },
+    ],
+  });
+  assert.equal(shortExactFiveBet.options.length, 3);
+  assert.equal(shortExactFiveBet.options.some((option) => /45 BB/i.test(option.text)), false);
+  assert.equal(validateTrainingQuestion(shortExactFiveBet).valid, false);
+  assert.ok(validateTrainingQuestion(shortExactFiveBet).issues.some((issue) => /Expected 4 answer choices/i.test(issue)));
+
+  const impossibleRaise = validateTrainingQuestion({
+    question: 'The Small Blind 4-bets to 18 BB. What is your best action?',
+    scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'SB', stackDepth: 20 },
+    correctAnswer: 'call',
+    options: [
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'raise', text: '5-Bet To 45 BB' },
+      { id: 'allin', text: '5-Bet All-In' },
+    ],
+  });
+  assert.equal(impossibleRaise.valid, false);
+  assert.ok(impossibleRaise.issues.some((issue) => /effective stack/i.test(issue)));
 });
 
 test('postflop choices obey the declared decision node', () => {
@@ -450,12 +499,9 @@ test('feedback remains until an explicit Next click', () => {
   assert.match(table, /This Screen Will Stay Open Until You Click Next/);
 
   const manualDrills = [
-    ['src/games/MixedStrategyGame.js', /setTimeout\(nextRound/, /NEXT HAND →/],
     ['src/games/PatternRecognitionGame.js', /setTimeout\([^)]*nextRound/, /Next Question →/],
     ['src/games/PressureCookerGame.js', /setTimeout\([\s\S]{0,200}nextHand/, /Next Hand →/],
     ['src/games/SpeedDrillGame.js', /setTimeout\([\s\S]{0,200}nextHand/, /Next Hand →/],
-    ['pages/hub/training/spot-trainer.js', /autoNextTimer|Next spot in/, /This Result Will Stay Open Until You Click Next/],
-    ['pages/hub/training/quiz-gauntlet.js', /setTimeout\([\s\S]{0,200}setQIdx/, /Next Question →/],
   ];
   for (const [file, forbidden, required] of manualDrills) {
     const source = read(file);
@@ -463,13 +509,24 @@ test('feedback remains until an explicit Next click', () => {
     assert.match(source, required, `${file} must expose an explicit Next control`);
   }
 
+  const mixedLauncher = read('src/games/MixedStrategyGame.js');
+  assert.match(mixedLauncher, /Open Verified Mixed Strategy Training/);
+  assert.doesNotMatch(mixedLauncher, /correctAnswer|frequencies\[|setTimeout/);
+
+  const spotStudy = read('pages/hub/training/spot-trainer.js');
+  assert.match(spotStudy, /Answer-Revealed Solver Study Utility/);
+  assert.match(spotStudy, /Intentionally Not Scored/);
+  assert.doesNotMatch(spotStudy, /handleAnswer|QuizAnswer|setShowResult/);
+
   assert.match(read('src/games/PatternRecognitionGame.js'), /\['fold', 'call', 'raise', 'mixed'\]/);
   assert.match(read('src/games/PressureCookerGame.js'), /action: 'allin'/);
   assert.match(read('src/games/SpeedDrillGame.js'), /action: 'allin'/);
   const blindDefense = read('pages/hub/training/blind-defense.js');
   assert.match(blindDefense, /arena\/cash-003\?level=1/);
   assert.doesNotMatch(blindDefense, /Math\.random|save-session|session-complete/);
-  assert.match(read('pages/hub/training/quiz-gauntlet.js'), /q\.options\.map/);
+  const legacyQuiz = read('pages/hub/training/quiz-gauntlet.js');
+  assert.match(legacyQuiz, /arena\/quiz-gauntlet\?level=1&source=legacy-quiz-gauntlet/);
+  assert.doesNotMatch(legacyQuiz, /q\.options\.map|Math\.random|savePracticeSession|SESSION_END/);
 
   const positionQuiz = read('src/components/training/PositionAwarenessQuiz.jsx');
   assert.match(positionQuiz, /sp-command-verdict/);

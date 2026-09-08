@@ -23,6 +23,8 @@ function validObject(value) {
 
 export default async function handler(req, res) {
   withTiming(res);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Vary', 'Authorization');
   const limitGroup = req.method === 'GET' ? LIMITS.read : LIMITS.write;
   if (!applyRateLimit(req, res, limitGroup)) return;
 

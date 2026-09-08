@@ -167,6 +167,11 @@ test('submission retries are accepted only for an identical immutable answer bin
     ev_loss: 0,
     spot_type: 'single-raised-pot',
     submission_id: 'immutable-retry',
+    session_id: 'session-1',
+    attempt_id: '22222222-2222-4222-8222-222222222222',
+    snapshot_key: SHA256,
+    hand_ordinal: 3,
+    decision_ordinal: 2,
     solver_verified: true,
     solver_source: 'solved_spots_gold_v2',
     selected_frequency: 60,
@@ -188,6 +193,11 @@ test('submission retries are accepted only for an identical immutable answer bin
   const changedAction = structuredClone(answer);
   changedAction.answer_id = 'bet_75pct';
   assert.equal(trainingAnswerBindingMatches(answer, changedAction), false);
+  for (const field of ['session_id', 'attempt_id', 'snapshot_key', 'hand_ordinal', 'decision_ordinal']) {
+    const changedBinding = structuredClone(answer);
+    changedBinding[field] = typeof answer[field] === 'number' ? answer[field] + 1 : `${answer[field]}-changed`;
+    assert.equal(trainingAnswerBindingMatches(answer, changedBinding), false, field);
+  }
 });
 
 test('every live Training producer persists and receipts canonical questions before returning', () => {
@@ -199,7 +209,7 @@ test('every live Training producer persists and receipts canonical questions bef
     'pages/api/training/spot-drill.js',
   ]) {
     const source = read(file);
-    assert.match(source, /policyChecksum|persistCanonicalTrainingQuestions/);
+    assert.match(source, /policyChecksum|persistCanonicalTrainingQuestions|withPersistedCacheReceipt/);
     assert.match(source, /recordTrainingQuestionsServed|persistCanonicalTrainingQuestions/);
   }
   for (const file of [
@@ -337,7 +347,18 @@ test('certification hardens historical provenance, selected-action binding, and 
   assert.match(recorder, /trainingAnswerBindingMatches/);
   assert.match(recorder, /TRAINING_ANSWER_BINDING_MISMATCH/);
   assert.match(read('pages/api/assistant/leaks/drill-answer.js'), /selectedAnswer:/);
-  assert.match(read('pages/api/training/hand-of-the-day.js'), /selectedAnswer:/);
+  const handOfTheDay = read('pages/api/training/hand-of-the-day.js');
+  assert.match(handOfTheDay, /req\.method !== 'GET'/);
+  assert.doesNotMatch(
+    handOfTheDay,
+    /req\.body(?:\?\.)?\.selectedAction|const\s*\{[^}]*selectedAction/,
+    'the Daily Challenge read route cannot accept or grade a browser-authored selection',
+  );
+  assert.match(
+    read('supabase/migrations/20260907203000_training_attempt_decision_delivery_authority.sql'),
+    /'selectedAnswer', p_answer\.answer_id/,
+    'Daily Challenge answers share the signed answer path; only its immutable answer-event trigger records the selected action',
+  );
 });
 
 test('the production backfill supports transactional Postgres transport and bounded resume ranges', () => {
