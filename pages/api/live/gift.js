@@ -565,8 +565,6 @@ export default async function handler(req, res) {
     senderNewBalance = giftResult.sender_balance ?? 0;
     gift = { id: giftResult.gift_id };
 
-    if (giftRowErr) console.error('[live/gift] gift row write failed after transfer:', giftRowErr.message);
-
     // Record the IP cluster action — clientIp was parsed once at top of handler
     const { error: err_anti_farming_ips_gr9d2 } = await supabase.from('anti_farming_ips').insert({
       user_id: user.id,

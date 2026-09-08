@@ -1875,7 +1875,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 );
               }}
             >
-              <span className={styles.srOnly}>Diamond Transfers Are Not Available</span>
+              <span className={styles.srOnly}>Send Diamonds To A Friend</span>
             </button>
 
             {/*
