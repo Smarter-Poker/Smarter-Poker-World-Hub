@@ -358,7 +358,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     marginBottom: 10,
                 }}>
                     <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.08em' }}>
-                        Illustrative Local Estimates — Not Solved EV
+                        Illustrative Local Estimates - Not Solved EV
                     </div>
                     {sortedActions.map(([action, data]) => (
                         <EVBar

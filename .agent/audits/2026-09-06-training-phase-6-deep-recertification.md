@@ -269,6 +269,10 @@ loosening their assertions:
   route test to a live upstream response that could return 503. The test now
   validates first-selected repeated values deterministically without network
   state masking the API contract.
+- The protected pre-push gate found em-dash glyphs and non-Title-Cased copy in
+  the new Training, local-practice, and Jarvis authority surfaces. The
+  repository policy tools replaced the banned punctuation, normalized the copy,
+  and the affected authority assertions now pin the compliant presentation.
 
 The merge retained protected main's new acceptance and one-device/one-banner
 prebuild guards while preserving the candidate's stricter full-attempt
@@ -289,6 +293,8 @@ Current integrated local evidence:
   94-page Training route/link/API audit passed. The generated inventory records
   107 canonical games, 214 play/arena expansions, 54 API templates, and zero
   unassigned route-state or CTA wiring gaps.
+- The complete 2,794-file UI punctuation scan and the forward-facing Title Case
+  gate pass with no violations.
 - The complete disposable PostgreSQL Phase 6 gate passed reward concurrency,
   server authority, cross-RPC concurrency, cache replay, and solver-catalog
   admission. Its authority evidence includes 14 reward invariants, 18 canonical

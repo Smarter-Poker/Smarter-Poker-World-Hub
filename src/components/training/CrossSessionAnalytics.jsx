@@ -439,13 +439,13 @@ const RecentSessionsList = memo(({ sessions }) => {
                             {s.gameName || s.gameId || 'Training'}
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 38, textAlign: 'right' }}>
-                            {score === null ? '—' : score > 0 ? `+${score}` : score}
+                            {score === null ? '-' : score > 0 ? `+${score}` : score}
                         </span>
                         <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
                             {acc !== null ? `${acc}%` : '-'}
                         </span>
                         <span style={{ fontSize: 10, color: '#ef4444', width: 44, textAlign: 'right' }}>
-                            {Number.isFinite(s.evLossTotal) ? `-${s.evLossTotal.toFixed(1)}` : '—'}
+                            {Number.isFinite(s.evLossTotal) ? `-${s.evLossTotal.toFixed(1)}` : '-'}
                         </span>
                     </div>
                 );
@@ -580,7 +580,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                             color: metrics.avgScore === null ? '#64748b' : metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
                             fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
-                            {metrics.avgScore === null ? '—' : metrics.avgScore.toFixed(0)}
+                            {metrics.avgScore === null ? '-' : metrics.avgScore.toFixed(0)}
                         </div>
                         <div style={{
                             fontSize: 9, fontWeight: 600,
@@ -594,7 +594,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
-                            {metrics.bestScore ?? '—'}
+                            {metrics.bestScore ?? '-'}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
@@ -612,7 +612,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EV Lost</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
-                            {metrics.totalEV === null ? '—' : `-${metrics.totalEV.toFixed(0)}`}
+                            {metrics.totalEV === null ? '-' : `-${metrics.totalEV.toFixed(0)}`}
                         </div>
                     </div>
                 </div>

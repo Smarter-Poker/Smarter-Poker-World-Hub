@@ -292,7 +292,7 @@ test('live Arena EV presentation carries an explicit measured-evidence contract 
   assert.match(router, /measuredEVDecisions=\{measuredEVDecisions\}/);
   assert.match(table, /EV NOT MEASURED/);
   assert.match(table, /NO MEASURED EV LOSS/);
-  assert.match(table, /EV: — UNMEASURED/);
+  assert.match(table, /EV: - UNMEASURED/);
   assert.doesNotMatch(table, /'NO EV LOSS'/);
   assert.doesNotMatch(table, /\? `-\$\{evLoss\.toFixed\(2\)\}` : '0\.00'/);
   assert.match(multiTable, /measuredEVDecisions/);

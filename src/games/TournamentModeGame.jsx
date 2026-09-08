@@ -681,8 +681,8 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                     color: currentChallenge.options[selectedOption]?.correct ? '#00ff88' : '#ff4444'
                                 }}>
                                     {currentChallenge.options[selectedOption]?.correct
-                                        ? '✅ Correct — You Win This Practice Round'
-                                        : '❌ Review This Spot — The Simulated Coach Wins This Round'}
+                                        ? '✅ Correct - You Win This Practice Round'
+                                        : '❌ Review This Spot - The Simulated Coach Wins This Round'}
                                 </div>
                                 <p style={styles.explanationText}>{currentChallenge.explanation}</p>
                                 <button onClick={handleNextRound} style={styles.nextRoundButton}>

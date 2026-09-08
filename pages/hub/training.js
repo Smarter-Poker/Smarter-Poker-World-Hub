@@ -731,7 +731,7 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
     <div className="sp-stat">
       <div className="sp-stat-label"><Icon size={13} aria-hidden /> {label}</div>
       <div className="sp-stat-value sp-num">
-        {hasValue ? value : '—'}
+        {hasValue ? value : '-'}
         {hasValue && unit && <span className="sp-stat-unit">{unit}</span>}
       </div>
       {trend && (
@@ -934,7 +934,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn, error, o
 
   const barColor = (acc) => acc >= 75 ? 'var(--sp-good)' : acc >= 55 ? 'var(--sp-warn)' : 'var(--sp-bad)';
   const fmtScore = (v) => {
-    if (v === null) return '—';
+    if (v === null) return '-';
     const n = Math.round(v);
     return n > 0 ? `+${n}` : `${n}`;
   };
@@ -946,7 +946,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn, error, o
           <div className="sp-progress-label">Verified Signed Score · Last {chrono.length} Sessions</div>
           {sparkData.length > 0 ? <Sparkline data={sparkData} /> : <div className="sp-progress-note">No Verified Signed Scores Recorded Yet.</div>}
           <div className="sp-progress-meta">
-            Latest <b className="sp-num">{scoreRows.length > 0 ? fmtScore(signedScore(scoreRows[0])) : '—'}</b>
+            Latest <b className="sp-num">{scoreRows.length > 0 ? fmtScore(signedScore(scoreRows[0])) : '-'}</b>
             {scoreRows[0]?.created_at ? ` · ${new Date(scoreRows[0].created_at).toLocaleDateString()}` : ''}
           </div>
         </div>
@@ -986,7 +986,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn, error, o
               {fmtScore(score)}
             </span>
             <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '-'}</span>
-            <span className="sp-plist-ev sp-num">{measuredEv === null ? 'EV —' : `${measuredEv.toFixed(3)} BB EV`}</span>
+            <span className="sp-plist-ev sp-num">{measuredEv === null ? 'EV -' : `${measuredEv.toFixed(3)} BB EV`}</span>
           </li>
           );
         })}

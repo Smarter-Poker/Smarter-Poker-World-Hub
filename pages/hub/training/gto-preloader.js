@@ -486,7 +486,7 @@ export default function GtoPreloaderPage() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>
-                        {state.cachedLevels || 0}/{state.eligibleLevels || '—'} Unlocked Levels
+                        {state.cachedLevels || 0}/{state.eligibleLevels || '-'} Unlocked Levels
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                         {state.questionCount || 0} Questions

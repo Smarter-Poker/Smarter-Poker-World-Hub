@@ -368,22 +368,22 @@ export default function SpotTrainerPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 8 }}>
                     {[
                       ['Decision Node', spot.decisionNode?.node],
-                      ['Actor', `${spot.decisionNode?.actorRole || '—'} · ${spot.heroPosition || '—'}`],
-                      ['Seats', `${spot.decisionNode?.oopPosition || '—'} OOP / ${spot.decisionNode?.ipPosition || '—'} IP`],
-                      ['Current Pot', Number.isFinite(Number(spot.decisionNode?.potBb)) ? `${spot.decisionNode.potBb} BB` : '—'],
+                      ['Actor', `${spot.decisionNode?.actorRole || '-'} · ${spot.heroPosition || '-'}`],
+                      ['Seats', `${spot.decisionNode?.oopPosition || '-'} OOP / ${spot.decisionNode?.ipPosition || '-'} IP`],
+                      ['Current Pot', Number.isFinite(Number(spot.decisionNode?.potBb)) ? `${spot.decisionNode.potBb} BB` : '-'],
                       ['Facing', Number(spot.decisionNode?.facingBetBb) > 0 ? `${spot.decisionNode.facingBetBb} BB` : 'No Bet'],
-                      ['Hand EV', Number.isFinite(Number(spot.handEvBb)) ? `${spot.handEvBb} BB` : '—'],
+                      ['Hand EV', Number.isFinite(Number(spot.handEvBb)) ? `${spot.handEvBb} BB` : '-'],
                       ['Solver', spot.provenance?.solverVersion],
                       ['Machine', spot.provenance?.machineId],
                       ['Manifest', spot.provenance?.manifestVersion],
                       ['Quality', spot.provenance?.qualityStatus],
                       ['Policy Receipt', spot.policyChecksum
                         ? `${String(spot.policyChecksum).slice(0, 12)}…`
-                        : '—'],
+                        : '-'],
                     ].map(([label, value]) => (
                       <div key={label} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
                         <div style={{ color: 'var(--sp-fg-dim)', fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>
-                        <div style={{ color: '#dff9ff', fontSize: 10, fontWeight: 800, marginTop: 3, overflowWrap: 'anywhere' }}>{value || '—'}</div>
+                        <div style={{ color: '#dff9ff', fontSize: 10, fontWeight: 800, marginTop: 3, overflowWrap: 'anywhere' }}>{value || '-'}</div>
                       </div>
                     ))}
                   </div>

@@ -47,7 +47,7 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
         measuredEVDecisions > 0 && Number.isFinite(Number(totalEVLoss));
     const evPerDecision = hasMeasuredEV
         ? (Number(totalEVLoss) / measuredEVDecisions).toFixed(2)
-        : '—';
+        : '-';
     const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return `

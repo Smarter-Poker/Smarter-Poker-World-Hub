@@ -256,11 +256,11 @@ function PerformanceTable({ sessions }) {
                       color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                     }}
                   >
-                  {g.avgAccuracy === null ? '—' : `${g.avgAccuracy}%`}
+                  {g.avgAccuracy === null ? '-' : `${g.avgAccuracy}%`}
                   </span>
                 </td>
                 <td style={{ padding: '8px 12px', color: 'var(--sp-accent-orange)', fontWeight: 600, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-                  {g.avgEV === null ? '—' : `${g.avgEV.toFixed(3)} BB`}
+                  {g.avgEV === null ? '-' : `${g.avgEV.toFixed(3)} BB`}
                 </td>
               </tr>
             ))}
@@ -879,9 +879,9 @@ export default function SessionDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
                   <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="●" />
                   <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="◇" />
-                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '—' : `${stats.avgAccuracy}%`} color={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="◆" />
-                  <StatTile label="Measured EV Loss" value={stats.totalEV === null ? '—' : stats.totalEV.toFixed(3)} color="#ef4444" icon="▼" subtitle={stats.totalEV === null ? 'No Solver-Measured Decisions' : `${stats.measuredEVDecisions} Measured Decisions`} />
-                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '—'} color="#a855f7" icon="★" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
+                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '-' : `${stats.avgAccuracy}%`} color={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="◆" />
+                  <StatTile label="Measured EV Loss" value={stats.totalEV === null ? '-' : stats.totalEV.toFixed(3)} color="#ef4444" icon="▼" subtitle={stats.totalEV === null ? 'No Solver-Measured Decisions' : `${stats.measuredEVDecisions} Measured Decisions`} />
+                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '-'} color="#a855f7" icon="★" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
                 </div>
               )}
 
@@ -983,7 +983,7 @@ export default function SessionDashboard() {
                               {game}
                             </span>
                             <span style={{ color: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-                              {acc === null ? '—' : `${Math.round(acc)}%`}
+                              {acc === null ? '-' : `${Math.round(acc)}%`}
                             </span>
                             <span style={{ color: 'var(--sp-fg-faint)', fontSize: 9 }}>{dateStr}</span>
                           </div>

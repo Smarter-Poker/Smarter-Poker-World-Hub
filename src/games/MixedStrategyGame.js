@@ -36,7 +36,7 @@ export default function MixedStrategyGame({ onExit }) {
         Mixed Strategy Lab
       </h1>
       <p style={{ margin: '0 0 20px', color: 'rgba(238, 250, 255, 0.76)', lineHeight: 1.6 }}>
-        Exact-frequency decisions require a sealed solver source. Continue in the verified Training Arena for server-delivered questions, grading, feedback, and progress.
+        Exact-Frequency Decisions Require A Sealed Solver Source. Continue In The Verified Training Arena For Server-Delivered Questions, Grading, Feedback, And Progress.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         <button

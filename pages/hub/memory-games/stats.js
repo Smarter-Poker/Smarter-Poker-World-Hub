@@ -84,11 +84,11 @@ export default function MemoryGamesStats() {
     <>
       <SEOHead title="Preflop Charts Local Practice History" description="Review your legacy Preflop Charts local-practice archive without ranked or reward claims." canonical="/hub/preflop-charts/stats" />
       <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // LOCAL ARCHIVE" title="Local Practice History" description="Review historical Range Lab practice signals. These browser-originated rows are not verified scores, ranks, rewards, or account progression." metric={metrics.count ? `${metrics.average.toFixed(0)}%` : '-'}>
-        {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To View Your Archive</h2><p>Signing in reveals your historical local-practice rows. New local drills do not publish ranked or rewarded results.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
+        {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To View Your Archive</h2><p>Signing In Reveals Your Historical Local-Practice Rows. New Local Drills Do Not Publish Ranked Or Rewarded Results.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
           {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchStats}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
           <section className="preflop-daily-signal" aria-label="Local archive authority notice">
             <Archive size={22} aria-hidden />
-            <div><small>LEGACY LOCAL ARCHIVE</small><strong>No Verified Rank Or Reward</strong><span>These rows remain visible for personal reference only and cannot change your account.</span></div>
+            <div><small>LEGACY LOCAL ARCHIVE</small><strong>No Verified Rank Or Reward</strong><span>These Rows Remain Visible For Personal Reference Only And Cannot Change Your Account.</span></div>
             <Link href="/hub/preflop-charts">Practice Locally <ArrowRight size={14} aria-hidden /></Link>
           </section>
           <section className="preflop-stat-grid" aria-label="Training summary">

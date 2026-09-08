@@ -2120,7 +2120,7 @@ function GodModeArenaInner({
             </div>
             <div style={styles.summaryItem}>
               <div style={{ ...styles.summaryValue, color: '#ef4444' }}>
-                {measuredEVReviewHistory.length > 0 ? `-${measuredEVTotal.toFixed(1)}` : '—'}
+                {measuredEVReviewHistory.length > 0 ? `-${measuredEVTotal.toFixed(1)}` : '-'}
               </div>
               <div style={styles.summaryLabel}>Measured EV Loss (BB)</div>
             </div>
@@ -2131,7 +2131,7 @@ function GodModeArenaInner({
             <div style={styles.summaryItem}>
               <div style={styles.summaryValue}>
                 {measuredEVPerDecision === null
-                  ? '—'
+                  ? '-'
                   : `-${Math.abs(measuredEVPerDecision).toFixed(2)}`}
               </div>
               <div style={styles.summaryLabel}>Measured EV/Decision</div>
@@ -2139,7 +2139,7 @@ function GodModeArenaInner({
             <div style={styles.summaryItem}>
               <div style={{ ...styles.summaryValue, color: '#f97316' }}>
                 {measuredEVPerMistake === null
-                  ? '—'
+                  ? '-'
                   : `-${Math.abs(measuredEVPerMistake).toFixed(2)}`}
               </div>
               <div style={styles.summaryLabel}>Measured EV/Mistake</div>
@@ -2147,7 +2147,7 @@ function GodModeArenaInner({
             <div style={styles.summaryItem}>
               <div style={{ ...styles.summaryValue, color: '#38bdf8' }}>
                 {verifiedAvgFrequencyDiff === null
-                  ? '—'
+                  ? '-'
                   : `${Math.abs(verifiedAvgFrequencyDiff).toFixed(1)}%`}
               </div>
               <div style={styles.summaryLabel}>Verified Freq Diff</div>
@@ -2577,7 +2577,7 @@ function GodModeArenaInner({
                       value:
                         measuredEVReviewHistory.length > 0
                           ? measuredEVTotal.toFixed(1)
-                          : '—',
+                          : '-',
                       color:
                         measuredEVReviewHistory.length === 0
                           ? '#64748b'
@@ -3001,7 +3001,7 @@ function GodModeArenaInner({
                               {ht.accuracy}%
                             </div>
                             <div style={{ fontSize: 7, color: '#475569' }}>
-                              {ht.correct}/{ht.total} graded decisions
+                              {ht.correct}/{ht.total} Graded Decisions
                             </div>
                           </div>
                         );
@@ -3699,7 +3699,7 @@ function GodModeArenaInner({
                               textAlign: 'right',
                             }}
                           >
-                            {streetDecisions[s] > 0 ? `-${streetEV[s].toFixed(1)}` : '—'}
+                            {streetDecisions[s] > 0 ? `-${streetEV[s].toFixed(1)}` : '-'}
                           </span>
                         </div>
                       ))}
@@ -4068,7 +4068,7 @@ function GodModeArenaInner({
                       value:
                         measuredEVReviewHistory.length > 0
                           ? `-${measuredEVTotal.toFixed(1)}`
-                          : '—',
+                          : '-',
                     },
                     { label: 'MISTAKES', value: sessionMistakes },
                     { label: 'STREAK', value: bestStreak },
@@ -4427,7 +4427,7 @@ function GodModeArenaInner({
                         >
                           {Number.isFinite(crossSessionAnalytics.milestones.overallAccuracy)
                             ? `${crossSessionAnalytics.milestones.overallAccuracy}%`
-                            : '—'}
+                            : '-'}
                         </div>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
                           Accuracy
@@ -4889,7 +4889,7 @@ function GodModeArenaInner({
         <div style={styles.footerStat}>
           <span style={{ color: '#94a3b8' }}>EV Loss:</span>
           <span style={{ color: measuredEVDecisions > 0 ? '#ef4444' : '#94a3b8', fontWeight: 'bold', marginLeft: 6 }}>
-            {measuredEVDecisions > 0 ? `-${measuredTotalEVLoss.toFixed(1)} BB` : '— Unmeasured'}
+            {measuredEVDecisions > 0 ? `-${measuredTotalEVLoss.toFixed(1)} BB` : '- Unmeasured'}
           </span>
         </div>
         <div style={styles.footerStat}>

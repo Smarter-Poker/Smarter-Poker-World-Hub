@@ -162,7 +162,7 @@ What specific training games should I play next to improve fastest?`;
                                     ? (stats.totalAccuracy >= 70 ? '#4CAF50' : '#FF9800')
                                     : 'rgba(255, 255, 255, 0.55)'
                             }}>
-                                {hasOverallAccuracy ? `${stats.totalAccuracy}%` : '—'}
+                                {hasOverallAccuracy ? `${stats.totalAccuracy}%` : '-'}
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>
                                 Accuracy

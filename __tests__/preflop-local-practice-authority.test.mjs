@@ -46,8 +46,8 @@ test('Local VS is deterministic session practice, never real ranked matchmaking'
 test('Local VS keeps manual feedback, session-only results, and optional power-ups fail closed', () => {
   assert.match(LOCAL_VS, /const purchase = await purchasePowerUp\(pu, DiamondEngine\);[\s\S]*?if \(!purchase\.success\) return/);
   assert.match(LOCAL_VS, /diamondBalance=\{diamondBalance\}/);
-  assert.match(LOCAL_VS, /Correct — You Win This Practice Round/);
-  assert.match(LOCAL_VS, /Review This Spot — The Simulated Coach Wins This Round/);
+  assert.match(LOCAL_VS, /Correct - You Win This Practice Round/);
+  assert.match(LOCAL_VS, /Review This Spot - The Simulated Coach Wins This Round/);
   assert.match(LOCAL_VS, /onClick=\{handleNextRound\}/);
   assert.match(LOCAL_VS, /Settlement['"], value: ['"]Session Only/);
   assert.match(LOCAL_VS, /setMatchHistory\(prev => \[\.\.\.prev, \{[\s\S]*?accuracy,[\s\S]*?\}\]\)/);

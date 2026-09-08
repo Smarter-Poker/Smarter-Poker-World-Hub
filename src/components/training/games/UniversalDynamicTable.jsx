@@ -1267,7 +1267,7 @@ function EVLossTicker({ totalEVLoss, measuredEVDecisions = 0, show }) {
                 letterSpacing: 0.5,
             }}
         >
-            {hasMeasuredEV ? `EV: -${totalEVLoss.toFixed(2)} BB` : 'EV: — UNMEASURED'}
+            {hasMeasuredEV ? `EV: -${totalEVLoss.toFixed(2)} BB` : 'EV: - UNMEASURED'}
         </motion.div>
     );
 }
@@ -2047,7 +2047,7 @@ function UniversalDynamicTable({
             setEvPopup({
                 value: evLossMeasured && Number.isFinite(evLoss)
                     ? (evLoss > 0 ? `-${evLoss.toFixed(1)}` : '0.0')
-                    : '—',
+                    : '-',
                 color: evLossMeasured
                     ? (isGood ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)')
                     : 'var(--sp-fg-muted)',
@@ -3582,7 +3582,7 @@ function UniversalDynamicTable({
                 >
                     {measuredEVDecisions > 0 && Number.isFinite(totalSessionEVLoss)
                         ? `${totalSessionEVLoss > 0 ? '-' : ''}${totalSessionEVLoss.toFixed(1)} EV`
-                        : '— EV'}
+                        : '- EV'}
                 </span>
             </div>
 
@@ -5227,7 +5227,7 @@ function UniversalDynamicTable({
                             }}>
                                 {evLossMeasured && Number.isFinite(evLoss)
                                     ? `${evLoss > 0 ? '-' : ''}${evLoss.toFixed(2)} BB`
-                                    : '— Unmeasured'}
+                                    : '- Unmeasured'}
                             </span>
                         </div>
                     </div>
@@ -6393,7 +6393,7 @@ function UniversalDynamicTable({
                                             label: 'Measured EV Loss',
                                             value: measuredEVDecisions > 0 && Number.isFinite(totalSessionEVLoss)
                                                 ? `-${totalSessionEVLoss.toFixed(1)}`
-                                                : '—',
+                                                : '-',
                                             color: measuredEVDecisions < 1
                                                 ? 'var(--sp-fg-muted)'
                                                 : totalSessionEVLoss > 3

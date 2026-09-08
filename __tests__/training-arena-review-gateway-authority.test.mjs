@@ -167,7 +167,7 @@ test('the visible review tabs expose no inferred solver or faux-lifetime compone
   assert.match(arena, /handFieldOf\(entry, 'evLossMeasured'\) === true/);
   assert.match(arena, /const measuredEVGraphHistory = measuredEVReviewHistory\.map/);
   assert.match(arena, /evLoss: -Math\.abs\(Number\(handFieldOf\(entry, 'evLoss'\)\)\)/);
-  assert.match(arena, /streetDecisions\[s\] > 0 \? `-\$\{streetEV\[s\]\.toFixed\(1\)\}` : '—'/);
+  assert.match(arena, /streetDecisions\[s\] > 0 \? `-\$\{streetEV\[s\]\.toFixed\(1\)\}` : '-'/);
   assert.match(arena, /deriveTopLeaks\(measuredEVReviewHistory, 5\)/);
   assert.match(arena, /Measured EV Loss \(BB\)/);
   assert.match(arena, /Measured EV\/Decision/);

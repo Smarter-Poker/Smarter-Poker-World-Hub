@@ -29,11 +29,11 @@ function isFiniteNumber(value) {
 }
 
 function formatMetric(value, suffix = '') {
-  return isFiniteNumber(value) ? `${Number(value).toLocaleString()}${suffix}` : '—';
+  return isFiniteNumber(value) ? `${Number(value).toLocaleString()}${suffix}` : '-';
 }
 
 function formatEv(value) {
-  return isFiniteNumber(value) ? `${Number(value).toFixed(3)} BB` : '—';
+  return isFiniteNumber(value) ? `${Number(value).toFixed(3)} BB` : '-';
 }
 
 function panelStyle(accent = 'rgba(69,230,255,.28)') {
@@ -268,7 +268,7 @@ export default function VerifiedTrainingReports() {
                         <span>{day.date}</span>
                         <AccuracyBar value={day.accuracy} color="#3ce78b" />
                         <strong style={{ color: 'var(--sp-fg)' }}>{formatMetric(day.accuracy, '%')}</strong>
-                        <span>{day.measuredEvDecisions > 0 ? formatEv(day.avgMeasuredEvLoss) : 'EV —'}</span>
+                        <span>{day.measuredEvDecisions > 0 ? formatEv(day.avgMeasuredEvLoss) : 'EV -'}</span>
                       </div>
                     ))}
                   </div>

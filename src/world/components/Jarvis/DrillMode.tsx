@@ -45,7 +45,7 @@ export function DrillMode({ onClose }: DrillModeProps) {
                 )}
             </div>
             <p style={{ margin: '0 0 16px', color: 'rgba(238, 250, 255, 0.76)', fontSize: '12px', lineHeight: 1.55 }}>
-                Choose a canonical game so every spot uses server-delivered questions, server grading, and verified progress.
+                Choose A Canonical Game So Every Spot Uses Server-Delivered Questions, Server Grading, And Verified Progress.
             </p>
             <button
                 type="button"

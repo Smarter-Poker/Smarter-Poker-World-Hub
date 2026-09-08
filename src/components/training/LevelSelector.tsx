@@ -570,9 +570,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
                         <p className="sp-level-focus">{gameData?.focus || 'Build table-ready instincts through progressively harder decisions.'}</p>
                         <div className="sp-level-stats">
-                            <div><strong>{totalProgress === null ? '—' : completedLevels}</strong><span>Levels Cleared</span></div>
+                            <div><strong>{totalProgress === null ? '-' : completedLevels}</strong><span>Levels Cleared</span></div>
                             <div><strong>{levels.length || 12}</strong><span>Total Levels</span></div>
-                            <div><strong>{totalProgress === null ? '—' : `${Math.round(totalProgress)}%`}</strong><span>Campaign Mastery</span></div>
+                            <div><strong>{totalProgress === null ? '-' : `${Math.round(totalProgress)}%`}</strong><span>Campaign Mastery</span></div>
                         </div>
                         <div style={styles.progressSummary}>
                             <span style={styles.progressText}>Campaign Progress</span>

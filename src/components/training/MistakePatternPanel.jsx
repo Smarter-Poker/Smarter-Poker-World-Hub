@@ -177,7 +177,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                                     <span style={styles.evLossValue}>
                                         {Number.isFinite(pattern.avgEvLoss)
                                             ? `-${pattern.avgEvLoss.toFixed(2)}`
-                                            : '—'}
+                                            : '-'}
                                     </span>
                                 </div>
 

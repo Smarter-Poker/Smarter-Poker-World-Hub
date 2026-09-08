@@ -231,7 +231,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     marginTop: 4,
                 }}>
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
-                        Illustrative Local Weights — Not Solver Frequencies
+                        Illustrative Local Weights - Not Solver Frequencies
                     </div>
                     {Object.entries(strategy.actions || {})
                         .filter(([, d]) => d.frequency > 0.02)

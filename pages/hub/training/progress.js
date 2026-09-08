@@ -376,7 +376,7 @@ export default function TrainingProgress() {
             <StatCard
               iconKind="accuracy"
               label="Accuracy"
-              value={Number.isFinite(stats.accuracy) ? `${stats.accuracy}%` : '—'}
+              value={Number.isFinite(stats.accuracy) ? `${stats.accuracy}%` : '-'}
               color={
                 Number.isFinite(stats.accuracy)
                   ? (stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444')

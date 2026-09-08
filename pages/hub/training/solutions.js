@@ -404,7 +404,7 @@ function AuditedStrategyReport({ spot, classificationGroups }) {
         Audited Strategy Report
       </div>
       <p style={{ margin: '0 0 14px', fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-        Action frequencies and hand EVs come from this verified v2 artifact. Hand labels are derived locally from the displayed flop.
+        Action Frequencies And Hand EVs Come From This Verified V2 Artifact. Hand Labels Are Derived Locally From The Displayed Flop.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 14 }}>

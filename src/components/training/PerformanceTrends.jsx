@@ -335,7 +335,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                     <MilestoneBadge
                         icon="◎"
                         label="Verified Score"
-                        value={Number.isFinite(milestones.last5Avg) ? `${milestones.last5Avg}` : '—'}
+                        value={Number.isFinite(milestones.last5Avg) ? `${milestones.last5Avg}` : '-'}
                         color={Number.isFinite(milestones.last5Avg)
                             ? (milestones.last5Avg >= 80 ? '#22c55e' : milestones.last5Avg >= 60 ? '#fbbf24' : '#ef4444')
                             : '#64748b'}
@@ -346,7 +346,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                         label="Measured EV/Hand"
                         value={Number.isFinite(milestones.avgEvPerHand)
                             ? Number(milestones.avgEvPerHand).toFixed(2)
-                            : '—'}
+                            : '-'}
                         color={Number.isFinite(milestones.avgEvPerHand)
                             ? (milestones.avgEvPerHand < 0.5 ? '#22c55e' : '#fbbf24')
                             : '#64748b'}
@@ -378,7 +378,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                     <div style={styles.chartLabel}>
                         GTOW Score
                         <span style={styles.chartSubLabel}>
-                            Best: {Number.isFinite(milestones.bestScore) ? milestones.bestScore : '—'}
+                            Best: {Number.isFinite(milestones.bestScore) ? milestones.bestScore : '-'}
                         </span>
                     </div>
                     <LineChart

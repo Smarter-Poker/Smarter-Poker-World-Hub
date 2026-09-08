@@ -229,7 +229,7 @@ export default function WeaknessScannerPage() {
                             : 'var(--sp-accent-amber)',
                       }}
                     >
-                      {data.overallAcc === null ? '—' : `${Math.round(data.overallAcc)}%`}
+                      {data.overallAcc === null ? '-' : `${Math.round(data.overallAcc)}%`}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>Overall Acc</div>
                   </div>

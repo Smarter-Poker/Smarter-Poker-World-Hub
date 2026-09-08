@@ -464,8 +464,8 @@ test('analytics consumers preserve zero accuracy and render unavailable score or
   assert.match(trends, /label="Measured EV\/Hand"/);
   assert.doesNotMatch(trends, /milestones\.avgEvPerHand\.toFixed/);
   assert.doesNotMatch(dashboard, /s\.gtoScore\s*\|\|\s*0|s\.evLoss(?:Avg|Total)\s*\|\|\s*0/);
-  assert.match(dashboard, /metrics\.totalEV === null \? '—'/);
-  assert.match(dashboard, /score === null \? '—'/);
+  assert.match(dashboard, /metrics\.totalEV === null \? '-'/);
+  assert.match(dashboard, /score === null \? '-'/);
 });
 
 test('leak evidence excludes unsealed answers and realtime retires direct rank reads', () => {

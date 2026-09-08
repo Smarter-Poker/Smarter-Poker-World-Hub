@@ -633,7 +633,7 @@ export default function RunoutStrategyMatrix({
                 fontSize: 8, color: '#475569', textAlign: 'center',
                 padding: '4px 8px',
             }}>
-                Illustrative Local Weights Only — Not A Solved Node Or Exact EV.
+                Illustrative Local Weights Only - Not A Solved Node Or Exact EV.
                 Cell Color = Local Preferred Action. Click Any Card For The Practice Breakdown.
             </div>
         </div>

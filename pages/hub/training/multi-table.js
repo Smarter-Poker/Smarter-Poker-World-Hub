@@ -484,7 +484,7 @@ export default function MultiTablePage() {
                           label: 'Measured EV Loss',
                           value: combinedStats.measuredEVDecisions > 0
                             ? `${combinedStats.totalEVLoss.toFixed(1)}bb`
-                            : '—',
+                            : '-',
                           color: combinedStats.measuredEVDecisions < 1
                             ? 'var(--sp-fg-muted)'
                             : combinedStats.totalEVLoss < 5
@@ -835,7 +835,7 @@ export default function MultiTablePage() {
                   Measured EV Loss:{' '}
                   {combinedStats.measuredEVDecisions > 0
                     ? `${combinedStats.totalEVLoss.toFixed(1)} BB`
-                    : '—'}
+                    : '-'}
                 </span>
                 <span style={{ color: 'var(--sp-accent-purple)' }}>
                   Done: {completedTables.size}/{tableCount}

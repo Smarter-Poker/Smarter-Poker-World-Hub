@@ -98,7 +98,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
                         ? null
                         : Number(session.gtow_score_signed);
                     const hasSignedScore = signedScore !== null && Number.isFinite(signedScore);
-                    const score = hasSignedScore ? formatSignedScore(signedScore) : '—';
+                    const score = hasSignedScore ? formatSignedScore(signedScore) : '-';
                     const scoreColor = hasSignedScore ? getArenaScoreColor(signedScore) : '#64748b';
                     const measuredEvLoss = (Number(session.measured_ev_decisions) || 0) > 0
                         && session.total_ev_loss !== null

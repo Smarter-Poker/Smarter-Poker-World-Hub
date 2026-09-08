@@ -251,7 +251,7 @@ function DailyLocalPracticeCard({ challenge, loading, onPlay }) {
     if (loading) {
         return (
             <div className="preflop-daily-card is-loading" role="status" data-tutorial="daily">
-                Synchronizing Today&apos;s Practice Assignment
+                Synchronizing The Practice Assignment For Today
             </div>
         );
     }
@@ -263,7 +263,7 @@ function DailyLocalPracticeCard({ challenge, loading, onPlay }) {
                 <div className="preflop-daily-card-copy">
                     <span>DAILY LOCAL PRACTICE</span>
                     <h2 id="preflop-daily-title">No Practice Assignment Posted Yet</h2>
-                    <p>Today&apos;s Practice Appears Here As Soon As It Is Published. Check Back Soon.</p>
+                    <p>The Practice Assignment For Today Appears Here As Soon As It Is Published. Check Back Soon.</p>
                 </div>
             </section>
         );
@@ -1811,11 +1811,11 @@ export default function MemoryGamesPage() {
                                     <div className="preflop-board-heading">
                                         <Calendar size={40} aria-hidden />
                                         <h2 style={{ color: '#00ff88' }}>DAILY LOCAL PRACTICE</h2>
-                                        <p>Practice Today&apos;s Posted Assignment Without Changing Your Account Progress.</p>
+                                        <p>Practice The Posted Assignment For Today Without Changing Your Account Progress.</p>
                                     </div>
 
                                     {challengeLoading ? (
-                                        <div className="preflop-board-empty">Loading Today&apos;s Practice...</div>
+                                        <div className="preflop-board-empty">Loading The Practice Assignment For Today...</div>
                                     ) : dailyChallenge ? (
                                         <div className="preflop-board-challenge">
                                             <div className="preflop-board-challenge-head">
@@ -1848,7 +1848,7 @@ export default function MemoryGamesPage() {
                                     ) : (
                                         <div className="preflop-board-empty is-warning">
                                             <h3>No Practice Available</h3>
-                                            <p>Check Back Soon For Today&apos;s Practice Assignment!</p>
+                                            <p>Check Back Soon For The Practice Assignment For Today!</p>
                                         </div>
                                     )}
 

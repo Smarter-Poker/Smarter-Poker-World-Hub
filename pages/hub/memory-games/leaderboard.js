@@ -38,7 +38,7 @@ export default function MemoryGamesLeaderboard() {
             <Archive size={30} aria-hidden />
             <h3>Legacy Rankings Are Archived</h3>
             <p>
-              The previous board was created from browser-submitted practice data. It is intentionally hidden because those rows cannot support a fair global rank.
+              The Previous Board Was Created From Browser-Submitted Practice Data. It Is Intentionally Hidden Because Those Rows Cannot Support A Fair Global Rank.
             </p>
           </div>
         </section>
@@ -53,7 +53,7 @@ export default function MemoryGamesLeaderboard() {
           </div>
           <div className="preflop-subpage-empty">
             <p>
-              Club Arena uses server-owned game state for competitive play. Range Lab remains a free local study tool until a sealed ranked mode is released.
+              Club Arena Uses Server-Owned Game State For Competitive Play. Range Lab Remains A Free Local Study Tool Until A Sealed Ranked Mode Is Released.
             </p>
             <Link href="/hub/club-arena">
               Open Club Arena <ArrowRight size={16} aria-hidden />

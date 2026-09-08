@@ -46,7 +46,7 @@ export function PokerQuiz({ onClose }: PokerQuizProps) {
                 )}
             </div>
             <p style={{ margin: '0 0 16px', color: 'rgba(238, 250, 255, 0.76)', fontSize: '12px', lineHeight: 1.55 }}>
-                Questions, answer order, grading, explanations, progress, and rewards are verified by the Training Arena.
+                Questions, Answer Order, Grading, Explanations, Progress, And Rewards Are Verified By The Training Arena.
             </p>
             <button
                 type="button"

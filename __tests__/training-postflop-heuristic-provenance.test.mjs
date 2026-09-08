@@ -177,8 +177,8 @@ test('legacy heuristic consumers cannot grade or present local weights as solved
   assert.doesNotMatch(RANGE_VIEWER, /Frequencies From PioSolver-Calibrated Strategy Matrices/);
   assert.doesNotMatch(RANGE_VIEWER, />\s*BEST\s*</);
   assert.match(BOARD_EXPLORER, /Illustrative Board Explorer/);
-  assert.match(MULTI_STREET, /Illustrative Local Weights — Not Solver Frequencies/);
+  assert.match(MULTI_STREET, /Illustrative Local Weights - Not Solver Frequencies/);
   assert.match(MULTI_STREET, /handData\.solverVerified === true \? 'VERIFIED SOLVER' : 'REFERENCE'/);
-  assert.match(REPLAY, /Illustrative Local Estimates — Not Solved EV/);
+  assert.match(REPLAY, /Illustrative Local Estimates - Not Solved EV/);
   assert.doesNotMatch(REPLAY, />GTO<\/div>/);
 });
