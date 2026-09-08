@@ -138,6 +138,15 @@ function spKeyActivate(e) {
   e.currentTarget.click();
 }
 
+/*
+ * prefetch={false} on the author links still prefetches on hover and
+ * touchstart in the Pages Router - it only drops the speculative
+ * in-viewport fetch. Those links appear ONCE PER POST, so a feed of
+ * twenty posts had twenty in-viewport Links all pulling the same 159KB
+ * /hub/user/[username] chunk before the reader touched anything. Intent
+ * is preserved; the bulk speculation is not. Same reasoning for the 16
+ * links in the sidebar drawer, which is mounted off-screen.
+ */
 const PostCard = React.memo(
   function PostCard({
     post,
@@ -782,7 +791,7 @@ const PostCard = React.memo(
         }}
       >
         <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link
+          <Link prefetch={false}
             href={`/hub/user/${post.author?.username || 'player'}`}
             style={{ textDecoration: 'none', position: 'relative', display: 'inline-block' }}
           >
@@ -803,7 +812,7 @@ const PostCard = React.memo(
             )}
           </Link>
           <div style={{ flex: 1 }}>
-            <Link
+            <Link prefetch={false}
               href={`/hub/user/${post.author?.username || 'player'}`}
               className="no-capitalize"
               data-preserve-case="true"
@@ -6757,7 +6766,7 @@ function SocialMediaPage() {
                       People
                     </div>
                     {globalSearchResults.users.map((u) => (
-                      <Link
+                      <Link prefetch={false}
                         key={u.id}
                         href={`/hub/user/${u.username}`}
                         onClick={() => setShowGlobalSearch(false)}
@@ -7409,7 +7418,7 @@ function SocialMediaPage() {
                       <p style={{ color: C.textSec, marginBottom: 12 }}>
                         Log In To Post And Interact!
                       </p>
-                      <Link
+                      <Link prefetch={false}
                         href="/auth/login"
                         style={{
                           display: 'inline-block',
@@ -7547,7 +7556,7 @@ function SocialMediaPage() {
                           flexWrap: 'wrap',
                         }}
                       >
-                        <Link
+                        <Link prefetch={false}
                           href="/hub/friends"
                           style={{
                             padding: '8px 16px',

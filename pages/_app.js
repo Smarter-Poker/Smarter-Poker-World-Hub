@@ -97,8 +97,9 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
-import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
-import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
+// Static on purpose: __tests__/sw-update.test.mjs requires the update prompt
+// in the shell, and it is the control that tells a reader a new build is
+// waiting - the earlier it can speak, the better.
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
@@ -144,6 +145,30 @@ import {
  * nothing flashes while the chunk arrives. Behaviour is unchanged - they still
  * render unconditionally, just from their own chunk instead of the shell's.
  */
+/*
+ * Two post-interaction prompts. Each returns null until its own condition
+ * fires - an install banner, a notification ask - so neither is on the
+ * first-paint path, and neither needs to be in the chunk every page of the
+ * estate downloads.
+ *
+ * ServiceWorkerUpdater was deferred too and then put back: sw-update.test.mjs
+ * requires it in the shell, and that law is right. It is the control that tells
+ * a reader a new build is waiting, so it should be able to speak as early as
+ * possible. ~18KB is not worth widening someone else's law for.
+ *
+ * WorldCopyPolicy and GlobalPageOverlay are deliberately NOT deferred:
+ * WorldCopyPolicy normalizes visible copy in a useEffect on load, and
+ * GlobalPageOverlay renders immediately. Deferring either would show a frame
+ * of un-normalized text or an unstyled overlay.
+ */
+const GlobalNotificationPrompt = dynamic(
+  () => import('../src/components/ui/GlobalNotificationPrompt'),
+  { ssr: false, loading: () => null }
+);
+const PWAInstallPrompt = dynamic(() => import('../src/components/ui/PWAInstallPrompt'), {
+  ssr: false,
+  loading: () => null,
+});
 const JarvisPanel = dynamic(
   () => import('../src/world/components/Jarvis/JarvisPanel').then((m) => m.JarvisPanel),
   { ssr: false, loading: () => null }
