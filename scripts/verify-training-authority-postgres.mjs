@@ -32,6 +32,14 @@ const STREAK_OUT_OF_ORDER_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260907202000_training_streak_out_of_order_completion.sql',
 );
+const SESSION_POLICY_PROJECTION_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260908192000_training_session_projection_policy_checksum.sql',
+);
+const CACHE_TRUTH_ENFORCEMENT_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260907070000_training_cache_truth_enforcement.sql',
+);
 
 const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
@@ -40,6 +48,41 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+`;
+
+const SESSION_CACHE_COMPLETION_INTEGRATION_SQL = String.raw`
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+CREATE OR REPLACE FUNCTION public.fn_training_cache_record_event(
+  p_event_type text,
+  p_event_key text,
+  p_question_id text,
+  p_user_id uuid DEFAULT NULL,
+  p_is_correct boolean DEFAULT NULL,
+  p_metadata jsonb DEFAULT '{}'::jsonb,
+  p_occurred_at timestamptz DEFAULT now(),
+  p_expected_policy_checksum text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+BEGIN
+  IF lower(coalesce(p_expected_policy_checksum, '')) !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'training_cache_event_missing_policy_checksum';
+  END IF;
+  RETURN jsonb_build_object('inserted', true, 'policyChecksum', p_expected_policy_checksum);
+END;
+$$;
+
+${extractFunction(CACHE_TRUTH_ENFORCEMENT_MIGRATION, 'fn_training_session_cache_completion')}
+
+DROP TRIGGER IF EXISTS training_session_cache_completion ON public.training_sessions;
+CREATE TRIGGER training_session_cache_completion
+AFTER INSERT ON public.training_sessions
+FOR EACH ROW EXECUTE FUNCTION public.fn_training_session_cache_completion();
 `;
 
 function command(binary, args, { input, quiet = false } = {}) {
@@ -78,6 +121,18 @@ function commandExpectFailure(binary, args, { input, expected } = {}) {
     ].filter(Boolean).join('\n'));
   }
   return result;
+}
+
+function extractFunction(sourcePath, functionName) {
+  const source = readFileSync(sourcePath, 'utf8');
+  const marker = `CREATE OR REPLACE FUNCTION public.${functionName}`;
+  const start = source.indexOf(marker);
+  const bodyStart = source.indexOf('AS $$', start);
+  const end = source.indexOf('\n$$;', bodyStart);
+  if (start < 0 || bodyStart < 0 || end < 0) {
+    throw new Error(`Could not isolate ${functionName} from ${sourcePath}`);
+  }
+  return source.slice(start, end + 4);
 }
 
 function resolvePostgresBin() {
@@ -534,7 +589,7 @@ BEGIN
     CASE WHEN i <= p_correct THEN 0 ELSE 1 END, 'single-raised-pot',
     p_nonce || '-submission-' || i::text, true, 'phase6-fixture',
     CASE WHEN i <= p_correct THEN 75 ELSE 25 END, 75, true,
-    jsonb_build_object('difficultyMode', 'grouped'),
+    jsonb_build_object('difficultyMode', 'grouped', 'policyChecksum', repeat('a', 64)),
     p_nonce, attempt, i, 1,
     md5(p_nonce || ':' || i::text) || md5('snapshot:' || p_nonce || ':' || i::text)
   FROM generate_series(1, p_expected) i;
@@ -628,7 +683,7 @@ BEGIN
     '11111111-1111-4111-8111-111111111111', 'cash-001', 'phase6-turn-q',
     'bet', false, 1, 'BTN', 'BB', 'turn', 'wrong-turn', 2,
     'single-raised-pot', 'phase6-turn-submission', true, 75, 75, true,
-    jsonb_build_object('difficultyMode', 'grouped'),
+    jsonb_build_object('difficultyMode', 'grouped', 'policyChecksum', repeat('a', 64)),
     'phase6-run-one', attempt_one, 1, 2, snapshot_two
   );
 
@@ -640,7 +695,7 @@ BEGIN
     ) VALUES (
       '11111111-1111-4111-8111-111111111111', 'cash-001', 'phase6-turn-q',
       'check', true, 1, 'phase6-gap-submission',
-      jsonb_build_object('difficultyMode', 'grouped'),
+      jsonb_build_object('difficultyMode', 'grouped', 'policyChecksum', repeat('a', 64)),
       'phase6-run-one', attempt_one, 2, 3, snapshot_two
     );
   EXCEPTION WHEN check_violation THEN
@@ -656,7 +711,7 @@ BEGIN
     ) VALUES (
       '22222222-2222-4222-8222-222222222222', 'cash-001', 'phase6-turn-q',
       'check', true, 1, 'phase6-owner-submission',
-      jsonb_build_object('difficultyMode', 'grouped'),
+      jsonb_build_object('difficultyMode', 'grouped', 'policyChecksum', repeat('a', 64)),
       'phase6-run-one', attempt_one, 2, 2, snapshot_two
     );
   EXCEPTION WHEN check_violation THEN
@@ -713,6 +768,12 @@ BEGIN
      OR jsonb_array_length(session_result #> '{session,hand_history}') <> 21
      OR (session_result #>> '{session,hand_history,1,decisionOrdinal}')::integer <> 2
      OR (session_result #>> '{session,hand_history,1,evLossMeasured}')::boolean IS NOT TRUE
+     OR session_result #>> '{session,hand_history,0,policyChecksum}' <> repeat('a', 64)
+     OR EXISTS (
+       SELECT 1
+       FROM jsonb_array_elements(session_result #> '{session,hand_history}') history(entry)
+       WHERE history.entry ->> 'policyChecksum' <> repeat('a', 64)
+     )
      OR (session_result #>> '{session,mistake_count}')::integer <> 4
      OR (session_result #>> '{session,total_ev_loss}')::numeric <> 5
      OR (session_result #>> '{session,trainer_config,decisionCount}')::integer <> 21
@@ -822,7 +883,7 @@ BEGIN
   ) VALUES (
     '11111111-1111-4111-8111-111111111111', 'adv-011', 'phase6-replay-q',
     'check', true, 1, 'phase6-replay-submission',
-    jsonb_build_object('difficultyMode', 'grouped'),
+    jsonb_build_object('difficultyMode', 'grouped', 'policyChecksum', repeat('a', 64)),
     'phase6-replay', replay_attempt, 1, 1,
     md5('phase6-replay') || md5('phase6-replay-snapshot')
   );
@@ -1243,7 +1304,8 @@ BEGIN
     session_id, attempt_id, hand_ordinal, decision_ordinal, snapshot_key
   ) VALUES (
     p_user, 'daily-challenge', p_question, 'check', true, 1, started + interval '1 minute',
-    p_attempt::text, true, 0, true, jsonb_build_object('difficultyMode', 'grouped'),
+    p_attempt::text, true, 0, true,
+    jsonb_build_object('difficultyMode', 'grouped', 'policyChecksum', repeat('a', 64)),
     nonce, p_attempt, 1, 1, p_snapshot
   );
   IF p_final_status <> 'open' THEN
@@ -1875,6 +1937,16 @@ try {
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', SESSION_EVIDENCE_MIGRATION], {
     quiet: true,
   });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: SESSION_CACHE_COMPLETION_INTEGRATION_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', SESSION_POLICY_PROJECTION_MIGRATION,
+  ], { quiet: true });
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', SESSION_POLICY_PROJECTION_MIGRATION,
+  ], { quiet: true });
   command(tool('psql'), ['-v', 'ON_ERROR_STOP=1', ...connection, '-f', MEMORY_AUTHORITY_MIGRATION], {
     quiet: true,
   });

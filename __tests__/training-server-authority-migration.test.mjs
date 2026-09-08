@@ -8,6 +8,11 @@ const migrationPath = new URL(
   import.meta.url,
 );
 const sql = readFileSync(migrationPath, 'utf8');
+const sessionPolicyProjectionPath = new URL(
+  '../supabase/migrations/20260908192000_training_session_projection_policy_checksum.sql',
+  import.meta.url,
+);
+const sessionPolicyProjectionSql = readFileSync(sessionPolicyProjectionPath, 'utf8');
 
 function has(pattern, message) {
   assert.match(sql, pattern, message);
@@ -179,6 +184,38 @@ test('analytics session persistence is server-derived, idempotent and never awar
     /fn_save_training_session_v2[\s\S]*PERFORM\s+public\.award_diamonds/i,
     'analytics persistence must not award a second reward',
   );
+});
+
+test('analytics projection preserves the policy checksum required by the cache completion trigger', () => {
+  assert.match(sessionPolicyProjectionSql, /^BEGIN;$/mi);
+  assert.match(sessionPolicyProjectionSql, /SET LOCAL lock_timeout = '5s'/i);
+  assert.match(sessionPolicyProjectionSql, /SET LOCAL statement_timeout = '120s'/i);
+  assert.match(
+    sessionPolicyProjectionSql,
+    /'policyChecksum',\s*lower\(answer\.evidence_metadata ->> 'policyChecksum'\)/i,
+  );
+  assert.match(
+    sessionPolicyProjectionSql,
+    /phase6_session_projection_repair_targets[\s\S]*attempt\.status = 'completed'[\s\S]*NOT EXISTS \([\s\S]*public\.training_sessions/i,
+  );
+  assert.match(
+    sessionPolicyProjectionSql,
+    /NOT EXISTS \([\s\S]*public\.training_answers answer[\s\S]*policyChecksum[\s\S]*!~ '\^\[0-9a-f\]\{64\}\$'/i,
+  );
+  assert.match(
+    sessionPolicyProjectionSql,
+    /result := public\.fn_save_training_session_v2\(target\.user_id, target\.id\)/i,
+  );
+  assert.match(sessionPolicyProjectionSql, /TRAINING_SESSION_POLICY_PROJECTION_REPAIR_INCOMPLETE/i);
+  assert.match(
+    sessionPolicyProjectionSql,
+    /REVOKE ALL ON FUNCTION public\.fn_save_training_session_v2\(uuid, uuid\)[\s\S]*FROM PUBLIC, anon, authenticated/i,
+  );
+  assert.match(
+    sessionPolicyProjectionSql,
+    /GRANT EXECUTE ON FUNCTION public\.fn_save_training_session_v2\(uuid, uuid\)[\s\S]*TO service_role/i,
+  );
+  assert.match(sessionPolicyProjectionSql, /COMMIT;\s*$/i);
 });
 
 test('streak milestone claims are atomic, server-priced and service-only', () => {
