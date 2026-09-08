@@ -123,6 +123,22 @@ jobs:
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
 
+
+      # .next/cache across runs. This job runs a full `npm run build`, and
+      # webpack's cache is what makes the second one cheap - the same cache
+      # git-safe-push.sh was deleting locally before every push until
+      # 2026-09-08 (2.4 GB of .next, 2.0 GB of it this cache). Keyed on the
+      # lockfile plus the sha so every run writes a fresh entry, with a prefix
+      # restore-key so it starts from the most recent one.
+      - name: Restore .next/cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            next-wh-${{ runner.os }}-
+
       - name: Build Next.js
         # `npm run build`, NOT a bare `npx next build`.
         #
@@ -149,23 +165,6 @@ jobs:
         # to Turbopack, which breaks on our custom webpack config and the 246
         # named-export mismatches from the May 2026 incident. npm passes
         # everything after `--` through to the underlying next build.
-
-      # .next/cache across runs. This job runs a full `npm run build`, and
-      # webpack's cache is what makes the second one cheap - the same cache
-      # git-safe-push.sh was deleting locally before every push until
-      # 2026-09-08 (2.4 GB of .next, 2.0 GB of it this cache). Keyed on the
-      # lockfile plus the sha so every run writes a fresh entry, with a prefix
-      # restore-key so it starts from the most recent one.
-      - name: Restore .next/cache
-        uses: actions/cache@v4
-        with:
-          path: .next/cache
-          key: next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
-          restore-keys: |
-            next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
-            next-wh-${{ runner.os }}-
-
-      - name: Build Next.js (cached)
         run: npm run build -- --webpack
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
