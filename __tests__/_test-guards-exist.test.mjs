@@ -24,6 +24,7 @@
  *
  * No single deletion can hide a regression.
  */
+import './club-arena-shell-cache.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
