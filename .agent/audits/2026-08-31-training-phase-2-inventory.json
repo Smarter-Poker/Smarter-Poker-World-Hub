@@ -24770,7 +24770,7 @@
         {
           "element": "button",
           "name": "\\U2190",
-          "line": 323,
+          "line": 326,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -24882,7 +24882,7 @@
         },
         {
           "name": "startDrill",
-          "line": 296,
+          "line": 299,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -24895,7 +24895,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 426,
+          "line": 429,
           "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -36952,7 +36952,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 4729,
+          "line": 4725,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -36962,7 +36962,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 4819,
+          "line": 4815,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -36972,7 +36972,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 4832,
+          "line": 4828,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -37094,7 +37094,7 @@
         },
         {
           "name": "GodModeArena",
-          "line": 5272,
+          "line": 5268,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -61861,11 +61861,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/drill-builder.js:323:1",
+      "id": "pages/hub/training/drill-builder.js:326:1",
       "file": "pages/hub/training/drill-builder.js",
       "element": "button",
       "name": "\\U2190",
-      "line": 323,
+      "line": 326,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -64786,11 +64786,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4729:15",
+      "id": "src/components/training/GodModeArena.jsx:4725:15",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 4729,
+      "line": 4725,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -64799,11 +64799,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4819:16",
+      "id": "src/components/training/GodModeArena.jsx:4815:16",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Exit",
-      "line": 4819,
+      "line": 4815,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -64812,11 +64812,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4832:17",
+      "id": "src/components/training/GodModeArena.jsx:4828:17",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 4832,
+      "line": 4828,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -82679,7 +82679,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 426,
+        "line": 429,
         "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -91206,7 +91206,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 426,
+        "line": 429,
         "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
