@@ -192,6 +192,25 @@ legacy rows would be a regression of Phase 3.
 - OpenClaw before this correction: active, zero restarts, and byte-identical to
   its then-current protected-main source.
 
+## Certification-harness follow-up
+
+The post-merge repository-wide mobile-menu gate exposed a stale assertion in
+`024-world-menu-mobile-phase3.spec.ts`. Poker Near Me deliberately uses
+`overflow: clip` instead of `overflow: hidden` so WebKit does not turn the body
+into a fixed-position containing scroll box. The product still locks the root
+scroller, and the dedicated WebKit contract in
+`023-world-menu-webkit.spec.ts` already accepted both safe implementations.
+The Phase 3 mobile contract contradicted that rule and therefore reported a
+known-good production lock as a failure in both Chromium and WebKit.
+
+The shared modal-isolation assertion now verifies the real invariant: body
+overflow must be `hidden` or `clip`, and either the body must be fixed or the
+root scroller must also be locked. It does not weaken focus isolation, inert
+branch, containment, sizing, sticky-action, or Escape-return checks. The exact
+production matrix passed 36 of 36 tests after the correction, including Poker
+Near Me in Chromium and WebKit. This is a test-contract repair only; it changes
+no player runtime or horse policy.
+
 ## Runbook for two failed cache-audit passes
 
 1. Read `cron_execution_log` for `/cron/training-cache-drift-audit` and retain
