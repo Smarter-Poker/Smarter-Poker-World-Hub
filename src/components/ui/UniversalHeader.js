@@ -1384,21 +1384,67 @@ export default function UniversalHeader({
                 .approved-global-header__menu { left: 1.7%; width: 7%; }
                 .approved-global-header__back { left: 8%; width: 12%; }
                 .approved-global-header__hub { left: 19.1%; width: 12.9%; }
+                /* ═══════════════════════════════════════════════════════════════════════
+                   THE PROFILE FRAME IS A 0.5px BLACK HAIRLINE. THE BAKED ORNAMENT IS MASKED.
+                   (LAW - GLOBAL_HEADER_PROFILE_FRAME_LAW.md,
+                   __tests__/global-header-profile-frame-law.test.mjs)
+
+                   Dan, 2026-09-07, with a screenshot of the chrome ring showing around his
+                   photo: "the profile pic is supposed to be a .5 pixel black frame that
+                   'appears invisible' instead of this thick broken frame that exists now."
+                   Dan, 2026-09-05: "the thin .5 pixel invisible black frame". Dan,
+                   2026-09-03: "INSTEAD OF HAVING THE .50 PIXEL BLACK INVISIBLE CIRCLE
+                   FRAME". Dan, 2026-08-31: remove the profile ring.
+
+                   The approved artwork bakes a silver ring with a blue glow around a blue
+                   placeholder silhouette. That ring is the "thick broken frame": the live
+                   photo and the baked ring are two circles that never agree to the pixel,
+                   so wherever the ring shows it reads as a chipped bezel. It is never shown.
+                   This button paints an opaque black disc over the whole ornament - ring,
+                   glow and silhouette - and the only frame the photo has is the hairline on
+                   the slot below.
+
+                   HOW THIS REGRESSED, SO IT IS NOT DONE AGAIN. On 2026-09-01 (#1216 here,
+                   #2515 in Club Arena) "the profile image needs to be fixed" was read as
+                   "show the ring": the disc was removed, the photo was seated in the ring's
+                   aperture, and the tests were rewritten to FORBID the disc as "a shape
+                   drawn over approved artwork". Every fix since then obeyed those tests and
+                   restored only the hairline, so the ring stayed. The "NO BOXES OVER HEADER
+                   ICONS" rule above is about focus rings on icons; this disc is the mask
+                   Dan asked for and is its one deliberate exception.
+
+                   GEOMETRY, measured off images/global-header/global-header-desktop.png
+                   (1648 x 168, the file this header renders; the plane every % is on).
+                   Ornament centre (1159.75, 80.5). Ring r 40-48, glow gone by r 52, the
+                   header's silver rails begin at r 62. The disc is centred on the ornament
+                   with radius 56: 112 units = 6.8% wide, left (1159.75 - 56) / 1648 =
+                   66.98%, top (80.5 - 56) / 168 = 14.58%. It covers the glow with 4 units
+                   to spare and stops 6 short of the rails: black on black at every width.
+                   The law test checks this arithmetic, not these literals - move the disc
+                   so the ring peeks out, or onto a rail, and CI fails. */
                 .approved-global-header__profile {
-                    top: 15%;
-                    left: 66.75%;
-                    width: 7.15%;
+                    top: 14.58%;
+                    left: 66.98%;
+                    width: 6.8%;
                     height: auto;
                     aspect-ratio: 1;
                     position: absolute !important;
                     box-sizing: border-box;
                     overflow: hidden;
-                    /* Paints nothing. This was an opaque black disc 117.8 artwork-units
-                       across, over an ornament that measures 94, so the approved chrome
-                       ring and its blue glow were painted out and all that reached the
-                       screen was a flat black circle with a photo in it. */
                     contain: layout paint;
                     isolation: isolate;
+                    border: 0;
+                    border-radius: 50%;
+                    background: #000;
+                }
+
+                /* Keyboard focus keeps the mask: the shared :focus-visible rule swaps the
+                   button background for the radial glow, which here would show the ring
+                   for as long as the button is focused. The glow is layered over black. */
+                .approved-global-header__profile:focus-visible {
+                    background:
+                        radial-gradient(closest-side, rgba(54, 186, 255, 0.32), rgba(54, 186, 255, 0) 78%),
+                        #000;
                 }
                 .approved-global-header__wallet { left: 73.2%; width: 7.1%; }
                 .approved-global-header__vip {
@@ -1424,48 +1470,31 @@ export default function UniversalHeader({
                     }
                 }
 
+                /* The live photo: a circle of 72% of the disc (80.6 units, the size of the
+                   well the ornament used to show), centred on it, with the 0.5px hairline as
+                   its ONLY frame. Half a pixel of near-black is invisible as a border and
+                   does the whole job as an anti-alias mask on the photo's edge. This is the
+                   one rule allowed to declare the slot's border - one copy to regress.
+                   THESE PERCENTAGES ARE OF THE BUTTON BOX, AND THE BUTTON BOX MUST BE
+                   SQUARE - see the min-height reset above; do not reintroduce a
+                   min-height, a fixed height, or padding on these buttons. */
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
-                    /* MEASURED off images/global-header/global-header-desktop.png
-                       (1648x168, the file this header renders): the profile ornament is a
-                       circle centred at (1159.75, 80.5), 94-unit outer diameter, ~6-unit
-                       chrome band, leaving an 81-unit aperture. Against this button box
-                       (plane x 1100.04-1217.87, y 25.2-143.03) that is a circle of 68.7%
-                       width centred at 50.7% / 46.9%. It was 72% at 50%/50% - 84.8 units
-                       sitting 3.6 units low, wider than the aperture and nearly as wide as
-                       the outer edge of the ring, so the photo covered the chrome band on
-                       three sides and hung past it at the bottom.
-
-                       THESE PERCENTAGES ARE OF THE BUTTON BOX, AND THE BUTTON BOX MUST BE
-                       SQUARE. That is what broke on mobile and was reported on 2026-09-05:
-                       a global 44px touch floor (src/index.css) overrode the button's
-                       aspect-ratio 1, making the box 26.8 x 44 at 375px, so 46.9% of its
-                       height put the portrait 8px BELOW the ornament - the approved ring
-                       showing empty above the photo and the photo hanging past it below,
-                       which is the "thick broken frame". The floor is now excluded there
-                       and reset here; do not reintroduce a min-height, a fixed height, or
-                       padding on these buttons. */
-                    top: 46.9% !important;
-                    left: 50.7% !important;
+                    top: 50% !important;
+                    left: 50% !important;
                     z-index: 1;
                     display: block;
-                    width: 68.7%;
+                    width: 72%;
                     height: auto;
                     aspect-ratio: 1;
                     transform: translate(-50%, -50%) !important;
                     overflow: hidden;
                     box-sizing: border-box;
-                    /* THE HALF-PIXEL EDGE (Dan, restored 2026-09-05: "the thin .5 pixel
-                       invisible black frame"). Landed as 1px in #1136, thinned to 0.5px in
-                       #1157 because a full pixel reads as a drawn ring on an 18px circle,
-                       then dropped to 0 by #1216 while that commit was busy removing the
-                       opaque black disc. Without it the photo's own edge abuts the
-                       artwork's chrome band with nothing between them, and the two
-                       anti-alias against each other into a ragged line. Half a pixel is
-                       enough to separate them and too little to read as a border. */
-                    border: 0.5px solid rgba(0, 0, 0, .94);
+                    border: 0.5px solid rgba(0, 0, 0, 0.94);
                     border-radius: 50%;
                     background: transparent;
+                    max-width: 100%;
+                    max-height: 100%;
                     pointer-events: none;
                 }
 

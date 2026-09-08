@@ -29,7 +29,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { sendWebPush, isPushConfigured } from '../../../src/lib/push/web-push';
+import { isPushConfigured } from '../../../src/lib/push/web-push';
+import { sendPush, SUBSCRIPTION_COLUMNS } from '../../../src/lib/push/send-push';
 import { recordSendFailure } from '../../../src/lib/push/push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
 
@@ -407,7 +408,7 @@ async function handler(req, res) {
 
             const { data: subs } = await supabase
                 .from('push_subscriptions')
-                .select('id, endpoint, p256dh, auth')
+                .select(SUBSCRIPTION_COLUMNS)
                 .eq('user_id', row.recipient_user_id)
                 .eq('is_active', true);
 
@@ -454,7 +455,7 @@ async function handler(req, res) {
             // across 100 recipients is what pushes this run past its budget.
             const results = await Promise.all(
                 subs.map((sub) =>
-                    sendWebPush(sub, payload, typeof ttl === 'number' ? { ttl } : undefined)
+                    sendPush(sub, payload, typeof ttl === 'number' ? { ttl } : undefined)
                 )
             );
 
