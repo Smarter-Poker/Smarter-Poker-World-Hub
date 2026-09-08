@@ -9,7 +9,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
 let _supabase = null;
 function getSupabase() {
@@ -64,10 +64,20 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
 
-      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access.
+      //
+      // Through the server gate, not checkFeatureAccess. That one is a browser
+      // gate: it reads localStorage, queries with the anon client whose RLS
+      // then refuses `profiles`, and recovers by fetching a RELATIVE url that
+      // Node cannot resolve. Every path failed here, so this route answered
+      // 403 to everyone, including a VIP account with 494,455 diamonds.
+      const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
-          return res.status(403).json({ success: false, error: 'Premium feature access required' });
+          return res.status(403).json({
+              success: false,
+              error: 'Premium feature access required',
+              reason: access.reason,
+          });
       }
 
       try {
