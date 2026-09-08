@@ -1,0 +1,57 @@
+{
+  "contract": "smarter-poker.horse-solver-v31-manifest.v1",
+  "enabled": false,
+  "dataset_key": "replace.before.enable",
+  "manifest_version": "replace-before-enable",
+  "pipeline_commit": "0000000000000000000000000000000000000000",
+  "pipeline_bundle_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "pipeline_files": [
+    {
+      "path": "scripts/horse-solver-v31/contract.py",
+      "checksum": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "path": "scripts/horse-solver-v31/gateway.py",
+      "checksum": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "path": "scripts/horse-solver-v31/pio_upi.py",
+      "checksum": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "path": "scripts/horse-solver-v31/worker.py",
+      "checksum": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "path": "scripts/horse-solver-v31/compactor.py",
+      "checksum": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "solver_version": "replace-before-enable",
+  "solver_binary_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "range_bundle_path": "ranges/range-bundle.json",
+  "range_bundle_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "source_combo_order_path": "inputs/combo-order.txt",
+  "source_combo_order_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "icm_model_path": "inputs/icm-model.json",
+  "icm_model_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "input_bundle_id": "00000000-0000-4000-8000-000000000000",
+  "input_bundle_checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+  "quality_gates": {
+    "max_frequency_mae": 0.1,
+    "max_sizing_mae": 0.1,
+    "max_policy_ev_mae_bb": 0.2,
+    "max_action_regret_bb": 0.1,
+    "min_regret_coverage": 0.8
+  },
+  "self_test": {
+    "scenario_id": "replace-before-enable",
+    "node": "r:0",
+    "solver_player": 0,
+    "expected_children": ["c", "b1"],
+    "weighted_policy_ev_min_bb": 0,
+    "weighted_policy_ev_max_bb": 0,
+    "max_exploitability_pct": 0
+  },
+  "scenarios": []
+}

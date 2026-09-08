@@ -835,7 +835,7 @@ attempt=0
 while [ $attempt -lt $MAX_RETRIES ]; do
   attempt=$((attempt + 1))
   echo ""
-  echo "⬇️  [Attempt ${attempt}/${MAX_RETRIES}] Pulling ${REMOTE}/${BRANCH} with rebase..."
+  echo "⬇️  [Attempt ${attempt}/${MAX_RETRIES}] Reconciling ${REMOTE}/${BRANCH}..."
 
   # Clean any leftover rebase state before trying
   if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
@@ -852,8 +852,19 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     git stash push -u -m "git-safe-push-retry-$(date +%s)" 2>/dev/null || true
   fi
 
-  # ── PULL WITH REBASE ──
-  if ! GIT_EDITOR=true git pull --rebase "${REMOTE}" "${BRANCH}" 2>&1; then
+  # ── FETCH, THEN REBASE ONLY WHEN THE REMOTE HAS NEW COMMITS ──
+  # A blind `git pull --rebase` rewrites an intentional merge from main even
+  # when the remote feature branch is already an ancestor of HEAD. That makes
+  # a current branch appear behind main again and destroys tested provenance.
+  if ! git fetch "${REMOTE}" "${BRANCH}" 2>&1; then
+    echo "⚠️  Could not fetch ${REMOTE}/${BRANCH}. Retrying..."
+    sleep "$((attempt * 2))"
+    continue
+  fi
+
+  if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+    echo "✅ Local branch already contains the remote branch; preserving merge ancestry."
+  elif ! GIT_EDITOR=true git rebase FETCH_HEAD 2>&1; then
 
     # ── AUTO-RESOLVE CONFLICTS ──
     echo "⚠️  Conflicts during rebase. Auto-resolving (accept theirs)..."
@@ -925,7 +936,16 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     # Extract owner/repo from URL
     REPO_PATH=$(echo "$PUSH_URL" | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
     AUTH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO_PATH}.git"
-    if git push $NO_VERIFY_FLAG --set-upstream "$AUTH_URL" "${BRANCH}" 2>&1; then
+    # Never let the one-shot credential URL become branch.<name>.remote. Git's
+    # --set-upstream persists the literal push target and then prints it, which
+    # leaks the token into both .git/config and terminal logs. Push through the
+    # authenticated URL, then bind the branch to the ordinary named remote.
+    if git push $NO_VERIFY_FLAG "$AUTH_URL" "HEAD:refs/heads/${BRANCH}" 2>&1; then
+    git update-ref "refs/remotes/${REMOTE}/${BRANCH}" HEAD
+    if ! git branch --set-upstream-to="${REMOTE}/${BRANCH}" "${BRANCH}" >/dev/null 2>&1; then
+      echo "❌ Push succeeded, but the safe named upstream could not be restored."
+      exit 2
+    fi
     PHASE3_END=$(date +%s)
     TOTAL_END=$(date +%s)
     COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")

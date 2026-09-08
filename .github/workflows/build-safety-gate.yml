@@ -951,6 +951,9 @@ jobs:
             __tests__/vercel-build-queue.test.mjs \
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
+            __tests__/horse-solver-v31-ingress.test.mjs \
+            __tests__/horse-solver-v31-pipeline.test.mjs \
+            __tests__/git-safe-push-credential-safety.test.mjs \
             __tests__/an-rpc-call-names-a-real-signature.law.test.mjs \
             __tests__/phase6-content-dispatch.test.mjs \
             __tests__/native-push-fcm.test.mjs \
