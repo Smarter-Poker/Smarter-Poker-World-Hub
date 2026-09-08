@@ -38,6 +38,7 @@ export const RECEIPT_ACTIONS = {
     FILE_W2G: 'file_w2g',          // the W-2G Document Vault in Tax Reports
     ATTACH: 'attach',              // an existing session or expense
     SAVE_LATER: 'save_later',      // keep it in Receipts Waiting, assign later
+    CLOSE_SESSION: 'close_session', // a cash out lands on the open session it ends
 };
 
 /**
@@ -103,6 +104,18 @@ export function receiptActions(route, context = {}) {
     if (destination === DESTINATIONS.SESSION) {
         // Rule 2. A buy-in is a session on a trip. It is never an expense.
         const kind = prefill.entryKind === 'cashout' ? 'Cash Out' : 'Buy-In';
+        const open = context.openSession || null;
+        if (prefill.entryKind === 'cashout' && open) {
+            // The session this ticket ends is already logged: finish it.
+            const closeIt = {
+                id: RECEIPT_ACTIONS.CLOSE_SESSION,
+                tone: 'CLOSE',
+                title: `Close Session: ${open.location_name || 'Poker'} ${String(open.entry_date || '').slice(0, 10)}`,
+                detail: 'Record This Cash Out On The Session That Is Still Open',
+                primary: true,
+            };
+            return [closeIt, session(false, kind), attach, later];
+        }
         return [session(true, kind), attach, later];
     }
 
@@ -186,6 +199,90 @@ export function ledgerCategoryFor(route) {
         case 'cashout': return prefill.finish_position !== null && prefill.finish_position !== undefined ? 'poker_mtt' : 'poker_cash';
         default: return null;
     }
+}
+
+/** Case- and punctuation-insensitive key for a venue name. */
+function venueKey(name) {
+    return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/**
+ * The user's saved location that matches a venue the receipt printed, so an
+ * auto-started trip carries the venue (and its GPS, which venue analytics
+ * keys on) instead of a bare name.
+ *
+ * @param {{id:string,name:string}[]} locations
+ * @returns {object|null}
+ */
+export function matchLocationByName(locations, name) {
+    const key = venueKey(name);
+    if (!key || !Array.isArray(locations)) return null;
+    const exact = locations.find((l) => venueKey(l && l.name) === key);
+    if (exact) return exact;
+    // "Bellagio Poker Room" printed, "Bellagio" saved: the longer contains the shorter.
+    return locations.find((l) => {
+        const k = venueKey(l && l.name);
+        return k.length >= 4 && (key.includes(k) || k.includes(key));
+    }) || null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+function daysBetween(a, b) {
+    const ta = Date.parse(String(a || '').slice(0, 10) + 'T12:00:00');
+    const tb = Date.parse(String(b || '').slice(0, 10) + 'T12:00:00');
+    if (!Number.isFinite(ta) || !Number.isFinite(tb)) return null;
+    return Math.abs(ta - tb) / DAY_MS;
+}
+
+function isPokerSession(entry) {
+    return entry && (entry.category === 'poker_cash' || entry.category === 'poker_mtt');
+}
+
+/**
+ * A cash-out ticket ends a session that is already logged. Find it: a poker
+ * session at the same venue (when the ticket names one) within two days
+ * with no cash-out recorded yet. Two scans become one complete session with
+ * a real result, instead of a buy-in and a separate unexplained credit.
+ *
+ * @returns {object|null} the ledger entry to close
+ */
+export function findOpenSessionFor(route, entries) {
+    if (!route || route.destination !== DESTINATIONS.SESSION) return null;
+    const prefill = route.prefill || {};
+    if (prefill.entryKind !== 'cashout') return null;
+    const venue = venueKey(prefill.location_name || prefill.vendor);
+    const candidates = (Array.isArray(entries) ? entries : []).filter((e) => {
+        if (!isPokerSession(e)) return false;
+        if (Number(e.gross_out) > 0) return false;
+        const gap = daysBetween(e.entry_date, prefill.date);
+        if (prefill.date && (gap === null || gap > 2)) return false;
+        if (venue && e.location_name && venueKey(e.location_name) !== venue) return false;
+        return true;
+    });
+    candidates.sort((a, b) => (daysBetween(a.entry_date, prefill.date) ?? 99) - (daysBetween(b.entry_date, prefill.date) ?? 99));
+    return candidates[0] || null;
+}
+
+/**
+ * Order existing entries for "Attach To Existing Entry" so the right one is
+ * first: same day and same venue outrank recency. Stable for ties.
+ */
+export function rankEntriesForReceipt(entries, route) {
+    const prefill = (route && route.prefill) || {};
+    const venue = venueKey(prefill.location_name || prefill.vendor);
+    const score = (e) => {
+        let s = 0;
+        const gap = daysBetween(e.entry_date, prefill.date);
+        if (prefill.date && gap !== null) { if (gap === 0) s += 4; else if (gap <= 1) s += 2; }
+        if (venue && venueKey(e.location_name) === venue) s += 3;
+        if (route && route.destination === DESTINATIONS.EXPENSE && e.category === 'expense') s += 1;
+        if (route && route.destination === DESTINATIONS.SESSION && isPokerSession(e)) s += 1;
+        return s;
+    };
+    return (Array.isArray(entries) ? entries : [])
+        .map((e, i) => ({ e, i, s: score(e) }))
+        .sort((a, b) => b.s - a.s || a.i - b.i)
+        .map((x) => x.e);
 }
 
 /** The `bankroll_receipts` row written the moment a scan completes (rule 4). */

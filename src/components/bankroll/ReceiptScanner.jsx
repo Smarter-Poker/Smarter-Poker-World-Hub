@@ -26,6 +26,7 @@ import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriang
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
 import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
+import { downscaleForOcr } from '../../lib/docscan/imageSource';
 import {
     normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
 } from '../../lib/bankroll/receiptRouting.mjs';
@@ -212,11 +213,14 @@ export default function ReceiptScanner({
 
     const runOcr = useCallback(async (blob, accessToken) => {
         try {
+            // The model reads a receipt as well at 1600px as at full size, at
+            // a quarter of the bytes. Storage keeps the full-resolution copy.
+            const forOcr = await downscaleForOcr(blob, 1600, 0.85);
             const base64 = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = () => reject(new Error('read-failed'));
-                reader.readAsDataURL(blob);
+                reader.readAsDataURL(forOcr);
             });
             const res = await fetch('/api/bankroll/scan-receipt', {
                 method: 'POST',
