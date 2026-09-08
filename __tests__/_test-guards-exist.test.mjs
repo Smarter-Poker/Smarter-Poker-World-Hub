@@ -157,6 +157,10 @@ import './pnm-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
+// 21 of 26 advertised rewards had never paid a diamond. This pins the triggers
+// that fix it, the shared reference-id that stops a trigger and an endpoint
+// both paying, and every anti-farming guard.
+import './an-advertised-reward-is-actually-payable.law.test.mjs';
 import './safe-profile-columns-are-granted.test.mjs';
 // Registered 2026-09-08. It had lived only as the npm script
 // "test:social-poker-cards", so nothing ran it, and it had been RED on main
