@@ -117,7 +117,13 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'My Clubs',
     gradient: ['#4dd0e1', '#00838f'],
     imageUrl: '/cards/my-clubs.png?v=splash1',
-    description: 'YOUR CLUBS & VENUES - QUICK ACCESS TO WAITLISTS, LIVE GAMES & MORE',
+    // The old copy promised waitlists and live games. The page behind this
+    // card never delivered either: its venue filter tested for a venue_type
+    // this platform does not emit, so it rendered nothing, for anyone, ever.
+    // /hub/my-clubs is a redirect to Social Pages Managed now (2026-09-08),
+    // so the card keeps its place in the carousel and lands somewhere real.
+    // Audit: .agent/audits/2026-09-08-my-clubs-page-audit.md
+    description: 'EVERY CLUB, UNION AND HOME GAME YOU OWN OR BELONG TO',
   },
   {
     id: 'video-library',
