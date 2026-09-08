@@ -8,7 +8,8 @@
       "ci-marker/**": false,
       "backup/**": false,
       "build/**": false,
-      "agent/**": false
+      "agent/**": false,
+      "patch/**": false
     }
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",

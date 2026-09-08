@@ -22,7 +22,28 @@ permissions:
 
 concurrency:
   group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  # FALSE ON main, true anywhere else (2026-09-08).
+  #
+  # This workflow triggers on `push: [main]` and `workflow_dispatch` only - the
+  # pull_request trigger was removed on 2026-09-04 (see the note above). So in
+  # practice every scheduled-by-a-push run of this job IS on refs/heads/main,
+  # and `cancel-in-progress: true` was cancelling all of them.
+  #
+  # `.agent/audits/2026-08-21-publish-deadlock-and-palette-clobber.md:55-59`
+  # states the rule: "cancel-in-progress: true is correct when pushes are slower
+  # than the build. It inverts into a deadlock the moment they are faster."
+  #
+  # Measured 2026-09-08 over the last 120 commits on main: median gap between
+  # commits 7.3 minutes, 53% of gaps under 8 - against a job whose own comment
+  # below budgets ~7 minutes to install and build before the first test runs.
+  # It was being killed more often than it could finish, so the "18 of the last
+  # 22 main runs failed" note above was reading a suite that mostly never got
+  # to a verdict at all.
+  #
+  # Expression rather than a bare `false` so that if the pull_request trigger
+  # comes back - the note above says it should, in the commit that turns this
+  # suite green - PR runs get the correct behaviour without a second edit.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   e2e:
