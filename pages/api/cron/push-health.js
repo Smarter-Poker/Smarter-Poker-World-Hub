@@ -26,7 +26,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 // Pure, no imports, so the retirement decision can be tested by RUNNING it.
 // See the note in that file: the pins this replaced were regexes over THIS
 // file's source, and all of them passed while the bug was live.
-import { selectRetirable } from '../../../src/lib/pushDeviceGroups.js';
+import { selectRetirable, selectDuplicateConfirmers } from '../../../src/lib/pushDeviceGroups.js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { vapidConfig, isPushConfigured } from '../../../src/lib/push/web-push';
@@ -224,6 +224,44 @@ async function handler(req, res) {
                    into a TypeError that takes down the health check it was
                    attached to. */
                 report.zombieRetireError = String(e?.message || e).slice(0, 200);
+            }
+        }
+
+        /* ── THE OTHER HALF OF THE SAME DUPLICATE ──────────────────────────
+           `selectRetirable` draws only from `zombies`, and a zombie is by
+           definition NOT confirming. So the block above can only ever fix the
+           pair shape "one delivering, one silent". A group holding TWO rows
+           that both deliver is two banners on one screen and nothing above can
+           see it: neither row ever falls silent, and the UNIQUE index is on
+           (user_id, device_id), which differ.
+
+           That is not a rare shape. It is what the morning's pair became once
+           the browser minted a fresh deviceId at 19:42 and that row began
+           confirming - measured on Dan's Mac the same day, both rows on
+           fcm.googleapis.com with a byte-identical user_agent.
+
+           Deciding this one needs no caution, unlike the silent case: every
+           row considered has itself confirmed a recent receipt, and the row
+           kept is the group's most recent confirmer, so the device provably
+           still receives push afterwards. */
+        const redundant = selectDuplicateConfirmers(all, zombieCutoffMs);
+        report.duplicateConfirmersRetired = 0;
+        if (redundant.length > 0) {
+            try {
+                const { error: dupErr } = await supabase
+                    .from('push_subscriptions')
+                    .update({
+                        is_active: false,
+                        last_failure_reason: 'duplicate_confirming_row_for_one_device',
+                        updated_at: new Date().toISOString(),
+                    })
+                    .in('id', redundant.map((d) => d.id))
+                    .eq('is_active', true);
+                if (dupErr) throw new Error(dupErr.message);
+                report.duplicateConfirmersRetired = redundant.length;
+            } catch (e) {
+                /* Same rule as the block above: a cleanup never fails the run. */
+                report.duplicateConfirmerRetireError = String(e?.message || e).slice(0, 200);
             }
         }
 

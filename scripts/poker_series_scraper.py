@@ -101,12 +101,20 @@ SB_UPSERT_HDRS = {
 EVENT_ON_CONFLICT = "event_uid"
 
 # Run-level error counters — a run that lost rows must NOT exit 0.
-# `series_errors` counts THIRD-PARTY fetch failures; the first three count OUR
+# `series_errors` counts THIRD-PARTY fetch failures; the other three count OUR
 # faults. The exit gate at the foot of this file treats them differently for
-# that reason - see the note there. `series_attempted` / `series_resolved` are
-# the denominator and numerator the productivity check needs.
-RUN_ERRORS = {"upsert_failed": 0, "rows_lost": 0, "patch_failed": 0, "series_errors": 0,
-              "series_attempted": 0, "series_resolved": 0}
+# that reason - see the note there.
+RUN_ERRORS = {"upsert_failed": 0, "rows_lost": 0, "patch_failed": 0, "series_errors": 0}
+
+# PRODUCTIVITY IS NOT AN ERROR, AND MUST NOT LIVE IN RUN_ERRORS.
+#
+# `series_resolved` was briefly a key in RUN_ERRORS, and the daemon computes
+# `degraded = any(bool(value) for value in run_errors.values())` - so a
+# PERFECT cycle that resolved 40 series set degraded=True, dropped the sleep
+# from 21600s to 300s, and never reset the error streak. Four extra full
+# third-party sweeps an hour, every hour, plus "Run completed with integrity
+# errors" on a healthy run.
+RUN_STATS = {"series_resolved": 0}
 
 # Extraction-path → (data_quality, scrape_confidence).
 # Structured JSON is trustworthy; regex scraped off raw HTML/PDF is not, and must
@@ -3428,9 +3436,7 @@ def main():
     # The exit gate judges PRODUCTIVITY, so it needs the denominator as well as
     # the error count: "7 source errors" means nothing without "out of how
     # many". Recorded here, where both numbers are already in hand.
-    RUN_ERRORS["series_resolved"] = total_found
-    RUN_ERRORS["series_attempted"] = max(total_found + RUN_ERRORS["series_errors"],
-                                         total_found)
+    RUN_STATS["series_resolved"] = total_found
 
     log(f"\n{'='*70}")
     log(f"DONE — {pass_num} passes, {total_found} series resolved, {total_events} events")
@@ -3550,26 +3556,35 @@ if __name__ == "__main__":
         # has not and pages.
         ours = (RUN_ERRORS["upsert_failed"] or RUN_ERRORS["rows_lost"]
                 or RUN_ERRORS["patch_failed"])
-        attempted = RUN_ERRORS.get("series_attempted") or 0
-        resolved = RUN_ERRORS.get("series_resolved") or 0
+        resolved = RUN_STATS.get("series_resolved") or 0
         src_errors = RUN_ERRORS["series_errors"]
-        # Unproductive only when we tried and got nothing back, or when the
-        # majority of attempts failed at the source.
-        barren = attempted > 0 and resolved == 0
-        mostly_failed = attempted > 0 and src_errors > (attempted / 2)
+
+        # NO FABRICATED DENOMINATOR. A first draft computed
+        # `attempted = max(resolved + src_errors, resolved)` and printed
+        # "N of M attempted" to a human as fact. M is not real: series_errors
+        # is incremented at nine sites, most of them listing fetches, Scrapling
+        # failures and Supabase paging rather than series attempts, so it both
+        # double-counts and counts things that were never a series. And
+        # `max(a+b, a)` with b >= 0 never picks its second argument, so
+        # `barren` implied `mostly_failed` for every input and the whole gate
+        # collapsed to `src_errors > resolved`.
+        #
+        # `resolved` IS known. So the productivity test is the one that needs
+        # nothing else: we went to the sources, they failed us, and we came
+        # back with nothing.
+        barren = resolved == 0 and src_errors > 0
 
         if src_errors:
-            log(f"⚠️  {src_errors} source error(s) across {attempted} attempted "
-                f"series; {resolved} resolved. Third-party sites are not this "
-                f"repo's to fix — reported, not failed.")
+            log(f"⚠️  {src_errors} source error(s); {resolved} series resolved. "
+                f"Third-party sites are not this repo's to fix — reported, not failed.")
         summary = os.environ.get("GITHUB_STEP_SUMMARY")
         if summary:
             try:
                 with open(summary, "a", encoding="utf-8") as fh:
                     fh.write(
                         f"\n### Poker series scrape\n\n"
-                        f"- series resolved: **{resolved}** of {attempted} attempted\n"
-                        f"- source errors (third party): {src_errors}\n"
+                        f"- series resolved: **{resolved}**\n"
+                        f"- source errors (third party; not all of them series): {src_errors}\n"
                         f"- our faults: upsert_failed={RUN_ERRORS['upsert_failed']}, "
                         f"rows_lost={RUN_ERRORS['rows_lost']}, "
                         f"patch_failed={RUN_ERRORS['patch_failed']}\n"
@@ -3580,7 +3595,7 @@ if __name__ == "__main__":
         if ours:
             log(f"❌ Run completed WITH ERRORS OF OURS: {RUN_ERRORS} — exiting 1")
             sys.exit(1)
-        if barren or mostly_failed:
-            log(f"❌ Run was unproductive ({resolved}/{attempted} resolved, "
-                f"{src_errors} source errors) — exiting 1")
+        if barren:
+            log(f"❌ Run resolved no series at all against {src_errors} source "
+                f"error(s) — exiting 1")
             sys.exit(1)

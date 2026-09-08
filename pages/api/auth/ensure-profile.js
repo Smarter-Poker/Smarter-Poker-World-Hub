@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           // Step 1: Check if profile exists by user_id
           const { data: existingProfile, error: checkError } = await getSupabase()
               .from('profiles')
-              .select('id, username, full_name, email, created_at, last_active, is_online')
+              .select('id, username, full_name, email, created_at, last_active, is_online, diamonds')
               .eq('id', user_id)
               .maybeSingle();
 
@@ -137,6 +137,44 @@ export default async function handler(req, res) {
                       })
                       .eq('id', user_id);
                   if (err_profiles_rzlwk) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_rzlwk.message);
+              }
+
+              // ── The welcome grant is restartable from its own record (2026-09-08, Diamond
+              // Accounting Standard ruling 17; CLAUDE.md 10.12: no back-pay job). handle_new_user
+              // asks the Mint for the 500 under signup:<id> at birth. If the Mint refused (the
+              // diamond_issuance freeze was open), the profile sits at 0 with no signup: or
+              // seed: register row. A later login asks again for the SAME op id, so the grant
+              // is issued once the freeze lifts and never twice: an existing player carries a
+              // register row and is skipped before the Mint is asked. Gated on a zero balance,
+              // so the register is read on the rare account this can apply to, not on every
+              // presence ping.
+              if (Number(existingProfile.diamonds ?? 0) === 0) {
+                  try {
+                      const ownEmail = typeof authUser?.email === 'string' ? authUser.email.trim() : '';
+                      if (!isDisposableEmail(ownEmail)) {
+                          const { data: registerRows, error: registerErr } = await getSupabase()
+                              .from('ca_mint_ledger')
+                              .select('op_id')
+                              .in('op_id', [`signup:${user_id}`, `seed:${user_id}`])
+                              .limit(1);
+                          if (!registerErr && (registerRows?.length ?? 0) === 0) {
+                              const { data: minted, error: mintErr } = await getSupabase().rpc('fn_ca_mint', {
+                                  p_asset: 'diamonds',
+                                  p_destination: 'player',
+                                  p_target_id: user_id,
+                                  p_amount: 500,
+                                  p_reason: 'Signup welcome grant issued by ensure-profile on a later login',
+                                  p_op_id: `signup:${user_id}`,
+                                  p_class: 'promotional',
+                              });
+                              if (mintErr || !(minted?.ok || minted?.replayed)) {
+                                  console.warn('[ensure-profile] The Mint did not issue the welcome grant on login:', mintErr?.message || minted?.reason);
+                              }
+                          }
+                      }
+                  } catch (grantErr) {
+                      console.warn('[ensure-profile] welcome grant check failed:', grantErr?.message || grantErr);
+                  }
               }
 
               // ── ANTIGRAVITY FIX: Detect if profile was JUST created by the DB trigger ──
@@ -277,20 +315,24 @@ export default async function handler(req, res) {
            * path could never reach it and those accounts had no balance row at
            * all. Upsert on user_id, so calling it twice is harmless.
            */
+          // 2026-09-07 (Diamond Accounting Standard DR2, docs/DIAMOND-RULINGS.md): the welcome 500
+          // is ISSUED through the Mint, not inserted into the profile. The profile is born at 0 and
+          // fn_ca_mint credits it, journals it (class promotional) and registers it under op_id
+          // signup:<uid>, which is idempotent, so calling this twice grants once. The old body
+          // upserted user_diamond_balance, a mirror table that the profile trigger overwrites.
           const grantWelcomeDiamonds = async () => {
-              const { error: balanceErr } = await getSupabase()
-                  .from('user_diamond_balance')
-                  .upsert(
-                      {
-                          user_id: user_id,
-                          balance: isDisposable ? 0 : 500,
-                          created_at: new Date().toISOString(),
-                          updated_at: new Date().toISOString(),
-                      },
-                      { onConflict: 'user_id' }
-                  );
-              if (balanceErr) {
-                  console.warn('[ANTIGRAVITY] Failed to grant welcome diamonds:', balanceErr.message);
+              if (isDisposable) return;
+              const { data: minted, error: mintErr } = await getSupabase().rpc('fn_ca_mint', {
+                  p_asset: 'diamonds',
+                  p_destination: 'player',
+                  p_target_id: user_id,
+                  p_amount: 500,
+                  p_reason: 'Signup welcome grant issued by ensure-profile',
+                  p_op_id: `signup:${user_id}`,
+                  p_class: 'promotional',
+              });
+              if (mintErr || !minted?.ok) {
+                  console.warn('[ANTIGRAVITY] Welcome grant was not issued by the Mint:', mintErr?.message || minted?.reason);
               }
           };
 
@@ -409,7 +451,7 @@ export default async function handler(req, res) {
                   streak_count: 0,
                   // 🛡️ Welcome package — withheld for disposable-domain signups.
                   // access_tier stays 'Full_Access': we gate the reward, not the app.
-                  diamonds: isDisposable ? 0 : 500,   // Welcome bonus (Updated from 300 to 500)
+                  diamonds: 0,   // The welcome 500 is issued by the Mint in grantWelcomeDiamonds (DR2)
                   diamond_multiplier: 1.0,
                   skill_tier: 'Newcomer',
                   access_tier: 'Full_Access',
@@ -452,7 +494,7 @@ export default async function handler(req, res) {
                       player_number: nextPlayerNumber,
                       access_tier: 'Full_Access',
                       skill_tier: 'Newcomer',
-                      diamonds: isDisposable ? 0 : 500,
+                      diamonds: 0, // issued by the Mint below (DR2)
                       diamond_multiplier: 1.0,
                       streak_count: 0,
                       created_at: new Date().toISOString(),

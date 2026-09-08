@@ -185,6 +185,72 @@ test('the newest row in a group is never retired', () => {
     assert.deepEqual(selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id), []);
 });
 
+/**
+ * ── AN UNVERIFIED CALLER MAY NOT MUTE A DEVICE (2026-09-07) ────────────────
+ *
+ * `/api/push/rotate` is UNAUTHENTICATED by design - a service worker calls it
+ * from `pushsubscriptionchange`, where no session exists - so proof of
+ * possession of the old subscription's auth secret is the only thing between a
+ * caller and somebody else's notifications.
+ *
+ * The same-device retire shipped as a bare `if (row.device_id)`, with no
+ * `verified` check, reopening the hole the block thirty lines above it closes
+ * and whose comment names it. Post a victim's `oldEndpoint` with your own
+ * endpoint and no `oldKeys`: `verified` is false, the victim's `device_id` is
+ * still copied onto the new row, and every live row for that device is
+ * switched off. Strictly worse than the 2026-08-19 bug, which silenced one row.
+ */
+test('the same-device retire requires proof of possession', () => {
+    const src = readFileSync(join(ROOT, 'pages/api/push/rotate.js'), 'utf8');
+
+    const at = src.indexOf('superseded_same_device');
+    assert.ok(at > -1, 'the same-device retire is gone');
+    // Walk back to the `if (...)` that opens the block and require `verified`.
+    const guard = src.lastIndexOf('if (', at);
+    const condition = src.slice(guard, src.indexOf('{', guard));
+    assert.match(
+        condition,
+        /verified\s*&&/,
+        `the same-device retire is gated on "${condition.trim()}" - without \`verified\` this ` +
+            'route is an unauthenticated mute button for any endpoint an attacker has learned'
+    );
+
+    // And the single-row retire above it keeps its own proof requirement.
+    assert.match(src, /const supersedes = verified && oldEndpoint !== endpoint;/);
+});
+
+test('a row with no user agent is never grouped with anything', () => {
+    // This code can take somebody's phone off notifications. Two different
+    // devices that both happen to lack a user_agent must not become "one
+    // device" and get one of them retired.
+    const a = { id: 'a', user_id: 'u', endpoint: 'https://web.push.apple.com/a', user_agent: null };
+    const b = { id: 'b', user_id: 'u', endpoint: 'https://web.push.apple.com/b', user_agent: '' };
+    assert.notEqual(deviceGroupKey(a), deviceGroupKey(b));
+    assert.notEqual(deviceGroupKey(a), deviceGroupKey({ ...a, id: 'c' }));
+
+    // ...and such a row is therefore never retirable, even beside a confirming
+    // sibling on the same host.
+    const rows = [
+        {
+            id: 'confirming',
+            user_id: 'u',
+            endpoint: 'https://web.push.apple.com/live',
+            user_agent: IPHONE_UA,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: '2026-09-07T17:00:00Z',
+        },
+        {
+            id: 'no-ua',
+            user_id: 'u',
+            endpoint: 'https://web.push.apple.com/quiet',
+            user_agent: null,
+            created_at: '2026-08-01T00:00:00Z',
+            last_receipt_at: null,
+        },
+    ];
+    assert.deepEqual(selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id), []);
+});
+
 test('two genuinely different devices are never merged by the group key', () => {
     const iphone = { user_id: 'u', endpoint: 'https://web.push.apple.com/a', user_agent: IPHONE_UA };
     const mac = { user_id: 'u', endpoint: 'https://fcm.googleapis.com/fcm/send/a', user_agent: MAC_UA };

@@ -624,99 +624,17 @@ class LobbyManager {
 
     // ── BBJ TRIGGERED — Award jackpot when qualifying hand detected ──
     table.on('bbj_triggered', async (bbjData) => {
+      // award_bbj was CLOSED in ca_money_rpc_registry on 2026-09-04 (a retired
+      // stub that refused every call) and revoked from every role. This
+      // handler called it on every bad-beat trigger and got "permission
+      // denied", then logged "[BBJ] Award error" and moved on - the jackpot
+      // is paid by the Club Arena engine, from the pool, through the doors the
+      // register lists. Found by the second-writer audit (phase 7 deep dive,
+      // 2026-09-07). Nothing here can pay a jackpot; it says so, once, and
+      // pays nothing.
       const clubId = config.clubId;
       if (!clubId || !bbjData?.triggered) return;
-
-      try {
-        const sb = ChipBridge.getSupabase();
-        const { getRakeConfig, getTierForBB } = require('./RakeConfig');
-        const tierConfig = getRakeConfig(config.bigBlind, config.variant || 'nlh');
-        const tier = getTierForBB(config.bigBlind);
-
-        console.debug(`[BBJ] 🎰 BAD BEAT JACKPOT TRIGGERED! Hand #${bbjData.handNumber}`);
-        console.debug(`[BBJ]   Loser: ${bbjData.loserId} (${bbjData.loserHand})`);
-        console.debug(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
-
-        // Award via bbj_pools table (Phase 48f: resilient — financial critical)
-        const { data: awardResult, error: awardErr } = await resilientMutation(sb, () => sb.rpc('award_bbj', {
-          p_club_id: clubId,
-          p_table_id: config.tableId,
-          p_hand_number: bbjData.handNumber || 0,
-          p_loser_user_id: bbjData.loserId,
-          p_loser_display_name: bbjData.loserDisplayName || 'Player',
-          p_loser_hand: bbjData.loserHand,
-          p_loser_cards: bbjData.loserCards || '',
-          p_winner_user_id: bbjData.winnerId,
-          p_winner_display_name: bbjData.winnerDisplayName || 'Player',
-          p_winner_hand: bbjData.winnerHand,
-          p_winner_cards: bbjData.winnerCards || '',
-          p_payout_total_pct: tierConfig.bbjPayoutTotal,
-          p_payout_loser_pct: tierConfig.bbjPayoutLoser,
-          p_payout_winner_pct: tierConfig.bbjPayoutWinner,
-          p_payout_table_pct: tierConfig.bbjPayoutTable,
-          p_stakes_tier: tier?.label?.toLowerCase() || 'small',
-          p_game_variant: config.variant || 'nlh',
-          p_big_blind: config.bigBlind,
-        }), { critical: true });
-
-        if (awardErr) {
-          console.warn('[BBJ] Award error:', awardErr.message);
-        } else if (awardResult?.success) {
-          console.debug(`[BBJ] ✅ Jackpot paid! Total: ${awardResult.total_payout}`);
-
-          // Broadcast BBJ win to the table channel
-          const _bbjCh = getSyncChannel();
-          if (_bbjCh) {
-            _bbjCh.send({
-              type: 'broadcast',
-              event: 'bbj_won',
-              payload: {
-                loserId: bbjData.loserId,
-                loserHand: bbjData.loserHand,
-                winnerId: bbjData.winnerId,
-                winnerHand: bbjData.winnerHand,
-                loserPayout: awardResult.loser_payout,
-                winnerPayout: awardResult.winner_payout,
-                tableSharePayout: awardResult.table_share_payout,
-                totalPayout: awardResult.total_payout,
-                handNumber: bbjData.handNumber,
-              },
-            });
-          }
-
-          // [AUDIT LOG] Record the Bad Beat Jackpot winners and losers locally in the true ledger
-          try {
-            const sbAudit = ChipBridge.getSupabase();
-            sbAudit.rpc('record_arena_audit_log', {
-              p_club_id: clubId,
-              p_table_id: config.tableId,
-              p_user_id: bbjData.loserId,
-              p_action_type: 'bbj_loser_pool',
-              p_amount: awardResult.loser_payout,
-              p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand }
-            })
-              .then(({ error }) => { if (error) throw error; })
-              .catch(e => { console.warn('[LobbyManager] BBJ loser payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'loser_payout' } }); });
-
-            sbAudit.rpc('record_arena_audit_log', {
-              p_club_id: clubId,
-              p_table_id: config.tableId,
-              p_user_id: bbjData.winnerId,
-              p_action_type: 'bbj_winner_pool',
-              p_amount: awardResult.winner_payout,
-              p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand }
-            })
-              .then(({ error }) => { if (error) throw error; })
-              .catch(e => { console.warn('[LobbyManager] BBJ winner payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'winner_payout' } }); });
-            
-            // NOTE: We could theoretically loop the tableSharePayout to all players, 
-            // but tracking the two massive chip movements provides the primary BBJ absolute trace.
-          } catch (e) { console.warn('[LobbyManager] BBJ audit log error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj' } }); }
-        }
-      } catch (err) {
-        console.warn('[BBJ] Trigger error:', err.message);
-        getSentry().captureException(err, { tags: { area: 'bbj', type: 'trigger' } });
-      }
+      console.warn(`[BBJ] bad beat on hand #${bbjData.handNumber || 0} at table ${config.tableId}: this engine does not award jackpots (award_bbj is a closed door); the Club Arena engine pays from the pool.`);
     });
 
     // ── INSURANCE EVENTS ────────────────────────────────────────
@@ -733,6 +651,7 @@ class LobbyManager {
       // Record premium as union/club revenue (non-blocking)
       if (config.clubId) {
         const sb = ChipBridge.getSupabase();
+        // second-writer-exempt: legacy World Hub engine, no production request in 7 days of Vercel logs (2026-09-07); the live record_insurance_transaction signature (hand number, equity, premium, insured, payout, player_won) is not what this event carries, and insurance is the Club Arena engine's. Delete the engine or rewrite this; do not guess the fields.
         sb.rpc('record_insurance_transaction', {
           p_club_id: config.clubId,
           p_table_id: config.tableId,
@@ -769,6 +688,7 @@ class LobbyManager {
       // Record payout as union/club expense (non-blocking)
       if (config.clubId) {
         const sb = ChipBridge.getSupabase();
+        // second-writer-exempt: legacy World Hub engine, no production request in 7 days of Vercel logs (2026-09-07); same reason as the premium call above.
         sb.rpc('record_insurance_transaction', {
           p_club_id: config.clubId,
           p_table_id: config.tableId,
@@ -983,33 +903,25 @@ class LobbyManager {
           // making auto-settlement distribute nothing.
           try {
             // Phase 48f: resilient mutation
+            // The live signature is (p_club_id, p_period DEFAULT ''); the
+            // function only touches club_wallets.updated_at - the accumulators
+            // are record_rake's. (p_rake, p_hands) matched no overload, so
+            // PostgREST answered PGRST202 on every call (phase 7 deep dive).
             await resilientMutation(sb, () => sb.rpc('increment_settlement_counters', {
               p_club_id: clubId,
-              p_rake: rakeAmount,
-              p_hands: 1,
             }));
           } catch (settlErr) {
             console.warn('[LobbyManager] Settlement counter increment failed:', settlErr.message);
             // Non-fatal — don't block hand progression
           }
 
-          // ── ADD BBJ CONTRIBUTION TO POOL ──
-          if (bbjContribution > 0) {
-            try {
-              const { getTierForBB } = require('./RakeConfig');
-              const tier = getTierForBB(config.bigBlind);
-              await sb.rpc('add_bbj_contribution', {
-                p_club_id: clubId,
-                p_table_id: config.tableId,
-                p_hand_number: data.handNumber || 0,
-                p_amount: bbjContribution,
-                p_big_blind: config.bigBlind,
-                p_stakes_tier: tier?.label?.toLowerCase() || 'small',
-              });
-            } catch (bbjErr) {
-              console.warn('[LobbyManager] BBJ contribution failed:', bbjErr.message);
-            }
-          }
+          // ── BBJ CONTRIBUTION ──
+          // add_bbj_contribution was CLOSED in ca_money_rpc_registry on
+          // 2026-09-04 (a retired stub) and revoked from every role; this
+          // engine called it on every raked hand and got "permission denied".
+          // The jackpot is fed by the Club Arena engine through the doors the
+          // register lists. Found by the second-writer audit, phase 7 deep
+          // dive, 2026-09-07. Nothing to call here.
 
           // Run cascading commission for each dealt player IN PARALLEL (non-blocking)
           // Credits agents up the hierarchy — don't block hand progression

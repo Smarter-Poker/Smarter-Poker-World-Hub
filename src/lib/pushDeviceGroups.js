@@ -43,12 +43,27 @@
  * it safe, because it never acts without proof that delivery to the group works.
  */
 export function deviceGroupKey(s) {
+    const ua = typeof s.user_agent === 'string' ? s.user_agent.trim() : '';
     return [
         s.user_id,
         String(s.endpoint || '')
             .replace('https://', '')
             .split('/')[0],
-        s.user_agent || '',
+        // A MISSING USER AGENT NEVER GROUPS (2026-09-07 hardening).
+        //
+        // `user_agent || ''` meant every row without one landed in the same
+        // bucket, so two GENUINELY DIFFERENT devices of one person on the same
+        // push host could be treated as one device — and the silent one
+        // retired. This code can take somebody's phone off notifications, so
+        // the empty case must never merge.
+        //
+        // Measured before shipping: 0 active rows have a null or empty
+        // user_agent and 0 such groups exist, so this changes nothing today.
+        // It is here so that a legacy or partially-written row cannot make it
+        // true later. An unknown agent gets a key nothing else can collide
+        // with, which means such a row is always alone in its group and is
+        // therefore never retirable.
+        ua === '' ? `unknown-agent:${s.id ?? s.endpoint ?? Math.random()}` : ua,
     ].join('|');
 }
 
@@ -93,4 +108,69 @@ export function selectRetirable(all, zombies, zombieCutoffMs) {
         const k = deviceGroupKey(z);
         return confirmingGroups.has(k) && !isConfirming(z) && newestInGroup.get(k)?.id !== z.id;
     });
+}
+
+/**
+ * Which of a group's CONFIRMING rows are redundant.
+ *
+ * ── THE HALF selectRetirable CANNOT SEE (2026-09-07, second pass) ──────────
+ *
+ * `selectRetirable` only ever returns rows drawn from `zombies`, and a zombie
+ * is by definition a row that is NOT confirming receipts. So it handles the
+ * pair shape that was live this morning - one delivering row, one silent one -
+ * and is structurally blind to the other shape:
+ *
+ *   Mac, fcm.googleapis.com, identical user_agent
+ *     device_id ec90f0f1   last_receipt_at 2026-09-07 17:12:01   delivering
+ *     device_id 5e1652b1   created 19:42:43, confirms later      delivering
+ *
+ * Two rows in ONE group that BOTH deliver are two banners on one screen, for
+ * ever. Nothing ages out, because neither is ever silent; nothing merges them,
+ * because the UNIQUE index is on (user_id, device_id) and these differ. The
+ * morning's fix retired the silent siblings and this pair simply re-formed
+ * when the browser minted a fresh `deviceId` at 19:42 and then started
+ * confirming - which is the ordinary outcome, not an unlucky one.
+ *
+ * ── WHY THIS ONE CAN BE DECIDED, WHEN THE SILENT CASE MUST BE CAUTIOUS ─────
+ *
+ * `selectRetirable` is careful because retiring a silent row might be taking a
+ * working phone off notifications with no way for its owner to find out. That
+ * risk does not exist here: EVERY row considered has itself confirmed a recent
+ * receipt, and the one kept is the most recent confirmer in the group. The
+ * device provably still receives push after the retire, because the survivor
+ * is the row that most recently proved it.
+ *
+ * So the rule is simply: one confirming row per group. Keep the freshest
+ * receipt, retire the rest, tie-break on id so the choice is deterministic and
+ * a test can pin it.
+ *
+ * Groups with zero or one confirming row return nothing - this function is
+ * only ever subtractive on a genuine duplicate.
+ *
+ * @param {Array} all every ACTIVE subscription in the window
+ * @param {number} zombieCutoffMs epoch ms; a receipt at or after this is proof
+ */
+export function selectDuplicateConfirmers(all, zombieCutoffMs) {
+    const isConfirming = (s) =>
+        Boolean(s.last_receipt_at) && Date.parse(s.last_receipt_at) >= zombieCutoffMs;
+
+    const byGroup = new Map();
+    for (const s of all) {
+        if (!isConfirming(s)) continue;
+        const k = deviceGroupKey(s);
+        if (!byGroup.has(k)) byGroup.set(k, []);
+        byGroup.get(k).push(s);
+    }
+
+    const redundant = [];
+    for (const rows of byGroup.values()) {
+        if (rows.length < 2) continue;
+        const ranked = rows.slice().sort((a, b) => {
+            const d = Date.parse(b.last_receipt_at) - Date.parse(a.last_receipt_at);
+            if (d !== 0) return d;
+            return String(a.id) < String(b.id) ? -1 : 1;
+        });
+        redundant.push(...ranked.slice(1));
+    }
+    return redundant;
 }
