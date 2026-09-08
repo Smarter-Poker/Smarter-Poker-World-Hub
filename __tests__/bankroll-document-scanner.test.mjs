@@ -611,6 +611,39 @@ test('the review screen offers the required corrections', () => {
     assert.match(src, /View Original Photo|Original Photo/, 'the source photograph must be viewable for comparison');
 });
 
+test('the overlay outranks the global header, or its close button is unclickable', () => {
+    // Measured on production: the header is `position: sticky; z-index: 10050`
+    // and the scanner sat at 10001, so elementFromPoint over the X returned
+    // the header's hamburger. There was no way out of the scanner but the
+    // browser back gesture.
+    const src = read(SCANNER);
+    const m = src.match(/overlay:\s*\{[\s\S]{0,600}?zIndex:\s*(\d+)/);
+    assert.ok(m, 'the overlay must declare a zIndex');
+    const z = Number(m[1]);
+    assert.ok(z > 10050, `overlay zIndex ${z} must beat the 10050 global header`);
+    assert.ok(z <= 999999, `overlay zIndex ${z} must stay at or under the error-recovery layer`);
+});
+
+test('a changed initialImage is ingested, not ignored', () => {
+    const src = read(SCANNER);
+    assert.match(src, /ingestedRef/, 'ingestion must be keyed on the image identity');
+    assert.match(
+        src,
+        /if \(!initialImage \|\| ingestedRef\.current === initialImage\) return;/,
+        'the same image must not be scanned twice',
+    );
+    assert.match(src, /\}, \[initialImage\]\);/, 'and a different one must not be silently dropped');
+});
+
+test('a worker that dies after the handshake falls back instead of throwing', () => {
+    const client = read(CLIENT);
+    assert.match(
+        client,
+        /return readyPromise\.then\(\(ok\) => ok && Boolean\(worker\)\);/,
+        'a cached yes must be re-checked against the live worker, or postMessage runs on null',
+    );
+});
+
 test('scanner surfaces carry no emoji and no em dashes', () => {
     // Immutable rule 7 (emoji break the SWC compiler) and playbook rule 0.
     const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u;
