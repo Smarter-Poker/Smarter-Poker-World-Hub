@@ -100,6 +100,7 @@ test('reviewed unused exports stay removed instead of being allowlisted', () => 
     ['src/tutorials/index.js', 'listTutorialRoutes'],
     ['src/utils/trainingApiUtils.js', 'parseBoardFromHash'],
     ['src/utils/trainingApiUtils.js', 'extractPositionFromHash'],
+    ['src/lib/mediaStreamSingleton.js', 'setTrackEnabled'],
   ];
 
   for (const [file, name] of removed) {

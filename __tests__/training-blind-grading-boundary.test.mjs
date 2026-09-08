@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
+import {
+  TRAINING_ANSWER_BINDING_COLUMNS,
+  trainingAnswerBindingMatches,
+} from '../src/lib/training/answerPersistence.mjs';
 
 const ROOT = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -192,6 +196,10 @@ function loadRecordQuestionHandler({
     },
     '../../../src/lib/training/solverPolicyContract.js': {
       stablePolicyJson: (policy) => JSON.stringify(policy),
+    },
+    '../../../src/lib/training/answerPersistence.mjs': {
+      TRAINING_ANSWER_BINDING_COLUMNS,
+      trainingAnswerBindingMatches,
     },
   };
   const routeModule = { exports: {} };
