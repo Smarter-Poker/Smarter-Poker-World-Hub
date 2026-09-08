@@ -1,3 +1,4 @@
+import './auth-network-deadline.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
