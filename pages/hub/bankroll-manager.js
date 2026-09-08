@@ -34,7 +34,7 @@ import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
 import { fetchLedgerEntries, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip } from '../../src/lib/bankroll/bankrollSelectors';
 import {
-  receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan,
+  receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
   RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
 import toast from '../../src/stores/toastStore';
@@ -451,6 +451,10 @@ export default function BankrollManagerPage() {
   const [scannerReceiptId, setScannerReceiptId] = useState(null);
   const [pendingReceipts, setPendingReceipts] = useState([]);
   const [receiptBusy, setReceiptBusy] = useState(false);
+  // True while the bankroll_receipts row is being written. The sheet shows at
+  // once (so the scanner does not flash empty) but no choice is enabled until
+  // there is a row to assign.
+  const [receiptSaving, setReceiptSaving] = useState(false);
   // The receipt a LogEntryModal was opened for, so its save marks the receipt assigned.
   const receiptAwaitingEntryRef = useRef(null);
   const [ruleViolations, setRuleViolations] = useState([]);
@@ -824,7 +828,13 @@ export default function BankrollManagerPage() {
       );
       if (!ok) return;
     }
-    if (scannerStep === 'post-capture' && scannerReceiptId) {
+    if (scannerStep !== 'scan' && scannerImageUrl && !scannerReceiptId && typeof window !== 'undefined') {
+      const ok = window.confirm(
+        'This Receipt Is Not Listed Anywhere Yet. If You Close Now It Will Not Appear Under Receipts Waiting. Close Anyway?',
+      );
+      if (!ok) return;
+    }
+    if (scannerStep !== 'scan' && scannerReceiptId) {
       toast.success('Receipt Kept In Receipts Waiting. Assign It From The Dashboard.');
     }
     setScannerHasUnsaved(false);
@@ -835,7 +845,8 @@ export default function BankrollManagerPage() {
     setScannerExtractedData(null);
     setScannerRoute(null);
     setScannerReceiptId(null);
-  }, [scannerHasUnsaved, scannerStep, scannerReceiptId]);
+    setReceiptSaving(false);
+  }, [scannerHasUnsaved, scannerStep, scannerReceiptId, scannerImageUrl]);
 
   /** Unassigned scans, newest first. Shown on the dashboard until filed. */
   const loadPendingReceipts = useCallback(async () => {
@@ -886,6 +897,7 @@ export default function BankrollManagerPage() {
       if (error) throw error;
     } catch (err) {
       console.warn('[bankroll] receipt assignment failed:', err?.message || err);
+      toast.error('Filed, But The Receipt Could Not Be Marked. It May Still Show Under Receipts Waiting.');
     }
     loadPendingReceipts();
   }, [userId, loadPendingReceipts]);
@@ -893,6 +905,7 @@ export default function BankrollManagerPage() {
   /** Reopen a receipt from Receipts Waiting exactly as it was read. */
   const resumeReceipt = useCallback((receipt) => {
     setScannerHasUnsaved(false);
+    setReceiptSaving(false);
     setScannerReceiptId(receipt.id);
     setScannerImageUrl(receipt.image_url);
     setScannerExtractedData(receipt.extracted || null);
@@ -902,6 +915,21 @@ export default function BankrollManagerPage() {
     setShowScanner(true);
   }, []);
 
+  /** The row insert failed after upload; try again from the state we still hold. */
+  const retryReceiptListing = useCallback(async () => {
+    if (receiptSaving || !scannerImageUrl) return;
+    setReceiptSaving(true);
+    const id = await saveReceiptRow({
+      imageUrl: scannerImageUrl,
+      extractedData: scannerExtractedData,
+      route: scannerRoute,
+      documentType: scannerRoute && scannerRoute.documentType,
+    });
+    setScannerReceiptId(id);
+    setReceiptSaving(false);
+    if (id) loadPendingReceipts();
+  }, [receiptSaving, scannerImageUrl, scannerExtractedData, scannerRoute, saveReceiptRow, loadPendingReceipts]);
+
   const closeScannerAfterChoice = useCallback(() => {
     setShowScanner(false);
     setScannerStep('scan');
@@ -909,6 +937,7 @@ export default function BankrollManagerPage() {
     setScannerExtractedData(null);
     setScannerRoute(null);
     setScannerReceiptId(null);
+    setReceiptSaving(false);
   }, []);
 
   /** Open LogEntryModal for this receipt; its save marks the receipt assigned. */
@@ -935,6 +964,10 @@ export default function BankrollManagerPage() {
     if (actionId === RECEIPT_ACTIONS.ATTACH) { setScannerStep('pick-entry'); return; }
 
     if (actionId === RECEIPT_ACTIONS.SAVE_LATER) {
+      if (!scannerReceiptId) {
+        toast.error('This Receipt Is Not Listed Yet. Tap Retry Listing First.');
+        return;
+      }
       toast.success('Receipt Kept In Receipts Waiting. Assign It From The Dashboard.');
       closeScannerAfterChoice();
       loadPendingReceipts();
@@ -961,7 +994,9 @@ export default function BankrollManagerPage() {
           setReceiptBusy(false);
         }
       }
-      openEntryForReceipt('session');
+      // A real ledger category, or the picker when the scan did not say
+      // which. 'session' is not a category and the insert refused it.
+      openEntryForReceipt(ledgerCategoryFor(scannerRoute));
       return;
     }
 
@@ -999,6 +1034,10 @@ export default function BankrollManagerPage() {
       setScannerStep('scan');
       setScannerEntryId(null);
       setScannerImageUrl(null);
+      setScannerExtractedData(null);
+      setScannerRoute(null);
+      setScannerReceiptId(null);
+      setReceiptSaving(false);
     } else if (sectionId === 'projection') {
       setShowProjection(true);
     } else if (sectionId === 'toke-tracker') {
@@ -2246,16 +2285,20 @@ export default function BankrollManagerPage() {
                     userId={userId}
                     onPendingChange={setScannerHasUnsaved}
                     onScanComplete={async ({ imageUrl, extractedData, route, documentType }) => {
-                      // Rule 4: the row exists BEFORE a choice can be made, so
-                      // whatever the user does next has something to assign.
-                      const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType });
-                      setScannerReceiptId(id);
                       setScannerHasUnsaved(false);
                       setScannerImageUrl(imageUrl);
                       setScannerExtractedData(extractedData);
-                      setScannerRoute(route || null);
+                      setScannerRoute(route ? { ...route, documentType } : null);
+                      setScannerReceiptId(null);
+                      setReceiptSaving(true);
                       setScannerStep('post-capture');
-                      loadPendingReceipts();
+                      // Rule 4: the row exists BEFORE a choice can be made. The
+                      // choices stay disabled until it does, and a failed
+                      // insert shows Retry Listing instead of a silent gap.
+                      const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType });
+                      setScannerReceiptId(id);
+                      setReceiptSaving(false);
+                      if (id) loadPendingReceipts();
                     }}
                   />
                 </div>
@@ -2285,8 +2328,16 @@ export default function BankrollManagerPage() {
                     </div>
                   )}
 
+                  {!receiptSaving && !scannerReceiptId && (
+                    <div style={styles.receiptNotListed} role="alert">
+                      <div style={{ color: '#fca5a5', fontSize: 14, fontWeight: 600 }}>This Receipt Is Not Listed Yet</div>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 2 }}>The Image Uploaded, But It Could Not Be Saved To Receipts Waiting.</div>
+                      <button type="button" onClick={retryReceiptListing} style={styles.receiptRetryBtn}>Retry Listing</button>
+                    </div>
+                  )}
+
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
-                    What Would You Like To Do With This Receipt?
+                    {receiptSaving ? 'Saving This Receipt...' : 'What Would You Like To Do With This Receipt?'}
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {receiptActions(scannerRoute, {
@@ -2295,12 +2346,12 @@ export default function BankrollManagerPage() {
                       <button
                         key={action.id}
                         type="button"
-                        disabled={receiptBusy}
+                        disabled={receiptBusy || receiptSaving}
                         onClick={() => handleReceiptAction(action.id)}
                         style={{
                           ...styles.scannerChoiceBtn,
                           ...(action.primary ? styles.scannerChoiceBtnPrimary : {}),
-                          opacity: receiptBusy ? 0.6 : 1,
+                          opacity: receiptBusy || receiptSaving ? 0.6 : 1,
                         }}
                       >
                         <span style={{ fontSize: 13, fontWeight: 700, color: RECEIPT_TONE_COLORS[action.tone] || '#93c5fd', minWidth: 58 }}>{action.tone}</span>
@@ -3033,6 +3084,26 @@ const styles = {
     justifyContent: 'center',
     touchAction: 'manipulation',
     WebkitTapHighlightColor: 'transparent',
+  },
+  receiptNotListed: {
+    margin: '0 0 16px',
+    padding: 12,
+    borderRadius: 10,
+    background: 'rgba(239,68,68,0.08)',
+    border: '1px solid rgba(239,68,68,0.5)',
+  },
+  receiptRetryBtn: {
+    marginTop: 10,
+    minHeight: 44,
+    padding: '10px 16px',
+    borderRadius: 10,
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    touchAction: 'manipulation',
   },
   scannerChoiceBtnPrimary: {
     background: 'rgba(35,116,225,0.12)',

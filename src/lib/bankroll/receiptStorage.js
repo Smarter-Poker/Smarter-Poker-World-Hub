@@ -105,6 +105,10 @@ export async function uploadBankrollFile(supabase, userId, file) {
  * BANKROLL_BUCKET. Deleting a record must free either, so the bucket is read
  * from the URL rather than assumed. A URL that is not ours is left alone.
  *
+ * Never throws. A storage object that cannot be removed (already gone, a
+ * network drop, a policy that does not cover it) must not stop the RECORD
+ * from being deleted; that was the behaviour before this module existed.
+ *
  * @returns {Promise<boolean>} true when an object was removed
  */
 export async function removeBankrollObject(supabase, publicUrl) {
@@ -117,9 +121,17 @@ export async function removeBankrollObject(supabase, publicUrl) {
     const match = pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
     if (!match) return false;
     const [, bucket, objectPath] = match;
-    const { error } = await supabase.storage.from(bucket).remove([decodeURIComponent(objectPath)]);
-    if (error) throw error;
-    return true;
+    try {
+        const { error } = await supabase.storage.from(bucket).remove([decodeURIComponent(objectPath)]);
+        if (error) {
+            console.warn('[receiptStorage] object not removed:', error.message || error);
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.warn('[receiptStorage] object not removed:', err?.message || err);
+        return false;
+    }
 }
 
 /**
