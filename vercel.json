@@ -374,7 +374,6 @@
       ]
     },
     {
-      "_comment": "2026-09-08: 30 days -> 1 day. A background remover had punched holes through 86 of the 100 avatars; the repair shipped, production served it, and every returning player kept the torn art for up to a month because this said so. stale-while-revalidate does the work: the cached copy is still served instantly, the fresh one is fetched behind it, so the cost is one conditional GET per avatar per day and no added latency. Do not put this back to 30 days on a bandwidth pass without a way to invalidate these URLs - they are unhashed and their values are persisted in profiles.arena_avatar_url, so a filename bump is not cheap.",
       "source": "/avatars/(.*)",
       "headers": [
         {
