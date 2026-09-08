@@ -10,6 +10,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 let _supabase = null;
 function getSupabase() {
@@ -173,51 +174,38 @@ if you cannot read an amount, it is null.
 A buy-in receipt is NOT an expense: classify it as tournament_buyin or
 cash_game_buyin so it is recorded against the session rather than as a cost.`;
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${GROK_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            // grok-2-vision-1212, not grok-2-vision-latest. The `-latest` alias
-            // is rejected by the API, so every scan came back 500 "Failed to
-            // scan receipt" even with a valid key. This is the exact model
-            // /api/geeves/analyze-screenshot uses, which is verified working in
-            // production.
-            model: 'grok-2-vision-1212',
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: imageBase64.startsWith('data:')
-                                    ? imageBase64
-                                    : `data:image/jpeg;base64,${imageBase64}`,
-                            },
+    // Through the shared Grok client, not a raw fetch with a hardcoded model.
+    //
+    // This route sent `grok-2-vision-latest` (rejected), then
+    // `grok-2-vision-1212` copied from a route that works. That one is ALSO
+    // rejected: the working route goes through this client, whose MODEL_MAP
+    // has no vision entry, so an unknown name falls through to grok-3, and
+    // grok-3 is what actually reads the image. Going through the client means
+    // the next model change is one edit in MODEL_MAP for every route at once,
+    // instead of another production repro per route.
+    const grok = getGrokClient();
+    const completion = await grok.chat.completions.create({
+        model: 'grok-3',
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: imageBase64.startsWith('data:')
+                                ? imageBase64
+                                : `data:image/jpeg;base64,${imageBase64}`,
                         },
-                        {
-                            type: 'text',
-                            text: prompt,
-                        },
-                    ],
-                },
-            ],
-            temperature: 0.1,
-        }),
+                    },
+                    { type: 'text', text: prompt },
+                ],
+            },
+        ],
+        temperature: 0.1,
     });
 
-    if (!response.ok) {
-        // Carry the reason. A bare status turned a wrong model name into an
-        // unexplained 500 that took a production repro to identify.
-        const detail = await response.text().catch(() => '');
-        throw new Error(`OCR API error ${response.status}: ${detail.slice(0, 300)}`);
-    }
-
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const content = completion?.choices?.[0]?.message?.content;
 
     // Parse JSON from response
     const jsonMatch = content?.match(/\{[\s\S]*\}/);
