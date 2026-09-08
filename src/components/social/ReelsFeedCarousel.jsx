@@ -221,6 +221,22 @@ function ReelCard({ reel, onClick }) {
   );
 }
 
+/*
+ * ITEM 11 (2026-09-08): the Not Interested set is owned by ReelViewer but has
+ * to be honoured by ReelsFeedCarousel's loadReels, which is a different
+ * component - the first version of this fix put a ref in ReelViewer and read it
+ * from the carousel, which is a ReferenceError on every load. localStorage is
+ * the persisted source of truth for both, so both read it through here.
+ */
+function readNotInterested() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
 function ReelViewer({ reels, startIndex, onClose }) {
   const { user: authUser } = useSupabase();
 
@@ -340,28 +356,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // #7 Animated Like Counter
   const [likeBounceId, setLikeBounceId] = useState(null);
   // #4 Not Interested - persist disliked reel IDs in localStorage
-  const [notInterestedIds, setNotInterestedIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]'));
-      } catch {
-        return new Set();
-      }
-    }
-    return new Set();
-  });
-  /*
-   * ITEM 11 (2026-09-08): loadReels is a useCallback([]) whose dep array also
-   * drives the realtime reload debounce, so it cannot take notInterestedIds as
-   * a dependency without changing that behaviour. A ref gives the filter the
-   * current Set with no dep change - the same shape feedCycleRef uses on the
-   * feed page for exactly this reason.
-   */
-  const notInterestedIdsRef = useRef(notInterestedIds);
-  useEffect(() => {
-    notInterestedIdsRef.current = notInterestedIds;
-  }, [notInterestedIds]);
-
+  const [notInterestedIds, setNotInterestedIds] = useState(readNotInterested);
   // #6 Comment Pagination
   const [commentPage, setCommentPage] = useState(0);
   const [hasMoreComments, setHasMoreComments] = useState(false);
@@ -4084,7 +4079,7 @@ export function ReelsFeedCarousel() {
       // trigger. Without this filter the carousel renders the same clip
       // up to 169 times in a row.
       const seenUrls = new Set();
-      const notInterested = notInterestedIdsRef.current;
+      const notInterested = readNotInterested();
       const allReels = rawReels
         // ITEM 11: honour Not Interested here, the way Reels.jsx:1017 and
         // pages/hub/reels.js:754 already do. Without it the Set was written on

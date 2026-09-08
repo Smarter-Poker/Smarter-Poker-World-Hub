@@ -526,6 +526,15 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
 // TAB 3: GROUPS / CLUBS
 // ═══════════════════════════════════════════════════════════════════════════
 function GroupsTab({ post, onClose }) {
+    /*
+     * Its own timer. The first version of this fix declared closeTimerRef in
+     * ShareToFeedTab and used it here - a different component, so a
+     * ReferenceError the moment a group share succeeded.
+     */
+    const closeTimerRef = useRef(null);
+    useEffect(() => () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    }, []);
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(new Set());

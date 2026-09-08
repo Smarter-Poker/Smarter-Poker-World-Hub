@@ -351,7 +351,6 @@ const PostCard = React.memo(
       if (!currentUserId) return;
       const newBookmarked = !bookmarked;
       setBookmarked(newBookmarked);
-      setBookmarkCount((prev) => (newBookmarked ? prev + 1 : Math.max(0, prev - 1)));
       haptic(newBookmarked ? 15 : 5);
       try {
         if (newBookmarked) {
@@ -382,7 +381,6 @@ const PostCard = React.memo(
       } catch (e) {
         console.warn('Bookmark error:', e);
         setBookmarked(!newBookmarked);
-        setBookmarkCount((prev) => (newBookmarked ? Math.max(0, prev - 1) : prev + 1));
         toast.error('Could not save post');
       }
     };

@@ -54,12 +54,27 @@ test('Not Interested is still read, not just written', () => {
   assert.match(src, /setNotInterestedIds\(/, 'the Not Interested state is gone');
   assert.match(
     src,
-    /notInterested(IdsRef\.current)?\.has\(/,
+    /notInterested\.has\(/,
     'notInterestedIds is written and never read again - dismissing a reel does nothing'
   );
-  // It must be read through a ref: loadReels is a useCallback([]) whose dep
-  // array also drives the realtime reload debounce.
-  assert.match(src, /notInterestedIdsRef/, 'the filter must read the Set through a ref');
+  /*
+   * The Set is OWNED by ReelViewer, but the filter that matters lives in
+   * ReelsFeedCarousel - a different component. The first version of this fix put
+   * a ref in ReelViewer and read it from the carousel, which is a ReferenceError
+   * on every load. Both must go through the module-level reader, which reads the
+   * localStorage both components already persist to.
+   */
+  assert.match(src, /function readNotInterested\(\)/, 'the shared reader is gone');
+  assert.match(
+    src,
+    /const notInterested = readNotInterested\(\);/,
+    'loadReels must read the persisted Set, not a ref from another component'
+  );
+  assert.ok(
+    !/notInterestedIdsRef/.test(src),
+    'notInterestedIdsRef is back - it is declared in ReelViewer and read in ' +
+      'ReelsFeedCarousel, which is a ReferenceError'
+  );
 });
 
 test('every GoLiveModal close path resets the modal', () => {
