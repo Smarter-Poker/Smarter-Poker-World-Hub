@@ -41,6 +41,11 @@
  * of the broken code with none of that risk. The restructure is tracked
  * separately.
  *
+ * The same audit found and fixed a second defect: delete-club.js cascaded on
+ * `club_id`, which social_pages does not have, so every deleted club left its
+ * page advertising itself in the public directory forever. 26 of 37 rows were
+ * that. Fixed and backfilled in #1595.
+ *
  * Copy note: pages in a World Hub world are auto title-cased and en and em
  * dashes are banned by src/lib/world-copy-policy.mjs. Keep copy plain.
  */
@@ -157,20 +162,23 @@ export default function MyClubsRetired() {
                             marginBottom: 16,
                         }}
                     >
-                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8 }}>
+                        <h1 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: '0 0 8px' }}>
                             This Page Moved
-                        </div>
+                        </h1>
                         <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6 }}>
                             Your clubs, unions and home games are all on Social Pages now, under
                             the Managed tab. Nothing was lost. Pick a destination below.
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <nav
+                        aria-label="Where your clubs live now"
+                        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+                    >
                         {DESTINATIONS.map((item) => (
                             <DestinationCard key={item.href} item={item} />
                         ))}
-                    </div>
+                    </nav>
                 </div>
             </div>
         </>
