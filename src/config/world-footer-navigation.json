@@ -87,7 +87,7 @@
       "routePrefixes": ["/hub/social-media", "/hub/reels", "/hub/friends", "/hub/messenger", "/hub/social-pages", "/hub/saved-posts", "/hub/post", "/hub/user", "/u"],
       "items": [
         { "href": "/hub/social-media", "label": "Feed", "title": "Social Feed", "icon": "home" },
-        { "href": "/hub/social-media/compose", "label": "Create", "title": "Create A Post", "icon": "compose" },
+        { "href": "/hub/social-media?compose=1", "label": "Create", "title": "Create A Post", "icon": "compose" },
         { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users" },
         { "href": "/hub/messenger", "label": "Chat", "title": "Messenger", "icon": "message" },
         { "href": "/hub/reels", "label": "Reels", "title": "Poker Reels", "icon": "film" },

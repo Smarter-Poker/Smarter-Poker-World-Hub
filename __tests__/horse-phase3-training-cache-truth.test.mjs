@@ -15,6 +15,9 @@ import {
   cacheRowIsServingEligible,
   withPersistedCacheReceipt,
 } from '../src/lib/training/cacheTruthPersistence.mjs';
+import {
+  trainingAnswerBindingMatches,
+} from '../src/lib/training/answerPersistence.mjs';
 
 const SHA256 = 'a'.repeat(64);
 const read = (file) => fs.readFileSync(file, 'utf8');
@@ -113,6 +116,90 @@ test('a served question is bound to the exact row, embedded policy, classificati
   assert.throws(() => withPersistedCacheReceipt(cacheRow.question_data, altered), /does not match/);
 });
 
+test('a fresh local range fallback is normalized to the database legacy archive contract', () => {
+  const question = exactQuestion();
+  question.source = 'local_solver_ranges';
+  question.dataQuality = 'LEGACY_UNVERIFIED';
+  question.questionContract = { version: 1, valid: true, issues: [] };
+  question.solverProvenance = { verified: false, source: 'local_solver_ranges' };
+  question.solverPolicy = {
+    ...question.solverPolicy,
+    kind: 'derived',
+    qualitySeal: 'LEGACY_UNVERIFIED',
+    sourceArtifact: {
+      ...question.solverPolicy.sourceArtifact,
+      system: 'local_solver_ranges',
+      provenanceComplete: false,
+    },
+  };
+
+  const row = buildTrainingCacheRow({
+    question,
+    questionId: question.id,
+    gameId: 'cash-001',
+    questionKind: 'PIO',
+    gameType: 'cash',
+    level: 1,
+  });
+  assert.equal(row.source_classification, 'LEGACY_UNVERIFIED');
+  assert.equal(row.quality_status, 'active_fallback');
+  assert.equal(row.question_data.source, 'LEGACY_STRATEGY_ARCHIVE');
+  assert.equal(row.question_data.legacySource, 'local_solver_ranges');
+  assert.equal(row.question_data.solverProvenance.verified, false);
+  assert.equal(
+    row.question_data.evidenceDisclosure,
+    'Legacy strategy archive; writer provenance is unavailable.',
+  );
+});
+
+test('submission retries are accepted only for an identical immutable answer binding', () => {
+  const answer = {
+    user_id: '11111111-1111-4111-8111-111111111111',
+    game_id: 'cash-001',
+    question_id: 'phase3-exact-question',
+    answer_id: 'check',
+    is_correct: true,
+    level: 4,
+    hero_position: 'BTN',
+    villain_position: 'BB',
+    street: 'flop',
+    classification: 'best',
+    ev_loss: 0,
+    spot_type: 'single-raised-pot',
+    submission_id: 'immutable-retry',
+    session_id: 'session-1',
+    attempt_id: '22222222-2222-4222-8222-222222222222',
+    snapshot_key: SHA256,
+    hand_ordinal: 3,
+    decision_ordinal: 2,
+    solver_verified: true,
+    solver_source: 'solved_spots_gold_v2',
+    selected_frequency: 60,
+    optimal_frequency: 60,
+    ev_loss_measured: false,
+    evidence_metadata: { policyChecksum: SHA256, dataQuality: 'SOLVER_EXACT' },
+  };
+  assert.equal(trainingAnswerBindingMatches(answer, structuredClone(answer)), true);
+  const reordered = structuredClone(answer);
+  reordered.evidence_metadata = { dataQuality: 'SOLVER_EXACT', policyChecksum: SHA256 };
+  assert.equal(trainingAnswerBindingMatches(answer, reordered), true);
+  const wireSerialized = structuredClone(answer);
+  wireSerialized.is_correct = 'true';
+  wireSerialized.solver_verified = 'true';
+  wireSerialized.ev_loss_measured = 'false';
+  wireSerialized.level = '4';
+  wireSerialized.ev_loss = '0';
+  assert.equal(trainingAnswerBindingMatches(answer, wireSerialized), true);
+  const changedAction = structuredClone(answer);
+  changedAction.answer_id = 'bet_75pct';
+  assert.equal(trainingAnswerBindingMatches(answer, changedAction), false);
+  for (const field of ['session_id', 'attempt_id', 'snapshot_key', 'hand_ordinal', 'decision_ordinal']) {
+    const changedBinding = structuredClone(answer);
+    changedBinding[field] = typeof answer[field] === 'number' ? answer[field] + 1 : `${answer[field]}-changed`;
+    assert.equal(trainingAnswerBindingMatches(answer, changedBinding), false, field);
+  }
+});
+
 test('every live Training producer persists and receipts canonical questions before returning', () => {
   for (const file of [
     'pages/api/training/get-question.js',
@@ -152,6 +239,14 @@ test('the daily cache drift audit is scheduled on the authenticated workers rout
   assert.match(
     dispatcher,
     /\('\/api\/cron\/training-cache-drift-audit',\s+dict\(hour=8, minute=10\)\)/,
+  );
+  assert.match(
+    dispatcher,
+    /\('\/api\/cron\/training-cache-drift-audit',\s+dict\(hour=8, minute=25\)\)/,
+  );
+  assert.match(
+    dispatcher,
+    /'\/api\/cron\/training-cache-drift-audit':\s*2/,
   );
   assert.match(
     dispatcher,
@@ -207,6 +302,63 @@ test('database expansion installs quarantine, atomic events, and daily drift aud
   assert.match(boundedAudit, /'counterRowsInspected'/);
   assert.match(boundedAudit, /AND i\.is_dirty/);
   assert.doesNotMatch(boundedAudit, /SELECT c\.\*/);
+});
+
+test('database enforcement closes the rolling-deploy window without weakening validation', () => {
+  const enforcement = read(
+    'supabase/migrations/20260907070000_training_cache_truth_enforcement.sql',
+  );
+  assert.match(enforcement, /SET LOCAL statement_timeout = '20min'/);
+  assert.match(enforcement, /ALTER COLUMN canonical_policy SET NOT NULL/);
+  assert.match(enforcement, /ALTER COLUMN policy_checksum SET NOT NULL/);
+  assert.match(enforcement, /fn_training_cache_grade/);
+  assert.match(enforcement, /fn_training_cache_row_is_valid/);
+  assert.match(enforcement, /training_answer_missing_policy_checksum/);
+  assert.match(enforcement, /training_answer_stale_policy/);
+  assert.match(enforcement, /training_answer_grade_mismatch/);
+  assert.match(enforcement, /training_answer_solver_evidence_mismatch/);
+  assert.match(enforcement, /training_answer_fallback_claims_solver_evidence/);
+  assert.match(enforcement, /training_answer_ev_evidence_mismatch/);
+  assert.match(enforcement, /training_answer_lineage_mismatch/);
+  assert.match(enforcement, /training_session_question_missing_policy_checksum/);
+  assert.match(enforcement, /training_session_contains_conflicting_policy_checksums/);
+  assert.match(enforcement, /REVOKE ALL ON FUNCTION public\.fn_training_answer_cache_event\(\)/);
+  assert.match(enforcement, /REVOKE ALL ON FUNCTION public\.fn_training_session_cache_completion\(\)/);
+});
+
+test('certification hardens historical provenance, selected-action binding, and ledger grants', () => {
+  const integrity = read(
+    'supabase/migrations/20260908140000_training_cache_event_integrity.sql',
+  );
+  assert.match(integrity, /binding_status/);
+  assert.match(integrity, /HISTORICAL_UNBOUND/);
+  assert.match(integrity, /historicalPolicyBinding/);
+  assert.match(integrity, /selectedAnswer/);
+  assert.match(integrity, /answered_event_requires_selected_answer/);
+  assert.match(integrity, /v_existing\.metadata IS DISTINCT FROM v_metadata/);
+  assert.match(integrity, /training_answer_is_immutable/);
+  assert.match(integrity, /AFTER INSERT ON public\.training_answers/);
+  assert.match(integrity, /REVOKE ALL PRIVILEGES ON TABLE public\.training_question_events FROM service_role/);
+  assert.match(integrity, /GRANT SELECT ON TABLE public\.training_question_events TO service_role/);
+
+  const recorder = read('pages/api/training/record-question.js');
+  assert.match(recorder, /from\('training_answers'\)\.insert\(evidenceRow\)/);
+  assert.doesNotMatch(recorder, /from\('training_answers'\)\.upsert/);
+  assert.match(recorder, /trainingAnswerBindingMatches/);
+  assert.match(recorder, /TRAINING_ANSWER_BINDING_MISMATCH/);
+  assert.match(read('pages/api/assistant/leaks/drill-answer.js'), /selectedAnswer:/);
+  const handOfTheDay = read('pages/api/training/hand-of-the-day.js');
+  assert.match(handOfTheDay, /req\.method !== 'GET'/);
+  assert.doesNotMatch(
+    handOfTheDay,
+    /req\.body(?:\?\.)?\.selectedAction|const\s*\{[^}]*selectedAction/,
+    'the Daily Challenge read route cannot accept or grade a browser-authored selection',
+  );
+  assert.match(
+    read('supabase/migrations/20260907203000_training_attempt_decision_delivery_authority.sql'),
+    /'selectedAnswer', p_answer\.answer_id/,
+    'Daily Challenge answers share the signed answer path; only its immutable answer-event trigger records the selected action',
+  );
 });
 
 test('the production backfill supports transactional Postgres transport and bounded resume ranges', () => {

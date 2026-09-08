@@ -14,23 +14,27 @@
  * ╠═══════════════════════════════════════════════════════════════════════════╣
  * ║  CRITICAL FEATURES IN THIS FILE - DO NOT BREAK:                          ║
  * ║                                                                           ║
- * ║  📰 Article Reader (Lines ~1186-1200, ~1417, ~2509)                       ║
- * ║     - ArticleCard with onClick → opens ArticleReaderModal                 ║
- * ║     - articleReader state {open, url, title}                             ║
- * ║     - onOpenArticle prop passed to PostCard                              ║
+ * ║  Article Reader                                                           ║
+ * ║     - ArticleCard with onClick(url, title) -> ArticleReaderModal          ║
+ * ║     - articleReader state {open, url, title}                              ║
+ * ║     - onOpenArticle prop passed to PostCard                               ║
  * ║                                                                           ║
- * ║  📖 Stories Bar (Line ~2330)                                              ║
- * ║     - StoriesBar component with stories fetch                            ║
+ * ║  Stories Bar - StoriesBar component with stories fetch                    ║
  * ║                                                                           ║
- * ║   Reels Carousel (Lines ~2510)                                          ║
- * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
+ * ║   Reels Carousel                                                          ║
+ * ║     - ONE ReelsFeedCarousel, after the 3rd post (or the last, if fewer).  ║
+ * ║       Each instance owns a 50-row fetch and a realtime channel.           ║
  * ║                                                                           ║
- * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
- * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
+ * ║  Live Streaming - GoLiveModal, LiveStreamCard, LiveStreamViewer           ║
  * ║                                                                           ║
- * ║  📋 PostCard Component (Lines ~1072-1300)                                 ║
- * ║     - Renders all post types correctly                                   ║
- * ║     - onOpenArticle prop for article clicks                              ║
+ * ║  PostCard - renders every post type; onOpenArticle for article clicks      ║
+ * ║                                                                           ║
+ * ║  NO LINE NUMBERS HERE ON PURPOSE. Every offset this header used to carry  ║
+ * ║  was wrong by thousands of lines - they were written once and the file    ║
+ * ║  moved underneath them. Search for the name instead.                      ║
+ * ║                                                                           ║
+ * ║  Behaviour above is pinned by __tests__/a-wired-feature-stays-wired.law   ║
+ * ║  and the two sibling laws for the avatar ring and the footer geometry.    ║
  * ║                                                                           ║
  * ╠═══════════════════════════════════════════════════════════════════════════╣
  * ║  SMARTER.POKER SOCIAL HUB                                                ║
@@ -44,11 +48,9 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useFeedPrefetchObserver } from '../../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
-import { useExternalLink } from '../../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../../src/components/social/ReelsFeedCarousel';
@@ -74,7 +76,6 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
-import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
@@ -90,25 +91,12 @@ const ShareStreakLeaderboard = dynamic(
 );
 const ClubPageDashboard = dynamic(() => import("../../../src/components/social/ClubPageDashboard"));
 const PublicGameBoard = dynamic(() => import("../../../src/components/social/PublicGameBoard"));
-const ChatWindow = dynamic(() => import("../../../src/components/social/ChatWindow"));
 const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubPagesView"));
 
 // Shared utilities — single source of truth (extracted from this file)
-import {
-  SOCIAL_COLORS,
-  SOCIAL_COLORS as C,
-  timeAgo,
-  decodeHtmlEntities,
-  isYouTubeUrl,
-  getYouTubeVideoId,
-  getYouTubeEmbedUrl,
-  getYouTubeThumbnail,
-  validateYouTubeVideo,
-  sniffMimeType,
-} from '../../../src/lib/socialHelpers';
+import { SOCIAL_COLORS as C, timeAgo } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import {
-  VideoThumbnail,
   VideoPostWrapper,
   FeedVideoPoster,
 } from '../../../src/components/social/SharedVideoComponents';
@@ -127,203 +115,38 @@ function getTypingChannel() {
   return _typingSendChannel;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
-// ═══════════════════════════════════════════════════════════════════════════
-//  CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
-// This component has broken 4+ times. Key requirements:
-// - Uses useExternalLink for internal popups (NOT target="_blank")
-// - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
-// - decodeHtmlEntities for title/description (fixes &#039; display)
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Module-level cache to deduplicate link preview fetches across all cards in a session
-// Capped at 200 entries (LRU eviction) to prevent unbounded memory growth.
-const LINK_PREVIEW_CACHE_MAX = 200;
-const linkPreviewCache = new Map();
-const linkPreviewInflight = new Map();
-
-function setLinkPreviewCache(key, value) {
-  if (linkPreviewCache.size >= LINK_PREVIEW_CACHE_MAX) {
-    linkPreviewCache.delete(linkPreviewCache.keys().next().value); // evict oldest
-  }
-  linkPreviewCache.set(key, value);
+/*
+ * ITEM 21 (2026-09-08): the feed carried 99 click handlers, 3 roles and ZERO
+ * tabIndex. Primary actions - comment Like, Reply, Edit, Delete and its
+ * confirm, "See More", the sidebar tiles, identity-switch rows, notification
+ * rows, search results, every media thumbnail - were plain divs and spans.
+ * None was reachable by keyboard; none announced itself to a screen reader.
+ *
+ * Activation goes through currentTarget.click() rather than re-invoking the
+ * handler, so each control keeps exactly one behaviour: whatever its onClick
+ * already does. A second copy of the handler is a second thing to keep in step.
+ *
+ * NOT applied to backdrops (the lightbox, sidebar and global-search scrims) or
+ * to the stopPropagation wrapper: those are not controls, and making them
+ * focusable buttons would put a tab stop on a sheet of glass. Dismissing a
+ * dialog from the keyboard is Escape's job and is tracked separately.
+ */
+function spKeyActivate(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  // Space scrolls the page; Enter can submit a surrounding form.
+  e.preventDefault();
+  e.currentTarget.click();
 }
 
-function LinkPreviewCard({ url }) {
-  const { openExternal } = useExternalLink();
-  const [metadata, setMetadata] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!url) return;
-
-    // Check in-memory cache first to avoid duplicate network requests
-    if (linkPreviewCache.has(url)) {
-      setMetadata(linkPreviewCache.get(url));
-      setLoading(false);
-      return;
-    }
-
-    const fetchMetadata = async () => {
-      try {
-        let data;
-        // Deduplicate: if a request for this URL is already in-flight, await it
-        if (linkPreviewInflight.has(url)) {
-          data = await linkPreviewInflight.get(url);
-        } else {
-          const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`).then((r) =>
-            r.json()
-          );
-          linkPreviewInflight.set(url, promise);
-          data = await promise;
-          linkPreviewInflight.delete(url);
-        }
-        // Only cache if we got useful data (allows retry on empty fallback responses)
-        if (data && (data.image || data.title)) {
-          setLinkPreviewCache(url, data);
-        }
-        setMetadata(data);
-      } catch (error) {
-        console.warn('Failed to fetch link metadata:', error);
-        linkPreviewInflight.delete(url);
-        // Fallback to basic info
-        try {
-          const urlObj = new URL(url);
-          setMetadata({
-            title: urlObj.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Link',
-            description: null,
-            image: null,
-            siteName: urlObj.hostname.replace(/^www\./, ''),
-          });
-        } catch (e) {
-          console.warn('[App] Handled exception:', e?.message || e);
-        }
-      }
-      setLoading(false);
-    };
-
-    fetchMetadata();
-  }, [url]);
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          overflow: 'hidden',
-          background: C.bg,
-          margin: '0 12px 12px',
-        }}
-      >
-        <div
-          style={{
-            height: 200,
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: 24,
-          }}
-        >
-          ⏳ Loading Preview...
-        </div>
-      </div>
-    );
-  }
-
-  const handleClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Use the in-app ExternalLinkModal rather than opening a new tab
-    // The modal tries iframe first, falls back to "Copy Link" if site blocks embedding
-    openExternal(url, metadata?.title || 'Link Preview');
-  };
-
-  return (
-    <div
-      onClick={handleClick}
-      style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}
-    >
-      <div
-        style={{
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          overflow: 'hidden',
-          background: C.bg,
-          margin: '0 12px 12px',
-        }}
-      >
-        {/* Link Preview Image - full width, proper aspect ratio */}
-        <div
-          style={{
-            width: '100%',
-            aspectRatio: '16/9',
-            position: 'relative',
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            overflow: 'hidden',
-          }}
-        >
-          {metadata?.image ? (
-            <img
-              src={metadata.image}
-              alt={metadata.title || 'Link preview'}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: 'white',
-                fontSize: 48,
-              }}
-            >
-              🔗
-            </div>
-          )}
-        </div>
-        {/* Link Info */}
-        <div style={{ padding: '12px 16px', background: C.card }}>
-          <div
-            style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}
-          >
-            {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-            {decodeHtmlEntities(metadata?.title) || 'View Article'}
-          </div>
-          {metadata?.description && (
-            <div
-              style={{
-                fontSize: 13,
-                color: C.textSec,
-                marginTop: 6,
-                lineHeight: 1.4,
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              }}
-            >
-              {decodeHtmlEntities(metadata.description)}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+/*
+ * prefetch={false} on the author links still prefetches on hover and
+ * touchstart in the Pages Router - it only drops the speculative
+ * in-viewport fetch. Those links appear ONCE PER POST, so a feed of
+ * twenty posts had twenty in-viewport Links all pulling the same 159KB
+ * /hub/user/[username] chunk before the reader touched anything. Intent
+ * is preserved; the bulk speculation is not. Same reasoning for the 16
+ * links in the sidebar drawer, which is mounted off-screen.
+ */
 const PostCard = React.memo(
   function PostCard({
     post,
@@ -372,7 +195,6 @@ const PostCard = React.memo(
       });
     }
     const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
-    const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount || 0);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -381,6 +203,10 @@ const PostCard = React.memo(
     const [shareCount, setShareCount] = useState(post.shareCount || 0);
     const [hasShared, setHasShared] = useState(false); // Can be hydrated from props if needed later
     const [hasMoreComments, setHasMoreComments] = useState(false);
+    // Comment rows actually returned by the server. Paging used `comments.length`,
+    // which also counts optimistic entries, realtime-injected ones and replies,
+    // so "View More Comments" skipped or re-fetched rows once any of those existed.
+    const fetchedCommentCountRef = useRef(0);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const [displayContent, setDisplayContent] = useState(post.content);
     const [editingCommentId, setEditingCommentId] = useState(null);
@@ -557,7 +383,6 @@ const PostCard = React.memo(
       if (!currentUserId) return;
       const newBookmarked = !bookmarked;
       setBookmarked(newBookmarked);
-      setBookmarkCount((prev) => (newBookmarked ? prev + 1 : Math.max(0, prev - 1)));
       haptic(newBookmarked ? 15 : 5);
       try {
         if (newBookmarked) {
@@ -588,7 +413,6 @@ const PostCard = React.memo(
       } catch (e) {
         console.warn('Bookmark error:', e);
         setBookmarked(!newBookmarked);
-        setBookmarkCount((prev) => (newBookmarked ? Math.max(0, prev - 1) : prev + 1));
         toast.error('Could not save post');
       }
     };
@@ -714,6 +538,10 @@ const PostCard = React.memo(
           };
         });
         setComments((prev) => (offset === 0 ? newComments : [...prev, ...newComments]));
+        // Rows actually fetched from the server. `comments.length` is NOT this
+        // number - it also counts optimistic entries, realtime-injected ones and
+        // replies - so paging on it skipped or re-fetched rows.
+        fetchedCommentCountRef.current = offset === 0 ? newComments.length : offset + newComments.length;
       } catch (e) {
         console.warn('[Comments] Error loading comments:', e);
       }
@@ -721,7 +549,7 @@ const PostCard = React.memo(
     };
 
     const loadMoreComments = () => {
-      loadComments(comments.length);
+      loadComments(fetchedCommentCountRef.current);
     };
 
     // Phase 3: Double-tap to like handler
@@ -963,7 +791,7 @@ const PostCard = React.memo(
         }}
       >
         <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link
+          <Link prefetch={false}
             href={`/hub/user/${post.author?.username || 'player'}`}
             style={{ textDecoration: 'none', position: 'relative', display: 'inline-block' }}
           >
@@ -984,7 +812,7 @@ const PostCard = React.memo(
             )}
           </Link>
           <div style={{ flex: 1 }}>
-            <Link
+            <Link prefetch={false}
               href={`/hub/user/${post.author?.username || 'player'}`}
               className="no-capitalize"
               data-preserve-case="true"
@@ -1248,12 +1076,28 @@ const PostCard = React.memo(
                 const needsTruncation = truncated.truncated && !expanded;
                 const visibleText = needsTruncation ? `${truncated.text}...` : displayText;
 
-                // Render with @mention highlighting
-                const rendered = visibleText.split(/(@\w+)/g).map((part, i) =>
+                // Two things have to be true here at once, so this stays a local
+                // split rather than a call to renderMentions(): the non-mention
+                // parts must keep going through PokerCardText, and the mention
+                // parts must actually navigate. They rendered as blue
+                // cursor:pointer text with NO onClick, so @mentions in posts
+                // looked clickable and did nothing - they work in comments only.
+                // The regex is now /(@[\w.]+)/ to match renderMentions; the old
+                // /(@\w+)/ split usernames containing a dot differently in posts
+                // than in comments.
+                const rendered = visibleText.split(/(@[\w.]+)/g).map((part, i) =>
                   part.startsWith('@') ? (
-                    <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>
+                    <a
+                      key={i}
+                      href={`/hub/user/${part.slice(1)}`}
+                      style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(`/hub/user/${part.slice(1)}`);
+                      }}
+                    >
                       {part}
-                    </span>
+                    </a>
                   ) : (
                     <PokerCardText key={i} text={part} />
                   )
@@ -1263,6 +1107,9 @@ const PostCard = React.memo(
                     {rendered}
                     {needsTruncation && (
                       <span
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate}
                         onClick={() => setExpanded(true)}
                         style={{
                           color: C.textSec,
@@ -1347,7 +1194,8 @@ const PostCard = React.memo(
           post.contentType?.startsWith('live_session')) && (
           <div style={{ padding: (post.mediaUrls?.length ?? 0) > 1 ? '0 2px 2px' : 0 }}>
             {/* Double-tap to like + heart animation overlay */}
-            <div onClick={handleDoubleTap} style={{ position: 'relative', cursor: 'pointer' }}>
+            <div
+              data-sp-skip-a11y="decorative overlay: double-tap to like, not a control" onClick={handleDoubleTap} style={{ position: 'relative', cursor: 'pointer' }}>
               {doubleTapHeart && (
                 <div
                   style={{
@@ -1390,6 +1238,9 @@ const PostCard = React.memo(
                     if (isEnded || !streamId) {
                       return (
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           onClick={handleOpen}
                           style={{
                             position: 'relative',
@@ -1698,6 +1549,9 @@ const PostCard = React.memo(
                   />
                 ) : (
                   <img
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={spKeyActivate}
                     src={post.mediaUrls[0]}
                     loading="lazy"
                     alt=""
@@ -1730,6 +1584,9 @@ const PostCard = React.memo(
                         // IntersectionObserver autoplay <video> doesn't
                         // capture taps meant for the parent.
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           style={{
                             width: '100%',
                             height: '100%',
@@ -1773,6 +1630,9 @@ const PostCard = React.memo(
                         </div>
                       ) : (
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1800,6 +1660,9 @@ const PostCard = React.memo(
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
                   <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
                     <img
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={spKeyActivate}
                       src={post.mediaUrls[0]}
                       loading="lazy"
                       alt=""
@@ -1823,6 +1686,9 @@ const PostCard = React.memo(
                     {post.mediaUrls.slice(1).map((url, i) => (
                       <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1851,6 +1717,9 @@ const PostCard = React.memo(
                   {post.mediaUrls.map((url, i) => (
                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                       <img
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate}
                         src={url}
                         loading="lazy"
                         alt=""
@@ -1886,6 +1755,9 @@ const PostCard = React.memo(
                     {post.mediaUrls.slice(0, 2).map((url, i) => (
                       <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1914,6 +1786,9 @@ const PostCard = React.memo(
                         style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}
                       >
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -2013,6 +1888,9 @@ const PostCard = React.memo(
           <span style={{ cursor: 'pointer', display: 'flex', gap: 12 }}>
             {commentCount > 0 && (
               <span
+                role="button"
+                tabIndex={0}
+                onKeyDown={spKeyActivate}
                 onClick={handleToggleComments}
               >{`${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             )}
@@ -2425,6 +2303,9 @@ const PostCard = React.memo(
                               }}
                             >
                               <img
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={spKeyActivate}
                                 src={c.mediaUrl}
                                 alt={c.mediaType === 'gif' ? 'GIF' : 'Image'}
                                 style={{
@@ -2480,12 +2361,18 @@ const PostCard = React.memo(
                       >
                         <span>{c.time}</span>
                         <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           style={{ cursor: 'pointer', color: c.isLikedByMe ? C.blue : C.textSec }}
                           onClick={() => handleLikeComment(c.id, c.isLikedByMe)}
                         >
                           Like
                         </span>
                         <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           style={{ cursor: 'pointer', color: C.textSec }}
                           onClick={() =>
                             setReplyingTo({
@@ -2500,6 +2387,9 @@ const PostCard = React.memo(
                         {c.authorId === currentUserId && !isEditingComment && (
                           <>
                             <span
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={spKeyActivate}
                               style={{ cursor: 'pointer', color: C.textSec }}
                               onClick={() => {
                                 setEditingCommentId(c.id);
@@ -2514,6 +2404,9 @@ const PostCard = React.memo(
                               >
                                 <span style={{ fontSize: 11, color: C.textSec }}>Delete?</span>
                                 <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={spKeyActivate}
                                   style={{ cursor: 'pointer', color: '#FA383E', fontWeight: 700 }}
                                   onClick={async () => {
                                     const { error } = await supabase
@@ -2544,6 +2437,9 @@ const PostCard = React.memo(
                                   Yes
                                 </span>
                                 <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={spKeyActivate}
                                   style={{ cursor: 'pointer', color: C.textSec }}
                                   onClick={() => setDeletingCommentId(null)}
                                 >
@@ -2552,6 +2448,9 @@ const PostCard = React.memo(
                               </span>
                             ) : (
                               <span
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={spKeyActivate}
                                 style={{ cursor: 'pointer', color: '#FA383E' }}
                                 onClick={() => setDeletingCommentId(c.id)}
                               >
@@ -2648,6 +2547,9 @@ const PostCard = React.memo(
                   Replying To <strong>{replyingTo.name}</strong>
                 </span>
                 <span
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={spKeyActivate}
                   style={{ cursor: 'pointer', fontWeight: 600 }}
                   onClick={() => setReplyingTo(null)}
                 >
@@ -2990,6 +2892,7 @@ const PostCard = React.memo(
         {/* Image Lightbox Modal */}
         {lightboxUrl && (
           <div
+            data-sp-skip-a11y="backdrop: click to dismiss the lightbox, Escape is the keyboard path"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setLightboxUrl(null);
@@ -3184,7 +3087,14 @@ const PostCard = React.memo(
       prevProps.post.mediaUrls === nextProps.post.mediaUrls &&
       prevProps.post.metadata === nextProps.post.metadata &&
       prevProps.post.shareCount === nextProps.post.shareCount &&
-      prevProps.currentUserId === nextProps.currentUserId
+      prevProps.currentUserId === nextProps.currentUserId &&
+      // These three change without currentUserId changing: a profile edit
+      // re-sets `user` (name + avatar) and horseProfileIds arrives async. Left
+      // out, the comment composer's avatar and the author name stayed stale and
+      // the horse online dot never appeared.
+      prevProps.currentUserName === nextProps.currentUserName &&
+      prevProps.currentUserAvatar === nextProps.currentUserAvatar &&
+      prevProps.horseProfileIds === nextProps.horseProfileIds
     );
   }
 );
@@ -3273,6 +3183,9 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
       }}
     >
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={spKeyActivate}
         onClick={onClose}
         style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
       />
@@ -3435,84 +3348,6 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
 }
 
 // ===== CLUB PAGE DASHBOARD (Owner Management View) =====
-const AMENITIES_LIST = [
-  {
-    cat: 'Dining & Beverages',
-    items: [
-      { k: 'food_service', l: 'Food Service' },
-      { k: 'food_tableside', l: 'Food Tableside' },
-      { k: 'order_food_at_table', l: 'Order Food at Table' },
-      { k: 'full_bar', l: 'Full Bar' },
-      { k: 'cocktail_service', l: 'Cocktail Service' },
-      { k: 'self_serve_drinks', l: 'Self Serve Drink Station' },
-      { k: 'snack_bar', l: 'Snack Bar' },
-      { k: 'room_service', l: 'Room Service' },
-    ],
-  },
-  {
-    cat: 'Parking & Lodging',
-    items: [
-      { k: 'free_parking', l: 'Free Parking' },
-      { k: 'self_parking', l: 'Self Parking' },
-      { k: 'valet_parking', l: 'Valet Parking' },
-      { k: 'parking_garage', l: 'Parking Garage' },
-      { k: 'hotel_onsite', l: 'Hotel On-Site' },
-      { k: 'discounted_hotel', l: 'Discounted Hotel Rates' },
-    ],
-  },
-  {
-    cat: 'Player Services',
-    items: [
-      { k: 'phone_in_list', l: 'Phone-in Waitlist' },
-      { k: 'check_cashing', l: 'Check Cashing' },
-      { k: 'currency_exchange', l: 'Currency Exchange' },
-      { k: 'safe_deposit', l: 'Safe Deposit Boxes' },
-      { k: 'atm_onsite', l: 'ATM On-Site' },
-      { k: 'coat_check', l: 'Coat Check' },
-    ],
-  },
-  {
-    cat: 'Player Perks',
-    items: [
-      { k: 'comps_program', l: 'Comps Program' },
-      { k: 'loyalty_program', l: 'Loyalty Program' },
-      { k: 'rewards_card', l: 'Player Rewards Card' },
-      { k: 'hourly_drawings', l: 'Hourly Drawings' },
-      { k: 'jackpot_promos', l: 'Jackpot Promotions' },
-    ],
-  },
-  {
-    cat: 'Comfort & Environment',
-    items: [
-      { k: 'non_smoking', l: 'Non-Smoking' },
-      { k: 'smoking_area', l: 'Smoking Area' },
-      { k: 'massage', l: 'Massage Service' },
-      { k: 'nearby_restrooms', l: 'Nearby Restrooms' },
-      { k: 'wifi', l: 'Free WiFi' },
-      { k: 'usb_chargers', l: 'USB Chargers' },
-      { k: 'charging_stations', l: 'Charging Stations' },
-      { k: 'televisions', l: 'Televisions' },
-      { k: 'tvs_at_tables', l: 'TVs at Tables' },
-    ],
-  },
-  {
-    cat: 'Table Features',
-    items: [
-      { k: 'auto_shufflers', l: 'Auto Shufflers' },
-      { k: 'rfid_tables', l: 'RFID Tables' },
-      { k: 'live_streaming', l: 'Live Streaming' },
-    ],
-  },
-  {
-    cat: 'Facility',
-    items: [
-      { k: 'private_room', l: 'Private Card Room' },
-      { k: 'high_limit', l: 'High-Limit Room' },
-      { k: 'tournament_room', l: 'Tournament Room' },
-      { k: 'membership_required', l: 'Membership Required' },
-    ],
-  },
-];
 const CATEGORY_LABELS = {
   poker_room: 'Poker Room',
   casino: 'Casino',
@@ -3522,17 +3357,6 @@ const CATEGORY_LABELS = {
   home_game: 'Home Game',
   other: 'Other',
 };
-const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const DAY_LABELS = {
-  monday: 'Mon',
-  tuesday: 'Tue',
-  wednesday: 'Wed',
-  thursday: 'Thu',
-  friday: 'Fri',
-  saturday: 'Sat',
-  sunday: 'Sun',
-};
-
 function SocialMediaPage() {
   const router = useRouter();
   useTrainingBus('social-media');
@@ -3698,14 +3522,25 @@ function SocialMediaPage() {
   // Identity context for feed filter
   const { activeIdentity, switchToPersonal, switchToClub, isClubMode, clubPage, hasClubPage, ownedPages } = useActiveIdentity();
   const [showClubPostsOnly, setShowClubPostsOnly] = useState(false);
+  // ?compose=1 from the footer's Create control - focus the inline composer
+  // instead of routing to the /compose redirect stub.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'club-pages') setShowClubPages(true);
-  }, []);
+    if (router.query.compose !== '1' || !user) return;
+    const t = setTimeout(() => window.dispatchEvent(new CustomEvent('sp-focus-composer')), 120);
+    router.replace('/hub/social-media', undefined, { shallow: true });
+    return () => clearTimeout(t);
+  }, [router.query.compose, user]);
+
+  // router.query, not window.location.search with empty deps: the hamburger
+  // links to /hub/social-media?view=club-pages, and from the feed itself that is
+  // a same-route client transition with no remount - the effect never re-ran and
+  // the panel never opened.
+  useEffect(() => {
+    if (router.query.view === 'club-pages') setShowClubPages(true);
+  }, [router.query.view]);
   const [clubPages, setClubPages] = useState([]);
   const [clubPagesLoading, setClubPagesLoading] = useState(false);
   const [clubPagesCategory, setClubPagesCategory] = useState('all');
-  const [viewingClubPage, setViewingClubPage] = useState(null);
   const [clubPagesSearch, setClubPagesSearch] = useState('');
   const [clubPagesFollowing, setClubPagesFollowing] = useState(new Set());
 
@@ -3743,6 +3578,14 @@ function SocialMediaPage() {
   const [watchingStream, setWatchingStream] = useState(null);
   const processedStreamIdRef = useRef(null);
   const processedPostIdRef = useRef(null);
+  // ?ref= had no idempotency guard while ?post= and ?stream= both did, and its
+  // effect depends on the whole `user` object - which is replaced at least once
+  // per session (localStorage cache then DB fetch), so the auto-follow POST
+  // could fire twice before router.replace cleared the param.
+  const processedRefRef = useRef(null);
+  // The post opened from a share link / notification, held so the feed load
+  // that lands after it cannot drop it.
+  const deepLinkPostRef = useRef(null);
   // "N new posts" pill — replaces the destructive full-feed reset on
   // realtime INSERT (2026-08-15 audit).
   const [newPostsCount, setNewPostsCount] = useState(0);
@@ -3837,7 +3680,6 @@ function SocialMediaPage() {
   // long after the user clicked Skip. Fix: pause + mute + clear src
   // before unmount, AND track skipped state in a ref so any late-firing
   // onPlay event doesn't re-unmute.
-  const introSkippedRef = useRef(false);
 
   // Unmute video after first play event — but ONLY if the user hasn't
   // already skipped. Without this guard, a buffered onPlay event fired
@@ -3857,11 +3699,36 @@ function SocialMediaPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Route prefetch — preload likely navigation targets during idle time
+  /*
+   * Route prefetch, during idle time - which is what this comment always
+   * claimed and the code never did. Three router.prefetch calls fired
+   * synchronously in a useEffect on mount, so /hub/notifications,
+   * /hub/friends and /hub/messenger came down WHILE the feed was still
+   * fetching its own posts and images: measured at ~310KB of neighbouring
+   * page chunks on a feed whose own chunk is 252KB.
+   *
+   * requestIdleCallback runs it when the main thread is actually free.
+   * Safari has no requestIdleCallback, hence the timeout fallback, and both
+   * paths are cancelled on unmount so a fast navigation does not leave the
+   * prefetch running for a page nobody is on.
+   */
   useEffect(() => {
-    router.prefetch('/hub/notifications');
-    router.prefetch('/hub/friends');
-    router.prefetch('/hub/messenger');
+    const warmNeighbours = () => {
+      for (const href of ['/hub/notifications', '/hub/friends', '/hub/messenger']) {
+        try {
+          router.prefetch(href);
+        } catch (_) {
+          // Prefetch is best-effort; the Links themselves still navigate.
+        }
+      }
+    };
+    if (typeof window === 'undefined') return undefined;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warmNeighbours, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(warmNeighbours, 2500);
+    return () => clearTimeout(t);
   }, [router]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -4025,7 +3892,9 @@ function SocialMediaPage() {
         window.masterBus.subscribe('SOCIAL_POST', () => {
           if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
             console.log('[Social] 🔄 New post detected via masterBus');
-          loadFeed(0, false);
+          // Ref first, like every other long-lived listener in this file - this
+          // one captured loadFeed from whenever user?.id last changed.
+          (loadFeedRef.current || loadFeed)(0, false);
         })
       );
       unsubMasterBus.push(
@@ -4614,8 +4483,9 @@ function SocialMediaPage() {
     }
 
     // Handle ?ref=<referral_code> query param (from QR code scan)
-    if (router.query.ref && user) {
+    if (router.query.ref && user && processedRefRef.current !== router.query.ref) {
       const refCode = router.query.ref;
+      processedRefRef.current = refCode;
       (async () => {
         try {
           // Look up the page by referral code
@@ -4676,6 +4546,9 @@ function SocialMediaPage() {
                 isBookmarked: false,
                 viewCount: p.view_count || 0,
                 createdAt: p.created_at,
+                // Every other post-construction site sets this; without it the
+                // deep-linked post rendered with a blank timestamp.
+                timeAgo: timeAgo(p.created_at),
                 link_url: p.link_url || null,
                 link_title: p.link_title || null,
                 link_description: p.link_description || null,
@@ -4688,6 +4561,11 @@ function SocialMediaPage() {
                   avatar: meta.page_avatar_url || p.author?.avatar_url || null,
                 },
               };
+              // Pin it. The mount effect's loadFeed() resolves later and calls
+              // setPosts(formattedPosts), replacing the whole array - which
+              // silently threw away every post opened from a share link or a
+              // notification. loadFeed re-applies this pin on the way through.
+              deepLinkPostRef.current = formatted;
               setPosts((prev) => [formatted, ...prev.filter((x) => x.id !== formatted.id)]);
               if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
@@ -4722,7 +4600,7 @@ function SocialMediaPage() {
         })();
       }
     }
-  }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
+  }, [user?.id, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
 
   //  REFRESH NOTIFICATIONS when modal opens — always show latest data
   useEffect(() => {
@@ -4906,7 +4784,10 @@ function SocialMediaPage() {
       //    Previously: 3 sequential client→Supabase fetches (~240ms+)
       //    Now: 1 server-side Next.js API call with service role key (~60-80ms)
       // ─────────────────────────────────────────────────────────────────────
-      const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}${authUserId ? `&user_id=${authUserId}` : ''}`;
+      // No user_id param: /api/social/feed ignores it and derives identity from
+      // the JWT (pages/_app.js injects the bearer token globally). All it did was
+      // put a user UUID into every CDN and access log line.
+      const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}`;
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
@@ -4917,7 +4798,7 @@ function SocialMediaPage() {
 
       // Pagination state
       if (!rawPosts || rawPosts.length === 0) {
-        if (feedCycle < MAX_FEED_CYCLES) {
+        if (feedCycleRef.current < MAX_FEED_CYCLES) {
           setFeedCycle((prev) => prev + 1);
           setFeedOffset(0);
         } else {
@@ -4953,7 +4834,7 @@ function SocialMediaPage() {
         ...p,
         timeAgo: timeAgo(p.createdAt),
         isPriority: prioritySet.has(p.authorId),
-        isSuggested: feedCycle > 0,
+        isSuggested: feedCycleRef.current > 0,
         isFriend: friendIds.includes(p.authorId),
         isFollowing: followingIds.includes(p.authorId),
         score: calculatePostScore(p),
@@ -4974,7 +4855,12 @@ function SocialMediaPage() {
       if (append) {
         setPosts((prev) => [...prev, ...formattedPosts]);
       } else {
-        setPosts(formattedPosts);
+        const pinned = deepLinkPostRef.current;
+        setPosts(
+          pinned
+            ? [pinned, ...formattedPosts.filter((x) => x.id !== pinned.id)]
+            : formattedPosts
+        );
         // Persist to IndexedDB (50MB+) and localStorage fallback
         feedCache.setPosts(formattedPosts);
       }
@@ -4989,8 +4875,17 @@ function SocialMediaPage() {
   const feedOffsetRef = useRef(feedOffset);
   const hasMorePostsRef = useRef(hasMorePosts);
   const loadingMoreRef = useRef(loadingMore);
+  // feedCycle needs the same treatment as the three above and was missed:
+  // loadMoreCallbackRef is a useCallback([]), so the loadFeed it reaches is the
+  // one from the first render, where feedCycle is frozen at 0 forever. That made
+  // MAX_FEED_CYCLES unreachable, hasMorePosts never went false, and the
+  // "You're All Caught Up!" state never rendered - the feed just looped.
+  const feedCycleRef = useRef(feedCycle);
 
   // Keep refs in sync with state
+  useEffect(() => {
+    feedCycleRef.current = feedCycle;
+  }, [feedCycle]);
   useEffect(() => {
     feedOffsetRef.current = feedOffset;
   }, [feedOffset]);
@@ -5842,7 +5737,6 @@ function SocialMediaPage() {
   // to the user). A proper RLS-bound realtime filter is a future
   // optimization; for now subscribing to all INSERTs and filtering in JS
   // is the correct shape given the conversation-based schema.
-  const openChatsRef = useRef([]);
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
@@ -5967,6 +5861,7 @@ function SocialMediaPage() {
       {/* Slide-out Sidebar Overlay */}
       {sidebarOpen && (
         <div
+          data-sp-skip-a11y="backdrop: click to dismiss the sidebar, Escape is the keyboard path"
           onClick={() => setSidebarOpen(false)}
           style={{
             position: 'fixed',
@@ -6025,7 +5920,12 @@ function SocialMediaPage() {
                   <div style={{ fontWeight: 600, fontSize: 17, color: isClubMode ? C.blue : 'inherit' }}>
                     {isClubMode && clubPage ? clubPage.name : user.name}
                   </div>
-                  <Link href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={() => setSidebarOpen(false)} style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}>
+            {/* ITEM 4: the drawer stays mounted and is moved off-screen with a
+                transform, so Next prefetched every one of these routes for a
+                menu the reader has not opened. ~310KB of neighbouring page
+                chunks arrived on the feed that way. They prefetch on hover
+                and on tap instead. */}
+                  <Link prefetch={false} href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={() => setSidebarOpen(false)} style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}>
                     View Profile
                   </Link>
                 </div>
@@ -6048,7 +5948,10 @@ function SocialMediaPage() {
                      <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 600, color: C.textSec, textTransform: 'uppercase' }}>Switch Account</div>
                      
                      {isClubMode && (
-                         <div 
+                         <div
+                           role="button"
+                           tabIndex={0}
+                           onKeyDown={spKeyActivate} 
                            onClick={() => { switchToPersonal(); setSidebarOpen(false); }}
                            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
@@ -6062,7 +5965,10 @@ function SocialMediaPage() {
                      {ownedPages.map(page => {
                          if (isClubMode && clubPage?.id === page.id) return null;
                          return (
-                             <div 
+                             <div
+                               role="button"
+                               tabIndex={0}
+                               onKeyDown={spKeyActivate} 
                                key={page.id}
                                onClick={() => { switchToClub(page); setSidebarOpen(false); }}
                                style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
@@ -6081,7 +5987,7 @@ function SocialMediaPage() {
 
         {/* Poker Resume - Show when HendonMob is linked */}
         {user?.hendon && (
-          <Link
+          <Link prefetch={false}
             href={user.username ? `/hub/user/${user.username}` : '/hub/profile'}
             onClick={() => setSidebarOpen(false)}
             style={{ textDecoration: 'none', display: 'block' }}
@@ -6148,7 +6054,7 @@ function SocialMediaPage() {
             </h4>
             <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
               {ownedPages.slice(0, 3).map((page) => (
-                <Link
+                <Link prefetch={false}
                   key={page.id}
                   href={`/hub/social-pages/${page.id}`}
                   onClick={() => setSidebarOpen(false)}
@@ -6170,7 +6076,7 @@ function SocialMediaPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {!page.avatar_url && page.name.charAt(0).toUpperCase()}
+                    {!page.avatar_url && (page.name || 'C').charAt(0).toUpperCase()}
                   </div>
                   <div style={{ fontSize: 11, marginTop: 6, color: C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {page.name}
@@ -6192,7 +6098,7 @@ function SocialMediaPage() {
           }}
         >
           {/* Friends - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/friends"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6214,7 +6120,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
           </Link>
           {/* Club Arena - Purple columns SVG (fallback) */}
-          <Link
+          <Link prefetch={false}
             href="/hub/club-arena"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6237,7 +6143,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
           </Link>
           {/* Diamond Store - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/diamond-store"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6259,7 +6165,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
           </Link>
           {/* Tournaments - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/tournaments"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6280,8 +6186,44 @@ function SocialMediaPage() {
             />
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
           </Link>
+          {/* Saved Posts. /hub/saved-posts is a complete, working page that had
+              zero inbound links anywhere in the app - no menu row, no footer
+              slot, no Link - so the only way to reach it was typing the URL. */}
+          <Link prefetch={false}
+            href="/hub/saved-posts"
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              padding: '14px 12px',
+              background: '#fff',
+              borderRadius: 8,
+              textDecoration: 'none',
+              border: '1px solid #dadde1',
+            }}
+          >
+            <svg
+              aria-hidden="true"
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#1877f2"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ marginBottom: 8 }}
+            >
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Saved Posts</span>
+          </Link>
           {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
           <div
+            role="button"
+            tabIndex={0}
+            onKeyDown={spKeyActivate}
             onClick={() => {
               setShowClubPages(true);
               setSidebarOpen(false);
@@ -6309,7 +6251,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
           </div>
           {/* GTO Training - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/gto-trainer"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6331,7 +6273,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
           </Link>
           {/* Reels - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/reels"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6357,7 +6299,7 @@ function SocialMediaPage() {
         {/* Additional Navigation Items */}
         <div style={{ padding: '0 16px', marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <Link
+            <Link prefetch={false}
               href="/hub/profile"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6384,7 +6326,7 @@ function SocialMediaPage() {
               </svg>
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href="/hub/messenger"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6439,7 +6381,7 @@ function SocialMediaPage() {
               </svg>
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href="/hub/news"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6467,7 +6409,7 @@ function SocialMediaPage() {
               </svg>
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href="/hub/poker-near-me/lobby"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6497,6 +6439,9 @@ function SocialMediaPage() {
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
             </Link>
             <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={spKeyActivate}
               onClick={() => {
                 setSidebarOpen(false);
                 setShowNotifications(true);
@@ -6527,6 +6472,9 @@ function SocialMediaPage() {
             </div>
             {/* Invite Friends Card */}
             <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={spKeyActivate}
               onClick={() => {
                 if (!user) {
                   toast.error('Please log in to invite friends.');
@@ -6583,7 +6531,7 @@ function SocialMediaPage() {
 
         {/* Bottom Links */}
         <div style={{ padding: '0 16px' }}>
-          <Link
+          <Link prefetch={false}
             href="/hub/help"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6614,7 +6562,7 @@ function SocialMediaPage() {
             <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>Live Support And Help</span>
             <span style={{ color: C.textSec }}>›</span>
           </Link>
-          <Link
+          <Link prefetch={false}
             href="/hub/settings"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6730,6 +6678,7 @@ function SocialMediaPage() {
         {/* Global Search Overlay */}
         {showGlobalSearch && (
           <div
+            data-sp-skip-a11y="backdrop: click to dismiss search, Escape is the keyboard path"
             style={{
               position: 'fixed',
               top: 60,
@@ -6842,7 +6791,7 @@ function SocialMediaPage() {
                       People
                     </div>
                     {globalSearchResults.users.map((u) => (
-                      <Link
+                      <Link prefetch={false}
                         key={u.id}
                         href={`/hub/user/${u.username}`}
                         onClick={() => setShowGlobalSearch(false)}
@@ -6879,6 +6828,9 @@ function SocialMediaPage() {
                     </div>
                     {globalSearchResults.posts.map((p) => (
                       <div
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate}
                         key={p.id}
                         onClick={() => {
                           setShowGlobalSearch(false);
@@ -6970,6 +6922,7 @@ function SocialMediaPage() {
                         }
                     `}</style>
             <div
+              data-sp-skip-a11y="backdrop: modal scrim, not a control"
               className="notif-modal-backdrop"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setShowNotifications(false);
@@ -7099,6 +7052,9 @@ function SocialMediaPage() {
 
                       return (
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           key={n.id}
                           onClick={() => {
                             setShowNotifications(false);
@@ -7467,12 +7423,6 @@ function SocialMediaPage() {
                       onPost={handlePost}
                       isPosting={isPosting}
                       onGoLive={() => setShowGoLiveModal(true)}
-                      onOpenClubPages={() => {
-                        setShowClubPages(true);
-                        router.replace('/hub/social-media?view=club-pages', undefined, {
-                          shallow: true,
-                        });
-                      }}
                     />
                   )}
 
@@ -7493,7 +7443,7 @@ function SocialMediaPage() {
                       <p style={{ color: C.textSec, marginBottom: 12 }}>
                         Log In To Post And Interact!
                       </p>
-                      <Link
+                      <Link prefetch={false}
                         href="/auth/login"
                         style={{
                           display: 'inline-block',
@@ -7560,8 +7510,60 @@ function SocialMediaPage() {
 
 
 
-                  {/* Posts Feed */}
-                  {posts.length === 0 ? (
+                  {/* ITEM 10: the club-posts filter used to be unreachable -
+                      setShowClubPostsOnly(true) was never called anywhere, so both
+                      filter expressions below and the "No Club Posts Yet" empty
+                      state were dead code. This is the switch. It only appears for
+                      someone who actually has a club page. */}
+                  {user && (hasClubPage || ownedPages.length > 0) && (
+                    <div
+                      role="group"
+                      aria-label="Filter the feed"
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        padding: '10px 12px',
+                        background: C.card,
+                        borderRadius: 8,
+                        marginBottom: 2,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      {[
+                        { on: false, label: 'All Posts' },
+                        { on: true, label: `${clubPage?.name || 'Club'} Only` },
+                      ].map((opt) => {
+                        const active = showClubPostsOnly === opt.on;
+                        return (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            onClick={() => setShowClubPostsOnly(opt.on)}
+                            aria-pressed={active}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 20,
+                              fontSize: 13,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              border: `1px solid ${active ? C.blue : C.border}`,
+                              background: active ? '#E7F3FF' : 'transparent',
+                              color: active ? C.blue : C.textSec,
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Posts Feed. Test the FILTERED array: if every loaded post
+                      is from a blocked author, `posts.length` is non-zero but
+                      the feed body renders nothing - an empty region with no
+                      message and no call to action. */}
+                  {posts.filter((p) => !blockedUserIds.has(p.authorId)).length === 0 &&
+                  !showClubPostsOnly ? (
                     <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
                       <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
                       <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>
@@ -7579,7 +7581,7 @@ function SocialMediaPage() {
                           flexWrap: 'wrap',
                         }}
                       >
-                        <Link
+                        <Link prefetch={false}
                           href="/hub/friends"
                           style={{
                             padding: '8px 16px',
@@ -7594,6 +7596,9 @@ function SocialMediaPage() {
                           Find Players
                         </Link>
                         <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           onClick={() => {
                             const input = document.querySelector(
                               '[placeholder*="What\'s on your mind"]'
@@ -7620,7 +7625,8 @@ function SocialMediaPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Render posts with Reels carousel inserted after every 3 posts */}
+                      {/* Render posts, with one Reels carousel and one Trending Venues
+                          card injected near the top - see the insertion points below. */}
                       {(() => {
                         const filteredPosts = posts
                           .filter((p) => !blockedUserIds.has(p.authorId))
@@ -7688,15 +7694,36 @@ function SocialMediaPage() {
                               onShare={(postObj, onSuccess) =>
                                 setShareModalPost({ ...postObj, _onSuccess: onSuccess })
                               }
-                              onOpenArticle={(url) => {
+                              onOpenArticle={(url, cardTitle) => {
                                 // All articles open in-app via the proxy reader.
                                 // Cardplayer.com is handled via RSS fallback in /api/proxy — no redirect needed.
-                                setArticleReader({ open: true, url, title: p.link_title || null });
+                                // ArticleCard resolves its own display title
+                                // (metadata, then the post body, then a fallback).
+                                // Using the outer post's link_title showed the wrong
+                                // heading for any card that was not the primary link.
+                                setArticleReader({
+                                  open: true,
+                                  url,
+                                  title: cardTitle || p.link_title || null,
+                                });
                               }}
                               horseProfileIds={horseProfileIds}
                             />
-                            {/* Insert Reels carousel after 3rd post */}
-                            {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
+                            {/* ONE carousel, after the 3rd post - or after the last
+                                post when the feed is shorter than that, which used to
+                                mean no carousel appeared at all.
+
+                                Deliberately NOT "every 3 posts", which is what the file
+                                header claimed for months: each instance runs its own
+                                50-row fetch AND opens its own realtime channel, so
+                                periodic injection multiplies both. If that ever becomes
+                                the product decision, hoist the fetch and the
+                                subscription out of the component first. */}
+                            {(index === 2 ||
+                              (filteredPosts.length < 3 &&
+                                index === filteredPosts.length - 1)) && (
+                              <ReelsFeedCarousel key="reels-carousel" />
+                            )}
                             {/* Insert Trending Venues after 1st post */}
                             {index === 0 && (
                               <TrendingVenues
@@ -7914,7 +7941,7 @@ function SocialMediaPage() {
               setWatchingStream(null);
               // Refresh live streams
               LiveStreamService.getLiveStreams()
-                .then(setLiveStreams)
+                .then((streams) => setLiveStreams(streams || []))
                 .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
             }}
           />
@@ -7952,6 +7979,7 @@ function SocialMediaPage() {
           onClick={() => setDeletePostId(null)}
         >
           <div
+            data-sp-skip-a11y="propagation guard, not a control"
             style={{
               background: C.card,
               borderRadius: 12,

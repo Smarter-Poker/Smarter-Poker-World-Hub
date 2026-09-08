@@ -150,7 +150,12 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('Share count API error:', err);
-        return res.status(200).json({ success: false }); // Don't fail the request
+        // ITEM 32: this used to return 200 with { success: false }. Callers
+        // read only data.streak and never check success, so a server-side
+        // failure was invisible to the UI AND to 5xx monitoring - the diamond
+        // streak toast just silently never fired. Every caller already wraps
+        // this in .catch(), so a real status code breaks nothing.
+        return res.status(500).json({ success: false });
     }
 
   } catch (err) {

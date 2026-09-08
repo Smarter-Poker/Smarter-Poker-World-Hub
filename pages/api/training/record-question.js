@@ -31,6 +31,10 @@ import {
   promoteLegacySignedTrainingAttemptDecision,
   trainingQuestionSnapshotMatchesIdentity,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  TRAINING_ANSWER_BINDING_COLUMNS,
+  trainingAnswerBindingMatches,
+} from '../../../src/lib/training/answerPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -83,29 +87,11 @@ function canonicalPolicyReceiptMatches({ canonicalQuestion, cacheRow, submittedC
     && stablePolicyJson(canonicalQuestion?.solverPolicy) === stablePolicyJson(cacheRow?.canonical_policy);
 }
 
-const IDEMPOTENT_ANSWER_PROJECTION = [
-  'game_id',
-  'question_id',
-  'answer_id',
-  'attempt_id',
-  'hand_ordinal',
-  'decision_ordinal',
-  'snapshot_key',
-  'is_correct',
-  'classification',
-  'ev_loss',
-  'solver_verified',
-  'selected_frequency',
-  'optimal_frequency',
-  'ev_loss_measured',
-  'evidence_metadata',
-].join(', ');
-
 async function getExistingAnswerSubmission(userId, submissionId) {
   const result = await runTrainingPersistenceQuery(
     () => getSupabase()
       .from('training_answers')
-      .select(IDEMPOTENT_ANSWER_PROJECTION)
+      .select(TRAINING_ANSWER_BINDING_COLUMNS)
       .eq('user_id', userId)
       .eq('submission_id', String(submissionId).slice(0, 180))
       .maybeSingle(),
@@ -626,6 +612,9 @@ export default async function handler(req, res) {
 
       let idempotentReplay = false;
       try {
+        // Answers are evidence rows, not mutable state. Insert only. A retry
+        // carrying the signed receipt ID is acknowledged only after reading
+        // back and comparing the complete immutable binding.
         await runTrainingPersistenceQuery(
           () => getSupabase().from('training_answers').insert(evidenceRow),
           { label: 'RecordQuestion:insert' }
@@ -644,6 +633,13 @@ export default async function handler(req, res) {
             success: false,
             error: 'This training hand was already submitted with a different answer.',
             code: 'TRAINING_GRADING_RECEIPT_REPLAY_CONFLICT',
+          });
+        }
+        if (!trainingAnswerBindingMatches(persistedAnswer, evidenceRow)) {
+          return res.status(409).json({
+            success: false,
+            error: 'This signed answer receipt is already bound to different immutable evidence.',
+            code: 'TRAINING_ANSWER_BINDING_MISMATCH',
           });
         }
         idempotentReplay = true;

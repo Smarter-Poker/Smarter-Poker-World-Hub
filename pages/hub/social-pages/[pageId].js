@@ -2133,7 +2133,7 @@ export default function SocialPageDetail() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.12.56.26 1.1.44 1.63a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.53.18 1.07.32 1.63.44A2 2 0 0122 16.92z"/></svg>
                                 Call
                             </button>
-                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } imageInputRef.current?.click(); }} aria-label="Upload photo or video" style={{
+                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } window.dispatchEvent(new CustomEvent('sp-focus-composer')); }} aria-label="Upload photo or video" style={{
                                 padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
                                 background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
@@ -3815,10 +3815,15 @@ function _spgssGetSupabase() {
 
 export async function getServerSideProps({ params }) {
     const pageId = params?.pageId;
-    // UUID-ish check: the old social-pages route takes a UUID. Anything else,
-    // bail out and let the client loader handle it (so slug-style URLs still
-    // land on the old page if somehow routed here).
     if (!pageId || typeof pageId !== 'string') return { props: {} };
+    /*
+     * ITEM 33 (2026-09-08): the comment here promised a "UUID-ish check" and
+     * there was none - the query below ran .eq('id', <slug>), Postgres rejected
+     * the uuid cast, and `error` swallowed it. That cost a round trip on every
+     * slug page view AND meant the home_game 308 below never fired for a slug
+     * URL, which is the canonical form the client redirects to at L1109.
+     */
+    const IS_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const sb = _spgssGetSupabase();
     if (!sb) return { props: {} };
@@ -3829,7 +3834,7 @@ export async function getServerSideProps({ params }) {
         const { data, error } = await sb
             .from('social_pages')
             .select('page_type, slug')
-            .eq('id', pageId)
+            .eq(IS_UUID.test(pageId) ? 'id' : 'slug', pageId)
             .maybeSingle();
 
         if (error || !data) return { props: {} };

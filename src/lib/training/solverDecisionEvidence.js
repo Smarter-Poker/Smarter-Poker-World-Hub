@@ -14,7 +14,13 @@ import {
   sourceClassificationForQuestion,
 } from './cacheTruthContract.mjs';
 
-const WAREHOUSE_SOURCES = new Set(['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO']);
+const WAREHOUSE_SOURCES = new Set([
+  'DETERMINISTIC_SOLVER',
+  'PIO_DATABASE',
+  'PIO',
+  'LOCAL_SOLVER_RANGES',
+  'LEGACY_STRATEGY_ARCHIVE',
+]);
 
 const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
 
@@ -111,7 +117,7 @@ const SOLVER_CLAIM_RE = /\b(?:according to gto|gto mixes|gto solver|solver picks
  */
 export function enforceSolverClaimHonesty(question) {
   if (!question || typeof question !== 'object' || isVerifiedSolverQuestion(question)) return question;
-  const source = String(question.source || '');
+  const source = String(question.source || '').toUpperCase();
   const legacyWarehouse = WAREHOUSE_SOURCES.has(source)
     || String(question.dataQuality || '').toUpperCase() === 'LEGACY_UNVERIFIED'
     || String(question?.solverProvenance?.source || '').includes('solved_spots_gold_legacy');

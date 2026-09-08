@@ -22,6 +22,41 @@ const isoOrNull = (value) => {
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
 };
 
+const LEGACY_ARCHIVE_DISCLOSURE = 'Legacy strategy archive; writer provenance is unavailable.';
+
+/**
+ * A canonical fallback policy is useful for grading, but it is not solver
+ * evidence. Every writer must persist the same legacy archive envelope that
+ * Postgres validates. Without this normalization, freshly generated local
+ * range questions kept their historical source label and the strict database
+ * trigger rejected the write, taking the live Training routes offline.
+ */
+export function normalizeLegacyFallbackQuestion(question) {
+  if (
+    !question
+    || typeof question !== 'object'
+    || sourceClassificationForQuestion(question)
+      !== TRAINING_SOURCE_CLASSIFICATION.LEGACY_UNVERIFIED
+  ) return question;
+
+  const originalSource = text(question.source, 160);
+  if (originalSource && originalSource.toUpperCase() !== 'LEGACY_STRATEGY_ARCHIVE') {
+    question.legacySource = text(question.legacySource, 160) || originalSource;
+  }
+  question.source = 'LEGACY_STRATEGY_ARCHIVE';
+  question.sourceClassification = TRAINING_SOURCE_CLASSIFICATION.LEGACY_UNVERIFIED;
+  question.dataQuality = TRAINING_SOURCE_CLASSIFICATION.LEGACY_UNVERIFIED;
+  question.solverProvenance = {
+    ...(objectOrNull(question.solverProvenance) || {}),
+    verified: false,
+    source: text(question?.solverProvenance?.source, 160)
+      || originalSource
+      || 'training_question_cache_legacy',
+  };
+  question.evidenceDisclosure = LEGACY_ARCHIVE_DISCLOSURE;
+  return question;
+}
+
 export function cacheQuestionFromRow(row) {
   if (!row?.question_data || typeof row.question_data !== 'object') return null;
   return withTrainingSourceClassification({
@@ -48,7 +83,9 @@ export function buildTrainingCacheRow({
   generatedAt = null,
   id = null,
 }) {
-  const classifiedQuestion = alignQuestionToCanonicalPolicy(question);
+  const classifiedQuestion = normalizeLegacyFallbackQuestion(
+    alignQuestionToCanonicalPolicy(question),
+  );
   const policy = objectOrNull(classifiedQuestion?.solverPolicy);
   const key = objectOrNull(policy?.key);
   const source = objectOrNull(policy?.sourceArtifact);
