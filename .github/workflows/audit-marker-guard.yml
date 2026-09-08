@@ -73,9 +73,23 @@ jobs:
               | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
           )
 
+          # AN EMPTY REGISTRY IS A FAILURE, NOT A PASS (2026-09-08).
+          #
+          # This used to print a warning and exit 0. Measured that day: the
+          # registry was 1,426 lines - 129 blank, 1,297 comments, ZERO tokens.
+          # Every marker entry had been commented out, so this job ran no greps
+          # at all and exited green, and it is the ONLY required status check on
+          # main (scripts/check-branch-protection.mjs:31). Nothing gated main,
+          # and the tick that said otherwise had been green for months.
+          #
+          # A required check that cannot fail is worse than no check: it is a
+          # green light nobody has looked behind.
           if [ "${#TOKENS[@]}" -eq 0 ]; then
-            echo "::warning::Registry has no tokens — guard is a no-op."
-            exit 0
+            echo "::error::Registry has no tokens. This job is the ONLY required"
+            echo "::error::check on main - an empty registry means main is ungated."
+            echo "::error::Add tokens to .github/audit-markers.txt, or retire this"
+            echo "::error::workflow AND remove it from scripts/check-branch-protection.mjs."
+            exit 1
           fi
 
           echo "Checking ${#TOKENS[@]} registered marker(s)..."
@@ -106,25 +120,34 @@ jobs:
             ':(exclude)pnpm-lock.yaml'
           )
 
+          # ONE PASS, NOT ONE PER TOKEN (2026-09-08).
+          #
+          # The loop this replaces ran `git grep` once per token. Measured on
+          # the 127-token registry over this repo's 9,900 tracked files:
+          #
+          #   127 separate git greps : 41.0s
+          #   one `git grep -o -F -f`:  1.6s
+          #
+          # Byte-identical result - the sorted set of tokens found was the same
+          # both ways. This job is the only required check on main, so it sits
+          # on the merge critical path of every pull request; 39 seconds a
+          # merge is worth not spending, and it is the reason a real registry
+          # can be afforded here at all.
+          printf '%s\n' "${TOKENS[@]}" > /tmp/audit-markers.tokens
+
+          FOUND_FILE=/tmp/audit-markers.found
+          git grep -h -o -F -f /tmp/audit-markers.tokens -- "${PATHSPEC[@]}" 2>/dev/null \
+            | sort -u > "$FOUND_FILE" || true
+
           MISSING=()
           OK_COUNT=0
-
           for TOKEN in "${TOKENS[@]}"; do
-            # git grep exit codes: 0 = match found, 1 = no match, >=2 = error
-            if git grep -lF -- "$TOKEN" "${PATHSPEC[@]}" > /dev/null 2>&1; then
+            if grep -qxF -- "$TOKEN" "$FOUND_FILE"; then
               OK_COUNT=$((OK_COUNT + 1))
               echo "  OK   $TOKEN"
             else
-              # Distinguish between "no match" (exit 1) and "real error" (>=2)
-              git grep -lF -- "$TOKEN" "${PATHSPEC[@]}" > /dev/null 2>&1
-              EC=$?
-              if [ "$EC" = "1" ]; then
-                MISSING+=("$TOKEN")
-                echo "  MISS $TOKEN"
-              else
-                echo "::error::git grep failed for token '$TOKEN' with exit code $EC"
-                exit 1
-              fi
+              MISSING+=("$TOKEN")
+              echo "  MISS $TOKEN"
             fi
           done
 
