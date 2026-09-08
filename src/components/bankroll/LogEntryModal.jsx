@@ -515,16 +515,20 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         entry.gross_out = 0;
       }
 
+      // The saved row comes back so the caller knows the ledger id. A scanned
+      // receipt that opened this modal is marked assigned to that id, which
+      // is what takes it out of Receipts Waiting.
+      let saved = null;
       if (isEditMode) {
-        await updateLedgerEntry(userId, editEntry.id, entry);
+        saved = await updateLedgerEntry(userId, editEntry.id, entry);
       } else {
-        await createLedgerEntry(userId, entry);
+        saved = await createLedgerEntry(userId, entry);
       }
 
       // Dispatch global event for real-time dashboard sync
       window.dispatchEvent(new CustomEvent('bankroll-updated'));
 
-      onSubmit(entry);
+      onSubmit(entry, saved && saved.id ? saved : (isEditMode ? { ...entry, id: editEntry.id } : null));
     } catch (error) {
       console.warn('Error logging entry:', error);
       toast.error('Failed to log entry. Please try again.');

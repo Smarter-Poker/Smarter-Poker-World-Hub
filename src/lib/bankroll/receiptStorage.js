@@ -51,7 +51,7 @@ export function bankrollObjectPath(userId, extension = 'jpg') {
  * @throws  the Supabase error, so callers can report why rather than "failed"
  */
 export async function uploadBankrollImage(supabase, userId, blob, contentType = 'image/jpeg') {
-    const ext = contentType === 'image/png' ? 'png' : 'jpg';
+    const ext = extensionFor(contentType);
     const path = bankrollObjectPath(userId, ext);
 
     const { error } = await supabase.storage
@@ -63,6 +63,63 @@ export async function uploadBankrollImage(supabase, userId, blob, contentType = 
     const { data } = supabase.storage.from(BANKROLL_BUCKET).getPublicUrl(path);
     if (!data || !data.publicUrl) throw new Error('no-public-url');
     return data.publicUrl;
+}
+
+/** Storage object extension for a MIME type. Anything unrecognised is stored as jpg. */
+const EXTENSIONS = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+    'application/pdf': 'pdf',
+};
+
+function extensionFor(contentType) {
+    return EXTENSIONS[String(contentType || '').toLowerCase()] || 'jpg';
+}
+
+/**
+ * Upload a user-chosen file (a photo or a PDF of a tax form or dealer document)
+ * to the same bucket and path shape as a scanned receipt.
+ *
+ * DealerVault and TaxReportPanel used to write to the `images` bucket, which
+ * has no INSERT policy, so every W-2G and dealer-document upload was refused
+ * with 403. They go through here now; the bucket lives in ONE place.
+ *
+ * @param {object} supabase the browser client, already signed in
+ * @param {string} userId
+ * @param {File}   file
+ * @returns {Promise<string>} public URL
+ */
+export async function uploadBankrollFile(supabase, userId, file) {
+    const type = (file && file.type) || 'image/jpeg';
+    return uploadBankrollImage(supabase, userId, file, type);
+}
+
+/**
+ * Remove the storage object behind a public URL, whichever bucket it is in.
+ *
+ * Old dealer documents and W-2Gs live in `images`; new ones live in
+ * BANKROLL_BUCKET. Deleting a record must free either, so the bucket is read
+ * from the URL rather than assumed. A URL that is not ours is left alone.
+ *
+ * @returns {Promise<boolean>} true when an object was removed
+ */
+export async function removeBankrollObject(supabase, publicUrl) {
+    let pathname = '';
+    try {
+        pathname = new URL(String(publicUrl)).pathname;
+    } catch (_e) {
+        return false;
+    }
+    const match = pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
+    if (!match) return false;
+    const [, bucket, objectPath] = match;
+    const { error } = await supabase.storage.from(bucket).remove([decodeURIComponent(objectPath)]);
+    if (error) throw error;
+    return true;
 }
 
 /**
