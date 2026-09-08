@@ -279,7 +279,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const [commentCounts, setCommentCounts] = useState({});
   const [saved, setSaved] = useState({});
   const [viewCounts, setViewCounts] = useState({});
-  const [slideDir, setSlideDir] = useState(null);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
 
@@ -1779,11 +1778,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
       }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        setSlideDir('up');
         goNext();
       }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        setSlideDir('down');
         goPrev();
       }
       if (e.key === 'Escape') {
@@ -2487,6 +2484,37 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 {likeCounts[currentReel.id] || 0}
               </span>
             </button>
+            {/* ITEM 26 (2026-09-08): viewCounts was merged from the DB on load
+                and incremented after a 2s dwell, then read by nobody - the
+                numbers were correct and invisible. Not a button: a view is
+                something that happened, not something to tap. */}
+            <div
+              aria-label={`${viewCounts[currentReel.id] || 0} views`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                color: 'white',
+              }}
+            >
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span style={{ fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                {viewCounts[currentReel.id] || 0}
+              </span>
+            </div>
             {/* Reaction Picker - appears on long-press */}
             {showReactionPicker && (
               <div

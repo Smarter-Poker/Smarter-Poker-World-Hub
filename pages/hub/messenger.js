@@ -3259,6 +3259,35 @@ function MessengerPage() {
         if (router.query.clubId || router.query.forceIdentity) setClubDrawerOpen(true);
     }, [router.query.clubId, router.query.forceIdentity]);
 
+    /*
+     * ITEM 13 (2026-09-08): next.config.js redirects /hub/live-help to
+     * /hub/messenger?chat=jarvis, and nothing here read `chat` - so the
+     * redirect dropped you on the plain inbox. Jarvis is reachable only
+     * through handleSelectConversation's isJarvis branch, which nothing
+     * triggered from the URL.
+     */
+    const jarvisOpenedRef = useRef(false);
+    useEffect(() => {
+        if (router.query.chat !== 'jarvis' || jarvisOpenedRef.current) return;
+        jarvisOpenedRef.current = true;
+        // The SAME object the sidebar's Jarvis row builds. A thinner one leaves
+        // the thread header without an otherUser and leaves the active-id
+        // highlight ('jarvis-ai') pointing at nothing.
+        handleSelectConversation({
+            id: 'jarvis-ai',
+            isJarvis: true,
+            otherUser: {
+                id: 'jarvis',
+                username: 'jarvis',
+                full_name: 'Jarvis',
+                avatar_url: null,
+            },
+            last_message_preview: 'Your Poker AI Assistant',
+            last_message_at: new Date().toISOString(),
+            unreadCount: 0,
+        });
+    }, [router.query.chat]);
+
     // Aggregate unread across every club the user holds a page for, so the
     // collapsed widget can say whether opening it is worth the tap.
     const clubUnreadTotal = (ownedPages || []).reduce(
@@ -4498,6 +4527,12 @@ function MessengerPage() {
                         ) : (
                             <>                                {/* Regular Conversations */}
                                 {conversations.filter(conv => {
+                                    // ITEM 13 (2026-09-08): ?filter=unread was a
+                                    // hamburger row that landed on the identical
+                                    // default inbox, because nothing here read the
+                                    // param. Now it does.
+                                    if (router.query.filter === 'unread'
+                                        && !(Number(conv.unread_count) > 0)) return false;
                                     if (!searchQuery) return true;
                                     const q = searchQuery.toLowerCase();
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';

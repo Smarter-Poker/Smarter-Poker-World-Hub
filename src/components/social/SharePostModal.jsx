@@ -143,6 +143,16 @@ function ShareToFeedTab({ post, authorUsername, currentUser, onClose, onShared }
     const [commentary, setCommentary] = useState('');
     const [posting, setPosting] = useState(false);
     const inputRef = useRef(null);
+    /*
+     * ITEM 24: the two setTimeout(onClose) below were fire-and-forget. Closing
+     * with Escape inside the 500-800ms window fired onClose a second time, and
+     * the timer also outlived the component. Harmless while the parent just
+     * re-nulls its state, but it is one prop change away from not being.
+     */
+    const closeTimerRef = useRef(null);
+    useEffect(() => () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    }, []);
 
     useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -180,7 +190,7 @@ function ShareToFeedTab({ post, authorUsername, currentUser, onClose, onShared }
             toast.success('Shared to your feed!');
             busEmit.dataMutated?.('social_posts');
             onShared?.('feed');
-            setTimeout(onClose, 800);
+            closeTimerRef.current = setTimeout(onClose, 800);
         } catch (err) {
             console.warn('[ShareToFeed] Error:', err);
             toast.error(err.message || 'Could not share to feed');
@@ -622,7 +632,7 @@ function GroupsTab({ post, onClose }) {
                 }).catch(() => {});
             } catch (_) {}
 
-            setTimeout(() => { onClose(); }, 500);
+            closeTimerRef.current = setTimeout(() => { onClose(); }, 500);
         } else {
             setSending(false);
         }

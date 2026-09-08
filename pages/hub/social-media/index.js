@@ -14,23 +14,27 @@
  * ╠═══════════════════════════════════════════════════════════════════════════╣
  * ║  CRITICAL FEATURES IN THIS FILE - DO NOT BREAK:                          ║
  * ║                                                                           ║
- * ║  📰 Article Reader (Lines ~1186-1200, ~1417, ~2509)                       ║
- * ║     - ArticleCard with onClick → opens ArticleReaderModal                 ║
- * ║     - articleReader state {open, url, title}                             ║
- * ║     - onOpenArticle prop passed to PostCard                              ║
+ * ║  Article Reader                                                           ║
+ * ║     - ArticleCard with onClick(url, title) -> ArticleReaderModal          ║
+ * ║     - articleReader state {open, url, title}                              ║
+ * ║     - onOpenArticle prop passed to PostCard                               ║
  * ║                                                                           ║
- * ║  📖 Stories Bar (Line ~2330)                                              ║
- * ║     - StoriesBar component with stories fetch                            ║
+ * ║  Stories Bar - StoriesBar component with stories fetch                    ║
  * ║                                                                           ║
- * ║   Reels Carousel (Lines ~2510)                                          ║
- * ║     - ONE ReelsFeedCarousel, after the 3rd post (or the last, if fewer)  ║
+ * ║   Reels Carousel                                                          ║
+ * ║     - ONE ReelsFeedCarousel, after the 3rd post (or the last, if fewer).  ║
+ * ║       Each instance owns a 50-row fetch and a realtime channel.           ║
  * ║                                                                           ║
- * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
- * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
+ * ║  Live Streaming - GoLiveModal, LiveStreamCard, LiveStreamViewer           ║
  * ║                                                                           ║
- * ║  📋 PostCard Component (Lines ~1072-1300)                                 ║
- * ║     - Renders all post types correctly                                   ║
- * ║     - onOpenArticle prop for article clicks                              ║
+ * ║  PostCard - renders every post type; onOpenArticle for article clicks      ║
+ * ║                                                                           ║
+ * ║  NO LINE NUMBERS HERE ON PURPOSE. Every offset this header used to carry  ║
+ * ║  was wrong by thousands of lines - they were written once and the file    ║
+ * ║  moved underneath them. Search for the name instead.                      ║
+ * ║                                                                           ║
+ * ║  Behaviour above is pinned by __tests__/a-wired-feature-stays-wired.law   ║
+ * ║  and the two sibling laws for the avatar ring and the footer geometry.    ║
  * ║                                                                           ║
  * ╠═══════════════════════════════════════════════════════════════════════════╣
  * ║  SMARTER.POKER SOCIAL HUB                                                ║
@@ -47,7 +51,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
-import { useExternalLink } from '../../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../../src/components/social/ReelsFeedCarousel';
@@ -91,21 +94,9 @@ const PublicGameBoard = dynamic(() => import("../../../src/components/social/Pub
 const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubPagesView"));
 
 // Shared utilities — single source of truth (extracted from this file)
-import {
-  SOCIAL_COLORS,
-  SOCIAL_COLORS as C,
-  timeAgo,
-  decodeHtmlEntities,
-  isYouTubeUrl,
-  getYouTubeVideoId,
-  getYouTubeEmbedUrl,
-  getYouTubeThumbnail,
-  validateYouTubeVideo,
-  sniffMimeType,
-} from '../../../src/lib/socialHelpers';
+import { SOCIAL_COLORS as C, timeAgo } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import {
-  VideoThumbnail,
   VideoPostWrapper,
   FeedVideoPoster,
 } from '../../../src/components/social/SharedVideoComponents';
@@ -122,203 +113,6 @@ let _typingSendChannel = null;
 function getTypingChannel() {
   if (!_typingSendChannel) _typingSendChannel = supabase.channel('social-feed');
   return _typingSendChannel;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
-// ═══════════════════════════════════════════════════════════════════════════
-//  CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
-// This component has broken 4+ times. Key requirements:
-// - Uses useExternalLink for internal popups (NOT target="_blank")
-// - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
-// - decodeHtmlEntities for title/description (fixes &#039; display)
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Module-level cache to deduplicate link preview fetches across all cards in a session
-// Capped at 200 entries (LRU eviction) to prevent unbounded memory growth.
-const LINK_PREVIEW_CACHE_MAX = 200;
-const linkPreviewCache = new Map();
-const linkPreviewInflight = new Map();
-
-function setLinkPreviewCache(key, value) {
-  if (linkPreviewCache.size >= LINK_PREVIEW_CACHE_MAX) {
-    linkPreviewCache.delete(linkPreviewCache.keys().next().value); // evict oldest
-  }
-  linkPreviewCache.set(key, value);
-}
-
-function LinkPreviewCard({ url }) {
-  const { openExternal } = useExternalLink();
-  const [metadata, setMetadata] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!url) return;
-
-    // Check in-memory cache first to avoid duplicate network requests
-    if (linkPreviewCache.has(url)) {
-      setMetadata(linkPreviewCache.get(url));
-      setLoading(false);
-      return;
-    }
-
-    const fetchMetadata = async () => {
-      try {
-        let data;
-        // Deduplicate: if a request for this URL is already in-flight, await it
-        if (linkPreviewInflight.has(url)) {
-          data = await linkPreviewInflight.get(url);
-        } else {
-          const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`).then((r) =>
-            r.json()
-          );
-          linkPreviewInflight.set(url, promise);
-          data = await promise;
-          linkPreviewInflight.delete(url);
-        }
-        // Only cache if we got useful data (allows retry on empty fallback responses)
-        if (data && (data.image || data.title)) {
-          setLinkPreviewCache(url, data);
-        }
-        setMetadata(data);
-      } catch (error) {
-        console.warn('Failed to fetch link metadata:', error);
-        linkPreviewInflight.delete(url);
-        // Fallback to basic info
-        try {
-          const urlObj = new URL(url);
-          setMetadata({
-            title: urlObj.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Link',
-            description: null,
-            image: null,
-            siteName: urlObj.hostname.replace(/^www\./, ''),
-          });
-        } catch (e) {
-          console.warn('[App] Handled exception:', e?.message || e);
-        }
-      }
-      setLoading(false);
-    };
-
-    fetchMetadata();
-  }, [url]);
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          overflow: 'hidden',
-          background: C.bg,
-          margin: '0 12px 12px',
-        }}
-      >
-        <div
-          style={{
-            height: 200,
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: 24,
-          }}
-        >
-          ⏳ Loading Preview...
-        </div>
-      </div>
-    );
-  }
-
-  const handleClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Use the in-app ExternalLinkModal rather than opening a new tab
-    // The modal tries iframe first, falls back to "Copy Link" if site blocks embedding
-    openExternal(url, metadata?.title || 'Link Preview');
-  };
-
-  return (
-    <div
-      onClick={handleClick}
-      style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}
-    >
-      <div
-        style={{
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          overflow: 'hidden',
-          background: C.bg,
-          margin: '0 12px 12px',
-        }}
-      >
-        {/* Link Preview Image - full width, proper aspect ratio */}
-        <div
-          style={{
-            width: '100%',
-            aspectRatio: '16/9',
-            position: 'relative',
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            overflow: 'hidden',
-          }}
-        >
-          {metadata?.image ? (
-            <img
-              src={metadata.image}
-              alt={metadata.title || 'Link preview'}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: 'white',
-                fontSize: 48,
-              }}
-            >
-              🔗
-            </div>
-          )}
-        </div>
-        {/* Link Info */}
-        <div style={{ padding: '12px 16px', background: C.card }}>
-          <div
-            style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}
-          >
-            {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-            {decodeHtmlEntities(metadata?.title) || 'View Article'}
-          </div>
-          {metadata?.description && (
-            <div
-              style={{
-                fontSize: 13,
-                color: C.textSec,
-                marginTop: 6,
-                lineHeight: 1.4,
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              }}
-            >
-              {decodeHtmlEntities(metadata.description)}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 const PostCard = React.memo(
@@ -369,7 +163,6 @@ const PostCard = React.memo(
       });
     }
     const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
-    const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount || 0);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -3463,84 +3256,6 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
 }
 
 // ===== CLUB PAGE DASHBOARD (Owner Management View) =====
-const AMENITIES_LIST = [
-  {
-    cat: 'Dining & Beverages',
-    items: [
-      { k: 'food_service', l: 'Food Service' },
-      { k: 'food_tableside', l: 'Food Tableside' },
-      { k: 'order_food_at_table', l: 'Order Food at Table' },
-      { k: 'full_bar', l: 'Full Bar' },
-      { k: 'cocktail_service', l: 'Cocktail Service' },
-      { k: 'self_serve_drinks', l: 'Self Serve Drink Station' },
-      { k: 'snack_bar', l: 'Snack Bar' },
-      { k: 'room_service', l: 'Room Service' },
-    ],
-  },
-  {
-    cat: 'Parking & Lodging',
-    items: [
-      { k: 'free_parking', l: 'Free Parking' },
-      { k: 'self_parking', l: 'Self Parking' },
-      { k: 'valet_parking', l: 'Valet Parking' },
-      { k: 'parking_garage', l: 'Parking Garage' },
-      { k: 'hotel_onsite', l: 'Hotel On-Site' },
-      { k: 'discounted_hotel', l: 'Discounted Hotel Rates' },
-    ],
-  },
-  {
-    cat: 'Player Services',
-    items: [
-      { k: 'phone_in_list', l: 'Phone-in Waitlist' },
-      { k: 'check_cashing', l: 'Check Cashing' },
-      { k: 'currency_exchange', l: 'Currency Exchange' },
-      { k: 'safe_deposit', l: 'Safe Deposit Boxes' },
-      { k: 'atm_onsite', l: 'ATM On-Site' },
-      { k: 'coat_check', l: 'Coat Check' },
-    ],
-  },
-  {
-    cat: 'Player Perks',
-    items: [
-      { k: 'comps_program', l: 'Comps Program' },
-      { k: 'loyalty_program', l: 'Loyalty Program' },
-      { k: 'rewards_card', l: 'Player Rewards Card' },
-      { k: 'hourly_drawings', l: 'Hourly Drawings' },
-      { k: 'jackpot_promos', l: 'Jackpot Promotions' },
-    ],
-  },
-  {
-    cat: 'Comfort & Environment',
-    items: [
-      { k: 'non_smoking', l: 'Non-Smoking' },
-      { k: 'smoking_area', l: 'Smoking Area' },
-      { k: 'massage', l: 'Massage Service' },
-      { k: 'nearby_restrooms', l: 'Nearby Restrooms' },
-      { k: 'wifi', l: 'Free WiFi' },
-      { k: 'usb_chargers', l: 'USB Chargers' },
-      { k: 'charging_stations', l: 'Charging Stations' },
-      { k: 'televisions', l: 'Televisions' },
-      { k: 'tvs_at_tables', l: 'TVs at Tables' },
-    ],
-  },
-  {
-    cat: 'Table Features',
-    items: [
-      { k: 'auto_shufflers', l: 'Auto Shufflers' },
-      { k: 'rfid_tables', l: 'RFID Tables' },
-      { k: 'live_streaming', l: 'Live Streaming' },
-    ],
-  },
-  {
-    cat: 'Facility',
-    items: [
-      { k: 'private_room', l: 'Private Card Room' },
-      { k: 'high_limit', l: 'High-Limit Room' },
-      { k: 'tournament_room', l: 'Tournament Room' },
-      { k: 'membership_required', l: 'Membership Required' },
-    ],
-  },
-];
 const CATEGORY_LABELS = {
   poker_room: 'Poker Room',
   casino: 'Casino',
@@ -3550,17 +3265,6 @@ const CATEGORY_LABELS = {
   home_game: 'Home Game',
   other: 'Other',
 };
-const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const DAY_LABELS = {
-  monday: 'Mon',
-  tuesday: 'Tue',
-  wednesday: 'Wed',
-  thursday: 'Thu',
-  friday: 'Fri',
-  saturday: 'Sat',
-  sunday: 'Sun',
-};
-
 function SocialMediaPage() {
   const router = useRouter();
   useTrainingBus('social-media');
@@ -3884,7 +3588,6 @@ function SocialMediaPage() {
   // long after the user clicked Skip. Fix: pause + mute + clear src
   // before unmount, AND track skipped state in a ref so any late-firing
   // onPlay event doesn't re-unmute.
-  const introSkippedRef = useRef(false);
 
   // Unmute video after first play event — but ONLY if the user hasn't
   // already skipped. Without this guard, a buffered onPlay event fired
@@ -5917,7 +5620,6 @@ function SocialMediaPage() {
   // to the user). A proper RLS-bound realtime filter is a future
   // optimization; for now subscribing to all INSERTs and filtering in JS
   // is the correct shape given the conversation-based schema.
-  const openChatsRef = useRef([]);
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
@@ -7843,10 +7545,18 @@ function SocialMediaPage() {
                               onShare={(postObj, onSuccess) =>
                                 setShareModalPost({ ...postObj, _onSuccess: onSuccess })
                               }
-                              onOpenArticle={(url) => {
+                              onOpenArticle={(url, cardTitle) => {
                                 // All articles open in-app via the proxy reader.
                                 // Cardplayer.com is handled via RSS fallback in /api/proxy — no redirect needed.
-                                setArticleReader({ open: true, url, title: p.link_title || null });
+                                // ArticleCard resolves its own display title
+                                // (metadata, then the post body, then a fallback).
+                                // Using the outer post's link_title showed the wrong
+                                // heading for any card that was not the primary link.
+                                setArticleReader({
+                                  open: true,
+                                  url,
+                                  title: cardTitle || p.link_title || null,
+                                });
                               }}
                               horseProfileIds={horseProfileIds}
                             />

@@ -1221,7 +1221,8 @@ export default function ReelsPage() {
   }, [ytError]);
 
   const handleLike = async () => {
-    if (!currentReel?.id || !user?.id) return;
+    if (!currentReel?.id) return;
+    if (!user?.id) return showErrorToast('Sign in to like reels');
     if (likeDebounceRef.current) return;
     likeDebounceRef.current = true;
     setTimeout(() => {
@@ -1358,7 +1359,8 @@ export default function ReelsPage() {
 
   const handleFollow = async () => {
     const authorId = currentReel?.author_id || currentReel?.profiles?.id;
-    if (!authorId || !user?.id || authorId === user.id) return;
+    if (!authorId || authorId === user?.id) return;
+    if (!user?.id) return showErrorToast('Sign in to follow players');
     const wasFollowing = following[authorId];
     setFollowing((prev) => ({ ...prev, [authorId]: !wasFollowing }));
     haptic(wasFollowing ? 5 : 15);
@@ -1890,7 +1892,8 @@ export default function ReelsPage() {
   }, [currentIndex]);
 
   const handleSave = async () => {
-    if (!currentReel || !user) return;
+    if (!currentReel) return;
+    if (!user?.id) return showErrorToast('Sign in to save reels');
     const isSaved = savedReels.has(currentReel.id);
     // #1 Optimistic update - instant UI response
     if (isSaved) {

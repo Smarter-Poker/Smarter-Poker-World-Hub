@@ -539,7 +539,10 @@ export function GoLiveModal({
   const [shareToast, setShareToast] = useState('');
   // BUG-FIX-RECONNECT: detect if user has an active live stream (reconnect flow)
   const [existingLiveStream, setExistingLiveStream] = useState(null);
-  const [checkingExistingStream, setCheckingExistingStream] = useState(false);
+  // ITEM 27 (2026-09-08): checkingExistingStream used to live here. It was set
+  // true once and false twice and READ nowhere, so the "checking for your
+  // existing stream" spinner it implies never existed. The reconnect query
+  // below is unchanged; only the flag nobody consumed is gone.
   // BUG-FIX-WATCHDOG: 60s auto-end timer when reconnecting for too long
   const reconnectWatchdogRef = useRef(null);
 
@@ -612,7 +615,6 @@ export function GoLiveModal({
       // BUG-FIX-RECONNECT: on open, check if user has a zombie live stream
       // they may want to reconnect to (e.g. lost connection/power).
       if (user?.id && !guestMode) {
-        setCheckingExistingStream(true);
         supabase
           .from('live_streams')
           .select('id, title, started_at')
@@ -626,9 +628,10 @@ export function GoLiveModal({
             // for exactly the user who needed it most.
             if (error) console.warn('[GoLive] existing-stream check failed:', error.message);
             if (data?.[0]) setExistingLiveStream(data[0]);
-            setCheckingExistingStream(false);
           })
-          .catch(() => setCheckingExistingStream(false));
+          .catch((e) =>
+            console.warn('[GoLive] existing-stream check threw:', e?.message || e)
+          );
       }
     }
     return () => {

@@ -3815,10 +3815,15 @@ function _spgssGetSupabase() {
 
 export async function getServerSideProps({ params }) {
     const pageId = params?.pageId;
-    // UUID-ish check: the old social-pages route takes a UUID. Anything else,
-    // bail out and let the client loader handle it (so slug-style URLs still
-    // land on the old page if somehow routed here).
     if (!pageId || typeof pageId !== 'string') return { props: {} };
+    /*
+     * ITEM 33 (2026-09-08): the comment here promised a "UUID-ish check" and
+     * there was none - the query below ran .eq('id', <slug>), Postgres rejected
+     * the uuid cast, and `error` swallowed it. That cost a round trip on every
+     * slug page view AND meant the home_game 308 below never fired for a slug
+     * URL, which is the canonical form the client redirects to at L1109.
+     */
+    const IS_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const sb = _spgssGetSupabase();
     if (!sb) return { props: {} };
@@ -3829,7 +3834,7 @@ export async function getServerSideProps({ params }) {
         const { data, error } = await sb
             .from('social_pages')
             .select('page_type, slug')
-            .eq('id', pageId)
+            .eq(IS_UUID.test(pageId) ? 'id' : 'slug', pageId)
             .maybeSingle();
 
         if (error || !data) return { props: {} };
