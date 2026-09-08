@@ -14,6 +14,7 @@ import VenueSelector from './VenueSelector';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
+import { uploadBankrollImage } from '../../lib/bankroll/receiptStorage';
 
 // Clean SmarterPoker-style categories (no emojis)
 const CATEGORIES = [
@@ -53,8 +54,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   useModalHistory(true, onClose);
   // Tap outside closes; a drag-select that ends on the scrim does not.
   const scrim = useScrimDismiss(onClose);
-  const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
-  const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
+  // A default category the ledger does not know (the scanner once passed
+  // 'session') would render the generic form and then be refused by the
+  // category CHECK on save. Unknown means: let the user choose.
+  const knownDefault = CATEGORIES.some((c) => c.id === defaultCategory) ? defaultCategory : null;
+  const [step, setStep] = useState(isEditMode || knownDefault ? 'details' : 'category');
+  const [category, setCategory] = useState(isEditMode ? editEntry.category : knownDefault);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
   const [savedStakes, setSavedStakes] = useState([]);
@@ -172,6 +177,23 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       }
     }
 
+    // A scan that was read as a buy-in or a cash out carries session fields
+    // rather than expense ones. `entryKind` is set by the receipt router; the
+    // fields below are already named the way this form stores them, so they
+    // are applied last and win over the generic amount/vendor mapping above.
+    const p = defaultPrefillData || {};
+    const scannedSession = {
+      ...(p.gross_in != null ? { gross_in: String(p.gross_in) } : {}),
+      ...(p.gross_out != null ? { gross_out: String(p.gross_out) } : {}),
+      ...(p.buy_in_amount != null ? { buy_in_amount: String(p.buy_in_amount) } : {}),
+      ...(p.tournament_name ? { tournament_name: p.tournament_name } : {}),
+      ...(p.location_name ? { location_name: p.location_name } : {}),
+      ...(p.stakes ? { stakes: p.stakes } : {}),
+      ...(p.game_type ? { game_type: p.game_type } : {}),
+      ...(p.finish_position != null ? { finish_position: String(p.finish_position) } : {}),
+      ...(p.expense_type ? { expense_type: p.expense_type } : {}),
+    };
+
     return {
       gross_in: initGrossIn,
       gross_out: '0',
@@ -207,6 +229,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       expense_type: initExpenseType,
       inline_expense_amount: '',
       inline_expense_type: '',
+      ...scannedSession,
       swap_player: '',
       swap_amount: '',
       staker_name: '',
@@ -496,16 +519,20 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         entry.gross_out = 0;
       }
 
+      // The saved row comes back so the caller knows the ledger id. A scanned
+      // receipt that opened this modal is marked assigned to that id, which
+      // is what takes it out of Receipts Waiting.
+      let saved = null;
       if (isEditMode) {
-        await updateLedgerEntry(userId, editEntry.id, entry);
+        saved = await updateLedgerEntry(userId, editEntry.id, entry);
       } else {
-        await createLedgerEntry(userId, entry);
+        saved = await createLedgerEntry(userId, entry);
       }
 
       // Dispatch global event for real-time dashboard sync
       window.dispatchEvent(new CustomEvent('bankroll-updated'));
 
-      onSubmit(entry);
+      onSubmit(entry, saved && saved.id ? saved : (isEditMode ? { ...entry, id: editEntry.id } : null));
     } catch (error) {
       console.warn('Error logging entry:', error);
       toast.error('Failed to log entry. Please try again.');
@@ -558,20 +585,10 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           continue;
         }
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-        const filePath = `bankroll/${userId}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('images')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('images')
-          .getPublicUrl(filePath);
-
+        // Same bucket fix as the receipt scanner. `images` has no INSERT
+        // policy for browser clients, so every one of these uploads was being
+        // refused with "new row violates row-level security policy" too.
+        const publicUrl = await uploadBankrollImage(supabase, userId, file, file.type || 'image/jpeg');
         newUploads.push(publicUrl);
       }
 

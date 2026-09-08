@@ -52,19 +52,38 @@ export default async function handler(req, res) {
         // 2026-08-15 audit: identity comes from the JWT, never from
         // ?user_id — the service-role enrichment below would otherwise leak
         // any user's like/bookmark state to any caller who passed their uuid.
-        let userId = null;
+        /*
+         * 2026-09-08: this used to `await` the identity resolve BEFORE building
+         * the posts query, and the posts query does not depend on it - only the
+         * per-user enrichment in step 2 does. So every warm request paid for a
+         * GoTrue round trip in series with the posts round trip.
+         *
+         * Measured on production before the change: first call 851ms (cold),
+         * warm calls 230-379ms, median 360. Two sequential network hops plus
+         * the parallel enrichment is exactly that shape. Started here and
+         * awaited alongside the posts fetch below, the auth hop overlaps
+         * instead of stacking.
+         *
+         * No behaviour change: identity still comes only from the JWT, never
+         * from ?user_id, and a failed resolve still yields a null userId and an
+         * anonymous response.
+         */
         const authHeader = req.headers.authorization || '';
-        if (authHeader.startsWith('Bearer ')) {
-            try {
-                const { getServerUserWithFallback } = await import('../../../src/lib/serverAuth');
-                const { createClient } = await import('../../../src/lib/supabaseServerClient');
-                const { url: au, key: ak } = getSupaConfig(); const authClient = createClient(au, ak);
-                const { user: authUser } = await getServerUserWithFallback(req, authClient);
-                userId = authUser?.id || null;
-            } catch (e) {
-                console.warn('[API/feed] auth resolve failed:', e?.message);
-            }
-        }
+        const userIdPromise = authHeader.startsWith('Bearer ')
+            ? (async () => {
+                try {
+                    const { getServerUserWithFallback } = await import('../../../src/lib/serverAuth');
+                    const { createClient } = await import('../../../src/lib/supabaseServerClient');
+                    const { url: au, key: ak } = getSupaConfig();
+                    const authClient = createClient(au, ak);
+                    const { user: authUser } = await getServerUserWithFallback(req, authClient);
+                    return authUser?.id || null;
+                } catch (e) {
+                    console.warn('[API/feed] auth resolve failed:', e?.message);
+                    return null;
+                }
+            })()
+            : Promise.resolve(null);
 
         // ── 1. Fetch posts (no embedded join — separate parallel queries are faster) ──
         const postsParams = new URLSearchParams({
@@ -85,7 +104,11 @@ export default async function handler(req, res) {
         // because is_deleted is nullable and both of those drop NULL rows.
         postsParams.set('is_deleted', 'not.is.true');
 
-        let rawPosts = await supaFetch(`/social_posts?${postsParams}`);
+        // The two independent round trips, overlapped.
+        const [rawPosts, userId] = await Promise.all([
+            supaFetch(`/social_posts?${postsParams}`),
+            userIdPromise,
+        ]);
         let posts = Array.isArray(rawPosts) ? rawPosts : [];
         const hasMore = posts.length > limit;
         if (hasMore) posts = posts.slice(0, limit);

@@ -95,6 +95,7 @@ const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubP
 
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS as C, timeAgo } from '../../../src/lib/socialHelpers';
+import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import {
   VideoPostWrapper,
@@ -116,28 +117,14 @@ function getTypingChannel() {
 }
 
 /*
- * ITEM 21 (2026-09-08): the feed carried 99 click handlers, 3 roles and ZERO
- * tabIndex. Primary actions - comment Like, Reply, Edit, Delete and its
- * confirm, "See More", the sidebar tiles, identity-switch rows, notification
- * rows, search results, every media thumbnail - were plain divs and spans.
- * None was reachable by keyboard; none announced itself to a screen reader.
- *
- * Activation goes through currentTarget.click() rather than re-invoking the
- * handler, so each control keeps exactly one behaviour: whatever its onClick
- * already does. A second copy of the handler is a second thing to keep in step.
- *
- * NOT applied to backdrops (the lightbox, sidebar and global-search scrims) or
- * to the stopPropagation wrapper: those are not controls, and making them
- * focusable buttons would put a tab stop on a sheet of glass. Dismissing a
- * dialog from the keyboard is Escape's job and is tracked separately.
+ * prefetch={false} on the author links still prefetches on hover and
+ * touchstart in the Pages Router - it only drops the speculative
+ * in-viewport fetch. Those links appear ONCE PER POST, so a feed of
+ * twenty posts had twenty in-viewport Links all pulling the same 159KB
+ * /hub/user/[username] chunk before the reader touched anything. Intent
+ * is preserved; the bulk speculation is not. Same reasoning for the 16
+ * links in the sidebar drawer, which is mounted off-screen.
  */
-function spKeyActivate(e) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  // Space scrolls the page; Enter can submit a surrounding form.
-  e.preventDefault();
-  e.currentTarget.click();
-}
-
 const PostCard = React.memo(
   function PostCard({
     post,
@@ -782,7 +769,7 @@ const PostCard = React.memo(
         }}
       >
         <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link
+          <Link prefetch={false}
             href={`/hub/user/${post.author?.username || 'player'}`}
             style={{ textDecoration: 'none', position: 'relative', display: 'inline-block' }}
           >
@@ -803,7 +790,7 @@ const PostCard = React.memo(
             )}
           </Link>
           <div style={{ flex: 1 }}>
-            <Link
+            <Link prefetch={false}
               href={`/hub/user/${post.author?.username || 'player'}`}
               className="no-capitalize"
               data-preserve-case="true"
@@ -3690,11 +3677,36 @@ function SocialMediaPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Route prefetch — preload likely navigation targets during idle time
+  /*
+   * Route prefetch, during idle time - which is what this comment always
+   * claimed and the code never did. Three router.prefetch calls fired
+   * synchronously in a useEffect on mount, so /hub/notifications,
+   * /hub/friends and /hub/messenger came down WHILE the feed was still
+   * fetching its own posts and images: measured at ~310KB of neighbouring
+   * page chunks on a feed whose own chunk is 252KB.
+   *
+   * requestIdleCallback runs it when the main thread is actually free.
+   * Safari has no requestIdleCallback, hence the timeout fallback, and both
+   * paths are cancelled on unmount so a fast navigation does not leave the
+   * prefetch running for a page nobody is on.
+   */
   useEffect(() => {
-    router.prefetch('/hub/notifications');
-    router.prefetch('/hub/friends');
-    router.prefetch('/hub/messenger');
+    const warmNeighbours = () => {
+      for (const href of ['/hub/notifications', '/hub/friends', '/hub/messenger']) {
+        try {
+          router.prefetch(href);
+        } catch (_) {
+          // Prefetch is best-effort; the Links themselves still navigate.
+        }
+      }
+    };
+    if (typeof window === 'undefined') return undefined;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warmNeighbours, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(warmNeighbours, 2500);
+    return () => clearTimeout(t);
   }, [router]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -6757,7 +6769,7 @@ function SocialMediaPage() {
                       People
                     </div>
                     {globalSearchResults.users.map((u) => (
-                      <Link
+                      <Link prefetch={false}
                         key={u.id}
                         href={`/hub/user/${u.username}`}
                         onClick={() => setShowGlobalSearch(false)}
@@ -7409,7 +7421,7 @@ function SocialMediaPage() {
                       <p style={{ color: C.textSec, marginBottom: 12 }}>
                         Log In To Post And Interact!
                       </p>
-                      <Link
+                      <Link prefetch={false}
                         href="/auth/login"
                         style={{
                           display: 'inline-block',
@@ -7547,7 +7559,7 @@ function SocialMediaPage() {
                           flexWrap: 'wrap',
                         }}
                       >
-                        <Link
+                        <Link prefetch={false}
                           href="/hub/friends"
                           style={{
                             padding: '8px 16px',

@@ -72,6 +72,78 @@ const SIZE_PRESETS = {
   veryCompact: { height: 44, fontSize: 11, labelSize: 10, amountSize: 8,  padX: 4,  kbdSize: 7,  radius: 6 },
 };
 
+const BORDER_LINE_STYLES = new Set([
+  'dashed',
+  'dotted',
+  'double',
+  'groove',
+  'hidden',
+  'inset',
+  'none',
+  'outset',
+  'ridge',
+  'solid',
+]);
+
+function splitCssWhitespace(value) {
+  const tokens = [];
+  let token = '';
+  let depth = 0;
+  for (const character of value) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (/\s/.test(character) && depth === 0) {
+      if (token) tokens.push(token);
+      token = '';
+    } else {
+      token += character;
+    }
+  }
+  if (token) tokens.push(token);
+  return tokens;
+}
+
+function expandBorderShorthand(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  if (normalized === 'none' || normalized === '0') {
+    return { borderWidth: 0, borderStyle: 'none', borderColor: 'currentColor' };
+  }
+  const tokens = splitCssWhitespace(normalized);
+  const styleIndex = tokens.findIndex((token) => BORDER_LINE_STYLES.has(token.toLowerCase()));
+  const widthIndex = tokens.findIndex((token) => (
+    /^(?:0|(?:\d*\.)?\d+(?:[a-z%]+)|thin|medium|thick)$/i.test(token)
+  ));
+  if (styleIndex < 0 && widthIndex < 0) return null;
+  const color = tokens
+    .filter((_token, index) => index !== styleIndex && index !== widthIndex)
+    .join(' ') || 'currentColor';
+  return {
+    borderWidth: widthIndex >= 0 ? tokens[widthIndex] : 'medium',
+    borderStyle: styleIndex >= 0 ? tokens[styleIndex] : 'none',
+    borderColor: color,
+  };
+}
+
+/**
+ * React cannot safely reconcile a border shorthand on one render with a
+ * borderColor override on the next. Convert the ordinary CSS shorthand used
+ * by Training into equivalent longhands before it reaches the DOM, while
+ * preserving an explicit caller color as the final visual value.
+ */
+export function normalizeActionButtonBorderStyle(style) {
+  if (!style || !Object.prototype.hasOwnProperty.call(style, 'border')) return style || {};
+  const normalized = { ...style };
+  const expanded = expandBorderShorthand(normalized.border);
+  if (!expanded) return normalized;
+  delete normalized.border;
+  return {
+    ...expanded,
+    ...normalized,
+  };
+}
+
 function deriveAriaLabel({ action, label, amount, shortcut, recommended }) {
   const baseLabel = label || (ACTION_THEMES[action] || {}).label || action;
   const parts = [baseLabel];
@@ -128,7 +200,9 @@ const ActionButton = React.forwardRef(function ActionButton(
     minHeight: sz.height,
     height: sz.height,
     padding: `0 ${sz.padX}px`,
-    border: `1px solid ${selected || recommended ? theme.border : 'rgba(255,255,255,0.08)'}`,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: selected || recommended ? theme.border : 'rgba(255,255,255,0.08)',
     background: disabled ? 'rgba(255,255,255,0.04)' : theme.fill,
     color: disabled ? 'var(--sp-fg-faint)' : theme.text,
     borderRadius: sz.radius,
@@ -244,7 +318,7 @@ const ActionButton = React.forwardRef(function ActionButton(
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
-      style={{ ...baseStyle, ...(style || {}) }}
+      style={{ ...baseStyle, ...normalizeActionButtonBorderStyle(style) }}
       {...rest}
     >
       <span style={labelStyle}>{displayLabel}</span>

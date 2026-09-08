@@ -8,7 +8,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
 let _supabase = null;
 function getSupabase() {
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       }
 
       // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
           return res.status(403).json({ error: 'Premium feature access required' });
       }
@@ -95,11 +95,15 @@ export default async function handler(req, res) {
           const report = calculateTaxReport(sessions || [], trips || [], year);
 
           // Merge uploaded W-2G forms into report
+          // w2g_forms holds gross_amount and withholding_amount. This read
+          // said `f.amount`, a column that does not exist, so every uploaded
+          // W-2G printed "-" for its amount on the tax report.
           report.uploadedW2gForms = (uploadedW2g || []).map(f => ({
               date: f.upload_date || f.created_at?.split('T')[0],
               type: f.form_type,
               description: f.source_description || f.file_name,
-              amount: f.amount ? parseFloat(f.amount) : null,
+              amount: f.gross_amount !== null && f.gross_amount !== undefined ? parseFloat(f.gross_amount) : null,
+              withheld: f.withholding_amount !== null && f.withholding_amount !== undefined ? parseFloat(f.withholding_amount) : null,
               fileUrl: f.file_url,
           }));
 
@@ -308,12 +312,13 @@ async function generateTaxPDF(report, user) {
 
         autoTable(doc, {
             startY: yPos,
-            head: [['Date', 'Type', 'Description', 'Amount']],
+            head: [['Date', 'Type', 'Description', 'Gross', 'Withheld']],
             body: report.uploadedW2gForms.map(f => [
                 f.date || '-',
                 f.type || '-',
                 (f.description || '-').substring(0, 30),
-                f.amount ? `$${f.amount.toLocaleString()}` : '-'
+                f.amount !== null ? `$${f.amount.toLocaleString()}` : '-',
+                f.withheld !== null ? `$${f.withheld.toLocaleString()}` : '-'
             ]),
             theme: 'grid',
             styles: { fontSize: 9 },

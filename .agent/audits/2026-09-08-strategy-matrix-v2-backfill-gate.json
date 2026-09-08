@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "readOnly": true,
+  "auditedAt": "2026-09-08T00:54:50.286Z",
+  "status": "BLOCKED_BEFORE_EXECUTION",
+  "database": {
+    "projectRef": "kuklfnapbkmacvwxktbh",
+    "table": "public.solved_spots_gold",
+    "estimatedRows": 8895168,
+    "totalSize": "80 GB",
+    "toastTotalSize": "75 GB"
+  },
+  "unrelatedCheckpointMisidentifiedByPriorHandoff": {
+    "table": "public._pps_backfill_state",
+    "ownerFunction": "public.fn_pps_backfill_batch(integer)",
+    "actualPurpose": "Keyset checkpoint for hand_history processing through fn_process_hand_position_stats; it does not read or write solved_spots_gold or strategy_matrix_v2.",
+    "done": true,
+    "processed": 5026486,
+    "cutoff": "2026-07-23T18:49:57.891377Z",
+    "lastCreated": "2026-07-23T18:49:10.742596Z",
+    "lastId": "c4ad4e4f-955b-4b16-8497-9d3b7a978566",
+    "updatedAt": "2026-07-24T03:23:00.089559Z",
+    "mustNotBeModifiedForSolverBackfill": true
+  },
+  "independentProgress": {
+    "v2Rows": 1891817,
+    "pendingRows": 7036883,
+    "totalRows": 8928700,
+    "populatedPercent": 21.188045292,
+    "latestV2Write": "2026-08-15T09:57:41.105316Z",
+    "writesInLast24Hours": 0,
+    "pendingFamilyRows": 211,
+    "pendingCounterRefreshedAt": "2026-09-07T09:17:00.430Z",
+    "derivation": "fn_solver_v2_progress exact non-null count plus the incrementally maintained sp_pending_family_cache sum"
+  },
+  "progressFunction": {
+    "function": "public.fn_solver_v2_progress()",
+    "warmObservedMilliseconds": 4610,
+    "separateColdAttemptExceededDocumentedEightSecondBudget": true,
+    "estimatedRemaining": 7003351,
+    "estimateMismatchRows": 33532,
+    "reason": "The function subtracts the exact V2 count from pg_class.reltuples rather than the exact incrementally maintained pending count."
+  },
+  "storageGate": {
+    "requiredFreeHeadroom": "at least 40 GB before backfill, plus separately sized reclaim workspace",
+    "provisionedDiskVerified": false,
+    "dashboardObservation": "The accessible project Database Settings page does not expose a provisioned disk amount and reports disk configuration unavailable; the current account also lacks permission to update connection-pooling settings.",
+    "backfillAuthorized": false
+  },
+  "reclaimGate": {
+    "pgRepackAvailableVersion": "1.5.2",
+    "pgRepackInstalled": false,
+    "pgstattupleAvailableVersion": "1.5",
+    "pgstattupleInstalled": false,
+    "vacuumFullAllowed": false,
+    "reason": "VACUUM FULL requires an ACCESS EXCLUSIVE lock and table-sized rewrite workspace; pg_repack is the preferred candidate but must be installed and capacity-tested first."
+  },
+  "requiredBeforeBackfill": [
+    "create a dedicated solver-V2 checkpoint instead of reusing or modifying the unrelated _pps_backfill_state row",
+    "verify provisioned disk and at least 40 GB free transient headroom from an authorized billing/infrastructure view",
+    "install and rehearse the selected online reclaim path without touching the live 80 GB table",
+    "include dropping strategy_matrix v1 and reclaiming its TOAST footprint in the same approved maintenance plan",
+    "use small batches, short lock_timeout, bounded statement_timeout, durable checkpoints, and live database health aborts"
+  ]
+}

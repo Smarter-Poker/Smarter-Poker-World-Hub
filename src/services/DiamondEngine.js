@@ -305,22 +305,15 @@ class DiamondEngineSupabase {
     }
 
     /**
-     * Log game session
+     * Legacy browser-owned Memory Games session logging is retired. A local
+     * practice result is not a sealed Training attempt and cannot author an
+     * account score, rank, progression row, or reward.
      */
-    async logSession(sessionData) {
-        if (!this.userId) return;
-
-        try {
-            const { error: err_memory_game_sessions_zsaut } = await this.supabase
-              .from('memory_game_sessions')
-              .insert({
-                    user_id: this.userId,
-                    ...sessionData
-                });
-            if (err_memory_game_sessions_zsaut) console.warn('[Supabase] Silent mutation failed in memory_game_sessions:', err_memory_game_sessions_zsaut.message);
-        } catch (err) {
-            console.warn('Session log failed:', err);
-        }
+    async logSession() {
+        return {
+            success: false,
+            reason: 'server_authoritative_training_attempt_required',
+        };
     }
 
     /**

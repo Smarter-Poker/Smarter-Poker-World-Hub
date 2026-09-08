@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, Download, Calendar, AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Upload, Trash2, Eye, Plus, X, Check, Camera, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import { METAL, ANIMATIONS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import LiveCameraScanner from './LiveCameraScanner';
@@ -45,6 +46,16 @@ export default function TaxReportPanel({ userId }) {
     // Fetch W-2G forms when year changes
     useEffect(() => {
         if (userId) fetchW2gForms();
+    }, [userId, selectedYear]);
+
+    // The Receipt Saved sheet files a scanned W-2G into this vault while this
+    // panel can already be on screen. It announces the write on the same
+    // event the ledger uses, so the list refreshes without a year change.
+    useEffect(() => {
+        if (!userId || typeof window === 'undefined') return undefined;
+        const refresh = () => fetchW2gForms();
+        window.addEventListener('bankroll-updated', refresh);
+        return () => window.removeEventListener('bankroll-updated', refresh);
     }, [userId, selectedYear]);
 
     const fetchW2gForms = async () => {
@@ -140,19 +151,11 @@ export default function TaxReportPanel({ userId }) {
         setError(null);
 
         try {
-            const fileExt = uploadFile.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-            const filePath = `w2g/${userId}/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('images')
-                .upload(filePath, uploadFile);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('images')
-                .getPublicUrl(filePath);
+            // The upload goes through the one module that knows the bucket.
+            // `images` has no INSERT policy, so writing there was refused 403
+            // for every W-2G. Existing objects stay where they are; the
+            // delete path below still points at them.
+            const publicUrl = await uploadBankrollFile(supabase, userId, uploadFile);
 
             const { error: insertError } = await supabase
                 .from('w2g_forms')
@@ -189,10 +192,9 @@ export default function TaxReportPanel({ userId }) {
     const handleDeleteW2g = async (formId, fileUrl) => {
         if (!confirm('Delete this W-2G form?')) return;
         try {
-            const pathMatch = fileUrl.match(/w2g\/[^?]+/);
-            if (pathMatch) {
-                await supabase.storage.from('images').remove([pathMatch[0]]);
-            }
+            // Old objects live in `images`, new ones in the bankroll bucket;
+            // the remover reads the bucket from the URL.
+            if (fileUrl) await removeBankrollObject(supabase, fileUrl);
 
             const { error: delError } = await supabase
                 .from('w2g_forms')

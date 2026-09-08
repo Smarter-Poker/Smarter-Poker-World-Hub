@@ -9,6 +9,7 @@ import { getAuthUser, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 import { ARCHETYPE_CONFIG } from '../lib/sandbox/VillainArchetypeRanges';
 import { gradeAction } from '../lib/sandbox/actionGrading';
+import { deriveTrainingSessionAccuracy } from '../lib/training/sessionEvidence.mjs';
 
 // Use the platform's lock-free token helper. It reads the canonical stored
 // session, coalesces concurrent refreshes, and refreshes expiring JWTs through
@@ -1157,7 +1158,7 @@ export function useLeakHandExamples(leakId) {
 export function useTrainingStats() {
   const [stats, setStats] = useState({
     gamesPlayed: 0,
-    totalAccuracy: 0,
+    totalAccuracy: null,
     bestStreak: 0,
     weakestCategory: 'Not enough data',
     strongestCategory: 'Not enough data',
@@ -1173,23 +1174,16 @@ export function useTrainingStats() {
         // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
         const user = getAuthUser();
         if (!user) {
-          // Demo data for non-logged-in users
+          // Signed-out is an honest empty state, not a sample performance
+          // history that can be mistaken for the player's own results.
           setStats({
-            gamesPlayed: 12,
-            totalAccuracy: 68,
-            bestStreak: 5,
-            weakestCategory: 'River Play',
-            strongestCategory: 'Preflop Ranges',
-            recentSessions: [
-              { date: 'Today', gameId: 'demo1', gameName: 'Opening Ranges', accuracy: 75, duration: 10 },
-              { date: 'Yesterday', gameId: 'demo2', gameName: 'C-Bet Strategy', accuracy: 62, duration: 8 },
-            ],
-            categoryProgress: [
-              { category: 'Preflop', accuracy: 78, gamesPlayed: 5 },
-              { category: 'Flop', accuracy: 65, gamesPlayed: 4 },
-              { category: 'Turn', accuracy: 60, gamesPlayed: 2 },
-              { category: 'River', accuracy: 52, gamesPlayed: 1 },
-            ]
+            gamesPlayed: 0,
+            totalAccuracy: null,
+            bestStreak: 0,
+            weakestCategory: 'Sign in to view training data',
+            strongestCategory: 'Sign in to view training data',
+            recentSessions: [],
+            categoryProgress: []
           });
           setIsLoading(false);
           return;
@@ -1198,8 +1192,12 @@ export function useTrainingStats() {
         // Fetch from training_sessions table
         const { data: sessions, error: sessionsError } = await supabase
           .from('training_sessions')
-          .select('*')
+          .select('id, game_id, game_name, accuracy, hands_played, correct_count, best_streak, position_stats, classification_counts, hand_history, attempt_id, created_at, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
           .eq('user_id', user.id)
+          .eq('training_attempts.user_id', user.id)
+          .eq('training_attempts.status', 'completed')
+          .not('attempt_id', 'is', null)
+          .eq('training_attempts.practice_only', false)
           .order('created_at', { ascending: false })
           .limit(100);
 
@@ -1211,7 +1209,7 @@ export function useTrainingStats() {
         if (!sessions || sessions.length === 0) {
           setStats({
             gamesPlayed: 0,
-            totalAccuracy: 0,
+            totalAccuracy: null,
             bestStreak: 0,
             weakestCategory: 'Start training!',
             strongestCategory: 'Start training!',
@@ -1224,26 +1222,54 @@ export function useTrainingStats() {
 
         // Calculate stats from sessions
         const gamesPlayed = sessions.length;
-        const totalAccuracy = Math.round(
-          sessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / gamesPlayed
-        );
-        const bestStreak = sessions.reduce((max, s) => Math.max(max, s.streak || 0), 0);
+        const answeredHands = sessions.reduce((sum, s) => sum + (Number(s.hands_played) || 0), 0);
+        const correctHands = sessions.reduce((sum, s) => sum + (Number(s.correct_count) || 0), 0);
+        const totalAccuracy = answeredHands > 0
+          ? Math.round((correctHands / answeredHands) * 100)
+          : null;
+        const bestStreak = sessions.reduce((max, s) => Math.max(max, Number(s.best_streak) || 0), 0);
 
-        // Group by category
+        // Aggregate the canonical per-position projection. The retired
+        // `category` column never existed on training_sessions and caused all
+        // sessions to collapse into a plausible-looking "General" bucket.
         const categoryMap = {};
         sessions.forEach(s => {
-          const cat = s.category || 'General';
-          if (!categoryMap[cat]) {
-            categoryMap[cat] = { total: 0, count: 0 };
+          const positionStats = s.position_stats && typeof s.position_stats === 'object'
+            ? s.position_stats
+            : {};
+          let projectedPosition = false;
+          Object.entries(positionStats).forEach(([position, values]) => {
+            const normalizedPosition = String(position || '').toUpperCase();
+            const total = Number(values?.total) || 0;
+            if (total <= 0 || normalizedPosition === 'UNKNOWN' || normalizedPosition === 'UNK') return;
+            projectedPosition = true;
+            if (!categoryMap[normalizedPosition]) {
+              categoryMap[normalizedPosition] = { total: 0, correct: 0, sessions: 0 };
+            }
+            categoryMap[normalizedPosition].total += total;
+            categoryMap[normalizedPosition].correct += Number(values?.correct) || 0;
+            categoryMap[normalizedPosition].sessions += 1;
+          });
+
+          // Very early sealed rows may have no position projection. Preserve
+          // their real game identity rather than inventing a category.
+          if (!projectedPosition) {
+            const game = s.game_name || s.game_id;
+            const total = Number(s.hands_played) || 0;
+            if (!game || total <= 0) return;
+            if (!categoryMap[game]) {
+              categoryMap[game] = { total: 0, correct: 0, sessions: 0 };
+            }
+            categoryMap[game].total += total;
+            categoryMap[game].correct += Number(s.correct_count) || 0;
+            categoryMap[game].sessions += 1;
           }
-          categoryMap[cat].total += (s.accuracy || 0);
-          categoryMap[cat].count += 1;
         });
 
         const categoryProgress = Object.entries(categoryMap || {}).map(([category, data]) => ({
           category,
-          accuracy: Math.round(data.total / data.count),
-          gamesPlayed: data.count
+          accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+          gamesPlayed: data.sessions
         })).sort((a, b) => b.gamesPlayed - a.gamesPlayed);
 
         // Find weakest and strongest
@@ -1255,9 +1281,9 @@ export function useTrainingStats() {
         const recentSessions = sessions.slice(0, 5).map(s => ({
           date: new Date(s.created_at).toLocaleDateString(),
           gameId: s.game_id || s.id,
-          gameName: s.game_name || s.category || 'Training Session',
-          accuracy: s.accuracy || 0,
-          duration: s.duration_seconds ? Math.round(s.duration_seconds / 60) : 0
+          gameName: s.game_name || s.game_id || 'Training Session',
+          accuracy: deriveTrainingSessionAccuracy(s),
+          duration: null,
         }));
 
         setStats({

@@ -1,5 +1,4 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { randomUUID } from 'node:crypto';
 /**
  * BATCH QUESTION PRE-LOADER — API Endpoint
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -18,36 +17,39 @@ applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
-import {
-    filterCachedRowsForGame,
-    hydrateMissingPIOScenarioContract,
-} from '../../../src/lib/training/cacheContract.mjs';
+import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { streetOfCachedRow } from '../../../src/lib/training/declaredStreet';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
-import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
-import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
+import { enforceSolverClaimHonesty, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
     runTrainingPersistenceQuery,
     trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
-import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
+import {
+    createTrainingSessionId,
+} from '../../../src/lib/training/gradingReceipt.mjs';
+import { trainingMasteryMinimum } from '../../../src/lib/training/sessionAttemptContract.mjs';
+import {
+    isTrainingAttemptContractError,
+    isTrainingQuestionCampaignEligible,
+    prepareTrainingAttemptDelivery,
+    recordTrainingQuestionsServedForAttempt,
+    recoverTrainingAttemptHand,
+} from '../../../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+    filterTrainingQuestionsForAttempt,
+    normalizeTrainingGameMode,
+    normalizeTrainingHandSelection,
+    trainingQuestionMatchesSelection,
+} from '../../../src/lib/training/questionSelectionContract.mjs';
+import { shuffleBalancedQuestionOrder } from '../../../src/lib/training/questionOrderContract.mjs';
 import {
     buildTrainingCacheRow,
     cacheQuestionFromRow,
     cacheRowIsServingEligible,
-    recordTrainingQuestionsServed,
     withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
-
-// ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
-function hashSeed(str) {
-    let h = 0;
-    for (let i = 0; i < (str || '').length; i++) {
-        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-    }
-    return Math.abs(h);
-}
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -61,8 +63,40 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * Losslessly normalize a canonical row, then enforce the receipt authority
+ * boundary. This deliberately does not add cards, a board, seats, a street,
+ * pot geometry, stacks, options, frequencies, or provenance that the source
+ * did not provide.
+ */
+function normalizeCampaignQuestionWithoutFabrication(question) {
+    if (!question || typeof question !== 'object' || Array.isArray(question)) return null;
+    if (String(question.type || '').toUpperCase() === 'CHART') {
+        normalizeAuditedChartQuestion(question);
+    }
+    reconcileAnswerKey(question);
+
+    // Some audited local sources store their exact distribution twice under
+    // `frequencies` and `gtoFrequencies`. Reconstruct only the lossless 0-100
+    // view; do not infer a distribution from the answer key.
+    if ((!question.gtoFrequencies || Object.keys(question.gtoFrequencies).length === 0)
+        && question.frequencies && typeof question.frequencies === 'object') {
+        const measured = Object.fromEntries(Object.entries(question.frequencies)
+            .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1)
+            .map(([action, value]) => [action, Math.round(Number(value) * 100)]));
+        if (Object.keys(measured).length > 0) question.gtoFrequencies = measured;
+    }
+
+    const canonical = enforceTrainingQuestionContract(enforceSolverClaimHonesty(question));
+    return isTrainingQuestionValid(canonical) && isTrainingQuestionCampaignEligible(canonical)
+        ? canonical
+        : null;
+}
+
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -85,6 +119,10 @@ export default async function handler(req, res) {
           targetStreet: rawTargetStreet,         // "flop", "turn", "river"
           // ●●● PHASE 19: Difficulty selector ●●●
           difficulty: rawDifficulty,             // "beginner", "standard", "expert"
+          sessionId: rawSessionId,
+          handOrdinalStart: rawHandOrdinalStart,
+          gameMode: rawGameMode,
+          handSelection: rawHandSelection,
       } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
 
@@ -93,8 +131,32 @@ export default async function handler(req, res) {
       }
 
       try {
-          const questionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
           const gameLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
+          const requestedQuestionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
+          const attemptTargetHands = trainingMasteryMinimum(gameLevel);
+          const isSingleHandRecovery = requestedQuestionCount === 1;
+          // Campaign attempts always own the Level Registry's complete hand
+          // count. A one-row request is the explicit recovery path; every
+          // normal preload receives the full 20/25/30-hand manifest even when
+          // an older browser asks for the former global count of 20.
+          const questionCount = isSingleHandRecovery ? 1 : attemptTargetHands;
+          const gameMode = normalizeTrainingGameMode(rawGameMode);
+          const handSelection = normalizeTrainingHandSelection(rawHandSelection);
+          // Selection happens before the immutable attempt manifest is signed.
+          // Pull a larger candidate pool for selective drills so the browser
+          // still receives the attempt's complete 20/25/30-hand contract.
+          // Always retain a bounded surplus until canonical persistence has
+          // succeeded. `buildTrainingCacheRow` is deliberately stricter than
+          // the source normalization pass, so selecting exactly N candidates
+          // here lets one malformed row turn an otherwise healthy N-hand
+          // attempt into an outage. Selective drills need a wider pool because
+          // their street/frequency filter runs before canonical construction.
+          const candidateQuestionCount = handSelection === 'all'
+              ? Math.min(100, Math.max(questionCount + 5, questionCount * 2))
+              : Math.min(100, questionCount * 4);
+          const handOrdinalStart = isSingleHandRecovery
+              ? Math.min(attemptTargetHands, Math.max(1, parseInt(rawHandOrdinalStart, 10) || 1))
+              : 1;
 
           // ●●● PHASE 15: Parse targeting params ●●●
           const targetPositions = rawTargetPositions
@@ -105,10 +167,67 @@ export default async function handler(req, res) {
               ? rawTargetStreet.toLowerCase()
               : null;
           // ●●● PHASE 19: Difficulty mapping ●●●
-          const validDifficulties = ['beginner', 'standard', 'expert'];
+          const validDifficulties = ['beginner', 'standard', 'expert', 'simple', 'grouped', 'exact'];
           const difficulty = rawDifficulty && validDifficulties.includes(rawDifficulty.toLowerCase())
               ? rawDifficulty.toLowerCase()
               : 'standard';
+          const requestedSessionId = sanitizeParam(rawSessionId, 180);
+          const hasExplicitSessionId = Boolean(requestedSessionId);
+          const trainingSessionId = requestedSessionId || createTrainingSessionId();
+          const enforcedTargetStreet = gameMode === 'street' ? targetStreet : null;
+          const attemptSelection = {
+              gameMode,
+              handSelection,
+              targetStreet: enforcedTargetStreet,
+          };
+
+          // A one-hand request is recovery, not a request to replace an
+          // already-registered ordinal with whatever happens to be in today's
+          // mutable cache. Resume the manifest winner before reading any source.
+          if (isSingleHandRecovery && hasExplicitSessionId) {
+              try {
+                  const recovered = await recoverTrainingAttemptHand({
+                      supabase: getSupabase(),
+                      userId: _authUser.id,
+                      clientSessionId: trainingSessionId,
+                      gameId,
+                      level: gameLevel,
+                      sessionKind: 'campaign',
+                      difficultyMode: difficulty,
+                      requestedHands: attemptTargetHands,
+                      handOrdinal: handOrdinalStart,
+                      config: attemptSelection,
+                      questionSelection: attemptSelection,
+                  });
+                  if (recovered?.questions?.length === 1) {
+                      await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+                          userId: _authUser.id,
+                          delivery: recovered,
+                      });
+                      return res.status(200).json({
+                          success: true,
+                          gameId,
+                          level: gameLevel,
+                          sessionId: trainingSessionId,
+                          attemptId: recovered.attemptId,
+                          sessionKind: recovered.sessionKind,
+                          targetHands: recovered.targetHands,
+                          count: recovered.questions.length,
+                          questions: recovered.questions,
+                      });
+                  }
+              } catch (recoveryError) {
+                  console.warn('[BatchPreload] Attempt recovery failed:', recoveryError?.message || recoveryError);
+                  if (isTrainingAttemptContractError(recoveryError)) {
+                      return res.status(recoveryError.status || 409).json({
+                          success: false,
+                          error: recoveryError.message,
+                          code: recoveryError.code,
+                      });
+                  }
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+          }
 
 
           // Fetch questions from cache
@@ -119,27 +238,37 @@ export default async function handler(req, res) {
           // ●●● SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) ●●●
           let seenIds = new Set();
           try {
-              const { data: seen } = await getSupabase()
-                  .from('user_seen_questions')
-                  .select('question_id')
-                  .eq('user_id', _authUser.id)
-                  .eq('game_id', gameId)
-                  .limit(2000);
+              const { data: seen } = await runTrainingPersistenceQuery(
+                  () => getSupabase()
+                      .from('user_seen_questions')
+                      .select('question_id')
+                      .eq('user_id', _authUser.id)
+                      .eq('game_id', gameId)
+                      .limit(2000),
+                  { label: 'BatchPreload:seen-read' },
+              );
               seenIds = new Set((seen || []).map((r) => r.question_id));
-          } catch (e) { /* non-blocking */ }
+          } catch (e) {
+              console.warn('[BatchPreload] Seen history unavailable; continuing without exclusion:', e.message);
+          }
 
           // Fetch questions from cache (over-fetch so seen-filtering has room)
-          const { data: questions, error } = await getSupabase()
-              .from('training_question_cache')
-              .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
-              .eq('game_id', gameId)
-              .eq('level', gameLevel)
-              .in('quality_status', ['active', 'active_fallback'])
-              .limit(Math.max(100, questionCount * 3));
-
-          if (error) {
-              console.warn('[BatchPreload] Supabase error:', error);
-              // Don't return 500 — fall through to solver engine
+          let questions;
+          try {
+              const cacheResult = await runTrainingPersistenceQuery(
+                  () => getSupabase()
+                      .from('training_question_cache')
+                      .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
+                      .eq('game_id', gameId)
+                      .eq('level', gameLevel)
+                      .in('quality_status', ['active', 'active_fallback'])
+                      .limit(Math.max(100, candidateQuestionCount * 3)),
+                  { label: 'BatchPreload:cache-read' },
+              );
+              questions = cacheResult.data;
+          } catch (cacheError) {
+              console.warn('[BatchPreload] Canonical cache read unavailable:', cacheError.message);
+              return res.status(503).json(trainingPersistenceUnavailableBody());
           }
 
           // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -156,33 +285,50 @@ export default async function handler(req, res) {
           // branch below never ran. Games that declare no street are untouched.
           const declaredCfg = pioQueryService.getGameConfig(gameId);
           const hydratedCacheRows = (questions || [])
-              .map((row) => ({ ...row, question_data: cacheQuestionFromRow(row) }))
+              .map((row) => {
+                  const question = cacheQuestionFromRow(row);
+                  if (question && row?.question_id) question.id = String(row.question_id);
+                  return { ...row, question_data: question };
+              })
               .filter((row) => cacheRowIsServingEligible(row));
           const contractedRows = filterCachedRowsForGame(
-              hydratedCacheRows.slice(0, questionCount * 3),
+              hydratedCacheRows.slice(0, candidateQuestionCount * 3),
               declaredCfg,
           );
+          const authorityEligibleRows = contractedRows
+              .map((row) => ({
+                  ...row,
+                  question_data: normalizeCampaignQuestionWithoutFabrication(row?.question_data),
+              }))
+              .filter((row) => row.question_data);
           // An explicit street target is a hard training contract, not a hint.
           // Applying it only to generated rows meant a warm cache silently
           // ignored the user's Turn/Flop/River selection whenever it already
           // held enough mixed-street questions.
           const rows = targetStreet
-              ? contractedRows.filter((row) => streetOfCachedRow(row) === targetStreet)
-              : contractedRows;
+              ? authorityEligibleRows.filter((row) => streetOfCachedRow(row) === targetStreet)
+              : authorityEligibleRows;
+          const selectableRows = rows.filter((row) => (
+              trainingQuestionMatchesSelection(row?.question_data, attemptSelection)
+          ));
           const fresh = seenIds.size > 0
-              ? rows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
-              : rows;
-          const usable = [...(fresh.length >= questionCount ? fresh : rows)];
+              ? selectableRows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
+              : selectableRows;
+          const usable = [...(fresh.length >= candidateQuestionCount ? fresh : selectableRows)];
           // Shuffle BEFORE slicing so the same first-N cache rows are not
           // served on every call (2026-07-19 engine-audit intent preserved)
           for (let i = usable.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [usable[i], usable[j]] = [usable[j], usable[i]];
           }
-          const cachedQuestions = usable.slice(0, questionCount);
+          // Apply the immutable drill selection to the complete bounded cache
+          // pool before slicing. Sampling four arbitrary rows for a one-hand
+          // close-spot recovery can otherwise miss a valid fifth row and claim
+          // a false shortfall without ever reaching generation.
+          const cachedQuestions = usable.slice(0, candidateQuestionCount);
           let solverQuestions = [];
 
-          if (cachedQuestions.length < questionCount) {
+          if (cachedQuestions.length < candidateQuestionCount) {
               const pioConfig = declaredCfg;
               const gameCfg = getGameCfg(gameId);
 
@@ -194,7 +340,7 @@ export default async function handler(req, res) {
                   // Inject service-role client so engine bypasses RLS
                   deterministicEngine.setSupabaseClient(getSupabase());
                   try {
-                      const needed = questionCount - cachedQuestions.length;
+                      const needed = candidateQuestionCount - cachedQuestions.length;
                       const generationSeenIds = Array.from(new Set([
                           ...seenIds,
                           ...cachedQuestions.flatMap((row) => [row?.id, row?.question_data?.id]).filter(Boolean),
@@ -216,7 +362,11 @@ export default async function handler(req, res) {
                           seenIds: generationSeenIds,
                       });
                       if (batch && batch.length > 0) {
-                          solverQuestions = batch.map(q => ({ question_data: q }));
+                          solverQuestions = batch
+                              .map(question => ({
+                                  question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                              }))
+                              .filter(row => row.question_data);
                           console.debug(`[BatchPreload] DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
                       }
                   } catch (solverErr) {
@@ -233,15 +383,16 @@ export default async function handler(req, res) {
                       const batch = await deterministicEngine.generateBatch({
                           gameId,
                           level: gameLevel,
-                          count: Math.min(questionCount - cachedQuestions.length, 15),
+                          count: candidateQuestionCount - cachedQuestions.length,
                           gameConfig: pioConfig || gameCfg || { id: gameId, sourceOfTruth: 'SCENARIO' },
                           seenIds: Array.from(seenIds),
                       });
                       if (batch && batch.length > 0) {
-                          solverQuestions = batch.map(q => {
-                              if (q.scenario) q.scenario.isPsychology = true;
-                              return { question_data: q };
-                          });
+                          solverQuestions = batch
+                              .map(question => ({
+                                  question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                              }))
+                              .filter(row => row.question_data);
                           console.debug(`[BatchPreload] Engine generated ${batch.length} scenario questions for ${gameId}`);
                       }
                   } catch (scenarioErr) {
@@ -281,7 +432,7 @@ export default async function handler(req, res) {
           if (aggressive.length > 0 && passive.length > 0) {
               batch = [];
               let ai = 0, pi = 0;
-              while (batch.length < questionCount && (ai < aggressive.length || pi < passive.length)) {
+              while (batch.length < candidateQuestionCount && (ai < aggressive.length || pi < passive.length)) {
                   // Alternate, preferring whichever class is underrepresented so far
                   const takeAggressive =
                       ai < aggressive.length && (pi >= passive.length || batch.length % 2 === 1);
@@ -290,250 +441,54 @@ export default async function handler(req, res) {
               }
           } else {
               // Only one class available in the pool — serve what exists
-              batch = shuffled.slice(0, questionCount);
+              batch = shuffled.slice(0, candidateQuestionCount);
           }
 
-          // ●●● ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ●●●
-          const policyService = new SolverPolicyService({ db: getSupabase() });
+          // Balancing the two broad action classes must not make the answer
+          // class predictable from the hand number. The earlier alternating
+          // pass intentionally fixes the quota, then this independent
+          // cryptographic shuffle removes the passive/even, aggressive/odd
+          // side channel before the immutable attempt manifest is sealed.
+          batch = shuffleBalancedQuestionOrder(batch);
+
+          // Cache truth owns the immutable grading policy and its persisted
+          // receipt. It may classify a complete authored question, but it must
+          // never fill missing cards, boards, seats, stacks, or pot geometry.
           const originalCacheRowByQuestionId = new Map(cachedQuestions.flatMap((row) => {
               const ids = [row?.question_id, row?.question_data?.id]
                   .filter(Boolean)
                   .map(String);
               return ids.map((id) => [id, row]);
           }));
-          const enrichedBatch = batch.map(q => {
-              const qData = q.question_data;
-              if (!qData) return null; // Skip null entries
-              if (q.question_id) qData.id = q.question_id;
 
-              // The payload type is authoritative here. Some historical chart
-              // rows were stored under the generic PIO engine label, so
-              // requiring both labels let valid Push/Fold charts bypass the
-              // lossless preflop canonicalizer and then fail server grading.
-              if (String(qData.type || '').toUpperCase() === 'CHART') {
-                  normalizeAuditedChartQuestion(qData);
-              }
+          // Canonicalization is deliberately non-generative. A row either
+          // arrives with an audited source and complete material context or it
+          // cannot enter a progress-bearing attempt.
+          const enrichedCandidates = batch
+              .map(row => normalizeCampaignQuestionWithoutFabrication(row?.question_data))
+              .filter(Boolean)
+              .filter(question => (
+                  isTrainingQuestionValid(question)
+                  && isTrainingQuestionCampaignEligible(question)
+              ));
 
-              // Live engine rows are wrapped without a cache `engine_type`, so
-              // the source label itself must activate the no-fabrication gate.
-              // Requiring q.engine_type === PIO here let a freshly sanitized
-              // legacy warehouse row be reclassified as CURATED and receive
-              // invented cards/boards/EV on the batch path.
-              const isWarehouseSolver = ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'LOCAL_SOLVER_RANGES', 'LEGACY_STRATEGY_ARCHIVE']
-                  .includes(String(qData.source || '').toUpperCase());
-              // Historical rows are usable only as explicitly unverified
-              // legacy evidence until the warehouse writer supplies the full
-              // machine/manifest/artifact provenance seal.
-              let dataQuality = isVerifiedSolverQuestion(qData)
-                  ? 'SOLVER_EXACT'
-                  : (isWarehouseSolver ? 'LEGACY_UNVERIFIED' : 'CURATED');
+          const configuredCandidates = filterTrainingQuestionsForAttempt(
+              enrichedCandidates,
+              attemptSelection,
+          );
 
-              // 2026-07-19 AUDIT FIX: reconcile answer key with solver
-              // frequencies BEFORE any enrichment.
-              reconcileAnswerKey(qData);
-
-              const scenario = (qData.scenario && typeof qData.scenario === 'object') ? qData.scenario : {};
-              if (typeof qData.scenario === 'string') qData.scenarioText = qData.scenario;
-              const options = qData.options || [];
-
-              // Psychology questions get no poker-context fabrication
-              const isPsych = String(gameId).startsWith('psy-') || scenario.isPsychology === true;
-
-              // 1. Ensure heroCards
-              if (!isPsych && (!qData.heroCards || !Array.isArray(qData.heroCards) || qData.heroCards.length < 2)) {
-                  const heroHand = scenario.heroHand || qData.heroHand || '';
-                  const represented = handNotationToRepresentativeCards(
-                      heroHand,
-                      qData.boardCards || scenario.board || [],
-                  );
-                  if (represented) {
-                      qData.heroCards = represented;
-                  } else if (isWarehouseSolver) {
-                      // Inventing cards changes the exact decision the solver
-                      // evaluated. Reject the row instead of rendering a
-                      // different hand with the original answer key.
-                      return null;
-                  } else {
-                      const seed = hashSeed(q.id || q.game_id || `q${qData.id || Math.random()}`);
-                      qData.heroCards = _getDeterministicCards(seed, 2);
-                      dataQuality = 'SIMULATED';
-                  }
-              }
-
-              // roadmap #16 — a genuinely PREFLOP spot has no board, and that
-              // is not a gap to be filled. This handler used to fabricate three
-              // deterministic cards for ANY boardless non-psychology question
-              // (step 2 below), and then step 5's street backfill has no
-              // `preflop` branch, so zero real board cards fell through to
-              // 'river'. Net effect: every push/fold or open/3-bet drill was
-              // served to the felt as a river decision on an invented board,
-              // with the default 12bb pot. The felt-side preflop math
-              // (committedFor crediting posted blinds) was correct and simply
-              // unreachable. Read the declared street ONCE, here, and let it
-              // veto both fabrications.
-              const declaredStreet = String(scenario.street || qData.street || '').toLowerCase();
-              const isPreflop = declaredStreet === 'preflop';
-
-              // 2. Ensure boardCards
-              if (!isPsych && !isPreflop && (!qData.boardCards || !Array.isArray(qData.boardCards) || qData.boardCards.length === 0)) {
-                  const boardStr = (scenario.board || '').replace(/\s+/g, '');
-                  if (boardStr.length >= 6) {
-                      const cards = [];
-                      for (let i = 0; i < boardStr.length; i += 2) {
-                          if (i + 1 < boardStr.length) cards.push(boardStr.substring(i, i + 2));
-                      }
-                      const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
-                      if (cards.length < 3 && isWarehouseSolver) return null;
-                      qData.boardCards = cards.length >= 3 ? cards : _getDeterministicCards(seed, 3, qData.heroCards);
-                      if (cards.length < 3) dataQuality = 'SIMULATED';
-                  } else if (isWarehouseSolver) {
-                      // A postflop solver answer cannot be transplanted onto a
-                      // fabricated board.
-                      return null;
-                  } else {
-                      const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
-                      qData.boardCards = _getDeterministicCards(seed, 3, qData.heroCards);
-                      dataQuality = 'SIMULATED';
-                  }
-              }
-
-              // 2.5 ●●● OPTIONS NORMALIZATION (GTO WIZARD STYLE) ●●●
-              // Normalize options to object format but do NOT blindly pad.
-              // Trust solver data — DeterministicGTOEngine already provides
-              // context-appropriate actions. Only normalize format here.
-              if (!qData.options) qData.options = [];
-              qData.options = qData.options.map((opt, idx) => {
-                  if (typeof opt === 'string') return { id: `opt_${idx}`, text: opt, frequency: 0 };
-                  return { id: opt.id || `opt_${idx}`, text: opt.text || String(opt), frequency: opt.frequency || 0 };
-              });
-
-              // Only add minimal context-aware fillers for Grok/legacy questions with < 2 options
-              // DeterministicGTOEngine-sourced questions already have proper options
-              if (qData.options.length < 2 && !scenario.isPsychology && qData.source !== 'DETERMINISTIC_SOLVER') {
-                  const existingIds = new Set(qData.options.map(o => o.id));
-                  const existingTexts = new Set(qData.options.map(o => (o.text || '').toLowerCase()));
-
-                  // Detect node type from existing options
-                  const hasCheck = qData.options.some(o => /check/i.test(o.text || ''));
-                  const hasBet = qData.options.some(o => /bet|raise/i.test(o.text || ''));
-                  const hasFold = qData.options.some(o => /fold/i.test(o.text || ''));
-
-                  // Context-aware fillers: only add what makes sense
-                  const fillers = [];
-                  if (hasCheck || hasBet) {
-                      // Hero acts first node: Check + Bet sizes are valid
-                      if (!hasCheck) fillers.push({ id: 'x', text: 'Check' });
-                      if (!hasBet) fillers.push({ id: 'b33', text: 'Bet 33%' });
-                  } else if (hasFold) {
-                      // Facing bet node: Fold + Call + Raise are valid
-                      fillers.push({ id: 'call', text: 'Call' });
-                      fillers.push({ id: 'r', text: 'Raise' });
-                  } else {
-                      // Unknown: add check and a bet size
-                      fillers.push({ id: 'x', text: 'Check' });
-                      fillers.push({ id: 'b33', text: 'Bet 33%' });
-                  }
-
-                  for (const filler of fillers) {
-                      if (qData.options.length >= 4) break;
-                      if (!existingIds.has(filler.id) && !existingTexts.has(filler.text.toLowerCase())) {
-                          qData.options.push({ id: filler.id, text: filler.text, frequency: 0 });
-                          existingIds.add(filler.id);
-                          existingTexts.add(filler.text.toLowerCase());
-                      }
-                  }
-              }
-
-              // 3. Ensure gtoFrequencies
-              if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies || {}).length === 0) {
-                  // Try PIO raw frequencies first
-                  if (qData.frequencies) {
-                      qData.gtoFrequencies = {};
-                      Object.entries(qData.frequencies || {}).forEach(([action, freq]) => {
-                          if (typeof freq === 'number' && freq >= 0 && freq <= 1) {
-                              qData.gtoFrequencies[action] = Math.round(freq * 100);
-                          }
-                      });
-                  }
-                  // If still empty, generate deterministic defaults based on action type
-                  if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies || {}).length === 0) {
-                      if (isWarehouseSolver) return null;
-                      // No source distribution means there is no honest bar to
-                      // render. The answer key remains gradeable, but neither
-                      // frequencies nor EV may be inferred from it.
-                  }
-              }
-
-              // 4. Fill scenario gaps (skip for psychology — no poker context to fabricate)
-              if (!isPsych) {
-                  if (isWarehouseSolver && (
-                      !scenario.heroPosition
-                      || !scenario.villainPosition
-                      || !scenario.street
-                      || !Number.isFinite(Number(scenario.pot))
-                      || !Number.isFinite(Number(scenario.heroStack))
-                      || !Number.isFinite(Number(scenario.villainStack))
-                  )) return null;
-                  if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
-                  if (!scenario.villainPosition) scenario.villainPosition = 'BB';
-                  // roadmap #16 — resolve the street BEFORE the pot default,
-                  // because the correct preflop pot (blinds only) is not the
-                  // postflop one. Zero board cards means preflop; it used to
-                  // fall through to 'river'.
-                  if (!scenario.street) {
-                      const n = Array.isArray(qData.boardCards) ? qData.boardCards.length : 0;
-                      scenario.street = n === 0 ? 'preflop'
-                          : n === 3 ? 'flop'
-                          : n === 4 ? 'turn' : 'river';
-                  }
-                  if (!scenario.pot) {
-                      scenario.pot = String(scenario.street).toLowerCase() === 'preflop' ? 1.5 : 12;
-                  }
-                  if (!scenario.heroStack) scenario.heroStack = 100;
-                  if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
-                  // ●●● SANITIZE: Clamp pot/stacks to prevent absurd values ●●●
-                  // IMP-4 FIX: Raised from 50/300 to 500/500 — solver 3bet/4bet pots easily exceed 50BB
-                  scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 500);
-                  scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 500);
-                  scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 500);
-              }
-              qData.scenario = scenario;
-              hydrateMissingPIOScenarioContract(qData, declaredCfg);
-              if (!qData.source) qData.source = 'CACHED_SCENARIO';
-              // IMP-5: Tag data quality for frontend confidence indicators
-              qData.dataQuality = dataQuality;
-
-              return policyService.attachToQuestion(
-                  enforceTrainingQuestionContract(enforceSolverClaimHonesty(qData)),
-                  'batch-preload',
-              );
-          }).filter((question) => question && isTrainingQuestionValid(question));
-
-          if (enrichedBatch.length === 0) {
+          if (configuredCandidates.length < questionCount) {
               return res.status(422).json({
                   success: false,
-                  error: 'No questions passed the training integrity audit for this game and level.',
+                  error: `Only ${configuredCandidates.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
+                  code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
               });
           }
 
           // Every served question must be persisted in the exact post-contract
-          // envelope the player received. This includes legacy cache hits: the
-          // reader sanitizes and discloses them in memory, so leaving the old
-          // unsanitized row untouched made record-question reject the answer as
-          // expired even though this endpoint had just served it.
-          if (enrichedBatch.some((question) => !question?.id)) {
-              return res.status(422).json({
-                  success: false,
-                  error: 'A canonical identifier is required for every training question.',
-              });
-          }
-          const uniqueQuestionIds = new Set(enrichedBatch.map((question) => String(question.id)));
-          if (uniqueQuestionIds.size !== enrichedBatch.length) {
-              return res.status(422).json({
-                  success: false,
-                  error: 'Duplicate canonical question identifiers were generated for this batch.',
-              });
-          }
+          // envelope the player receives. Authority-ineligible legacy,
+          // heuristic, simulated, and incomplete rows were already rejected
+          // above and therefore can never be laundered by this write.
           /* ═══ ONE UNBUILDABLE QUESTION MUST NOT 500 THE WHOLE BATCH ══════
            *
            * (2026-09-07) `buildTrainingCacheRow` throws on six separate
@@ -549,139 +504,140 @@ export default async function handler(req, res) {
            * bricked the whole GTO arena until a page reload, showing
            * `Loading Solver Data...` on a permanently disabled button.
            *
-           * A question that cannot be canonicalised is dropped from the
-           * PERSISTENCE pass and reported, not served silently and not allowed
-           * to take the other twenty-four with it. It is still excluded from
-           * `servedBatch` below by the existing quality gate, so nothing
-           * unverified reaches a player — this only stops one bad row being
-           * an outage.
+           * A question that cannot be canonicalised is reported and skipped.
+           * A later candidate replaces it; only successfully built rows may
+           * enter persistence or delivery. If the bounded surplus is still
+           * insufficient, the route returns an honest 422 before either write.
            */
           const canonicalizeFailures = [];
-          const canonicalRows = Array.from(new Map(enrichedBatch
-                  .map(q => {
-                      const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
-                          : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
-                      const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
-                          : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
-                      const original = originalCacheRowByQuestionId.get(String(q.id));
-                      try {
-                          const row = buildTrainingCacheRow({
-                              question: q,
-                              questionId: original?.question_id || q.id,
-                              gameId,
-                              questionKind,
-                              gameType,
-                              level: gameLevel,
-                              generatedAt: original?.generated_at || new Date().toISOString(),
-                              id: original?.id || null,
-                          });
-                          return [row.question_id, row];
-                      } catch (rowError) {
-                          canonicalizeFailures.push({
-                              questionId: String(original?.question_id || q.id),
-                              reason: String(rowError?.message || rowError).slice(0, 200),
-                          });
-                          return null;
-                      }
-                  })
-                  .filter(Boolean)).values());
+          const canonicalPairs = [];
+          const canonicalQuestionIds = new Set();
+          const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
+              : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
+          const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
+              : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
+          for (const question of configuredCandidates) {
+              if (canonicalPairs.length >= questionCount) break;
+              const original = originalCacheRowByQuestionId.get(String(question?.id));
+              const questionId = String(original?.question_id || question?.id || '');
+              try {
+                  const row = buildTrainingCacheRow({
+                      question,
+                      questionId,
+                      gameId,
+                      questionKind,
+                      gameType,
+                      level: gameLevel,
+                      generatedAt: original?.generated_at || new Date().toISOString(),
+                      id: original?.id || null,
+                  });
+                  const canonicalQuestionId = String(row?.question_id || '');
+                  if (!canonicalQuestionId || canonicalQuestionIds.has(canonicalQuestionId)) {
+                      throw new Error(canonicalQuestionId
+                          ? 'Duplicate canonical question identifier'
+                          : 'Canonical question identifier is missing');
+                  }
+                  canonicalQuestionIds.add(canonicalQuestionId);
+                  canonicalPairs.push({ question, row });
+              } catch (rowError) {
+                  canonicalizeFailures.push({
+                      questionId,
+                      reason: String(rowError?.message || rowError).slice(0, 200),
+                  });
+              }
+          }
+          const canonicalRows = canonicalPairs.map(({ row }) => row);
 
           if (canonicalizeFailures.length > 0) {
               console.warn(
-                  `[BatchPreload] ${canonicalizeFailures.length} of ${enrichedBatch.length} ` +
-                  `question(s) could not be canonicalised and were dropped from the persistence ` +
-                  `pass: ${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
+                  `[BatchPreload] ${canonicalizeFailures.length} of ${configuredCandidates.length} ` +
+                  `candidate question(s) could not be canonicalised and were skipped: ` +
+                  `${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
               );
           }
-          /* ═══ ONLY CANONICALISED QUESTIONS ARE SERVED (2026-09-07) ══════
-               *
-               * Dropping unbuildable rows from the persistence pass was right;
-               * leaving `servedBatch = enrichedBatch` was not, and it opened a
-               * hole in the middle of a change series titled "enforce truthful
-               * cache provenance":
-               *
-               *   - `servedBatch` mapped over the FULL enriched batch while
-               *     `canonicalRows` was filtered, so `withPersistedCacheReceipt`
-               *     was handed `undefined` for any dropped question and threw -
-               *     turning "one bad row out of 25" into a 503 for all 25,
-               *     which is exactly what this was supposed to stop.
-               *   - Worse, if EVERY row was unbuildable then `canonicalRows`
-               *     was empty, the whole block was skipped, and the raw batch
-               *     went out with `success: true` and no persistence, no
-               *     receipt and no provenance at all.
-               *
-               * A question that cannot be canonicalised is not served. The
-               * batch is short, the client keeps the ones that are real, and a
-               * batch with nothing left in it is a 503 rather than a lie.
-               */
-              const canonicalIds = new Set(canonicalRows.map((row) => String(row.question_id)));
-              const servableBatch = enrichedBatch.filter((q) => {
-                  const original = originalCacheRowByQuestionId.get(String(q.id));
-                  return canonicalIds.has(String(original?.question_id || q.id));
+          if (canonicalRows.length !== questionCount) {
+              return res.status(422).json({
+                  success: false,
+                  error: `Only ${canonicalRows.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
+                  code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
               });
+          }
 
-              if (servableBatch.length === 0) {
-                  console.warn(
-                      `[BatchPreload] every question in the batch failed to canonicalise ` +
-                      `(${canonicalizeFailures.length} of ${enrichedBatch.length}); refusing to ` +
-                      'serve unverified questions'
+          let servedBatch;
+          try {
+              const persisted = await runTrainingPersistenceQuery(
+                  () => getSupabase().from('training_question_cache')
+                      .upsert(canonicalRows, {
+                          onConflict: 'question_id',
+                          defaultToNull: false,
+                      })
+                      .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
+                  { label: 'BatchPreload:canonicalize' },
+              );
+              const receiptByQuestionId = new Map(
+                  (persisted.data || []).map((row) => [row.question_id, row]),
+              );
+              if (receiptByQuestionId.size !== canonicalRows.length) {
+                  throw new Error('Database did not return one canonical receipt per question');
+              }
+              servedBatch = canonicalPairs.map(({ row }) => {
+                  const questionId = String(row.question_id);
+                  return withPersistedCacheReceipt(
+                      row.question_data,
+                      receiptByQuestionId.get(questionId),
                   );
-                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              });
+          } catch (canonicalizeError) {
+              console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
+          let delivery;
+          try {
+              delivery = await prepareTrainingAttemptDelivery({
+                  supabase: getSupabase(),
+                  userId: _authUser.id,
+                  clientSessionId: trainingSessionId,
+                  gameId,
+                  level: gameLevel,
+                  sessionKind: 'campaign',
+                  difficultyMode: difficulty,
+                  requestedHands: attemptTargetHands,
+                  questions: servedBatch,
+                  handOrdinalStart,
+                  requireFullAttempt: !isSingleHandRecovery,
+                  config: attemptSelection,
+              });
+          } catch (deliveryError) {
+              console.warn('[BatchPreload] Attempt delivery failed:', deliveryError?.message || deliveryError);
+              if (isTrainingAttemptContractError(deliveryError)) {
+                  return res.status(deliveryError.status || 409).json({
+                      success: false,
+                      error: deliveryError.message,
+                      code: deliveryError.code,
+                  });
               }
-
-              let servedBatch = servableBatch;
-              if (canonicalRows.length > 0) {
-                  try {
-                    const persisted = await runTrainingPersistenceQuery(
-                        () => getSupabase().from('training_question_cache')
-                            .upsert(canonicalRows, {
-                                onConflict: 'question_id',
-                                defaultToNull: false,
-                            })
-                            .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
-                        { label: 'BatchPreload:canonicalize' },
-                    );
-                    const receiptByQuestionId = new Map(
-                        (persisted.data || []).map((row) => [row.question_id, row]),
-                    );
-                    if (receiptByQuestionId.size !== canonicalRows.length) {
-                        throw new Error('Database did not return one canonical receipt per question');
-                    }
-                    const canonicalByQuestionId = new Map(
-                        canonicalRows.map((row) => [row.question_id, row.question_data]),
-                    );
-                    // `servableBatch`, not `enrichedBatch`: a dropped question
-                    // has no canonical row and no receipt, so mapping it here
-                    // hands `withPersistedCacheReceipt` two undefineds.
-                    servedBatch = servableBatch.map((question) => {
-                        const original = originalCacheRowByQuestionId.get(String(question.id));
-                        const questionId = String(original?.question_id || question.id);
-                        return withPersistedCacheReceipt(
-                            canonicalByQuestionId.get(questionId),
-                            receiptByQuestionId.get(questionId),
-                        );
-                    });
-                    await recordTrainingQuestionsServed(getSupabase(), {
-                        requestId: randomUUID(),
-                        userId: _authUser.id,
-                        receipts: canonicalRows.map((row) => ({
-                            questionId: row.question_id,
-                            policyChecksum: receiptByQuestionId.get(row.question_id)?.policy_checksum,
-                        })),
-                    });
-                  } catch (canonicalizeError) {
-                      console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
-                      return res.status(503).json(trainingPersistenceUnavailableBody());
-                  }
-              }
-
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
+          try {
+              await recordTrainingQuestionsServedForAttempt(getSupabase(), {
+                  userId: _authUser.id,
+                  delivery,
+              });
+          } catch (servedAuditError) {
+              console.warn('[BatchPreload] Delivered question audit failed:', servedAuditError?.message || servedAuditError);
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
 
           return res.status(200).json({
               success: true,
               gameId,
               level: gameLevel,
-              count: servedBatch.length,
-              questions: servedBatch
+              sessionId: trainingSessionId,
+              attemptId: delivery.attemptId,
+              sessionKind: delivery.sessionKind,
+              targetHands: delivery.targetHands,
+              count: delivery.questions.length,
+              questions: delivery.questions
           });
 
       } catch (err) {
@@ -694,28 +650,4 @@ export default async function handler(req, res) {
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
-}
-
-/** Generate deterministic cards, preventing collisions */
-function _getDeterministicCards(seed, count, exclude = []) {
-    const deck = [
-        '2c', '3c', '4c', '5c', '6c', '7c', '8c', '9c', 'Tc', 'Jc', 'Qc', 'Kc', 'Ac',
-        '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d', 'Td', 'Jd', 'Qd', 'Kd', 'Ad',
-        '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', 'Th', 'Jh', 'Qh', 'Kh', 'Ah',
-        '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', 'Ts', 'Js', 'Qs', 'Ks', 'As'
-    ];
-    const excludeSet = new Set(exclude.map(c => c.toLowerCase()));
-    const available = deck.filter(c => !excludeSet.has(c.toLowerCase()));
-    let a = seed || Date.now();
-    const rng = () => {
-        let t = a += 0x6D2B79F5;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-    for (let i = available.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        [available[i], available[j]] = [available[j], available[i]];
-    }
-    return available.slice(0, count);
 }

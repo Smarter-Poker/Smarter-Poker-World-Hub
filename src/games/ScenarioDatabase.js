@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   📊 GTO SCENARIO DATABASE - Progressive Difficulty System
-   Each level builds on previous knowledge with increasing complexity
+   📊 RANGE AND PRACTICE SCENARIO DATABASE - Progressive Difficulty
+   Levels 1-7 use the preflop range catalog. Levels 8-10 are explicitly
+   illustrative local postflop practice and are never solver authority.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -29,26 +30,12 @@ export const LEVEL_CONFIG = {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LEVEL 1: NEURAL BOOT — EP Opens (UTG, MP, HJ) + Stack Depth Variants
-// NOW SOLVER-GENERATED from SolverScenarioGenerator.js generateLevel1()
+// Now assembled as an authored local reference by SolverScenarioGenerator.js.
 // Old hardcoded scenarios removed — LEVEL_1_SCENARIOS populated below
 // from the solver generator alongside L2-7.
 // ═══════════════════════════════════════════════════════════════════════════
 // [REMOVED] ~340 lines of hand-typed Level 1 scenarios without mixed frequencies.
-// Replaced by solver-accurate scenarios generated from solverRanges.js.
-
-
-export const LEVEL_10_SCENARIOS = [
-    {
-        id: 'l10-mixed-btn', level: 10, title: 'BTN Mixed Strategy', position: 'BTN', stackDepth: 100,
-        description: 'Hands That Mix Raise/fold on the Button.',
-        tip: 'These Borderline Hands Use Mixed Frequencies In GTO.',
-        solution: {
-            'K4o': 'raise', 'K3o': 'raise', 'K2o': 'raise',
-            'Q5o': 'raise', 'Q4o': 'raise', 'J6o': 'raise', 'T6o': 'raise',
-            '96o': 'raise', '85o': 'raise', '74o': 'raise', '63o': 'raise', '52o': 'raise',
-        }
-    },
-];
+// Replaced by generated preflop range scenarios from solverRanges.js.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MIXED STRATEGY SCENARIOS (for Mixed Strategy Trainer)
@@ -249,11 +236,11 @@ export const SPOT_SCENARIOS = [
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SOLVER-GENERATED SCENARIOS (Levels 1-7)
+// AUTHORED LOCAL-REFERENCE SCENARIOS (Levels 1-7)
 // ═══════════════════════════════════════════════════════════════════════════
-// All preflop training scenarios are now generated deterministically from
-// PioSolver GTO data via SolverScenarioGenerator.js + solverRanges.js.
-// Level 1 (EP opens) through Level 7 (squeeze) are fully solver-accurate.
+// These preflop practice scenarios are assembled deterministically from the
+// authored solverRanges.js reference. The source has no sealed solver artifact
+// lineage, so it must never be presented as PioSOLVER or solver-exact output.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import {
@@ -274,12 +261,13 @@ import {
     getRFIByDepth,
 } from '../config/solverRanges';
 
-// Generate all solver scenarios on first load (cached internally)
+// Generate all local practice scenarios on first load (cached internally).
 const _solverScenarios = generateAllSolverScenarios();
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPATIBILITY EXPORTS — LEVEL_1 through LEVEL_9 for memory-games.js
-// All levels now map to solver-generated scenarios from solverRanges.js
+// COMPATIBILITY EXPORTS — LEVEL_1 through LEVEL_10 for memory-games.js.
+// Levels 8-10 retain the postflop generator's explicit local-practice
+// provenance; do not alias them to a preflop level or a hand-written range.
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_1_SCENARIOS = _solverScenarios[1] || [];
 export const LEVEL_2_SCENARIOS = _solverScenarios[2] || [];
@@ -288,11 +276,12 @@ export const LEVEL_4_SCENARIOS = _solverScenarios[4] || [];
 export const LEVEL_5_SCENARIOS = _solverScenarios[5] || [];
 export const LEVEL_6_SCENARIOS = _solverScenarios[6] || [];
 export const LEVEL_7_SCENARIOS = _solverScenarios[7] || [];
-export const LEVEL_8_SCENARIOS = _solverScenarios[7] || []; // L8 falls back to L7
-export const LEVEL_9_SCENARIOS = _solverScenarios[7] || []; // L9 falls back to L7
+export const LEVEL_8_SCENARIOS = _solverScenarios[8] || [];
+export const LEVEL_9_SCENARIOS = _solverScenarios[9] || [];
+export const LEVEL_10_SCENARIOS = _solverScenarios[10] || [];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ALL SCENARIOS — Solver-generated L1-7 + L10
+// ALL SCENARIOS — Preflop range catalog + illustrative postflop practice
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const ALL_SCENARIOS = [
@@ -303,12 +292,15 @@ export const ALL_SCENARIOS = [
     ...(_solverScenarios[5] || []),
     ...(_solverScenarios[6] || []),
     ...(_solverScenarios[7] || []),
+    ...LEVEL_8_SCENARIOS,
+    ...LEVEL_9_SCENARIOS,
     ...LEVEL_10_SCENARIOS,
 ];
 
 /**
  * Get scenarios for a specific level.
- * Levels 1-10 come from the solver generator (L1-7 preflop, L8-10 postflop).
+ * Levels 1-7 are preflop range scenarios. Levels 8-10 are illustrative local
+ * postflop practice with explicit non-authoritative provenance.
  */
 export function getScenariosByLevel(level) {
     if (level >= 1 && level <= 10) {
@@ -321,7 +313,7 @@ export function getScenariosByLevel(level) {
  * Get a random scenario for a level.
  */
 export function getRandomScenario(level) {
-    // Solver-generated levels (1-10: L1-7 preflop, L8-10 postflop)
+    // Combined catalog: preflop ranges plus illustrative local postflop practice.
     if (level >= 1 && level <= 10) {
         return getRandomSolverScenario(level);
     }
@@ -335,19 +327,20 @@ export function getLevelConfig(level) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SOLVER-ENRICHED SCENARIO BRIDGE
-// All solver-generated scenarios (L1-7) already have enriched data built in.
-// This bridge exists for any legacy scenarios (L10) that may still use
-// binary solutions without mixed frequencies.
+// PREFLOP RANGE ENRICHMENT BRIDGE
+// Generated preflop scenarios already have enriched data built in. This bridge
+// exists only for older binary preflop range objects; postflop local practice
+// must keep its own non-authoritative provenance and is never enriched here.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Map scenario metadata to the best-matching solver spot.
- * Returns null if no solver data matches (e.g., post-flop or solver-generated scenarios).
+ * Map legacy scenario metadata to the best-matching authored reference spot.
+ * Returns null if no authored reference matches (for example, postflop data or
+ * a scenario that already carries its complete reference frequencies).
  */
-function matchSolverSpot(scenario) {
-    // Solver-generated scenarios already have enrichedSolution — skip
-    if (scenario.solverGenerated) return null;
+function matchAuthoredRangeSpot(scenario) {
+    // Current authored-reference scenarios already have enrichedSolution.
+    if (scenario.authority === 'authored_local_reference' && scenario.enrichedSolution) return null;
 
     const pos = scenario.position;
     const level = scenario.level;
@@ -416,43 +409,43 @@ function matchSolverSpot(scenario) {
 }
 
 /**
- * Enrich a scenario's binary solution with solver frequencies.
- * Solver-generated scenarios (L2-7) already have enrichedSolution built in,
- * so this is mainly for Level 1 hand-curated scenarios.
+ * Enrich a legacy scenario's binary solution with authored-reference frequencies.
+ * Current Levels 1-7 already have enrichedSolution built in, so this bridge is
+ * retained only for older local preflop scenario shapes.
  */
 export function enrichScenarioWithFrequencies(scenario) {
     if (!scenario || !scenario.solution) return scenario;
 
-    // Solver-generated scenarios already have full frequency data
-    if (scenario.solverGenerated && scenario.enrichedSolution) {
+    // Current authored-reference scenarios already have full frequency data.
+    if (scenario.authority === 'authored_local_reference' && scenario.enrichedSolution) {
         return scenario;
     }
 
-    const solverSpot = matchSolverSpot(scenario);
-    if (!solverSpot) return scenario;
+    const referenceSpot = matchAuthoredRangeSpot(scenario);
+    if (!referenceSpot) return scenario;
 
     const enrichedSolution = {};
     for (const [hand, action] of Object.entries(scenario.solution || {})) {
-        const solverFreqs = solverGetFreqs(solverSpot, hand);
+        const referenceFreqs = solverGetFreqs(referenceSpot, hand);
         enrichedSolution[hand] = {
             primaryAction: action,
-            raise: solverFreqs.raise,
-            call: solverFreqs.call,
-            fold: solverFreqs.fold,
+            raise: referenceFreqs.raise,
+            call: referenceFreqs.call,
+            fold: referenceFreqs.fold,
         };
     }
 
-    // Include hands in solver range but NOT in the binary solution
-    const allSolverHands = Object.keys(solverSpot || {});
-    for (const hand of allSolverHands) {
+    // Include hands in the authored reference but not in the binary solution.
+    const allReferenceHands = Object.keys(referenceSpot || {});
+    for (const hand of allReferenceHands) {
         if (!enrichedSolution[hand]) {
-            const solverFreqs = solverGetFreqs(solverSpot, hand);
-            if (solverFreqs.raise > 0.05 || solverFreqs.call > 0.05) {
+            const referenceFreqs = solverGetFreqs(referenceSpot, hand);
+            if (referenceFreqs.raise > 0.05 || referenceFreqs.call > 0.05) {
                 enrichedSolution[hand] = {
-                    primaryAction: solverFreqs.raise > solverFreqs.fold ? 'raise' : 'fold',
-                    raise: solverFreqs.raise,
-                    call: solverFreqs.call,
-                    fold: solverFreqs.fold,
+                    primaryAction: referenceFreqs.raise > referenceFreqs.fold ? 'raise' : 'fold',
+                    raise: referenceFreqs.raise,
+                    call: referenceFreqs.call,
+                    fold: referenceFreqs.fold,
                 };
             }
         }
@@ -466,14 +459,14 @@ export function enrichScenarioWithFrequencies(scenario) {
 }
 
 /**
- * Get solver-enriched scenarios for a level.
+ * Get authored-reference-enriched scenarios for a level.
  */
 export function getEnrichedScenariosByLevel(level) {
     return getScenariosByLevel(level).map(enrichScenarioWithFrequencies);
 }
 
 /**
- * Get a random solver-enriched scenario for a level.
+ * Get a random authored-reference-enriched scenario for a level.
  */
 export function getRandomEnrichedScenario(level) {
     const scenario = getRandomScenario(level);

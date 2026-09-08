@@ -41,9 +41,6 @@ import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
   safeStorage, usePrefersReducedMotion, useAbortableFetch, isAbortError,
 } from '../../../src/components/sandbox/paKit';
-import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
-import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector';
-import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY';
@@ -60,17 +57,8 @@ import {
 const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CODE-SPLIT ANALYTICS (Insights tab only · keeps them off the critical path)
+// VERIFIED REVIEW DRILL (loaded only after an explicit user action)
 // ═══════════════════════════════════════════════════════════════════════════
-
-const SessionAnalytics = dynamic(
-  () => import('../../../src/components/sandbox/SessionAnalytics'),
-  { ssr: false, loading: () => <PanelSkeleton label="Loading session analytics" /> },
-);
-// These three command cards stay in the route bundle. When they were separate
-// chunks, slow account API requests could occupy every browser connection and
-// strand the Insights tab on skeletons for several seconds. They are small,
-// and their own data requests still run only after the Insights tab mounts.
 
 // The review drill is the existing sandbox drill loop · never a second drill UI.
 // It is only ever mounted after a tap, so it stays off the first paint.
@@ -300,6 +288,7 @@ function PanelCrash({ label, error, onRetry }) {
   );
 }
 
+/** Stable loading surface for lazily mounted evidence-backed workspaces. */
 function PanelSkeleton({ label = 'Loading' }) {
   return (
     <div style={card} aria-busy="true" aria-label={label}>
@@ -476,7 +465,7 @@ function ReviewQueueCard({
         onClick={() => onStart && onStart(top)}
       >
         <Target size={18} strokeWidth={2} aria-hidden="true" />
-        {startable ? 'Start review' : 'Practise this leak'}
+        {startable ? 'Start review' : 'Open hand review'}
       </button>
 
       <p style={styles.reviewFoot}>
@@ -484,7 +473,7 @@ function ReviewQueueCard({
           ? (total > 1
             ? `A timed drill on this leak. ${total - 1} more waiting after it.`
             : 'A timed drill on this leak · your score sets the next review date.')
-          : 'This leak has no matching drill street, so this opens the sandbox instead.'}
+          : 'This leak has no exact drill identity, so this opens the provenance-audited hand-history review instead.'}
       </p>
 
       {errorNote}
@@ -917,7 +906,7 @@ function LeakCardProgress({ progress }) {
   );
 }
 
-function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
+function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
   const priced = hasPricedEv(leak);
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
@@ -973,15 +962,15 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
         )}
       </button>
 
-      {onPractice && (
+      {onReview && (
         <button
           type="button"
           className="pa-btn"
-          onClick={() => onPractice(leak)}
+          onClick={() => onReview(leak)}
           style={{ ...btn('secondary', { block: true }), color: T.accent, borderColor: 'rgba(99,231,255,0.45)' }}
         >
           <Target size={18} strokeWidth={2} aria-hidden="true" />
-          Practise This Leak
+          Open Hand Review
         </button>
       )}
     </li>
@@ -1144,7 +1133,7 @@ function ResolutionProgressSection({ record }) {
 }
 
 function LeakDetail({
-  leak, onPracticeSandbox, onPracticeExample, onStartReview, onTrainDrills,
+  leak, onOpenHandReview, onReviewExample, onStartReview, onTrainDrills,
   onMarkResolved, onReopen, isResolving, reviewRecord,
 }) {
   const isDemoLeak = isDemoLeakId(leak?.id);
@@ -1175,9 +1164,7 @@ function LeakDetail({
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
 
-  const sandboxCopy = drill
-    ? `Practice ${situation} spots in a controlled environment. The sandbox opens on the "${drill}" drill targeting this exact leak.`
-    : `Practice ${situation} spots in a controlled environment with coach mode focused on this leak.`;
+  const handReviewCopy = `Upload The Original Hand History To Reconstruct ${situation} With Its Real Action, Stacks, And Board. No Query-Authored Scenario Or Unsealed Grade Is Created.`;
   const trainingCopy = drill
     ? exactTrainingGame
       ? `Open The Exact ${exactTrainingGame} Training Game That Produced This Solver Signal.`
@@ -1283,9 +1270,9 @@ function LeakDetail({
                     key={ex.id}
                     type="button"
                     className="leak-card pa-btn"
-                    onClick={() => onPracticeExample(leak, ex)}
+                    onClick={() => onReviewExample(leak, ex)}
                     style={styles.exampleRow}
-                    aria-label={`Practice this hand: ${fmtCards(snap.hero_cards)} on ${fmtCards(snap.board)}`}
+                    aria-label={`Review this hand: ${fmtCards(snap.hero_cards)} on ${fmtCards(snap.board)}`}
                   >
                     <span style={styles.exampleLine1}>
                       <span style={styles.exampleCards}>{fmtCards(snap.hero_cards)}</span>
@@ -1327,12 +1314,12 @@ function LeakDetail({
           <div style={{ ...styles.fixCard, ...(autoGuidance ? styles.fixCardRecommended : null) }}>
             <div style={styles.fixHead}>
               <Target size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.accent }} />
-              <h4 style={styles.fixTitle}>Practice In Sandbox</h4>
+              <h4 style={styles.fixTitle}>Audited Hand Review</h4>
               {autoGuidance && <span style={pill('accent')}>Recommended</span>}
             </div>
-            <p style={styles.fixText}>{sandboxCopy}</p>
-            <button type="button" className="pa-btn" style={btn('primary', { block: true })} onClick={() => onPracticeSandbox(leak)}>
-              Practice Leak In Sandbox
+            <p style={styles.fixText}>{handReviewCopy}</p>
+            <button type="button" className="pa-btn" style={btn('primary', { block: true })} onClick={() => onOpenHandReview(leak)}>
+              Open Hand History Review
             </button>
           </div>
 
@@ -1521,7 +1508,7 @@ export default function LeakFinderPage() {
     avgEvLoss,
   };
 
-  // ─── Coach accuracy (sandbox coach mode) ─────────────────────────────────
+  // ─── Archived coach records (legacy rows are not provenance-sealed grades) ─
   const [coachAccuracy, setCoachAccuracy] = useState(null);
   const [coachLoading, setCoachLoading] = useState(true);
   const [coachError, setCoachError] = useState(null);
@@ -1778,62 +1765,22 @@ export default function LeakFinderPage() {
     }
   }, [updateLeakStatus]);
 
-  const buildPracticeQuery = useCallback((leak) => {
-    const q = {};
-    if (leak?.id != null) q.leak = leak.id;
-    const slug = leak?.leakType || slugFromTitle(leak?.title);
-    if (slug) q.leakType = slug;
-    if (leak?.recommendedDrill) q.drill = leak.recommendedDrill;
-    else if (leak?.leakCategory) q.drill = leak.leakCategory;
-    const exactDrill = leakToDrill(leak);
-    if (exactDrill) {
-      q.drillStreet = exactDrill.street;
-      q.drillPosition = exactDrill.position;
-      q.drillLimit = exactDrill.limit;
-    }
-    return q;
-  }, []);
-
-  const handlePracticeSandbox = useCallback((leak) => {
+  const handleOpenHandReview = useCallback((leak) => {
     if (!guardAction()) return;
     const target = leak || selectedLeak;
     if (!target) return;
-    router.push({ pathname: '/hub/personal-assistant/sandbox', query: buildPracticeQuery(target) });
-  }, [guardAction, router, selectedLeak, buildPracticeQuery]);
+    router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks');
+  }, [guardAction, router, selectedLeak]);
 
-  /** One-tap drill-through into the exact spot the example hand recorded. */
-  const handlePracticeExample = useCallback((leak, ex) => {
+  /**
+   * A saved example snapshot is not enough to recreate a legal decision tree.
+   * Send the player to the audited importer instead of serializing a browser-
+   * authored hand into a route that could appear authoritative.
+   */
+  const handleReviewExample = useCallback(() => {
     if (!guardAction()) return;
-    const snap = ex?.snapshot || {};
-    const q = buildPracticeQuery(leak);
-
-    // 2026-08-16: both of these used to join the RAW stored entries, so a hero
-    // holding of [{rank,suit},...] produced `?h=[obj` and a board of
-    // ["6spades",...] produced `?b=6spades,Ahearts,...`. cardText() gives the
-    // canonical "Ah" form the drill actually parses.
-    const heroCards = Array.isArray(snap.hero_cards)
-      ? snap.hero_cards.map(cardText).filter(Boolean)
-      : (typeof snap.hero_cards === 'string'
-          ? snap.hero_cards.split(/[\s,]+/).map(cardText).filter(Boolean)
-          : []);
-    // Two cards, not four characters. Identical for hold'em; for a four-card
-    // Omaha holding it takes the first two CARDS rather than slicing a card in
-    // half, which is what a raw `.slice(0, 4)` did to any non-canonical input.
-    if (heroCards.length >= 2) q.h = heroCards.slice(0, 2).join('');
-
-    const boardCards = Array.isArray(snap.board)
-      ? snap.board.map(cardText).filter(Boolean)
-      : (typeof snap.board === 'string'
-          ? snap.board.split(/[\s,]+/).map(cardText).filter(Boolean)
-          : []);
-    if (boardCards.length > 0) q.b = boardCards.join(',');
-
-    if (Number.isFinite(Number(snap.pot_size))) q.pot = Number(snap.pot_size);
-    // Only fall back to the street when the leak has no named drill
-    if (!q.drill && snap.street) q.drill = String(snap.street);
-
-    router.push({ pathname: '/hub/personal-assistant/sandbox', query: q });
-  }, [guardAction, router, buildPracticeQuery]);
+    router.push('/hub/training/hand-history-upload?source=personal-assistant-leak-example');
+  }, [guardAction, router]);
 
   const handleTrainDrills = useCallback((leak) => {
     if (!guardAction()) return;
@@ -2039,8 +1986,8 @@ export default function LeakFinderPage() {
     const params = target.drill || leakToDrill(targetLeak);
     if (!params) {
       // No street can be inferred, so a drill would serve unrelated spots.
-      // Fall back to the existing sandbox handoff instead of a dead end.
-      handlePracticeSandbox(targetLeak);
+      // Require the original hand history instead of inventing a drill spot.
+      handleOpenHandReview(targetLeak);
       return;
     }
     setReviewReceipt(null);
@@ -2048,7 +1995,7 @@ export default function LeakFinderPage() {
       leakId: String(target.leakId ?? targetLeak.id),
       params,
     });
-  }, [guardAction, reviewQueue, handlePracticeSandbox]);
+  }, [guardAction, reviewQueue, handleOpenHandReview]);
 
   const handleReviewComplete = useCallback((receipt) => {
     if (!receipt || receipt.status !== 'done') return;
@@ -2116,11 +2063,11 @@ export default function LeakFinderPage() {
     onPracticeWorst: () => {
       const worst = visibleLeaks[0] || activeLeaks[0];
       if (!worst) { setTab('leaks'); jumpTo('leak-list'); return; }
-      handlePracticeSandbox(worst);
+      handleOpenHandReview(worst);
     },
     // Toggles keep the drawer open, so this only changes state · no scroll.
     onToggleResolved: (next) => { setTab('leaks'); setPastOpen(!!next); },
-  }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handlePracticeSandbox]);
+  }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handleOpenHandReview]);
 
   const menuConfig = useMemo(() => getMenuConfig('leaks', null, {
     leakCount: activeLeaks.length,
@@ -2257,17 +2204,15 @@ export default function LeakFinderPage() {
               value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : 'Not Available')}
             />
             <StatCell
-              label="GTO accuracy"
+              label="Archived coach records"
               icon={<GraduationCap size={14} strokeWidth={2} aria-hidden="true" />}
               value={coachLoading
                 ? null
                 : coachError
                   ? 'Not Available'
-                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${coachAccuracy.accuracy_pct ?? 'Not Available'}%` : 'Not Available')}
-              tone={coachAccuracy && num(coachAccuracy.accuracy_pct) >= 70
-                ? T.success
-                : coachAccuracy && num(coachAccuracy.accuracy_pct) >= 50 ? T.warn : T.text}
-              hint={coachError ? 'Coach stats unavailable' : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${num(coachAccuracy.correct_count)} / ${num(coachAccuracy.total_hands)} coach hands` : 'No coach hands yet')}
+                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? String(num(coachAccuracy.total_hands)) : 'Not Available')}
+              tone={T.text}
+              hint={coachError ? 'Coach records unavailable' : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? 'Historical choices only · no provenance-sealed grade' : 'No coach records yet')}
               onRetry={coachError ? fetchCoachAccuracy : null}
             />
             {statsAreDemo && (
@@ -2565,7 +2510,7 @@ export default function LeakFinderPage() {
                             demo={leaksAreDemo || isDemoLeakId(leak.id)}
                             selected={String(selectedLeakId) === String(leak.id)}
                             onOpen={(l) => setSelectedLeakId(l.id)}
-                            onPractice={handlePracticeSandbox}
+                            onReview={handleOpenHandReview}
                             progress={(leaksAreDemo || isDemoLeakId(leak.id))
                               ? null
                               : resolutionProgress(reviewRecordById.get(String(leak.id)) || null)}
@@ -2637,17 +2582,44 @@ export default function LeakFinderPage() {
             <section id="leak-insights" aria-label="Insights">
               <h2 style={styles.sectionHeading}>
                 <BarChart3 size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />
-                Session Analytics
+                Verified Evidence
               </h2>
 
               <div className="leak-insights-grid" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                <LeakErrorBoundary label="Session Analytics">
-                  <SessionAnalytics userId={userId} />
-                </LeakErrorBoundary>
+                <div
+                  data-pa-insights-authority="verified-destinations-only"
+                  className={toolStyles.instrumentPanel}
+                  style={card}
+                >
+                  <h3 style={styles.cardHeading}>Open A Verified Report</h3>
+                  <p style={styles.detailBody}>
+                    The Retired Coach Analytics Used Historical Sandbox Rows That Were Not Sealed
+                    Training Attempts. They Are Not Used For Accuracy, Leaderboards, Solver EV,
+                    Position Grades, Or Macro-Leak Claims. Choose An Evidence-Backed Destination.
+                  </p>
+                  <div style={{ display: 'grid', gap: S.sm, marginTop: S.md }}>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('primary', { block: true })}
+                      onClick={() => router.push('/hub/training/gto-reports?source=personal-assistant-leaks')}
+                    >
+                      Open Verified Training Reports
+                    </button>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('secondary', { block: true })}
+                      onClick={() => router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks')}
+                    >
+                      Open Audited Hand Review
+                    </button>
+                  </div>
+                </div>
 
-                {/* Worst coach-mode spots */}
+                {/* Archived coach-mode rows are shown without the legacy client grade. */}
                 <div className={toolStyles.instrumentPanel} style={card}>
-                  <h3 style={styles.cardHeading}>Worst Coach-Mode Spots</h3>
+                  <h3 style={styles.cardHeading}>Archived Coach-Mode Records</h3>
                   {coachLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
                       <Skeleton h={56} />
@@ -2657,7 +2629,7 @@ export default function LeakFinderPage() {
                     <ErrorState title="Coach Stats Unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
                   ) : !Array.isArray(coachAccuracy?.topLeaks) || coachAccuracy.topLeaks.length === 0 ? (
                     <p style={styles.detailBody}>
-                      No Coach-Mode Mistakes Recorded Yet. Turn On Coach Mode In The Sandbox And Your Worst Spots Appear Here.
+                      No Archived Coach-Mode Records Are Available. Use Verified Training Or Upload A Hand History For An Audited Review.
                     </p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
@@ -2667,26 +2639,17 @@ export default function LeakFinderPage() {
                           type="button"
                           className="leak-card pa-btn"
                           style={styles.exampleRow}
-                          onClick={() => {
-                            if (!guardAction()) return;
-                            const q = { from: 'leaks' };
-                            if (spot?.street) q.drill = String(spot.street);
-                            if (spot?.board) {
-                              const b = Array.isArray(spot.board) ? spot.board.filter(Boolean).join(',') : String(spot.board);
-                              if (b) q.b = b;
-                            }
-                            router.push({ pathname: '/hub/personal-assistant/sandbox', query: q });
-                          }}
-                          aria-label={`Practice this coach-mode spot on ${fmtCards(spot?.board)}`}
+                          onClick={() => handleReviewExample()}
+                          aria-label={`Open audited hand review for the archived coach record on ${fmtCards(spot?.board)}`}
                         >
                           <span style={styles.exampleLine1}>
                             <span style={styles.exampleCards}>{fmtCards(spot?.board)}</span>
-                            <span style={{ ...styles.exampleEv, ...numeric }}>EV {num(spot?.ev_delta).toFixed(2)}</span>
+                            <span style={{ ...styles.exampleEv, ...numeric }}>Ungraded Archive</span>
                           </span>
                           <span style={styles.exampleLine2}>
                             <span style={pill('accent')}>{String(spot?.street || '?').toUpperCase()}</span>
                             <span style={styles.exampleBoard}>
-                              You: {spot?.user_pick || '?'} · GTO: {spot?.gto_action || '?'}
+                              Recorded Choice: {spot?.user_pick || 'Not Available'} · Reference Not Verified
                             </span>
                             <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
                           </span>
@@ -2696,17 +2659,6 @@ export default function LeakFinderPage() {
                   )}
                 </div>
 
-                <LeakErrorBoundary label="The leaderboard">
-                  <CoachLeaderboard userId={userId} />
-                </LeakErrorBoundary>
-
-                <LeakErrorBoundary label="The macro leak detector">
-                  <MacroLeakDetector />
-                </LeakErrorBoundary>
-
-                <LeakErrorBoundary label="The leak heatmap">
-                  <LeakHeatmap userId={userId} />
-                </LeakErrorBoundary>
               </div>
             </section>
           ) : (
@@ -2716,8 +2668,8 @@ export default function LeakFinderPage() {
                   userId={userId}
                   leaks={selectablePool}
                   onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
-                  onPractice={handlePracticeSandbox}
-                  onPracticeExample={handlePracticeExample}
+                  onOpenHandReview={handleOpenHandReview}
+                  onReviewExample={handleReviewExample}
                   onTrain={handleTrainDrills}
                 />
               </LeakErrorBoundary>
@@ -2766,8 +2718,8 @@ export default function LeakFinderPage() {
             {selectedLeak && (
               <LeakDetail
                 leak={selectedLeak}
-                onPracticeSandbox={handlePracticeSandbox}
-                onPracticeExample={handlePracticeExample}
+                onOpenHandReview={handleOpenHandReview}
+                onReviewExample={handleReviewExample}
                 onStartReview={handleStartReview}
                 onTrainDrills={handleTrainDrills}
                 onMarkResolved={handleMarkResolved}

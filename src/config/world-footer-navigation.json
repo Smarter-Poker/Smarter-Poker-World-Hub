@@ -19,7 +19,7 @@
       "label": "Personal Assistant",
       "theme": "dark",
       "accent": "#4599ff",
-      "artwork": { "src": "/images/footers/world-hub/footer-personal-assistant-v2.png", "width": 2135, "height": 737, "sha256": "cc7977773d5b6f02e0768506f8b5847f6b0cbcd0fef573004ee99d7d2f2fdffe", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 197, "width": 2109, "height": 306 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-personal-assistant-v2.png", "width": 2135, "height": 737, "sha256": "16c7cd23aa061ab9d61b4b2c989e6d0fbac589fae0a704a2f09763fa35e499ec", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 199, "width": 2109, "height": 304 } },
       "routePrefixes": ["/hub/personal-assistant"],
       "items": [
         { "href": "/hub/personal-assistant", "label": "Coach", "title": "Assistant Home", "icon": "brain" },
@@ -35,7 +35,7 @@
       "label": "Training Games",
       "theme": "dark",
       "accent": "#22e67a",
-      "artwork": { "src": "/images/footers/world-hub/footer-training-games-v2.png", "width": 2081, "height": 755, "sha256": "4aae2a084972126fc584f643feeaaa79c387b91ac2f7c4dc498bc9d452ff2203", "cropToContentBounds": true, "contentBounds": { "x": 8, "y": 191, "width": 2063, "height": 348 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-training-games-v2.png", "width": 2081, "height": 755, "sha256": "c8742ca56ba1e364c0af577fe938cbfe7794539a004f2353081580a76220e3a8", "cropToContentBounds": true, "contentBounds": { "x": 8, "y": 191, "width": 2063, "height": 347 } },
       "routePrefixes": ["/hub/training", "/hub/gto-trainer", "/hub/poker-brain", "/pokerbrain"],
       "items": [
         { "href": "/hub/training", "label": "Library", "title": "Training Library", "icon": "graduation" },
@@ -51,7 +51,7 @@
       "label": "Poker News",
       "theme": "dark",
       "accent": "#ff7a1a",
-      "artwork": { "src": "/images/footers/world-hub/footer-poker-news-v2.png", "width": 2172, "height": 724, "sha256": "b17a23496ebe62dd769ffecf3cafddbc96cd40ef36b5b7c47a869ea7919a8781", "cropToContentBounds": true, "contentBounds": { "x": 5, "y": 223, "width": 2162, "height": 260 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-poker-news-v2.png", "width": 2172, "height": 724, "sha256": "cb567366240802c6c170babd30fdd09497bbc5e8685d0b87a55a71bb9aaa7f45", "cropToContentBounds": true, "contentBounds": { "x": 5, "y": 223, "width": 2162, "height": 260 } },
       "routePrefixes": ["/hub/news", "/hub/article"],
       "items": [
         { "href": "/hub/news", "label": "Latest", "title": "Latest Poker News", "icon": "newspaper" },
@@ -67,7 +67,7 @@
       "label": "Poker Trivia",
       "theme": "dark",
       "accent": "#20d6ff",
-      "artwork": { "src": "/images/footers/world-hub/footer-poker-trivia-v2.png", "width": 1916, "height": 821, "sha256": "10176b5a7de479ad57935655c2eb057beb12876e0e4189a2ff479f2a7e62ce96", "cropToContentBounds": true, "contentBounds": { "x": 1, "y": 229, "width": 1914, "height": 286 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-poker-trivia-v2.png", "width": 1916, "height": 821, "sha256": "11953ff98260cd80a40496a91df14e7c39b54d3b19f41a669590ba7b72675a04", "cropToContentBounds": true, "contentBounds": { "x": 1, "y": 229, "width": 1914, "height": 286 } },
       "routePrefixes": ["/hub/trivia"],
       "items": [
         { "href": "/hub/trivia", "label": "Lobby", "title": "Trivia Lobby", "icon": "help" },
@@ -83,7 +83,7 @@
       "label": "Social Media",
       "theme": "dark",
       "accent": "#ff5d6c",
-      "artwork": { "src": "/images/footers/world-hub/footer-social-media-v2.png", "width": 2508, "height": 627, "sha256": "80b71634d3397472c619822119b726c8d687595606a2b51e34cb53733dee1813", "cropToContentBounds": true, "contentBounds": { "x": 28, "y": 141, "width": 2445, "height": 374 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-social-media-v2.png", "width": 2508, "height": 627, "sha256": "2f846d3d531ac620920f310b7f361649fd80f87f68b73b4a61b2027634e602a0", "cropToContentBounds": true, "contentBounds": { "x": 28, "y": 141, "width": 2445, "height": 374 } },
       "routePrefixes": ["/hub/social-media", "/hub/reels", "/hub/friends", "/hub/messenger", "/hub/social-pages", "/hub/saved-posts", "/hub/post", "/hub/user", "/u"],
       "items": [
         { "href": "/hub/social-media", "label": "Feed", "title": "Social Feed", "icon": "home" },
@@ -99,7 +99,7 @@
       "label": "Diamond Arena",
       "theme": "dark",
       "accent": "#ffe34d",
-      "artwork": { "src": "/images/footers/world-hub/footer-diamond-arena-v2.png", "width": 2172, "height": 724, "sha256": "4d4c860073e6f330ebe2c03c8a138cbfb55e60cc1026660786390fcf364f00f8", "cropToContentBounds": true, "contentBounds": { "x": 41, "y": 194, "width": 2089, "height": 304 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-diamond-arena-v2.png", "width": 2172, "height": 724, "sha256": "85b11e3997b775ed710603fe415296458ec9cdcbf8f38a6250c271d05454fd3f", "cropToContentBounds": true, "contentBounds": { "x": 41, "y": 194, "width": 2089, "height": 304 } },
       "routePrefixes": ["/hub/diamond-arena"],
       "items": [
         { "href": "/hub/diamond-arena", "label": "Arena", "title": "Diamond Arena", "icon": "gem" },
@@ -115,8 +115,8 @@
       "label": "My Clubs",
       "theme": "dark",
       "accent": "#28c9ff",
-      "artwork": { "src": "/images/footers/world-hub/footer-my-clubs-v2.png", "width": 2172, "height": 724, "sha256": "6665fd0c8128c6d6a87c7a6cd9f14b9ac7b560516d545d6b363909c63d180186", "cropToContentBounds": true, "contentBounds": { "x": 29, "y": 221, "width": 2116, "height": 308 } },
-      "routePrefixes": ["/hub/my-clubs", "/hub/my-venues"],
+      "artwork": { "src": "/images/footers/world-hub/footer-my-clubs-v2.png", "width": 2172, "height": 724, "sha256": "dd7e29894ad1dc3126627a575a4a3091c6de5785137debd49f6b550cf5e49345", "cropToContentBounds": true, "contentBounds": { "x": 29, "y": 221, "width": 2116, "height": 308 } },
+      "routePrefixes": ["/hub/my-venues"],
       "items": [
         { "href": "/hub/my-clubs", "label": "Clubs", "title": "My Clubs", "icon": "club" },
         { "href": "/hub/club-arena", "label": "Arena", "title": "Club Arena Lobby", "icon": "spade" },
@@ -131,7 +131,7 @@
       "label": "Video Library",
       "theme": "dark",
       "accent": "#ff5b5b",
-      "artwork": { "src": "/images/footers/world-hub/footer-video-library-v2.png", "width": 1916, "height": 821, "sha256": "ed80fe6e5ca6a0d7eb441449a9f03a94570a41c233ee13f05c3f544de374e4de", "cropToContentBounds": true, "contentBounds": { "x": 5, "y": 254, "width": 1905, "height": 286 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-video-library-v2.png", "width": 1916, "height": 821, "sha256": "c38b8c0593325b6a31bc6b88a997031abc0f32c294e0cd74c55e54514306e684", "cropToContentBounds": true, "contentBounds": { "x": 5, "y": 254, "width": 1905, "height": 286 } },
       "routePrefixes": ["/hub/video-library"],
       "items": [
         { "href": "/hub/video-library", "label": "Videos", "title": "All Videos", "icon": "video" },
@@ -147,7 +147,7 @@
       "label": "Odds Calculator",
       "theme": "dark",
       "accent": "#4e9cff",
-      "artwork": { "src": "/images/footers/world-hub/footer-odds-calculator-v2.png", "width": 2172, "height": 724, "sha256": "31e9ba0ad34772ffde5c60e179e965844c7835e26d742ff663a5094431268211", "cropToContentBounds": true, "contentBounds": { "x": 22, "y": 201, "width": 2132, "height": 318 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-odds-calculator-v2.png", "width": 2172, "height": 724, "sha256": "1077397d99d8e0354b864abf2c97f26e0393d88c477185b1cb0c5afa43f28b54", "cropToContentBounds": true, "contentBounds": { "x": 22, "y": 201, "width": 2132, "height": 318 } },
       "routePrefixes": ["/hub/poker-tools"],
       "items": [
         { "href": "/hub/poker-tools", "label": "Odds", "title": "Poker Odds Calculator", "icon": "calculator" },
@@ -163,7 +163,7 @@
       "label": "Bankroll Manager",
       "theme": "dark",
       "accent": "#f15aff",
-      "artwork": { "src": "/images/footers/world-hub/footer-bankroll-manager-v2.png", "width": 2172, "height": 724, "sha256": "0eaac62d1aa43a2f1b15c98565ae9fc4ee2d27a24164c40a3f3077fb25555c55", "cropToContentBounds": true, "contentBounds": { "x": 0, "y": 188, "width": 2172, "height": 348 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-bankroll-manager-v2.png", "width": 2172, "height": 724, "sha256": "fa0640e716d2c0bc2e92d3238281e8c0170783214ea619cc4b6924c93c54d7bb", "cropToContentBounds": true, "contentBounds": { "x": 0, "y": 188, "width": 2172, "height": 348 } },
       "routePrefixes": ["/hub/bankroll-manager", "/hub/bankroll"],
       "items": [
         { "href": "/hub/bankroll-manager?view=dashboard", "label": "Summary", "title": "Bankroll Dashboard", "icon": "wallet", "defaultForPath": true },
@@ -179,7 +179,7 @@
       "label": "Toke Tracker",
       "theme": "dark",
       "accent": "#ffb020",
-      "artwork": { "src": "/images/footers/world-hub/footer-toke-tracker-v2.png", "width": 1672, "height": 941, "sha256": "66e18cdb10c68c26205418690c3e6d1cf22644dde8860c0d7e71cc2ab68be089", "cropToContentBounds": true, "contentBounds": { "x": 21, "y": 350, "width": 1628, "height": 225 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-toke-tracker-v2.png", "width": 1672, "height": 941, "sha256": "26731bc365c2b3fa71deb8bb146cc3c5953c6069da5078d69b4cf58fdbee5a43", "cropToContentBounds": true, "contentBounds": { "x": 21, "y": 350, "width": 1628, "height": 225 } },
       "routePrefixes": ["/hub/toke-tracker"],
       "items": [
         { "href": "/hub/toke-tracker", "label": "Tokes", "title": "Toke Dashboard", "icon": "coins" },
@@ -195,7 +195,7 @@
       "label": "Preflop Charts",
       "theme": "dark",
       "accent": "#22e6e6",
-      "artwork": { "src": "/images/footers/world-hub/footer-preflop-charts-v2.png", "width": 2172, "height": 724, "sha256": "367fb103f4c59c18ebabb94178f69c16a39056336e105027ede948000aa51928", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 212, "width": 2147, "height": 313 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-preflop-charts-v2.png", "width": 2172, "height": 724, "sha256": "a4f205f3dddae1ab83ccbe694d3ea0b2eb8b9707ca87909b02cbf679fd8b3c92", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 212, "width": 2147, "height": 313 } },
       "routePrefixes": ["/hub/preflop-charts", "/hub/memory-games"],
       "items": [
         { "href": "/hub/preflop-charts", "label": "Charts", "title": "Preflop Range Lab", "icon": "grid" },
@@ -211,7 +211,7 @@
       "label": "Poker Near Me",
       "theme": "dark",
       "accent": "#f4f7fb",
-      "artwork": { "src": "/images/footers/world-hub/footer-poker-near-me-v2.png", "width": 2057, "height": 764, "sha256": "c91187465b67035bb853d1c35b31d686176e9b0a27ebf64721a6aa1874799cfb", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 236, "width": 2029, "height": 275 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-poker-near-me-v2.png", "width": 2057, "height": 764, "sha256": "0c06610ac5aafd5f194b0e0775ddd9b42245d055891be9f1b512765ebd9cebd0", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 236, "width": 2029, "height": 275 } },
       "routePrefixes": ["/hub/poker-near-me", "/hub/venues", "/hub/home-games", "/hub/events-calendar", "/hub/daily-tournaments", "/hub/poker-tours", "/hub/poker-series", "/hub/series", "/hub/tours", "/home-game"],
       "items": [
         { "href": "/hub/poker-near-me/lobby", "label": "Nearby", "title": "Poker Near Me Lobby", "icon": "radar" },
@@ -227,7 +227,7 @@
       "label": "Marketplace",
       "theme": "dark",
       "accent": "#ffd84a",
-      "artwork": { "src": "/images/footers/world-hub/footer-marketplace-v2.png", "width": 2172, "height": 724, "sha256": "5d0fe27c76fd3e7c0a431287f52f4f89d5c70195a97bb5997cf0271bd4372ed6", "cropToContentBounds": true, "contentBounds": { "x": 22, "y": 191, "width": 2128, "height": 340 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-marketplace-v2.png", "width": 2172, "height": 724, "sha256": "8f15fce8d5e1985fbed59801421eb723156331119c8910bf45fb06e7d49e5ef9", "cropToContentBounds": true, "contentBounds": { "x": 22, "y": 191, "width": 2128, "height": 340 } },
       "routePrefixes": ["/hub/marketplace", "/hub/diamond-store", "/hub/merch-store", "/hub/club-shop", "/hub/vip-membership", "/hub/smarter-rewards"],
       "items": [
         { "href": "/hub/marketplace", "label": "Market", "title": "Marketplace Home", "icon": "shopping" },

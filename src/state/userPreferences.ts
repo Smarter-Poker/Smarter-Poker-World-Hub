@@ -121,19 +121,45 @@ export function getFooterCards(excludeIds: string[] = []): OrbConfig[] {
         }
     }
 
-    // Map IDs to OrbConfig objects
-    return cardIds.map(id => {
-        const orb = resolveOrb(id);
-        return orb || POKER_IQ_ORBS[0]; // Fallback to first orb if not found
-    });
+    // Map IDs to OrbConfig objects.
+    //
+    // A stored id that no longer resolves is DROPPED, not replaced. It used to
+    // fall back to POKER_IQ_ORBS[0], which is a bug with teeth: WorldHub renders
+    // this list with key={orb.id}, so a retired id silently became a SECOND copy
+    // of whichever card happens to sit at index 0 - duplicate React keys, and one
+    // of the reader's six personalised slots wasted on a card they already have.
+    //
+    // It went unnoticed because it only fires when a card leaves the registry.
+    // Removing the My Clubs card on 2026-09-08 made it fire for exactly the
+    // people who had used My Clubs, since their stored lastVisitedCardId and
+    // mostVisitedCardIds still name it.
+    //
+    // Dropping is safe: the slot-filling above already tops the list up from
+    // DEFAULT_FOOTER_CARDS and then the full registry, so the reader still gets
+    // six real cards - just their next genuine preference instead of a phantom.
+    const resolved = cardIds
+        .map(id => resolveOrb(id))
+        .filter((orb): orb is OrbConfig => Boolean(orb));
+
+    // Top up if retired ids left us short of six.
+    for (const orb of POKER_IQ_ORBS) {
+        if (resolved.length >= 6) break;
+        if (excludeIds.includes(orb.id)) continue;
+        if (resolved.some(r => r.id === orb.id)) continue;
+        resolved.push(orb);
+    }
+
+    return resolved;
 }
 
 // Get the default 6 cards (for when no user data exists)
 export function getDefaultFooterCards(): OrbConfig[] {
-    return DEFAULT_FOOTER_CARDS.map(id => {
-        const orb = resolveOrb(id);
-        return orb || POKER_IQ_ORBS[0];
-    });
+    // Same rule as getFooterCards: drop what does not resolve rather than
+    // duplicating card zero. DEFAULT_FOOTER_CARDS is maintained by hand, so a
+    // typo or a retired id here would otherwise show as a mysterious repeat.
+    return DEFAULT_FOOTER_CARDS
+        .map(id => resolveOrb(id))
+        .filter((orb): orb is OrbConfig => Boolean(orb));
 }
 
 // Check if user has any visit history
@@ -147,7 +173,28 @@ export function getLastCarouselIndex(): number {
     if (typeof window === 'undefined') return 0;
     try {
         const stored = localStorage.getItem('hub-carousel-index');
-        return stored ? parseInt(stored, 10) : 0;
+        const parsed = stored ? parseInt(stored, 10) : 0;
+
+        // Guard garbage only. A corrupt value (parseInt('abc') === NaN) used to
+        // flow straight through to CarouselEngine's scrollPosition, and NaN
+        // defeats its own normaliser - `Math.abs(NaN - NaN) > 0.01` is false -
+        // so the carousel would sit on NaN forever and never paint a card.
+        if (!Number.isFinite(parsed)) return 0;
+
+        // DO NOT clamp to POKER_IQ_ORBS.length. This module cannot know how
+        // long the rendered list is: WorldHub builds the carousel as the
+        // registry PLUS Toke Tracker, PLUS Club Commander for accounts that
+        // have one, MINUS every card the reader has hidden. That is 14 or 15
+        // entries against a 13-entry registry, so an upper clamp here throws
+        // away legitimate positions - a reader parked on card 13 or 14 would
+        // be dropped back to 12.
+        //
+        // CarouselEngine already owns this, correctly, because it is the only
+        // place that knows TOTAL_ORBS: it normalises with
+        // ((scrollPosition % TOTAL_ORBS) + TOTAL_ORBS) % TOTAL_ORBS in an
+        // effect keyed on TOTAL_ORBS, which runs on mount and again whenever
+        // a card is hidden or shown. Bounds are its job, not this function's.
+        return Math.max(parsed, 0);
     } catch {
         return 0;
     }

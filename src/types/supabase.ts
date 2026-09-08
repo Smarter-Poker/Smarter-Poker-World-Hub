@@ -2871,9 +2871,93 @@ export type Database = {
         }
         Relationships: []
       }
+      training_attempts: {
+        Row: {
+          id: string
+          user_id: string
+          client_nonce: string
+          game_id: string
+          level: number
+          session_kind: string
+          difficulty: string
+          expected_hands: number
+          config_hash: string
+          parent_attempt_id: string | null
+          practice_only: boolean
+          status: string
+          started_at: string
+          expires_at: string
+          completed_at: string | null
+          answered_hands: number | null
+          correct_hands: number | null
+          accuracy_percentage: number | null
+          passed: boolean | null
+          best_streak: number | null
+          reward_diamonds: number | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          client_nonce: string
+          game_id: string
+          level: number
+          session_kind: string
+          difficulty: string
+          expected_hands: number
+          config_hash: string
+          parent_attempt_id?: string | null
+          practice_only: boolean
+          status?: string
+          started_at?: string
+          expires_at?: string
+          completed_at?: string | null
+          answered_hands?: number | null
+          correct_hands?: number | null
+          accuracy_percentage?: number | null
+          passed?: boolean | null
+          best_streak?: number | null
+          reward_diamonds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          client_nonce?: string
+          game_id?: string
+          level?: number
+          session_kind?: string
+          difficulty?: string
+          expected_hands?: number
+          config_hash?: string
+          parent_attempt_id?: string | null
+          practice_only?: boolean
+          status?: string
+          started_at?: string
+          expires_at?: string
+          completed_at?: string | null
+          answered_hands?: number | null
+          correct_hands?: number | null
+          accuracy_percentage?: number | null
+          passed?: boolean | null
+          best_streak?: number | null
+          reward_diamonds?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_attempts_parent_attempt_id_fkey"
+            columns: ["parent_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "training_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_sessions: {
         Row: {
           id: string
+          attempt_id: string | null
           user_id: string
           game_id: string
           game_name: string | null
@@ -2898,6 +2982,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          attempt_id?: string | null
           user_id: string
           game_id: string
           game_name?: string | null
@@ -2922,6 +3007,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          attempt_id?: string | null
           user_id?: string
           game_id?: string
           game_name?: string | null
@@ -2944,7 +3030,15 @@ export type Database = {
           score_scale?: number
           avg_ev_loss_per_mistake?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_sessions_attempt_fk"
+            columns: ["attempt_id"]
+            isOneToOne: true
+            referencedRelation: "training_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_leaks: {
         Row: {

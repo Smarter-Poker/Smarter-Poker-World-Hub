@@ -27,11 +27,15 @@
 // ─── ENVIRONMENT (read from env, never hardcoded) ─────────────────────────
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { createSolverOperatorPool } = require('./lib/solver-operator-db');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SUPABASE_URL || !SERVICE_KEY) {
-    console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+if (!SUPABASE_URL || !SERVICE_KEY || !process.env.SUPABASE_DB_PASSWORD) {
+    console.error(
+        'Missing credentials. Set NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY '
+        + '(trivia_questions target only), and SUPABASE_DB_PASSWORD (solver warehouse reads).',
+    );
     process.exit(1);
 }
 
@@ -44,6 +48,7 @@ const ARG_CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1];
 const ARG_TARGET = parseInt(args.find(a => a.startsWith('--target='))?.split('=')[1] || '0', 10);
 const ARG_OFFSET = parseInt(args.find(a => a.startsWith('--offset='))?.split('=')[1] || '0', 10);
 let selectTrustedSolverMatrix;
+let operatorPool;
 
 if (!IS_DRY_RUN && !IS_LIVE) {
     console.error('Usage: node scripts/trivia-deterministic-seed.js [--dry-run|--live] [--category=X] [--target=N] [--all]');
@@ -73,7 +78,67 @@ async function fetchWithRetry(url, options) {
     throw lastError || new Error('Supabase request failed before receiving a response');
 }
 
+const SOLVER_TABLE_COLUMNS = {
+    solved_spots_gold: new Set([
+        'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
+        'strategy_matrix', 'strategy_matrix_v2',
+    ]),
+    memory_charts_gold: new Set([
+        'chart_id', 'game_type', 'stack_depth', 'hero_position',
+        'villain_action', 'hand_matrix',
+    ]),
+};
+
+const SOLVER_TABLE_ORDER_BY = {
+    solved_spots_gold: 'id',
+    memory_charts_gold: 'chart_id',
+};
+
+function assertSolverColumn(column, table) {
+    if (!/^[a-z_][a-z0-9_]*$/i.test(column) || !SOLVER_TABLE_COLUMNS[table].has(column)) {
+        throw new Error(`Unsupported solver warehouse column: ${table}.${column}`);
+    }
+    return `"${column}"`;
+}
+
+async function querySolverWarehouse(table, params = '') {
+    const query = new URLSearchParams(String(params).replace(/^\?/, ''));
+    const requestedColumns = (query.get('select') || '*').split(',');
+    if (requestedColumns.length === 1 && requestedColumns[0] === '*') {
+        throw new Error('Solver warehouse reads must use an explicit column allowlist.');
+    }
+    const columns = requestedColumns.map(column => assertSolverColumn(column.trim(), table)).join(', ');
+    const values = [];
+    const predicates = [];
+    for (const column of ['game_type', 'street']) {
+        const filter = query.get(column);
+        if (filter) {
+            const match = filter.match(/^eq\.(.+)$/);
+            if (!match) throw new Error(`Unsupported solver warehouse filter: ${column}`);
+            values.push(match[1]);
+            predicates.push(`${assertSolverColumn(column, table)} = $${values.length}`);
+        }
+    }
+    const limit = Number(query.get('limit') || 1000);
+    const offset = Number(query.get('offset') || 0);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1000
+        || !Number.isInteger(offset) || offset < 0) {
+        throw new Error('Solver warehouse pagination is invalid or exceeds the 1,000-row page bound.');
+    }
+    const where = predicates.length ? ` WHERE ${predicates.join(' AND ')}` : '';
+    if (!operatorPool) operatorPool = createSolverOperatorPool({ statementTimeout: 120_000, max: 2 });
+    const orderBy = assertSolverColumn(SOLVER_TABLE_ORDER_BY[table], table);
+    const result = await operatorPool.query(
+        `SELECT ${columns} FROM public."${table}"${where} ORDER BY ${orderBy} ASC LIMIT ${limit} OFFSET ${offset}`,
+        values,
+    );
+    return result.rows;
+}
+
 async function supabaseQuery(table, params = '', extraHeaders = {}) {
+    if (Object.prototype.hasOwnProperty.call(SOLVER_TABLE_COLUMNS, table)) {
+        return querySolverWarehouse(table, params);
+    }
     const res = await fetchWithRetry(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
         headers: { ...HEADERS, ...extraHeaders },
     });
@@ -635,16 +700,18 @@ function buildTriviaRow(question, category, difficulty) {
 async function loadExistingSubcategorySet(category) {
     // Pull existing subcategory tags to avoid duplicates
     const existing = new Set();
-    let offset = 0;
+    let lastId = null;
     while (true) {
+        const cursor = lastId ? `&id=gt.${lastId}` : '';
         const rows = await supabaseQuery('trivia_questions',
-            `?category=eq.${category}&select=subcategory&limit=1000&offset=${offset}`);
+            `?category=eq.${category}&select=id,subcategory&order=id.asc${cursor}&limit=1000`);
         if (!rows || rows.length === 0) break;
         for (const r of rows) {
             if (r.subcategory) existing.add(r.subcategory);
         }
         if (rows.length < 1000) break;
-        offset += 1000;
+        lastId = rows[rows.length - 1]?.id;
+        if (!lastId) throw new Error('Trivia subcategory pagination returned no cursor.');
     }
     return existing;
 }
@@ -657,11 +724,12 @@ let servableQuestionsCache = null;
 async function loadServableQuestionSet() {
     if (servableQuestionsCache) return servableQuestionsCache;
     const existing = new Set();
-    let offset = 0;
+    let lastId = null;
     while (true) {
+        const cursor = lastId ? `&id=gt.${lastId}` : '';
         const rows = await supabaseQuery(
             'trivia_questions',
-            `?quality_score=gte.6&select=question&limit=1000&offset=${offset}`
+            `?quality_score=gte.6&select=id,question&order=id.asc${cursor}&limit=1000`
         );
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
@@ -669,7 +737,8 @@ async function loadServableQuestionSet() {
             if (norm) existing.add(norm);
         }
         if (rows.length < 1000) break;
-        offset += 1000;
+        lastId = rows[rows.length - 1]?.id;
+        if (!lastId) throw new Error('Servable-question pagination returned no cursor.');
     }
     servableQuestionsCache = existing;
     return servableQuestionsCache;
@@ -801,6 +870,18 @@ async function seedCategory(category, target) {
         if (VERBOSE) console.log(`   sample rejection: ${JSON.stringify(validatorRejections[0])}`);
     }
 
+    const shortfalls = Object.fromEntries(
+        ['easy', 'medium', 'hard'].map(difficulty => [
+            difficulty,
+            Math.max(0, need[difficulty] - generated[difficulty].length),
+        ]),
+    );
+    if (Object.values(shortfalls).some(value => value > 0)) {
+        const error = `source pool could not satisfy requested difficulty mix: ${JSON.stringify(shortfalls)}`;
+        console.error(`   ❌ ${error}`);
+        return { category, generated: 0, error, before, need, shortfalls };
+    }
+
     if (IS_LIVE && total > 0) {
         const BATCH = 250;
         for (let i = 0; i < rows.length; i += BATCH) {
@@ -871,6 +952,18 @@ async function main() {
     }
     console.log(`\n  total generated: ${total}`);
     console.log(`  elapsed: ${elapsed}s`);
+    const failures = results.filter(result => result.error);
+    if (failures.length > 0) {
+        throw new Error(`${failures.length} category seed operation(s) failed.`);
+    }
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main()
+    .then(async () => {
+        if (operatorPool) await operatorPool.end();
+    })
+    .catch(async e => {
+        if (operatorPool) await operatorPool.end().catch(() => {});
+        console.error(e);
+        process.exit(1);
+    });

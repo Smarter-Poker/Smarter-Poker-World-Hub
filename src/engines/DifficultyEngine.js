@@ -28,7 +28,7 @@
 // The sizing vocabulary lives in one place. actionGrouper.js owns the
 // thresholds and the parser; this engine reuses them so the two remappers can
 // never drift into disagreeing about what "Large" means.
-import { parseSizingPercent, getSizingGroup, SIZING_GROUPS } from '../utils/actionGrouper';
+import { parseSizingPercent, getSizingGroup, SIZING_GROUPS } from '../utils/actionGrouper.js';
 
 // ●● Difficulty Modes ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -210,9 +210,28 @@ function _simplifyToGrouped(fullActions, potSize) {
 
     for (const action of fullActions) {
         const isAggressive = action.action === 'bet' || action.action === 'raise';
-        const pct = isAggressive
-            ? parseSizingPercent(action.id, action.text || action.label, action.amount, potSize)
-            : null;
+        let pct = null;
+        if (isAggressive) {
+            if (Object.prototype.hasOwnProperty.call(action, 'sizingPercent')) {
+                // Callers attach this property only when a canonical policy
+                // action matched by id. `null` is meaningful: Postgres also
+                // leaves that action ungrouped, so never recover a size from
+                // presentation copy after authority explicitly supplied none.
+                pct = typeof action.sizingPercent === 'number'
+                    && Number.isFinite(action.sizingPercent)
+                    && action.sizingPercent >= 0
+                    ? action.sizingPercent
+                    : null;
+            } else {
+                // Compatibility path for legacy/unsealed question shapes.
+                pct = parseSizingPercent(
+                    action.id,
+                    action.text || action.label,
+                    action.amount,
+                    potSize,
+                );
+            }
+        }
 
         if (pct === null) {
             // Fold / check / call / all-in, and any aggressive action whose

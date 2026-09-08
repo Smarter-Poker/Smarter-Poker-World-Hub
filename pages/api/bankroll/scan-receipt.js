@@ -9,7 +9,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 let _supabase = null;
 function getSupabase() {
@@ -64,10 +65,20 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
 
-      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access.
+      //
+      // Through the server gate, not checkFeatureAccess. That one is a browser
+      // gate: it reads localStorage, queries with the anon client whose RLS
+      // then refuses `profiles`, and recovers by fetching a RELATIVE url that
+      // Node cannot resolve. Every path failed here, so this route answered
+      // 403 to everyone, including a VIP account with 494,455 diamonds.
+      const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
-          return res.status(403).json({ success: false, error: 'Premium feature access required' });
+          return res.status(403).json({
+              success: false,
+              error: 'Premium feature access required',
+              reason: access.reason,
+          });
       }
 
       try {
@@ -86,7 +97,13 @@ export default async function handler(req, res) {
           });
       } catch (error) {
           console.warn('Receipt scan error:', error);
-          return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
+          // `detail` is the difference between "it broke" and "the model name
+          // is wrong". It is the failure reason, not user data.
+          return res.status(500).json({
+              success: false,
+              error: 'Failed to scan receipt',
+              detail: String((error && error.message) || error).slice(0, 300),
+          });
       }
 
   } catch (err) {
@@ -103,62 +120,92 @@ async function analyzeReceipt(imageBase64) {
         throw new Error('Receipt scanning is not configured. Missing API key.');
     }
 
-    const prompt = `Analyze this receipt image and extract the following information in JSON format:
+    const prompt = `You are reading a photograph a poker player took of a piece of paper.
+First decide WHAT KIND of document it is, then extract only the fields that
+belong to that kind. Reply with JSON and nothing else.
+
+document_type must be exactly one of:
+  "tournament_buyin"  a tournament entry receipt. Look for an event name, a
+                      buy-in plus a separate fee (e.g. "$300 + $40"), entry or
+                      seat numbers, a start time, "re-entry", flight letters.
+  "cash_game_buyin"   a cash game buy-in or chip purchase. Look for stakes
+                      ("1/2", "2/5"), "table", "seat", "chips", "buy in".
+  "payout"            a cash-out, payout or prize slip. Look for "cash out",
+                      "payout", "prize", a finishing position, "redeem".
+  "w2g"               a W-2G or similar gambling tax form. Look for "W-2G",
+                      "Certain Gambling Winnings", a payer TIN, box numbers,
+                      "federal income tax withheld".
+  "expense"           an ordinary purchase: meal, hotel, fuel, ride, flight.
+  "paystub"           a dealer paystub or earnings statement, with tokes/tips.
+  "unknown"           you genuinely cannot tell.
+
+Return this shape. Use null for anything not visible. Never invent a number:
+if you cannot read an amount, it is null.
 
 {
-  "category": "one of: buy_in, hotel, flights, rental_car, gas, meals, transport, tips, tournament, other",
-  "amount": <number - total amount paid>,
-  "currency": "USD or EUR",
-  "vendor": "<business name>",
+  "document_type": "<one of the above>",
+  "confidence": <0-100, how sure you are of document_type>,
+  "vendor": "<casino, business or payer name>",
   "location": "<city, state if visible>",
-  "date": "<YYYY-MM-DD format if visible>",
-  "description": "<brief description of what was purchased>",
-  "tax_deductible": <boolean - true if likely poker-related business expense>,
-  "itemized": [
-    {"item": "<item name>", "amount": <number>}
-  ],
-  "confidence": <0-100 confidence score>
+  "date": "<YYYY-MM-DD>",
+  "amount": <total on the document>,
+  "currency": "USD or EUR",
+  "description": "<one short line describing it>",
+
+  "tournament_name": "<tournament_buyin only>",
+  "buy_in": <tournament_buyin: the prize-pool portion>,
+  "fee": <tournament_buyin: the house fee, if shown separately>,
+  "game_type": "<nlhe, plo, mixed etc if stated>",
+
+  "stakes": "<cash_game_buyin only, e.g. 1/2>",
+
+  "payout": <payout only: amount paid out>,
+  "finish_position": <payout only, if shown>,
+
+  "gross_winnings": <w2g only>,
+  "federal_withheld": <w2g only>,
+  "state_withheld": <w2g only>,
+  "tax_year": <w2g only, 4 digits>,
+  "form_type": "<w2g only, e.g. W-2G>",
+
+  "category": "<expense only: hotel, flights, rental_car, gas, meals, transport, tips, tournament, other>"
 }
 
-If any field is not visible, use null. For poker buy-ins, look for "buy-in", "entry fee", "tournament", "cash", "chips". For hotels look for room rates, nights stayed. For meals look for food items, tips, total.`;
+A buy-in receipt is NOT an expense: classify it as tournament_buyin or
+cash_game_buyin so it is recorded against the session rather than as a cost.`;
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${GROK_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: 'grok-2-vision-latest',
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: imageBase64.startsWith('data:')
-                                    ? imageBase64
-                                    : `data:image/jpeg;base64,${imageBase64}`,
-                            },
+    // Through the shared Grok client, not a raw fetch with a hardcoded model.
+    //
+    // This route sent `grok-2-vision-latest` (rejected), then
+    // `grok-2-vision-1212` copied from a route that works. That one is ALSO
+    // rejected: the working route goes through this client, whose MODEL_MAP
+    // has no vision entry, so an unknown name falls through to grok-3, and
+    // grok-3 is what actually reads the image. Going through the client means
+    // the next model change is one edit in MODEL_MAP for every route at once,
+    // instead of another production repro per route.
+    const grok = getGrokClient();
+    const completion = await grok.chat.completions.create({
+        model: 'grok-3',
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: imageBase64.startsWith('data:')
+                                ? imageBase64
+                                : `data:image/jpeg;base64,${imageBase64}`,
                         },
-                        {
-                            type: 'text',
-                            text: prompt,
-                        },
-                    ],
-                },
-            ],
-            temperature: 0.1,
-        }),
+                    },
+                    { type: 'text', text: prompt },
+                ],
+            },
+        ],
+        temperature: 0.1,
     });
 
-    if (!response.ok) {
-        throw new Error(`OCR API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const content = completion?.choices?.[0]?.message?.content;
 
     // Parse JSON from response
     const jsonMatch = content?.match(/\{[\s\S]*\}/);

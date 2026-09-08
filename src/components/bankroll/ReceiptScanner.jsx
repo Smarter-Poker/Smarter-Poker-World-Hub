@@ -22,9 +22,13 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriangle } from 'lucide-react';
+import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getAuthUser, getFreshAccessToken } from '../../lib/authUtils';
+import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
+import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
+import {
+    normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
+} from '../../lib/bankroll/receiptRouting.mjs';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
@@ -39,7 +43,16 @@ const EXPENSE_LABELS = {
     tournament: 'TOURNAMENT', other: 'OTHER',
 };
 
-export default function ReceiptScanner({ onScanComplete, userId, displayEUR = false, tripId = null }) {
+/** Attempts before the user is shown a failure they have to act on. */
+const UPLOAD_ATTEMPTS = 3;
+
+export default function ReceiptScanner({
+    onScanComplete,
+    userId,
+    displayEUR = false,
+    tripId = null,
+    onPendingChange,
+}) {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerSeed, setScannerSeed] = useState(null);   // a File, when the user chose one
 
@@ -47,10 +60,15 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
     // must not lose it, so retry re-sends this exact blob.
     const [approvedScan, setApprovedScan] = useState(null); // { blob, previewUrl, width, height }
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadAttempt, setUploadAttempt] = useState(0);
     const [error, setError] = useState(null);
 
     const [uploadedUrl, setUploadedUrl] = useState(null);
     const [extractedData, setExtractedData] = useState(null);
+    // What the scan was read as, and where it is headed. Held separately from
+    // the raw OCR so the user can correct the type without re-scanning.
+    const [scanKind, setScanKind] = useState(null);
+    const [typeOverridden, setTypeOverridden] = useState(false);
     const [confidenceScore, setConfidenceScore] = useState(null);
     const [verified, setVerified] = useState(false);
     const [verifying, setVerifying] = useState(false);
@@ -69,6 +87,36 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             }
         };
     }, []);
+
+    /**
+     * A captured scan that has not been saved yet.
+     *
+     * The photograph is gone the moment this component lets go of it: the
+     * scanner destroyed its buffers, and the receipt itself is back in a
+     * pocket. So an unsaved scan is unrecoverable work, and every route out of
+     * this component has to say so rather than silently binning it.
+     */
+    const hasUnsavedScan = Boolean(approvedScan) && !uploadedUrl;
+
+    useEffect(() => {
+        if (onPendingChange) onPendingChange(hasUnsavedScan);
+    }, [hasUnsavedScan, onPendingChange]);
+
+    // A reload or a back gesture mid-save loses it too.
+    useEffect(() => {
+        if (!hasUnsavedScan || typeof window === 'undefined') return undefined;
+        const warn = (e) => { e.preventDefault(); e.returnValue = ''; return ''; };
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [hasUnsavedScan]);
+
+    const confirmDiscard = useCallback(() => {
+        if (!hasUnsavedScan) return true;
+        if (typeof window === 'undefined') return true;
+        return window.confirm(
+            'This Scan Has Not Been Saved Yet. The Receipt Image Will Be Lost. Discard It?',
+        );
+    }, [hasUnsavedScan]);
 
     const computeConfidence = useCallback((data) => {
         if (!data) return 0;
@@ -96,50 +144,67 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         if (!scan || !scan.blob) return;
         setIsUploading(true);
         setError(null);
+        setUploadAttempt(0);
+        setExtractedData(null);
+        setConfidenceScore(null);
 
-        try {
-            // Through the house auth helpers, not the Supabase client. A
-            // pre-commit guard blocks the SDK session call in components
-            // because it can throw AbortError; src/lib/authUtils.ts reads the
-            // same session out of storage without that risk.
-            const authUser = getAuthUser();
-            const uid = userId || (authUser && authUser.id);
-            const accessToken = await getFreshAccessToken();
-            if (!uid || !accessToken) {
-                setError('SIGN IN REQUIRED');
-                return;
-            }
+        // Through the house auth helpers, not the Supabase client. A pre-commit
+        // guard blocks the SDK session call in components because it can throw
+        // AbortError; src/lib/authUtils.ts reads the same session out of
+        // storage without that risk.
+        const authUser = getAuthUser();
+        const uid = userId || (authUser && authUser.id);
+        const accessToken = await getFreshAccessToken();
+        if (!uid || !accessToken) {
+            setError('SIGN IN REQUIRED');
+            setIsUploading(false);
+            return;
+        }
 
-            const storageName = `${Date.now()}_${Math.random().toString(36).slice(2, 11)}.jpg`;
-            const filePath = `bankroll/${uid}/${storageName}`;
-            const file = new File([scan.blob], storageName, { type: 'image/jpeg' });
+        // Storage RLS is enforced against the SDK's own session, not against a
+        // token we happen to be holding. If the client has not rehydrated yet
+        // the request goes up as anon and the policy refuses it.
+        try { await ensureAuthReady(supabase); } catch (_e) { /* upload will report it */ }
 
-            const { error: uploadError } = await supabase.storage
-                .from('images')
-                .upload(filePath, file, { contentType: 'image/jpeg' });
-            if (uploadError) throw uploadError;
+        // Read the receipt in parallel with storing it. OCR does not depend on
+        // storage, and running it first means the extracted details survive an
+        // upload that has to retry, instead of being lost with the attempt.
+        const ocrPromise = runOcr(scan.blob, accessToken);
 
-            const { data: urlData } = supabase.storage.from('images').getPublicUrl(filePath);
-            const publicUrl = urlData && urlData.publicUrl;
-            if (!publicUrl) throw new Error('no-public-url');
-
+        let lastError = null;
+        for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
             if (!mountedRef.current) return;
+            setUploadAttempt(attempt);
+            try {
+                const publicUrl = await uploadBankrollImage(supabase, uid, scan.blob, 'image/jpeg');
+                if (!mountedRef.current) return;
 
-            // Only now is the previously saved receipt replaced.
-            setUploadedUrl(publicUrl);
-            setExtractedData(null);
-            setConfidenceScore(null);
-            setVerified(false);
+                // Only now is the previously saved receipt replaced.
+                setUploadedUrl(publicUrl);
+                setVerified(false);
+                setError(null);
+                await ocrPromise;
+                if (mountedRef.current) setIsUploading(false);
+                return;
+            } catch (err) {
+                lastError = err;
+                if (!isRetryableUploadError(err) || attempt === UPLOAD_ATTEMPTS) break;
+                await new Promise((r) => setTimeout(r, 400 * attempt));
+            }
+        }
 
-            // OCR runs against the same approved image, after the upload has
-            // succeeded. It is additive: a failure here still leaves a saveable
-            // receipt, which is why it is not awaited alongside the upload.
-            runOcr(scan.blob, accessToken);
-        } catch (err) {
-            console.warn('[ReceiptScanner] Upload failed:', err && err.message);
-            if (mountedRef.current) setError('UPLOAD FAILED - RETRY');
-        } finally {
-            if (mountedRef.current) setIsUploading(false);
+        console.warn('[ReceiptScanner] Upload failed:', lastError && (lastError.message || lastError));
+        if (mountedRef.current) {
+            // The scan itself is still held, so this is a retry prompt and not
+            // a dead end. Saying which failure it was matters: a refused policy
+            // will never succeed on a retry and the user should not keep trying.
+            const message = String((lastError && lastError.message) || '').toLowerCase();
+            setError(
+                message.includes('row-level security') || message.includes('unauthorized')
+                    ? 'SAVE BLOCKED - PERMISSION DENIED'
+                    : 'SAVE FAILED - TAP RETRY',
+            );
+            setIsUploading(false);
         }
         // runOcr is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -159,6 +224,8 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                 body: JSON.stringify({ image: base64 }),
             });
             if (!res.ok) {
+                const detail = await res.json().catch(() => null);
+                console.warn('[ReceiptScanner] Read failed:', res.status, detail && detail.detail);
                 if (mountedRef.current) setConfidenceScore(10);
                 return;
             }
@@ -167,14 +234,29 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             if (result && result.success && result.data) {
                 setExtractedData(result.data);
                 setConfidenceScore(computeConfidence(result.data));
+                // Classify and decide where it goes. Both are pure, so the
+                // decision is the same one the tests exercise.
+                const scan = normaliseScan(result.data);
+                setScanKind({ scan, route: routeScan(scan) });
+                setTypeOverridden(false);
             } else {
                 setConfidenceScore(10);
             }
         } catch (_err) {
-            // OCR is optional. The receipt is already saved.
+            // Reading the receipt is optional. The image still saves.
             if (mountedRef.current) setConfidenceScore(10);
         }
     }, [computeConfidence]);
+
+    /** Staff corrected the guess. Re-route from the same extracted values. */
+    const overrideType = useCallback((documentType) => {
+        setScanKind((prev) => {
+            if (!prev) return prev;
+            const scan = { ...prev.scan, documentType, confidence: 1 };
+            return { scan, route: routeScan(scan) };
+        });
+        setTypeOverridden(true);
+    }, []);
 
     // ---------------------------------------------------------------------
     // SCANNER HAND-OFF
@@ -220,6 +302,8 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         setApprovedScan(null);
         setUploadedUrl(null);
         setExtractedData(null);
+        setScanKind(null);
+        setTypeOverridden(false);
         setConfidenceScore(null);
         setVerified(false);
         setVerifying(false);
@@ -227,14 +311,30 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         setScannerSeed(null);
         setScannerOpen(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
+        setUploadAttempt(0);
     }, []);
+
+    /** Discard, but only after the user has been told what it costs. */
+    const requestReset = useCallback(() => {
+        if (!confirmDiscard()) return;
+        resetScanner();
+    }, [confirmDiscard, resetScanner]);
 
     const handleConfirm = useCallback(() => {
         if (uploadedUrl && onScanComplete) {
-            onScanComplete({ imageUrl: uploadedUrl, extractedData, tripId });
+            onScanComplete({
+                imageUrl: uploadedUrl,
+                extractedData,
+                tripId,
+                // What it was read as and where it belongs, so the page can
+                // open the right destination already filled in.
+                documentType: scanKind ? scanKind.scan.documentType : 'unknown',
+                route: scanKind ? scanKind.route : null,
+                typeConfirmedByUser: typeOverridden,
+            });
         }
         resetScanner();
-    }, [uploadedUrl, onScanComplete, extractedData, tripId, resetScanner]);
+    }, [uploadedUrl, onScanComplete, extractedData, tripId, resetScanner, scanKind, typeOverridden]);
 
     const handleVerifyLock = async () => {
         setVerifying(true);
@@ -264,7 +364,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     <span>SCAN RECEIPT</span>
                 </div>
                 {(approvedScan || uploadedUrl) && (
-                    <button onClick={resetScanner} style={styles.resetBtn} type="button">
+                    <button onClick={requestReset} style={styles.resetBtn} type="button" disabled={isUploading}>
                         <RefreshCw size={12} />
                         NEW SCAN
                     </button>
@@ -309,7 +409,11 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     )}
                     <div style={styles.scanningInfo}>
                         <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>SAVING RECEIPT...</span>
+                        <span>
+                            {uploadAttempt > 1
+                                ? `SAVING RECEIPT - RETRY ${uploadAttempt} OF ${UPLOAD_ATTEMPTS}`
+                                : 'SAVING RECEIPT AND READING DETAILS...'}
+                        </span>
                     </div>
                 </div>
             )}
@@ -317,14 +421,35 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             {/* Upload failed. The approved scan is still held, so Retry does
                 not make the user scan again, and cannot attach twice. */}
             {error && !isUploading && (
-                <div style={styles.errorBox}>
-                    <AlertTriangle size={16} />
-                    <span>{error}</span>
-                    {approvedScan ? (
-                        <button onClick={retryUpload} style={styles.retryBtn} type="button">RETRY</button>
-                    ) : (
-                        <button onClick={resetScanner} style={styles.retryBtn} type="button">CLOSE</button>
+                <div style={styles.errorPanel}>
+                    {/* The scan stays on screen. Seeing it is the difference
+                        between "try again" and "that work is gone". */}
+                    {approvedScan && (
+                        <img src={approvedScan.previewUrl} alt="Scan waiting to save" style={styles.scanningImage} />
                     )}
+                    <div style={styles.errorRow}>
+                        <AlertTriangle size={16} />
+                        <span>{error}</span>
+                    </div>
+                    <p style={styles.errorHint}>
+                        {approvedScan
+                            ? 'Your Scan Is Still Here. It Is Not Saved Yet.'
+                            : 'Start A New Scan To Try Again.'}
+                    </p>
+                    <div style={styles.errorActions}>
+                        {approvedScan ? (
+                            <>
+                                <button onClick={retryUpload} style={styles.confirmBtn} type="button">
+                                    <RefreshCw size={14} /> RETRY SAVE
+                                </button>
+                                <button onClick={requestReset} style={styles.cancelBtn} type="button">
+                                    <X size={14} /> DISCARD
+                                </button>
+                            </>
+                        ) : (
+                            <button onClick={resetScanner} style={styles.confirmBtn} type="button">CLOSE</button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -365,6 +490,46 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                         {/* The saved scan, not the source photograph. */}
                         <img src={uploadedUrl} alt="Receipt" style={styles.previewImage} />
                     </div>
+
+                    {/* What it was read as. Shown before the fields, because
+                        the type decides which fields matter, and a wrong type
+                        puts money in the wrong column. */}
+                    {scanKind && (
+                        <div style={styles.kindPanel}>
+                            <div style={styles.kindHeader}>
+                                <FileText size={14} style={{ color: METAL.primary }} />
+                                <span style={styles.kindTitle}>
+                                    {DOC_TYPE_LABELS[scanKind.scan.documentType] || 'Receipt'}
+                                </span>
+                                {!typeOverridden && scanKind.scan.confidence > 0 && (
+                                    <span style={styles.kindConfidence}>
+                                        {Math.round(scanKind.scan.confidence * 100)}% Sure
+                                    </span>
+                                )}
+                            </div>
+                            <p style={styles.kindSummary}>{scanKind.route.summary}</p>
+                            <p style={styles.kindDestination}>{scanKind.route.label}</p>
+
+                            <details style={styles.kindDetails}>
+                                <summary style={styles.kindToggle}>Not Right? Change The Type</summary>
+                                <div style={styles.kindChips}>
+                                    {DOC_TYPES.filter((t) => t !== 'unknown').map((t) => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => overrideType(t)}
+                                            style={{
+                                                ...styles.kindChip,
+                                                ...(scanKind.scan.documentType === t ? styles.kindChipActive : null),
+                                            }}
+                                        >
+                                            {DOC_TYPE_LABELS[t]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </details>
+                        </div>
+                    )}
 
                     {extractedData && (
                         <div style={styles.dataGrid}>
@@ -604,6 +769,35 @@ const styles = {
         letterSpacing: '0.15em',
         color: METAL.primary,
     },
+    errorPanel: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        padding: 20,
+        margin: 16,
+        background: 'rgba(240,40,73,0.08)',
+        border: `2px solid ${METAL.danger}`,
+        borderRadius: 10,
+        textAlign: 'center',
+    },
+    errorRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: METAL.danger,
+        letterSpacing: '0.08em',
+    },
+    errorHint: {
+        margin: 0,
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        color: METAL.textSecondary,
+    },
+    errorActions: { display: 'flex', gap: 10, width: '100%' },
     errorBox: {
         display: 'flex',
         alignItems: 'center',
@@ -633,6 +827,60 @@ const styles = {
         cursor: 'pointer',
     },
     resultContainer: { padding: 16 },
+    kindPanel: {
+        marginBottom: 16,
+        padding: 14,
+        background: 'rgba(35,116,225,0.08)',
+        border: `1px solid ${METAL.primary}`,
+        borderRadius: 10,
+    },
+    kindHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
+    kindTitle: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 800,
+        letterSpacing: '0.08em',
+        color: METAL.textPrimary,
+        textTransform: 'uppercase',
+    },
+    kindConfidence: {
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        color: METAL.textMuted,
+    },
+    kindSummary: {
+        margin: '0 0 4px',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        color: METAL.textSecondary,
+    },
+    kindDestination: {
+        margin: 0,
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        fontWeight: 600,
+        color: METAL.primary,
+    },
+    kindDetails: { marginTop: 10 },
+    kindToggle: {
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        color: METAL.textMuted,
+        cursor: 'pointer',
+    },
+    kindChips: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    kindChip: {
+        padding: '9px 12px',
+        minHeight: 40,
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
+        borderRadius: 20,
+        color: METAL.textSecondary,
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 14,
+        cursor: 'pointer',
+    },
+    kindChipActive: { background: GRADIENTS.cyanAction, borderColor: METAL.primary, color: '#fff' },
     previewContainer: { marginBottom: 16, textAlign: 'center' },
     previewImage: {
         maxWidth: '100%',

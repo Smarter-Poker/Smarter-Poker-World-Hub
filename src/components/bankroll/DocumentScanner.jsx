@@ -23,6 +23,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Camera, Upload, X, Check, Loader2, RefreshCw, Maximize2, AlertTriangle,
     RotateCw, Image as ImageIcon,
@@ -669,8 +670,15 @@ export default function DocumentScanner({
         }
     }, [detectStill, rectify, renderPreview]);
 
+    // Re-ingests when the prop changes, not only on mount. Keyed on identity so
+    // a re-render with the same image does not scan it twice. Mount-only was a
+    // footgun: DocumentCropper hands this component `imageSrc` from callers
+    // that keep it mounted, and a second image would have been ignored in
+    // silence.
+    const ingestedRef = useRef(null);
     useEffect(() => {
-        if (!initialImage) return;
+        if (!initialImage || ingestedRef.current === initialImage) return;
+        ingestedRef.current = initialImage;
         if (typeof initialImage === 'string') {
             fetch(initialImage).then((r) => r.blob()).then(ingest).catch(() => {
                 setDecodeError({ title: 'Image Could Not Be Opened', body: 'That image could not be read.' });
@@ -679,9 +687,9 @@ export default function DocumentScanner({
         } else {
             ingest(initialImage);
         }
-        // ingest is stable; initialImage does not change for a given mount.
+        // ingest is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [initialImage]);
 
     // -----------------------------------------------------------------------
     // REVIEW ACTIONS
@@ -985,7 +993,23 @@ export default function DocumentScanner({
         startCamera(cameras[next] && cameras[next].deviceId);
     }, [canSwitchCamera, cameraIndex, cameras, startCamera]);
 
-    return (
+    /**
+     * Rendered into document.body, not in place.
+     *
+     * A z-index only competes inside its own stacking context. This scanner is
+     * mounted from ReceiptScanner, which sits inside `.bankroll-modal-overlay`
+     * at z-index 9000, and that container IS a stacking context: every z-index
+     * underneath it, however large, is still resolved as "somewhere within
+     * 9000". So the global header at 10050 painted over the scanner and its
+     * close button could not be clicked at all. Raising the number does not
+     * fix that, and did not - measured twice on production. Escaping the
+     * context does.
+     *
+     * This also makes the component immune to a future ancestor growing a
+     * transform or a filter, either of which would trap a fixed overlay the
+     * same way. It is mounted from four surfaces now, so that matters.
+     */
+    const tree = (
         <div style={S.overlay} role="dialog" aria-modal="true" aria-label={title}>
             <div style={S.header}>
                 <button type="button" onClick={handleClose} style={S.iconBtn} aria-label="Close scanner">
@@ -1257,6 +1281,11 @@ export default function DocumentScanner({
             `}</style>
         </div>
     );
+
+    // Rendered in place while there is no document, which only happens if this
+    // is ever pulled into a server render. Every current caller loads it with
+    // ssr: false, so the portal is what actually runs.
+    return typeof document === 'undefined' ? tree : createPortal(tree, document.body);
 }
 
 // ---------------------------------------------------------------------------
@@ -1270,7 +1299,13 @@ const S = {
     overlay: {
         position: 'fixed',
         inset: 0,
-        zIndex: 10001,
+        // Above the global header, which is sticky at 10050. At 10001 the
+        // header's hamburger sat on top of this overlay's close button, so the
+        // X could not be clicked at all: the only way out of the scanner was
+        // the browser back gesture. Measured on production, not guessed.
+        // 99999 is the house level for a full-screen modal (ReportBugWidget,
+        // LocationEnableModal); 999999 stays reserved for error recovery.
+        zIndex: 99999,
         background: METAL.darkest,
         display: 'flex',
         flexDirection: 'column',

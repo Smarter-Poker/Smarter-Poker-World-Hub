@@ -7,13 +7,10 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { toast } from '../../stores/toastStore';
-import { authedFetch } from '../../lib/authUtils';
 
-export default function AchievementToast({ achievements = [], onDismiss, userId }) {
+export default function AchievementToast({ achievements = [], onDismiss }) {
     const [visible, setVisible] = useState(achievements.length > 0);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [sharing, setSharing] = useState(false);
 
     useEffect(() => {
         if (achievements.length === 0) return;
@@ -31,43 +28,10 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
                 setVisible(false);
                 onDismiss?.();
             }
-        }, 6000); // Increased to give time to share
+        }, 6000); // Keep the notice visible long enough to read.
 
         return () => clearTimeout(timer);
     }, [visible, currentIndex, achievements.length, onDismiss]);
-
-    const handleShare = async (achievement) => {
-        if (!userId || sharing) return;
-        setSharing(true);
-
-        try {
-            const res = await authedFetch('/api/training/share', {
-                method: 'POST',
-                body: JSON.stringify({
-                    userId,
-                    shareType: 'achievement',
-                    data: {
-                        name: achievement.name,
-                        description: achievement.description,
-                        icon: achievement.icon,
-                        diamonds: achievement.diamond_reward
-                    }
-                })
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                toast.success('Achievement Shared To Your Feed!');
-            } else {
-                toast.error(data.error || 'Failed To Share Achievement.');
-            }
-        } catch (error) {
-            console.warn('Share error:', error);
-            toast.error('Failed To Share Achievement. Please Try Again.');
-        } finally {
-            setSharing(false);
-        }
-    };
 
     const achievement = achievements[currentIndex];
     if (!achievement || !visible) return null;
@@ -94,15 +58,15 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
                     )}
                 </div>
                 <div style={styles.actions}>
-                    {userId && (
-                        <button
-                            onClick={() => handleShare(achievement)}
-                            disabled={sharing}
-                            style={styles.shareBtn}
-                        >
-                            {sharing ? '...' : '●'}
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        disabled
+                        aria-label="Achievement feed sharing is unavailable"
+                        title="Feed Sharing Reopens After Verified Achievement Settlement Is Certified"
+                        style={{ ...styles.shareBtn, cursor: 'not-allowed', opacity: 0.55 }}
+                    >
+                        Share Unavailable
+                    </button>
                     <button
                         onClick={() => { setVisible(false); onDismiss?.(); }}
                         style={styles.closeBtn}

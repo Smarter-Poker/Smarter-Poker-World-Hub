@@ -56,6 +56,22 @@ jobs:
           node-version: '24.12.0'
           cache: 'npm'
 
+
+      # Playwright browsers were downloaded from scratch on every run - no job
+      # in this repo cached ~/.cache/ms-playwright (verified 2026-09-08: no
+      # match for ms-playwright or PLAYWRIGHT_BROWSERS_PATH in any of the 38
+      # workflow files). The install step still RUNS below rather than being
+      # skipped on a hit: Playwright no-ops when the browser is already on
+      # disk, and that keeps the OS-dependency half of --with-deps honest
+      # instead of trusting a cache to have provided it.
+      - name: Restore Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            pw-wh-${{ runner.os }}-
+
       - name: Install (only what we need for Playwright + curl)
         run: |
           npm ci --no-audit --no-fund --prefer-offline

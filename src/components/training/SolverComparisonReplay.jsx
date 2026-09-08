@@ -1,16 +1,16 @@
 /**
- * SOLVER COMPARISON REPLAY — GTO Wizard-Style Hand Review with Solver Overlay
+ * HAND COMPARISON REPLAY — Verified Results Plus Local Practice Estimates
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Replays any hand from session history with a split-view showing:
- *   - What you did at each decision point vs what the solver recommends
+ *   - What you did vs a verified answer when supplied, otherwise a local model
  *   - Street-by-street walkthrough with animated board dealing
- *   - EV comparison bars for every available action
+ *   - Clearly labeled illustrative local estimates for unsolved alternatives
  *   - Cumulative EV loss tracking through the hand
- *   - "What if" mode: see what happens if you took the solver line
+ *   - "What if" mode using local estimates when no solved alternative exists
  *
- * Modeled after GTO Wizard's "Review" mode — the single most important
- * post-session learning tool in competitive poker training.
+ * The layout is inspired by common poker review tools. Local estimates remain
+ * explicitly separate from solved-node evidence.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
@@ -139,7 +139,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
                     fontSize: 9, fontWeight: 700, color: '#22c55e',
                     background: 'rgba(34,197,94,0.1)', padding: '1px 4px',
                     borderRadius: 3, border: '1px solid rgba(34,197,94,0.2)',
-                }}>GTO</div>
+                }}>LOCAL PICK</div>
             )}
         </div>
     );
@@ -331,21 +331,21 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                         {handData.action || '-'}
                     </div>
                 </div>
-                {/* Solver action */}
+                {/* Verified answer when supplied; otherwise local reference */}
                 <div style={{
                     background: 'rgba(34,197,94,0.06)',
                     border: '1px solid rgba(34,197,94,0.15)',
                     borderRadius: 8, padding: 10,
                 }}>
                     <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
-                        Solver Recommends
+                        Verified Answer / Local Estimate
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>
                         {handData.correctAction || evAnalysis?.bestAction || '-'}
                     </div>
                     {evAnalysis?.bestAction && (
                         <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
-                            EV: +{(evAnalysis.bestEV || 0).toFixed(2)} BB
+                            Illustrative Estimate: +{(evAnalysis.bestEV || 0).toFixed(2)} BB
                         </div>
                     )}
                 </div>
@@ -358,7 +358,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     marginBottom: 10,
                 }}>
                     <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.08em' }}>
-                        EV Analysis - All Actions
+                        Illustrative Local Estimates - Not Solved EV
                     </div>
                     {sortedActions.map(([action, data]) => (
                         <EVBar
@@ -482,7 +482,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                         fontSize: 14, fontWeight: 700, color: '#e2e8f0',
                         letterSpacing: '-0.01em',
                     }}>
-                        Solver Comparison
+                        Hand Comparison
                     </div>
                     <div style={{
                         fontSize: 10, padding: '2px 8px', borderRadius: 10,

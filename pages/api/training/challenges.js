@@ -1,18 +1,14 @@
 /**
  * TRAINING CHALLENGES API - ENHANCED
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Weekly and monthly rotating challenges with full progress tracking
- * Supports: sessions, perfect_rounds, category_sessions, accuracy_avg, 
- *           streak_days, unique_categories
+ * Historical weekly and monthly definitions. Live progress and rewards remain
+ * paused until every target is derived atomically from verified attempts.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { notifyChallengeComplete } from '../../../src/utils/trainingNotifications';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -24,26 +20,6 @@ function getSupabase() {
         );
     }
     return _supabase;
-}
-
-// Game ID to category mapping (extracted from TRAINING_LIBRARY)
-const CATEGORY_MAP = {
-    'mtt': 'mtt',
-    'cash': 'cash',
-    'spins': 'spins',
-    'psychology': 'psychology',
-    'psych': 'psychology',
-    'advanced': 'advanced',
-    'adv': 'advanced',
-    'preflop': 'preflop',
-    'postflop': 'postflop'
-};
-
-// Extract category from gameId (e.g., 'mtt-001' -> 'mtt', 'cash-025' -> 'cash')
-function getGameCategory(gameId) {
-    if (!gameId) return 'general';
-    const prefix = gameId.split('-')[0].toLowerCase();
-    return CATEGORY_MAP[prefix] || 'general';
 }
 
 // Get current period keys
@@ -64,86 +40,21 @@ function getPeriodKeys() {
     };
 }
 
-// Calculate average accuracy for a period
-async function getAverageAccuracy(supabase, userId, periodKey, isWeekly) {
-    // Get period start date
-    const now = new Date();
-    let startDate;
-
-    if (isWeekly) {
-        // Start of week (Monday)
-        const day = now.getDay() || 7;
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - day + 1);
-        startDate.setHours(0, 0, 0, 0);
-    } else {
-        // Start of month
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    const { data: sessions } = await supabase
-        .from('training_sessions')
-        .select('accuracy')
-        .eq('user_id', userId)
-        .gte('created_at', startDate.toISOString())
-        .not('accuracy', 'is', null)
-            .limit(100);
-
-    if (!sessions?.length) return 0;
-
-    const sum = sessions.reduce((acc, s) => acc + (s.accuracy || 0), 0);
-    return Math.round(sum / sessions.length);
-}
-
-// Get unique categories played in period
-async function getUniqueCategoriesPlayed(supabase, userId, periodKey, isWeekly) {
-    const now = new Date();
-    let startDate;
-
-    if (isWeekly) {
-        const day = now.getDay() || 7;
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - day + 1);
-        startDate.setHours(0, 0, 0, 0);
-    } else {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    const { data: sessions } = await supabase
-        .from('training_sessions')
-        .select('game_id')
-        .eq('user_id', userId)
-        .gte('created_at', startDate.toISOString())
-            .limit(100);
-
-    if (!sessions?.length) return 0;
-
-    const categories = new Set();
-    sessions.forEach(s => {
-        const cat = getGameCategory(s.game_id);
-        if (cat && cat !== 'general') categories.add(cat);
-    });
-
-    return categories.size;
-}
-
-// Get current streak from streaks table
-async function getCurrentStreak(supabase, userId) {
-    const { data } = await supabase
-        .from('training_streaks')
-        .select('current_streak')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-    return data?.current_streak || 0;
-}
-
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+      if (req.method === 'POST' || req.method === 'PUT') {
+          return res.status(410).json({
+              success: false,
+              error: 'Challenge progress and rewards require a verified server-owned Training attempt.',
+              code: 'TRAINING_CHALLENGES_VERIFIED_ATTEMPT_REQUIRED',
+          });
+      }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
       const supabase = getSupabase();
       const periods = getPeriodKeys();
@@ -158,11 +69,9 @@ export default async function handler(req, res) {
 
       // GET: Fetch active challenges with user progress
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'private, max-age=15');
-
           try {
               // Parallel fetch: definitions and user progress are independent
-              const [{ data: definitions }, { data: userProgress }] = await Promise.all([
+              const [definitionResult, historicalResult] = await Promise.all([
                   supabase
                       .from('training_challenge_definitions')
                       .select('*')
@@ -176,52 +85,34 @@ export default async function handler(req, res) {
                       .in('period_key', [periods.weekly, periods.monthly])
                       .limit(100)
               ]);
+              if (definitionResult.error) throw definitionResult.error;
+              if (historicalResult.error) throw historicalResult.error;
+              const definitions = definitionResult.data || [];
+              const userProgress = historicalResult.data || [];
 
               const progressMap = new Map(
                   (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
               );
 
-              // Parallel fetch: all 5 dynamic stats are independent
-              const [avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesWeekly, uniqueCategoriesMonthly, currentStreak] = await Promise.all([
-                  getAverageAccuracy(supabase, userId, periods.weekly, true),
-                  getAverageAccuracy(supabase, userId, periods.monthly, false),
-                  getUniqueCategoriesPlayed(supabase, userId, periods.weekly, true),
-                  getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false),
-                  getCurrentStreak(supabase, userId)
-              ]);
-
-              // Combine definitions with progress
+              // Legacy rows are displayed only as historical evidence. They
+              // cannot prove live completion, activate a claim, or promise a
+              // reward after the unsafe browser writer was retired.
               const challenges = (definitions || []).map(def => {
                   const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
                   const existingProgress = progressMap.get(`${def.id}-${periodKey}`);
 
-                  // Determine current progress based on target type
-                  let progress = existingProgress?.progress || 0;
-
-                  // Dynamic progress for certain types
-                  switch (def.target_type) {
-                      case 'accuracy_avg':
-                          progress = def.challenge_type === 'weekly' ? avgAccuracyWeekly : avgAccuracyMonthly;
-                          break;
-                      case 'unique_categories':
-                          // Per-period, matching POST: a weekly unique_categories
-                          // challenge must count the weekly window, not monthly.
-                          progress = def.challenge_type === 'weekly' ? uniqueCategoriesWeekly : uniqueCategoriesMonthly;
-                          break;
-                      case 'streak_days':
-                          progress = currentStreak;
-                          break;
-                  }
-
-                  const completed = progress >= def.target_value;
-
                   return {
                       ...def,
                       periodKey,
-                      progress,
-                      completed: completed || existingProgress?.completed || false,
-                      claimed: existingProgress?.claimed || false,
-                      percentage: Math.min(100, Math.round((progress / def.target_value) * 100))
+                      availability: 'paused_pending_verified_settlement',
+                      rewardAvailable: false,
+                      progress: 0,
+                      completed: false,
+                      claimed: false,
+                      percentage: 0,
+                      historicalProgress: existingProgress?.progress || 0,
+                      historicallyCompleted: existingProgress?.completed || false,
+                      historicallyClaimed: existingProgress?.claimed || false,
                   };
               });
 
@@ -231,272 +122,22 @@ export default async function handler(req, res) {
 
               return res.status(200).json({
                   success: true,
+                  availability: 'paused_pending_verified_settlement',
+                  rewardAvailable: false,
                   periods,
                   weekly,
                   monthly,
                   challenges: [...(weekly || []), ...(monthly || [])],
-                  totalCompleted: challenges.filter(c => c.completed).length,
-                  totalClaimed: challenges.filter(c => c.claimed).length,
-                  debug: { avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak }
+                  totalCompleted: 0,
+                  totalClaimed: 0,
+                  historicalCompleted: challenges.filter(c => c.historicallyCompleted).length,
+                  historicalClaimed: challenges.filter(c => c.historicallyClaimed).length,
+                  message: 'Challenge Tracking And Rewards Are Paused Until They Are Derived From Verified Training Completions.',
               });
 
           } catch (error) {
               console.warn('[Challenges] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to fetch challenges' });
-          }
-      }
-
-      // POST: Update challenge progress after session
-      if (req.method === 'POST') {
-          const bodySize = JSON.stringify(req.body || {}).length;
-          if (bodySize > 10240) return res.status(413).json({ success: false, error: 'Request body too large' });
-          const { sessionData } = req.body;
-          // userId from JWT (set at top of handler)
-
-          try {
-              const {
-                  accuracy = 0,
-                  gameId = '',
-                  isPerfect = false
-              } = sessionData || {};
-
-              // Determine category from gameId
-              const category = getGameCategory(gameId);
-
-              // Get active challenges (narrow select to needed columns)
-              const { data: definitions } = await supabase
-                  .from('training_challenge_definitions')
-                  // 2026-08-15 CHECK 13 fix: `metric` is not a column (and was never
-                  // read downstream) — its presence 42703'd the whole select, so NO
-                  // challenge definitions ever loaded and challenge progress never
-                  // updated.
-                  .select('id, name, challenge_type, target_type, target_category, target_value, diamond_reward, description')
-                  .eq('is_active', true)
-                  .limit(100);
-
-              const updatedChallenges = [];
-
-              for (const def of definitions || []) {
-                  const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
-                  let incrementBy = 0;
-                  let directProgress = null;
-
-                  // Determine if this session contributes to the challenge
-                  switch (def.target_type) {
-                      case 'sessions':
-                          incrementBy = 1;
-                          break;
-
-                      case 'perfect_rounds':
-                          if (isPerfect || accuracy === 100) incrementBy = 1;
-                          break;
-
-                      case 'category_sessions':
-                          // Check if category matches
-                          const targetCat = def.target_category?.toLowerCase();
-                          if (targetCat && category === targetCat) {
-                              incrementBy = 1;
-                          }
-                          // Also match preflop/postflop based on game focus
-                          if (targetCat === 'preflop' && gameId.toLowerCase().includes('preflop')) {
-                              incrementBy = 1;
-                          }
-                          if (targetCat === 'postflop' && (
-                              gameId.toLowerCase().includes('postflop') ||
-                              gameId.toLowerCase().includes('c-bet') ||
-                              gameId.toLowerCase().includes('river')
-                          )) {
-                              incrementBy = 1;
-                          }
-                          break;
-
-                      case 'accuracy_avg':
-                          // This is calculated dynamically on GET, but we update the record
-                          const isWeekly = def.challenge_type === 'weekly';
-                          directProgress = await getAverageAccuracy(supabase, userId, periodKey, isWeekly);
-                          break;
-
-                      case 'unique_categories':
-                          // Recalculate unique categories
-                          directProgress = await getUniqueCategoriesPlayed(supabase, userId, periodKey, def.challenge_type === 'weekly');
-                          break;
-
-                      case 'streak_days':
-                          // Get current streak value
-                          directProgress = await getCurrentStreak(supabase, userId);
-                          break;
-
-                      default:
-                          console.warn(`[Challenges] Unknown target_type: ${def.target_type} for challenge ${def.id}`);
-                          break;
-                  }
-
-                  // Skip if no change needed
-                  if (incrementBy === 0 && directProgress === null) continue;
-
-                  // Upsert progress
-                  const { data: existing } = await supabase
-                      .from('training_user_challenges')
-                      .select('*')
-                      .eq('user_id', userId)
-                      .eq('challenge_id', def.id)
-                      .eq('period_key', periodKey)
-                      .maybeSingle();
-
-                  const newProgress = directProgress !== null
-                      ? directProgress
-                      : (existing?.progress || 0) + incrementBy;
-
-                  const isNowComplete = newProgress >= def.target_value;
-
-                  if (existing) {
-                      const { error: err_training_user_challenges_x77bv } = await supabase
-                        .from('training_user_challenges')
-                        .update({
-                              progress: newProgress,
-                              completed: isNowComplete,
-                              completed_at: isNowComplete && !existing.completed ? new Date().toISOString() : existing.completed_at
-                          })
-                          .eq('id', existing.id);
-                      if (err_training_user_challenges_x77bv) console.warn('[Supabase] Silent mutation failed in training_user_challenges:', err_training_user_challenges_x77bv.message);
-                  } else {
-                      const { error: err_training_user_challenges_jzcrm } = await supabase
-                        .from('training_user_challenges')
-                        .insert({
-                              user_id: userId,
-                              challenge_id: def.id,
-                              period_key: periodKey,
-                              progress: newProgress,
-                              completed: isNowComplete,
-                              completed_at: isNowComplete ? new Date().toISOString() : null
-                          });
-                      if (err_training_user_challenges_jzcrm) console.warn('[Supabase] Silent mutation failed in training_user_challenges:', err_training_user_challenges_jzcrm.message);
-                  }
-
-                  if (isNowComplete && !existing?.completed) {
-                      // Send push notification
-                      await notifyChallengeComplete(userId, def)
-                          .catch(e => console.warn('[Challenges] Push failed:', e.message));
-
-                      updatedChallenges.push({
-                          ...def,
-                          justCompleted: true
-                      });
-                  }
-              }
-
-              return res.status(200).json({
-                  success: true,
-                  category,
-                  updatedChallenges,
-                  newlyCompleted: updatedChallenges.filter(c => c.justCompleted)
-              });
-
-          } catch (error) {
-              console.warn('[Challenges] Update error:', error.message);
-              return res.status(500).json({ success: false, error: 'Failed to update challenges' });
-          }
-      }
-
-      // PUT: Claim completed challenge reward
-      if (req.method === 'PUT') {
-          const { challengeId, periodKey } = req.body;
-          // userId from JWT (set at top of handler)
-
-          if (!challengeId || !periodKey) {
-              return res.status(400).json({ success: false, error: 'challengeId and periodKey required' });
-          }
-
-          try {
-              // Get challenge progress
-              const { data: progress } = await supabase
-                  .from('training_user_challenges')
-                  .select('*, training_challenge_definitions(*)')
-                  .eq('user_id', userId)
-                  .eq('challenge_id', challengeId)
-                  .eq('period_key', periodKey)
-                  .maybeSingle();
-
-              if (!progress) {
-                  return res.status(404).json({ success: false, error: 'Challenge progress not found' });
-              }
-
-              if (!progress.completed) {
-                  return res.status(400).json({ success: false, error: 'Challenge not completed yet' });
-              }
-
-              if (progress.claimed) {
-                  return res.status(400).json({ success: false, error: 'Already claimed' });
-              }
-
-              // BUG #256 FIX: Atomic claim — prevents TOCTOU double-diamond exploit.
-              // Two concurrent requests could both read claimed=false, both award diamonds.
-              // Fix: update WHERE claimed=false, check if row was actually updated.
-              const { data: claimedRow, error: claimErr } = await supabase
-                  .from('training_user_challenges')
-                  .update({
-                      claimed: true,
-                      claimed_at: new Date().toISOString()
-                  })
-                  .eq('id', progress.id)
-                  .eq('claimed', false)  // Only succeeds if still unclaimed
-                  .select('id')
-                  .maybeSingle();
-
-              if (claimErr || !claimedRow) {
-                  return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
-              }
-
-              // Award diamonds via logging RPC
-              // Note: Supabase RPC returns {data, error} and does NOT throw, so the
-              // previous try/catch never caught RPC failures. A failed credit would
-              // leave claimed=true with no diamonds awarded, locking the user out.
-              const reward = progress.training_challenge_definitions?.diamond_reward || 0;
-              if (reward > 0) {
-                  // Award via award_diamonds_v2 (challenge catalog key).
-                  // Amount passed in metadata.challenge_diamonds;
-                  // 1,000 ◆/month family ceiling + platform breaker apply.
-                  const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
-                      p_user_id: userId,
-                      p_action_key: 'challenge',
-                      p_reference_id: `challenge_${challengeId}_${periodKey}`,
-                      p_target_id: `${challengeId}_${periodKey}`,
-                      p_metadata: {
-                          challenge_diamonds: reward,
-                          challenge_name: progress.training_challenge_definitions?.name || 'Challenge',
-                          period_key: periodKey,
-                          _source: 'api/training/challenges',
-                      },
-                  });
-
-                  if (!rpcOk) {
-                      // Roll back the claimed flag so the user can retry.
-                      try {
-                          const { error: err_training_user_challenges_hyjo3 } = await supabase
-                            .from('training_user_challenges')
-                            .update({ claimed: false, claimed_at: null })
-                              .eq('id', progress.id);
-                          if (err_training_user_challenges_hyjo3) console.warn('[Supabase] Silent mutation failed in training_user_challenges:', err_training_user_challenges_hyjo3.message);
-                      } catch (rbErr) {
-                          console.warn('[Challenges] Rollback claimed=false failed:', rbErr?.message || rbErr);
-                      }
-                      console.warn('[Challenges] Diamond RPC failed (rolled back so user can retry):', rpcErr);
-                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
-                  }
-              }
-
-              return res.status(200).json({
-                  success: true,
-                  claimed: {
-                      challengeId,
-                      name: progress.training_challenge_definitions?.name,
-                      diamondsAwarded: reward
-                  }
-              });
-
-          } catch (error) {
-              console.warn('[Challenges] Claim error:', error.message);
-              return res.status(500).json({ success: false, error: 'Failed to claim challenge' });
           }
       }
 

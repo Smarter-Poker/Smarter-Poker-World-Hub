@@ -199,3 +199,35 @@ value up automatically, and the figures above were re-measured against it.
   `npm run build` and `node scripts/test-article-reader.js` before shipping** —
   the latter is what the protected-file header asks for, and `index.js` is the
   file it protects.
+
+---
+
+## Correction — `/u/[username]` is not an orphan (2026-09-08, later the same day)
+
+This audit said: *"`/u/[username]` is complete and correct but orphaned;
+everything links to `/hub/user/[username]`. Pick one and redirect the other."*
+
+**That was wrong, and acting on it broke a law.** I converted `/u/:username` into
+a 308 to `/hub/user/:username` and deleted the page. `world-command-menu-law`
+failed: `/u/[username]` is one of 203 physical routes in
+`.agent/audits/2026-08-31-world-hub-menu-route-inventory.json`, and
+`2026-08-31-world-hub-menu-modernization.md` lists it explicitly under
+**RETAIN COMPATIBILITY** — a recorded disposition, not an oversight. Reverted.
+
+The two are not duplicates. Checked:
+
+| | lines | auth | data path |
+|---|---|---|---|
+| `pages/u/[username].js` | 193 | none — public | one RPC |
+| `pages/hub/user/[username].js` | 7,402 | `getAuthUser` in 4 places | full client |
+
+`/u/` is a deliberately small **public, unauthenticated** share target; the hub
+route is the signed-in profile. Both return HTTP 200 in production. Having one
+of them not appear in the app's own navigation is the point — it is an inbound
+link surface, not a destination the product advertises.
+
+**Do not consolidate these.** If a future pass wants to reduce the two
+implementations to one, the compatibility URL still has to answer, the audit
+inventory and its three hard-coded counts have to move in the same change, and
+the disposition ledger has to be amended — none of which belongs as a rider on
+a social-feed cleanup.

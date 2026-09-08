@@ -1,11 +1,11 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SOLVER SCENARIO GENERATOR — Builds Training Scenarios from Solver Data
+ * RANGE AND PRACTICE SCENARIO CATALOG
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Replaces the 18,000+ lines of stale hardcoded scenarios (levels 2-10)
- * with dynamically generated, solver-accurate scenarios derived directly
- * from solverRanges.js.
+ * Levels 1-7 use the authored preflop range reference in solverRanges.js.
+ * Levels 8-10 use an illustrative
+ * local postflop heuristic and retain its non-authoritative provenance.
  *
  * Level → Spot Type Mapping:
  *   Level 1: RFI from early positions (UTG, MP, HJ) + stack depth variants
@@ -15,10 +15,10 @@
  *   Level 5: Cold Call ranges (CO/BTN flat vs opener)
  *   Level 6: 4-Bet ranges (facing a 3-bet after opening)
  *   Level 7: Squeeze ranges (3-bet over open + caller)
- *   Level 8-10: Reserved for post-flop (not yet populated)
+ *   Levels 8-10: Illustrative local postflop heuristic practice
  *
- * Each generated scenario has:
- *   - Solver-accurate solution with raise/call/fold for every hand
+ * Each preflop range scenario has:
+ *   - An authored reference solution with raise/call/fold for every hand
  *   - Mixed-frequency data built in (no enrichment bridge needed)
  *   - Proper position, vsPosition, stackDepth metadata
  *   - Human-readable titles, descriptions, and tips
@@ -34,11 +34,12 @@ import {
 // Postflop scenario generators (L8-L10)
 import { generateAllPostflopScenarios } from '../engines/PostflopScenarioGenerator';
 
-// ── Threshold: solver freq must be ≥ this to count as "in range" ────────
+// ── Threshold: authored-reference frequency must be ≥ this to count as "in range" ────────
 const IN_RANGE_THRESHOLD = 0.10;
+const AUTHORED_REFERENCE_DISCLOSURE = 'Authored local preflop reference for unranked practice; not a solver-verified export.';
 
 /**
- * Build a binary solution object from solver spot data.
+ * Build a binary solution object from authored reference data.
  * Maps each hand to its primary action ('raise', 'call', or 'fold')
  * and also builds the enrichedSolution with full frequencies.
  *
@@ -95,15 +96,20 @@ function makeScenario({ id, level, title, description, tip, position, vsPosition
         solution,
         enrichedSolution,
         hasMixedFrequencies: true,
-        solverGenerated: true,  // Flag: this came from solver data, not hardcoded
+        authority: 'authored_local_reference',
+        authorityStatus: 'practice_only',
+        evidenceDisclosure: AUTHORED_REFERENCE_DISCLOSURE,
+        practiceOnly: true,
+        solverGenerated: false,
+        solverVerified: false,
     };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LEVEL 1: RFI from Early Positions (UTG, MP/HJ) — Foundations
 // ═══════════════════════════════════════════════════════════════════════════
-// Previously hardcoded in ScenarioDatabase.js. Now generated from solver data
-// so L1 has the same mixed-frequency enrichedSolution as every other level.
+// Previously hardcoded in ScenarioDatabase.js. It is now assembled from the
+// same authored reference corpus as the other preflop practice levels.
 
 function generateLevel1() {
     const scenarios = [];
@@ -392,7 +398,7 @@ function generateLevel7() {
 let _cachedScenarios = null;
 
 /**
- * Generate all solver-accurate scenarios for levels 1-7.
+ * Generate all authored local-reference scenarios for levels 1-7.
  * Results are cached after first call.
  *
  * @returns {{ [level: number]: Array<Scenario> }}
@@ -400,7 +406,8 @@ let _cachedScenarios = null;
 export function generateAllSolverScenarios() {
     if (_cachedScenarios) return _cachedScenarios;
 
-    // Generate postflop scenarios from the PostflopScenarioGenerator
+    // Generate illustrative postflop practice while preserving its explicit
+    // non-authoritative provenance; never relabel it as solver output here.
     const postflop = generateAllPostflopScenarios();
 
     _cachedScenarios = {
@@ -411,7 +418,7 @@ export function generateAllSolverScenarios() {
         5: generateLevel5(),
         6: generateLevel6(),
         7: generateLevel7(),
-        // Levels 8-10: Postflop scenarios from PostflopScenarioGenerator
+        // Levels 8-10: Illustrative local postflop heuristic practice
         8: postflop[8] || [],
         9: postflop[9] || [],
         10: postflop[10] || [],
@@ -453,6 +460,19 @@ export function pickWeightedHandFromScenario(scenario) {
 
     const enriched = scenario.enrichedSolution || {};
     const solution = scenario.solution || {};
+
+    // This helper grades a 13x13 local preflop reference matrix. A postflop heuristic has
+    // cards/options instead of a range solution; treating its absent entries as
+    // folds fabricated a "correct" answer for every random hand. Keep the local
+    // postflop catalog available to its explicit practice consumers, but fail
+    // closed at this incompatible grading boundary.
+    if (
+        scenario.authority === 'illustrative_local_heuristic'
+        || ['flop', 'turn', 'river'].includes(String(scenario.street || '').toLowerCase())
+        || (Object.keys(enriched).length === 0 && Object.keys(solution).length === 0)
+    ) {
+        return null;
+    }
 
     // Categorize hands
     const inRange = [];

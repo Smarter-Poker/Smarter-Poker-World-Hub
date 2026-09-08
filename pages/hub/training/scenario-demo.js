@@ -1,8 +1,8 @@
 /**
- * TRAINING SCENARIO DEMO — Interactive GTO Tutorial
+ * TRAINING SCENARIO DEMO — Solver-Literacy Practice Tutorial
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Guided walkthrough of the GTO training system with interactive examples,
- * step-by-step instructions, and a mini-quiz to validate understanding.
+ * Guided walkthrough of poker decision context and solver-output literacy.
+ * All charts on this page are illustrative teaching examples, not solves.
  *
  * Route: /hub/training/scenario-demo
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -17,8 +17,8 @@ import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizA
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../src/lib/authUtils';
+import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
@@ -36,8 +36,8 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // Tutorial steps
 const TUTORIAL_STEPS = [
   {
-    title: 'Welcome to GTO Training',
-    body: "This tutorial will teach you how the Smarter.Poker training system works. You'll learn how to read GTO frequencies, understand solver recommendations, and answer training questions like a pro.",
+    title: 'Welcome To Strategy Concepts',
+    body: "This practice-only tutorial explains how to read a poker decision and how a mixed-strategy chart is formatted. Its examples are authored teaching aids, not solver output, and its quiz does not affect account progress, rank, or rewards.",
     highlight: 'duration',
     icon: '★',
   },
@@ -48,32 +48,31 @@ const TUTORIAL_STEPS = [
     icon: '◇',
   },
   {
-    title: 'Understanding GTO Frequencies',
-    body: "After answering, you'll see the GTO-optimal action frequencies. A 70% Check / 30% Bet split means the solver checks 70% of the time with this exact hand in this exact spot.",
+    title: 'Reading A Frequency Chart',
+    body: 'A frequency chart can describe how often each action is selected in a strategy. The percentages below are illustrative only. An exact solver claim requires a matching decision node plus verified solver, machine, manifest, and source-artifact provenance.',
     example: { freqs: { Check: 70, 'Bet 33%': 25, 'Bet 75%': 5 } },
     icon: '■',
   },
   {
     title: 'Mixed Strategy Decisions',
-    body: 'When frequencies are close (like 55% Raise / 45% Call), the solver is nearly indifferent. Both plays are acceptable. Focus on the clearly dominant actions (80%+) first.',
+    body: 'A chart with two non-zero actions represents a mixed strategy. Close frequencies alone do not prove equal expected value, and this illustrative example must not be used as an exact recommendation for a real hand.',
     example: { freqs: { Raise: 55, Call: 45 } },
     icon: '⇄',
   },
   {
     title: 'Position Matters',
-    body: 'Your position relative to the button changes everything. IP (In Position) you can bet more aggressively. OOP (Out of Position) you need to check-raise or check more often for protection.',
+    body: 'Position changes action order and the information available when you decide. Strategy also depends on ranges, stack depth, pot size, prior actions, board cards, and bet sizing; position alone never determines the correct action.',
     example: { positions: ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'] },
     icon: '●',
   },
   {
-    title: 'EV and Accuracy',
-    body: "Your GTO Score measures how often you choose the solver-preferred action. An 80%+ score means you're playing near-optimal poker. Below 60% means significant leaks to work on.",
-    example: { scores: { Elite: '90%+', Strong: '75-89%', Average: '60-74%', Weak: '<60%' } },
+    title: 'Evidence Before Labels',
+    body: 'A solver label, action frequency, or EV number is trustworthy only when the exact game state and complete solve provenance are available. Otherwise the result should be shown as authored practice, illustrative, or unpriced.',
     icon: '▲',
   },
   {
     title: 'Practice Quiz',
-    body: "Let's test your understanding with a quick 5-question quiz about GTO concepts.",
+    body: "Let's test your understanding with a five-question concept quiz. The result measures only your answers to this local tutorial.",
     icon: '◆',
     isQuiz: true,
   },
@@ -87,9 +86,9 @@ const QUIZ_QUESTIONS = [
     correct: 'Game Theory Optimal',
   },
   {
-    q: 'If the solver says Check 80% / Bet 20%, what should you primarily do?',
-    options: ['Always bet', 'Primarily check', 'Fold', 'Raise every time'],
-    correct: 'Primarily check',
+    q: 'What does an illustrative Check 80% / Bet 20% chart communicate?',
+    options: ['Check is shown more often', 'Bet is always required', 'Fold is the only action', 'The chart proves exact EV'],
+    correct: 'Check is shown more often',
   },
   {
     q: 'Which position has the most advantage postflop?',
@@ -102,9 +101,9 @@ const QUIZ_QUESTIONS = [
     correct: 'How often to continue vs a bet',
   },
   {
-    q: 'An 85% GTO accuracy score is considered:',
-    options: ['Weak - needs improvement', 'Strong - near-optimal', 'Average - room to grow', 'Unusable - restart the session'],
-    correct: 'Strong - near-optimal',
+    q: 'What is required before a frequency can be called solver-exact?',
+    options: ['Complete exact-node provenance', 'A polished chart', 'A high quiz score', 'A popular poker rule'],
+    correct: 'Complete exact-node provenance',
   },
 ];
 
@@ -127,6 +126,17 @@ function FrequencyBars({ freqs }) {
         margin: '16px auto',
       }}
     >
+      <div
+        style={{
+          fontSize: 9,
+          color: 'var(--sp-accent-amber)',
+          letterSpacing: 0.8,
+          textTransform: 'uppercase',
+          textAlign: 'center',
+        }}
+      >
+        Illustrative Teaching Example · Not Solver Output
+      </div>
       {Object.entries(freqs || {}).map(([action, pct]) => (
         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 60, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right' }}>
@@ -173,14 +183,6 @@ export default function ScenarioDemoPage() {
   const isQuizStep = step?.isQuiz;
   const quizQ = QUIZ_QUESTIONS[quizIdx];
 
-  // EventBus listener
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'ScenarioDemo') return;
-    });
-    return unsub;
-  }, []);
-
   const nextStep = useCallback(() => {
     fb.click();
     if (currentStep < TUTORIAL_STEPS.length - 1) {
@@ -223,30 +225,16 @@ export default function ScenarioDemoPage() {
         try {
           const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
           if (!token) return;
-          const accuracy =
-            quizScore.total > 0 ? Math.round((quizScore.correct / quizScore.total) * 100) : 100;
-          await authedFetch('/api/training/save-session', {
-            method: 'POST',
-            body: JSON.stringify({
+          await savePracticeSession('scenario-demo', {
               gameId: 'tutorial',
-              gameName: 'GTO Training Tutorial',
-              gtowScore: accuracy,
-              totalEVLoss: 0,
+              gameName: 'Strategy Concept Tutorial',
               handsPlayed: quizScore.total,
-              mistakeCount: quizScore.total - quizScore.correct,
-              accuracy,
               correctCount: quizScore.correct,
-              bestStreak: 0,
-              levelPassed: true,
-              level: 1,
-              handHistory: [],
-            }),
+              context: {
+                practiceOnly: true,
+                solverOutput: false,
+              },
           });
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            { gameId: 'tutorial', completed: true, accuracy },
-            'ScenarioDemo'
-          );
         } catch (err) {
           console.warn('[Tutorial] Save error:', err.message);
         }
@@ -258,10 +246,10 @@ export default function ScenarioDemoPage() {
   return (
     <>
       <Head>
-        <title>GTO Training Tutorial | Smarter.Poker</title>
+        <title>Strategy Concept Tutorial | Smarter.Poker</title>
         <meta
           name="description"
-          content="Learn how to use the Smarter.Poker GTO training system with this interactive tutorial."
+          content="Practice reading poker decisions and illustrative strategy charts without solver or EV claims."
         />
       </Head>
       <div
@@ -302,7 +290,7 @@ export default function ScenarioDemoPage() {
           </button>
           <button
             onClick={() => setInfoOpen(true)}
-            aria-label="How GTO Training Tutorial works"
+            aria-label="How Strategy Concept Tutorial works"
             style={{
               background: 'rgba(var(--sp-accent-cyan-rgb), 0.08)',
               border: '1px solid rgba(var(--sp-accent-cyan-rgb), 0.25)',
@@ -321,24 +309,23 @@ export default function ScenarioDemoPage() {
           <BottomSheet
             open={infoOpen}
             onClose={() => setInfoOpen(false)}
-            title="How GTO Training Tutorial Works"
-            subtitle="Step-by-step intro to GTO concepts"
+            title="How Strategy Concept Tutorial Works"
+            subtitle="Practice-only poker and solver-literacy concepts"
           >
             <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
               <p style={{ marginTop: 0 }}>
-                Walk Through {/* num steps */} Short Concept Lessons Covering
-                Pot Odds, Ranges, Frequencies, Board Texture, Position, And
-                Solver-Vs-Exploit Theory. Each Step Ends With A Quick Comprehension
-                Quiz Before Unlocking The Next One.
+                Walk Through Short Concept Lessons Covering Decision Context,
+                Frequency Charts, Board Texture, Position, And Evidence Labels.
+                Example Percentages Are Illustrative And Are Not Solver Output.
               </p>
               <p>
-                Aim For At Least 70&#37; Accuracy On The Quizzes Before Stepping
-                Up To The Full Trainer Hub. Progress Saves Automatically.
+                Your Optional Private Practice Note Does Not Affect Account
+                Progress, Rank, Rewards, Or Solver Accuracy.
               </p>
             </div>
           </BottomSheet>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Training Tutorial</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Strategy Concept Tutorial</div>
             <ProgressStrip
               current={currentStep + 1}
               total={TUTORIAL_STEPS.length}
@@ -454,45 +441,6 @@ export default function ScenarioDemoPage() {
                   </div>
                 )}
 
-                {/* Score Example */}
-                {step.example?.scores && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                      maxWidth: 260,
-                      margin: '0 auto 16px',
-                    }}
-                  >
-                    {Object.entries(step.example.scores || {}).map(([label, score]) => {
-                      const colors = {
-                        Elite: 'var(--sp-accent-amber)',
-                        Strong: 'var(--sp-accent-green)',
-                        Average: 'var(--sp-accent-blue)',
-                        Weak: 'var(--sp-accent-red)',
-                      };
-                      return (
-                        <div
-                          key={label}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            padding: '6px 12px',
-                            borderRadius: 6,
-                            background: 'rgba(0,0,0,0.2)',
-                          }}
-                        >
-                          <span style={{ fontSize: 12, fontWeight: 700, color: colors[label] }}>
-                            {label}
-                          </span>
-                          <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{score}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
                 {/* Quiz inside tutorial */}
                 {isQuizStep && quizQ && (
                   <div style={{ marginTop: 8 }}>
@@ -602,7 +550,7 @@ export default function ScenarioDemoPage() {
                 Tutorial Complete!
               </div>
               <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-                Quiz Score:{' '}
+                Concept Quiz Result:{' '}
                 <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>
                   {quizScore.correct}/{quizScore.total}
                 </span>

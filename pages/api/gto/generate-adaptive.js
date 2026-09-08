@@ -33,9 +33,10 @@ import {
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
     }
     return _supabase;
 }
@@ -82,23 +83,41 @@ function pickRfiTable(stackDepth) {
     return RFI;
 }
 
+function rangeLabLevelForRfiPosition(position) {
+    return ['CO', 'BTN', 'SB'].includes(String(position || '').toUpperCase()) ? 2 : 1;
+}
+
 // ── Weakness analysis (deterministic — analyzes real session history) ────────
 async function fetchWeakSpots(userId) {
     const { data: sessions, error } = await getSupabase()
-        .from('jarvis_training_sessions')
-        .select('answers_data, leaks_detected, accuracy')
+        .from('training_sessions')
+        .select('position_stats, classification_counts, hand_history, attempt_id, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
         .eq('user_id', userId)
+        .eq('training_attempts.user_id', userId)
+        .eq('training_attempts.status', 'completed')
+        .not('attempt_id', 'is', null)
+        .eq('training_attempts.practice_only', false)
         .order('created_at', { ascending: false })
-        .limit(15);
+        .limit(100);
 
-    if (error || !sessions?.length) return [];
+    if (error) throw error;
+    if (!sessions?.length) return [];
 
     const patterns = {};
     sessions.forEach(session => {
-        const answers = session.answers_data || [];
-        answers.forEach(answer => {
-            if (!answer.correct && answer.position) {
-                patterns[answer.position] = (patterns[answer.position] || 0) + 1;
+        const stats = session?.position_stats && typeof session.position_stats === 'object'
+            ? session.position_stats
+            : {};
+        Object.entries(stats).forEach(([position, values]) => {
+            const normalizedPosition = String(position || '').toUpperCase();
+            // This endpoint builds an RFI drill. Do not pretend an unknown,
+            // BB-only, or unsupported seat maps to BTN behind the scenes.
+            if (!RFI?.[normalizedPosition]) return;
+            const total = Number(values?.total) || 0;
+            const correct = Number(values?.correct) || 0;
+            const errors = Math.max(0, total - correct);
+            if (errors > 0) {
+                patterns[normalizedPosition] = (patterns[normalizedPosition] || 0) + errors;
             }
         });
     });
@@ -124,6 +143,7 @@ function buildAdaptiveScenario(weakness) {
 
     return {
         id: `adaptive-${position}-${Date.now()}`,
+        level: rangeLabLevelForRfiPosition(position),
         title: `${position} Opening Range - Targeted Drill`,
         description: `Practice your ${position} open-raise frequencies at ${stackDepth}bb. ` +
             `This range was flagged as your weakest spot - the solver-equilibrium ` +
@@ -148,6 +168,7 @@ function buildDefaultScenario() {
 
     return {
         id: `default-CO-${Date.now()}`,
+        level: rangeLabLevelForRfiPosition(position),
         title: 'CO Opening Range',
         description: 'Standard cutoff opening range training at 100bb. ' +
             'Play more sessions to unlock personalized weakness-targeted drills.',
@@ -190,6 +211,7 @@ export default async function handler(req, res) {
             if (!weakSpots || weakSpots.length === 0) {
                 return res.status(200).json({
                     success: true,
+                    isNewUser: true,
                     scenario: buildDefaultScenario(),
                     targetedArea: null,
                     message: 'Play more games for personalized weakness-targeted training!',
@@ -221,11 +243,11 @@ export default async function handler(req, res) {
             });
         } catch (error) {
             console.warn('[GenerateAdaptive] Error:', error);
-            return res.status(200).json({
-                success: true,
-                scenario: buildDefaultScenario(),
-                targetedArea: null,
-                fallback: true,
+            return res.status(503).json({
+                success: false,
+                unavailable: true,
+                code: 'ADAPTIVE_TRAINING_HISTORY_UNAVAILABLE',
+                error: 'Adaptive training history is temporarily unavailable',
             });
         }
     } catch (err) {

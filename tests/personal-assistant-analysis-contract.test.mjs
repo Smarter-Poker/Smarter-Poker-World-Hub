@@ -307,36 +307,20 @@ test('node-lock model changes the recommendation but removes unmeasured EV claim
   assert.match(adjusted.explanation, /modeled exploit adjustment/i);
 });
 
-test('Sandbox API and UI wire the shared contract, provenance, and modeled lock result end to end', () => {
+test('Sandbox API fails closed and the UI routes users to verified evidence surfaces', () => {
   const api = fs.readFileSync(new URL('../pages/api/assistant/sandbox/analyze.js', import.meta.url), 'utf8');
-  const hook = fs.readFileSync(new URL('../src/hooks/useAssistant.js', import.meta.url), 'utf8');
   const page = fs.readFileSync(new URL('../pages/hub/personal-assistant/sandbox.js', import.meta.url), 'utf8');
-  const leaksPage = fs.readFileSync(new URL('../pages/hub/personal-assistant/leaks.js', import.meta.url), 'utf8');
 
-  assert.match(api, /validateAndNormalizeScenario\(req\.body\)/);
-  assert.match(api, /res\.status\(422\)/);
-  assert.match(api, /decisionContext/);
-  assert.match(api, /Action Line: \$\{actionLine\}/);
-  assert.match(api, /applyNodeLockModel\(responseData, nodeLocks/);
-  assert.match(api, /isHeroFacingWager\(decisionContext\)/);
-  assert.match(api, /solverResult\?\.contextVerified === true/);
-  assert.match(api, /why_not_check: responseData\.explanation/);
-  assert.match(api, /decisionFingerprint: responseData\.decisionFingerprint/);
-  assert.match(api, /nodeLockModelVersion: responseData\.nodeLockModelVersion/);
-  assert.match(api, /ruleBasedFallback\(\{[\s\S]*facingBet/);
-  assert.match(api, /facingBet && contextualSize/);
-  assert.match(api, /Hero Is Facing A Wager/);
-  assert.doesNotMatch(api, /heroHand\?\.card1 \|\| 'As'/);
-  assert.doesNotMatch(api, /heroHand\?\.card2 \|\| 'Kd'/);
+  assert.match(api, /res\.status\(410\)/);
+  assert.match(api, /SANDBOX_ANALYSIS_REQUIRES_VERIFIED_EVIDENCE/);
+  assert.match(api, /private, no-store, max-age=0/);
+  assert.match(api, /verifiedRoute: '\/hub\/training'/);
+  assert.doesNotMatch(api, /validateAndNormalizeScenario|createClient|getGrokClient|\.from\(|\.rpc\(|solverResult|ruleBasedFallback/);
 
-  assert.match(hook, /truthLevel: data\.truthLevel/);
-  assert.match(hook, /nodeLockApplied: data\.nodeLockApplied === true/);
-  assert.doesNotMatch(hook, /baselineEv: data\.baselineEv/);
-  assert.doesNotMatch(hook, /baselineActions: data\.baselineActions/);
-  assert.match(page, /displayResults\.truthLevel === 'solver_verified'/);
-  assert.match(page, /Modeled Exploit Frequencies/);
-  assert.match(leaksPage, /import CoachLeaderboard from/);
-  assert.match(leaksPage, /import MacroLeakDetector from/);
-  assert.match(leaksPage, /import LeakHeatmap from/);
-  assert.doesNotMatch(leaksPage, /dynamic\([\s\S]{0,160}import\([^)]*(?:CoachLeaderboard|MacroLeakDetector|LeakHeatmap)/);
+  assert.match(page, /data-training-authority="verified-evidence-required"/);
+  assert.match(page, /\/hub\/training\?source=assistant-sandbox-retired/);
+  assert.match(page, /spot-trainer\?source=assistant-sandbox-retired/);
+  assert.match(page, /hand-history-upload\?source=assistant-sandbox-retired/);
+  assert.match(page, /No Answer, Frequency, EV, Accuracy, Streak, Reward, Study Record, Or Progress Is Created/);
+  assert.doesNotMatch(page, /displayResults|Modeled Exploit Frequencies|localSolve|optimalAction/);
 });

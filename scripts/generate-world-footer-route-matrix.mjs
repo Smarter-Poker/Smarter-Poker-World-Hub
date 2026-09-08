@@ -75,12 +75,13 @@ const lines = [
   '- `/hub` is the World Hub landing page and is intentionally footerless.',
   '- `/hub/club-arena` is the Club Arena lobby and is intentionally footerless.',
   '- `/hub/club-arena/**` is an embedded application boundary; its internal footer remains owned and tested by Club Arena.',
+  '- `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.',
   '- Routes outside the 14 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.',
   '',
 ];
 
-if (rows.length !== 204) {
-  throw new Error(`Expected 204 applicable routes, found ${rows.length}`);
+if (rows.length !== 203) {
+  throw new Error(`Expected 203 applicable routes, found ${rows.length}`);
 }
 
 fs.writeFileSync(path.join(root, 'docs/world-hub-footer-route-matrix.md'), `${lines.join('\n')}\n`);

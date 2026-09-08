@@ -1,20 +1,23 @@
 /**
  * CUSTOM SOLVE — Configure & Query Custom GTO Spots
  * ═══════════════════════════════════════════════════════════════════════════
- * Configure positions, stack depth, and board cards, then query the verified
- * preflop range service or exact-board solver corpus.
+ * Configure positions, stack depth, and board cards, then query the authored
+ * preflop reference service or an audited exact root decision when available.
  *
  * Route: /hub/training/custom-solve
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-3 — hex sweep batch 4: literals routed to --sp-* tokens
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
+
+const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 // TRAIN-CSS-MOTION-ADOPT-11 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -27,6 +30,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+const PREFLOP_RFI_POSITIONS = POSITIONS.filter((position) => position !== 'BB');
 
 const ALL_CARD_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const ALL_CARD_SUITS = [
@@ -35,6 +39,13 @@ const ALL_CARD_SUITS = [
   { s: 'c', symbol: '♣', color: 'var(--sp-accent-green)' },
   { s: 's', symbol: '♠', color: 'var(--sp-fg-muted)' },
 ];
+
+function preflopHandCombos(hand) {
+  if (hand?.length === 2) return 6;
+  if (hand?.endsWith('s')) return 4;
+  if (hand?.endsWith('o')) return 12;
+  return 0;
+}
 
 // HARDENED: Deterministic hash for stable runout values (no flickering)
 function BoardCardSelector({ boardCards, setBoardCards }) {
@@ -173,31 +184,6 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
   );
 }
 
-// Pre-computed GTO ranges for custom solve results
-const PRECOMPUTED_RANGES = {
-  UTG: { openRange: 15.6, hands: 'AA-22, AKs-A9s, AKo-AJo, KQs-KTs, QJs-QTs, JTs, T9s' },
-  MP: { openRange: 19.2, hands: 'AA-22, AKs-A5s, AKo-ATo, KQs-K9s, QJs-Q9s, JTs-J9s, T9s, 98s' },
-  CO: {
-    openRange: 26.3,
-    hands:
-      'AA-22, AKs-A2s, AKo-A8o, KQs-K7s, KQo-KTo, QJs-Q8s, QJo, JTs-J8s, T9s-T8s, 98s-97s, 87s, 76s',
-  },
-  BTN: {
-    openRange: 42.1,
-    hands:
-      'AA-22, AKs-A2s, AKo-A2o, KQs-K2s, KQo-K7o, QJs-Q2s, QJo-Q8o, JTs-J6s, JTo-J8o, T9s-T6s, T9o, 98s-96s, 87s-86s, 76s-75s, 65s-64s, 54s',
-  },
-  SB: {
-    openRange: 31.5,
-    hands:
-      'AA-22, AKs-A2s, AKo-A5o, KQs-K4s, KQo-K9o, QJs-Q7s, QJo-QTo, JTs-J7s, JTo, T9s-T7s, 98s-97s, 87s-86s, 76s, 65s',
-  },
-  BB: {
-    openRange: 'Defend',
-    hands: 'Call: ATo-A2o, KQo-K8o, QJo-Q9o, JTo-J9o, T9o. 3-Bet: AA-TT, AKs-AJs, AKo-AQo, KQs',
-  },
-};
-
 // ═══════════════════════════════════════════════════════════════════════════
 // RANGE GRID VISUAL — Interactive 13×13 Grid for Solver Results
 // ═══════════════════════════════════════════════════════════════════════════
@@ -210,6 +196,7 @@ const PRECOMPUTED_RANGES = {
 
 function SolveResult({ heroPos, villainPos, config, result }) {
   if (!result) return null;
+  const isPreflopRfi = (config.boardCards?.filter(Boolean).length || 0) < 3;
 
   return (
     <motion.div
@@ -233,10 +220,10 @@ function SolveResult({ heroPos, villainPos, config, result }) {
       >
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
-            {heroPos} Vs {villainPos}
+            {isPreflopRfi ? `${heroPos} First-In RFI` : `${heroPos} Vs ${villainPos}`}
           </div>
           <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-            6-Max Cash · {config.stackDepth}BB · {config.boardCards?.filter(Boolean).length ? 'Exact Board Query' : 'Preflop Range Query'}
+            6-Max Cash · {config.stackDepth}BB · {isPreflopRfi ? 'Authored First-In Reference' : 'Board Reference Query'}
           </div>
         </div>
         <div
@@ -250,7 +237,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             color: 'var(--sp-accent-green)',
           }}
         >
-          {result.isEstimate ? 'Modeled Baseline' : 'Solved Corpus'}
+          {result.authorityLabel || 'Audited Solver Result'}
         </div>
       </div>
 
@@ -272,7 +259,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             marginBottom: 6,
           }}
         >
-          Optimal Strategy
+          Action Frequency Reference
         </div>
         {(Array.isArray(result?.actions) ? result.actions : []).map((a) => (
           <div
@@ -402,6 +389,23 @@ export default function CustomSolvePage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const selectedBoardCount = boardCards.filter(Boolean).length;
+  const isPreflopRfi = selectedBoardCount < 3;
+
+  useEffect(() => {
+    if (!isPreflopRfi) return;
+    if (!PREFLOP_RFI_POSITIONS.includes(heroPos)) setHeroPos('BTN');
+    if (stackDepth !== 100) setStackDepth(100);
+  }, [heroPos, isPreflopRfi, stackDepth]);
+
+  const selectHeroPosition = useCallback((nextPosition) => {
+    setHeroPos(nextPosition);
+    setVillainPos((currentVillain) => (
+      currentVillain === nextPosition
+        ? POSITIONS.find((candidate) => candidate !== nextPosition) || 'BB'
+        : currentVillain
+    ));
+  }, []);
 
   const handleSolve = useCallback(async () => {
     setLoading(true);
@@ -410,34 +414,40 @@ export default function CustomSolvePage() {
     try {
       const selectedBoard = boardCards.filter(Boolean);
       if (selectedBoard.length < 3) {
-        const res = await authedFetch(
-          `/api/training/preflop-ranges?gameType=cash_6max&stackDepth=${stackDepth}&position=${heroPos}&scenario=rfi`,
+        const res = await trainingFetch(
+          `/api/training/preflop-ranges?gameType=cash_6max&stackDepth=100&position=${heroPos}&scenario=rfi`,
         );
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.range) throw new Error(data?.error || `Request failed (${res.status})`);
 
-        const totals = {};
-        let populatedHands = 0;
-        Object.values(data.range.gridData || {}).forEach((entry) => {
-          if (!entry) return;
-          populatedHands += 1;
+        const comboWeightedTotals = {};
+        let totalCombos = 0;
+        Object.entries(data.range.gridData || {}).forEach(([hand, entry]) => {
+          const combos = preflopHandCombos(hand);
+          totalCombos += combos;
+          if (!entry) {
+            comboWeightedTotals.Fold = (comboWeightedTotals.Fold || 0) + (100 * combos);
+            return;
+          }
           Object.entries(entry).forEach(([actionName, frequency]) => {
-            totals[actionName] = (totals[actionName] || 0) + (Number(frequency) || 0);
+            comboWeightedTotals[actionName] =
+              (comboWeightedTotals[actionName] || 0) + ((Number(frequency) || 0) * combos);
           });
         });
         setResult({
           source: data.range.source,
-          isEstimate: data.range.source === 'derived_from_rfi',
-          message: `${data.range.spotLabel}. Frequencies are aggregated from the returned 169-hand range grid.`,
-          actions: Object.entries(totals).map(([actionName, total]) => ({
+          isEstimate: true,
+          authorityLabel: 'Authored Reference',
+          message: `${data.range.spotLabel}. ${data.range.provenance?.disclosure || 'This is an authored reference, not a solver-exact export.'}`,
+          actions: Object.entries(comboWeightedTotals).map(([actionName, total]) => ({
             action: actionName,
-            freq: Math.round(total / Math.max(1, populatedHands)),
+            freq: Math.round(total / Math.max(1, totalCombos)),
           })),
           range: null,
           rangePercent: data.range.stats?.rfiPct || 0,
         });
       } else {
-        const res = await authedFetch('/api/training/solver-api', {
+        const res = await trainingFetch('/api/training/solver-api', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -450,10 +460,18 @@ export default function CustomSolvePage() {
           }),
         });
         const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.solution?.actions) throw new Error(data?.error || `Request failed (${res.status})`);
+        const hasExactSolverResult = data?.source === 'training_solver_artifact_catalog'
+          && data?.matchQuality === 'exact_root_node'
+          && data?.solution?.isEstimate === false
+          && data?.solution?.actions
+          && typeof data.solution.actions === 'object';
+        if (!res.ok || !hasExactSolverResult) {
+          throw new Error(data?.error || 'No audited exact solver result is available for this decision.');
+        }
         setResult({
           source: data.source,
-          isEstimate: Boolean(data.solution.isEstimate),
+          isEstimate: false,
+          authorityLabel: 'Audited Solver Result',
           message: data.message,
           actions: Object.entries(data.solution.actions).map(([actionName, frequency]) => ({
             action: actionName.charAt(0).toUpperCase() + actionName.slice(1),
@@ -477,7 +495,7 @@ export default function CustomSolvePage() {
         <title>Custom Solve | Smarter.Poker GTO Training</title>
         <meta
           name="description"
-          content="Configure custom parameters and query GTO solutions for any spot."
+          content="Configure a cash spot and query an authored 100BB first-in reference or explicitly labelled postflop board data."
         />
       </Head>
 
@@ -520,7 +538,7 @@ export default function CustomSolvePage() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Custom Solve</div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Query Verified Preflop And Exact-Board Data
+              Query Authored Preflop And Audited Root-Node Data
             </div>
           </div>
         </div>
@@ -542,7 +560,11 @@ export default function CustomSolvePage() {
               Supported Corpus
             </div>
             <div style={{ color: 'var(--sp-fg)', fontSize: 13, fontWeight: 800 }}>6-Max Cash</div>
-            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>Position, Effective Stack, And Concrete Board Cards Are Applied To Every Request.</div>
+            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>
+              {isPreflopRfi
+                ? 'Before A Complete Flop Is Selected, This Tool Queries Only The Authored 100BB First-In RFI Reference. No Opponent Exists In A First-In Decision.'
+                : 'Postflop Requests Apply Hero, Opponent, Effective Stack, And Every Concrete Board Card. Only An Audited Exact Root Decision Is Displayed. If No Exact Match Exists, The Request Fails Closed And No Modeled Result Is Shown.'}
+            </div>
           </div>
 
           {/* Positions */}
@@ -564,11 +586,11 @@ export default function CustomSolvePage() {
                 Hero Position
               </div>
               <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                {POSITIONS.map((p) => (
+                {(isPreflopRfi ? PREFLOP_RFI_POSITIONS : POSITIONS).map((p) => (
                   <motion.button
                     key={p}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setHeroPos(p)}
+                    onClick={() => selectHeroPosition(p)}
                     style={{
                       padding: '6px 8px',
                       borderRadius: 6,
@@ -600,32 +622,52 @@ export default function CustomSolvePage() {
                   padding: '0 4px',
                 }}
               >
-                Villain Position
+                {isPreflopRfi ? 'Opponent' : 'Villain Position'}
               </div>
-              <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                {POSITIONS.filter((p) => p !== heroPos).map((p) => (
-                  <motion.button
-                    key={p}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setVillainPos(p)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 6,
-                      flex: '1 1 auto',
-                      minWidth: 36,
-                      border: `1px solid ${villainPos === p ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
-                      background: villainPos === p ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.2)',
-                      color: villainPos === p ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {p}
-                  </motion.button>
-                ))}
-              </div>
+              {isPreflopRfi ? (
+                <div
+                  data-preflop-opponent="not-applicable"
+                  style={{
+                    minHeight: 31,
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 9px',
+                    border: '1px solid rgba(148,163,184,0.16)',
+                    borderRadius: 6,
+                    color: 'var(--sp-fg-dim)',
+                    background: 'rgba(15,23,42,0.34)',
+                    fontSize: 10,
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Not Applicable For A First-In RFI Node
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  {POSITIONS.filter((p) => p !== heroPos).map((p) => (
+                    <motion.button
+                      key={p}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setVillainPos(p)}
+                      style={{
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        flex: '1 1 auto',
+                        minWidth: 36,
+                        border: `1px solid ${villainPos === p ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
+                        background: villainPos === p ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.2)',
+                        color: villainPos === p ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {p}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -648,17 +690,22 @@ export default function CustomSolvePage() {
               {[20, 40, 60, 100, 150, 200].map((sd) => (
                 <motion.button
                   key={sd}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setStackDepth(sd)}
+                  whileTap={isPreflopRfi && sd !== 100 ? undefined : { scale: 0.95 }}
+                  onClick={() => {
+                    if (!isPreflopRfi || sd === 100) setStackDepth(sd);
+                  }}
+                  disabled={isPreflopRfi && sd !== 100}
+                  aria-label={`${sd} big blinds${isPreflopRfi && sd !== 100 ? ' unavailable for the first-in reference' : ''}`}
                   style={{
                     padding: '6px 10px',
                     borderRadius: 6,
                     border: `1px solid ${stackDepth === sd ? 'rgba(0,212,255,0.3)' : 'transparent'}`,
                     background: stackDepth === sd ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
                     color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
+                    opacity: isPreflopRfi && sd !== 100 ? 0.35 : 1,
                     fontSize: 11,
                     fontWeight: 700,
-                    cursor: 'pointer',
+                    cursor: isPreflopRfi && sd !== 100 ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {sd}bb
@@ -709,7 +756,7 @@ export default function CustomSolvePage() {
                 Solving...
               </span>
             ) : (
-              'Solve This Spot'
+              isPreflopRfi ? 'Load First-In RFI Reference' : 'Solve This Postflop Spot'
             )}
           </motion.button>
 

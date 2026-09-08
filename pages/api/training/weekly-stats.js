@@ -21,7 +21,7 @@
  * Cache: private, 30s fresh + 60s SWR (stats update at end of every drill).
  *
  * Source RPC: public.rpc_training_weekly_stats(uuid) — see
- * supabase/migrations/20260507120000_training_dashboard_rpcs.sql
+ * supabase/migrations/20260907010300_training_advisor_and_weekly_stats_authority.sql
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -60,6 +60,7 @@ export default async function handler(req, res) {
     }
 
     res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+    res.setHeader('Vary', 'Authorization');
 
     const { data, error } = await supabase.rpc('rpc_training_weekly_stats', {
       p_user_id: user.id,

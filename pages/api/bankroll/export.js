@@ -6,7 +6,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       // ═══ PREMIUM GATE ═══
-      const access = await checkFeatureAccess(_authUser.id, 'bankroll_pro');
+      const access = await checkServerFeatureAccess(getSupabase(), _authUser.id, 'bankroll_pro');
       if (!access.hasAccess) {
           return res.status(403).json({ success: false, error: 'Premium feature access required' });
       }
