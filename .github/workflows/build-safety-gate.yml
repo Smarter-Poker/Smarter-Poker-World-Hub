@@ -102,11 +102,12 @@ jobs:
 
       # The behavioral migration verifiers exercise disposable PostgreSQL 17
       # clusters. Ubuntu 24.04 ships PostgreSQL 16, which cannot model the PG17
-      # MAINTAIN privilege enforced in production, so hosted runners install
-      # the official PGDG package. Self-hosted runners must be pre-provisioned
-      # and fail loudly if they are not.
-      - name: Install PostgreSQL 17 For Training Authority On Hosted Runners
-        if: runner.environment == 'github-hosted'
+      # MAINTAIN privilege enforced in production. Both GitHub-hosted and the
+      # estate-linux self-hosted runners therefore install the exact official
+      # PGDG package. apt is idempotent, and the next step independently rejects
+      # a missing/wrong major or production-incompatible locale.
+      - name: Install PostgreSQL 17 For Training Authority On Linux Runners
+        if: runner.os == 'Linux'
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl --fail --show-error --silent \

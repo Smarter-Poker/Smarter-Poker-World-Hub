@@ -11,7 +11,8 @@ test('Arena lobby exposes only the signed server-graded Training mode', () => {
 
   assert.ok(selectorStart >= 0 && launchStart > selectorStart);
   assert.doesNotMatch(lobbyControls, /Flashcards|Speed Drill|Import HH|setTrainingMode/);
-  assert.doesNotMatch(arena, /const \[trainingMode|setTrainingMode/);
+  assert.doesNotMatch(arena, /\btrainingMode\b|setTrainingMode/);
+  assert.match(arena, /: 'Start Training →'\}/);
   assert.match(arena, /setGamePhase\('playing'\)/);
 });
 

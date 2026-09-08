@@ -810,9 +810,12 @@ export default async function handler(req, res) {
         () => getSupabase().from('training_question_cache')
           .upsert(cacheRow, { onConflict: 'question_id', defaultToNull: false })
           .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
-          .single(),
+          .maybeSingle(),
         { label: 'NextStreet:canonicalize' },
       );
+      if (!persisted?.data) {
+        throw new Error('Canonical continuation persistence returned no accepted cache row');
+      }
       persistedCanonicalQuestion = withPersistedCacheReceipt(cacheRow.question_data, persisted.data);
     } catch (canonicalizeError) {
       console.warn('[NextStreet] Refusing to serve an uncanonicalized continuation:', canonicalizeError?.message || canonicalizeError);

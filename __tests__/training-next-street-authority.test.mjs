@@ -407,6 +407,10 @@ test('next-street accepts only an authenticated signed POST continuation', () =>
   assert.match(api, /verifyTrainingGradingReceiptEnvelope\(gradingReceipt/);
   assert.match(api, /verifyTrainingGradingReceipt\(gradingReceipt/);
   assert.match(api, /training_question_snapshots/);
+  assert.match(api, /\.maybeSingle\(\)/);
+  assert.doesNotMatch(api, /\.single\(\)/);
+  assert.match(api, /if \(!persisted\?\.data\)/);
+  assert.match(api, /Canonical continuation persistence returned no accepted cache row/);
   assert.doesNotMatch(api, /req\.query/);
   assert.doesNotMatch(api, /rawHeroCards|rawSessionId|sanitizeParam/);
 });

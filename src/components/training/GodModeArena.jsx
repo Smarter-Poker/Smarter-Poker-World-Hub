@@ -4661,11 +4661,7 @@ function GodModeArenaInner({
                       ? loadFailed
                         ? 'Could Not Load Solver Data. Retry'
                         : 'Loading Solver Data...'
-                      : trainingMode === 'flashcard'
-                        ? 'Start Flashcards'
-                        : trainingMode === 'drill'
-                          ? 'Start Speed Drill'
-                          : 'Start Training →'}
+                      : 'Start Training →'}
                   </motion.button>
                   {/* A DEAD BUTTON MUST SAY SO (2026-09-07). When the question
                       fetch failed, this read "Loading Solver Data..." for ever

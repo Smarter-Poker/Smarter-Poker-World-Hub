@@ -228,6 +228,20 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'the required PR safety context must run the authority suite exactly once',
   );
   assert.match(safetyGate, /postgresql-17/);
+  const postgresInstallBlock = safetyGate.slice(
+    safetyGate.indexOf('Install PostgreSQL 17 For Training Authority On Linux Runners'),
+    safetyGate.indexOf('Resolve Exact PostgreSQL 17 Training Test Binaries'),
+  );
+  assert.match(
+    postgresInstallBlock,
+    /if: runner\.os == 'Linux'/,
+    'the required gate must provision exact PostgreSQL 17 on the Linux self-hosted estate',
+  );
+  assert.doesNotMatch(
+    postgresInstallBlock,
+    /runner\.environment == 'github-hosted'/,
+    'self-hosted Linux runners must not bypass PostgreSQL 17 provisioning',
+  );
   assert.match(safetyGate, /PHASE6_POSTGRES_BIN=\$postgres_bin/);
   assert.match(safetyGate, /AWARD_V2_POSTGRES_BIN=\$postgres_bin/);
   assert.match(safetyGate, /CHECK 24C: Training PostgreSQL 17 Behavioral Authority/);
