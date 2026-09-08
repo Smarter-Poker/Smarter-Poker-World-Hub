@@ -113,7 +113,7 @@ export default async function handler(req, res) {
           const grok = getGrokClient();
 
           const response = await grok.chat.completions.create({
-              model: 'grok-beta',
+              model: 'grok-3',
               messages: [
                   { role: 'system', content: enhancedPrompt },
                   ...conversationHistory.slice(-6).map(msg => ({
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
                   agent_id: conversation.agent_id,
                   content: aiResponse,
                   metadata: {
-                      model: 'grok-beta',
+                      model: 'grok-3',
                       typingDelay,
                       temperature: agentConfig.temperature,
                       tokensUsed: response.usage?.total_tokens

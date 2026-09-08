@@ -462,6 +462,20 @@ jobs:
           # gate stays green.
           node scripts/ci/check-migrations-applied.mjs
 
+      - name: "CHECK 25: The code is checked against the live database and the live model list"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Three defects shipped green on 2026-09-08 because every gate here
+          # compares source to source: a category the ledger CHECK refuses
+          # ('session'), a column w2g_forms does not have (amount), and model
+          # ids api.x.ai answers "Model not found" (grok-2-vision-latest).
+          # This asks the database (values via fn_ci_check_constraints,
+          # columns via OpenAPI) and the model API (no credential needed: a
+          # missing model is refused before authentication).
+          node scripts/ci/check-live-contracts.mjs
+
       - name: "CHECK 13: No phantom Supabase COLUMNS"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
