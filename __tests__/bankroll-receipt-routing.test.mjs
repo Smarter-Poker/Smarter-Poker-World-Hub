@@ -242,10 +242,12 @@ test('the OCR route asks for a document type and uses a model that exists', () =
     assert.match(route, /"document_type"/, 'the prompt must ask what kind of paper this is');
     assert.match(route, /tournament_buyin/, 'and name the poker-specific kinds');
     assert.match(route, /A buy-in receipt is NOT an expense/, 'and say which way that call goes');
-    assert.match(route, /model: 'grok-2-vision-1212'/, 'the -latest alias is rejected by the API');
-    assert.doesNotMatch(
-        code('pages/api/bankroll/scan-receipt.js'),
-        /grok-2-vision-latest/,
-        'the broken model id must not come back',
-    );
+    // Two model ids were tried and both were rejected by the API. The route
+    // now goes through the shared client, which is where a model name is
+    // resolved for every route at once.
+    assert.match(route, /getGrokClient\(\)/, 'must use the shared client, not a raw fetch');
+    assert.doesNotMatch(code('pages/api/bankroll/scan-receipt.js'), /api\.x\.ai/, 'no hand-rolled endpoint');
+    for (const dead of ['grok-2-vision-latest', 'grok-2-vision-1212']) {
+        assert.ok(!code('pages/api/bankroll/scan-receipt.js').includes(dead), `${dead} was rejected by the API`);
+    }
 });
