@@ -669,8 +669,15 @@ export default function DocumentScanner({
         }
     }, [detectStill, rectify, renderPreview]);
 
+    // Re-ingests when the prop changes, not only on mount. Keyed on identity so
+    // a re-render with the same image does not scan it twice. Mount-only was a
+    // footgun: DocumentCropper hands this component `imageSrc` from callers
+    // that keep it mounted, and a second image would have been ignored in
+    // silence.
+    const ingestedRef = useRef(null);
     useEffect(() => {
-        if (!initialImage) return;
+        if (!initialImage || ingestedRef.current === initialImage) return;
+        ingestedRef.current = initialImage;
         if (typeof initialImage === 'string') {
             fetch(initialImage).then((r) => r.blob()).then(ingest).catch(() => {
                 setDecodeError({ title: 'Image Could Not Be Opened', body: 'That image could not be read.' });
@@ -679,9 +686,9 @@ export default function DocumentScanner({
         } else {
             ingest(initialImage);
         }
-        // ingest is stable; initialImage does not change for a given mount.
+        // ingest is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [initialImage]);
 
     // -----------------------------------------------------------------------
     // REVIEW ACTIONS
@@ -1270,7 +1277,13 @@ const S = {
     overlay: {
         position: 'fixed',
         inset: 0,
-        zIndex: 10001,
+        // Above the global header, which is sticky at 10050. At 10001 the
+        // header's hamburger sat on top of this overlay's close button, so the
+        // X could not be clicked at all: the only way out of the scanner was
+        // the browser back gesture. Measured on production, not guessed.
+        // 99999 is the house level for a full-screen modal (ReportBugWidget,
+        // LocationEnableModal); 999999 stays reserved for error recovery.
+        zIndex: 99999,
         background: METAL.darkest,
         display: 'flex',
         flexDirection: 'column',
