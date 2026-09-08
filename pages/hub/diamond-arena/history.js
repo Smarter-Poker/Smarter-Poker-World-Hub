@@ -13,10 +13,28 @@ export default function DiamondArenaHistory() {
     const bus = useTrainingBus('diamond-arena-history');
     const router = useRouter();
 
-    const history = [
-        { id: 1, date: new Date().toISOString(), gameType: 'Cash NLH', result: '+2,450', hands: 127 },
-        { id: 2, date: new Date(Date.now() - 86400000).toISOString(), gameType: 'Tournament', result: '+5,000', hands: 89 },
-    ];
+    /*
+     * THIS SHOWED THE VIEWER A WIN RECORD THEY HAD NEVER PLAYED.
+     *
+     * Two hard-coded rows, dated to today and yesterday with `new Date()`, so
+     * they moved with the calendar and always looked fresh: a Cash NLH session
+     * up 2,450 over 127 hands, and a tournament up 5,000 over 89. Not a sample
+     * and not a placeholder - it renders as YOUR history, in a currency you own,
+     * on a page called Game History.
+     *
+     * A fabricated leaderboard invents strangers. This invented the reader's own
+     * results, which is worse: there is nothing about it a player could check.
+     *
+     * Nobody has played a hand in the Diamond Arena. Its club row was created on
+     * 2026-09-08 and holds no tables, no tournaments and no diamonds, so the
+     * true history of every account is empty.
+     *
+     * TO FINISH THIS: read the viewer's real sessions once tables open - arena
+     * hands live in the ordinary engine tables, scoped to the platform club
+     * (`clubs.is_platform`) - server-side, for the authenticated user only. Do
+     * not re-add constants.
+     */
+    const history = [];
 
     return (
         <>
@@ -37,6 +55,12 @@ export default function DiamondArenaHistory() {
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
+                            {history.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
+                                    <p style={{ fontSize: '18px' }}>No Sessions Yet</p>
+                                    <p style={{ fontSize: '14px', marginTop: '8px' }}>The Diamond Arena Has Not Opened</p>
+                                </div>
+                            )}
                             {history.map(session => (
                                 <div
                                     key={session.id}
