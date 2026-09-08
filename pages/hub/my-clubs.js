@@ -46,8 +46,12 @@
  * page advertising itself in the public directory forever. 26 of 37 rows were
  * that. Fixed and backfilled in #1595.
  *
- * Copy note: pages in a World Hub world are auto title-cased and en and em
- * dashes are banned by src/lib/world-copy-policy.mjs. Keep copy plain.
+ * Copy note: player-facing copy on this site is Title Cased at the SOURCE and
+ * en and em dashes are banned. scripts/ci/check-title-case.mjs and
+ * check-ui-text.mjs enforce both in Pre-Deploy Safety Checks, which is a
+ * REQUIRED status check. src/lib/world-copy-policy.mjs also title-cases at
+ * runtime, so a sentence-cased string looks correct in the browser and still
+ * fails the build. Author it capitalized.
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -166,8 +170,8 @@ export default function MyClubsRetired() {
                             This Page Moved
                         </h1>
                         <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6 }}>
-                            Your clubs, unions and home games are all on Social Pages now, under
-                            the Managed tab. Nothing was lost. Pick a destination below.
+                            Your Clubs, Unions And Home Games Are All On Social Pages Now, Under
+                            The Managed Tab. Nothing Was Lost. Pick A Destination Below.
                         </div>
                     </div>
 
