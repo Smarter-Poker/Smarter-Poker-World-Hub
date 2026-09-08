@@ -1855,17 +1855,27 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               <span className={styles.srOnly}>Buy Diamonds</span>
             </button>
 
+            {/*
+                TRANSFERS ARE OFF (2026-09-08, docs/DIAMOND-RULINGS.md ruling 4 in the
+                Club Arena repo). Player-to-player diamond transfers are closed: the
+                API answers 410 and the database door refuses. This hitbox used to open
+                the transfer panel; it now says so, rather than letting a player fill in
+                a recipient and an amount and meet an error at the end. The panel below
+                is unreachable while showTransfer stays false and comes out with the
+                friends-transfer code in a follow-up.
+            */}
             <button
               type="button"
               className={styles.artHitbox}
               style={{ right: '10%' }}
-              aria-expanded={showTransfer}
               onClick={() => {
-                setShowTransfer((v) => !v);
-                if (!showTransfer) fetchFriends();
+                showStoreToast(
+                  'info',
+                  'Transfers Are Off. Diamonds Cannot Be Sent Directly To Another Player, But You Can Still Send Gifts During A Live Stream.'
+                );
               }}
             >
-              <span className={styles.srOnly}>Send Diamonds To A Friend</span>
+              <span className={styles.srOnly}>Diamond Transfers Are Not Available</span>
             </button>
 
             {/*
