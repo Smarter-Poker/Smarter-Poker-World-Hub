@@ -7,7 +7,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { LIMITS, applyRateLimit, rateLimit } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
     // VIP/Pro gate check (Infrastructure ready)
     // We enforce read/write access via premiumFeatureGate
-    const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+    const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
     if (!access.hasAccess) {
         return res.status(403).json({ error: 'Bankroll Pro or VIP required to use Player Notes' });
     }

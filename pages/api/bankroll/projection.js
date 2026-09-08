@@ -8,7 +8,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       const userId = _authUser.id;
 
       // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(userId, 'bankroll_pro');
+      const access = await checkServerFeatureAccess(getSupabase(), userId, 'bankroll_pro');
       if (!access.hasAccess) {
           return res.status(403).json({ success: false, error: 'Premium feature access required' });
       }

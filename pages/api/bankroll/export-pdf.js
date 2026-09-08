@@ -5,7 +5,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
           const userId = user.id;
 
           // ═══ PREMIUM GATE ═══
-          const access = await checkFeatureAccess(userId, 'bankroll_pro');
+          const access = await checkServerFeatureAccess(getSupabase(), userId, 'bankroll_pro');
           if (!access.hasAccess) {
               return res.status(403).json({ error: 'Bankroll Pro or VIP required' });
           }
