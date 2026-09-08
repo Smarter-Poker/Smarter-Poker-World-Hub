@@ -1614,7 +1614,9 @@ test('analytics: days and type are validated before anything is loaded', async (
   // A repeated query param arrives as an array. It used to 400 where the
   // original coerced and defaulted.
   const quiet = console.error;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   console.error = () => {};
+  process.env.SUPABASE_SERVICE_ROLE_KEY = '';
   try {
     await assert.rejects(
       call({ type: ['summary', 'errors'], days: ['7'] }),
@@ -1623,6 +1625,8 @@ test('analytics: days and type are validated before anything is loaded', async (
     );
   } finally {
     console.error = quiet;
+    if (serviceKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey;
   }
 });
 

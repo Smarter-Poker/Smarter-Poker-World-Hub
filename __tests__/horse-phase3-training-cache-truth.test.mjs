@@ -209,6 +209,28 @@ test('database expansion installs quarantine, atomic events, and daily drift aud
   assert.doesNotMatch(boundedAudit, /SELECT c\.\*/);
 });
 
+test('database enforcement closes the rolling-deploy window without weakening validation', () => {
+  const enforcement = read(
+    'supabase/migrations/20260907070000_training_cache_truth_enforcement.sql',
+  );
+  assert.match(enforcement, /SET LOCAL statement_timeout = '20min'/);
+  assert.match(enforcement, /ALTER COLUMN canonical_policy SET NOT NULL/);
+  assert.match(enforcement, /ALTER COLUMN policy_checksum SET NOT NULL/);
+  assert.match(enforcement, /fn_training_cache_grade/);
+  assert.match(enforcement, /fn_training_cache_row_is_valid/);
+  assert.match(enforcement, /training_answer_missing_policy_checksum/);
+  assert.match(enforcement, /training_answer_stale_policy/);
+  assert.match(enforcement, /training_answer_grade_mismatch/);
+  assert.match(enforcement, /training_answer_solver_evidence_mismatch/);
+  assert.match(enforcement, /training_answer_fallback_claims_solver_evidence/);
+  assert.match(enforcement, /training_answer_ev_evidence_mismatch/);
+  assert.match(enforcement, /training_answer_lineage_mismatch/);
+  assert.match(enforcement, /training_session_question_missing_policy_checksum/);
+  assert.match(enforcement, /training_session_contains_conflicting_policy_checksums/);
+  assert.match(enforcement, /REVOKE ALL ON FUNCTION public\.fn_training_answer_cache_event\(\)/);
+  assert.match(enforcement, /REVOKE ALL ON FUNCTION public\.fn_training_session_cache_completion\(\)/);
+});
+
 test('the production backfill supports transactional Postgres transport and bounded resume ranges', () => {
   const backfill = read('scripts/backfill-training-cache-truth.mjs');
   assert.match(backfill, /--direct-db/);
