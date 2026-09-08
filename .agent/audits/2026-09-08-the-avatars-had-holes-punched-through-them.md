@@ -126,7 +126,28 @@ and every avatar renders `object-fit: cover` so none is aspect-distorted. The
 signal on five of them is rim lighting on the outline, which is how they were
 drawn.
 
-Two loose ends left alone deliberately: `public/avatars/table/SAMPLE_viking.webp`
-is a 78x125 development leftover backed by no source avatar, and `free_rockstar`
-carries a floating "POKER PRO" badge clipped by the frame edge. Both are
-authoring decisions rather than damage.
+`free_rockstar` carries a floating "POKER PRO" badge clipped by the frame edge.
+That is an authoring decision rather than damage, and it is left alone.
+
+## 7. Three other things closed in the same pass
+
+**`public/avatars/table/SAMPLE_viking.webp` is deleted.** A 78x125 development
+leftover from `scripts/create-sample.js`, backed by no source avatar, referenced
+by nothing in `src/` or `pages/`, and shipping in `public/` to every visitor.
+
+**`public/table-skins/club-arena-felt.png` did not match the geometry in the
+stylesheet beside it.** `src/styles/club-arena-table.css` positions everything
+from `left: 13.3%; top: 8.9%; width: 73.2%; height: 80.3%`, which assumes a
+painted table of 565x980 centred on (302.5, 499.5). The PNG painted 517x914
+centred on (302.0, 505.5) — 8% too small and 6px low, so anything positioned by
+those percentages would have landed inside the painted rail. Resampled onto the
+canonical box; it now measures 566x980 centred on (302.5, 499.5). Same fault and
+same fix as Club Arena's own skins on the same day.
+
+**And that stylesheet renders nowhere.** `pages/_app.js` imports it, but no
+component in `src/` or `pages/` applies a single `ca-table__*` class — one grep
+hit, and it is the comment in `_app.js`. 383 lines of CSS and a 477KB PNG ship on
+every page load and paint nothing. It is not deleted here: it was written to
+replace six divergent table implementations and that is a design call, not a
+silent one. The status is now recorded in the file's own header so the next
+reader is not misled by it.
