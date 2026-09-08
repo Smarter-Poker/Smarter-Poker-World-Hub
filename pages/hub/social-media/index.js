@@ -5886,7 +5886,12 @@ function SocialMediaPage() {
                   <div style={{ fontWeight: 600, fontSize: 17, color: isClubMode ? C.blue : 'inherit' }}>
                     {isClubMode && clubPage ? clubPage.name : user.name}
                   </div>
-                  <Link href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={() => setSidebarOpen(false)} style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}>
+            {/* ITEM 4: the drawer stays mounted and is moved off-screen with a
+                transform, so Next prefetched every one of these routes for a
+                menu the reader has not opened. ~310KB of neighbouring page
+                chunks arrived on the feed that way. They prefetch on hover
+                and on tap instead. */}
+                  <Link prefetch={false} href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={() => setSidebarOpen(false)} style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}>
                     View Profile
                   </Link>
                 </div>
@@ -5948,7 +5953,7 @@ function SocialMediaPage() {
 
         {/* Poker Resume - Show when HendonMob is linked */}
         {user?.hendon && (
-          <Link
+          <Link prefetch={false}
             href={user.username ? `/hub/user/${user.username}` : '/hub/profile'}
             onClick={() => setSidebarOpen(false)}
             style={{ textDecoration: 'none', display: 'block' }}
@@ -6015,7 +6020,7 @@ function SocialMediaPage() {
             </h4>
             <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
               {ownedPages.slice(0, 3).map((page) => (
-                <Link
+                <Link prefetch={false}
                   key={page.id}
                   href={`/hub/social-pages/${page.id}`}
                   onClick={() => setSidebarOpen(false)}
@@ -6059,7 +6064,7 @@ function SocialMediaPage() {
           }}
         >
           {/* Friends - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/friends"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6081,7 +6086,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
           </Link>
           {/* Club Arena - Purple columns SVG (fallback) */}
-          <Link
+          <Link prefetch={false}
             href="/hub/club-arena"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6104,7 +6109,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
           </Link>
           {/* Diamond Store - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/diamond-store"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6126,7 +6131,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
           </Link>
           {/* Tournaments - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/tournaments"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6150,7 +6155,7 @@ function SocialMediaPage() {
           {/* Saved Posts. /hub/saved-posts is a complete, working page that had
               zero inbound links anywhere in the app - no menu row, no footer
               slot, no Link - so the only way to reach it was typing the URL. */}
-          <Link
+          <Link prefetch={false}
             href="/hub/saved-posts"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6212,7 +6217,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
           </div>
           {/* GTO Training - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/gto-trainer"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6234,7 +6239,7 @@ function SocialMediaPage() {
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
           </Link>
           {/* Reels - Custom AI icon */}
-          <Link
+          <Link prefetch={false}
             href="/hub/reels"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6260,7 +6265,7 @@ function SocialMediaPage() {
         {/* Additional Navigation Items */}
         <div style={{ padding: '0 16px', marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <Link
+            <Link prefetch={false}
               href="/hub/profile"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6287,7 +6292,7 @@ function SocialMediaPage() {
               </svg>
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href="/hub/messenger"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6342,7 +6347,7 @@ function SocialMediaPage() {
               </svg>
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href="/hub/news"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6370,7 +6375,7 @@ function SocialMediaPage() {
               </svg>
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href="/hub/poker-near-me/lobby"
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -6492,7 +6497,7 @@ function SocialMediaPage() {
 
         {/* Bottom Links */}
         <div style={{ padding: '0 16px' }}>
-          <Link
+          <Link prefetch={false}
             href="/hub/help"
             onClick={() => setSidebarOpen(false)}
             style={{
@@ -6523,7 +6528,7 @@ function SocialMediaPage() {
             <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>Live Support And Help</span>
             <span style={{ color: C.textSec }}>›</span>
           </Link>
-          <Link
+          <Link prefetch={false}
             href="/hub/settings"
             onClick={() => setSidebarOpen(false)}
             style={{

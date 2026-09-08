@@ -115,16 +115,43 @@ import {
 import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
-import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import { WORLD_COPY_SCOPE_CLASS } from '../src/lib/world-copy-policy.mjs';
-import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
 import {
   advanceScrollLockGeneration,
   sweepStaleScrollLocks,
   clearBodyScrollLockIfUnheld,
 } from '../src/lib/scrollLock';
+
+/*
+ * ITEM 2 (2026-09-08): these two were STATIC imports, so every page on the site
+ * paid for them in the _app chunk - 1,511 KB decoded, on a feed whose own chunk
+ * is 252 KB.
+ *
+ * JarvisPanel is the expensive one, and not because of the panel. It imports
+ * JarvisAdvancedToolbar -> CustomRangeBuilder -> RangeGradingEngine ->
+ * solverRanges (71 KB), and -> TrainingProgressTracker -> useAssistant (51 KB),
+ * plus postflopSolverData (65 KB) and PostflopStrategyEngine (46 KB) behind
+ * them. The entire GTO solver shipped on every page of the estate, including
+ * pages with no poker maths anywhere near them. It renders `null` until it is
+ * opened (JarvisPanel.tsx:239).
+ *
+ * GlobalPiPManager drags LiveStreamService (71 KB) the same way and returns
+ * `null` unless a stream is actually active (GlobalPiPManager.jsx:75).
+ *
+ * ssr:false because both are client-only surfaces anyway, and loading:null so
+ * nothing flashes while the chunk arrives. Behaviour is unchanged - they still
+ * render unconditionally, just from their own chunk instead of the shell's.
+ */
+const JarvisPanel = dynamic(
+  () => import('../src/world/components/Jarvis/JarvisPanel').then((m) => m.JarvisPanel),
+  { ssr: false, loading: () => null }
+);
+const GlobalPiPManager = dynamic(() => import('../src/components/social/GlobalPiPManager'), {
+  ssr: false,
+  loading: () => null,
+});
 
 const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommandDock'), {
   ssr: false,
