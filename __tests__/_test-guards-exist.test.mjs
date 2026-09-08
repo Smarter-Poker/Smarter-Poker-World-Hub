@@ -219,6 +219,10 @@ import './the-hub-notices-a-revoked-session.law.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
+// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
+// avatars, <profile uuid>/avatar.png), never under a name that says horse:
+// the storage path is in the <img src> of every seat and post.
+import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).
