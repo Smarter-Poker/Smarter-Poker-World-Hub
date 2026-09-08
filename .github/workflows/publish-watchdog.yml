@@ -100,6 +100,24 @@ jobs:
       #
       # `always()` so it still runs when the SHA comparison above alarms: a
       # stale deploy and a broken worker are independent failures.
+      # WEEKLY, and it lives here for the reason section 11.4 already gives
+      # about this workflow: it asks GitHub about GitHub, so Open Claw is the
+      # wrong layer, and CLAUDE.md 11.3 forbids a net-new `schedule:` trigger.
+      # The script self-gates to Mondays 09:00-09:29 UTC and exits 0 on the
+      # other 335 ticks, so it costs one date comparison to carry.
+      #
+      # It exists because the 2026-09-08 audit had to excavate every number in
+      # it by hand. Two defects had been costing eleven minutes a push for
+      # months without failing a single check - they were arithmetic nobody
+      # was doing. This does the arithmetic weekly, into one self-updating
+      # issue, so the next argument about pipeline speed is a lookup.
+      - name: Weekly pipeline latency report
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/report-pipeline-p50.mjs
+
       - name: Root service worker precache resolves
         if: always()
         run: node scripts/ci/check-sw-precache.mjs https://smarter.poker

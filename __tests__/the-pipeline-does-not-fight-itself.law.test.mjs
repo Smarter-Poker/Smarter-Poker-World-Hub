@@ -135,22 +135,30 @@ test('branches that are never browsed are refused before a container is created'
 
 // -- 3. main is allowed to finish what it started ----------------------------
 
-test('e2e-tests.yml does not cancel its own main-branch runs', () => {
+for (const wf of ['e2e-tests.yml', 'push-delivery-watchdog.yml']) {
+  test(`${wf} does not cancel its own main-branch runs`, () => {
+    const yml = read(`.github/workflows/${wf}`);
+
+    assert.match(
+      yml,
+      /cancel-in-progress:\s*\$\{\{\s*github\.ref\s*!=\s*'refs\/heads\/main'\s*\}\}/,
+      `${wf} triggers on push:[main] and workflow_dispatch, so a bare "true" ` +
+        `cancels essentially every run it makes. Measured by ` +
+        `scripts/ci/report-pipeline-p50.mjs on 2026-09-08 over seven days: ` +
+        `E2E Tests 23 of 26 main runs CANCELLED, Push Delivery Watchdog 21 of ` +
+        `26 - against a median 7m 50s between commits on main.`
+    );
+    assert.doesNotMatch(
+      yml,
+      /cancel-in-progress:\s*true\s*$/m,
+      `${wf} has a bare "cancel-in-progress: true" again`
+    );
+  });
+}
+
+test('e2e-tests.yml keeps its concurrency group scoped per ref', () => {
   const yml = read('.github/workflows/e2e-tests.yml');
 
-  assert.match(
-    yml,
-    /cancel-in-progress:\s*\$\{\{\s*github\.ref\s*!=\s*'refs\/heads\/main'\s*\}\}/,
-    'e2e-tests.yml triggers on push:[main] and workflow_dispatch, so a bare ' +
-      '"true" cancels essentially every run it makes. Measured over the last ' +
-      '120 commits: median 7.3 minutes between commits on main, 53% of gaps ' +
-      'under 8, against ~7 minutes of install and build before the first test.'
-  );
-  assert.doesNotMatch(
-    yml,
-    /cancel-in-progress:\s*true\s*$/m,
-    'e2e-tests.yml has a bare "cancel-in-progress: true" again'
-  );
   assert.match(
     yml,
     /group:\s*e2e-\$\{\{\s*github\.ref\s*\}\}/,
@@ -179,4 +187,87 @@ test('global-footer-e2e.yml is pull-request-only, which is why it keeps cancel-i
       'in .agent/audits/2026-08-21-publish-deadlock-and-palette-clobber.md.'
   );
   assert.match(on, /pull_request:/, 'it must still run on pull requests');
+});
+
+// -- 4. Nothing pays for the same install twice ------------------------------
+
+test('the four browser jobs cache node_modules and their browsers', () => {
+  // Measured 2026-09-08: no workflow in this repo cached node_modules,
+  // .next/cache, or ~/.cache/ms-playwright - verified by grepping all 38
+  // files for ms-playwright and PLAYWRIGHT_BROWSERS_PATH and finding nothing.
+  // Four jobs therefore extracted 1,324 packages and downloaded Chromium and
+  // WebKit from scratch on every run, while the pattern that fixes it was
+  // already proven in this same repo at build-safety-gate.yml (424s -> ~15s).
+  const NEEDS_BROWSERS = [
+    'e2e-tests.yml',
+    'global-footer-e2e.yml',
+    'push-delivery-watchdog.yml',
+    'preview-signup-gate.yml',
+  ];
+  for (const wf of NEEDS_BROWSERS) {
+    const yml = read(`.github/workflows/${wf}`);
+    assert.match(
+      yml,
+      /path:\s*~\/\.cache\/ms-playwright/,
+      `${wf} installs Playwright browsers and must cache them`
+    );
+  }
+
+  // node_modules, on the three that install with --ignore-scripts. The fourth
+  // (preview-signup-gate) installs WITH scripts, so its tree carries native
+  // binaries and is deliberately not sharing this cache.
+  for (const wf of ['e2e-tests.yml', 'global-footer-e2e.yml', 'push-delivery-watchdog.yml']) {
+    const yml = read(`.github/workflows/${wf}`);
+    assert.match(yml, /path:\s*node_modules/, `${wf} must cache node_modules`);
+    assert.match(
+      yml,
+      /key:\s*nm-wh-noscripts-/,
+      `${wf} must use the SHARED --ignore-scripts key. Two jobs installing the ` +
+        `identical tree under two different keys never warm each other - Club ` +
+        `Arena did exactly that and neither cache ever helped the other.`
+    );
+    assert.match(
+      yml,
+      /if:\s*steps\.nm-cache\.outputs\.cache-hit\s*!=\s*'true'/,
+      `${wf} must SKIP the install on a cache hit. npm ci deletes node_modules ` +
+        `before installing, so an unguarded install throws the restored tree away.`
+    );
+  }
+});
+
+test('the two jobs that build Next.js reuse .next/cache', () => {
+  for (const wf of ['e2e-tests.yml']) {
+    const yml = read(`.github/workflows/${wf}`);
+    assert.match(yml, /path:\s*\.next\/cache/, `${wf} runs a full build and must reuse the webpack cache`);
+  }
+});
+
+// -- 5. The measurement exists, and runs somewhere it will actually fire -----
+
+test('the weekly pipeline report runs from publish-watchdog, not a new schedule', () => {
+  const script = 'scripts/ci/report-pipeline-p50.mjs';
+  assert.doesNotThrow(() => read(script), `${script} must exist`);
+
+  const wd = read('.github/workflows/publish-watchdog.yml');
+  assert.match(
+    wd,
+    /node scripts\/ci\/report-pipeline-p50\.mjs/,
+    'the weekly report must be invoked from publish-watchdog.yml. CLAUDE.md ' +
+      '11.3 forbids a net-new GitHub schedule: trigger, 11.4 explains why this ' +
+      'kind of GitHub-asking-GitHub work cannot live in Open Claw, and 10.9 ' +
+      'bans the Claude scheduler outright.'
+  );
+
+  const src = read(script);
+  assert.match(
+    src,
+    /getUTCDay\(\)\s*===\s*1/,
+    'the report must self-gate to one window a week - publish-watchdog runs ' +
+      'every 30 minutes and this is a weekly report'
+  );
+  assert.doesNotMatch(
+    src,
+    /mcp__scheduled-tasks|scheduled-tasks__create/,
+    'never the Claude scheduler (CLAUDE.md 10.9)'
+  );
 });
