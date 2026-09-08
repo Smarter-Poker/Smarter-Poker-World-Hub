@@ -34,7 +34,9 @@ test('Drill Builder persists its real schema, surfaces failures, and uses the st
   const source = read('pages/hub/training/drill-builder.js');
   assert.match(source, /title:\s*drillName\.trim\(\)/);
   assert.match(source, /drill_type:\s*'focused_solver'/);
-  assert.match(source, /\.select\('\*'\)\.single\(\)/);
+  assert.match(source, /\.select\('\*'\)\.maybeSingle\(\)/);
+  assert.match(source, /if \(!saved\?\.id \|\| saved\.user_id !== userData\.user\.id\)/);
+  assert.doesNotMatch(source, /\.single\(\)/);
   assert.match(source, /setSaveError/);
   assert.match(source, /buildCustomTrainingArenaHref\(config, 'drill-builder'\)/);
   assert.doesNotMatch(source, /user_id:\s*userData\.user\.id,\s*\n\s*name:/);

@@ -275,8 +275,11 @@ export default function DrillBuilderPage() {
         description: `Focused ${format.toUpperCase()} solver training`,
         drill_type: 'focused_solver',
         config: { ...config, canonicalGameId: launch.gameId },
-      }).select('*').single();
+      }).select('*').maybeSingle();
       if (error) throw error;
+      if (!saved?.id || saved.user_id !== userData.user.id) {
+        throw new Error('The Saved Drill Could Not Be Confirmed.');
+      }
 
       setSavedDrills((prev) => [saved, ...prev]);
       setDrillName('');
