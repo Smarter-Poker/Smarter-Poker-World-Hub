@@ -264,31 +264,50 @@ export default async function handler(req, res) {
             notes.push(`Unclassified outflow transaction_type(s): ${[...unclassifiedTypes].sort().join(', ')}. Add them to RECIRCULATING_TYPES / LEAKING_TYPES / TRANSFER_TYPES / CLAWBACK_TYPES in this file rather than leaving them guessed.`);
         }
 
-        // 3. PLATFORM BUDGET — missing table is expected pre-migration.
+        // 3. PLATFORM ISSUANCE THIS PERIOD.
+        //
+        // THIS USED TO READ `diamond_platform_budget.spent_diamonds` AND IT WAS WRONG BY A FACTOR
+        // OF 1,960. That column is a FROZEN BASELINE, not a running total: it stopped being
+        // incremented on 2026-09-08 when `ca_diamond_engine_spend` replaced it, because the single
+        // row's lock was held to the awarding transaction's commit and serialised the whole
+        // platform - it lost 5,861 awards worth 399,948 diamonds in one morning. Read on
+        // 2026-09-08 the column said **1,210** issued this month. The real figure was **2,371,393**.
+        //
+        // So the one admin page that exists to show diamond liability was reporting 0.05% of budget
+        // consumed against a true 94.9%, and reporting it confidently, with a percentage and a
+        // remaining balance. A number that is wrong in the reassuring direction on the page someone
+        // opens to check for trouble is worse than no number (club-arena CLAUDE.md 10.86).
+        //
+        // AND IT IS NOT A CIRCUIT BREAKER. Ruling 21 (2026-09-08, Dan: "THERE SHOULDN'T BE A
+        // PLATFORM BUDGET ON THINGS LIKE THIS, ONLY A USER BUDGET") removed the platform budget
+        // from every refusal path. Nothing here stops any player. What stops a player is the
+        // per-user daily cap in `diamond_engine_daily_caps`, and that is said out loud below so
+        // nobody reads this panel as a control it is not.
         const period = currentPeriod();
         let budget = null;
         {
-            const { data: budgetRow, error: budgetErr } = await adm
-                .from('diamond_platform_budget')
-                .select('period, budget_diamonds, spent_diamonds, updated_at')
-                .eq('period', period)
-                .maybeSingle();
+            const { data: reality, error: budgetErr } = await adm
+                .rpc('fn_ca_diamond_budget_reality', { p_period: period });
 
             if (budgetErr) {
-                // 42P01 = undefined_table, PGRST205 = schema cache miss. Both mean
-                // 20260726120000_diamond_rewards_v2_security_and_caps.sql is unapplied.
-                if (budgetErr.code === '42P01' || budgetErr.code === 'PGRST205' || /does not exist/i.test(budgetErr.message || '')) {
-                    notes.push('diamond_platform_budget does not exist - migration 20260726120000_diamond_rewards_v2_security_and_caps.sql has not been applied. The platform-wide circuit breaker is NOT armed.');
+                if (budgetErr.code === '42883' || budgetErr.code === 'PGRST202' || /does not exist|not find the function/i.test(budgetErr.message || '')) {
+                    notes.push('fn_ca_diamond_budget_reality does not exist - migration 20260908144801_five_that_answer_wrongly.sql has not been applied. Platform issuance for this period is UNKNOWN, not zero.');
                 } else {
-                    notes.push(`Budget lookup failed: ${budgetErr.message}`);
+                    notes.push(`Issuance lookup failed: ${budgetErr.message}. The figure below is UNKNOWN, not zero.`);
                 }
-            } else if (!budgetRow) {
-                notes.push(`No diamond_platform_budget row for period ${period} yet - it is created lazily by the first award of the month.`);
+            } else if (!Array.isArray(reality) || reality.length === 0) {
+                notes.push(`No reward budget lines for period ${period} yet - nothing has been issued and no plan has been recorded.`);
             } else {
-                const budgetDiamonds = Number(budgetRow.budget_diamonds) || 0;
-                const spentDiamonds = Number(budgetRow.spent_diamonds) || 0;
+                // Sum the live per-engine issuance. `budgeted` is a PLAN and may be null for an
+                // engine nobody has planned; nulls are skipped rather than counted as zero.
+                const spentDiamonds = reality.reduce((n, r) => n + (Number(r.actual) || 0), 0);
+                const planned = reality.filter((r) => r.budgeted !== null && r.budgeted !== undefined);
+                const budgetDiamonds = planned.reduce((n, r) => n + (Number(r.budgeted) || 0), 0);
+                const fiction = reality.filter((r) => typeof r.verdict === 'string'
+                    && (r.verdict.startsWith('ALREADY OVER') || r.verdict.startsWith('FUTURE PLAN BELOW')));
+
                 budget = {
-                    period: budgetRow.period,
+                    period,
                     budgetDiamonds,
                     budgetUsd: toUsd(budgetDiamonds),
                     spentDiamonds,
@@ -298,8 +317,15 @@ export default async function handler(req, res) {
                     percentUsed: budgetDiamonds > 0
                         ? Math.round((spentDiamonds / budgetDiamonds) * 1000) / 10
                         : null,
-                    updatedAt: budgetRow.updated_at || null,
+                    enginesWithoutAPlan: reality.length - planned.length,
+                    refusesPlayers: false,
+                    updatedAt: new Date().toISOString(),
                 };
+
+                notes.push('This is a PLAN against ACTUAL issuance, not a circuit breaker. Since ruling 21 no platform budget refuses any player - the per-user daily caps in diamond_engine_daily_caps are what refuse, and fn_ca_diamond_cap_headroom is where to check them.');
+                if (fiction.length > 0) {
+                    notes.push(`${fiction.length} budget line(s) are fiction: ${fiction.map((r) => `${r.period}/${r.engine} - ${r.verdict}`).join(' | ')}`);
+                }
             }
         }
 

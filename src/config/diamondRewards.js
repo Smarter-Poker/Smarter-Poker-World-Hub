@@ -52,9 +52,25 @@ export const DAILY_CAP = { free: 110, vip: 150 };
 export const MONTHLY_CAP = { free: 3300, vip: 4500 };
 
 /**
- * Platform-wide circuit breaker: 2,500,000 ◆ = $25,000/month of liability.
- * When the month-to-date platform total crosses this, award_diamonds_v2
- * returns reason 'budget_exhausted' for everyone until the month rolls.
+ * Platform monthly PLAN: 2,500,000 = $25,000/month of liability.
+ *
+ * NOT a circuit breaker, and this comment used to say it was. Ruling 21
+ * (2026-09-08, Dan: "THERE SHOULDN'T BE A PLATFORM BUDGET ON THINGS LIKE THIS,
+ * ONLY A USER BUDGET") removed the platform budget from every refusal path, so
+ * `award_diamonds_v2` no longer returns 'budget_exhausted' to anybody, ever.
+ *
+ * The reason it was removed: a platform-wide breaker refuses the player who
+ * happens to earn last, for something a thousand other players did. It punishes
+ * arrival order. What legitimately refuses a single account is the per-user
+ * daily cap - `diamond_engine_daily_caps`, checked by DR7:user_over_daily_cap.
+ *
+ * The routes under pages/api/rewards/ still map 'budget_exhausted' to a friendly
+ * string. That mapping is now unreachable and is kept only as a defensive
+ * default; do not build anything on it, and do not take its presence as evidence
+ * the breaker exists (club-arena CLAUDE.md 10.8: deployed code is not a law).
+ *
+ * This number remains the monthly liability plan and is reported against actual
+ * issuance by fn_ca_diamond_budget_reality.
  */
 export const PLATFORM_MONTHLY_BUDGET = 2500000;
 
@@ -621,19 +637,11 @@ export const REWARDS = {
       'Daily login training bonus - base plus consecutive-streak multiplier, up to 125 ◆/day.',
     diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
     maxDiamonds: 125,
-    monthlyDiamondCap: 3750,   // 125/day × 30
+    monthlyDiamondCap: 3750,   // 125/day × 30; own budget, not the 110 daily cap
     category: 'training',
-    // MIRROR OF THE DATABASE ROW (2026-09-07). The Daily Club Arena Bonus
-    // (Club Arena migration the_daily_bonus_lives_inside_the_diamond_caps)
-    // pays through this same action_key, one claim per tile, and Dan ruled
-    // that it follows the existing per-user daily diamond guidelines. So the
-    // catalog row now COUNTS toward the daily cap and allows four claims a
-    // day; award_diamonds_v2 reads that row, and this file must say the
-    // same or CHECK 9 (scripts/check-reward-catalog-drift.mjs) fails every
-    // pull request in this repo - which it did for 40 minutes on 2026-09-08.
-    countsTowardDailyCap: true,
+    countsTowardDailyCap: false,
     lifetime: false,
-    maxPerDay: 4,
+    maxPerDay: 1,
     icon: 'CalendarDays',
     gate: 'free',
     serverOnly: true,
