@@ -242,6 +242,9 @@ test('rule 1: the vault is w2g_forms, filled from the scan, and a human confirms
     const src = code(PAGE);
     assert.match(src, /\.from\('w2g_forms'\)\s*\.insert\(w2gRowFromReceipt\(userId, scannerRoute, scannerImageUrl\)\)/);
     assert.equal(W2G.autoFile, false, 'a tax form is never filed without a tap');
+    const vault = src.slice(src.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
+    assert.match(vault, /new CustomEvent\('bankroll-updated'\)/, 'a mounted Tax Reports panel hears about the new row');
+    assert.match(code(TAX_PANEL), /addEventListener\('bankroll-updated', refresh\)/, 'and refreshes its vault list');
 });
 
 test('the migration behind the receipt row exists, is owner-only, and was applied', () => {

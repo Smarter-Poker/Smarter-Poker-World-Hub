@@ -1012,6 +1012,8 @@ export default function BankrollManagerPage() {
         if (error) throw error;
         if (!data) throw new Error('w2g-insert-returned-nothing');
         await markReceiptAssigned(scannerReceiptId, RECEIPT_TARGETS.W2G_FORM, data.id);
+        // TaxReportPanel refreshes its vault list on this event.
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bankroll-updated'));
         toast.success(`W-2G Added To The ${data.tax_year} Vault In Tax Reports`);
         closeScannerAfterChoice();
         setRefreshTrigger(prev => prev + 1);
