@@ -1,5 +1,5 @@
 /**
- * POST /api/admin/stripe-webhook-ensure
+ * POST /api/store/webhooks/stripe-ensure
  *
  * Makes the LIVE Stripe webhook endpoint for this deployment subscribe to every
  * event the handler at /api/store/webhooks/stripe knows how to process, and
@@ -14,6 +14,15 @@
  *
  * Auth: x-cron-secret / Authorization: Bearer <CRON_SECRET>, or x-admin-secret
  * matching ADMIN_ROUTE_SECRET. Never returns the endpoint secret.
+ *
+ * WHY IT LIVES HERE AND NOT UNDER /api/admin (2026-09-07, same day). It was
+ * first published as /api/admin/stripe-webhook-ensure and could never be
+ * called: middleware.ts guards every /api/admin/* path and answers "Admin
+ * routes require authentication." unless x-admin-secret matches
+ * ADMIN_ROUTE_SECRET, which is empty in production, so the route's own
+ * CRON_SECRET check was never reached. It sits beside the webhook it
+ * configures, outside the middleware matcher, and does its own authentication
+ * exactly as pages/api/cron/* do.
  */
 import Stripe from 'stripe';
 
