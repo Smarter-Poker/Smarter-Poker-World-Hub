@@ -55,7 +55,6 @@ function exactKeys(value, expected) {
   return actual.length === expected.length
     && expected.every((key) => Object.prototype.hasOwnProperty.call(value, key));
 }
-
 export function v31IngressSecretEnvName(principal) {
   return PRINCIPAL_SET.has(principal) ? `HORSE_SOLVER_V31_${principal}_HMAC_SECRET` : null;
 }
@@ -164,4 +163,3 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
       provenance.input_bundle_checksum,
     ].every((checksum) => checksum !== '0'.repeat(64));
 }
-

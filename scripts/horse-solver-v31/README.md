@@ -106,4 +106,3 @@ changed manifests cannot reuse the checkpoint. Gateway retries use fresh
 nonces, while database operations remain idempotent. Any malformed output,
 changed topology, bad EV identity, stale provenance, or shared/invalid key
 fails closed and is visible in worker/compactor liveness.
-
