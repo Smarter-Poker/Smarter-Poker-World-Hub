@@ -181,7 +181,55 @@ export default async function handler(req, res) {
       const { error: err_club_members_bo01p } = await getSupabase().from('club_members').delete().eq('club_id', clubId);
       if (err_club_members_bo01p) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_bo01p.message);
 
-      // 5. Delete club
+      // 5. Delete the club's social page.
+      //
+      // ORPHAN BUG (2026-09-08). The cascade loop above keys every delete on
+      // `club_id`, but social_pages links a club through linked_entity_type +
+      // linked_entity_id, so it was never matched and every deleted club left
+      // its page behind. Those orphans do not sit quietly: social_pages IS the
+      // public directory, so each one keeps appearing in /hub/social-pages
+      // Discover forever, pointing at a club that no longer exists. 26 of the
+      // 37 rows in production were exactly this - every one named by the test
+      // fixture that created it ("Crest Cert ...", "probe-own"), every one with
+      // zero followers, and not one still resolving to a live club. The newest
+      // had been created the same day this was found, so it was an actively
+      // leaking path, not a historical mess. Backfill migration:
+      // supabase/migrations/20260908140215_delete_orphaned_club_social_pages.sql
+      //
+      // linked_entity_id is `text`, not uuid, so clubId is compared as-is.
+      //
+      // Every child of social_pages is ON DELETE CASCADE
+      // (social_page_followers, _posts, _reports, _reviews) or SET NULL
+      // (commander_home_games.social_page_id, slug_history.page_id), so one
+      // delete is sufficient and safe.
+      //
+      // This one reports instead of joining the silent catch above. A failure
+      // here leaves a public page advertising a club that no longer exists,
+      // which is user-visible, and a user-visible defect must not disappear
+      // into a swallowed exception. It still does not abort the deletion: the
+      // club itself is already gone past this point in every meaningful sense,
+      // and refusing here would strand it half-deleted.
+      const { data: removedPages, error: pageErr } = await getSupabase()
+        .from('social_pages')
+        .delete()
+        .eq('linked_entity_type', 'club')
+        .eq('linked_entity_id', String(clubId))
+        .select('id, name');
+
+      if (pageErr) {
+        console.warn(
+          '[delete-club] social page cleanup FAILED for club', clubId,
+          '- a page for a deleted club may still be listed publicly:',
+          pageErr.message
+        );
+      } else if ((removedPages || []).length > 0) {
+        console.info(
+          '[delete-club] removed', removedPages.length,
+          'orphaned social page(s) for club', clubId
+        );
+      }
+
+      // 6. Delete club
       const { error: deleteErr } = await getSupabase().from('clubs').delete().eq('id', clubId);
       if (deleteErr) throw deleteErr;
 
