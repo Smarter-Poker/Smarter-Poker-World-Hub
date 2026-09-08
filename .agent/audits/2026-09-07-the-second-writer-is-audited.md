@@ -53,3 +53,31 @@ register: `transfer-chips`, `leave-club`, `rakeback`, `settle-period`,
 `create-club`. Each is a route a valid JWT can still POST to and no screen
 exercises. The hourly check keeps them honest; whether they should exist is
 Dan's call.
+
+## Deep dive, the same evening: the whole server side
+
+The first check watched `pages/api/club-arena/` only. Widened to `pages/api`,
+`src/lib` and `lib` (1,076 files, 323 calls), it found the legacy World Hub
+poker engine - `src/lib/poker-engine/LobbyManager.js`, imported by
+`pages/api/poker/engine/*`, with no production request in seven days of Vercel
+logs since the Hetzner engine took every table - calling two doors the
+register closed on 2026-09-04 (`award_bbj`, `add_bbj_contribution`), one money
+door with a parameter shape no overload accepts (`increment_settlement_counters`
+with `p_rake, p_hands`; live `(p_club_id, p_period)`), and
+`record_insurance_transaction` twice with fields the live signature does not
+take. Changed here: the two closed-door calls are removed (each handler says,
+once, that the Club Arena engine pays the jackpot); the counters call sends
+`{ p_club_id }`; the two insurance calls carry `second-writer-exempt:` with the
+reason written on the line above - the check reports them every hour as a
+disagreement, never as fine. Rewriting them blind would be guessing fields;
+deleting the legacy engine is the real fix and is Dan's call (it is imported by
+`manage-table.js` and `update-table-settings.js` too).
+
+Not money, reported as WARNINGS by the check and left to their lanes: five
+calls whose parameter names match no live signature - `pages/api/rg/self-exclude.js`
+(`p_until` vs live `p_duration_hours`: **self-exclusion answers PGRST202 on
+every call**), `pages/api/rg/session/reality-check.js` (`p_ack`),
+`pages/api/admin/check-auth-uuid.js` (`email_pattern` vs `p_email`),
+`lib/game-engine-service.ts` (`p_level_id`), and the deliberate
+`reconcile_diamond_purchase_refund` fallback in `stripe.js` (a renamed function
+still callable until its drop migration lands).
