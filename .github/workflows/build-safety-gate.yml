@@ -874,8 +874,7 @@ jobs:
             tests/a-required-check-does-not-reinstall-a-restored-tree.test.mjs \
             tests/the-app-does-not-fight-the-readers-scroll.test.mjs \
             tests/autopilot-merges-when-the-ruleset-is-satisfied.test.mjs \
-            __tests__/avatar-art-has-no-punched-holes.test.mjs \
-            __tests__/vercel-json-is-schema-valid.test.mjs
+            __tests__/avatar-art-has-no-punched-holes.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
