@@ -217,7 +217,10 @@ test('answer persistence regrades against a server-owned canonical question', ()
   assert.match(record, /servedPolicyChecksum !== String\(canonicalRow\.policy_checksum/);
   assert.match(record, /solver_verified: verified/);
   assert.match(record, /ev_loss_measured/);
-  assert.match(record, /onConflict: 'user_id,submission_id'/);
+  assert.match(record, /from\('training_answers'\)\.insert\(evidenceRow\)/);
+  assert.doesNotMatch(record, /from\('training_answers'\)\.upsert/);
+  assert.match(record, /trainingAnswerBindingMatches/);
+  assert.match(record, /TRAINING_ANSWER_BINDING_MISMATCH/);
   assert.match(read('src/hooks/useGTOTrainer.js'), /for \(let attempt = 0; attempt < 3; attempt\+\+\)/);
 });
 

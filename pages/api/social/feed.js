@@ -77,11 +77,17 @@ export default async function handler(req, res) {
         });
         // BUG-11 FIX: is_deleted filter must be a separate param with Supabase REST dot-filter syntax
         // Was: { 'is_deleted': 'eq.false' } — this sent key name literally as 'is_deleted' with no operator binding
-        postsParams.set('select', 'id,content,content_type,media_urls,thumbnail_url,like_count,comment_count,share_count,view_count,visibility,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata,is_deleted');
+        // The filter itself was never actually set - only the select list was
+        // changed - so deleted rows were dropped in JS AFTER the limit+1
+        // over-fetch, and hasMore was then computed on the shrunken array. One
+        // deleted row in a page silently ended infinite scroll. `not.is.true`
+        // (NOT (is_deleted IS TRUE)) rather than `eq.false` or `not.eq.true`
+        // because is_deleted is nullable and both of those drop NULL rows.
+        postsParams.set('is_deleted', 'not.is.true');
 
         let rawPosts = await supaFetch(`/social_posts?${postsParams}`);
-        let posts = Array.isArray(rawPosts) ? rawPosts.filter(p => p.is_deleted === false) : [];
-        const hasMore = Array.isArray(posts) && posts.length > limit;
+        let posts = Array.isArray(rawPosts) ? rawPosts : [];
+        const hasMore = posts.length > limit;
         if (hasMore) posts = posts.slice(0, limit);
 
         if (!posts || posts.length === 0) {
