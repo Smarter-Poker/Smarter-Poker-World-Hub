@@ -57,14 +57,21 @@ function extractHorseName(filename) {
  * Upload a single avatar and update the database
  */
 async function uploadAndAssignAvatar(filePath, horse) {
-    const fileName = `horse_avatar_${horse.id}_${Date.now()}.png`;
-    const storagePath = `avatars/${fileName}`;
+    /* Same rule as HorseAvatarGenerator.uploadAvatar: a horse's avatar lives
+       where a human's does - bucket `avatars`, key `<profile uuid>/avatar.png`
+       - never under a name that says "horse". A horse with no profile gets
+       no upload; there is nothing to attach it to. */
+    if (!horse.profile_id) {
+        console.warn(`  No profile_id for ${horse.name || horse.id}; skipping upload`);
+        return null;
+    }
+    const storagePath = `${horse.profile_id}/avatar.png`;
 
     const fileBuffer = fs.readFileSync(filePath);
 
     // Upload to Supabase storage
     const { error: uploadError } = await supabase.storage
-        .from('social-media')
+        .from('avatars')
         .upload(storagePath, fileBuffer, {
             contentType: 'image/png',
             upsert: true
@@ -77,7 +84,7 @@ async function uploadAndAssignAvatar(filePath, horse) {
 
     // Get public URL
     const { data: urlData } = supabase.storage
-        .from('social-media')
+        .from('avatars')
         .getPublicUrl(storagePath);
 
     const publicUrl = urlData.publicUrl;
