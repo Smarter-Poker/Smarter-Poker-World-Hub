@@ -57,6 +57,19 @@ export function normalizeScenarioLanguage(value) {
   return text;
 }
 
+function normalizeScenarioContext(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return normalizeScenarioLanguage(value || '');
+  }
+  // Solver questions carry structured, signed decision context. Converting
+  // that object to "[object Object]" silently erased pot type and action-line
+  // metadata before Custom Training performed its exact-filter check.
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+    key,
+    typeof entry === 'string' ? normalizeScenarioLanguage(entry) : entry,
+  ]));
+}
+
 function cleanOptionText(value) {
   return cleanSpaces(value)
     .replace(/^[✓✔✕✗]\s*/u, '')
@@ -125,12 +138,17 @@ function optionFamily(option) {
   return optionSignature(option);
 }
 
+function scenarioText(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return cleanSpaces(value);
+  return cleanSpaces(Object.values(value).filter((entry) => typeof entry === 'string').join(' '));
+}
+
 function questionContext(question) {
   return cleanSpaces([
     question?.question,
     question?.text,
     question?.scenario?.action,
-    question?.scenario?.context,
+    scenarioText(question?.scenario?.context),
     question?.scenario?.description,
   ].filter(Boolean).join(' ')).toLowerCase();
 }
@@ -156,13 +174,20 @@ function normalizePostflopActionState(question) {
   const heroActsFirst = heroActsFirstPostflop(heroPosition, villainPosition);
   const villainChecks = /\b(?:villain|opponent) checks(?: to you)?\b|\bchecks to you\b/i;
 
-  const normalizeField = (value) => {
+  const normalizeText = (value) => {
     const text = normalizeScenarioLanguage(value || '');
     if (!villainChecks.test(text)) return text;
     if (heroActsFirst) {
       return text.replace(villainChecks, 'You are first to act');
     }
     return text.replace(villainChecks, `${positionLabel(villainPosition)} checks to you`);
+  };
+  const normalizeField = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return normalizeText(value);
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+      key,
+      typeof entry === 'string' ? normalizeText(entry) : entry,
+    ]));
   };
 
   return {
@@ -227,6 +252,40 @@ function responseRaiseText(depth, allIn = false) {
   return `${depth}-Bet To ${size} BB`;
 }
 
+function declaredEffectiveStack(question) {
+  const value = Number(
+    question?.scenario?.stackDepth
+    ?? question?.scenario?.effectiveStack
+    ?? question?.scenario?.heroStack
+    ?? question?.stackDepth,
+  );
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function raiseToBb(option) {
+  if (optionFamily(option) !== 'raise') return null;
+  const labelMatch = cleanSpaces(option?.text).match(
+    /\b(?:raise|[2-9][- ]?bet|squeeze)\s+to\s+(\d+(?:\.\d+)?)\s*bb\b/i,
+  );
+  if (labelMatch) return Number(labelMatch[1]);
+  const idMatch = cleanSpaces(option?.id).toLowerCase().match(/^r(\d+(?:\.\d+)?)$/);
+  return idMatch ? Number(idMatch[1]) : null;
+}
+
+function optionFitsEffectiveStack(question, option) {
+  const stack = declaredEffectiveStack(question);
+  const raiseTo = raiseToBb(option);
+  if (!stack || !Number.isFinite(raiseTo)) return true;
+  // At or beyond the effective stack this is an all-in, not a distinct
+  // non-all-in raise. Serving both labels would duplicate one legal action.
+  return raiseTo < stack;
+}
+
+function hasExactSolverAuthority(question) {
+  return question?.dataQuality === 'SOLVER_EXACT'
+    || question?.solverProvenance?.verified === true;
+}
+
 function normalizePreflopResponseOptions(question, options) {
   if (question?.scenario?.isConceptQuestion === true) return options;
   const depth = preflopResponseBetDepth(question);
@@ -262,6 +321,19 @@ function sizingVocabulary(option) {
   return null;
 }
 
+function hasGenericAggressiveOverlap(options) {
+  const genericFamilies = new Set(
+    options
+      .filter((option) => sizingVocabulary(option) === null)
+      .filter((option) => /^(?:bet|raise)$/i.test(cleanSpaces(option?.text)))
+      .map(optionFamily),
+  );
+  return options.some((option) => {
+    const vocabulary = sizingVocabulary(option);
+    return vocabulary && genericFamilies.has(optionFamily(option));
+  });
+}
+
 export function getDecisionType(question) {
   const options = (question?.options || []).map(normalizeOption);
   if (options.length !== 2) return 'four-choice';
@@ -284,7 +356,9 @@ function existingActionSet(options) {
 function suggestedOptions(question, options) {
   const scenario = question?.scenario || {};
   const street = cleanSpaces(scenario.street || question?.street).toLowerCase();
-  const spot = cleanSpaces(scenario.spotType || scenario.nodeType || scenario.action || scenario.context).toLowerCase();
+  const spot = cleanSpaces(
+    scenario.spotType || scenario.nodeType || scenario.action || scenarioText(scenario.context),
+  ).toLowerCase();
   const prompt = cleanSpaces(question?.question || question?.text).toLowerCase();
   const families = existingActionSet(options);
   const isPreflop = street === 'preflop' || options.length === 0 && !scenario.board;
@@ -419,6 +493,9 @@ export function validateTrainingQuestion(question) {
   if (hasSizingBand && hasExactSizing) {
     issues.push('Answer choices mix an exact size with an overlapping sizing band.');
   }
+  if (hasGenericAggressiveOverlap(options)) {
+    issues.push('Answer choices mix a generic aggressive action with a contained sizing choice.');
+  }
 
   const node = decisionNode(question);
   const illegalOptions = node
@@ -427,6 +504,13 @@ export function validateTrainingQuestion(question) {
   if (illegalOptions.length > 0) {
     issues.push(
       `${node === 'faces-bet' ? 'Facing a bet' : 'A check-or-bet node'} includes illegal choices: ${illegalOptions.map((option) => `"${option.text}"`).join(', ')}.`
+    );
+  }
+
+  const overStackOptions = options.filter((option) => !optionFitsEffectiveStack(question, option));
+  if (overStackOptions.length > 0) {
+    issues.push(
+      `Answer choices include a non-all-in raise at or beyond the effective stack: ${overStackOptions.map((option) => `"${option.text}"`).join(', ')}.`,
     );
   }
 
@@ -489,7 +573,7 @@ export function enforceTrainingQuestionContract(question) {
       ? {
           ...question.scenario,
           action: normalizeScenarioLanguage(question.scenario.action || ''),
-          context: normalizeScenarioLanguage(question.scenario.context || ''),
+          context: normalizeScenarioContext(question.scenario.context),
           description: normalizeScenarioLanguage(question.scenario.description || ''),
         }
       : question.scenario,
@@ -543,12 +627,7 @@ export function enforceTrainingQuestionContract(question) {
   // Facing an all-in is legally Call/Fold, but the product contract reserves
   // two-button layouts for Yes/No and Push/Fold. Express the same decision as
   // an unambiguous Yes/No question instead of inventing illegal raise choices.
-  const rawContext = cleanSpaces([
-    question.question,
-    question.scenario?.action,
-    question.scenario?.context,
-    question.scenario?.description,
-  ].filter(Boolean).join(' ')).toLowerCase();
+  const rawContext = questionContext(question);
   const actionFamilies = existingActionSet(options);
   if (
     options.length === 2 &&
@@ -560,23 +639,47 @@ export function enforceTrainingQuestionContract(question) {
       ...option,
       text: optionFamily(option) === 'call' ? 'Yes' : 'No',
     }));
-    const villain = positionLabel(question.scenario?.villainPosition || 'opponent');
     const hand = cleanSpaces(question.scenario?.heroHand || question.heroHand);
-    const stack = Number(question.scenario?.stackDepth || question.scenario?.heroStack || 0);
-    normalized.question = `Action folds to the ${villain}, who raises all-in${stack ? ` at ${stack} BB effective` : ''}. ${hand ? `You hold ${hand}. ` : ''}Should you call?`;
+    const actionSource = cleanSpaces(
+      normalized.scenario?.action
+      || normalized.scenario?.description
+      || normalized.question,
+    );
+    const actionLine = actionSource
+      .replace(/\s*(?:what is your best action|should you call|call or fold)\?\s*$/i, '')
+      .replace(/[.?!]+$/, '');
+    const handAlreadyPresent = hand
+      && actionLine.toLowerCase().includes(hand.toLowerCase());
+    normalized.question = `${actionLine}. ${hand && !handAlreadyPresent ? `You hold ${hand}. ` : ''}Should you call?`;
   }
 
   const decisionType = getDecisionType({ ...normalized, options });
   if (decisionType === 'four-choice') {
-    for (const candidate of suggestedOptions(normalized, options)) {
-      if (options.length >= 4) break;
-      const option = normalizeOption(candidate, options.length);
-      const signature = optionSignature(option);
-      if (!signature || seen.has(signature) || options.some((item) => item.id === option.id)) continue;
-      options.push({ ...option, frequency: 0, contractDistractor: true });
-      seen.add(signature);
+    // A provenance-sealed solver node owns an exact action tree. Never invent
+    // a zero-frequency fourth action or discard a fifth action while keeping a
+    // SOLVER_EXACT label. Sparse/malformed exact exports remain invalid so the
+    // delivery boundary rejects them and the solver pipeline must repair them.
+    if (!hasExactSolverAuthority(normalized)) {
+      for (const candidate of suggestedOptions(normalized, options)) {
+        if (options.length >= 4) break;
+        const option = normalizeOption(candidate, options.length);
+        const signature = optionSignature(option);
+        if (
+          !signature
+          || seen.has(signature)
+          || options.some((item) => item.id === option.id)
+          || !optionFitsEffectiveStack(normalized, option)
+        ) continue;
+        options.push({ ...option, contractDistractor: true });
+        seen.add(signature);
+      }
+      options = chooseFour(options, correctAnswer);
+    } else if (normalized._difficultyApplied && options.length > 4) {
+      // Difficulty grouping is a deterministic aggregation of exact solver
+      // actions, not authored padding. It may reduce an over-complete band set
+      // to the four answer choices required by the product contract.
+      options = chooseFour(options, correctAnswer);
     }
-    options = chooseFour(options, correctAnswer);
   } else {
     options = options.slice(0, 2);
   }

@@ -1,8 +1,8 @@
 /**
- * SHORT DECK TRAINER — 36-Card Dynamics & Equity Quiz
+ * SHORT DECK TRAINER — 36-Card Ruleset & Equity Practice
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Full trainer with hand-picking, board dealing, equity quiz mode,
- * Short Deck rule differences, and Supabase session persistence.
+ * Practice tool with hand-vs-hand Monte Carlo estimates and factual questions
+ * for the explicitly disclosed ruleset used on this page.
  *
  * Route: /hub/training/short-deck-trainer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -16,39 +16,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import Card from '../../../src/components/training/Card';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
-import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
+import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 const SUITS = ['♠', '♥', '♦', '♣'];
-const SUIT_COLORS = { '♠': 'var(--sp-fg)', '♥': 'var(--sp-accent-red)', '♦': 'var(--sp-accent-blue)', '♣': 'var(--sp-accent-green)' };
 const UNICODE_TO_SUIT = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
 const SHORT_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6'];
 
-// Short Deck Rule Differences
+// Explicit page ruleset. Short Deck rooms can use different hand rankings, so
+// the quiz never presents these ranking rules as universal across all games.
 const RULE_DIFFS = [
   {
-    rule: 'Flush BEATS Full House',
-    reason: 'Only 9 cards per suit (vs 13). Flushes are harder to make.',
-  },
-  { rule: 'A-6-7-8-9 is the lowest straight', reason: 'No 2-5 cards exist. Ace wraps to 6.' },
-  {
-    rule: 'Trips are easier to hit',
-    reason: 'Fewer ranks mean more paired boards. Sets come more often.',
+    rule: '36 Cards: Ranks Six Through Ace',
+    reason: 'This deck removes every two, three, four, and five.',
   },
   {
-    rule: 'Suited hands gain ~5-10% equity',
-    reason: 'Flush rarity makes suitedness extremely valuable.',
+    rule: 'Nine Cards In Each Suit',
+    reason: 'Nine ranks multiplied by four suits makes the 36-card deck.',
   },
   {
-    rule: 'Pocket Aces are less dominant',
-    reason: 'More connected boards = more straights beat AA.',
+    rule: 'A-6-7-8-9 Is The Lowest Straight',
+    reason: 'This trainer ruleset lets the ace play below the six.',
   },
+  {
+    rule: 'Flush Ranks Above Full House',
+    reason: 'This is the disclosed ranking used by this trainer; verify a live room’s rules before playing.',
+  },
+  { rule: 'Each Pocket Pair Has Six Combos', reason: 'Choose any two of the four cards of one rank: C(4,2) = 6.' },
 ];
 
 // Build 36-card deck
@@ -71,44 +71,43 @@ function unicodeHandToAscii(cards) {
 
 // Generate a quiz question
 function generateQuiz(round) {
-  const deck = buildDeck();
-  // Pick 2 random hero cards
-  // BUG-07 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
-  const shuffle = [...deck];
-  for (let i = shuffle.length - 1; i > 0; i--) {
+  const rankShuffle = [...SHORT_RANKS];
+  // BUG-07 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort).
+  for (let i = rankShuffle.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffle[i], shuffle[j]] = [shuffle[j], shuffle[i]];
+    [rankShuffle[i], rankShuffle[j]] = [rankShuffle[j], rankShuffle[i]];
   }
-  const hero = [shuffle[0], shuffle[1]];
-  const isSuited = hero[0][1] === hero[1][1];
-  const isPair = hero[0][0] === hero[1][0];
+  const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+  const suitedHero = [`${rankShuffle[0]}${suit}`, `${rankShuffle[1]}${suit}`];
 
-  // Pick a random question type
+  // Factual questions only. They teach this page's declared ruleset and never
+  // claim to be solver output or a hand-specific strategic recommendation.
   const types = [
     {
-      q: 'Are Flushes Harder To Make In Short Deck Than In Hold’em?',
-      correct: 'Yes',
-      options: ['Yes', 'No'],
+      q: 'How Many Cards Are In This Short Deck Ruleset?',
+      correct: '36',
+      options: ['36', '32', '40', '52'],
     },
     {
-      q: `Can you make a flush with ${hero[0]}${hero[1]}?`,
-      correct: isSuited ? 'Yes' : 'No',
-      options: ['Yes', 'No'],
+      q: `Holding ${suitedHero[0]} ${suitedHero[1]}, How Many Cards Of That Suit Remain Unseen?`,
+      correct: '7',
+      options: ['7', '6', '9', '11'],
+      hero: suitedHero,
     },
-    { q: 'Does A Flush Beat A Full House In Short Deck?', correct: 'Yes', options: ['Yes', 'No'] },
+    { q: 'In This Trainer Ruleset, Does A Flush Beat A Full House?', correct: 'Yes', options: ['Yes', 'No'] },
     {
-      q: `What is the lowest possible straight in Short Deck?`,
+      q: 'What Is The Lowest Possible Straight In Short Deck?',
       correct: 'A-6-7-8-9',
       options: ['A-6-7-8-9', 'A-2-3-4-5', '6-7-8-9-T', '7-8-9-T-J'],
     },
     {
-      q: `With 36 cards, how many combos does each pocket pair have?`,
+      q: 'With 36 Cards, How Many Combos Does Each Pocket Pair Have?',
       correct: '6',
       options: ['3', '6', '10', '12'],
     },
   ];
   const t = types[round % types.length];
-  return { hero, question: t.q, correct: t.correct, options: t.options };
+  return { hero: t.hero || [], question: t.q, correct: t.correct, options: t.options };
 }
 
 export default function ShortDeckTrainerPage() {
@@ -131,7 +130,7 @@ export default function ShortDeckTrainerPage() {
   const [quiz, setQuiz] = useState(null);
   const [quizAnswer, setQuizAnswer] = useState(null);
   const [quizScore, setQuizScore] = useState({ total: 0, correct: 0 });
-  const savedRef = useRef(false);
+  const savedMilestoneRef = useRef(0);
 
   // Random hero hand
   const randomHero = useCallback(() => {
@@ -200,53 +199,29 @@ export default function ShortDeckTrainerPage() {
 
   // Auto-save every 10 questions
   useEffect(() => {
-    if (quizScore.total > 0 && quizScore.total % 10 === 0 && !savedRef.current) {
-      savedRef.current = true;
+    if (quizScore.total > 0 && quizScore.total % 10 === 0 && savedMilestoneRef.current !== quizScore.total) {
+      savedMilestoneRef.current = quizScore.total;
       const saveSession = async () => {
         try {
           const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
           if (!token) return;
-          const accuracy = Math.round((quizScore.correct / quizScore.total) * 100);
-          await authedFetch('/api/training/save-session', {
-            method: 'POST',
-            body: JSON.stringify({
+          await savePracticeSession('short-deck-trainer', {
               gameId: 'short-deck-quiz',
-              gameName: `Short Deck Quiz (${quizScore.total} Qs)`,
-              gtowScore: accuracy,
-              totalEVLoss: 0,
+              gameName: `Short Deck Ruleset Practice (${quizScore.total} Qs)`,
               handsPlayed: quizScore.total,
-              mistakeCount: quizScore.total - quizScore.correct,
-              accuracy,
               correctCount: quizScore.correct,
-              bestStreak: 0,
-              levelPassed: accuracy >= 60,
-              level: 1,
-              handHistory: [],
-            }),
+              context: {
+                practiceOnly: true,
+                ruleset: '36-card-flush-over-full-house',
+              },
           });
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            { gameId: 'short-deck-quiz', handsPlayed: quizScore.total, accuracy },
-            'ShortDeckTrainer'
-          );
         } catch (err) {
           console.warn('[ShortDeck] Save error:', err.message);
         }
       };
       saveSession();
-      setTimeout(() => {
-        savedRef.current = false;
-      }, 1000);
     }
   }, [quizScore.correct, quizScore.total]);
-
-  // EventBus listener
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'ShortDeckTrainer') return;
-    });
-    return unsub;
-  }, []);
 
   return (
     <>
@@ -254,7 +229,7 @@ export default function ShortDeckTrainerPage() {
         <title>Short Deck Trainer | Smarter.Poker</title>
         <meta
           name="description"
-          content="Master Short Deck (Six Plus) poker with our equity calculator and quiz trainer."
+          content="Practice one disclosed Short Deck ruleset and run hand-vs-hand Monte Carlo equity estimates."
         />
       </Head>
       <div
@@ -270,19 +245,18 @@ export default function ShortDeckTrainerPage() {
           open={infoOpen}
           onClose={() => setInfoOpen(false)}
           title="How Short Deck Trainer Works"
-          subtitle="36-Card Dynamics"
+          subtitle="Practice-Only 36-Card Ruleset"
         >
           <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
             <p style={{ marginTop: 0 }}>
-              Short Deck Removes 2-5 From The Deck (36 Cards Total). That Shifts
-              Hand Probabilities Significantly: <strong>Flushes Beat Full Houses</strong>,
-              Straights Are Far More Common, And Equity Vs. Ranges Shifts. Calc
-              Mode Lets You Simulate Equity; Quiz Mode Drills The Rule Changes
-              And Rank-Order Shifts.
+              This Trainer Uses 36 Cards, Ranks Six Through Ace, With A-6-7-8-9
+              As The Lowest Straight And <strong>Flush Above Full House</strong>.
+              Short Deck Rooms Can Use Different Rankings, So Confirm The Live
+              Room’s Rules. Calc Mode Runs A Hand-Vs-Hand Monte Carlo Estimate.
             </p>
             <p>
-              Use Quiz Mode To Hammer The Rule Changes Until They're Automatic
-              Before Stacking Off In Real Games.
+              Quiz Results Are A Private Practice Note Only. They Do Not Affect
+              Account Progress, Rank, Rewards, Or Solver Accuracy.
             </p>
           </div>
         </BottomSheet>
@@ -376,7 +350,7 @@ export default function ShortDeckTrainerPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
-                Rule Shift: Flush BEATS Full House
+                Trainer Ruleset: Flush Ranks Above Full House
               </div>
               <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
                 {showRules ? '● Hide' : '● Show All'}
@@ -573,20 +547,22 @@ export default function ShortDeckTrainerPage() {
 
               {quiz && (
                 <>
-                  {/* Hero Cards Display */}
-                  <div
-                    style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}
-                  >
-                    {quiz.hero.map((card, i) => (
-                      <div key={i}>
-                        <Card
-                          rank={card[0]}
-                          suit={UNICODE_TO_SUIT[card[1]] || card[1]}
-                          size="medium"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  {/* Hero Cards Display — present only when the factual question references them. */}
+                  {quiz.hero.length > 0 && (
+                    <div
+                      style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}
+                    >
+                      {quiz.hero.map((card, i) => (
+                        <div key={i}>
+                          <Card
+                            rank={card[0]}
+                            suit={UNICODE_TO_SUIT[card[1]] || card[1]}
+                            size="medium"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Question */}
                   <div

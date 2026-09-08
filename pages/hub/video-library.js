@@ -30,7 +30,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 // ReelsViewer is dynamically loaded to reduce initial bundle size
 const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
-import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
+import { findBestGames } from '../../src/utils/videoToTrainingMapper';
 
 // Static fallback catalog — used until DB fetch resolves
 import {
@@ -3218,9 +3218,9 @@ export default function VideoLibraryPage() {
                             </div>
                         </div>
                         <div style={{ padding: '6px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <button onClick={() => { setTtsOverlay(null); router.push(buildSandboxUrl(ttsOverlay.ctx)); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))', border: '1.5px solid rgba(0,150,255,0.35)', color: '#4DA6FF', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s' }}>
+                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training?source=video-library'); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))', border: '1.5px solid rgba(0,150,255,0.35)', color: '#4DA6FF', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s' }}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
-                                {(() => { const ex = extractCardsFromContext(ttsOverlay.ctx); return ex.hand ? `Solve in Sandbox (${ex.hand.slice(0,2)} ${ex.hand.slice(2)})` : 'Open in Virtual Sandbox'; })()}
+                                Open Verified Training
                             </button>
                             <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Browse All 100 Training Games</button>
                         </div>

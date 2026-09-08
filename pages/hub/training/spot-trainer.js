@@ -1,49 +1,22 @@
 /**
- * Spot Trainer - Postflop Policy Decision Drills
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Phase 20: Rapid-fire quiz for postflop decisions. Users are shown a
- * provenance-labelled spot and must choose the highest-frequency action.
+ * Solver Spot Study — answer-revealed postflop policy review.
  *
- * Route: /hub/training/spot-trainer
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * This utility intentionally reveals solver policy and does not grade, persist,
+ * reward, or advance authoritative Training progress. Blind decisions belong
+ * to the signed 107-game arena pipeline.
+ * TRAIN-CSS-TOKENS-ADOPT-4 and TRAIN-CSS-MOBILE-ADOPT-5 remain represented by
+ * the shared --sp-* palette and overflow-safe responsive layout below.
+ * TRAIN-WIRE-FEEDBACK-V2-5 and TRAIN-WIRE-QUIZ-ANSWER-6 are intentionally
+ * superseded here: this answer-revealed study surface has no grading controls,
+ * while the signed Arena owns blind answers and persistent feedback.
  */
-
-// TRAIN-CSS-TOKENS-ADOPT-4 — adoption of --sp-* token contract from PR #470
-// TRAIN-CSS-MOBILE-ADOPT-5 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
-// TRAIN-CSS-GRADIENT-ADOPT-48 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
-import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import Card, { parseCards } from '../../../src/components/training/Card';
+import { AnimatePresence, motion } from 'framer-motion';
+import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
-import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
-import FeedbackCard from '../../../src/components/poker/FeedbackCard';
-import QuizAnswer from '../../../src/components/poker/QuizAnswer';
-import {
-  gradeCanonicalPolicyDecision,
-  trainingSourcePresentation,
-} from '../../../src/lib/training/cacheTruthContract.mjs';
-// TRAIN-WIRE-FX-4a — adoption: feedback hook for spot-trainer.fresh.js
-
-async function saveSession(payload) {
-  const response = await authedFetch('/api/training/save-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || `Session persistence failed (${response.status})`);
-  }
-  return response;
-}
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// CONSTANTS
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 
 const FORMAT_OPTIONS = [
   { value: '', label: 'All' },
@@ -52,7 +25,7 @@ const FORMAT_OPTIONS = [
 ];
 
 const POSITION_OPTIONS = [
-  { value: '', label: 'Any Pos' },
+  { value: '', label: 'Any Position' },
   { value: 'BTN', label: 'BTN' },
   { value: 'CO', label: 'CO' },
   { value: 'HJ', label: 'HJ' },
@@ -61,276 +34,146 @@ const POSITION_OPTIONS = [
   { value: 'BB', label: 'BB' },
 ];
 
+const MAX_SPOT_RETRIES = 3;
+const SPOT_RETRY_BASE_MS = 250;
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// HAND DISPLAY — hero hand rendered as PNG card images
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+function waitForRetry(delayMs, signal) {
+  return new Promise((resolve) => {
+    let timer = null;
+    const finish = () => {
+      if (timer) clearTimeout(timer);
+      signal?.removeEventListener('abort', finish);
+      resolve();
+    };
+    timer = setTimeout(finish, delayMs);
+    signal?.addEventListener('abort', finish, { once: true });
+  });
+}
 
-function HandBadge({ hand }) {
-  if (!hand) return null;
-  const cards = parseCards(hand);
-  if (!cards || cards.length === 0) return null;
+function HandBadge({ cards }) {
+  const physicalCards = Array.isArray(cards)
+    && cards.length === 2
+    && cards.every((card) => /^[2-9TJQKA][cdhs]$/.test(String(card || '')))
+    ? cards
+    : null;
+  if (!physicalCards) return null;
   return (
     <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-      {cards.map((c, i) => (
-        <Card key={i} rank={c.rank} suit={c.suit} size="small" />
+      {physicalCards.map((card, index) => (
+        <Card key={`${card}-${index}`} rank={card[0]} suit={card[1]} size="small" />
       ))}
     </div>
   );
 }
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// PAGE COMPONENT
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+const filterButtonStyle = (active) => ({
+  padding: '6px 10px',
+  borderRadius: 6,
+  fontSize: 10,
+  fontWeight: 800,
+  cursor: 'pointer',
+  border: active ? '1px solid rgba(103,232,249,0.70)' : '1px solid rgba(255,255,255,0.10)',
+  background: active
+    ? 'linear-gradient(180deg, rgba(8,145,178,0.70), rgba(3,50,74,0.90))'
+    : 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+  color: active ? '#e8fbff' : 'var(--sp-fg-muted)',
+  boxShadow: active ? '0 0 16px rgba(34,211,238,0.20), inset 0 1px rgba(255,255,255,0.20)' : 'none',
+});
 
 export default function SpotTrainerPage() {
   const router = useRouter();
-  const bus = useTrainingBus('spot-trainer');
-  const fb = useTrainingFeedback();
-
-  // State
   const [spot, setSpot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selected, setSelected] = useState(null);
-  const [showResult, setShowResult] = useState(false);
-  const [answerPending, setAnswerPending] = useState(false);
-
-  // Filters
   const [format, setFormat] = useState('');
   const [position, setPosition] = useState('');
+  const requestAbortRef = useRef(null);
 
-  // Stats
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [totalDrills, setTotalDrills] = useState(0);
-  const [correctDrills, setCorrectDrills] = useState(0);
-  const [sessionStart] = useState(Date.now());
-
-  const questionStartRef = useRef(Date.now());
-  const sessionHandHistory = useRef([]);
-
-  // Fetch a random spot
   const fetchSpot = useCallback(async () => {
+    requestAbortRef.current?.abort();
+    const controller = new AbortController();
+    requestAbortRef.current = controller;
     setLoading(true);
     setError(null);
-    setSelected(null);
-    setShowResult(false);
+    setSpot(null);
+
     try {
       const params = new URLSearchParams();
       if (format) params.set('format', format);
       if (position) params.set('position', position);
 
-      const res = await authedFetch(`/api/training/spot-drill?${params.toString()}`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      for (let attempt = 0; attempt <= MAX_SPOT_RETRIES; attempt += 1) {
+        const response = await authedFetch(
+          `/api/training/spot-drill?${params.toString()}`,
+          { signal: controller.signal },
+        );
+        const payload = await response.json();
 
-      if (data.success) {
-        setSpot(data.spot);
-        questionStartRef.current = Date.now(); // Reset answer timer when spot loads
-      } else if (data.retry) {
-        // Spot had no data, retry
-        setTimeout(fetchSpot, 200);
-      } else {
-        setError(data.error || 'Failed to load spot');
+        if (response.ok && payload.success && payload.spot) {
+          setSpot(payload.spot);
+          return;
+        }
+        if (!payload.retryable) {
+          throw new Error(payload.error || `Audited Solver Artifact Unavailable (${response.status})`);
+        }
+        if (attempt >= MAX_SPOT_RETRIES) {
+          throw new Error(payload.error || `Audited Solver Lookup Failed After ${MAX_SPOT_RETRIES + 1} Attempts`);
+        }
+        await waitForRetry(SPOT_RETRY_BASE_MS * (2 ** attempt), controller.signal);
+        if (controller.signal.aborted) return;
       }
-    } catch (err) {
-      setError(err.message);
+    } catch (requestError) {
+      if (requestError?.name !== 'AbortError' && !controller.signal.aborted) {
+        setError(requestError?.message || 'Failed To Load An Audited Solver Spot');
+      }
     } finally {
-      setLoading(false);
+      if (requestAbortRef.current === controller) setLoading(false);
     }
   }, [format, position]);
 
-  // Load first spot on mount
   useEffect(() => {
     fetchSpot();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Handle answer selection
-  const handleAnswer = useCallback(
-    async (action) => {
-      if (showResult || answerPending || !spot) return;
-
-      const answerId = spot.actionIdByLabel?.[action];
-      const canonicalGrade = gradeCanonicalPolicyDecision(spot.solverPolicy, answerId);
-      if (!canonicalGrade.valid || !spot.policyChecksum) {
-        setError('This policy receipt is no longer gradeable. Load a new spot.');
-        return;
-      }
-
-      setAnswerPending(true);
-      let persistedEvidence;
-      try {
-        const submissionId = globalThis.crypto?.randomUUID?.()
-          || `${spot.id}:${Date.now()}:${answerId}`;
-        const response = await authedFetch('/api/training/record-question', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            gameId: 'spot-trainer',
-            questionId: spot.id,
-            policyChecksum: spot.policyChecksum,
-            submissionId,
-            selectedAnswer: answerId,
-            level: 1,
-            heroPosition: spot.heroPosition,
-            street: String(spot.street || '').toLowerCase(),
-            classification: canonicalGrade.classification,
-            evLoss: canonicalGrade.evLoss || 0,
-            spotType: 'spot-drill',
-          }),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || `Answer persistence failed (${response.status})`);
-        persistedEvidence = payload.evidence;
-        if (
-          persistedEvidence?.classification !== canonicalGrade.classification
-          || persistedEvidence?.isCorrect !== canonicalGrade.isCorrect
-        ) throw new Error('The server grade did not match the canonical policy shown.');
-      } catch (answerError) {
-        setError(answerError.message || 'Answer could not be recorded.');
-        setAnswerPending(false);
-        return;
-      }
-
-      const responseTimeMs = Date.now() - questionStartRef.current;
-      setSelected(action);
-      setShowResult(true);
-      setTotalDrills((prev) => prev + 1);
-
-      const isCorrect = persistedEvidence.isCorrect;
-      if (isCorrect) fb.correct(); else fb.incorrect();
-
-      // Record per-question detail for session granularity
-      sessionHandHistory.current.push({
-        hand: spot.heroHand,
-        board: spot.board,
-        position: spot.heroPosition,
-        correct_action: spot.gtoAction,
-        selected_action: action,
-        is_correct: isCorrect,
-        response_time_ms: responseTimeMs,
-        street: spot.street,
-        stack_depth: spot.stackDepth,
-        questionId: spot.id,
-        policyChecksum: spot.policyChecksum,
-        sourceClassification: spot.sourceClassification,
-      });
-
-      if (isCorrect) {
-        setCorrectDrills((prev) => prev + 1);
-        setStreak((prev) => {
-          const newStreak = prev + 1;
-          setBestStreak((best) => Math.max(best, newStreak));
-          if (bus?.emitStreakUpdate) bus.emitStreakUpdate(newStreak);
-          return newStreak;
-        });
-        if (bus?.emitDecisionCorrect) bus.emitDecisionCorrect();
-      } else {
-        setStreak(0);
-        if (bus?.emitDecisionIncorrect) bus.emitDecisionIncorrect();
-        if (bus?.emitStreakUpdate) bus.emitStreakUpdate(0);
-      }
-
-      // Emit answer speed for Leak Detection analysis
-      if (bus?.emitAnswerSpeed)
-        bus.emitAnswerSpeed(responseTimeMs, {
-          is_correct: isCorrect,
-          position: spot?.heroPosition,
-          street: spot?.street,
-        });
-
-      // Emit card viewed for card exposure tracking
-      if (bus?.emitCardViewed) bus.emitCardViewed(spot.board);
-
-      // Save session with per-question detail
-      try {
-        await saveSession({
-          game_id: 'spot-trainer',
-          hands_played: 1,
-          accuracy: isCorrect ? 100 : 0,
-          correct_answers: isCorrect ? 1 : 0,
-          total_questions: 1,
-          handHistory: sessionHandHistory.current.slice(-100),
-        });
-      } catch (sessionError) {
-        setError(`Answer recorded, but completion receipt failed: ${sessionError.message}`);
-      }
-
-      // Emit bus event for cross-page sync (session-dashboard, position-mastery)
-      try {
-        eventBus?.emit?.(
-          'training:spot-drilled',
-          {
-            action,
-            isCorrect,
-            position: spot?.heroPosition,
-            format: spot?.gameType,
-            responseTimeMs,
-          },
-          'SpotTrainer'
-        );
-        eventBus?.emit?.('training:drill-complete', {}, 'SpotTrainer');
-      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-
-      setAnswerPending(false);
-
-    },
-    [showResult, answerPending, spot, bus, fb]
-  );
-
-  const accuracy = totalDrills > 0 ? Math.round((correctDrills / totalDrills) * 100) : 0;
-  const elapsed = Math.floor((Date.now() - sessionStart) / 60000);
+    return () => requestAbortRef.current?.abort();
+  }, [fetchSpot]);
   const sourceBadge = trainingSourcePresentation(spot?.sourceClassification);
-  const selectedGrade = selected
-    ? gradeCanonicalPolicyDecision(spot?.solverPolicy, spot?.actionIdByLabel?.[selected])
-    : null;
-  const selectedIsCorrect = selectedGrade?.valid === true && selectedGrade.isCorrect === true;
 
   return (
     <>
       <Head>
-        <title>Spot Trainer | Smarter.Poker Policy Training</title>
+        <title>Solver Spot Study | Smarter.Poker GTO Training</title>
         <meta
           name="description"
-          content="Drill postflop decisions with source-labeled policy spots and canonical grading."
+          content="Review answer-revealed, solver-verified postflop policies without affecting Training scores, progress, or rewards."
         />
       </Head>
 
-      <div
+      <main
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
+          minHeight: '100vh',
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+          paddingBottom: 70,
+          background: 'radial-gradient(circle at 50% 4%, rgba(0,119,190,0.20), transparent 32%), linear-gradient(180deg, #03080d 0%, #07111b 55%, #020609 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '20px 24px 12px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div data-pills-row
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              flexWrap: 'wrap',
-            }}
-          >
+        <div style={{ padding: '20px 24px 12px', borderBottom: '1px solid rgba(103,232,249,0.20)' }}>
+          <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
+                border: '1px solid rgba(255,255,255,0.16)',
                 borderRadius: 8,
-                padding: '6px 12px',
+                padding: '7px 12px',
                 color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
               &larr; Training
@@ -338,331 +181,165 @@ export default function SpotTrainerPage() {
             <h1
               style={{
                 fontSize: 20,
-                fontWeight: 800,
+                fontWeight: 900,
                 margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#dff9ff',
+                textShadow: '0 0 18px rgba(34,211,238,0.35)',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              Spot Trainer
+              Solver Spot Study
             </h1>
             <span
               style={{
-                fontSize: 10,
-                color: 'var(--sp-accent-orange)',
-                background: 'rgba(249,115,22,0.1)',
-                padding: '3px 8px',
+                fontSize: 9,
+                color: '#a5f3fc',
+                background: 'rgba(8,145,178,0.16)',
+                padding: '4px 8px',
                 borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(249,115,22,0.2)',
+                fontWeight: 800,
+                border: '1px solid rgba(103,232,249,0.30)',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              PHASE 20
+              Answer-Revealed Study
             </span>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div style={{ padding: '16px 24px', maxWidth: 600, margin: '0 auto' }}>
-          {/* Stats Bar */}
-          <div data-pills-row
+        <div style={{ padding: '16px 20px', maxWidth: 650, margin: '0 auto' }}>
+          <section
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              color: 'var(--sp-fg-muted)',
+              fontSize: 12,
+              lineHeight: 1.6,
+              textAlign: 'center',
+              background: 'linear-gradient(180deg, rgba(7,89,133,0.16), rgba(2,20,31,0.65))',
+              border: '1px solid rgba(103,232,249,0.22)',
               borderRadius: 10,
-              padding: '10px 14px',
+              padding: '11px 14px',
               marginBottom: 14,
-              flexWrap: 'wrap',
-              gap: 8,
+              boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 8px 28px rgba(0,0,0,0.25)',
             }}
           >
-            {[
-              { label: 'Streak', value: streak, color: streak >= 5 ? 'var(--sp-accent-green)' : 'var(--sp-accent-orange)' },
-              { label: 'Best', value: bestStreak, color: 'var(--sp-accent-purple)' },
-              {
-                label: 'Accuracy',
-                value: `${accuracy}%`,
-                color: accuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-              },
-              { label: 'Drills', value: totalDrills, color: 'var(--sp-accent-cyan)' },
-            ].map((stat) => (
-              <div key={stat.label} style={{ textAlign: 'center', flex: '1 1 60px' }}>
-                <div
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 900,
-                    color: stat.color,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  {stat.value}
-                </div>
-                <div
-                  style={{
-                    fontSize: 9,
-                    color: 'var(--sp-fg-dim)',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
+            This Is An Answer-Revealed Solver Study Utility. It Is Intentionally Not Scored And
+            Cannot Change Training Progress, Streaks, Leaderboards, Achievements, Or Rewards.
+          </section>
 
-          {/* Filter Controls */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              marginBottom: 14,
-              flexWrap: 'wrap',
-            }}
-          >
-            {/* Format */}
-            <div style={{ display: 'flex', gap: 3 }}>
-              {FORMAT_OPTIONS.map((opt) => (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {FORMAT_OPTIONS.map((option) => (
                 <button
-                  key={opt.value}
-                  onClick={() => {
-                    setFormat(opt.value);
-                  }}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s',
-                    background:
-                      format === opt.value
-                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
-                        : 'rgba(255,255,255,0.06)',
-                    color: format === opt.value ? '#fff' : 'var(--sp-fg-muted)',
-                  }}
+                  key={option.value}
+                  type="button"
+                  onClick={() => setFormat(option.value)}
+                  style={filterButtonStyle(format === option.value)}
                 >
-                  {opt.label}
+                  {option.label}
                 </button>
               ))}
             </div>
-            {/* Position */}
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {POSITION_OPTIONS.map((opt) => (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {POSITION_OPTIONS.map((option) => (
                 <button
-                  key={opt.value}
-                  onClick={() => {
-                    setPosition(opt.value);
-                  }}
-                  style={{
-                    padding: '5px 8px',
-                    borderRadius: 6,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s',
-                    background:
-                      position === opt.value
-                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
-                        : 'rgba(255,255,255,0.06)',
-                    color: position === opt.value ? '#fff' : 'var(--sp-fg-muted)',
-                  }}
+                  key={option.value}
+                  type="button"
+                  onClick={() => setPosition(option.value)}
+                  style={filterButtonStyle(position === option.value)}
                 >
-                  {opt.label}
+                  {option.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div
+              role="alert"
               style={{
-                padding: '10px 14px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
+                padding: '11px 14px',
+                background: 'rgba(239,68,68,0.10)',
+                border: '1px solid rgba(248,113,113,0.35)',
                 borderRadius: 8,
-                color: 'var(--sp-accent-red)',
+                color: '#fca5a5',
                 fontSize: 12,
-                fontWeight: 600,
+                fontWeight: 700,
                 marginBottom: 14,
               }}
             >
               {error}
-              <button
-                onClick={fetchSpot}
-                style={{
-                  marginLeft: 12,
-                  background: 'rgba(249,115,22,0.2)',
-                  border: '1px solid rgba(249,115,22,0.4)',
-                  borderRadius: 6,
-                  padding: '4px 12px',
-                  color: 'var(--sp-accent-orange)',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
+              <button type="button" onClick={fetchSpot} style={{ ...filterButtonStyle(false), marginLeft: 12 }}>
                 Retry
               </button>
             </div>
           )}
 
-          {/* Loading */}
-          {loading && !spot && (
+          {loading && (
             <div
-              style={{
-                textAlign: 'center',
-                padding: 40,
-                color: 'var(--sp-fg-dim)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                fontSize: 12,
-                fontWeight: 700,
-              }}
+              aria-live="polite"
+              style={{ textAlign: 'center', padding: 40, color: 'var(--sp-fg-dim)', fontSize: 12, fontWeight: 800 }}
             >
-              LOADING SPOT...
+              Loading Audited Solver Spot...
             </div>
           )}
 
-          {/* Spot Display */}
           <AnimatePresence mode="wait">
-            {spot && (
-              <motion.div
-                key={spot.id + spot.heroHand}
+            {spot && !loading && (
+              <motion.section
+                key={`${spot.id}-${spot.heroHand}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                {/* Spot Info Bar */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 12,
-                  }}
-                >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        color: 'var(--sp-accent-orange)',
-                        background: 'rgba(249,115,22,0.1)',
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      {spot.heroPosition}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg-muted)',
-                        background: 'rgba(255,255,255,0.04)',
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                      }}
-                    >
-                      {spot.street}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg-dim)',
-                      }}
-                    >
-                      {spot.stackDepth}BB {spot.gameType?.replace('_', ' ')}
-                    </span>
+                    {[spot.heroPosition, spot.street, `${spot.stackDepth}BB`, spot.gameType?.replace('_', ' ')].filter(Boolean).map((label) => (
+                      <span
+                        key={label}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: '#cffafe',
+                          background: 'rgba(8,145,178,0.13)',
+                          border: '1px solid rgba(103,232,249,0.18)',
+                          padding: '4px 8px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    ))}
                   </div>
-                  <button
-                    onClick={fetchSpot}
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 6,
-                      padding: '5px 10px',
-                      color: 'var(--sp-fg-muted)',
-                      cursor: 'pointer',
-                      fontSize: 10,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Skip
+                  <button type="button" onClick={fetchSpot} style={filterButtonStyle(false)}>
+                    Load Another
                   </button>
                 </div>
 
-                {/* Board Cards */}
                 <div
                   style={{
-                    background:
-                      'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'linear-gradient(145deg, rgba(5,22,34,0.96), rgba(1,8,14,0.98))',
+                    border: '1px solid rgba(103,232,249,0.24)',
                     borderRadius: 14,
                     padding: '20px 24px',
                     marginBottom: 14,
                     textAlign: 'center',
+                    boxShadow: 'inset 0 1px rgba(255,255,255,0.10), 0 14px 40px rgba(0,0,0,0.42)',
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1.5,
-                      marginBottom: 10,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    BOARD
+                  <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 10 }}>
+                    Board
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      justifyContent: 'center',
-                      marginBottom: 16,
-                    }}
-                  >
-                    {spot.board.map((card, i) => (
-                      <Card
-                        key={i}
-                        rank={card[0]?.toUpperCase()}
-                        suit={card[1]?.toLowerCase()}
-                        size="small"
-                      />
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+                    {(spot.board || []).map((card, index) => (
+                      <Card key={`${card}-${index}`} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="small" />
                     ))}
                   </div>
-
-                  <div
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1.5,
-                      marginBottom: 8,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    YOUR HAND
+                  <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 8 }}>
+                    Your Hand
                   </div>
-                  <HandBadge hand={spot.heroHand} />
+                  <HandBadge cards={spot.heroCards} />
                 </div>
 
-                {/* Question */}
                 <div
                   title={sourceBadge.title}
                   style={{
@@ -682,187 +359,127 @@ export default function SpotTrainerPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg)',
-                    textAlign: 'center',
+                    background: 'linear-gradient(145deg, rgba(14,116,144,0.14), rgba(2,14,24,0.92))',
+                    border: '1px solid rgba(103,232,249,0.28)',
+                    borderRadius: 12,
+                    padding: 15,
                     marginBottom: 14,
+                    boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 10px 30px rgba(0,0,0,0.28)',
                   }}
                 >
-                  What Is The Best Policy Play?
+                  <div style={{ color: '#a5f3fc', fontSize: 11, fontWeight: 900, marginBottom: 10 }}>
+                    Audited PioSOLVER Artifact
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 8 }}>
+                    {[
+                      ['Decision Node', spot.decisionNode?.node],
+                      ['Actor', `${spot.decisionNode?.actorRole || '-'} · ${spot.heroPosition || '-'}`],
+                      ['Seats', `${spot.decisionNode?.oopPosition || '-'} OOP / ${spot.decisionNode?.ipPosition || '-'} IP`],
+                      ['Current Pot', Number.isFinite(Number(spot.decisionNode?.potBb)) ? `${spot.decisionNode.potBb} BB` : '-'],
+                      ['Facing', Number(spot.decisionNode?.facingBetBb) > 0 ? `${spot.decisionNode.facingBetBb} BB` : 'No Bet'],
+                      ['Hand EV', Number.isFinite(Number(spot.handEvBb)) ? `${spot.handEvBb} BB` : '-'],
+                      ['Solver', spot.provenance?.solverVersion],
+                      ['Machine', spot.provenance?.machineId],
+                      ['Manifest', spot.provenance?.manifestVersion],
+                      ['Quality', spot.provenance?.qualityStatus],
+                      ['Policy Receipt', spot.policyChecksum
+                        ? `${String(spot.policyChecksum).slice(0, 12)}…`
+                        : '-'],
+                    ].map(([label, value]) => (
+                      <div key={label} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
+                        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>
+                        <div style={{ color: '#dff9ff', fontSize: 10, fontWeight: 800, marginTop: 3, overflowWrap: 'anywhere' }}>{value || '-'}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, lineHeight: 1.5, marginTop: 10, overflowWrap: 'anywhere' }}>
+                    Scenario: {spot.scenarioHash} · Pipeline: {spot.provenance?.pipelineCommit} · Audited: {spot.provenance?.auditedAt}
+                  </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 8,
+                    background: 'linear-gradient(145deg, rgba(34,197,94,0.10), rgba(2,20,16,0.80))',
+                    border: '1px solid rgba(74,222,128,0.30)',
+                    borderRadius: 12,
+                    padding: 16,
                     marginBottom: 16,
+                    boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 10px 34px rgba(0,0,0,0.30)',
                   }}
                 >
-                  {/* TRAIN-WIRE-QUIZ-ANSWER-6 — options via shared QuizAnswer (preserves 2-col grid from parent) */}
-                  {spot.options.map((action, i) => (
-                    <QuizAnswer
-                      key={action}
-                      label={action}
-                      shortcut={i + 1}
-                      selected={selected === action}
-                      correct={gradeCanonicalPolicyDecision(
-                        spot.solverPolicy,
-                        spot.actionIdByLabel?.[action],
-                      ).isCorrect === true}
-                      show={showResult}
-                      onClick={() => handleAnswer(action)}
-                      disabled={answerPending}
-                      ariaLabel={`Choose ${action}`}
-                      size="md"
-                      fullWidth
-                    >
-                      {showResult && action === spot.gtoAction ? (
-                        <span style={{ marginLeft: 6, fontSize: 11 }}>({spot.gtoFrequency}%)</span>
-                      ) : null}
-                    </QuizAnswer>
-                  ))}
+                  <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 10, fontWeight: 800, marginBottom: 5 }}>
+                      Primary Solver Action
+                    </div>
+                    <div style={{ color: '#86efac', fontSize: 22, fontWeight: 900 }}>{spot.gtoAction}</div>
+                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 11 }}>{spot.gtoFrequency}% In This Policy</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {Object.entries(spot.actionBreakdown || {})
+                      .sort(([, left], [, right]) => right - left)
+                      .map(([action, frequency]) => (
+                        <span
+                          key={action}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: action === spot.gtoAction ? '#86efac' : 'var(--sp-fg-muted)',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            padding: '5px 9px',
+                            borderRadius: 6,
+                          }}
+                        >
+                          {action}: {frequency}%
+                        </span>
+                      ))}
+                  </div>
                 </div>
 
-                {/* Result Feedback */}
-                <AnimatePresence>
-                  {showResult && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      style={{
-                        background:
-                          selectedIsCorrect
-                            ? 'rgba(34,197,94,0.1)'
-                            : 'rgba(239,68,68,0.1)',
-                        border: `1px solid ${selectedIsCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                        borderRadius: 10,
-                        padding: '12px 16px',
-                        marginBottom: 14,
-                      }}
-                    >
-                      {/* TRAIN-WIRE-FEEDBACK-V2-5 — verdict via FeedbackCard compact */}
-                      <div style={{ marginBottom: 8 }}>
-                        <FeedbackCard
-                          verdict={selectedIsCorrect ? 'correct' : 'incorrect'}
-                          userAction={selected || ''}
-                          solverAction={spot.gtoAction}
-                          referenceLabel={sourceBadge.label}
-                          evLoss={0}
-                          whyShort={selectedIsCorrect ? 'Policy-correct.' : `The canonical policy prefers ${spot.gtoAction}.`}
-                          compact
-                        />
-                      </div>
-
-                      {/* Action Breakdown */}
-                      <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: 'var(--sp-fg-dim)',
-                          marginBottom: 4,
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                        }}
-                      >
-                        Policy Frequencies
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {Object.entries(spot.actionBreakdown || {})
-                          .sort(([, a], [, b]) => b - a)
-                          .map(([action, freq]) => (
-                            <span
-                              key={action}
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color: action === spot.gtoAction ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
-                                background:
-                                  action === spot.gtoAction
-                                    ? 'rgba(34,197,94,0.1)'
-                                    : 'rgba(255,255,255,0.04)',
-                                padding: '3px 8px',
-                                borderRadius: 6,
-                              }}
-                            >
-                              {action}: {freq}%
-                            </span>
-                          ))}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: 'var(--sp-fg-dim)',
-                          marginTop: 6,
-                        }}
-                      >
-                        Review The Canonical Policy Frequencies. This Result Will Stay Open Until You Click Next.
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Results advance only through this explicit control. */}
-                {showResult && (
-                  <button
-                    onClick={fetchSpot}
-                    style={{
-                      width: '100%',
-                      padding: '12px 0',
-                      background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
-                      border: 'none',
-                      borderRadius: 10,
-                      color: '#fff',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    Next Spot
-                  </button>
-                )}
-              </motion.div>
+                <button
+                  type="button"
+                  onClick={fetchSpot}
+                  style={{
+                    width: '100%',
+                    padding: '13px 0',
+                    background: 'linear-gradient(180deg, #67e8f9 0%, #0891b2 48%, #075985 100%)',
+                    border: '1px solid rgba(207,250,254,0.70)',
+                    borderRadius: 9,
+                    color: '#021018',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: 'inset 0 1px #fff, 0 0 22px rgba(34,211,238,0.22)',
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                  }}
+                >
+                  Load Another Audited Spot
+                </button>
+              </motion.section>
             )}
           </AnimatePresence>
 
-          {/* About Section */}
-          <div
+          <section
             style={{
               marginTop: 20,
               padding: '14px 18px',
-              background: 'rgba(255,255,255,0.02)',
+              background: 'rgba(255,255,255,0.025)',
               borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 6,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              About Spot Trainer
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1, marginBottom: 6 }}>
+              About Solver Spot Study
             </div>
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              Rapid-Fire Postflop Strategy Drills Using Provenance-Labelled Spots. Each Spot Shows You A
-              Board Texture, Your Hand, And 4 Action Options. Choose The Highest-Frequency Policy Action
-              To Build Your Streak. Filter By Format And Position To Target Specific Leaks. The Canonical
-              Policy Breakdown Is Shown After Each Answer.
+              Review Provenance-Audited Postflop Policies By Format And Position. The Primary Action
+              And Full Frequency Mix Are Revealed Immediately, So This Page Is A Study Reference,
+              Not A Quiz. Use The Canonical Training Games For Blind Four-Choice Decisions,
+              Server-Verified Feedback, Progress, Streaks, Leaderboards, And Rewards.
             </p>
-          </div>
+          </section>
         </div>
-
-      </div>
+      </main>
     </>
   );
 }

@@ -3,7 +3,7 @@
  * Checks database connectivity and scenario count
  */
 
-import { getGTOScenarioCount, getGTOStrategy, hasGTODataForScenario } from '../lib/god-mode-service';
+import { getGTOStrategy, hasGTODataForScenario } from '../lib/god-mode-service';
 
 async function testGodMode() {
     console.log('═'.repeat(80));
@@ -11,21 +11,10 @@ async function testGodMode() {
     console.log('═'.repeat(80));
     console.log();
 
-    // Test 1: Count scenarios
-    console.log('📊 Test 1: Counting scenarios in database...');
-    const count = await getGTOScenarioCount();
-    console.log(`   ✅ Found ${count} scenarios in solved_spots_gold`);
-    console.log();
-
-    if (count === 0) {
-        console.log('⚠️  No scenarios found yet.');
-        console.log('   Windows ingestion may still be running.');
-        console.log('   Check back once solver data is imported.');
-        return;
-    }
-
-    // Test 2: Check if specific scenario exists
-    console.log('📊 Test 2: Checking for sample scenario...');
+    // Test 1: Check if one exact scenario is available. The bounded catalog
+    // reader intentionally does not pretend a partial page is an exact global
+    // warehouse count.
+    console.log('📊 Test 1: Checking for sample scenario...');
     const hasData = await hasGTODataForScenario({
         gameType: 'MTT',
         stackDepth: 40,
@@ -35,9 +24,9 @@ async function testGodMode() {
     console.log(`   ${hasData ? '✅' : '⚠️ '} MTT 40bb Turn scenario: ${hasData ? 'FOUND' : 'NOT FOUND'}`);
     console.log();
 
-    // Test 3: Fetch full strategy (if data exists)
+    // Test 2: Fetch full strategy (if data exists)
     if (hasData) {
-        console.log('📊 Test 3: Fetching full strategy matrix...');
+        console.log('📊 Test 2: Fetching full strategy matrix...');
         const strategy = await getGTOStrategy({
             gameType: 'MTT',
             stackDepth: 40,

@@ -23,7 +23,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { toast } from '../../../src/stores/toastStore';
+import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 // TRAIN-WIRE-EMPTY-2a — adoption: shared empty-state primitive
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -43,6 +43,18 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
     </div>
   ),
 });
+
+// Autopilot remains an embedded Arena so it can advance through its queue
+// without a route transition. Give every mount one fixed, supported session
+// contract; GodModeArena then obtains and grades only server-signed questions.
+const AUTOPILOT_ARENA_CONFIG = Object.freeze(normalizeTrainingSessionConfig({
+  difficulty: 'standard',
+  timer: 'standard',
+  mode: 'standard',
+  gameMode: 'full',
+  tables: '1',
+  handSelection: 'all',
+}));
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // WEAK SPOT DETECTION ENGINE
@@ -97,7 +109,7 @@ const SPOT_DEFINITIONS = [
     color: 'var(--sp-accent-blue)',
     iconKind: 'shield',
     icon: '■',
-    gameId: 'cash-bb-defense',
+    gameId: 'cash-003',
   },
   {
     id: 'btn-preflop',
@@ -107,7 +119,7 @@ const SPOT_DEFINITIONS = [
     color: 'var(--sp-accent-green)',
     iconKind: 'target',
     icon: '◆',
-    gameId: 'cash-btn-opens',
+    gameId: 'cash-001',
   },
   {
     id: 'cbet-flop',
@@ -117,17 +129,17 @@ const SPOT_DEFINITIONS = [
     color: 'var(--sp-accent-orange)',
     iconKind: 'explosion',
     icon: '▲',
-    gameId: 'cash-cbet',
+    gameId: 'cash-002',
   },
   {
     id: 'turn-barrels',
-    name: 'Turn Barrels',
+    name: 'Turn Pot Control',
     position: 'any',
     street: 'turn',
     color: 'var(--sp-accent-purple)',
     iconKind: 'rotate',
     icon: '↻',
-    gameId: 'cash-turn-play',
+    gameId: 'cash-024',
   },
   {
     id: 'river-bluffs',
@@ -137,7 +149,7 @@ const SPOT_DEFINITIONS = [
     color: 'var(--sp-accent-red)',
     iconKind: 'flag',
     icon: '★',
-    gameId: 'cash-river-bluffs',
+    gameId: 'cash-012',
   },
   {
     id: '3bet-pots',
@@ -147,7 +159,7 @@ const SPOT_DEFINITIONS = [
     color: '#ec4899',
     iconKind: 'bolt',
     icon: '⌁',
-    gameId: 'cash-threeBet-spots',
+    gameId: 'cash-007',
   },
   {
     id: 'sb-play',
@@ -157,7 +169,7 @@ const SPOT_DEFINITIONS = [
     color: 'var(--sp-accent-purple)',
     iconKind: 'spade',
     icon: '♠',
-    gameId: 'cash-sb',
+    gameId: 'cash-018',
   },
   {
     id: 'mtt-push',
@@ -167,7 +179,7 @@ const SPOT_DEFINITIONS = [
     color: 'var(--sp-accent-amber)',
     iconKind: 'trophy',
     icon: '★',
-    gameId: 'mtt-push-fold',
+    gameId: 'mtt-001',
   },
 ];
 
@@ -187,17 +199,20 @@ function analyzeWeakSpots(sessions) {
   sessions.forEach((s) => {
     const gameId = (s.game_id || '').toLowerCase();
     SPOT_DEFINITIONS.forEach((spot) => {
-      if (
-        gameId.includes(spot.position.toLowerCase()) ||
-        gameId.includes(spot.street) ||
-        gameId.includes(spot.gameId?.split('-').pop() || '')
-      ) {
+      if (gameId === spot.gameId) {
         if (!spotStats[spot.id]) {
-          spotStats[spot.id] = { hands: 0, correct: 0, evLoss: 0 };
+          spotStats[spot.id] = { hands: 0, correct: 0, evLoss: 0, measuredEvDecisions: 0 };
         }
         spotStats[spot.id].hands += s.hands_played || s.total_questions || 0;
         spotStats[spot.id].correct += s.correct_count || s.correct_answers || 0;
-        spotStats[spot.id].evLoss += s.total_ev_loss || 0;
+        const measuredDecisions = Number(s.measured_ev_decisions) || 0;
+        const measuredLoss = s.total_ev_loss === null || s.total_ev_loss === undefined
+          ? null
+          : Number(s.total_ev_loss);
+        if (measuredDecisions > 0 && Number.isFinite(measuredLoss)) {
+          spotStats[spot.id].evLoss += measuredLoss;
+          spotStats[spot.id].measuredEvDecisions += measuredDecisions;
+        }
       }
     });
   });
@@ -209,19 +224,23 @@ function analyzeWeakSpots(sessions) {
       return {
         ...spot,
         accuracy: null,
-        evLoss: 0,
+        evLoss: null,
         score: 50,
         reason: 'Not enough data - needs practice',
       };
     }
     const accuracy = Math.round((stats.correct / stats.hands) * 100);
-    const evPerHand = stats.evLoss / stats.hands;
-    // Lower accuracy + higher EV loss = higher weakness score
-    const score = 100 - accuracy + evPerHand * 10;
+    const avgMeasuredEvLoss = stats.measuredEvDecisions > 0
+      ? stats.evLoss / stats.measuredEvDecisions
+      : null;
+    // Accuracy is always available for a sealed completed session. Measured
+    // solver EV may refine priority, but an unavailable EV cannot become zero.
+    const score = 100 - accuracy + (avgMeasuredEvLoss === null ? 0 : avgMeasuredEvLoss * 10);
     return {
       ...spot,
       accuracy,
-      evLoss: stats.evLoss,
+      evLoss: stats.measuredEvDecisions > 0 ? stats.evLoss : null,
+      measuredEvDecisions: stats.measuredEvDecisions,
       hands: stats.hands,
       score,
       reason:
@@ -234,6 +253,14 @@ function analyzeWeakSpots(sessions) {
   }).sort((a, b) => b.score - a.score);
 
   return ranked.slice(0, 3);
+}
+
+function createAutopilotRunId() {
+  const randomUUID = globalThis?.crypto?.randomUUID;
+  const suffix = typeof randomUUID === 'function'
+    ? randomUUID.call(globalThis.crypto)
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+  return `autopilot-${suffix}`;
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -250,8 +277,9 @@ export default function AutopilotPage() {
   const [currentSpotIdx, setCurrentSpotIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [results, setResults] = useState([]);
-  const [sharing, setSharing] = useState(false);
   const [fetchError, setFetchError] = useState(null);
+  const [autopilotRunId, setAutopilotRunId] = useState(null);
+  const [arenaUserId, setArenaUserId] = useState(null);
 
   const fetchAndAnalyze = useCallback(async () => {
     setFetchError(null);
@@ -288,8 +316,15 @@ export default function AutopilotPage() {
   const startAutopilot = () => {
     if (!guardAction()) return;
     if (weakSpots.length === 0) return;
+    const user = getAuthUser();
+    if (!user?.id) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath || '/hub/training/autopilot')}`);
+      return;
+    }
     setCurrentSpotIdx(0);
     setActiveSpot(weakSpots[0]);
+    setAutopilotRunId(createAutopilotRunId());
+    setArenaUserId(user.id);
     setIsPlaying(true);
     setResults([]);
   };
@@ -316,22 +351,18 @@ export default function AutopilotPage() {
     }
   };
 
-  const handleArenaExit = () => {
-    setIsPlaying(false);
-    setActiveSpot(null);
-  };
-
   // Active arena
-  if (isPlaying && activeSpot) {
+  if (isPlaying && activeSpot && arenaUserId && autopilotRunId) {
     return (
       <GodModeArena
-        userId={getAuthUser()?.id || `anon-${Date.now()}`}
-        gameId={activeSpot.gameId || 'cash-preflop'}
+        key={`${autopilotRunId}:${currentSpotIdx}:${activeSpot.gameId}`}
+        userId={arenaUserId}
+        gameId={activeSpot.gameId}
         gameName={`Autopilot: ${activeSpot.name}`}
         level={1}
-        sessionId={`autopilot-${Date.now()}`}
+        sessionId={`${autopilotRunId}-${currentSpotIdx}`}
+        initialConfig={AUTOPILOT_ARENA_CONFIG}
         onComplete={handleArenaComplete}
-        onExit={handleArenaExit}
       />
     );
   }
@@ -525,34 +556,9 @@ export default function AutopilotPage() {
                   Run Again
                 </motion.button>
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  disabled={sharing}
-                  onClick={async () => {
-                    if (sharing) return;
-                    setSharing(true);
-                    try {
-                      const user = getAuthUser();
-                      if (!user?.id) { setSharing(false); return; }
-                      const totalQ = results.reduce((s, r) => s + (r.questionsAnswered || 0), 0);
-                      const avgAcc = totalQ > 0 ? Math.round(results.reduce((s, r) => s + ((r.accuracy || 0) * (r.questionsAnswered || 0)), 0) / totalQ) : 0;
-                      const res = await authedFetch('/api/training/share', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          userId: user.id,
-                          shareType: 'autopilot',
-                          data: { spotsTrailed: results.length, accuracy: avgAcc, spots: results.map(r => r.spot.name) },
-                        }),
-                      });
-                      if (res.ok) toast.success('Autopilot Results Shared To Your Feed!');
-                      else toast.error('Share Failed - Please Try Again.');
-                    } catch (e) {
-                      console.warn('Share error:', e);
-                      toast.error('Share Failed - Please Try Again.');
-                    } finally {
-                      setSharing(false);
-                    }
-                  }}
+                  disabled
+                  title="Feed Sharing Reopens After Verified Autopilot Settlement Is Certified"
+                  aria-label="Autopilot feed sharing is unavailable"
                   style={{
                     flex: 1,
                     padding: '12px 24px',
@@ -562,10 +568,11 @@ export default function AutopilotPage() {
                     color: 'var(--sp-fg-muted)',
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: 'pointer',
+                    cursor: 'not-allowed',
+                    opacity: 0.6,
                   }}
                 >
-                  {sharing ? 'Sharing...' : 'Share Results'}
+                  Feed Sharing Unavailable
                 </motion.button>
               </div>
             </motion.div>

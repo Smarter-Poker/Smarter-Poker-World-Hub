@@ -94,11 +94,10 @@ function staticAudit() {
   }
 
   const requiredSourceMarkers = [
-    "const street = config.pioStreet || getStreetForLevel(level);",
-    'const sm = toTrainingMatrix(scenario) || {};',
-    'const selected = selectTrustedSolverMatrix(scenario);',
-    'return sanitizeLegacyMatrix(structuredClone(selected));',
-    'matrix = selectTrustedLegacySolverMatrix(matrix);',
+    'Mutation mode is permanently retired.',
+    'Pio cache question construction is permanently retired',
+    'function buildQuestionFromScenario() {',
+    'async function generatePIOBatch() {',
     'enforceTrainingQuestionContract(rawQuestion)',
     'const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];',
   ];
@@ -109,6 +108,7 @@ function staticAudit() {
     'try without stack depth constraint',
     'use turn data',
     'Final fallback: try postflop_complete',
+    "supabaseQuery('solved_spots_gold'",
   ];
   for (const marker of forbiddenFallbacks) {
     if (reseedSource.includes(marker)) failures.push(`Reseeder still contains semantic fallback: ${marker}`);

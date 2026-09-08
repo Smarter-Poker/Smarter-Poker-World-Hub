@@ -15,6 +15,10 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import {
+  buildCustomTrainingArenaHref,
+  resolveCustomTrainingLaunch,
+} from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -44,6 +48,7 @@ const PRESETS = [
       streets: ['preflop'],
       stackMin: 80,
       stackMax: 200,
+      stackDepth: 100,
       scenarios: ['vs_raise'],
     },
     color: 'var(--sp-accent-blue)',
@@ -58,6 +63,7 @@ const PRESETS = [
       streets: ['preflop'],
       stackMin: 80,
       stackMax: 200,
+      stackDepth: 100,
       scenarios: ['rfi'],
     },
     color: 'var(--sp-accent-green)',
@@ -72,6 +78,7 @@ const PRESETS = [
       streets: ['flop', 'turn'],
       stackMin: 80,
       stackMax: 200,
+      stackDepth: 100,
       scenarios: ['3bet_pot'],
     },
     color: 'var(--sp-accent-purple)',
@@ -86,6 +93,7 @@ const PRESETS = [
       streets: ['flop'],
       stackMin: 80,
       stackMax: 200,
+      stackDepth: 100,
       scenarios: ['cbet'],
     },
     color: 'var(--sp-accent-orange)',
@@ -100,6 +108,7 @@ const PRESETS = [
       streets: ['preflop'],
       stackMin: 5,
       stackMax: 20,
+      stackDepth: 10,
       scenarios: ['push_fold'],
     },
     color: 'var(--sp-accent-red)',
@@ -114,6 +123,7 @@ const PRESETS = [
       streets: ['river'],
       stackMin: 50,
       stackMax: 200,
+      stackDepth: 100,
       scenarios: ['river'],
     },
     color: 'var(--sp-accent-amber)',
@@ -125,6 +135,12 @@ const FORMATS = [
   { id: 'mtt', label: 'Tournament' },
   { id: 'spins', label: 'Spins' },
 ];
+
+const STACK_DEPTHS = {
+  cash: [20, 40, 60, 100, 200],
+  mtt: [10, 20, 40, 60, 100],
+  spins: [10, 20, 40, 60],
+};
 
 const POSITIONS = ['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB'];
 
@@ -172,25 +188,33 @@ export default function DrillBuilderPage() {
   const [format, setFormat] = useState('cash');
   const [selectedPositions, setSelectedPositions] = useState([]);
   const [selectedStreets, setSelectedStreets] = useState([]);
-  const [stackMin, setStackMin] = useState(80);
-  const [stackMax, setStackMax] = useState(200);
+  const [stackDepth, setStackDepth] = useState(100);
   const [savedDrills, setSavedDrills] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   // Load saved drills
   const loadDrills = async () => {
     if (!getSupabase()) return;
     try {
-      const { data: userData } = await getSupabase().auth.getUser();
-      if (!userData?.user) return;
-      const { data } = await getSupabase()
+      const { data: userData, error: userError } = await getSupabase().auth.getUser();
+      if (userError) throw userError;
+      if (!userData?.user) {
+        setSaveError('Sign In To Load Saved Drills.');
+        return;
+      }
+      const { data, error: loadError } = await getSupabase()
         .from('training_custom_drills')
         .select('*')
         .eq('user_id', userData.user.id)
         .order('created_at', { ascending: false })
         .limit(20);
+      if (loadError) throw loadError;
       if (data) setSavedDrills(data);
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    } catch (e) {
+      console.warn('[DrillBuilder] Load error:', e?.message || e);
+      setSaveError('Saved Drills Could Not Be Loaded. Retry The Page Before Editing Them.');
+    }
   };
 
   useEffect(() => {
@@ -204,15 +228,18 @@ export default function DrillBuilderPage() {
   }, []);
 
   const togglePosition = (pos) => {
-    setSelectedPositions((prev) =>
-      prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
-    );
+    setSelectedPositions((prev) => (prev.includes(pos) ? [] : [pos]));
   };
 
   const toggleStreet = (street) => {
-    setSelectedStreets((prev) =>
-      prev.includes(street) ? prev.filter((s) => s !== street) : [...prev, street]
-    );
+    setSelectedStreets((prev) => (prev.includes(street) ? [] : [street]));
+  };
+
+  const selectFormat = (nextFormat) => {
+    setFormat(nextFormat);
+    if (!STACK_DEPTHS[nextFormat].includes(stackDepth)) {
+      setStackDepth(nextFormat === 'cash' ? 100 : nextFormat === 'mtt' ? 40 : 20);
+    }
   };
 
   const applyPreset = (preset) => {
@@ -220,60 +247,57 @@ export default function DrillBuilderPage() {
     setFormat(preset.config.format);
     setSelectedPositions(preset.config.positions);
     setSelectedStreets(preset.config.streets);
-    setStackMin(preset.config.stackMin);
-    setStackMax(preset.config.stackMax);
+    setStackDepth(preset.config.stackDepth);
   };
 
   const saveDrill = async () => {
     if (!drillName.trim()) return;
     setSaving(true);
+    setSaveError(null);
     try {
-      const { data: userData } = await getSupabase().auth.getUser();
-      if (!userData?.user) return;
+      const client = getSupabase();
+      if (!client) throw new Error('Training Storage Is Unavailable.');
+      const { data: userData, error: userError } = await client.auth.getUser();
+      if (userError) throw userError;
+      if (!userData?.user) throw new Error('Sign In To Save A Drill.');
 
       const config = {
         format,
         positions: selectedPositions,
         streets: selectedStreets,
-        stackMin,
-        stackMax,
+        stackDepth,
       };
+      const launch = resolveCustomTrainingLaunch(config);
 
-      const { error } = await getSupabase().from('training_custom_drills').insert({
+      const { data: saved, error } = await client.from('training_custom_drills').insert({
         user_id: userData.user.id,
-        name: drillName.trim(),
-        config,
-      });
-
-      if (!error) {
-        setSavedDrills((prev) => [
-          { name: drillName, config, created_at: new Date().toISOString() },
-          ...prev,
-        ]);
-        setDrillName('');
-        // Bus Event — notify other pages
-        eventBus?.emit?.(
-          'training:drill-saved',
-          { name: drillName.trim(), config },
-          'DrillBuilder'
-        );
+        title: drillName.trim(),
+        description: `Focused ${format.toUpperCase()} solver training`,
+        drill_type: 'focused_solver',
+        config: { ...config, canonicalGameId: launch.gameId },
+      }).select('*').maybeSingle();
+      if (error) throw error;
+      if (!saved?.id || saved.user_id !== userData.user.id) {
+        throw new Error('The Saved Drill Could Not Be Confirmed.');
       }
+
+      setSavedDrills((prev) => [saved, ...prev]);
+      setDrillName('');
+      eventBus?.emit?.(
+        'training:drill-saved',
+        { title: saved.title, config: saved.config },
+        'DrillBuilder'
+      );
     } catch (e) {
-      console.warn('[DrillBuilder] Save error:', e);
+      console.warn('[DrillBuilder] Save error:', e?.message || e);
+      setSaveError(e?.message || 'The Drill Could Not Be Saved.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const startDrill = (config) => {
-    // Navigate to arena with drill config as query params
-    const params = new URLSearchParams({
-      format: config.format || 'cash',
-      positions: (config.positions || []).join(','),
-      streets: (config.streets || []).join(','),
-      stackMin: config.stackMin || 80,
-      stackMax: config.stackMax || 200,
-    });
-    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+    router.push(buildCustomTrainingArenaHref(config, 'drill-builder'));
   };
 
   return (
@@ -326,6 +350,15 @@ export default function DrillBuilderPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          {saveError && (
+            <div role="alert" style={{
+              marginBottom: 14, padding: '10px 12px', borderRadius: 8,
+              border: '1px solid rgba(248,113,113,0.35)',
+              background: 'rgba(127,29,29,0.14)', color: '#fca5a5', fontSize: 12,
+            }}>
+              {saveError}
+            </div>
+          )}
           {/* Quick Presets */}
           <div style={{ marginBottom: 24 }}>
             <div
@@ -428,7 +461,7 @@ export default function DrillBuilderPage() {
                     key={f.id}
                     label={f.label}
                     selected={format === f.id}
-                    onClick={() => setFormat(f.id)}
+                    onClick={() => selectFormat(f.id)}
                   />
                 ))}
               </div>
@@ -446,7 +479,7 @@ export default function DrillBuilderPage() {
                   marginBottom: 6,
                 }}
               >
-                Positions (Empty = All)
+                Position (Choose One Or Leave Empty For Any)
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {POSITIONS.map((pos) => (
@@ -473,7 +506,7 @@ export default function DrillBuilderPage() {
                   marginBottom: 6,
                 }}
               >
-                Streets (Empty = All)
+                Street (Choose One Or Leave Empty For All)
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {STREETS.map((s) => (
@@ -488,7 +521,7 @@ export default function DrillBuilderPage() {
               </div>
             </div>
 
-            {/* Stack Range */}
+            {/* Exact supported stack */}
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
@@ -500,45 +533,18 @@ export default function DrillBuilderPage() {
                   marginBottom: 6,
                 }}
               >
-                Stack Depth (BB)
+                Stack Depth (Big Blinds)
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  aria-label="Minimum Stack Depth In Big Blinds"
-                  type="number"
-                  value={stackMin}
-                  onChange={(e) => setStackMin(Number(e.target.value))}
-                  style={{
-                    width: 80,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'var(--sp-fg)',
-                    fontSize: 13,
-                    textAlign: 'center',
-                    outline: 'none',
-                  }}
-                />
-                <span style={{ color: 'var(--sp-fg-faint)' }}>To</span>
-                <input
-                  aria-label="Maximum Stack Depth In Big Blinds"
-                  type="number"
-                  value={stackMax}
-                  onChange={(e) => setStackMax(Number(e.target.value))}
-                  style={{
-                    width: 80,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'var(--sp-fg)',
-                    fontSize: 13,
-                    textAlign: 'center',
-                    outline: 'none',
-                  }}
-                />
-                <span style={{ fontSize: 11, color: 'var(--sp-fg-faint)' }}>BB</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {STACK_DEPTHS[format].map((depth) => (
+                  <Chip
+                    key={depth}
+                    label={`${depth}BB`}
+                    selected={stackDepth === depth}
+                    onClick={() => setStackDepth(depth)}
+                    color="var(--sp-accent-amber)"
+                  />
+                ))}
               </div>
             </div>
 
@@ -569,8 +575,7 @@ export default function DrillBuilderPage() {
                     format,
                     positions: selectedPositions,
                     streets: selectedStreets,
-                    stackMin,
-                    stackMax,
+                    stackDepth,
                   })
                 }
                 style={{
@@ -627,7 +632,7 @@ export default function DrillBuilderPage() {
                 >
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                      {drill.name}
+                      {drill.title || drill.name}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                       {drill.config?.format?.toUpperCase()} |{' '}

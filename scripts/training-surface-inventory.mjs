@@ -10,6 +10,12 @@ const { parse } = require('@babel/parser');
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, '.agent/audits/2026-08-31-training-phase-2-inventory.json');
 const SOURCE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs'];
+const FROZEN_GLOBAL_HEADER_PUBLIC_EXPORTS = new Set([
+  'src/config/hamburgerMenus.js:copyReferralLink',
+  'src/config/worldMenuNavigation.js:getWorldMenuById',
+  'src/config/worldMenuNavigation.js:getWorldMenuInventory',
+  'src/lib/world-menu/navigationState.mjs:isWorldMenuHrefActive',
+]);
 
 const posix = (value) => value.split(sep).join('/');
 const rel = (value) => posix(relative(ROOT, value));
@@ -68,6 +74,16 @@ function importsFor(file, source) {
 
 function importBindingsFor(file, source) {
   const bindings = [];
+  const addCommonJsBindings = (clause, target) => {
+    if (!target) return;
+    if (clause.startsWith('{')) {
+      for (const entry of clause.slice(1, -1).split(',').map((value) => value.trim()).filter(Boolean)) {
+        bindings.push({ from: rel(file), to: rel(target), imported: entry.split(/\s*:\s*/)[0].trim() });
+      }
+    } else {
+      bindings.push({ from: rel(file), to: rel(target), imported: '*' });
+    }
+  };
   for (const match of source.matchAll(/\bimport\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
     const target = resolveImport(file, match[2]);
     if (!target) continue;
@@ -95,16 +111,15 @@ function importBindingsFor(file, source) {
     const target = resolveImport(file, match[1]);
     if (target) bindings.push({ from: rel(file), to: rel(target), imported: 'default' });
   }
-  for (const match of source.matchAll(/\bconst\s+(\{[\s\S]*?\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
-    const target = resolveImport(file, match[2]);
-    if (!target) continue;
-    if (match[1].startsWith('{')) {
-      for (const entry of match[1].slice(1, -1).split(',').map((value) => value.trim()).filter(Boolean)) {
-        bindings.push({ from: rel(file), to: rel(target), imported: entry.split(/\s*:\s*/)[0].trim() });
-      }
-    } else {
-      bindings.push({ from: rel(file), to: rel(target), imported: '*' });
-    }
+  for (const match of source.matchAll(/\bconst\s+(\{[^}]*\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    addCommonJsBindings(match[1], resolveImport(file, match[2]));
+  }
+  // Audit harnesses load project modules through a Babel require hook and an
+  // absolute `path.join(ROOT, 'src/...')` path. That is still a real static
+  // import binding; overlooking it made intentional test-only exports look
+  // like unreviewed production dead code.
+  for (const match of source.matchAll(/\bconst\s+(\{[^}]*\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*path\.join\(\s*ROOT\s*,\s*['"]([^'"]+)['"]\s*\)\s*\)/g)) {
+    addCommonJsBindings(match[1], resolveImport(file, match[2]));
   }
   return bindings;
 }
@@ -155,6 +170,25 @@ function lineNumber(source, index) {
 
 function literals(source, pattern, group = 1) {
   return [...source.matchAll(pattern)].map((match) => match[group]).filter(Boolean);
+}
+
+function apiReferenceInventory(source) {
+  const policyPrefixes = new Set();
+  for (const declaration of source.matchAll(
+    /\b(?:const|let|var)\s+[A-Z][A-Z0-9_]*API_PREFIXES\s*=\s*(?:Object\.freeze\(\s*)?\[([\s\S]*?)\]\s*\)?\s*;/g,
+  )) {
+    for (const prefix of literals(declaration[1], /['"`](\/api\/[^'"` $}{?]*)/g)) {
+      policyPrefixes.add(prefix);
+    }
+  }
+
+  const references = [...new Set(literals(source, /['"`](\/api\/[^'"` $}{?]*)/g))]
+    .filter((route) => !policyPrefixes.has(route))
+    .sort();
+  return {
+    references,
+    policyPrefixes: [...policyPrefixes].sort(),
+  };
 }
 
 function jsxName(node) {
@@ -285,6 +319,20 @@ function classifyMarker(file, marker) {
   if (file === 'src/lib/supabase.js' && kind === 'STUB') {
     return { disposition: 'build-alias-sentinel', review: 'accepted', rationale: 'Fail-loud compatibility sentinel documents and enforces the webpack alias to the real TypeScript Supabase client.' };
   }
+  if (
+    file === 'src/lib/training/gradingReceipt.mjs'
+    && kind === 'PLACEHOLDER'
+    && /require non-placeholder key material/.test(marker.excerpt)
+  ) {
+    return { disposition: 'secret-validation-guard', review: 'accepted', rationale: 'Fail-closed receipt-secret validation rejects placeholder key material; it is not an unfinished implementation.' };
+  }
+  if (
+    file === 'src/lib/training/gradingReceiptSecret.mjs'
+    && ['PLACEHOLDER', 'TODO'].includes(kind)
+    && /(?:OBVIOUS_PLACEHOLDER_RE|changeme\|replaceme\|placeholder)/.test(marker.excerpt)
+  ) {
+    return { disposition: 'secret-validation-guard', review: 'accepted', rationale: 'The matched words are prohibited secret values inside the dedicated secret validator, not implementation markers.' };
+  }
   if (kind === 'PLACEHOLDER' && /\bplaceholder\s*=/.test(marker.excerpt)) {
     return { disposition: 'ui-input-copy', review: 'accepted', rationale: 'JSX placeholder attribute, not placeholder implementation.' };
   }
@@ -297,7 +345,7 @@ function classifyMarker(file, marker) {
   if (kind === 'PLACEHOLDER' && /(?:placeholder suits|dealing placeholder)/i.test(marker.excerpt)) {
     return { disposition: 'poker-normalization-or-ui-state', review: 'accepted', rationale: 'Suit normalization or visible deal-state placeholder; it does not fabricate solver output.' };
   }
-  if (commentOnly && /\b(?:former|removed|no |never |without |instead of|used to|dead-link fix)\b/i.test(marker.excerpt)) {
+  if (commentOnly && /\b(?:former|removed|no |never |without |instead of|used to|shadowed|dead-link fix)\b/i.test(marker.excerpt)) {
     return { disposition: 'historical-or-prohibition-comment', review: 'accepted', rationale: 'Comment documents removed behavior or explicitly prohibits a fallback/stub.' };
   }
   if (kind === 'SIMULATE' || kind === 'SIMULATED' || kind === 'SIMULATION') {
@@ -329,6 +377,7 @@ function classifyMarker(file, marker) {
 
 function sourceInventory(file) {
   const source = read(file);
+  const apiInventory = apiReferenceInventory(source);
   const markerPattern = /\b(TODO|FIXME|HACK|STUB|MOCK|PLACEHOLDER|DUMMY)\b|\b(simulat(?:e|ed|ion)|fallback)\b/gi;
   const markers = [...source.matchAll(markerPattern)].map((match) => ({
     kind: (match[1] || match[2] || '').toUpperCase(),
@@ -340,7 +389,8 @@ function sourceInventory(file) {
     file: rel(file),
     imports: importsFor(file, source).map(rel),
     links: [...new Set(literals(source, /['"`](\/hub\/training[^'"` $}{]*)/g))].sort(),
-    apiReferences: [...new Set(literals(source, /['"`](\/api\/[^'"` $}{?]*)/g))].sort(),
+    apiReferences: apiInventory.references,
+    apiReferencePrefixes: apiInventory.policyPrefixes,
     ctas: ctas(source, file),
     dialogs: {
       native: (source.match(/<dialog\b/gi) || []).length,
@@ -481,6 +531,7 @@ function main() {
   })).sort((a, b) => a.template.localeCompare(b.template));
   const links = [...new Set(sourceRows.flatMap((row) => row.links))].sort();
   const apiReferences = [...new Set(sourceRows.flatMap((row) => row.apiReferences))].sort();
+  const apiReferencePrefixes = [...new Set(sourceRows.flatMap((row) => row.apiReferencePrefixes))].sort();
   const allPageTemplates = walk(join(ROOT, 'pages')).filter((file) => !rel(file).startsWith('pages/api/')).map((file) => ({
     template: pageRoute(file, join(ROOT, 'pages'), ''),
     file: rel(file),
@@ -503,6 +554,11 @@ function main() {
       let disposition = 'unwired-local-review';
       let review = 'phase-review';
       let rationale = 'Local function has no second lexical reference in its declaring file.';
+      const isNextPageDataEntrypoint = row.file.startsWith('pages/hub/training/')
+        && ['getServerSideProps', 'getStaticProps', 'getStaticPaths'].includes(entry.name);
+      const testOrAuditReferenceFiles = externalReferenceFiles.filter((file) =>
+        /^(?:__tests__|e2e)\//.test(file)
+        || /^scripts\/(?:harness\/|.*(?:audit|check|test|verification|correctness|difficulty).*)/i.test(file));
       if (/^(?:__tests__|e2e)\//.test(row.file)) {
         disposition = 'test-helper';
         review = 'accepted';
@@ -515,6 +571,10 @@ function main() {
         disposition = 'api-entrypoint';
         review = 'accepted';
         rationale = 'Next.js API default export is invoked by the router.';
+      } else if (entry.exported && isNextPageDataEntrypoint) {
+        disposition = 'framework-entrypoint';
+        review = 'accepted';
+        rationale = 'Named Next.js Pages Router data export is invoked by the framework.';
       } else if (entry.namedFunctionExpression) {
         disposition = 'assigned-or-returned-function-expression';
         review = 'accepted';
@@ -523,6 +583,16 @@ function main() {
         disposition = 'imported-default-entrypoint';
         review = 'accepted';
         rationale = 'Default export is imported by another repository source file.';
+      } else if (entry.exported && FROZEN_GLOBAL_HEADER_PUBLIC_EXPORTS.has(`${row.file}:${entry.name}`)) {
+        disposition = 'frozen-global-header-public-api';
+        review = 'accepted';
+        rationale = 'Public navigation export is preserved because the approved global header contract is frozen.';
+      } else if (entry.exported
+        && externalReferenceFiles.length
+        && testOrAuditReferenceFiles.length === externalReferenceFiles.length) {
+        disposition = 'test-or-audit-entrypoint';
+        review = 'accepted';
+        rationale = 'Named export is intentionally consumed only by an automated test or audit harness.';
       } else if (entry.exported && externalReferenceFiles.length) {
         disposition = 'imported-entrypoint';
         review = 'accepted';
@@ -603,6 +673,9 @@ function main() {
   });
   const missingLinks = links.filter((link) => !routeExists(link, allPageTemplates));
   const missingApiDefinitions = apiReferences.filter((route) => !routeExists(route, allApiTemplates));
+  const missingApiPrefixDefinitions = apiReferencePrefixes.filter((prefix) => (
+    !allApiTemplates.some((route) => route.template.startsWith(prefix))
+  ));
   const manifest = {
     schemaVersion: 2,
     generatedBy: 'scripts/training-surface-inventory.mjs',
@@ -612,6 +685,7 @@ function main() {
       trainingRouteTemplates: routes.length,
       dynamicGameRouteExpansions: routes.reduce((sum, route) => sum + route.gameExpansions, 0),
       trainingApiRouteTemplates: apiRoutes.length,
+      apiReferencePrefixes: apiReferencePrefixes.length,
       dependencyFiles: graph.files.length,
       componentFiles: componentFiles.length,
       hookFiles: hookFiles.length,
@@ -634,6 +708,7 @@ function main() {
     routes,
     routeCoverage,
     apiRoutes,
+    apiReferencePrefixes,
     sourceFiles: sourceRows,
     dependencyEdges: graph.edges,
     componentFiles,
@@ -651,6 +726,7 @@ function main() {
     gaps: {
       missingLinks,
       missingApiDefinitions,
+      missingApiPrefixDefinitions,
       markerCandidates: markers,
       possibleUnwiredFunctions,
       routeStates: routeCoverage.filter((route) => route.uncoveredStates.length).map((route) => ({
@@ -662,6 +738,11 @@ function main() {
   };
   assert.deepEqual(missingLinks, [], 'Training source contains unresolved page links');
   assert.deepEqual(missingApiDefinitions, [], 'Training source contains unresolved API references');
+  assert.deepEqual(
+    missingApiPrefixDefinitions,
+    [],
+    'Training source contains an API policy prefix with no concrete route definitions',
+  );
   const json = `${JSON.stringify(manifest, null, 2)}\n`;
   const summary = `${JSON.stringify({ success: true, output: rel(OUTPUT), counts: manifest.counts }, null, 2)}\n`;
   if (process.argv.includes('--write')) {

@@ -34,7 +34,11 @@ test('scrolling subpage tab rails implement roving focus and arrow navigation', 
   assert.match(TAB_RAIL, /aria-selected=\{selected === item\.key\}/);
   assert.match(TAB_RAIL, /tabIndex=\{selected === item\.key \? 0 : -1\}/);
   assert.match(ACHIEVEMENTS, /<PreflopTabRail/);
-  assert.match(LEADERBOARD, /<PreflopTabRail/);
+  // Achievements has genuine in-page categories. Ranked standings is now an
+  // authority-gated information page, so it correctly uses only the shared
+  // page navigation instead of exposing a meaningless local tab rail.
+  assert.match(LEADERBOARD, /<PreflopSubpageShell/);
+  assert.doesNotMatch(LEADERBOARD, /<PreflopTabRail/);
 });
 
 test('achievement progress and post-session review expose complete accessible semantics', () => {

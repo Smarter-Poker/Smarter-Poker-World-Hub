@@ -1,12 +1,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarDays, Clock3, Crosshair, Gauge, Gem, Layers3, RefreshCw, ShieldCheck, Sigma, Target, TrendingUp } from 'lucide-react';
+import { Archive, ArrowRight, Clock3, Crosshair, Gauge, Layers3, RefreshCw, ShieldCheck, Sigma, Target, TrendingUp } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { authedFetch } from '../../../src/lib/authUtils';
-import { accuracyToPercent, normalizeMemoryDashboard } from '../../../src/lib/preflopRangeLab';
+import { accuracyToPercent } from '../../../src/lib/preflopRangeLab';
 import { supabase } from '../../../src/lib/supabase';
 
 const MODE_LABELS = { range: 'Range Lab', speed_drill: 'Speed Drill', pressure_cooker: 'Pressure', pattern_recognition: 'Patterns', mixed_strategy: 'Mixed Strategy', spot_trainer: 'Spot Trainer', tournament: 'Tournament' };
@@ -15,7 +14,6 @@ export default function MemoryGamesStats() {
   useTrainingBus('preflop-charts-stats');
   const { user } = useAvatar();
   const [sessions, setSessions] = useState([]);
-  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -23,29 +21,22 @@ export default function MemoryGamesStats() {
     if (!user?.id) { setLoading(false); return; }
     setLoading(true); setError('');
     try {
-      const [sessionsResult, dashboardResponse] = await Promise.all([
-        supabase.from('memory_game_sessions').select('id,game_mode,level,score,accuracy,time_taken,diamonds_earned,created_at,completed').eq('user_id', user.id).eq('completed', true).order('created_at', { ascending: false }).limit(100),
-        authedFetch(`/api/memory/dashboard?refresh=${Date.now()}`, { cache: 'no-store' }),
-      ]);
+      const sessionsResult = await supabase
+        .from('memory_game_sessions')
+        .select('id,game_mode,level,score,accuracy,time_taken,created_at,completed')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .order('created_at', { ascending: false })
+        .limit(100);
       if (sessionsResult.error) throw sessionsResult.error;
       setSessions((sessionsResult.data || []).map((session) => ({ ...session, accuracyPercent: accuracyToPercent(session.accuracy, session.score) })));
-      if (dashboardResponse.ok) {
-        const payload = await dashboardResponse.json();
-        if (payload?.success) setDashboard(normalizeMemoryDashboard(payload.stats));
-      }
     } catch (fetchError) {
       console.warn('[PreflopStats] Fetch failed:', fetchError?.message || fetchError);
-      setError('Your training telemetry could not be synchronized. No placeholder data has been substituted.');
+      setError('Your local-practice archive could not be loaded. No placeholder data has been substituted.');
     } finally { setLoading(false); }
   }, [user?.id]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
-  useEffect(() => {
-    if (!user?.id) return undefined;
-    const channel = supabase.channel(`preflop-stats:${user.id}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_game_sessions', filter: `user_id=eq.${user.id}` }, fetchStats).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchStats, user?.id]);
-
   const metrics = useMemo(() => {
     const count = sessions.length;
     const average = count ? sessions.reduce((sum, item) => sum + item.accuracyPercent, 0) / count : 0;
@@ -58,7 +49,6 @@ export default function MemoryGamesStats() {
       averageTime,
       perfect: sessions.filter((item) => item.accuracyPercent >= 99.5).length,
       totalScore: sessions.reduce((sum, item) => sum + (Number(item.score) || 0), 0),
-      diamonds: sessions.reduce((sum, item) => sum + (Number(item.diamonds_earned) || 0), 0),
       highestLevel: count ? Math.max(...sessions.map((item) => Number(item.level) || 1)) : 0,
     };
   }, [sessions]);
@@ -92,31 +82,33 @@ export default function MemoryGamesStats() {
 
   return (
     <>
-      <SEOHead title="Preflop Charts Stats" description="Your verified Preflop Charts accuracy, mastery, and training history." canonical="/hub/preflop-charts/stats" />
-      <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // VERIFIED SESSIONS" title="Range performance" description="Track accuracy, speed, and mastery using completed Preflop Charts sessions only." metric={dashboard?.current_grade || (metrics.count ? `${metrics.average.toFixed(0)}%` : '-')}>
-        {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To Track Progression</h2><p>Authenticated Sessions Sync Your Mastery, Personal Bests, And Training History Across Devices.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
+      <SEOHead title="Preflop Charts Local Practice History" description="Review your legacy Preflop Charts local-practice archive without ranked or reward claims." canonical="/hub/preflop-charts/stats" />
+      <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // LOCAL ARCHIVE" title="Local Practice History" description="Review historical Range Lab practice signals. These browser-originated rows are not verified scores, ranks, rewards, or account progression." metric={metrics.count ? `${metrics.average.toFixed(0)}%` : '-'}>
+        {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To View Your Archive</h2><p>Signing In Reveals Your Historical Local-Practice Rows. New Local Drills Do Not Publish Ranked Or Rewarded Results.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
           {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchStats}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
+          <section className="preflop-daily-signal" aria-label="Local archive authority notice">
+            <Archive size={22} aria-hidden />
+            <div><small>LEGACY LOCAL ARCHIVE</small><strong>No Verified Rank Or Reward</strong><span>These Rows Remain Visible For Personal Reference Only And Cannot Change Your Account.</span></div>
+            <Link href="/hub/preflop-charts">Practice Locally <ArrowRight size={14} aria-hidden /></Link>
+          </section>
           <section className="preflop-stat-grid" aria-label="Training summary">
-            <Stat icon={Crosshair} label="Completed" value={metrics.count} detail="verified sessions" />
-            <Stat icon={Gauge} label="Average" value={`${metrics.average.toFixed(1)}%`} detail="all recorded modes" />
-            <Stat icon={ShieldCheck} label="Personal best" value={metrics.best.toLocaleString()} detail={`${metrics.perfect} perfect`} />
-            <Stat icon={Clock3} label="Average time" value={`${Math.round(metrics.averageTime)}s`} detail="per completed drill" />
-            <Stat icon={Sigma} label="Total score" value={metrics.totalScore.toLocaleString()} detail="all completed sessions" />
-            <Stat icon={Gem} label="Diamonds earned" value={metrics.diamonds.toLocaleString()} detail="recorded training rewards" />
-            <Stat icon={Layers3} label="Highest level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '-'} detail="furthest recorded station" />
+            <Stat icon={Crosshair} label="Archived Runs" value={metrics.count} detail="local-practice rows" />
+            <Stat icon={Gauge} label="Local Average" value={`${metrics.average.toFixed(1)}%`} detail="all archived modes" />
+            <Stat icon={ShieldCheck} label="Local Best" value={metrics.best.toLocaleString()} detail={`${metrics.perfect} perfect local run${metrics.perfect === 1 ? '' : 's'}`} />
+            <Stat icon={Clock3} label="Average Time" value={`${Math.round(metrics.averageTime)}s`} detail="per archived drill" />
+            <Stat icon={Sigma} label="Local Score Total" value={metrics.totalScore.toLocaleString()} detail="not a ranked score" />
+            <Stat icon={Layers3} label="Highest Local Level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '-'} detail="furthest archived station" />
             <Stat icon={TrendingUp} label="Recent trend" value={`${performance.delta >= 0 ? '+' : ''}${performance.delta.toFixed(1)}%`} detail="recent half vs prior half" />
           </section>
 
-          {dashboard?.daily_challenge && <section className="preflop-daily-signal"><CalendarDays size={22} aria-hidden /><div><small>TODAY'S ASSIGNMENT</small><strong>Level {dashboard.daily_challenge.level} · {dashboard.daily_challenge.game_mode || 'Range Lab'}</strong><span>{dashboard.daily_challenge_completed ? 'Completed' : `${accuracyToPercent(dashboard.daily_challenge.target_accuracy)}% target accuracy${dashboard.daily_challenge.diamond_reward ? ` · +${dashboard.daily_challenge.diamond_reward} diamonds` : ''}`}</span></div>{!dashboard.daily_challenge_completed && <Link href="/hub/preflop-charts">Train Now <ArrowRight size={14} aria-hidden /></Link>}</section>}
-
           <div className="preflop-analytics-layout">
             <section className="preflop-subpage-panel preflop-performance-signal" aria-labelledby="performance-signal-title">
-              <div className="preflop-panel-heading"><div><span>LAST 12 VERIFIED SESSIONS</span><h2 id="performance-signal-title">Accuracy Signal</h2></div><strong data-positive={performance.delta >= 0}>{performance.delta >= 0 ? '+' : ''}{performance.delta.toFixed(1)}%</strong></div>
+              <div className="preflop-panel-heading"><div><span>LAST 12 LOCAL ARCHIVE RUNS</span><h2 id="performance-signal-title">Accuracy Signal</h2></div><strong data-positive={performance.delta >= 0}>{performance.delta >= 0 ? '+' : ''}{performance.delta.toFixed(1)}%</strong></div>
               {performance.chronological.length > 1 ? <div className="preflop-signal-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Accuracy trend across recent completed sessions"><defs><linearGradient id="preflopSignalArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#37d6ff" stopOpacity="0.35"/><stop offset="1" stopColor="#37d6ff" stopOpacity="0"/></linearGradient></defs><polygon points={`0,100 ${performance.points} 100,100`} fill="url(#preflopSignalArea)"/><polyline points={performance.points} fill="none" stroke="#62ddff" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg><div><span>OLDER</span><span>RECENT</span></div></div> : <EmptyInline />}
             </section>
             <section className="preflop-subpage-panel preflop-weak-signal" aria-labelledby="weak-signal-title">
               <div className="preflop-panel-heading"><div><span>LOWEST RECORDED ACCURACY</span><h2 id="weak-signal-title">Focus Stations</h2></div></div>
-              {weakSpots.length ? <div>{weakSpots.map((spot) => <article key={spot.level}><span>L{spot.level}</span><div><strong>{spot.accuracy.toFixed(1)}%</strong><small>{spot.attempts} Verified run{spot.attempts === 1 ? '' : 's'}</small></div><i style={{ '--weak-accuracy': `${spot.accuracy}%` }} /></article>)}</div> : <EmptyInline />}
+              {weakSpots.length ? <div>{weakSpots.map((spot) => <article key={spot.level}><span>L{spot.level}</span><div><strong>{spot.accuracy.toFixed(1)}%</strong><small>{spot.attempts} Archived run{spot.attempts === 1 ? '' : 's'}</small></div><i style={{ '--weak-accuracy': `${spot.accuracy}%` }} /></article>)}</div> : <EmptyInline />}
             </section>
           </div>
 
@@ -125,7 +117,7 @@ export default function MemoryGamesStats() {
             <section className="preflop-subpage-panel" aria-labelledby="mode-title"><div className="preflop-panel-heading"><div><span>MODE DISTRIBUTION</span><h2 id="mode-title">Training Mix</h2></div></div>{modes.length ? <div className="preflop-mode-metrics">{modes.map((mode) => <div key={mode.key}><span>{MODE_LABELS[mode.key] || mode.key.replaceAll('_', ' ')}</span><strong>{mode.average.toFixed(1)}%</strong><small>{mode.attempts} Sessions · Best {mode.best}%</small></div>)}</div> : <EmptyInline />}</section>
           </div>
 
-          <section className="preflop-subpage-panel" aria-labelledby="recent-title"><div className="preflop-panel-heading"><div><span>RECENT SIGNALS</span><h2 id="recent-title">Last 10 Completed Sessions</h2></div>{loading && <span>Syncing…</span>}</div>{sessions.length ? <div className="preflop-session-list">{sessions.slice(0, 10).map((session) => <article key={session.id}><div><span>{MODE_LABELS[session.game_mode] || session.game_mode || 'Range Lab'}</span><small>{new Date(session.created_at).toLocaleDateString()} · Level {session.level || 1}</small></div><strong data-pass={session.accuracyPercent >= 85}>{session.accuracyPercent.toFixed(1)}%</strong><span>{session.time_taken || 0}s</span></article>)}</div> : !loading && <EmptyInline />}</section>
+          <section className="preflop-subpage-panel" aria-labelledby="recent-title"><div className="preflop-panel-heading"><div><span>RECENT LOCAL SIGNALS</span><h2 id="recent-title">Last 10 Archived Runs</h2></div>{loading && <span>Loading…</span>}</div>{sessions.length ? <div className="preflop-session-list">{sessions.slice(0, 10).map((session) => <article key={session.id}><div><span>{MODE_LABELS[session.game_mode] || session.game_mode || 'Range Lab'}</span><small>{new Date(session.created_at).toLocaleDateString()} · Level {session.level || 1}</small></div><strong data-pass={session.accuracyPercent >= 85}>{session.accuracyPercent.toFixed(1)}%</strong><span>{session.time_taken || 0}s</span></article>)}</div> : !loading && <EmptyInline />}</section>
         </>}
       </PreflopSubpageShell>
     </>

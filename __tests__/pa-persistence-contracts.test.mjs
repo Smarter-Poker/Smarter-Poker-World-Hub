@@ -91,13 +91,13 @@ test('analytics read errors remain errors instead of becoming zero history', () 
   assert.doesNotMatch(read(routes[1]), /42P01[\s\S]{0,180}insufficientData:\s*true/);
 });
 
-test('quiz leaderboard exposes unavailable state and cancels stale reads', () => {
+test('quiz leaderboard hook remains fail-closed while the retired Sandbox does not consume it', () => {
   const hook = read('src/hooks/useAssistant.js');
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.match(hook, /useQuizLeaderboard[\s\S]*new AbortController/);
   assert.match(hook, /return \{ entries, isLoading, error \}/);
-  assert.match(sandbox, /leaderboardError/);
-  assert.match(sandbox, /leaderboardLoading/);
+  assert.doesNotMatch(sandbox, /useQuizLeaderboard|leaderboardError|leaderboardLoading/);
+  assert.match(sandbox, /verified-evidence-required/);
 });
 
 test('secondary surfaces import the one canonical token source', () => {
@@ -114,7 +114,7 @@ test('long-lived Personal Assistant requests own stale-result protection', () =>
 
   assert.match(hooks, /export function useLeakDetection[\s\S]*AbortController/);
   assert.match(hooks, /export function useLeakHandExamples[\s\S]*requestIdRef/);
-  assert.ok((sandbox.match(/useAbortableFetch\(\)/g) || []).length >= 4);
+  assert.doesNotMatch(sandbox, /useAbortableFetch|fetch\s*\(/);
   assert.ok((leaks.match(/useAbortableFetch\(\)/g) || []).length >= 2);
 });
 
@@ -124,9 +124,10 @@ test('quick drills emit the saved event only after durable persistence', () => {
   assert.match(drill, /result\.success\s*&&\s*result\.persisted/);
 });
 
-test('desktop Sandbox has a dedicated two-column command workspace', () => {
+test('retired Sandbox has a responsive evidence boundary and no analysis workspace', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
-  assert.match(sandbox, /grid-template-columns:\s*400px minmax\(0, 1fr\)/);
-  assert.match(sandbox, /max-width:\s*1180px/);
-  assert.match(sandbox, /\.sandbox-table-wrap[\s\S]*position:\s*sticky/);
+  assert.match(sandbox, /data-training-authority="verified-evidence-required"/);
+  assert.match(sandbox, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(sandbox, /@media \(max-width: 640px\)[\s\S]*grid-template-columns: 1fr/);
+  assert.doesNotMatch(sandbox, /sandbox-table|run-analysis|useSandboxAnalysis/);
 });

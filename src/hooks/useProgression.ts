@@ -276,7 +276,11 @@ export function calculateLevel(totalDiamonds: number): { level: number; diamonds
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SAVE SYSTEM — Persists hand results to /api/training/save-progress
+// RETAINED DIRECTOR SAVE SYSTEM
+//
+// Director is not mounted by the canonical Training arena. Its local scenario
+// outcomes can still drive retained presentation code, but they must never
+// invoke the server-authoritative completion endpoint or award durable value.
 // ═══════════════════════════════════════════════════════════════════════════
 interface SavePayload {
     handResult: HandResult;
@@ -285,65 +289,8 @@ interface SavePayload {
 }
 
 export async function saveHandResult(payload: SavePayload): Promise<{ success: boolean }> {
-    try {
-        // Get auth token using the same logic as authUtils.getSessionToken()
-        let token: string | null = null;
-        if (typeof window !== 'undefined') {
-            try {
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) {
-                    const tokenData = JSON.parse(explicitAuth);
-                    token = tokenData?.access_token || null;
-                }
-                if (!token) {
-                    const sbKeys = Object.keys(localStorage || {}).filter(
-                        k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                    );
-                    if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                        token = tokenData?.access_token || null;
-                    }
-                }
-            } catch { /* ignore parse errors */ }
-        }
-
-        if (!token) {
-            // No auth token — save locally only (anonymous users)
-            console.log('[Progression] No auth token, saving locally only');
-            return { success: true };
-        }
-
-        const res = await fetch('/api/training/save-progress', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                gameId: payload.handResult.type || 'gto-training',
-                level: 1,
-                questionsAnswered: 1,
-                questionsCorrect: payload.handResult.result === 'win' ? 1 : 0,
-                accuracy: payload.handResult.result === 'win' ? 100 : 0,
-                passed: payload.handResult.result === 'win',
-                streak: payload.newStreak.currentStreak,
-                diamondsEarned: payload.handResult.diamondsEarned,
-                timeSpentSeconds: 0,
-            }),
-        });
-
-        if (!res.ok) {
-            const errBody = await res.json().catch(() => ({}));
-            console.warn('[Progression] Save failed:', res.status, errBody);
-            // Non-fatal — local storage still has the data
-            return { success: false };
-        }
-
-        return { success: true };
-    } catch (err) {
-        console.warn('[Progression] Save network error:', (err as Error).message);
-        return { success: false };
-    }
+    void payload;
+    return { success: true };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

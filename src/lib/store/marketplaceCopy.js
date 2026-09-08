@@ -34,8 +34,3 @@ export function marketplaceStructuredData(value, field = '') {
   }
   return value;
 }
-
-export function containsBannedMarketplaceBar(value) {
-  BANNED_LONG_BARS.lastIndex = 0;
-  return BANNED_LONG_BARS.test(String(value ?? ''));
-}

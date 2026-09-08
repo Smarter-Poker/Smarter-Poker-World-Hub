@@ -25,7 +25,7 @@ const babel = require('@babel/core');
 const sucrase = require('sucrase');
 const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
-const { Pool } = require('pg');
+const { createSolverOperatorPool } = require('./lib/solver-operator-db');
 
 const ROOT = path.resolve(__dirname, '..');
 const originalJsLoader = Module._extensions['.js'];
@@ -318,33 +318,46 @@ class ReadOnlyPgQuery {
 }
 
 function createReadOnlyDatabaseClient() {
-    if (process.env.SUPABASE_DB_PASSWORD) {
-        const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0];
-        const pool = new Pool({
-            host: `db.${projectRef}.supabase.co`,
-            port: 5432,
-            user: 'postgres',
-            password: process.env.SUPABASE_DB_PASSWORD,
-            database: 'postgres',
-            ssl: { rejectUnauthorized: false },
-            max: CACHE_READ_CONCURRENCY,
-            connectionTimeoutMillis: 15000,
-            statement_timeout: 30000,
-            options: '-c default_transaction_read_only=on',
-        });
-        return {
-            client: { from: (table) => new ReadOnlyPgQuery(pool, table) },
-            source: 'read-only-postgres',
-            close: () => pool.end(),
-        };
+    if (!process.env.SUPABASE_DB_PASSWORD) {
+        throw new Error(
+            'TRAINING_AUDIT_DB_PASSWORD_REQUIRED: set SUPABASE_DB_PASSWORD; '
+            + 'service_role is not a fallback for warehouse reads.',
+        );
     }
-
-    const client = createClient(
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error(
+            'TRAINING_AUDIT_SERVICE_KEY_REQUIRED: set SUPABASE_SERVICE_ROLE_KEY '
+            + 'for the approved training_solver_spot_candidates_v1 RPC only.',
+        );
+    }
+    const pool = createSolverOperatorPool({
+        max: CACHE_READ_CONCURRENCY,
+        statementTimeout: 30000,
+    });
+    const rpcClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { persistSession: false } }
+        { auth: { persistSession: false } },
     );
-    return { client, source: 'supabase-rest', close: async () => {} };
+    return {
+        client: {
+            // Every table read, including training_question_cache, is made
+            // through the read-only DB-owner connection. The service client
+            // is intentionally exposed only for the narrow catalog RPC below.
+            from: (table) => new ReadOnlyPgQuery(pool, table),
+            rpc: (name, args) => {
+                if (name !== 'training_solver_spot_candidates_v1') {
+                    return Promise.resolve({
+                        data: null,
+                        error: new Error(`RPC is not allowlisted for this audit: ${name}`),
+                    });
+                }
+                return rpcClient.rpc(name, args);
+            },
+        },
+        source: 'read-only-postgres + catalog-rpc',
+        close: () => pool.end(),
+    };
 }
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -404,8 +417,11 @@ async function main() {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
         throw new Error('NEXT_PUBLIC_SUPABASE_URL is required');
     }
-    if (!process.env.SUPABASE_DB_PASSWORD && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('SUPABASE_DB_PASSWORD or SUPABASE_SERVICE_ROLE_KEY is required');
+    if (!process.env.SUPABASE_DB_PASSWORD || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error(
+            'SUPABASE_DB_PASSWORD and SUPABASE_SERVICE_ROLE_KEY are required: '
+            + 'warehouse reads use DB-owner mode and solver rows use the catalog RPC.',
+        );
     }
 
     const {

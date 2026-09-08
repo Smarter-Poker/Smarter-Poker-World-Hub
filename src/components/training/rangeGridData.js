@@ -51,7 +51,7 @@ export function gridHandNotation(row, col) {
  * indistinguishable from an 80% one, so the decision is made ONCE for the
  * whole matrix: if nothing anywhere exceeds 1, it is fractional.
  */
-function detectScale(rawFrequencies) {
+export function rangeFrequencyPercentMultiplier(rawFrequencies) {
     let max = 0;
     for (const handFreqs of Object.values(rawFrequencies || {})) {
         if (!handFreqs || typeof handFreqs !== 'object') continue;
@@ -81,7 +81,7 @@ export function buildRangeGridData(rawFrequencies) {
     );
     if (actions.length === 0) return null;
 
-    const scale = detectScale(rawFrequencies);
+    const scale = rangeFrequencyPercentMultiplier(rawFrequencies);
     // 0.05% — below this a cell is solver noise, not a real mixed strategy.
     const NOISE_FLOOR = 0.05;
 
@@ -119,6 +119,82 @@ export function rangeGridActions(rawFrequencies) {
     return Object.keys(rawFrequencies).filter(
         (a) => rawFrequencies[a] && typeof rawFrequencies[a] === 'object'
     );
+}
+
+function policyActionColor(action) {
+    const family = String(action?.family || '').toLowerCase();
+    if (family === 'fold') return 'var(--sp-fg-faint)';
+    if (family === 'check') return 'var(--sp-accent-blue)';
+    if (family === 'call') return 'var(--sp-accent-green)';
+    if (family === 'raise') return 'var(--sp-accent-purple)';
+    if (family === 'all_in') return 'var(--sp-accent-red)';
+    if (family !== 'bet') return 'var(--sp-fg-faint)';
+
+    const fraction = Number(action?.size?.potFraction);
+    if (!Number.isFinite(fraction) || fraction < 0) return 'var(--sp-accent-blue)';
+    if (fraction <= 0.33) return 'var(--sp-accent-emerald)';
+    if (fraction <= 0.55) return 'var(--sp-accent-cyan)';
+    if (fraction <= 0.80) return 'var(--sp-accent-blue)';
+    if (fraction <= 1) return 'var(--sp-accent-red)';
+    return 'var(--sp-accent-amber)';
+}
+
+function exactPolicyAmountLabel(action) {
+    if (action?.size?.exact !== true) return null;
+    const bigBlinds = Number(action?.size?.bigBlinds);
+    if (!Number.isFinite(bigBlinds) || bigBlinds <= 0) return null;
+    return `${bigBlinds.toFixed(2)} BB`;
+}
+
+/**
+ * Build the presentation contract for a canonical action-first range matrix.
+ * Labels and exact amounts come only from solverPolicy.actions; a raw Pio
+ * source token such as b1442 must never be interpreted as a percentage by the
+ * browser. Returns null unless every displayed range key has one unique legal
+ * policy owner.
+ */
+export function buildRangeActionPresentation(solverPolicy, rawFrequencies) {
+    if (!solverPolicy || !Array.isArray(solverPolicy.actions)
+        || !rawFrequencies || typeof rawFrequencies !== 'object'
+        || Array.isArray(rawFrequencies)) return null;
+    const byId = new Map();
+    const knownFamilies = new Set(['fold', 'check', 'call', 'bet', 'raise', 'all_in']);
+    for (const action of solverPolicy.actions) {
+        const id = String(action?.id || '').trim().toLowerCase();
+        const label = String(action?.label || '').trim();
+        const family = String(action?.family || '').trim().toLowerCase();
+        const sizedAction = ['bet', 'raise', 'all_in'].includes(family);
+        if (!id || !label || !knownFamilies.has(family)
+            || action?.legal === false || byId.has(id)
+            || (sizedAction && (
+                action?.size?.exact !== true
+                || !Number.isFinite(Number(action?.size?.chips))
+                || Number(action.size.chips) <= 0
+                || !Number.isFinite(Number(action?.size?.bigBlinds))
+                || Number(action.size.bigBlinds) <= 0
+            ))) return null;
+        const amountLabel = exactPolicyAmountLabel(action);
+        byId.set(id, {
+            id,
+            label,
+            amountLabel,
+            displayLabel: amountLabel && !/\bBB\b/i.test(label)
+                ? `${label} · ${amountLabel}`
+                : label,
+            short: family === 'check' ? 'X'
+                : family === 'call' ? 'C'
+                    : family === 'fold' ? 'F'
+                        : family === 'all_in' ? 'AI'
+                            : family === 'raise' ? 'R' : family === 'bet' ? 'B' : '?',
+            family,
+            size: action?.size ? { ...action.size } : null,
+            color: policyActionColor(action),
+        });
+    }
+    const rangeIds = Object.keys(rawFrequencies).map((id) => String(id).trim().toLowerCase());
+    if (rangeIds.length === 0 || new Set(rangeIds).size !== rangeIds.length
+        || rangeIds.some((id) => !byId.has(id))) return null;
+    return Object.fromEntries(rangeIds.map((id) => [id, byId.get(id)]));
 }
 
 /**

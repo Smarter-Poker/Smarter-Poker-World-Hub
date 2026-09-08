@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { supabase } from '../supabase';
+import { signedTrainingScore } from '../training/sessionEvidence.mjs';
 
 export interface UserContext {
     currentOrb: string;
@@ -24,11 +25,12 @@ export interface UserContext {
 export async function collectUserContext(userId: string): Promise<UserContext> {
     try {
         // Get user profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('level, diamonds')
             .eq('id', userId)
             .maybeSingle();
+        if (profileError) throw new Error(`Profile context unavailable: ${profileError.message}`);
 
         // Get current page from window location
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/hub';
@@ -44,27 +46,38 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             : 0;
 
         // Get recent training activity (last 5 sessions)
-        const { data: recentSessions } = await supabase
+        const { data: recentSessions, error: recentSessionsError } = await supabase
             .from('training_sessions')
-            .select('game_id, gtow_score, created_at')
+            .select('game_id, gtow_score, score_scale, created_at, attempt_id, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
             .eq('user_id', userId)
+            .eq('training_attempts.user_id', userId)
+            .eq('training_attempts.status', 'completed')
+            .not('attempt_id', 'is', null)
+            .eq('training_attempts.practice_only', false)
             .order('created_at', { ascending: false })
             .limit(5);
+        if (recentSessionsError) {
+            throw new Error(`Verified training context unavailable: ${recentSessionsError.message}`);
+        }
 
-        const recentActivity = recentSessions?.map(s =>
-            `${s.game_id}: ${s.gtow_score}pts`
-        ) || [];
+        const recentActivity = recentSessions?.map((session) => {
+            const score = signedTrainingScore(session);
+            return score === null
+                ? `${session.game_id}: Verified Score Not Available`
+                : `${session.game_id}: ${score} Signed Training Score`;
+        }) || [];
 
         // Get last drill type
         const lastDrillType = recentSessions?.[0]?.game_id || undefined;
 
         // Get poker stats (if available)
-        const { data: stats } = await supabase
+        const { data: stats, error: statsError } = await supabase
             .from('player_stats')
             // 2026-08-15 CHECK 13: player_stats has no win_rate column
             .select('hands_played')
             .eq('user_id', userId)
             .maybeSingle();
+        if (statsError) throw new Error(`Player context unavailable: ${statsError.message}`);
 
         return {
             currentOrb,
@@ -81,16 +94,10 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
         };
     } catch (error) {
         console.warn('Failed to collect user context:', error);
-        // Return minimal context on error
-        return {
-            currentOrb: 'hub',
-            currentPage: '/hub',
-            currentMode: 'browsing',
-            userLevel: 1,
-
-            diamondBalance: 0,
-            sessionDuration: 0
-        };
+        // Personalization must never turn a database outage into plausible
+        // zero-valued user history. Let the caller present an unavailable
+        // state instead of feeding fabricated context to an assistant.
+        throw error instanceof Error ? error : new Error('User context is unavailable');
     }
 }
 

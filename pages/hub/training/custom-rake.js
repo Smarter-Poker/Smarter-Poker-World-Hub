@@ -1,20 +1,17 @@
 /**
- * CUSTOM RAKE SOLVER — Rake-Adjusted GTO Solutions
+ * RAKE COST ESTIMATOR — Transparent Teaching Model
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Input your casino's rake structure and see how optimal strategy changes
- * compared to no-rake GTO solutions.
+ * Input a rake structure to explore one disclosed cost model. This page does
+ * not run a solver and does not prescribe GTO frequencies or EV.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-8 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-3 — hex sweep batch 6: extended palette literals routed
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RAKE PRESETS
@@ -26,6 +23,7 @@ const RAKE_PRESETS = [
     label: 'Micro Stakes Online',
     pct: 5.0,
     cap: 1.0,
+    bigBlind: 0.10,
     bbCap: 5.0,
     desc: '$0.01/$0.02 - $0.05/$0.10',
   },
@@ -34,16 +32,18 @@ const RAKE_PRESETS = [
     label: 'Low Stakes Online',
     pct: 5.0,
     cap: 3.0,
+    bigBlind: 0.50,
     bbCap: 3.0,
     desc: '$0.10/$0.25 - $0.25/$0.50',
   },
-  { id: 'mid', label: 'Mid Stakes Online', pct: 4.5, cap: 3.5, bbCap: 1.75, desc: '$1/$2 - $2/$5' },
-  { id: 'high', label: 'High Stakes Online', pct: 3.0, cap: 5.0, bbCap: 1.0, desc: '$5/$10+' },
+  { id: 'mid', label: 'Mid Stakes Online', pct: 4.5, cap: 3.5, bigBlind: 2, bbCap: 1.75, desc: '$1/$2 Representative Model' },
+  { id: 'high', label: 'High Stakes Online', pct: 3.0, cap: 5.0, bigBlind: 10, bbCap: 1.0, desc: '$5/$10 Representative Model' },
   {
     id: 'live_low',
     label: 'Live $1/$2-$1/$3',
     pct: 10.0,
     cap: 5.0,
+    bigBlind: 2,
     bbCap: 2.5,
     desc: 'Typical live low stakes',
   },
@@ -52,6 +52,7 @@ const RAKE_PRESETS = [
     label: 'Live $2/$5',
     pct: 5.0,
     cap: 8.0,
+    bigBlind: 5,
     bbCap: 1.6,
     desc: 'Standard live mid stakes',
   },
@@ -60,6 +61,7 @@ const RAKE_PRESETS = [
     label: 'Live $5/$10+',
     pct: 3.5,
     cap: 10.0,
+    bigBlind: 10,
     bbCap: 1.0,
     desc: 'Live high stakes',
   },
@@ -68,6 +70,7 @@ const RAKE_PRESETS = [
     label: 'Custom Rake',
     pct: 5.0,
     cap: 3.0,
+    bigBlind: 1,
     bbCap: 0,
     desc: 'Enter your own rake structure',
   },
@@ -77,21 +80,19 @@ const RAKE_PRESETS = [
 // RAKE IMPACT CALCULATOR
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function calculateRakeImpact(rakePct, cap, stackBB) {
+function calculateRakeImpact(rakePct, capDollars, stackBB, bigBlindDollars) {
   const safeRake = Math.max(0, Number(rakePct) || 0);
-  const safeCap = Math.max(0, Number(cap) || 0);
+  const safeCapDollars = Math.max(0, Number(capDollars) || 0);
   const safeStack = Math.max(1, Number(stackBB) || 100);
+  const safeBigBlind = Math.max(0.01, Number(bigBlindDollars) || 1);
   const avgPotBB = safeStack * 0.12;
-  const rakePerPot = Math.min(safeCap, avgPotBB * (safeRake / 100));
+  const capBB = safeCapDollars / safeBigBlind;
+  const rakePerPot = Math.min(capBB, avgPotBB * (safeRake / 100));
   const rakePerHandBB = rakePerPot;
   const handsPerHour = 28;
   const rakePerHourBB = rakePerHandBB * handsPerHour * 0.35;
 
-  const openAdj = safeRake > 6 ? -3.2 : safeRake > 4 ? -1.5 : -0.5;
-  const threeBetAdj = safeRake > 6 ? +2.8 : safeRake > 4 ? +1.2 : +0.3;
-  const callAdj = safeRake > 6 ? -4.5 : safeRake > 4 ? -2.0 : -0.8;
-  const cBetAdj = safeRake > 6 ? +3.0 : safeRake > 4 ? +1.5 : +0.5;
-  const suitedAdj = safeRake > 6 ? -5.0 : safeRake > 4 ? -2.5 : -1.0;
+  const impactBand = safeRake > 6 ? 'Higher' : safeRake > 4 ? 'Moderate' : 'Lower';
 
   return {
     rakePerPot: Number.isFinite(rakePerPot) ? (Number.isFinite(Number(rakePerPot)) ? Number(rakePerPot) : 0).toFixed(2) : '0.00',
@@ -100,33 +101,33 @@ function calculateRakeImpact(rakePct, cap, stackBB) {
     adjustments: [
       {
         stat: 'Open Raise Range',
-        adj: `${openAdj > 0 ? '+' : ''}${(Number.isFinite(Number(openAdj)) ? Number(openAdj) : 0).toFixed(1)}%`,
-        color: openAdj < 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
-        note: openAdj < 0 ? 'Tighten up - marginal opens become -EV' : 'Slightly wider',
+        adj: `${impactBand} Rake Sensitivity`,
+        color: 'var(--sp-accent-amber)',
+        note: 'Marginal opens may lose value as rake rises; verify a concrete spot before changing a range.',
       },
       {
         stat: '3-Bet Frequency',
-        adj: `${threeBetAdj > 0 ? '+' : ''}${(Number.isFinite(Number(threeBetAdj)) ? Number(threeBetAdj) : 0).toFixed(1)}%`,
-        color: 'var(--sp-accent-green)',
-        note: '3-bets reduce rake by ending hands preflop',
+        adj: 'Spot Dependent',
+        color: 'var(--sp-accent-blue)',
+        note: 'Rake alone does not determine a 3-bet frequency; positions, stacks, sizing, and ranges remain required.',
       },
       {
         stat: 'Cold Call Range',
-        adj: `${callAdj > 0 ? '+' : ''}${(Number.isFinite(Number(callAdj)) ? Number(callAdj) : 0).toFixed(1)}%`,
+        adj: `${impactBand} Rake Sensitivity`,
         color: 'var(--sp-accent-red)',
-        note: 'Cold calling is worse with rake - prefer 3-bet or fold',
+        note: 'Calls that realize thin edges can be sensitive to rake; this model does not choose between call, raise, or fold.',
       },
       {
         stat: 'C-Bet Frequency',
-        adj: `${cBetAdj > 0 ? '+' : ''}${(Number.isFinite(Number(cBetAdj)) ? Number(cBetAdj) : 0).toFixed(1)}%`,
-        color: 'var(--sp-accent-green)',
-        note: 'Bet more to deny equity and end hands faster',
+        adj: 'Board And Range Dependent',
+        color: 'var(--sp-accent-blue)',
+        note: 'No postflop betting frequency can be inferred from a rake percentage without a full decision tree.',
       },
       {
         stat: 'Suited Connectors',
-        adj: `${suitedAdj > 0 ? '+' : ''}${(Number.isFinite(Number(suitedAdj)) ? Number(suitedAdj) : 0).toFixed(1)}%`,
+        adj: `${impactBand} Rake Sensitivity`,
         color: 'var(--sp-accent-red)',
-        note: 'Implied odds reduced by rake - speculative hands suffer most',
+        note: 'Speculative hands may be rake-sensitive, but a concrete position and action are required for a range decision.',
       },
     ],
   };
@@ -138,34 +139,29 @@ function calculateRakeImpact(rakePct, cap, stackBB) {
 
 export default function CustomRakePage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
   const [preset, setPreset] = useState(RAKE_PRESETS[0]);
   const [customPct, setCustomPct] = useState(5.0);
   const [customCap, setCustomCap] = useState(3.0);
+  const [customBigBlind, setCustomBigBlind] = useState(1.0);
   const [stackDepth, setStackDepth] = useState(100);
 
   useTrainingBus('custom-rake');
 
-  useEffect(() => {
-    try {
-      setUser(getAuthUser());
-    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-  }, []);
-
   const rakePct = preset.id === 'custom' ? customPct : preset.pct;
   const rakeCap = preset.id === 'custom' ? customCap : preset.cap;
+  const bigBlind = preset.id === 'custom' ? customBigBlind : preset.bigBlind;
 
   const impact = useMemo(() => {
-    return calculateRakeImpact(rakePct, rakeCap, stackDepth);
-  }, [rakePct, rakeCap, stackDepth]);
+    return calculateRakeImpact(rakePct, rakeCap, stackDepth, bigBlind);
+  }, [rakePct, rakeCap, stackDepth, bigBlind]);
 
   return (
     <>
       <Head>
-        <title>Custom Rake Solver | Smarter.Poker</title>
+        <title>Rake Cost Estimator | Smarter.Poker</title>
         <meta
           name="description"
-          content="See how rake affects GTO strategy - input your casino's rake structure"
+          content="Explore a transparent teaching estimate of rake cost without solver or GTO claims"
         />
       </Head>
 
@@ -199,10 +195,10 @@ export default function CustomRakePage() {
               fontFamily: "'Rajdhani', sans-serif",
             }}
           >
-            Custom Rake Solver
+            Rake Cost Estimator
           </h1>
           <p style={{ fontSize: 14, color: '#b0b3b8', margin: '2px 0 0' }}>
-            See How Rake Structure Affects Optimal GTO Strategy
+            Transparent Teaching Model • Not A Solver • Not Strategy Advice
           </p>
         </div>
 
@@ -250,7 +246,7 @@ export default function CustomRakePage() {
 
           {/* Custom Inputs */}
           {preset.id === 'custom' && (
-            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
                 <label
                   style={{
@@ -309,6 +305,20 @@ export default function CustomRakePage() {
                   }}
                 />
               </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#b0b3b8', display: 'block', marginBottom: 4 }}>
+                  Big Blind ($)
+                </label>
+                <input
+                  aria-label="Big Blind In Dollars"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={customBigBlind}
+                  onChange={(e) => setCustomBigBlind(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, fontSize: 14, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e4e6eb' }}
+                />
+              </div>
             </div>
           )}
 
@@ -341,9 +351,9 @@ export default function CustomRakePage() {
             }}
           >
             {[
-              { label: 'Rake Per Pot', value: `${impact.rakePerPot}BB`, color: 'var(--sp-accent-amber)' },
-              { label: 'Rake / Hour', value: `${impact.rakePerHourBB}BB`, color: 'var(--sp-accent-red)' },
-              { label: 'Monthly Impact', value: `${impact.monthlyImpactBB}BB`, color: 'var(--sp-accent-red)' },
+              { label: 'Estimated Rake Per Pot', value: `${impact.rakePerPot}BB`, color: 'var(--sp-accent-amber)' },
+              { label: 'Estimated Rake / Hour', value: `${impact.rakePerHourBB}BB`, color: 'var(--sp-accent-red)' },
+              { label: '40-Hour Model', value: `${impact.monthlyImpactBB}BB`, color: 'var(--sp-accent-red)' },
             ].map((s) => (
               <div
                 key={s.label}
@@ -389,7 +399,7 @@ export default function CustomRakePage() {
                 fontFamily: "'Rajdhani', sans-serif",
               }}
             >
-              Strategy Adjustments (Vs No-Rake GTO)
+              Rake Sensitivity Study Prompts
             </h3>
             {impact.adjustments.map((a, i) => (
               <div
@@ -441,13 +451,10 @@ export default function CustomRakePage() {
               KEY INSIGHT
             </div>
             <div style={{ fontSize: 13, color: '#e4e6eb', lineHeight: 1.5 }}>
-              At {rakePct}% Rake With ${rakeCap} Cap, You&apos;Re Paying approximately{' '}
-              {impact.rakePerHourBB}BB/Hour In Rake.
-              {parseFloat(impact.rakePerHourBB) > 5
-                ? ' This is HIGH - tighten preflop, 3-bet more instead of calling, and avoid speculative hands.'
-                : parseFloat(impact.rakePerHourBB) > 2
-                  ? ' This is MODERATE - slight tightening recommended, especially for cold calls.'
-                  : ' This is LOW - rake has minimal impact on optimal strategy.'}
+              This Teaching Estimate Uses A {rakePct}% Rake, ${rakeCap} Cap, ${bigBlind} Big Blind,
+              A Pot Equal To 12% Of The Selected Stack, 28 Hands Per Hour, And A 35% Raked-Pot Share.
+              It Estimates {impact.rakePerHourBB}BB/Hour Under Those Assumptions. It Does Not Solve A
+              Poker Tree, Produce EV, Or Prescribe Any Range Or Action.
             </div>
           </div>
         </div>

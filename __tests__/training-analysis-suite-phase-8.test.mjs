@@ -17,11 +17,17 @@ const sources = Object.fromEntries(routes.map((route) => [
   route,
   fs.readFileSync(`pages/hub/training/${route}.js`, 'utf8'),
 ]));
+const handHistoryUpload = fs.readFileSync('pages/hub/training/hand-history-upload.js', 'utf8');
 const trainingCss = fs.readFileSync('src/styles/worlds/training.css', 'utf8');
 const app = fs.readFileSync('pages/_app.js', 'utf8');
 
 test('the complete analysis family adopts one dimensional tool shell', () => {
   for (const [route, source] of Object.entries(sources)) {
+    if (route === 'analyzer') {
+      assert.match(source, /getServerSideProps/);
+      assert.match(source, /destination:\s*'\/hub\/training\/hand-history-upload\?source=legacy-analyzer'/);
+      continue;
+    }
     assert.match(source, /sp-training-tool--analysis/, `${route} must adopt the analysis shell`);
     assert.match(source, /sp-training-analysis-(?:header|main)/, `${route} must adopt analysis structure`);
   }
@@ -38,7 +44,8 @@ test('analysis tools use a phone-first stacked control deck', () => {
 test('comparison panels and upload state use straight metallic surfaces', () => {
   assert.match(sources['hand-comparison'], /sp-analysis-data-panel--a/);
   assert.match(sources['hand-comparison'], /sp-analysis-data-panel--board/);
-  assert.match(sources.analyzer, /sp-training-analysis-dropzone/);
+  assert.match(handHistoryUpload, /Drop Hand History File Here/);
+  assert.match(handHistoryUpload, /Grade Only Provenance-Complete Server Audits/);
   assert.match(trainingCss, /\.sp-analysis-data-panel\s*\{[\s\S]*?border-radius:\s*0 !important/);
   assert.match(trainingCss, /\.sp-training-analysis-dropzone\s*\{[\s\S]*?border-radius:\s*0 !important/);
 });

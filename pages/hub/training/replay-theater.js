@@ -27,6 +27,7 @@ import {
   playerActionOf,
   streetOf,
 } from '../../../src/lib/training/handHistoryEntry';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // TRAIN-CSS-MOTION-ADOPT-23 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -347,12 +348,12 @@ export default function ReplayTheaterPage() {
   }, [fetchData]);
 
   const handlePractice = (mistake) => {
-    const params = new URLSearchParams({
+    router.push(buildCustomTrainingArenaHref({
+      gameId: mistake.gameId,
       format: 'cash',
-      positions: mistake.position,
-      streets: mistake.street.toLowerCase(),
-    });
-    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+      position: mistake.position,
+      street: mistake.street.toLowerCase(),
+    }, 'replay-theater'));
   };
 
   const filteredMistakes = mistakes.filter((m) => {
@@ -560,8 +561,15 @@ export default function ReplayTheaterPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     const [pos, street] = worstLeak[0].split(' · ');
-                    const params = new URLSearchParams({ format: 'cash', positions: pos, streets: street.toLowerCase() });
-                    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+                    const sourceMistake = filteredMistakes.find(
+                      (mistake) => mistake.position === pos && mistake.street === street,
+                    );
+                    router.push(buildCustomTrainingArenaHref({
+                      gameId: sourceMistake?.gameId,
+                      format: 'cash',
+                      position: pos,
+                      street: street.toLowerCase(),
+                    }, 'replay-theater'));
                   }}
                   style={{
                     padding: '8px 14px',

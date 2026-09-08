@@ -251,21 +251,6 @@ export function getCachedMediaStream() {
 }
 
 /**
- * Mute or unmute a category of tracks without stopping them. Useful for the
- * "mute" toggle during live broadcast so we don't lose the mic permission
- * grant when the user temporarily silences themselves.
- */
-export function setTrackEnabled(kind, enabled) {
-  if (!cachedStream) return;
-  cachedStream
-    .getTracks()
-    .filter((t) => t.kind === kind)
-    .forEach((t) => {
-      t.enabled = enabled;
-    });
-}
-
-/**
  * BUG-FIX-PERM-1: Returns true if the user has previously granted camera+mic
  * access on this device/browser (stored in localStorage after first successful
  * getUserMedia). Used by GoLiveModal to show "Reconnecting camera..." instead

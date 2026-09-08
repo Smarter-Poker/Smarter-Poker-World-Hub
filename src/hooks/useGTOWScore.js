@@ -24,6 +24,7 @@ import {
     derivePositionAccuracy,
     deriveStreetAccuracy,
     deriveEVSummary,
+    deriveMeasuredEVSummary,
 } from '../lib/sessionAnalytics';
 import { classifyFrequencyDecision } from '../lib/training/solverDecisionEvidence';
 
@@ -377,6 +378,12 @@ export default function useGTOWScore() {
     const movesMade = evSummary.movesMade;
     const mistakeCount = evSummary.mistakeCount;
     const totalEVLoss = evSummary.totalEVLoss;
+    const measuredEVSummary = useMemo(
+        () => deriveMeasuredEVSummary(handHistory),
+        [handHistory]
+    );
+    const measuredTotalEVLoss = measuredEVSummary.totalEVLoss;
+    const measuredEVDecisions = measuredEVSummary.measuredEVDecisions;
     const classificationCounts = useMemo(
         () => deriveClassificationCounts(handHistory), [handHistory]
     );
@@ -759,6 +766,9 @@ export default function useGTOWScore() {
         // Core metrics
         gtowScore,
         totalEVLoss,
+        measuredTotalEVLoss,
+        measuredEVDecisions,
+        avgEVLossPerMeasuredDecision: measuredEVSummary.avgEVLossPerMeasuredDecision,
         handsPlayed,
         movesMade,
         mistakeCount,

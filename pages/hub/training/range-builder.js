@@ -1,8 +1,9 @@
 /**
- * RANGE BUILDER — Interactive GTO Range Construction + Grading Tool
+ * RANGE BUILDER — Authored Preflop Reference Practice
  * ═══════════════════════════════════════════════════════════════════════════
- * Phase 18: Users construct their own preflop range for a given spot by
- * toggling hands on/off, then submit for grading vs solver solution.
+ * Users construct a 6-max cash RFI range at 100BB, then compare it with an
+ * explicitly non-authoritative authored reference. This page never presents
+ * the static corpus as a verified solver artifact.
  *
  * Route: /hub/training/range-builder
  * ═══════════════════════════════════════════════════════════════════════════
@@ -19,6 +20,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // TRAIN-CSS-MOTION-ADOPT-22 — durations routed through MOTION tokens matched to
@@ -26,10 +28,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 function saveSession(payload) {
-  authedFetch('/api/training/save-session', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+  savePracticeSession('range-builder', payload)
+    .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -38,6 +38,30 @@ function saveSession(payload) {
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITIONS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
+const REFERENCE_VERSION = 'range-builder-rfi-100bb-v1';
+const REFERENCE_REQUEST = Object.freeze({
+  gameType: 'cash_6max',
+  scenario: 'rfi',
+  stackDepth: 100,
+});
+
+export function isExactAuthoredReferenceResponse(data, position) {
+  const expectedReferenceId = `cash_6max:rfi:${position}:100bb`;
+  return data?.success === true
+    && data?.reference?.id === expectedReferenceId
+    && data?.reference?.position === position
+    && data?.reference?.gameType === REFERENCE_REQUEST.gameType
+    && data?.reference?.scenario === REFERENCE_REQUEST.scenario
+    && Number(data?.reference?.stackDepth) === REFERENCE_REQUEST.stackDepth
+    && data?.provenance?.source === 'static_authored_preflop_reference'
+    && data?.provenance?.authority === 'authored_reference'
+    && data?.provenance?.version === REFERENCE_VERSION
+    && data?.provenance?.referenceId === expectedReferenceId
+    && data?.provenance?.authoritative === false
+    && data?.provenance?.solverVerified === false
+    && data?.provenance?.exactEVAvailable === false
+    && data?.provenance?.practiceOnly === true;
+}
 
 function getHandNotation(row, col) {
   if (row === col) return `${RANKS[row]}${RANKS[col]}`;
@@ -55,9 +79,9 @@ function getCombos(hand) {
 
 
 const DIFF_COLORS = {
-  correct: 'var(--sp-accent-green)',
-  wrong: 'var(--sp-accent-red)',
-  missed: 'var(--sp-accent-amber)',
+  match: 'var(--sp-accent-green)',
+  extra: 'var(--sp-accent-red)',
+  omitted: 'var(--sp-accent-amber)',
   partial: 'var(--sp-accent-orange)',
   neutral: 'var(--sp-bg-elev2)',
 };
@@ -166,10 +190,10 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
             pointerEvents: 'none',
           }}
         >
-          {diffResult === 'correct' && 'Correct ✓'}
-          {diffResult === 'wrong'&& 'Wrong ✕ (Not in GTO range)'}
-          {diffResult === 'missed' && 'Missed (GTO includes this)'}
-          {diffResult === 'partial' && 'Partial (Mixed frequency)'}
+          {diffResult === 'match' && 'Matches The Authored Reference'}
+          {diffResult === 'extra' && 'Selected Outside The Authored Reference'}
+          {diffResult === 'omitted' && 'Included In The Authored Reference'}
+          {diffResult === 'partial' && 'Mixed In The Authored Reference'}
         </div>
       )}
     </div>
@@ -182,7 +206,10 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
 
 export default function RangeBuilder() {
   const router = useRouter();
-  const bus = useTrainingBus('range-builder');
+  useTrainingBus('range-builder', {
+    practiceOnly: true,
+    authority: 'authored_reference',
+  });
 
   // Spot selection
   const [position, setPosition] = useState('BTN');
@@ -195,10 +222,12 @@ export default function RangeBuilder() {
   // Grading state
   const [grading, setGrading] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
   // Clear result when position changes
   useEffect(() => {
     setResult(null);
+    setError('');
   }, [position]);
 
   // Toggle hand
@@ -215,6 +244,7 @@ export default function RangeBuilder() {
   const clearAll = useCallback(() => {
     setSelectedHands(new Set());
     setResult(null);
+    setError('');
   }, []);
 
   // Select all pairs
@@ -266,42 +296,46 @@ export default function RangeBuilder() {
   const submitRange = useCallback(async () => {
     if (selectedHands.size === 0) return;
     setGrading(true);
+    setError('');
     try {
       const res = await authedFetch('/api/training/grade-range', {
         method: 'POST',
         body: JSON.stringify({
+          ...REFERENCE_REQUEST,
           position,
-          scenario: 'rfi',
           selectedHands: Array.from(selectedHands),
         }),
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
-        setResult(data);
-        const passed = Number(data.grade?.score) >= 80;
-        // Emit bus events based on grade
-        if (passed) {
-          bus.emitDecisionCorrect();
-        } else {
-          bus.emitDecisionIncorrect();
-        }
-        // Range construction is one graded decision. Persist both passes and
-        // misses so history does not become a biased set of failures.
-        saveSession({
-          game_id: 'range-builder',
-          hands_played: 1,
-          accuracy: Number(data.grade?.score) || 0,
-          correct_answers: passed ? 1 : 0,
-          total_questions: 1,
-        });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `Reference comparison failed (${res.status})`);
       }
+      if (!isExactAuthoredReferenceResponse(data, position)) {
+        throw new Error('The authored reference identity could not be verified. No result was recorded.');
+      }
+
+      setResult(data);
+      const passed = Number(data.comparison?.score) >= 80;
+      saveSession({
+        game_id: 'range-builder',
+        hands_played: 1,
+        accuracy: Number(data.comparison?.score) || 0,
+        correct_answers: passed ? 1 : 0,
+        total_questions: 1,
+        context: {
+          authority: data.provenance.authority,
+          referenceId: data.reference.id,
+          practiceOnly: true,
+        },
+      });
     } catch (err) {
       console.warn('[RangeBuilder] Grade error:', err);
+      setResult(null);
+      setError(err?.message || 'Unable to compare this range right now.');
     } finally {
       setGrading(false);
     }
-  }, [selectedHands, position, bus]);
+  }, [selectedHands, position]);
 
   // Build grid
   const gridRows = useMemo(() => {
@@ -322,10 +356,10 @@ export default function RangeBuilder() {
   return (
     <>
       <Head>
-        <title>Range Builder | Smarter.Poker GTO Training</title>
+        <title>Authored Range Practice | Smarter.Poker Training</title>
         <meta
           name="description"
-          content="Build your own preflop range and get graded against GTO solver solutions. Interactive range construction and accuracy analysis."
+          content="Build a 6-max cash RFI range at 100BB and compare it with a clearly labeled authored practice reference."
         />
       </Head>
 
@@ -442,6 +476,26 @@ export default function RangeBuilder() {
               </button>
             ))}
           </div>
+
+          <div
+            role="note"
+            style={{
+              maxWidth: 680,
+              margin: '12px auto 0',
+              padding: '8px 12px',
+              border: '1px solid rgba(251,191,36,0.28)',
+              borderRadius: 8,
+              background: 'rgba(251,191,36,0.07)',
+              color: 'var(--sp-fg-muted)',
+              textAlign: 'center',
+              fontSize: 10,
+              fontWeight: 700,
+              lineHeight: 1.5,
+              letterSpacing: 0.7,
+            }}
+          >
+            AUTHORED STATIC REFERENCE • 6-MAX CASH RFI • 100BB • PRACTICE ONLY • NOT SOLVER VERIFIED
+          </div>
         </div>
 
         {/* ─── Main Content ───────────────────────────────────────── */}
@@ -468,7 +522,7 @@ export default function RangeBuilder() {
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              {isDiffMode ? 'RESULTS - GTO DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
+              {isDiffMode ? 'RESULTS - AUTHORED REFERENCE DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
             </div>
             <div
               style={{
@@ -528,19 +582,19 @@ export default function RangeBuilder() {
                   exit={{ opacity: 0, x: -20 }}
                   style={sidebarStyle}
                 >
-                  {/* Grade */}
+                  {/* Authored-reference comparison */}
                   <div style={{ textAlign: 'center', marginBottom: 16 }}>
                     <div
                       style={{
                         fontSize: 56,
                         fontWeight: 900,
-                        color: GRADE_COLORS[result.grade?.letter] || 'var(--sp-fg)',
+                        color: GRADE_COLORS[result.comparison?.letter] || 'var(--sp-fg)',
                         fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         lineHeight: 1,
-                        textShadow: `0 0 30px ${GRADE_COLORS[result.grade?.letter] || '#fff'}40`,
+                        textShadow: `0 0 30px ${GRADE_COLORS[result.comparison?.letter] || '#fff'}40`,
                       }}
                     >
-                      {result.grade?.letter}
+                      {result.comparison?.letter}
                     </div>
                     <div
                       style={{
@@ -550,7 +604,7 @@ export default function RangeBuilder() {
                         marginTop: 4,
                       }}
                     >
-                      Score: {result.grade?.score}%
+                      Reference Agreement: {result.comparison?.score}%
                     </div>
                     <div
                       style={{
@@ -559,8 +613,28 @@ export default function RangeBuilder() {
                         marginTop: 2,
                       }}
                     >
-                      Range Accuracy: {result.grade?.accuracy}%
+                      Reference Coverage: {result.comparison?.coverage}%
                     </div>
+                  </div>
+
+                  <div
+                    role="note"
+                    style={{
+                      padding: '8px 10px',
+                      border: '1px solid rgba(251,191,36,0.24)',
+                      borderRadius: 8,
+                      background: 'rgba(251,191,36,0.06)',
+                      color: 'var(--sp-fg-muted)',
+                      fontSize: 9,
+                      lineHeight: 1.5,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <strong style={{ color: 'var(--sp-accent-amber)' }}>Authored Practice Reference</strong>
+                    <br />
+                    {result.reference?.label}
+                    <br />
+                    Version {result.provenance?.version} • Not Solver Verified • No Exact EV
                   </div>
 
                   <div
@@ -580,9 +654,9 @@ export default function RangeBuilder() {
                   >
                     BREAKDOWN
                   </div>
-                  <StatRow label="Correct" value={result.stats?.correctCount} color="#22c55e" />
-                  <StatRow label="Missed" value={result.stats?.missedCount} color="#fbbf24" />
-                  <StatRow label="Wrong" value={result.stats?.wrongCount} color="#ef4444" />
+                  <StatRow label="Matched" value={result.stats?.matchedCount} color="#22c55e" />
+                  <StatRow label="Omitted" value={result.stats?.omittedCount} color="#fbbf24" />
+                  <StatRow label="Extra" value={result.stats?.extraCount} color="#ef4444" />
                   <StatRow label="Mixed" value={result.stats?.mixedCount} color="#f97316" />
 
                   <div
@@ -591,8 +665,8 @@ export default function RangeBuilder() {
 
                   <StatRow label="Your Combos" value={result.stats?.userCombos} color="#94a3b8" />
                   <StatRow
-                    label="GTO Combos"
-                    value={result.stats?.totalGTOCombos}
+                    label="Reference Combos"
+                    value={result.stats?.totalReferenceCombos}
                     color="#94a3b8"
                   />
                   <StatRow label="Overlap" value={result.stats?.overlapCombos} color="#00d4ff" />
@@ -613,15 +687,16 @@ export default function RangeBuilder() {
                   >
                     LEGEND
                   </div>
-                  <LegendItem color="#22c55e" label="Correct - You included, GTO includes" />
-                  <LegendItem color="#fbbf24" label="Missed - GTO includes, you didn't" />
-                  <LegendItem color="#ef4444" label="Wrong - You included, GTO doesn't" />
-                  <LegendItem color="#f97316" label="Partial - Mixed frequency hand" />
+                  <LegendItem color="#22c55e" label="Match - Included in both ranges" />
+                  <LegendItem color="#fbbf24" label="Omitted - Included in the authored reference" />
+                  <LegendItem color="#ef4444" label="Extra - Outside the authored reference" />
+                  <LegendItem color="#f97316" label="Partial - Mixed authored frequency" />
 
                   <button
                     onClick={() => {
                       setResult(null);
                       setSelectedHands(new Set());
+                      setError('');
                     }}
                     style={{
                       width: '100%',
@@ -726,9 +801,30 @@ export default function RangeBuilder() {
                   <p
                     style={{ fontSize: 11, color: 'var(--sp-fg-faint)', lineHeight: 1.5, margin: '0 0 12px' }}
                   >
-                    Click Hands To Toggle On/Off. Build What You Think The GTO Open-Raising Range Is
-                    For {position}, Then Grade It.
+                    Click Hands To Toggle On/Off. Build A {position} Open-Raising Range, Then Compare
+                    It With The Authored 6-Max Cash 100BB Practice Reference. This Is Not A Verified
+                    Solver Result.
                   </p>
+
+                  {error && (
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      style={{
+                        marginBottom: 12,
+                        padding: '8px 10px',
+                        border: '1px solid rgba(239,68,68,0.35)',
+                        borderRadius: 8,
+                        background: 'rgba(239,68,68,0.08)',
+                        color: 'var(--sp-accent-red)',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {error}
+                    </div>
+                  )}
 
                   <button
                     onClick={submitRange}
@@ -750,7 +846,7 @@ export default function RangeBuilder() {
                       transition: 'all 0.2s',
                     }}
                   >
-                    {grading ? 'Grading...' : 'Grade My Range'}
+                    {grading ? 'Comparing...' : 'Compare To Reference'}
                   </button>
                 </motion.div>
               )}

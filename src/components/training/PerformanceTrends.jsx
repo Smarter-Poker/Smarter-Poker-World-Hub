@@ -30,8 +30,12 @@ function LineChart({
 }) {
     const [hovered, setHovered] = useState(null);
     const svgWidth = 280;
+    const chartData = (data || []).filter((datum) => {
+        const value = typeof datum === 'number' ? datum : datum?.[valueKey];
+        return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+    });
 
-    if (!data || data.length < 2) {
+    if (chartData.length < 2) {
         return (
             <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 11, fontStyle: 'italic' }}>
                 {emptyMessage}
@@ -39,7 +43,7 @@ function LineChart({
         );
     }
 
-    const values = data.map(d => typeof d === 'number' ? d : d[valueKey] || 0);
+    const values = chartData.map(d => Number(typeof d === 'number' ? d : d[valueKey]));
     const max = Math.max(...values, 1);
     const min = Math.min(...values, 0);
     const range = max - min || 1;
@@ -128,8 +132,8 @@ function LineChart({
             )}
 
             {/* X-axis labels (first, mid, last) */}
-            {showLabels && data.length >= 3 && [0, Math.floor(data.length / 2), data.length - 1].map(i => {
-                const d = data[i];
+            {showLabels && chartData.length >= 3 && [0, Math.floor(chartData.length / 2), chartData.length - 1].map(i => {
+                const d = chartData[i];
                 const dateStr = d?.date ? new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
                 return (
                     <text key={i} x={points[i].x} y={height - 2} textAnchor="middle" fill="#475569" fontSize="8">
@@ -330,16 +334,22 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                 >
                     <MilestoneBadge
                         icon="◎"
-                        label="Score"
-                        value={`${milestones.last5Avg}%`}
-                        color={milestones.last5Avg >= 80 ? '#22c55e' : milestones.last5Avg >= 60 ? '#fbbf24' : '#ef4444'}
-                        subValue={milestones.prev5Avg !== null ? `was ${milestones.prev5Avg}%` : null}
+                        label="Verified Score"
+                        value={Number.isFinite(milestones.last5Avg) ? `${milestones.last5Avg}` : '-'}
+                        color={Number.isFinite(milestones.last5Avg)
+                            ? (milestones.last5Avg >= 80 ? '#22c55e' : milestones.last5Avg >= 60 ? '#fbbf24' : '#ef4444')
+                            : '#64748b'}
+                        subValue={Number.isFinite(milestones.prev5Avg) ? `Was ${milestones.prev5Avg}` : null}
                     />
                     <MilestoneBadge
                         icon=""
-                        label="EV/Hand"
-                        value={milestones.avgEvPerHand.toFixed(2)}
-                        color={milestones.avgEvPerHand < 0.5 ? '#22c55e' : '#fbbf24'}
+                        label="Measured EV/Hand"
+                        value={Number.isFinite(milestones.avgEvPerHand)
+                            ? Number(milestones.avgEvPerHand).toFixed(2)
+                            : '-'}
+                        color={Number.isFinite(milestones.avgEvPerHand)
+                            ? (milestones.avgEvPerHand < 0.5 ? '#22c55e' : '#fbbf24')
+                            : '#64748b'}
                     />
                     <MilestoneBadge
                         icon=""
@@ -368,7 +378,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                     <div style={styles.chartLabel}>
                         GTOW Score
                         <span style={styles.chartSubLabel}>
-                            Best: {milestones.bestScore}%
+                            Best: {Number.isFinite(milestones.bestScore) ? milestones.bestScore : '-'}
                         </span>
                     </div>
                     <LineChart
@@ -376,7 +386,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                         valueKey="gtowScore"
                         color="#3b82f6"
                         height={compact ? 60 : 80}
-                        formatValue={v => `${v}%`}
+                        formatValue={v => `${v}`}
                         emptyMessage="Complete more sessions to see trends"
                     />
                 </motion.div>

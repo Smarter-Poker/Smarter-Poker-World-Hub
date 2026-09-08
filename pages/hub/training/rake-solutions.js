@@ -1,8 +1,8 @@
 /**
- * RAKE-AWARE SOLUTIONS — Custom Rake Strategy Viewer
+ * RAKE SENSITIVITY MODEL — Authored Teaching Illustration
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Study how rake changes optimal strategy. Select a rake structure and
- * see how opening ranges, 3-bet frequencies, and postflop aggression shift.
+ * Explore one disclosed mathematical curve over authored reference values.
+ * This page contains no solver output, EV calculation, or strategy advice.
  *
  * Route: /hub/training/rake-solutions
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -29,7 +29,7 @@ const RAKE_PRESETS = [
     label: 'No Rake',
     pct: 0,
     cap: 0,
-    desc: 'Pure GTO (freeroll/private)',
+    desc: 'Zero-Cost Illustration',
     color: 'var(--sp-accent-green)',
   },
   {
@@ -37,16 +37,16 @@ const RAKE_PRESETS = [
     label: 'Micros 5%/$1',
     pct: 5,
     cap: 1,
-    desc: '2NL-10NL online',
+    desc: 'Illustrative $1 Cap',
     color: 'var(--sp-accent-blue)',
   },
-  { id: 'low-5-3', label: 'Low 5%/$3', pct: 5, cap: 3, desc: '25NL-50NL online', color: 'var(--sp-accent-purple)' },
+  { id: 'low-5-3', label: '5%/$3', pct: 5, cap: 3, desc: 'Illustrative $3 Cap', color: 'var(--sp-accent-purple)' },
   {
     id: 'mid-5-5',
     label: 'Mid 5%/$5',
     pct: 5,
     cap: 5,
-    desc: '100NL-200NL online',
+    desc: 'Illustrative $5 Cap',
     color: 'var(--sp-accent-amber)',
   },
   {
@@ -54,7 +54,7 @@ const RAKE_PRESETS = [
     label: 'Live 10%/$5',
     pct: 10,
     cap: 5,
-    desc: 'Live $1/$2 casino',
+    desc: 'Illustrative 10% Model',
     color: 'var(--sp-accent-red)',
   },
   {
@@ -62,13 +62,13 @@ const RAKE_PRESETS = [
     label: 'Live 5%/$15',
     pct: 5,
     cap: 15,
-    desc: 'Live $2/$5 casino',
+    desc: 'Illustrative $15 Cap',
     color: '#ec4899',
   },
 ];
 
-// Baseline GTO frequencies (no-rake) by position
-const BASELINE_FREQS = {
+// Arbitrary authored teaching references. These are not solver frequencies.
+const AUTHORED_REFERENCE_FREQS = {
   UTG: { rfi: 15, fold3bet: 55, threeBet: 3, cbet: 60 },
   HJ: { rfi: 18, fold3bet: 50, threeBet: 5, cbet: 62 },
   CO: { rfi: 27, fold3bet: 45, threeBet: 7, cbet: 65 },
@@ -89,11 +89,12 @@ const STATS = [
 // RAKE ADJUSTMENT ENGINE
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function adjustForRake(baseline, rakePct, rakeCap) {
-  // Higher rake → tighter play, less multiway, more fold to 3-bets
+function applyIllustrativeRakeCurve(baseline, rakePct, rakeCap) {
+  // Disclosed toy curve: pressure = (percentage / 5) × min(cap / 3, 2).
+  // The coefficients below are authored visual inputs, not empirical or solved data.
   const rakePressure = (rakePct / 5) * Math.min(rakeCap / 3, 2); // normalized 0-2 scale
   return {
-    rfi: Math.max(5, Math.round(baseline.rfi - rakePressure * 3.5)),
+    rfi: baseline.rfi === 0 ? 0 : Math.max(5, Math.round(baseline.rfi - rakePressure * 3.5)),
     fold3bet: Math.min(75, Math.round(baseline.fold3bet + rakePressure * 4)),
     threeBet: Math.max(1, Math.round(baseline.threeBet - rakePressure * 1.5)),
     cbet: Math.max(35, Math.round(baseline.cbet - rakePressure * 2.5)),
@@ -150,7 +151,7 @@ export default function RakeSolutionsPage() {
   const adjustedFreqs = useMemo(() => {
     const result = {};
     POSITIONS.forEach((pos) => {
-      result[pos] = adjustForRake(BASELINE_FREQS[pos], activeRake.pct, activeRake.cap);
+      result[pos] = applyIllustrativeRakeCurve(AUTHORED_REFERENCE_FREQS[pos], activeRake.pct, activeRake.cap);
     });
     return result;
   }, [activeRake]);
@@ -159,7 +160,7 @@ export default function RakeSolutionsPage() {
     if (!compareRake) return null;
     const result = {};
     POSITIONS.forEach((pos) => {
-      result[pos] = adjustForRake(BASELINE_FREQS[pos], compareRake.pct, compareRake.cap);
+      result[pos] = applyIllustrativeRakeCurve(AUTHORED_REFERENCE_FREQS[pos], compareRake.pct, compareRake.cap);
     });
     return result;
   }, [compareRake]);
@@ -167,7 +168,7 @@ export default function RakeSolutionsPage() {
   return (
     <>
       <Head>
-        <title>Rake Solutions | Smarter.Poker Training</title>
+        <title>Rake Sensitivity Model | Smarter.Poker Training</title>
       </Head>
       <div
         style={{
@@ -207,12 +208,30 @@ export default function RakeSolutionsPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Rake-Aware Solutions</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>How Rake Changes Optimal Strategy</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Rake Sensitivity Model</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+              Authored Toy Curve • Not Solver Or Strategy Data
+            </div>
           </div>
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
+          <div
+            role="note"
+            data-training-authority="authored-toy-model"
+            style={{
+              padding: 14,
+              marginBottom: 20,
+              border: '1px solid rgba(251,191,36,0.28)',
+              background: 'rgba(251,191,36,0.06)',
+              color: 'var(--sp-fg-muted)',
+              fontSize: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            This Page Applies A Disclosed Toy Curve To Authored Reference Numbers. It Does Not
+            Run A Solver, Measure A Player Pool, Calculate EV, Or Recommend A Poker Strategy.
+          </div>
           {/* Rake Selector */}
           <div
             style={{
@@ -325,12 +344,12 @@ export default function RakeSolutionsPage() {
               {selectedPosition} - {activeRake.label}
             </div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
-              Optimal Frequencies Adjusted For Rake Pressure
+              Illustrative Values After The Authored Rake Curve
             </div>
 
             {STATS.map((stat) => {
               const val = adjustedFreqs[selectedPosition][stat.key];
-              const baseVal = BASELINE_FREQS[selectedPosition][stat.key];
+              const baseVal = AUTHORED_REFERENCE_FREQS[selectedPosition][stat.key];
               const delta = val - baseVal;
               return (
                 <div key={stat.key} style={{ marginBottom: 16 }}>
@@ -349,7 +368,9 @@ export default function RakeSolutionsPage() {
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>GTO: {baseVal}%</span>
+                      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
+                        Authored Ref: {baseVal}%
+                      </span>
                       {delta !== 0 && (
                         <span
                           style={{
@@ -393,7 +414,7 @@ export default function RakeSolutionsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {POSITIONS.map((pos) => {
               const val = adjustedFreqs[pos].rfi;
-              const base = BASELINE_FREQS[pos].rfi;
+              const base = AUTHORED_REFERENCE_FREQS[pos].rfi;
               const delta = val - base;
               return (
                 <motion.div
@@ -453,12 +474,12 @@ export default function RakeSolutionsPage() {
                 marginBottom: 8,
               }}
             >
-              Strategy Insight
+              Model Formula
             </div>
             <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
-              {activeRake.pct === 0
-                ? 'Without rake, pure GTO frequencies are optimal. You can play wider ranges and see more flops profitably.'
-                : `With ${activeRake.pct}% rake capped at $${activeRake.cap}, your effective winrate is reduced by approximately ${(Number.isFinite(Number(activeRake.pct * 0.4)) ? Number(activeRake.pct * 0.4) : 0).toFixed(1)} bb/100. Tighten opening ranges by ${Math.round(activeRake.pct * 0.7)}%, increase fold-to-3bet, and reduce speculative calls.`}
+              Pressure Equals (Rake Percentage ÷ 5) × The Smaller Of (Cap ÷ 3) Or 2. Authored
+              Coefficients Then Move The Four Display Values. The Result Is A Sensitivity
+              Illustration Only; It Is Not A Win-Rate Estimate, Range, Action, Or Recommendation.
             </div>
           </div>
         </div>

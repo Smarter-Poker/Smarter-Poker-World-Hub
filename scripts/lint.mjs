@@ -39,7 +39,11 @@ const files = inventory.stdout
   .map((file) => file.trim())
   .filter(Boolean)
   .filter((file) => SOURCE_EXTENSION.test(file))
-  .filter((file) => !EXCLUDED_PREFIXES.some((prefix) => file.startsWith(prefix)));
+  .filter((file) => !EXCLUDED_PREFIXES.some((prefix) => file.startsWith(prefix)))
+  // `git ls-files --cached` intentionally includes an unstaged deletion. A
+  // release candidate that removes a legacy source file must still be able to
+  // run the exact lint gate before it is staged or committed.
+  .filter((file) => existsSync(resolve(ROOT, file)));
 
 const batches = [];
 let batch = [];

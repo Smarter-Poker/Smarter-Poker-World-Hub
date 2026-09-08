@@ -147,10 +147,12 @@ test('Leak Finder wires the complete coaching and exact-hand continuity workspac
   const workspace = read('src/components/personal-assistant/CoachingWorkspace.jsx');
   assert.match(page, /value: 'coaching', label: 'Coaching'/);
   assert.match(page, /<CoachingWorkspace/);
-  assert.match(page, /onPracticeExample=\{handlePracticeExample\}/);
+  assert.match(page, /onOpenHandReview=\{handleOpenHandReview\}/);
+  assert.match(page, /onReviewExample=\{handleReviewExample\}/);
   assert.match(workspace, /useLeakHandExamples\(exampleLeakId\)/);
-  assert.match(workspace, /Open Exact Sandbox Spot/);
+  assert.match(workspace, /Open Audited Hand Review/);
   assert.match(workspace, /No Persisted Example Hand Is Attached/);
+  assert.doesNotMatch(workspace, /Open Exact Sandbox Spot|Open Corrective Sandbox/);
   assert.match(workspace, /Weekly Coaching Report/);
   assert.match(workspace, /Analysis Receipt/);
   assert.match(workspace, /Analysis Depth/);

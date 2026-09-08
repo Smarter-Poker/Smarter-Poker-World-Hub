@@ -43,6 +43,7 @@ import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import { normalizeTrainingSessionConfig } from '../../src/lib/training/sessionConfigContract.mjs';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
@@ -62,6 +63,42 @@ const CATEGORY_META = {
 };
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
+
+const WEEKLY_STATS_NUMERIC_FIELDS = Object.freeze([
+  'hands_this_week',
+  'accuracy_this_week_pct',
+  'ev_saved_this_week_bb',
+  'hands_last_week',
+  'accuracy_last_week_pct',
+  'ev_saved_last_week_bb',
+  'current_streak_days',
+  'personal_best_streak_days',
+  'rolling_accuracy_pct',
+  'rolling_correct',
+  'rolling_total',
+]);
+
+function normalizeAuthoritativeWeeklyStats(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (!WEEKLY_STATS_NUMERIC_FIELDS.every(field => (
+    typeof value[field] === 'number' && Number.isFinite(value[field])
+  ))) return null;
+  return {
+    ...value,
+    ...Object.fromEntries(WEEKLY_STATS_NUMERIC_FIELDS.map(field => [field, Number(value[field])])),
+  };
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function formatSignedValue(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return number >= 0 ? `+${number}` : number;
+}
 
 export default function TrainingPage() {
   const router = useRouter();
@@ -92,11 +129,24 @@ export default function TrainingPage() {
   }, []);
 
   // Real data from RPC + Jarvis API · no hardcoded fallbacks
-  const { stats, statsLoading, recommendation, recommendationLoading } = useTrainingDashboard(authUser);
+  const {
+    stats,
+    statsLoading,
+    statsError,
+    retryStats,
+    recommendation,
+    recommendationLoading,
+  } = useTrainingDashboard(authUser);
   // Lifetime cross-session progress: real training_sessions rows +
   // training_answers position aggregates. Empty history renders an honest
   // "No sessions yet" · never invented numbers.
-  const { lifetimeSessions, positionAccuracy, progressLoading } = useLifetimeProgress(authUser);
+  const {
+    lifetimeSessions,
+    positionAccuracy,
+    progressLoading,
+    progressError,
+    retryProgress,
+  } = useLifetimeProgress(authUser);
   // The old hub called an optional getBiggest() method that does not exist on
   // LeakSignalAnalyzer, so this entire real-data panel was permanently dead.
   // Read the authenticated, persisted leak lifecycle instead and rank only
@@ -229,6 +279,7 @@ export default function TrainingPage() {
       });
       return;
     }
+    const sessionConfig = normalizeTrainingSessionConfig(prefs);
     // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
     // used to be handed to GodModeArena's wrapper, which rendered N copies of
     // the arena with IDENTICAL props · same drill, same userId, same sessionId.
@@ -242,7 +293,7 @@ export default function TrainingPage() {
     // table, one combined session, one save. Route there instead of mounting
     // the broken inline copy. The chosen game leads so the player still gets
     // the drill they clicked.
-    const tableCount = parseInt(prefs?.tables || '1', 10);
+    const tableCount = parseInt(sessionConfig.tables, 10);
     if (Number.isFinite(tableCount) && tableCount > 1 && setupGame?.id) {
       setSetupGame(null);
       router.push({
@@ -250,10 +301,12 @@ export default function TrainingPage() {
         query: {
           tables: String(tableCount),
           game: setupGame.id,
-          ...(prefs?.difficulty ? { difficulty: prefs.difficulty } : {}),
-          ...(prefs?.timer ? { timer: prefs.timer } : {}),
+          difficulty: sessionConfig.difficulty,
+          timer: sessionConfig.timer,
+          scope: sessionConfig.scope,
+          ...(sessionConfig.targetStreet ? { targetStreet: sessionConfig.targetStreet } : {}),
           autoAdvance: '0',
-          ...(prefs?.handSelection ? { handSelection: prefs.handSelection } : {}),
+          handSelection: sessionConfig.handSelection,
           // GTOW parity #9 / #6: the arena derives its Auto New Hand delay from
           // `speed` and its pause behaviour from `feedbackRule`. The single-table
           // branch below forwards both; this branch dropped them, so every
@@ -266,24 +319,7 @@ export default function TrainingPage() {
       return;
     }
 
-    setArenaConfig(prefs ? {
-      difficulty: prefs.difficulty, 
-      timer: prefs.timer, 
-      mode: prefs.mode,
-      scope: prefs.scope,
-      speed: 'normal',
-      tables: prefs.tables,
-      // GTOW parity #29: the player's feedback rule and Auto New Hand choice
-      // must survive into the arena. These used to be dropped here and then
-      // hardcoded downstream.
-      feedbackRule: 'every',
-      autoAdvance: false,
-      // GTOW parity #7: `applyHandSelection` in useGTOTrainer reads
-      // trainerConfig.handSelection. Dropping it here is what kept the filter
-      // dead · the hook received undefined and returned the unfiltered set on
-      // every session regardless of what the player picked.
-      handSelection: prefs.handSelection
-    } : null);
+    setArenaConfig(sessionConfig);
     // Session identity must be stable for the entire run. Rendering Date.now()
     // directly as a prop regenerated it whenever the hub rerendered, which
     // could split one player's answers and completion event across identities.
@@ -348,7 +384,7 @@ export default function TrainingPage() {
                   {jarvisPick?.estMinutes ? `Training Orb Online · ${jarvisPick.estMinutes} Minute Plan` : 'Training Orb Online'}
                 </p>
                 <h1 id="hero-h" className="sp-hero-title">
-                  {renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading })}
+                  {renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading, recommendationLoading })}
                 </h1>
                 <p className="sp-hero-sub">
                   {recommendationLoading
@@ -377,7 +413,13 @@ export default function TrainingPage() {
                 </div>
               </div>
 
-              <GradeCard stats={stats} loading={statsLoading} />
+              <GradeCard
+                stats={stats}
+                loading={statsLoading}
+                error={statsError}
+                onRetry={retryStats}
+                signedIn={Boolean(authUser?.id)}
+              />
             </section>
 
             {biggestLeak && (
@@ -414,43 +456,55 @@ export default function TrainingPage() {
                 <h2 id="stats-h" className="sp-section-title">This Week</h2>
                 <a className="sp-section-link" href="/hub/session-history">See History <ArrowRight size={14} aria-hidden /></a>
               </div>
-              <div className="sp-stats">
-                <Stat
-                  icon={Layers}
-                  label="Hands"
-                  loading={statsLoading}
-                  value={stats?.hands_this_week ?? 0}
-                  trend={fmtTrend(stats?.hands_this_week, stats?.hands_last_week)}
+              {!authUser?.id ? (
+                <DataUnavailable
+                  title="Sign In To View Weekly Stats"
+                  message="Weekly Hands, Accuracy, Measured EV, And Streaks Appear After An Authenticated Read."
+                  alert={false}
                 />
-                <Stat
-                  icon={Target}
-                  label="Accuracy"
-                  loading={statsLoading}
-                  value={stats?.accuracy_this_week_pct ?? 0}
-                  unit="%"
-                  trend={fmtTrend(stats?.accuracy_this_week_pct, stats?.accuracy_last_week_pct, ' pts')}
+              ) : statsError ? (
+                <DataUnavailable
+                  title="Weekly Stats Are Temporarily Unavailable"
+                  message="We Could Not Verify Your Current Training Statistics. No Placeholder Values Are Shown."
+                  onRetry={retryStats}
                 />
-                <Stat
-                  icon={TrendingUp}
-                  label="EV Saved"
-                  loading={statsLoading}
-                  value={(stats?.ev_saved_this_week_bb ?? 0) >= 0
-                    ? `+${stats?.ev_saved_this_week_bb ?? 0}`
-                    : (stats?.ev_saved_this_week_bb ?? 0)}
-                  unit="bb"
-                  trend={fmtTrend(stats?.ev_saved_this_week_bb, stats?.ev_saved_last_week_bb, ' bb')}
-                />
-                <Stat
-                  icon={Flame}
-                  label="Streak"
-                  loading={statsLoading}
-                  value={stats?.current_streak_days ?? 0}
-                  unit="days"
-                  sub={stats?.personal_best_streak_days
-                    ? `Personal best: ${stats.personal_best_streak_days}`
-                    : null}
-                />
-              </div>
+              ) : (
+                <div className="sp-stats">
+                  <Stat
+                    icon={Layers}
+                    label="Hands"
+                    loading={statsLoading || !stats}
+                    value={stats?.hands_this_week}
+                    trend={fmtTrend(stats?.hands_this_week, stats?.hands_last_week)}
+                  />
+                  <Stat
+                    icon={Target}
+                    label="Accuracy"
+                    loading={statsLoading || !stats}
+                    value={stats?.accuracy_this_week_pct}
+                    unit="%"
+                    trend={fmtTrend(stats?.accuracy_this_week_pct, stats?.accuracy_last_week_pct, ' pts')}
+                  />
+                  <Stat
+                    icon={TrendingUp}
+                    label="EV Saved"
+                    loading={statsLoading || !stats}
+                    value={formatSignedValue(stats?.ev_saved_this_week_bb)}
+                    unit="bb"
+                    trend={fmtTrend(stats?.ev_saved_this_week_bb, stats?.ev_saved_last_week_bb, ' bb')}
+                  />
+                  <Stat
+                    icon={Flame}
+                    label="Streak"
+                    loading={statsLoading || !stats}
+                    value={stats?.current_streak_days}
+                    unit="days"
+                    sub={stats?.personal_best_streak_days
+                      ? `Personal best: ${stats.personal_best_streak_days}`
+                      : null}
+                  />
+                </div>
+              )}
             </section>
 
             <section aria-labelledby="prog-h">
@@ -462,6 +516,8 @@ export default function TrainingPage() {
                 positionAccuracy={positionAccuracy}
                 loading={progressLoading}
                 signedIn={Boolean(authUser?.id)}
+                error={progressError}
+                onRetry={retryProgress}
               />
             </section>
 
@@ -507,7 +563,7 @@ export default function TrainingPage() {
                     <GameCardNew
                       key={g.id}
                       game={g}
-                      progress={getGameProgress?.(g.id)?.percent || 0}
+                      progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
                       isRecommended={g.id === jarvisPick?.id}
                       onStart={() => startDrill(g)}
                     />
@@ -568,8 +624,36 @@ function DrillCard({ game }) {
   );
 }
 
-function GradeCard({ stats, loading }) {
-  if (loading) {
+function DataUnavailable({ title, message, onRetry, alert = true, compact = false }) {
+  return (
+    <div className={`sp-data-unavailable${compact ? ' sp-data-unavailable-compact' : ''}`} role={alert ? 'alert' : 'status'}>
+      <AlertTriangle size={18} aria-hidden />
+      <div className="sp-data-unavailable-copy">
+        <strong>{title}</strong>
+        <span>{message}</span>
+      </div>
+      {onRetry && (
+        <button type="button" className="sp-data-retry" onClick={onRetry}>
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
+function GradeCard({ stats, loading, error, onRetry, signedIn }) {
+  if (!signedIn) {
+    return (
+      <div className="sp-grade-card" aria-label="Training grade requires sign in">
+        <div className="sp-grade-text">
+          <p className="sp-grade-label">Training Grade Requires Sign In</p>
+          <p className="sp-grade-value">Sign In And Finish A Verified Drill To Build Your Grade.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || (!stats && !error)) {
     return (
       <div className="sp-grade-card" aria-label="Loading current GTO grade" aria-busy="true">
         <div className="sp-grade-row">
@@ -584,11 +668,24 @@ function GradeCard({ stats, loading }) {
     );
   }
 
-  const grade    = stats?.current_grade || '-';
-  const next     = stats?.next_grade;
-  const accuracy = stats?.rolling_accuracy_pct ?? 0;
-  const hands    = stats?.rolling_total ?? 0;
-  const delta    = stats?.delta_correct_to_next;
+  if (error || !stats) {
+    return (
+      <div className="sp-grade-card" aria-label="Training grade temporarily unavailable">
+        <DataUnavailable
+          title="Training Grade Is Temporarily Unavailable"
+          message="Your Verified Grade Could Not Be Loaded."
+          onRetry={onRetry}
+          compact
+        />
+      </div>
+    );
+  }
+
+  const grade    = stats.current_grade || '-';
+  const next     = stats.next_grade;
+  const accuracy = stats.rolling_accuracy_pct;
+  const hands    = stats.rolling_total;
+  const delta    = stats.delta_correct_to_next;
   const pct      = Math.max(0, Math.min(100, accuracy));
   const hasData  = hands > 0;
 
@@ -629,10 +726,14 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
     );
   }
   const isUp = typeof trend === 'string' && trend.startsWith('+');
+  const hasValue = value !== null && value !== undefined && value !== '';
   return (
     <div className="sp-stat">
       <div className="sp-stat-label"><Icon size={13} aria-hidden /> {label}</div>
-      <div className="sp-stat-value sp-num">{value}{unit && <span className="sp-stat-unit">{unit}</span>}</div>
+      <div className="sp-stat-value sp-num">
+        {hasValue ? value : '-'}
+        {hasValue && unit && <span className="sp-stat-unit">{unit}</span>}
+      </div>
       {trend && (
         <div className={`sp-stat-trend ${isUp ? 'sp-up' : 'sp-down'}`}>
           <TrendingUp size={12} aria-hidden /> {trend}
@@ -651,14 +752,17 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
  *   3) loading                                    → "Loading your daily plan…"
  *   4) no recommendation                          → "Browse the library to pick your first drill."
  */
-function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading }) {
+function renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading, recommendationLoading }) {
   const greet = authUser
     ? `Welcome Back${authUser?.name ? `, ${authUser.name}` : ''}.`
     : 'Build Better Decisions, One Hand At A Time.';
-  if (statsLoading || recommendationLoading) {
+  if (statsLoading || recommendationLoading || (authUser && !stats && !statsError)) {
     return <>{greet} Loading Your Daily Plan…</>;
   }
-  const hasGradeData = (stats?.rolling_total ?? 0) > 0;
+  if (authUser && (statsError || !stats)) {
+    return <>{greet} Your Training Summary Is Temporarily Unavailable.</>;
+  }
+  const hasGradeData = Number(stats?.rolling_total) > 0;
   const delta = stats?.delta_correct_to_next;
   const nextGrade = stats?.next_grade;
   if (jarvisPick && hasGradeData && delta != null && nextGrade) {
@@ -718,7 +822,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
         {/* Shared Smarter.Poker art direction turns every unique game image into
             one coherent dimensional training-console surface. */}
         <div className="sp-card-cover-shade" aria-hidden />
-        <picture aria-hidden="true">
+        <picture>
           <source type="image/avif" srcSet="/images/training/training-card-hud-overlay.avif" />
           <source type="image/webp" srcSet="/images/training/training-card-hud-overlay.webp" />
           <img
@@ -779,32 +883,45 @@ function ArenaSkeleton() {
  * /api/training/get-sessions and /api/training/analytics; scores are
  * score_scale-normalized server-side (gtow_score_signed, -100..+100).
  */
-function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
-  if (loading) {
-    return <div className="sp-progress" aria-busy="true"><span className="sp-progress-note">Loading Progress…</span></div>;
-  }
-  const rows = sessions || [];
-  if (!signedIn || rows.length === 0) {
+function ProgressBlock({ sessions, positionAccuracy, loading, signedIn, error, onRetry }) {
+  if (!signedIn) {
     return (
       <div className="sp-progress sp-progress-blank">
-        <span className="sp-progress-note">
-          {signedIn
-            ? 'No sessions yet - finish a drill and your score trend, position accuracy and history will build here.'
-            : 'Sign in and finish a drill to start building your progress history.'}
-        </span>
+        <span className="sp-progress-note">Sign In And Finish A Drill To Start Building Your Progress History.</span>
+      </div>
+    );
+  }
+  if (loading || (!error && (sessions === null || positionAccuracy === null))) {
+    return <div className="sp-progress" aria-busy="true"><span className="sp-progress-note">Loading Progress…</span></div>;
+  }
+  if (error || !Array.isArray(sessions) || !isRecord(positionAccuracy)) {
+    return (
+      <DataUnavailable
+        title="Progress History Is Temporarily Unavailable"
+        message="We Could Not Verify Your Sessions And Position Analytics. No Empty-History Result Is Assumed."
+        onRetry={onRetry}
+      />
+    );
+  }
+  const rows = sessions;
+  if (rows.length === 0) {
+    return (
+      <div className="sp-progress sp-progress-blank">
+        <span className="sp-progress-note">No Sessions Yet - Finish A Drill And Your Score Trend, Position Accuracy And History Will Build Here.</span>
       </div>
     );
   }
 
-  const signedScore = (r) =>
-    r.gtow_score_signed != null
-      ? r.gtow_score_signed
-      : r.gtow_score == null
-        ? 0
-        : (r.score_scale === 2 ? r.gtow_score : r.gtow_score * 2 - 100);
+  const signedScore = (r) => {
+    const raw = r?.gtow_score_signed;
+    if (raw === null || raw === undefined || raw === '') return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  };
 
   // rows arrive newest-first; sparkline reads left → right chronologically
-  const chrono = [...rows].reverse();
+  const scoreRows = rows.filter((row) => signedScore(row) !== null);
+  const chrono = [...scoreRows].reverse();
   const sparkData = chrono.map(r => ({
     value: Math.max(0, Math.min(1, (signedScore(r) + 100) / 200)),
     miss: r.level_passed === false,
@@ -816,17 +933,21 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
     .filter(r => (r.total || 0) > 0);
 
   const barColor = (acc) => acc >= 75 ? 'var(--sp-good)' : acc >= 55 ? 'var(--sp-warn)' : 'var(--sp-bad)';
-  const fmtScore = (v) => { const n = Math.round(v); return n > 0 ? `+${n}` : `${n}`; };
+  const fmtScore = (v) => {
+    if (v === null) return '-';
+    const n = Math.round(v);
+    return n > 0 ? `+${n}` : `${n}`;
+  };
 
   return (
     <div className="sp-progress">
       <div className="sp-progress-grid">
         <div>
-          <div className="sp-progress-label">GTOW Score · Last {chrono.length} Sessions</div>
-          <Sparkline data={sparkData} />
+          <div className="sp-progress-label">Verified Signed Score · Last {chrono.length} Sessions</div>
+          {sparkData.length > 0 ? <Sparkline data={sparkData} /> : <div className="sp-progress-note">No Verified Signed Scores Recorded Yet.</div>}
           <div className="sp-progress-meta">
-            Latest <b className="sp-num">{fmtScore(signedScore(rows[0]))}</b>
-            {rows[0]?.created_at ? ` · ${new Date(rows[0].created_at).toLocaleDateString()}` : ''}
+            Latest <b className="sp-num">{scoreRows.length > 0 ? fmtScore(signedScore(scoreRows[0])) : '-'}</b>
+            {scoreRows[0]?.created_at ? ` · ${new Date(scoreRows[0].created_at).toLocaleDateString()}` : ''}
           </div>
         </div>
         <div>
@@ -849,17 +970,26 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
 
       <div className="sp-progress-label" style={{ marginTop: 14 }}>Recent Sessions</div>
       <ul className="sp-plist">
-        {rows.slice(0, 6).map((r, i) => (
+        {rows.slice(0, 6).map((r, i) => {
+          const score = signedScore(r);
+          const measuredEv = (Number(r.measured_ev_decisions) || 0) > 0
+            && r.total_ev_loss !== null
+            && r.total_ev_loss !== undefined
+            && Number.isFinite(Number(r.total_ev_loss))
+            ? Number(r.total_ev_loss)
+            : null;
+          return (
           <li key={r.id || i} className="sp-plist-row">
             <span className="sp-plist-date">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</span>
             <span className="sp-plist-game">{r.game_name || r.game_id || 'Training'}</span>
-            <span className="sp-plist-score sp-num" style={{ color: signedScore(r) >= 50 ? 'var(--sp-good)' : signedScore(r) >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
-              {fmtScore(signedScore(r))}
+            <span className="sp-plist-score sp-num" style={{ color: score === null ? 'var(--sp-fg-faint)' : score >= 50 ? 'var(--sp-good)' : score >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
+              {fmtScore(score)}
             </span>
             <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '-'}</span>
-            <span className="sp-plist-ev sp-num">-{Number(r.total_ev_loss || 0).toFixed(1)}</span>
+            <span className="sp-plist-ev sp-num">{measuredEv === null ? 'EV -' : `${measuredEv.toFixed(3)} BB EV`}</span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
@@ -941,39 +1071,62 @@ function useLifetimeProgress(authUser) {
   const [lifetimeSessions, setLifetimeSessions] = useState(null);
   const [positionAccuracy, setPositionAccuracy] = useState(null);
   const [progressLoading, setProgressLoading] = useState(true);
+  const [progressError, setProgressError] = useState(null);
+  const [progressRetryToken, setProgressRetryToken] = useState(0);
+  const retryProgress = useCallback(() => setProgressRetryToken(token => token + 1), []);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!authUser?.id) {
+        setLifetimeSessions(null);
+        setPositionAccuracy(null);
+        setProgressError(null);
         setProgressLoading(false);
         return;
       }
+      setProgressLoading(true);
+      setProgressError(null);
+      setLifetimeSessions(null);
+      setPositionAccuracy(null);
       try {
-        const r = await authedFetch('/api/training/get-sessions?limit=10');
-        if (!r.ok) throw new Error(`get-sessions ${r.status}`);
-        const json = await r.json();
-        if (!cancelled && json.success) setLifetimeSessions(json.sessions || []);
-      } catch (e) {
-        if (!cancelled) console.warn('[Training] get-sessions fetch failed:', e?.message || e);
-      }
+        const [sessionsResponse, analyticsResponse] = await Promise.all([
+          authedFetch('/api/training/get-sessions?limit=10'),
+          authedFetch('/api/training/analytics?days=365&type=breakdown'),
+        ]);
+        if (!sessionsResponse.ok) throw new Error(`get-sessions ${sessionsResponse.status}`);
+        if (!analyticsResponse.ok) throw new Error(`analytics ${analyticsResponse.status}`);
 
-      try {
-        const r = await authedFetch('/api/training/analytics?days=365&type=breakdown');
-        if (!r.ok) throw new Error(`analytics ${r.status}`);
-        const json = await r.json();
-        if (!cancelled && json.success) setPositionAccuracy(json.positionAccuracy || null);
+        const [sessionsJson, analyticsJson] = await Promise.all([
+          sessionsResponse.json(),
+          analyticsResponse.json(),
+        ]);
+        if (sessionsJson?.success !== true || !Array.isArray(sessionsJson.sessions)) {
+          throw new Error('get-sessions returned an invalid authority response');
+        }
+        if (analyticsJson?.success !== true || !isRecord(analyticsJson.positionAccuracy)) {
+          throw new Error('analytics returned an invalid authority response');
+        }
+        if (!cancelled) {
+          setLifetimeSessions(sessionsJson.sessions);
+          setPositionAccuracy(analyticsJson.positionAccuracy);
+        }
       } catch (e) {
-        if (!cancelled) console.warn('[Training] analytics fetch failed:', e?.message || e);
+        if (!cancelled) {
+          setLifetimeSessions(null);
+          setPositionAccuracy(null);
+          setProgressError('Training progress is temporarily unavailable.');
+          console.warn('[Training] progress fetch failed:', e?.message || e);
+        }
+      } finally {
+        if (!cancelled) setProgressLoading(false);
       }
-
-      if (!cancelled) setProgressLoading(false);
     }
     load();
     return () => { cancelled = true; };
-  }, [authUser?.id]);
+  }, [authUser?.id, progressRetryToken]);
 
-  return { lifetimeSessions, positionAccuracy, progressLoading };
+  return { lifetimeSessions, positionAccuracy, progressLoading, progressError, retryProgress };
 }
 
 /**
@@ -988,28 +1141,57 @@ function useLifetimeProgress(authUser) {
 function useTrainingDashboard(authUser) {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(null);
+  const [statsRetryToken, setStatsRetryToken] = useState(0);
   const [recommendation, setRecommendation] = useState(null);
   const [recommendationLoading, setRecommendationLoading] = useState(true);
+  const retryStats = useCallback(() => setStatsRetryToken(token => token + 1), []);
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    async function loadStats() {
       if (!authUser?.id) {
+        setStats(null);
+        setStatsError(null);
         setStatsLoading(false);
-        setRecommendationLoading(false);
         return;
       }
+      setStats(null);
+      setStatsError(null);
+      setStatsLoading(true);
       try {
         const r = await authedFetch('/api/training/weekly-stats');
         if (!r.ok) throw new Error(`weekly-stats ${r.status}`);
         const json = await r.json();
-        if (!cancelled && json.success) setStats(json.stats);
+        const authoritativeStats = json?.success === true
+          ? normalizeAuthoritativeWeeklyStats(json.stats)
+          : null;
+        if (!authoritativeStats) throw new Error('weekly-stats returned an invalid authority response');
+        if (!cancelled) setStats(authoritativeStats);
       } catch (e) {
-        if (!cancelled) console.warn('[Training] weekly-stats fetch failed:', e?.message || e);
+        if (!cancelled) {
+          setStats(null);
+          setStatsError('Weekly training statistics are temporarily unavailable.');
+          console.warn('[Training] weekly-stats fetch failed:', e?.message || e);
+        }
       } finally {
         if (!cancelled) setStatsLoading(false);
       }
+    }
+    loadStats();
+    return () => { cancelled = true; };
+  }, [authUser?.id, statsRetryToken]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRecommendation() {
+      if (!authUser?.id) {
+        setRecommendation(null);
+        setRecommendationLoading(false);
+        return;
+      }
+      setRecommendation(null);
+      setRecommendationLoading(true);
       try {
         const r = await authedFetch('/api/training/recommendations');
         if (!r.ok) throw new Error(`recommendations ${r.status}`);
@@ -1038,11 +1220,11 @@ function useTrainingDashboard(authUser) {
         if (!cancelled) setRecommendationLoading(false);
       }
     }
-    load();
+    loadRecommendation();
     return () => { cancelled = true; };
   }, [authUser?.id]);
 
-  return { stats, statsLoading, recommendation, recommendationLoading };
+  return { stats, statsLoading, statsError, retryStats, recommendation, recommendationLoading };
 }
 
 /** Format a week-over-week trend string from raw values. */
@@ -1180,6 +1362,28 @@ function GlobalStyle() {
       .sp-stat-trend.sp-up { color: var(--sp-good); }
       .sp-stat-trend.sp-down { color: var(--sp-bad); }
       .sp-stat-sub { font-size: 11px; color: var(--sp-ink-3); margin-top: 4px; }
+
+      .sp-data-unavailable {
+        display: flex; align-items: center; gap: 12px; min-height: 88px; padding: 16px;
+        border: 1px solid rgba(245,158,11,0.34); border-radius: var(--sp-r-md);
+        background: linear-gradient(180deg, rgba(245,158,11,0.08), rgba(245,158,11,0.025));
+        color: var(--sp-warn);
+      }
+      .sp-data-unavailable-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; }
+      .sp-data-unavailable-copy strong { color: var(--sp-ink-0); font-size: 13px; }
+      .sp-data-unavailable-copy span { color: var(--sp-ink-2); font-size: 12px; line-height: 1.45; }
+      .sp-data-unavailable-compact { min-height: 0; padding: 0; border: 0; background: transparent; }
+      .sp-data-retry {
+        flex: 0 0 auto; min-height: 44px; padding: 0 16px; border: 1px solid rgba(0,212,255,0.45);
+        border-radius: var(--sp-r-md); background: rgba(0,212,255,0.1); color: var(--sp-ink-0);
+        font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+      }
+      .sp-data-retry:hover { background: rgba(0,212,255,0.18); border-color: var(--sp-primary); }
+      .sp-data-retry:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
+      @media (max-width: 540px) {
+        .sp-data-unavailable { align-items: flex-start; flex-wrap: wrap; }
+        .sp-data-retry { width: 100%; }
+      }
 
       .sp-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
       .sp-search { position: relative; flex: 1; min-width: 220px; }
