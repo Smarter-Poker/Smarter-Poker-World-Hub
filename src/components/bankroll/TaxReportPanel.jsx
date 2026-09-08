@@ -48,6 +48,16 @@ export default function TaxReportPanel({ userId }) {
         if (userId) fetchW2gForms();
     }, [userId, selectedYear]);
 
+    // The Receipt Saved sheet files a scanned W-2G into this vault while this
+    // panel can already be on screen. It announces the write on the same
+    // event the ledger uses, so the list refreshes without a year change.
+    useEffect(() => {
+        if (!userId || typeof window === 'undefined') return undefined;
+        const refresh = () => fetchW2gForms();
+        window.addEventListener('bankroll-updated', refresh);
+        return () => window.removeEventListener('bankroll-updated', refresh);
+    }, [userId, selectedYear]);
+
     const fetchW2gForms = async () => {
         setW2gLoading(true);
         try {
