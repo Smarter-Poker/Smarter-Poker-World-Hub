@@ -23,12 +23,13 @@ test('the transfer route answers 410 — player-to-player transfers are off', ()
     'response must point players to the stream gift alternative');
 });
 
-test('the transfer route does not call any supabase table or RPC', () => {
-  // The handler body is the 410 stub; nothing in it should touch the database.
-  // Extract the handler function body (everything after 'export default async function handler').
+test('the transfer route applies private cache-control headers before answering 410', () => {
   const handlerStart = transfer.indexOf('export default async function handler');
   assert.ok(handlerStart > -1, 'handler export must be present');
   const handlerBody = transfer.slice(handlerStart);
+  // The private-Marketplace-APIs compliance test requires this call.
+  assert.match(handlerBody, /setPrivateCommerceResponse\(res\)/,
+    'the 410 handler must set private commerce response headers (compliance with marketplace-phase-6-request-resilience.test.mjs)');
   assert.doesNotMatch(handlerBody, /supabase\.(from|rpc)\(/,
     'the 410 handler must not touch the database');
 });

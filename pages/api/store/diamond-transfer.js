@@ -407,6 +407,7 @@ export default async function handler(req, res) {
    * faucet survivable. None of it is needed once the faucet is closed, and
    * every line of it was a second policy that had to agree with the database's.
    */
+  setPrivateCommerceResponse(res);
   res.setHeader('Allow', '');
   return res.status(410).json({
     error: 'Diamond Transfers Between Players Are Not Available',
