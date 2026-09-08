@@ -19,7 +19,7 @@
     "persistenceFiles": 74,
     "realtimeFiles": 6,
     "tests": 127,
-    "markerCandidates": 323,
+    "markerCandidates": 324,
     "possibleUnwiredFunctions": 346,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
@@ -4683,7 +4683,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -5888,7 +5887,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -6264,7 +6262,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -6490,7 +6487,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -6748,7 +6744,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -8140,7 +8135,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -9357,7 +9351,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -9850,7 +9843,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -10080,7 +10072,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -10338,7 +10329,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -11653,7 +11643,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -12408,7 +12397,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -12732,7 +12720,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -15312,7 +15299,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -15551,7 +15537,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -16039,7 +16024,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -16418,7 +16402,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -16645,7 +16628,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -16865,7 +16847,6 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
-            "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -35504,8 +35485,8 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1858,
-          "handler": "() => {\n                setShowTransfer((v) => !v);\n                if (!showTransfer) fetchFriends();\n              }",
+          "line": 1867,
+          "handler": "() => {\n                showStoreToast(\n                  'info',\n                  'Transfers Are Off. Diamonds Cannot Be Sent Directly To Another Player, But You Can Still Send Gifts During A Live Stream.'\n                );\n              }",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -35514,7 +35495,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 1902,
+          "line": 1912,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -35524,7 +35505,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1942,
+          "line": 1952,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -35534,7 +35515,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1964,
+          "line": 1974,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -35544,7 +35525,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2064,
+          "line": 2074,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": null,
@@ -35554,7 +35535,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2095,
+          "line": 2105,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": null,
@@ -35564,7 +35545,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2161,
+          "line": 2171,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": null,
@@ -35574,7 +35555,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2232,
+          "line": 2242,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": null,
@@ -35584,7 +35565,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2377,
+          "line": 2387,
           "handler": "handleTransfer",
           "destination": null,
           "type": null,
@@ -35594,7 +35575,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2498,
+          "line": 2508,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": null,
@@ -35604,7 +35585,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2514,
+          "line": 2524,
           "handler": "handleTransfer",
           "destination": null,
           "type": null,
@@ -35614,7 +35595,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2986,
+          "line": 2996,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": null,
@@ -35624,7 +35605,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 3041,
+          "line": 3051,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -35634,7 +35615,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 3064,
+          "line": 3074,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": null,
@@ -35644,7 +35625,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 3256,
+          "line": 3266,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": null,
@@ -35654,7 +35635,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 3292,
+          "line": 3302,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": null,
@@ -35874,7 +35855,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1897,
+          "line": 1907,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -35882,7 +35863,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2146,
+          "line": 2156,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -35890,7 +35871,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2362,
+          "line": 2372,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40400,7 +40381,7 @@
         {
           "element": "button",
           "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-          "line": 1566,
+          "line": 1595,
           "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
           "destination": null,
           "type": "button",
@@ -40410,7 +40391,7 @@
         {
           "element": "button",
           "name": "Go Back",
-          "line": 1583,
+          "line": 1612,
           "handler": "onBackClick || handleBack",
           "destination": null,
           "type": "button",
@@ -40420,7 +40401,7 @@
         {
           "element": "button",
           "name": "Go To The Hub",
-          "line": 1589,
+          "line": 1618,
           "handler": "() => router.push('/hub')",
           "destination": null,
           "type": "button",
@@ -40430,7 +40411,7 @@
         {
           "element": "button",
           "name": "My Profile",
-          "line": 1595,
+          "line": 1624,
           "handler": "goToProfile",
           "destination": null,
           "type": "button",
@@ -40440,7 +40421,7 @@
         {
           "element": "button",
           "name": "Diamond Wallet",
-          "line": 1612,
+          "line": 1641,
           "handler": "() => setIsWalletOpen(true)",
           "destination": null,
           "type": "button",
@@ -40450,7 +40431,7 @@
         {
           "element": "button",
           "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-          "line": 1618,
+          "line": 1647,
           "handler": "() => router.push('/hub/vip-membership')",
           "destination": null,
           "type": "button",
@@ -40460,7 +40441,7 @@
         {
           "element": "button",
           "name": "Messages",
-          "line": 1627,
+          "line": 1656,
           "handler": "() => router.push('/hub/messenger')",
           "destination": null,
           "type": "button",
@@ -40470,7 +40451,7 @@
         {
           "element": "button",
           "name": "Notifications",
-          "line": 1639,
+          "line": 1668,
           "handler": "() => openOverlay('notifications')",
           "destination": null,
           "type": "button",
@@ -40487,7 +40468,7 @@
       },
       "states": {
         "loading": true,
-        "empty": true,
+        "empty": false,
         "error": true,
         "retry": true,
         "offline": false,
@@ -40701,6 +40682,14 @@
           "kind": "FALLBACK",
           "line": 645,
           "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
+          "disposition": "frozen-global-header-dependency",
+          "review": "accepted",
+          "rationale": "Global header behavior is explicitly frozen and outside Training redesign scope."
+        },
+        {
+          "kind": "PLACEHOLDER",
+          "line": 1400,
+          "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
           "rationale": "Global header behavior is explicitly frozen and outside Training redesign scope."
@@ -63794,12 +63783,12 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1858:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1867:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1858,
-      "handler": "() => {\n                setShowTransfer((v) => !v);\n                if (!showTransfer) fetchFriends();\n              }",
+      "line": 1867,
+      "handler": "() => {\n                showStoreToast(\n                  'info',\n                  'Transfers Are Off. Diamonds Cannot Be Sent Directly To Another Player, But You Can Still Send Gifts During A Live Stream.'\n                );\n              }",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -63807,11 +63796,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1902:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1912:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 1902,
+      "line": 1912,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -63820,11 +63809,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1942:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1952:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1942,
+      "line": 1952,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -63833,11 +63822,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1964:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1974:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1964,
+      "line": 1974,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -63846,11 +63835,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2064:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:2074:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2064,
+      "line": 2074,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": null,
@@ -63859,11 +63848,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2095:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:2105:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2095,
+      "line": 2105,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": null,
@@ -63872,11 +63861,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2161:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:2171:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2161,
+      "line": 2171,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": null,
@@ -63885,11 +63874,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2232:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:2242:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2232,
+      "line": 2242,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": null,
@@ -63898,11 +63887,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2377:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:2387:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2377,
+      "line": 2387,
       "handler": "handleTransfer",
       "destination": null,
       "type": null,
@@ -63911,11 +63900,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2498:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2508:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2498,
+      "line": 2508,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": null,
@@ -63924,11 +63913,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2514:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2524:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2514,
+      "line": 2524,
       "handler": "handleTransfer",
       "destination": null,
       "type": null,
@@ -63937,11 +63926,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2986:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2996:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2986,
+      "line": 2996,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": null,
@@ -63950,11 +63939,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3041:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:3051:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 3041,
+      "line": 3051,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -63963,11 +63952,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3064:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:3074:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 3064,
+      "line": 3074,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": null,
@@ -63976,11 +63965,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3256:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:3266:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 3256,
+      "line": 3266,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": null,
@@ -63989,11 +63978,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3292:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:3302:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 3292,
+      "line": 3302,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": null,
@@ -65250,11 +65239,11 @@
       "effectRef": "src/components/ui/ReportBugWidget.jsx"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1566:1",
+      "id": "src/components/ui/UniversalHeader.js:1595:1",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-      "line": 1566,
+      "line": 1595,
       "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
       "destination": null,
       "type": "button",
@@ -65263,11 +65252,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1583:2",
+      "id": "src/components/ui/UniversalHeader.js:1612:2",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go Back",
-      "line": 1583,
+      "line": 1612,
       "handler": "onBackClick || handleBack",
       "destination": null,
       "type": "button",
@@ -65276,11 +65265,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1589:3",
+      "id": "src/components/ui/UniversalHeader.js:1618:3",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go To The Hub",
-      "line": 1589,
+      "line": 1618,
       "handler": "() => router.push('/hub')",
       "destination": null,
       "type": "button",
@@ -65289,11 +65278,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1595:4",
+      "id": "src/components/ui/UniversalHeader.js:1624:4",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "My Profile",
-      "line": 1595,
+      "line": 1624,
       "handler": "goToProfile",
       "destination": null,
       "type": "button",
@@ -65302,11 +65291,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1612:5",
+      "id": "src/components/ui/UniversalHeader.js:1641:5",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Diamond Wallet",
-      "line": 1612,
+      "line": 1641,
       "handler": "() => setIsWalletOpen(true)",
       "destination": null,
       "type": "button",
@@ -65315,11 +65304,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1618:6",
+      "id": "src/components/ui/UniversalHeader.js:1647:6",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-      "line": 1618,
+      "line": 1647,
       "handler": "() => router.push('/hub/vip-membership')",
       "destination": null,
       "type": "button",
@@ -65328,11 +65317,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1627:7",
+      "id": "src/components/ui/UniversalHeader.js:1656:7",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Messages",
-      "line": 1627,
+      "line": 1656,
       "handler": "() => router.push('/hub/messenger')",
       "destination": null,
       "type": "button",
@@ -65341,11 +65330,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1639:8",
+      "id": "src/components/ui/UniversalHeader.js:1668:8",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Notifications",
-      "line": 1639,
+      "line": 1668,
       "handler": "() => openOverlay('notifications')",
       "destination": null,
       "type": "button",
@@ -82411,7 +82400,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1897,
+        "line": 1907,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -82420,7 +82409,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2146,
+        "line": 2156,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -82429,7 +82418,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2362,
+        "line": 2372,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -82923,6 +82912,15 @@
         "kind": "FALLBACK",
         "line": 645,
         "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
+        "disposition": "frozen-global-header-dependency",
+        "review": "accepted",
+        "rationale": "Global header behavior is explicitly frozen and outside Training redesign scope."
+      },
+      {
+        "file": "src/components/ui/UniversalHeader.js",
+        "kind": "PLACEHOLDER",
+        "line": 1400,
+        "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
         "rationale": "Global header behavior is explicitly frozen and outside Training redesign scope."
@@ -90782,7 +90780,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1897,
+        "line": 1907,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90791,7 +90789,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2146,
+        "line": 2156,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90800,7 +90798,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2362,
+        "line": 2372,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -91294,6 +91292,15 @@
         "kind": "FALLBACK",
         "line": 645,
         "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
+        "disposition": "frozen-global-header-dependency",
+        "review": "accepted",
+        "rationale": "Global header behavior is explicitly frozen and outside Training redesign scope."
+      },
+      {
+        "file": "src/components/ui/UniversalHeader.js",
+        "kind": "PLACEHOLDER",
+        "line": 1400,
+        "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
         "rationale": "Global header behavior is explicitly frozen and outside Training redesign scope."
