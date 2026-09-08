@@ -47,7 +47,9 @@ export default async function handler(req, res) {
 
           // Use Grok Vision to analyze the screenshot
           const response = await grok.chat.completions.create({
-              model: 'grok-2-vision-1212',
+              // grok-2-vision-1212 does not exist; this worked only because the
+              // shared client falls back to grok-3 for names it does not know.
+              model: 'grok-3',
               messages: [
                   {
                       role: 'system',

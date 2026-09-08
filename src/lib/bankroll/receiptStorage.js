@@ -94,9 +94,17 @@ function extensionFor(contentType) {
  * @returns {Promise<string>} public URL
  */
 export async function uploadBankrollFile(supabase, userId, file) {
-    const type = (file && file.type) || 'image/jpeg';
+    const type = String((file && file.type) || 'image/jpeg').toLowerCase();
+    if (!EXTENSIONS[type]) {
+        // The bucket refuses anything outside its allowed_mime_types, with a
+        // storage error nobody can act on. Say it in words before it goes up.
+        throw new Error('This File Type Is Not Supported. Use A Photo Or A PDF.');
+    }
     return uploadBankrollImage(supabase, userId, file, type);
 }
+
+/** Types the bankroll bucket accepts, for a file input's `accept`. Mirrors EXTENSIONS and the bucket. */
+export const BANKROLL_ACCEPTED_TYPES = Object.keys(EXTENSIONS);
 
 /**
  * Remove the storage object behind a public URL, whichever bucket it is in.
