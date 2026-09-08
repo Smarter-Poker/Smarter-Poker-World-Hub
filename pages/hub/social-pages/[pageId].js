@@ -362,7 +362,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     ) : (
                         /* Standard image carousel */
                         <>
-                            <img src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }}
+                            <img
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={spKeyActivate} src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }}
                                 onClick={() => setLightboxUrl(post.media_urls[carouselIdx])} />
                         </>
                     )}
@@ -392,7 +395,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             )}
                             <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4 }}>
                                 {post.media_urls.map((_, di) => (
-                                    <div key={di} onClick={() => setCarouselIdx(di)} style={{
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={spKeyActivate} key={di} onClick={() => setCarouselIdx(di)} style={{
                                         width: 8, height: 8, borderRadius: '50%', cursor: 'pointer',
                                         background: di === carouselIdx ? '#fff' : 'rgba(255,255,255,0.5)',
                                         border: '1px solid rgba(0,0,0,0.2)',
@@ -406,7 +412,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* P12-3: Image Lightbox */}
             {lightboxUrl && (
-                <div onClick={() => setLightboxUrl(null)} style={{
+                <div
+                  data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" onClick={() => setLightboxUrl(null)} style={{
                     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 99999,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out',
                 }}>
@@ -421,7 +428,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Link Preview — upgraded to SharedLinkPreviewCard from social-media */}
             {post.link_preview && post.link_preview.url && (
-                <div onClick={() => onOpenArticle?.({ open: true, url: post.link_preview.url, title: post.link_preview.title || 'Article' })} style={{ cursor: 'pointer' }}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={spKeyActivate} onClick={() => onOpenArticle?.({ open: true, url: post.link_preview.url, title: post.link_preview.title || 'Article' })} style={{ cursor: 'pointer' }}>
                     <SharedLinkPreviewCard url={post.link_preview.url} />
                 </div>
             )}
@@ -572,9 +582,11 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Share Modal */}
             {showShareModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                <div
+                  data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                     onClick={() => setShowShareModal(false)}>
-                    <div style={{ background: C.card, borderRadius: 16, maxWidth: 360, width: '100%', padding: 24, boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}
+                    <div
+                      data-sp-skip-a11y="propagation guard, not a control" style={{ background: C.card, borderRadius: 16, maxWidth: 360, width: '100%', padding: 24, boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}
                         onClick={e => e.stopPropagation()}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Share Post</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -655,9 +667,11 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Delete Confirmation */}
             {confirmDelete && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                <div
+                  data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                     onClick={() => setConfirmDelete(false)}>
-                    <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
+                    <div
+                      data-sp-skip-a11y="propagation guard, not a control" style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete This Post?</div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>This Post Will Be Permanently Removed. This Action Cannot Be Undone.</div>
@@ -709,7 +723,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             {(c.media_type === 'gif' || c.media_url?.includes('.gif')) ? (
                                                                 <img src={c.media_url} alt="GIF" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
                                                             ) : (
-                                                                <img src={c.media_url} alt="" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, cursor: 'pointer' }} onClick={() => setLightboxUrl(c.media_url)} />
+                                                                <img
+                                                                  role="button"
+                                                                  tabIndex={0}
+                                                                  onKeyDown={spKeyActivate} src={c.media_url} alt="" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, cursor: 'pointer' }} onClick={() => setLightboxUrl(c.media_url)} />
                                                             )}
                                                         </div>
                                                     )}
@@ -1015,7 +1032,6 @@ export default function SocialPageDetail() {
 
     // Venue check-ins (shown on venue-type pages)
     const [venueCheckins, setVenueCheckins] = useState([]);
-    const [resolvedVenueId, setResolvedVenueId] = useState(null);
     const [checkinCount, setCheckinCount] = useState(0);
     // P9: Follow loading, cover/avatar upload
     const [followLoading, setFollowLoading] = useState(false);
@@ -1283,7 +1299,6 @@ export default function SocialPageDetail() {
             }
 
             if (!intVenueId) return; // No real poker venue found — skip silently
-            setResolvedVenueId(intVenueId);
 
             // Fetch recent check-ins for this venue
             const checkinsRes = await fetch(`/api/poker/checkins?venue_id=${intVenueId}`);
@@ -1877,7 +1892,10 @@ export default function SocialPageDetail() {
                         {/* Avatar and name */}
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginTop: -65 }}>
                             {/* P9-2: Avatar upload for owners */}
-                            <div style={{ position: 'relative', cursor: isPageOwner ? 'pointer' : 'default' }}
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={spKeyActivate} style={{ position: 'relative', cursor: isPageOwner ? 'pointer' : 'default' }}
                                 onClick={() => isPageOwner && avatarInputRef.current?.click()}>
                                 {isPageOwner && (
                                     <input type="file" ref={avatarInputRef} accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
@@ -2253,7 +2271,10 @@ export default function SocialPageDetail() {
                                                     WebkitOverflowScrolling: 'touch',
                                                 }}>
                                                     {pinnedPosts.map(pp => (
-                                                        <div key={pp.id} onClick={() => {
+                                                        <div
+                                                          role="button"
+                                                          tabIndex={0}
+                                                          onKeyDown={spKeyActivate} key={pp.id} onClick={() => {
                                                             const el = document.getElementById(`post-${pp.id}`);
                                                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                         }} style={{
@@ -2605,7 +2626,10 @@ export default function SocialPageDetail() {
                                             {followers
                                                 .filter(f => !memberSearch || (f.profile?.full_name || f.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
                                                 .map(f => (
-                                                <div key={f.id} onClick={() => f.profile?.username && router.push(`/hub/user/${f.profile.username}`)} style={{
+                                                <div
+                                                  role="button"
+                                                  tabIndex={0}
+                                                  onKeyDown={spKeyActivate} key={f.id} onClick={() => f.profile?.username && router.push(`/hub/user/${f.profile.username}`)} style={{
                                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px',
                                                     borderBottom: `1px solid ${C.bg}`, cursor: f.profile?.username ? 'pointer' : 'default',
                                                     borderRadius: 8, transition: 'background 0.15s',
@@ -2890,7 +2914,10 @@ export default function SocialPageDetail() {
                                         ) : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, borderRadius: 8, overflow: 'hidden' }}>
                                                 {allMedia.map((m, i) => (
-                                                    <div key={i} onClick={() => setLightboxMedia({ list: allMedia, index: i })} style={{
+                                                    <div
+                                                      role="button"
+                                                      tabIndex={0}
+                                                      onKeyDown={spKeyActivate} key={i} onClick={() => setLightboxMedia({ list: allMedia, index: i })} style={{
                                                         aspectRatio: '1', cursor: 'pointer', overflow: 'hidden', position: 'relative',
                                                     }}>
                                                         <img src={m.url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
@@ -3330,7 +3357,10 @@ export default function SocialPageDetail() {
                                     <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>Suggested Pages</h3>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                         {suggestedSidebarPages.map(sp => (
-                                            <div key={sp.id} onClick={() => router.push(`/hub/social-pages/${sp.slug || sp.id}`)} style={{
+                                            <div
+                                              role="button"
+                                              tabIndex={0}
+                                              onKeyDown={spKeyActivate} key={sp.id} onClick={() => router.push(`/hub/social-pages/${sp.slug || sp.id}`)} style={{
                                                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                                                 borderRadius: 8, background: C.bg, cursor: 'pointer',
                                                 transition: 'background 0.15s',
@@ -3422,11 +3452,13 @@ export default function SocialPageDetail() {
 
               {/* Invite Friends Modal */}
               {showInviteModal && (
-                  <div style={{
+                  <div
+                    data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" style={{
                       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
                   }} onClick={() => setShowInviteModal(false)}>
-                      <div style={{
+                      <div
+                        data-sp-skip-a11y="propagation guard, not a control" style={{
                           background: C.card, borderRadius: 16, maxWidth: 420, width: '100%',
                           maxHeight: '80vh', display: 'flex', flexDirection: 'column',
                           boxShadow: '0 8px 40px rgba(0,0,0,0.3)', overflow: 'hidden',
@@ -3531,7 +3563,10 @@ export default function SocialPageDetail() {
                   const { list, index } = lightboxMedia;
                   const item = list[index];
                   return (
-                      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           onClick={() => setLightboxMedia(null)}>
                           {/* Close */}
                           <button onClick={() => setLightboxMedia(null)} style={{
@@ -3547,7 +3582,8 @@ export default function SocialPageDetail() {
                               }}>&lsaquo;</button>
                           )}
                           {/* Image */}
-                          <img src={item?.url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }} />
+                          <img
+                            data-sp-skip-a11y="propagation guard, not a control" src={item?.url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }} />
                           {/* Next */}
                           {index < list.length - 1 && (
                               <button onClick={e => { e.stopPropagation(); setLightboxMedia({ list, index: index + 1 }); }} style={{
@@ -3577,8 +3613,10 @@ export default function SocialPageDetail() {
 
               {/* Report Modal (#6) */}
               {showReportModal && (
-                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowReportModal(false)}>
-                      <div style={{ background: C.card, borderRadius: 16, padding: 24, maxWidth: 420, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+                  <div
+                    data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowReportModal(false)}>
+                      <div
+                        data-sp-skip-a11y="propagation guard, not a control" style={{ background: C.card, borderRadius: 16, padding: 24, maxWidth: 420, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
                           <h3 style={{ fontSize: 17, fontWeight: 700, color: C.text, margin: '0 0 16px' }}>Report Page</h3>
                           <p style={{ fontSize: 13, color: C.textSec, margin: '0 0 12px' }}>Why Are You Reporting This Page?</p>
                           <select value={reportReason} onChange={e => setReportReason(e.target.value)} style={{
@@ -3797,6 +3835,7 @@ export default function SocialPageDetail() {
 // ══════════════════════════════════════════════════════════════════════════
 
 import { createClient as _spgssCreateClient } from '@supabase/supabase-js';
+import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 
 let _spgssSupabase = null;
 function _spgssGetSupabase() {

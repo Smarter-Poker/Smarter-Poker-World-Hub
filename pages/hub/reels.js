@@ -2982,6 +2982,7 @@ export default function ReelsPage() {
         {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
         {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}
         <div
+          data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
           data-reels-overlay-trigger="true"
           onTouchStart={(e) => {
             // Record swipe start position
@@ -4038,6 +4039,7 @@ export default function ReelsPage() {
         {/* Keyboard Shortcuts Overlay */}
         {showShortcutsOverlay && (
           <div
+            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
             data-reels-shortcuts-overlay="true"
             onClick={() => setShowShortcutsOverlay(false)}
             style={{
@@ -4051,6 +4053,7 @@ export default function ReelsPage() {
             }}
           >
             <div
+              data-sp-skip-a11y="propagation guard, not a control"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: '#1a1a2e',
@@ -4115,6 +4118,7 @@ export default function ReelsPage() {
         {/* Phase 9: Long Press Context Menu */}
         {showContextMenu && (
           <div
+            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
             onClick={() => setShowContextMenu(false)}
             style={{
               position: 'absolute',
@@ -4128,6 +4132,7 @@ export default function ReelsPage() {
             }}
           >
             <div
+              data-sp-skip-a11y="propagation guard, not a control"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: 'rgba(25, 25, 40, 0.95)',
@@ -4244,6 +4249,7 @@ export default function ReelsPage() {
         {/* #8 Share Options Modal */}
         {showShareModal && (
           <div
+            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
             onClick={() => setShowShareModal(false)}
             style={{
               position: 'absolute',
@@ -4256,6 +4262,7 @@ export default function ReelsPage() {
             }}
           >
             <div
+              data-sp-skip-a11y="propagation guard, not a control"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: '#1a1a2e',
@@ -4460,6 +4467,7 @@ export default function ReelsPage() {
         {/* Share Description Modal — user adds description before posting to feed */}
         {showShareDescriptionModal && (
           <div
+            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
             onClick={() => setShowShareDescriptionModal(false)}
             style={{
               position: 'fixed',
@@ -4473,6 +4481,7 @@ export default function ReelsPage() {
             }}
           >
             <div
+              data-sp-skip-a11y="propagation guard, not a control"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: '#1a1a2e',
@@ -5248,6 +5257,7 @@ export default function ReelsPage() {
         {/* Report Modal */}
         {showReportModal && (
           <div
+            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
             onClick={() => {
               setShowReportModal(false);
               setReportReason('');
@@ -5264,6 +5274,7 @@ export default function ReelsPage() {
             }}
           >
             <div
+              data-sp-skip-a11y="propagation guard, not a control"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: '#1a1a2e',
@@ -5541,6 +5552,7 @@ export default function ReelsPage() {
           >
             {/* Scrim */}
             <div
+              data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
               onClick={() => setTtsOverlay(null)}
               style={{
                 position: 'fixed',

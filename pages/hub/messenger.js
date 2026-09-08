@@ -99,6 +99,7 @@ function formatDateHeader(timestamp) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { Phone, Video, Search, Info, Home, Building, Crown } from 'lucide-react';
+import { spKeyActivate } from '../../src/lib/keyboardActivate';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
     <Phone size={size} color={color} strokeWidth={2.5} />
@@ -3768,12 +3769,14 @@ function MessengerPage() {
 
             {/* Forward Message Modal */}
             {forwardingMessage && (
-                <div style={{
+                <div
+                  data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', zIndex: 2000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }} onClick={() => setForwardingMessage(null)}>
-                    <div style={{
+                    <div
+                      data-sp-skip-a11y="propagation guard, not a control" style={{
                         background: C.card, borderRadius: 12, width: 360, maxHeight: 480,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
                     }} onClick={e => e.stopPropagation()}>
@@ -4316,7 +4319,10 @@ function MessengerPage() {
                             <div id="club-arena-inboxes">
                             <div className="no-scrollbar" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '4px 0 8px 0' }}>
                                 {/* Personal Identity */}
-                                <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={spKeyActivate} onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
                                     <div style={{ 
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -4344,7 +4350,10 @@ function MessengerPage() {
                                 </div>
                                 
                                 {ownedPages.map(page => (
-                                    <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={spKeyActivate} key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
                                         <div style={{ 
                                             display: 'inline-flex',
                                             alignItems: 'center',
@@ -4696,6 +4705,9 @@ function MessengerPage() {
                     }}>
                         {/* Jarvis AI - Locked at Bottom (above Report Bug) */}
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                             onClick={() => handleSelectConversation({
                                 id: 'jarvis-ai',
                                 isJarvis: true,
@@ -4971,6 +4983,9 @@ function MessengerPage() {
                                                     </div>
                                                     {messageSearchResults.map(result => (
                                                         <div
+                                                          role="button"
+                                                          tabIndex={0}
+                                                          onKeyDown={spKeyActivate}
                                                             key={result.id}
                                                             onClick={() => {
                                                                 // Scroll to message (future: highlight it)
