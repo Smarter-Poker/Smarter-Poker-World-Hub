@@ -44,9 +44,13 @@
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resilientFetch } from './lib/resilient-fetch.mjs';
+
+const require = createRequire(import.meta.url);
+const { topLevelSqlStatements } = require('../lib/sql-transaction-control.js');
 
 const REPO = process.cwd();
 const DIR = 'supabase/migrations/';
@@ -136,8 +140,12 @@ function functionArgumentNames(signature) {
 }
 
 export function declaredObjects(sql) {
-  const clean = sql.replace(/--[^\n]*/g, '');
-  const grab = (re) => [...clean.matchAll(re)].map((m) => m[1]);
+  const clean = sql.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  // Use the hardened migration-runner lexer for lifecycle decisions. Unlike a
+  // source-wide regex, it cannot mistake DROP text in a comment, quoted value,
+  // identifier, or PL/pgSQL dollar body for a top-level schema transition. It
+  // also throws on unterminated tokens, keeping this deployment gate fail-closed.
+  const statements = topLevelSqlStatements(sql);
 
   // PostgREST deliberately omits trigger functions from its OpenAPI /rpc paths,
   // even when they live in `public`. Treating those as missing makes every
@@ -151,9 +159,58 @@ export function declaredObjects(sql) {
   ]
     .filter((m) => !/^(?:trigger|event_trigger)$/i.test(m[3]))
     .map((m) => ({ name: m[1].toLowerCase(), args: functionArgumentNames(m[2]) }));
-  const tables = grab(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi);
-  const views = grab(
-    /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi
+  // A migration can legitimately use a durable table as private staging and
+  // deliberately remove it after the data swap succeeds. CHECK 17 validates
+  // the migration's *final* desired schema, not every object that existed
+  // midway through its transaction. Preserve statement order so DROP→CREATE
+  // still requires the recreated object while CREATE→DROP does not require a
+  // migration-only object to remain exposed by PostgREST forever.
+  const relationEvents = [];
+  for (const statement of statements) {
+    const create = statement.match(
+      /^create\s+(?:table\s+|(?:or\s+replace\s+)?(?:materialized\s+)?view\s+)(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\b/i
+    );
+    if (create && create[1].toLowerCase() !== 'identifier') {
+      relationEvents.push({ name: create[1].toLowerCase(), operation: 'create' });
+      continue;
+    }
+    const drop = statement.match(
+      /^drop\s+(?:table|(?:materialized\s+)?view)\s+(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\b/i
+    );
+    if (drop && drop[1].toLowerCase() !== 'identifier') {
+      relationEvents.push({ name: drop[1].toLowerCase(), operation: 'drop' });
+    }
+  }
+  const finalRelationState = new Map();
+  for (const event of relationEvents) finalRelationState.set(event.name.toLowerCase(), event);
+  const tables = [...finalRelationState.values()]
+    .filter((event) => event.operation === 'create')
+    .map((event) => event.name);
+  // Preserve the former gate's conservative coverage for declarations that
+  // the top-level classifier cannot name (for example a quoted identifier).
+  // They remain required rather than being silently skipped. Only a positively
+  // matched top-level CREATE followed by a positively matched top-level DROP
+  // receives the transient-object treatment.
+  const topLevelCreatedRelations = new Set(
+    relationEvents
+      .filter((event) => event.operation === 'create')
+      .map((event) => event.name.toLowerCase())
+  );
+  const rawCreatedRelations = [
+    ...[...clean.matchAll(
+      /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi
+    )].map((match) => match[1].toLowerCase()),
+    ...[...clean.matchAll(
+      /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi
+    )].map((match) => match[1].toLowerCase()),
+  ];
+  for (const name of rawCreatedRelations) {
+    if (!topLevelCreatedRelations.has(name)) tables.push(name);
+  }
+  const finallyDroppedRelations = new Set(
+    [...finalRelationState.entries()]
+      .filter(([, event]) => event.operation === 'drop')
+      .map(([name]) => name)
   );
 
   // ALTER TABLE [IF EXISTS] [ONLY] [public.]t ADD [COLUMN] [IF NOT EXISTS] c
@@ -165,11 +222,15 @@ export function declaredObjects(sql) {
     // CONSTRAINT/PRIMARY/FOREIGN/UNIQUE/CHECK read identically to this regex and
     // are not columns; without this they would be reported as phantom forever.
     .filter((m) => !/^(constraint|primary|foreign|unique|check|exclude)$/i.test(m[2]))
+    // A column added only to a relation that is deliberately gone at the end
+    // of this migration is transient too. Existing relations that remain live
+    // continue through the exact same column check below.
+    .filter((m) => !finallyDroppedRelations.has(m[1].toLowerCase()))
     .map((m) => [m[1], m[2]]);
 
   return {
     fns: [...new Map(fns.map((fn) => [`${fn.name}(${fn.args.join(',')})`, fn])).values()],
-    tables: [...new Set([...tables, ...views])],
+    tables: [...new Set(tables)],
     columns: [...new Map(columns.map((c) => [c.join('.'), c])).values()],
   };
 }
@@ -241,6 +302,33 @@ async function liveSchema() {
   return { tables, fns, rpcArgs };
 }
 
+export function unappliedObjects(declared, live) {
+  const failures = [];
+  const { tables, fns, rpcArgs } = live;
+  for (const t of declared.tables) if (!tables.has(t)) failures.push(['table/view', t]);
+  for (const [t, c] of declared.columns) {
+    // A column on a table the API does not expose cannot be judged here.
+    if (!tables.has(t)) continue;
+    if (!tables.get(t).has(c)) failures.push(['column', `${t}.${c}`]);
+  }
+  for (const fn of declared.fns) {
+    if (!fns.has(fn.name)) {
+      failures.push(['function', `${fn.name}(${fn.args.join(', ')})`]);
+      continue;
+    }
+    if (fn.args.length > 0) {
+      const liveSignatures = rpcArgs.get(fn.name) || [];
+      const signatureReady = liveSignatures.some((liveArgs) =>
+        fn.args.every((argument) => liveArgs.has(argument))
+      );
+      if (!signatureReady) {
+        failures.push(['function signature', `${fn.name}(${fn.args.join(', ')})`]);
+      }
+    }
+  }
+  return failures;
+}
+
 async function main() {
   const base = baseRef();
   const files = changedMigrations(base);
@@ -255,26 +343,8 @@ async function main() {
   for (const file of files) {
     if (!existsSync(join(REPO, file))) continue;
     const d = declaredObjects(readFileSync(join(REPO, file), 'utf8'));
-    for (const t of d.tables) if (!tables.has(t)) failures.push([file, 'table/view', t]);
-    for (const [t, c] of d.columns) {
-      // A column on a table the API does not expose cannot be judged here.
-      if (!tables.has(t)) continue;
-      if (!tables.get(t).has(c)) failures.push([file, 'column', `${t}.${c}`]);
-    }
-    for (const fn of d.fns) {
-      if (!fns.has(fn.name)) {
-        failures.push([file, 'function', `${fn.name}(${fn.args.join(', ')})`]);
-        continue;
-      }
-      if (fn.args.length > 0) {
-        const liveSignatures = rpcArgs.get(fn.name) || [];
-        const signatureReady = liveSignatures.some((liveArgs) =>
-          fn.args.every((argument) => liveArgs.has(argument))
-        );
-        if (!signatureReady) {
-          failures.push([file, 'function signature', `${fn.name}(${fn.args.join(', ')})`]);
-        }
-      }
+    for (const [kind, name] of unappliedObjects(d, { tables, fns, rpcArgs })) {
+      failures.push([file, kind, name]);
     }
   }
 
