@@ -8,7 +8,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
 let _supabase = null;
 function getSupabase() {
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       }
 
       // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
           return res.status(403).json({ error: 'Premium feature access required' });
       }
