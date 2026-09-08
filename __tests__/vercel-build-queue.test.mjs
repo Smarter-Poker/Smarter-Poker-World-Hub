@@ -93,15 +93,45 @@ describe('agent branch previews never take a build slot', () => {
     );
   });
 
-  test('a non-agent preview still builds', () => {
-    assert.equal(runGate({ env: PREVIEW('codex/some-fix'), changedFile: 'pages/index.js' }), 1);
+  // INVERTED 2026-09-08. These two tests used to assert that a non-agent
+  // preview still builds, and that `feat/user-agent-parser` is not an agent
+  // branch. Both were correct readings of a deny-list, and the deny-list is
+  // what turned out to be wrong: measured that day, 8 of the last 20
+  // hub-vanguard deployments were CANCELED, seven of them previews, and 8 of
+  // the last 11 pull-request branches were named chore/ feat/ refactor/ perf/
+  // fix/ - none of which `agent/*` matched. A deny-list has to name every
+  // prefix anyone will ever invent; it was wrong the first time somebody typed
+  // a new one. The policy is now an allow-list, so the assertions flip.
+  //
+  // The substring case is kept, because it still says something true and it
+  // still matters: matching must be on the ref SHAPE, not on a substring.
+  // `feat/user-agent-parser` is skipped now for being off the allow-list, not
+  // for containing the word "agent" - and `preview/user-agent-parser` builds,
+  // which is the assertion that proves the difference.
+  test('a preview that did not ask for one is skipped', () => {
+    assert.equal(runGate({ env: PREVIEW('codex/some-fix'), changedFile: 'pages/index.js' }), 0);
+    assert.equal(runGate({ env: PREVIEW('chore/whatever'), changedFile: 'pages/index.js' }), 0);
+    assert.equal(runGate({ env: PREVIEW('feat/user-agent-parser'), changedFile: 'pages/index.js' }), 0);
   });
 
-  test('a branch merely CONTAINING "agent" is not an agent branch', () => {
+  test('THE OPT-IN: a preview/* branch builds, and asking is the whole mechanism', () => {
     assert.equal(
-      runGate({ env: PREVIEW('feat/user-agent-parser'), changedFile: 'pages/index.js' }),
-      1
+      runGate({ env: PREVIEW('preview/checking-the-new-header'), changedFile: 'pages/index.js' }),
+      1,
+      'naming a branch preview/<x> is the documented way to get a preview - if ' +
+        'this fails there is no way to get one at all'
     );
+    assert.equal(
+      runGate({ env: PREVIEW('preview/user-agent-parser'), changedFile: 'pages/index.js' }),
+      1,
+      'matched on the ref shape, not on a substring anywhere in the name'
+    );
+  });
+
+  test('an opted-in preview still honours the docs-only saving', () => {
+    // Opting in asks for a preview, not for a guaranteed rebuild of an
+    // unchanged app: preview/* falls through to the file-diff gate.
+    assert.equal(runGate({ env: PREVIEW('preview/typo-fix'), changedFile: 'docs/notes.md' }), 0);
   });
 
   test('with no Vercel env at all (a local run) nothing is skipped by branch', () => {

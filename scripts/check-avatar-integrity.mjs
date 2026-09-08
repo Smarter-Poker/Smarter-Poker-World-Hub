@@ -2,6 +2,20 @@
 /**
  * AVATAR INTEGRITY: no punched-through subjects, no duplicate gallery tiles.
  *
+ * ── 2026-09-08: THIS FILE USED TO CLAIM THE FIRST OF THOSE AND NEVER MEASURE IT
+ *
+ * Everything below the line was written on 2026-08-23 and says holes "are now
+ * repaired. This is what stops them coming back." It checked file presence,
+ * duplicate hashes, and that the retired generator kept its guard. It never
+ * opened an image, and no workflow ran it. Fifteen days later 86 of the 100
+ * busts had holes punched through them again — the geisha's face, the knight's
+ * armour, the penguin's belly — and nothing had said a word.
+ *
+ * The measurement now exists, in `__tests__/avatar-art-has-no-punched-holes.
+ * test.mjs`, and CHECK 8 of build-safety-gate.yml runs it on every push. This
+ * file keeps the three checks it actually performs and points at the one it
+ * only ever described.
+ *
  * Three separate faults were found in this library on 2026-08-23, none of which
  * any test could see because they live in binary art, not in code:
  *
@@ -28,7 +42,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TABLE = join(ROOT, 'public/avatars/table');
 
 let failures = 0;
-const fail = (m) => { console.error(`  FAIL  ${m}`); failures++; };
+const fail = (m) => {
+  console.error(`  FAIL  ${m}`);
+  failures++;
+};
 
 // ── 1. every table bust has a gallery tile, and vice versa ────────────────
 const busts = readdirSync(TABLE)
@@ -40,11 +57,13 @@ for (const slug of busts) {
   const i = slug.indexOf('_');
   const tier = slug.slice(0, i);
   const name = slug.slice(i + 1);
-  const gallery = join(ROOT, 'public/avatars', tier, `${name}.png`);
-  if (!existsSync(gallery)) fail(`${slug}: no gallery tile at avatars/${tier}/${name}.png`);
-  for (const extra of [`${slug}@2x.webp`, `${slug}.png`]) {
-    if (!existsSync(join(TABLE, extra))) fail(`${slug}: missing ${extra}`);
-  }
+  // WebP, not PNG, since `chore/the-avatars-lose-three-quarters-of-their-weight`
+  // converted the library. This check asked for `.png` for as long as it has
+  // existed after that landed, so it failed on every one of the 100 avatars —
+  // and nothing noticed, because no workflow ran it.
+  const gallery = join(ROOT, 'public/avatars', tier, `${name}.webp`);
+  if (!existsSync(gallery)) fail(`${slug}: no gallery tile at avatars/${tier}/${name}.webp`);
+  if (!existsSync(join(TABLE, `${slug}@2x.webp`))) fail(`${slug}: missing ${slug}@2x.webp`);
 }
 
 // ── 2. no two gallery tiles are the same image ────────────────────────────
@@ -54,8 +73,10 @@ const seen = new Map();
 for (const tier of ['free', 'vip']) {
   const dir = join(ROOT, 'public/avatars', tier);
   if (!existsSync(dir)) continue;
-  for (const f of readdirSync(dir).filter((n) => n.endsWith('.png'))) {
-    const h = createHash('sha1').update(readFileSync(join(dir, f))).digest('hex');
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.webp'))) {
+    const h = createHash('sha1')
+      .update(readFileSync(join(dir, f)))
+      .digest('hex');
     const key = `${tier}/${f}`;
     if (seen.has(h)) fail(`${key} is byte-identical to ${seen.get(h)} - two avatars, one picture`);
     else seen.set(h, key);
@@ -70,6 +91,12 @@ if (existsSync(gen)) {
     fail('scripts/create-table-avatars.js lost its guard - it will overwrite the repaired mattes');
   }
 }
+
+// ── 4. the pixels themselves ──────────────────────────────────────────────
+// Deliberately NOT re-implemented here. Holes are measured in
+// __tests__/avatar-art-has-no-punched-holes.test.mjs, which CHECK 8 runs, and
+// two detectors for one fault is how they drift apart and start disagreeing.
+console.log('  note  hole detection lives in __tests__/avatar-art-has-no-punched-holes.test.mjs');
 
 console.log(
   failures === 0

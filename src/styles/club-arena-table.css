@@ -44,6 +44,24 @@
    are the difference between a chip landing on the felt and a chip landing on
    the rail.
 
+   2026-09-08: AND THE ARTWORK DID NOT MATCH THEM. The copy at
+   /table-skins/club-arena-felt.png painted its table at 517x914 centred on
+   (302.0, 505.5) when these percentages assume 565x980 centred on
+   (302.5, 499.5) -- 8% too small and 6px low, so anything positioned by them
+   would have landed inside the painted rail. Resampled onto the canonical box;
+   it now measures 566x980 centred on (302.5, 499.5). The same fault, and the
+   same fix, as Club Arena's own skins (see that repo's
+   scripts/repair-table-skins.mjs and docs/changelog/2026-09-08-the-felt-was-
+   painted-in-the-wrong-place.md).
+
+   STATUS, so the next reader is not misled: nothing renders these classes yet.
+   `pages/_app.js` imports this file, but no component in src/ or pages/ applies
+   a single `ca-table__*` class -- grep says one hit and it is the comment in
+   _app.js. The skin is written and correct and waiting for the six table
+   implementations above to adopt it; until one does, this stylesheet and its
+   PNG are cost without effect. Adopting or retiring it is a design call, not a
+   silent one.
+
    SCOPE: PRESENTATION ONLY. No layout engine, no seat maths, no game state.
    Each table keeps its own DOM and its own behaviour; this only changes how
    the pixels look. Anything that would move a hit target belongs in the
@@ -180,7 +198,13 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 44%, #1d7a4f 0%, #12603c 38%, #0d4a2e 68%, #08301e 100%);
+  background: radial-gradient(
+    ellipse at 50% 44%,
+    #1d7a4f 0%,
+    #12603c 38%,
+    #0d4a2e 68%,
+    #08301e 100%
+  );
   box-shadow:
     inset 0 0 60px rgba(0, 0, 0, 0.55),
     inset 0 0 0 1px rgba(255, 215, 0, 0.18);
@@ -193,7 +217,12 @@
   background: linear-gradient(
     145deg,
     #6b5320 0%,
-    #a8842f 12%, #4a3a16 34%, #d4af37 52%, #3d2f12 72%, #b8912f 88%, #5a4519 100%
+    #a8842f 12%,
+    #4a3a16 34%,
+    #d4af37 52%,
+    #3d2f12 72%,
+    #b8912f 88%,
+    #5a4519 100%
   );
   box-shadow:
     0 28px 55px rgba(0, 0, 0, 0.78),
@@ -224,11 +253,15 @@
    pot), so using it for "act now" too would make the live seat invisible. */
 .ca-table__seat--active .ca-table__avatar-ring {
   background: linear-gradient(145deg, var(--ca-accent), #0a6b80 45%, #06323c 72%, var(--ca-accent));
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 212, 255, 0.55);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.7),
+    0 0 20px rgba(0, 212, 255, 0.55);
 }
 
 .ca-table__seat--hero .ca-table__avatar-ring {
-  box-shadow: 0 9px 24px rgba(0, 0, 0, 0.7), 0 0 18px rgba(255, 215, 0, 0.45);
+  box-shadow:
+    0 9px 24px rgba(0, 0, 0, 0.7),
+    0 0 18px rgba(255, 215, 0, 0.45);
 }
 
 .ca-table__seat--folded {
@@ -254,7 +287,9 @@
   border-radius: 8px;
   background: linear-gradient(180deg, var(--ca-bg-elevated), #060b14);
   text-align: center;
-  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.62), inset 0 1px rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 7px 16px rgba(0, 0, 0, 0.62),
+    inset 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .ca-table__plate-name {
@@ -335,7 +370,9 @@
   background: linear-gradient(180deg, var(--ca-bg-elevated), #070c15);
   color: var(--ca-text);
   cursor: pointer;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.14), 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.14),
+    0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .ca-table__action:active:not(:disabled) {

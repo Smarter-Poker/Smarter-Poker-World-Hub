@@ -391,13 +391,57 @@ const artworkDisplayBounds = (artwork) =>
  * window. One clamped height, full bleed, is what makes them match.
  */
 export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 12.326vw, 132px)';
+const MIN_FOOTER_HIT_ZONE = 44;
+const FOOTER_HIT_ZONE_ROUNDING_GUARD = 1;
 
-const artworkStageStyle = () => ({
-  width: '100%',
-  maxWidth: '100%',
-  height: FOOTER_ARTWORK_HEIGHT,
-  flex: '0 0 auto',
-});
+/**
+ * THE STAGE KEEPS THE ARTWORK'S OWN SHAPE (Dan, 2026-09-08).
+ *
+ * The stage used to be `width: 100%` by `height: FOOTER_ARTWORK_HEIGHT`, and the
+ * image inside it was `object-fit: fill`. Those two boxes only agree when the
+ * viewport happens to be `height x artworkAspect` wide, and they never are: the
+ * social-media frame is 6.537:1, while the stage is 8.11:1 for every width up to
+ * 1071px (where the clamp pins at 132px) and then unbounded — 9.70:1 at 1280px,
+ * 10.91:1 at 1440px, 14.55:1 at 1920px. `fill` absorbed the whole difference as
+ * a horizontal stretch: 24% on every phone, and a measured 1.483x on the live
+ * site at 1280px. That is what turned the frame's round corners into ellipses
+ * and the quilted texture into a shimmering, pixelated mess — a 0.50x horizontal
+ * against a 0.35x vertical resample aliases a high-frequency diamond pattern
+ * badly. (The vw coefficient has moved before — 13.72 then 12.326 — which is why
+ * the width below is derived FROM the constant rather than restating it.)
+ *
+ * So the stage now carries the artwork's aspect ratio and is centred by the nav's
+ * existing `justifyContent: center`. Height still tops out at the shared
+ * FOOTER_ARTWORK_HEIGHT, so all fourteen worlds stay the same height (the Club
+ * Arena gold standard above is untouched); width is whatever that height implies,
+ * clamped to the viewport so a wide frame shrinks instead of overflowing. Every
+ * hit zone below is positioned in percentages OF THIS STAGE, so they follow the
+ * box exactly as they did before.
+ */
+const artworkStageStyle = (artwork, itemCount = 0) => {
+  const display = artworkDisplayBounds(artwork);
+  const aspect = display.width / display.height;
+  const controls = Number.isFinite(itemCount) ? Math.max(0, Math.trunc(itemCount)) : 0;
+  // WebKit can quantize a 264px six-way percentage split to 43.984375px per
+  // item. One shared pixel keeps every measured target safely at or above 44.
+  const minimumControlSpan = controls > 0
+    ? controls * MIN_FOOTER_HIT_ZONE + FOOTER_HIT_ZONE_ROUNDING_GUARD
+    : 0;
+  const naturalWidth = `calc(${FOOTER_ARTWORK_HEIGHT} * ${aspect.toFixed(4)})`;
+  return {
+    // min() keeps a wide frame (news is 8.3:1) inside the viewport on a phone
+    // instead of letting max-width silently squash it back out of aspect.
+    // The inner max() keeps every authored destination at least 44px wide at
+    // supported viewports. Training's narrower artwork otherwise produced six
+    // 43.47px controls at 320px after the aspect-ratio correction.
+    width: minimumControlSpan > 0
+      ? `min(100%, max(${minimumControlSpan}px, ${naturalWidth}))`
+      : `min(100%, ${naturalWidth})`,
+    maxWidth: '100%',
+    aspectRatio: `${display.width} / ${display.height}`,
+    flex: '0 0 auto',
+  };
+};
 
 const artworkImageStyle = (artwork) => {
   const display = artworkDisplayBounds(artwork);
@@ -446,7 +490,9 @@ export const BottomNavSpacer = ({ config = null }) => {
         flexShrink: 0,
       }}
     >
-      <div style={artworkStageStyle()} />
+      {/* Same box as the real stage, so the clearance is exactly the height the
+          footer now occupies rather than the pre-aspect-ratio maximum. */}
+      <div style={artworkStageStyle(artwork, config?.items?.length)} />
     </div>
   );
 };
@@ -650,7 +696,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         data-footer-source-width={artwork.width}
         data-footer-source-height={artwork.height}
         style={{
-          ...artworkStageStyle(),
+          ...artworkStageStyle(artwork, items.length),
           position: 'relative',
           minWidth: 0,
           overflow: 'hidden',
@@ -674,11 +720,15 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
             position: 'absolute',
             ...artworkImageStyle(artwork),
             display: 'block',
-            // Club Arena's artwork has no object-fit at all, which is `fill`:
-            // the frame is stretched to the footer box. `contain` would
-            // letterbox it back inside its own aspect and reintroduce exactly
-            // the dead strips this pass exists to remove.
+            // `fill` is now lossless, not a stretch: artworkStageStyle gives the
+            // stage the artwork's own aspect ratio, so the box the image fills
+            // already has the frame's shape. There is nothing left to distort
+            // and nothing to letterbox.
             objectFit: 'fill',
+            // A uniform downscale of a fine quilted texture still aliases on
+            // low-DPR screens. High-quality resampling is what keeps the
+            // diamonds and the bevel clean.
+            imageRendering: 'auto',
             userSelect: 'none',
             pointerEvents: 'none',
           }}
@@ -710,6 +760,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
                 top: `${topPercent}%`,
                 width: `${widthPercent}%`,
                 height: `${heightPercent}%`,
+                minWidth: MIN_FOOTER_HIT_ZONE,
                 minHeight: 44,
                 margin: 0,
                 padding: 0,

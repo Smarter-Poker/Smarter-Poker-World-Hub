@@ -38,7 +38,6 @@ export function SharedPostCreator({
   onPost,
   isPosting,
   onGoLive,
-  onOpenClubPages,
   authorOverride,
   context = 'social-media',
 }) {
@@ -98,7 +97,6 @@ export function SharedPostCreator({
       sessionStorage.setItem('sp-upload-timings', JSON.stringify(_timingsRef.current));
     } catch (_) {}
   };
-  const [mentionQuery, setMentionQuery] = useState('');
   const [mentionResults, setMentionResults] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -146,6 +144,22 @@ export function SharedPostCreator({
     window.addEventListener('sp-trigger-checkin', handleTriggerCheckIn);
     return () => window.removeEventListener('sp-trigger-checkin', handleTriggerCheckIn);
   }, [content]);
+
+  // The footer's Create control asks for the composer by event rather than by
+  // route. It used to link to /hub/social-media/compose, which is a redirect
+  // stub - tapping Create flashed a blank page and landed you back on the feed,
+  // the same place the Feed control to its left already goes.
+  useEffect(() => {
+    const focusComposer = () => {
+      document
+        .getElementById('shared-post-creator')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // After the scroll, or iOS drags the viewport around mid-animation.
+      setTimeout(() => inputRef.current?.focus(), 350);
+    };
+    window.addEventListener('sp-focus-composer', focusComposer);
+    return () => window.removeEventListener('sp-focus-composer', focusComposer);
+  }, []);
 
   // Identity switching
   const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -780,7 +794,9 @@ export function SharedPostCreator({
 
     if (mentionMatch) {
       const query = mentionMatch[1];
-      setMentionQuery(query);
+      // ITEM 28: setMentionQuery(query) used to be here. `query` is used
+      // directly below for the lookup and showMentions is what the UI reads,
+      // so the state was written on every keystroke and read by nobody.
       setShowMentions(true);
 
       if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
@@ -1721,14 +1737,19 @@ export function SharedPostCreator({
         </div>
       )}
       <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'center', transition: 'all 0.25s ease' }}>
+        {/* Avatar ring wrappers use .sp-avatar-ring (see src/index.css). A block
+            wrapper sits the inline-block avatar on a text baseline, and the
+            descender space under that baseline made the ringed club/home-group
+            avatar 44x51 - a circle drawn as an oval. inline-flex + line-height:0
+            removes the gap so the ring is square on every surface. */}
         {context === 'social-pages' && authorOverride ? (
-          <div style={{ display: 'block', flexShrink: 0 }}>
+          <div className="sp-avatar-ring" style={{ flexShrink: 0 }}>
             <Avatar src={authorOverride.avatar_url} name={authorOverride.name} size={40} />
           </div>
         ) : isHomeGroupMode ? (
           <div
+            className="sp-avatar-ring"
             style={{
-              display: 'block',
               flexShrink: 0,
               borderRadius: '50%',
               border: '2px solid #1877F2',
@@ -1743,8 +1764,8 @@ export function SharedPostCreator({
         ) : isClubMode && clubPage ? (
           <Link
             href={`/hub/social-pages/${clubPage.id}`}
+            className="sp-avatar-ring"
             style={{
-              display: 'block',
               cursor: 'pointer',
               flexShrink: 0,
               borderRadius: '50%',
@@ -1757,7 +1778,7 @@ export function SharedPostCreator({
             <Avatar src={clubPage.avatar_url} name={clubPage.name || 'Club'} size={40} />
           </Link>
         ) : (
-          <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
+          <Link href="/hub/profile" className="sp-avatar-ring" style={{ cursor: 'pointer' }}>
             <Avatar src={profilePhoto} name={user?.name} size={40} />
           </Link>
         )}

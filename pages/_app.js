@@ -84,6 +84,7 @@ import { SWRConfig } from 'swr';
 import { swrLocalStorageProvider, SWR_DEFAULTS } from '../src/lib/swrCacheProvider';
 import { swrCacheMiddleware } from '../src/lib/swrCacheMiddleware';
 import { useEffect, createContext, useState, useContext } from 'react';
+import { releaseMediaStreamOnLeave } from '../src/lib/mediaStreamSingleton';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
@@ -96,8 +97,9 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
-import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
-import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
+// Static on purpose: __tests__/sw-update.test.mjs requires the update prompt
+// in the shell, and it is the control that tells a reader a new build is
+// waiting - the earlier it can speak, the better.
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
@@ -114,16 +116,67 @@ import {
 import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
-import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import { WORLD_COPY_SCOPE_CLASS } from '../src/lib/world-copy-policy.mjs';
-import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
 import {
   advanceScrollLockGeneration,
   sweepStaleScrollLocks,
   clearBodyScrollLockIfUnheld,
 } from '../src/lib/scrollLock';
+
+/*
+ * ITEM 2 (2026-09-08): these two were STATIC imports, so every page on the site
+ * paid for them in the _app chunk - 1,511 KB decoded, on a feed whose own chunk
+ * is 252 KB.
+ *
+ * JarvisPanel is the expensive one, and not because of the panel. It imports
+ * JarvisAdvancedToolbar -> CustomRangeBuilder -> RangeGradingEngine ->
+ * solverRanges (71 KB), and -> TrainingProgressTracker -> useAssistant (51 KB),
+ * plus postflopSolverData (65 KB) and PostflopStrategyEngine (46 KB) behind
+ * them. The entire GTO solver shipped on every page of the estate, including
+ * pages with no poker maths anywhere near them. It renders `null` until it is
+ * opened (JarvisPanel.tsx:239).
+ *
+ * GlobalPiPManager drags LiveStreamService (71 KB) the same way and returns
+ * `null` unless a stream is actually active (GlobalPiPManager.jsx:75).
+ *
+ * ssr:false because both are client-only surfaces anyway, and loading:null so
+ * nothing flashes while the chunk arrives. Behaviour is unchanged - they still
+ * render unconditionally, just from their own chunk instead of the shell's.
+ */
+/*
+ * Two post-interaction prompts. Each returns null until its own condition
+ * fires - an install banner, a notification ask - so neither is on the
+ * first-paint path, and neither needs to be in the chunk every page of the
+ * estate downloads.
+ *
+ * ServiceWorkerUpdater was deferred too and then put back: sw-update.test.mjs
+ * requires it in the shell, and that law is right. It is the control that tells
+ * a reader a new build is waiting, so it should be able to speak as early as
+ * possible. ~18KB is not worth widening someone else's law for.
+ *
+ * WorldCopyPolicy and GlobalPageOverlay are deliberately NOT deferred:
+ * WorldCopyPolicy normalizes visible copy in a useEffect on load, and
+ * GlobalPageOverlay renders immediately. Deferring either would show a frame
+ * of un-normalized text or an unstyled overlay.
+ */
+const GlobalNotificationPrompt = dynamic(
+  () => import('../src/components/ui/GlobalNotificationPrompt'),
+  { ssr: false, loading: () => null }
+);
+const PWAInstallPrompt = dynamic(() => import('../src/components/ui/PWAInstallPrompt'), {
+  ssr: false,
+  loading: () => null,
+});
+const JarvisPanel = dynamic(
+  () => import('../src/world/components/Jarvis/JarvisPanel').then((m) => m.JarvisPanel),
+  { ssr: false, loading: () => null }
+);
+const GlobalPiPManager = dynamic(() => import('../src/components/social/GlobalPiPManager'), {
+  ssr: false,
+  loading: () => null,
+});
 
 const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommandDock'), {
   ssr: false,
@@ -659,11 +712,25 @@ function NavigationGuard({ children }) {
       document.documentElement.classList.remove('reels-lock'); // FIX: clear html lock too
     };
 
+    // Leaving the streaming surfaces releases the camera and mic. Nothing did
+    // this before 2026-09-08: GoLiveModal's teardown pointed at a page-level
+    // handler that did not exist, so the stream survived modal close, every
+    // client-side navigation and logout, until a full page reload.
+    const handleMediaRelease = (url) => {
+      try {
+        releaseMediaStreamOnLeave(router.pathname, url);
+      } catch (_) {
+        /* never let a cleanup helper block navigation */
+      }
+    };
+
     router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeStart', handleMediaRelease);
     router.events.on('routeChangeComplete', handleComplete);
     router.events.on('routeChangeError', handleComplete);
 
     return () => {
+      router.events.off('routeChangeStart', handleMediaRelease);
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleComplete);
       router.events.off('routeChangeError', handleComplete);

@@ -3,7 +3,6 @@
   "note": "Pre-existing no-undef violations. This file may only SHRINK. See scripts/ci/check-undefined-identifiers.mjs.",
   "violations": {
     "pages/hub/pages.js::setPages": 1,
-    "pages/hub/social-pages/[pageId].js::imageInputRef": 1,
     "src/components/poker/LivePokerTable.jsx::btnFontSize": 1,
     "src/components/poker/LivePokerTable.jsx::btnMinWidth": 1,
     "src/components/poker/LivePokerTable.jsx::cardBackPath": 1,
@@ -13,9 +12,6 @@
     "src/components/poker/LivePokerTable.jsx::playerNotes": 1,
     "src/components/poker/LivePokerTable.jsx::setPlayerNotes": 1,
     "src/components/settings/modals/DeleteAccountModal.js::handleDeleteAccount": 1,
-    "src/components/social/SmarterPokerLayout.jsx::authUser": 2,
-    "src/components/social/SmarterPokerLayout.jsx::setNotifications": 2,
-    "src/components/social/SmarterPokerLayout.jsx::setUnreadCount": 2,
     "src/content-engine/pipeline/post-news.js::openai": 1,
     "src/content-engine/services/HorseBehaviorService.js::FollowerCount": 1,
     "src/content-engine/services/HorseBehaviorService.js::Hour": 4,

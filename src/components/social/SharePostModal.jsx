@@ -33,7 +33,25 @@ const C = {
 const EXTERNAL_PLATFORMS = [
     {
         id: 'copy', label: 'Copy Link', icon: '🔗', color: '#65676B',
-        action: (url) => navigator.clipboard?.writeText(url)
+        // Throw rather than resolve when there is no Clipboard API: the optional
+        // chain returned undefined, `await undefined` resolved, and the handler
+        // went on to show "Link copied!" and count a share with nothing copied.
+        action: async (url) => {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(url);
+                return;
+            }
+            // Legacy fallback for insecure origins (http:// LAN testing).
+            const ta = document.createElement('textarea');
+            ta.value = url;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:-9999px;opacity:0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (!ok) throw new Error('Clipboard unavailable');
+        }
     },
     {
         id: 'twitter', label: 'X (Twitter)', icon: '𝕏', color: '#000000',
@@ -125,6 +143,16 @@ function ShareToFeedTab({ post, authorUsername, currentUser, onClose, onShared }
     const [commentary, setCommentary] = useState('');
     const [posting, setPosting] = useState(false);
     const inputRef = useRef(null);
+    /*
+     * ITEM 24: the two setTimeout(onClose) below were fire-and-forget. Closing
+     * with Escape inside the 500-800ms window fired onClose a second time, and
+     * the timer also outlived the component. Harmless while the parent just
+     * re-nulls its state, but it is one prop change away from not being.
+     */
+    const closeTimerRef = useRef(null);
+    useEffect(() => () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    }, []);
 
     useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -162,7 +190,7 @@ function ShareToFeedTab({ post, authorUsername, currentUser, onClose, onShared }
             toast.success('Shared to your feed!');
             busEmit.dataMutated?.('social_posts');
             onShared?.('feed');
-            setTimeout(onClose, 800);
+            closeTimerRef.current = setTimeout(onClose, 800);
         } catch (err) {
             console.warn('[ShareToFeed] Error:', err);
             toast.error(err.message || 'Could not share to feed');
@@ -498,6 +526,15 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
 // TAB 3: GROUPS / CLUBS
 // ═══════════════════════════════════════════════════════════════════════════
 function GroupsTab({ post, onClose }) {
+    /*
+     * Its own timer. The first version of this fix declared closeTimerRef in
+     * ShareToFeedTab and used it here - a different component, so a
+     * ReferenceError the moment a group share succeeded.
+     */
+    const closeTimerRef = useRef(null);
+    useEffect(() => () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    }, []);
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(new Set());
@@ -596,13 +633,15 @@ function GroupsTab({ post, onClose }) {
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ 
                         post_id: post.id,
-                        destination: 'messenger_group',
-                        success_count: successCount
+                        destination: 'messenger_group'
+                        // success_count removed: /api/social/share-count only
+                        // destructures { post_id, destination, platform }, so this
+                        // was silently dropped and implied a metric nobody records.
                     })
                 }).catch(() => {});
             } catch (_) {}
 
-            setTimeout(() => { onClose(); }, 500);
+            closeTimerRef.current = setTimeout(() => { onClose(); }, 500);
         } else {
             setSending(false);
         }

@@ -539,7 +539,10 @@ export function GoLiveModal({
   const [shareToast, setShareToast] = useState('');
   // BUG-FIX-RECONNECT: detect if user has an active live stream (reconnect flow)
   const [existingLiveStream, setExistingLiveStream] = useState(null);
-  const [checkingExistingStream, setCheckingExistingStream] = useState(false);
+  // ITEM 27 (2026-09-08): checkingExistingStream used to live here. It was set
+  // true once and false twice and READ nowhere, so the "checking for your
+  // existing stream" spinner it implies never existed. The reconnect query
+  // below is unchanged; only the flag nobody consumed is gone.
   // BUG-FIX-WATCHDOG: 60s auto-end timer when reconnecting for too long
   const reconnectWatchdogRef = useRef(null);
 
@@ -612,7 +615,6 @@ export function GoLiveModal({
       // BUG-FIX-RECONNECT: on open, check if user has a zombie live stream
       // they may want to reconnect to (e.g. lost connection/power).
       if (user?.id && !guestMode) {
-        setCheckingExistingStream(true);
         supabase
           .from('live_streams')
           .select('id, title, started_at')
@@ -626,9 +628,10 @@ export function GoLiveModal({
             // for exactly the user who needed it most.
             if (error) console.warn('[GoLive] existing-stream check failed:', error.message);
             if (data?.[0]) setExistingLiveStream(data[0]);
-            setCheckingExistingStream(false);
           })
-          .catch(() => setCheckingExistingStream(false));
+          .catch((e) =>
+            console.warn('[GoLive] existing-stream check threw:', e?.message || e)
+          );
       }
     }
     return () => {
@@ -641,9 +644,13 @@ export function GoLiveModal({
       // BUG-FIX-LIVE-2: do NOT stop streamRef tracks here — they belong
       // to the module-level mediaStreamSingleton and are reused across
       // modal opens to prevent iOS Safari re-prompting for camera/mic.
-      // Cleanup of the actual MediaStream happens only on full
-      // navigation away from the streaming surface (handled at the
-      // page-level layout) or via releaseMediaStream({force:true}).
+      // Cleanup of the actual MediaStream happens only on full navigation away
+      // from the streaming surface. That owner is real as of 2026-09-08:
+      // pages/_app.js binds releaseMediaStreamOnLeave to routeChangeStart, and
+      // HamburgerMenu releases on sign-out. Before that this comment pointed at
+      // a handler nobody had written, and the camera stayed live until reload.
+      // Do NOT release here - re-acquiring inside one page session is what
+      // makes iOS re-prompt, which is the bug the singleton exists to prevent.
       if (timerRef.current) clearInterval(timerRef.current);
       if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
       // 2026-08-15 final sweep: drop recorded chunks on force-close — they
@@ -1185,9 +1192,23 @@ export function GoLiveModal({
     }
   };
 
+  const MAX_THUMBNAIL_BYTES = 4.5 * 1024 * 1024;
+
   const handleThumbnailSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // accept="image/*" on the input is only a hint - "All Files" bypasses it.
+    // SharedPostCreator enforces the same 4.5MB ceiling on its uploads.
+    if (!file.type.startsWith('image/')) {
+      setError('That file is not an image. Pick a JPG, PNG or WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > MAX_THUMBNAIL_BYTES) {
+      setError('That thumbnail is over 4.5MB. Pick a smaller image.');
+      e.target.value = '';
+      return;
+    }
     setThumbnailFile(file);
     // FIX: revoke previous blob URL to prevent memory leak
     if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
@@ -2164,7 +2185,15 @@ export function GoLiveModal({
     }
   };
 
-  const handleEndStreamModalClose = (action) => {
+  /*
+   * ITEM 12 (2026-09-08): this used to be the body of
+   * handleEndStreamModalClose, wired to exactly one of the three ways this
+   * modal closes. The component returns null when !isOpen but never unmounts,
+   * so closing by the backdrop left every field populated - including an
+   * un-revoked object URL and the previous session's title, which then
+   * pre-filled the next Go Live.
+   */
+  const resetModalState = () => {
     // BUG-FIX-LIVE-2: do NOT stop tracks here — keep the singleton alive
     // so the user can immediately go live again without re-prompting for
     // camera/mic permission. The singleton will be released only when
@@ -2211,6 +2240,14 @@ export function GoLiveModal({
     // don't bleed into the next broadcast session
     setTopGifters({});
     setTopGiftersVisible(false);
+    // setTitle was never called anywhere in this file except from the input's
+    // onChange and when loading an existing stream, so an abandoned session's
+    // title was pre-filled on the next open.
+    setTitle('');
+  };
+
+  const handleEndStreamModalClose = (action) => {
+    resetModalState();
     onClose(action);
   };
 
@@ -2271,7 +2308,12 @@ export function GoLiveModal({
               : 'max(20px, env(safe-area-inset-top, 20px)) 0 max(20px, env(safe-area-inset-bottom, 20px))',
         }}
         onClick={(e) => {
-          if (e.target === e.currentTarget && stage !== 'live') onClose();
+          // Reset on the backdrop path too. `stage !== 'live'` already keeps
+          // this away from a running broadcast, so the reset is safe here.
+          if (e.target === e.currentTarget && stage !== 'live') {
+            resetModalState();
+            onClose();
+          }
         }}
       >
         <style>{`

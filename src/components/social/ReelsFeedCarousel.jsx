@@ -221,6 +221,22 @@ function ReelCard({ reel, onClick }) {
   );
 }
 
+/*
+ * ITEM 11 (2026-09-08): the Not Interested set is owned by ReelViewer but has
+ * to be honoured by ReelsFeedCarousel's loadReels, which is a different
+ * component - the first version of this fix put a ref in ReelViewer and read it
+ * from the carousel, which is a ReferenceError on every load. localStorage is
+ * the persisted source of truth for both, so both read it through here.
+ */
+function readNotInterested() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
 function ReelViewer({ reels, startIndex, onClose }) {
   const { user: authUser } = useSupabase();
 
@@ -279,7 +295,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const [commentCounts, setCommentCounts] = useState({});
   const [saved, setSaved] = useState({});
   const [viewCounts, setViewCounts] = useState({});
-  const [slideDir, setSlideDir] = useState(null);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
 
@@ -341,16 +356,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // #7 Animated Like Counter
   const [likeBounceId, setLikeBounceId] = useState(null);
   // #4 Not Interested - persist disliked reel IDs in localStorage
-  const [notInterestedIds, setNotInterestedIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]'));
-      } catch {
-        return new Set();
-      }
-    }
-    return new Set();
-  });
+  const [notInterestedIds, setNotInterestedIds] = useState(readNotInterested);
   // #6 Comment Pagination
   const [commentPage, setCommentPage] = useState(0);
   const [hasMoreComments, setHasMoreComments] = useState(false);
@@ -967,6 +973,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
             localStorage.setItem('reels-not-interested', JSON.stringify([...n]));
           return n;
         });
+        /*
+         * Move off it. The load filter above keeps it away on every future
+         * load, but without this the reel you just said you did not want stays
+         * on screen until a reload - which reads as the button doing nothing,
+         * which is how this feature looked for its whole life. goNext is
+         * bounds-safe and stops at the last reel.
+         */
+        goNext();
       }
     } catch (err) {
       console.warn('Reel dislike persistence failed:', err.message);
@@ -1759,11 +1773,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
       }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        setSlideDir('up');
         goNext();
       }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        setSlideDir('down');
         goPrev();
       }
       if (e.key === 'Escape') {
@@ -2467,6 +2479,37 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 {likeCounts[currentReel.id] || 0}
               </span>
             </button>
+            {/* ITEM 26 (2026-09-08): viewCounts was merged from the DB on load
+                and incremented after a 2s dwell, then read by nobody - the
+                numbers were correct and invisible. Not a button: a view is
+                something that happened, not something to tap. */}
+            <div
+              aria-label={`${viewCounts[currentReel.id] || 0} views`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                color: 'white',
+              }}
+            >
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span style={{ fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                {viewCounts[currentReel.id] || 0}
+              </span>
+            </div>
             {/* Reaction Picker - appears on long-press */}
             {showReactionPicker && (
               <div
@@ -4036,7 +4079,13 @@ export function ReelsFeedCarousel() {
       // trigger. Without this filter the carousel renders the same clip
       // up to 169 times in a row.
       const seenUrls = new Set();
+      const notInterested = readNotInterested();
       const allReels = rawReels
+        // ITEM 11: honour Not Interested here, the way Reels.jsx:1017 and
+        // pages/hub/reels.js:754 already do. Without it the Set was written on
+        // every dislike and read by nobody, so a reel dismissed in the feed
+        // disappeared from /hub/reels and kept showing in the feed.
+        .filter((r) => !notInterested.has(r.id))
         .filter((r) => {
           if (!r.video_url) return true;
           if (seenUrls.has(r.video_url)) return false;
