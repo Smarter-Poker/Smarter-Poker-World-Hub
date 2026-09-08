@@ -159,6 +159,12 @@ import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
 import './safe-profile-columns-are-granted.test.mjs';
+// Registered 2026-09-08. It had lived only as the npm script
+// "test:social-poker-cards", so nothing ran it, and it had been RED on main
+// since #1601 removed the copied PostCard from ClubPagesView and
+// PublicGameBoard - the exact shape section 10.8 names: a check nobody can see
+// is not a check. Fixed and wired in here so it runs in CHECK 8.
+import './social-poker-card-picker.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
