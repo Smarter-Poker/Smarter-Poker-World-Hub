@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import Link from 'next/link';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getBlockedUsers, unblockUser } from '../../../src/services/privacy-service';
 
@@ -75,6 +76,17 @@ export default function BlockedUsers() {
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}>🚫</div>
                             <p style={styles.loadingText}>Loading Blocked Users...</p>
+                        </div>
+                    ) : !user ? (
+                        // Sign-in prompt BEFORE the zero-state: signed out, this
+                        // page asserted "No Blocked Users", which is a claim about
+                        // an account it never looked at.
+                        <div style={styles.emptyState}>
+                            <h2 style={styles.emptyTitle}>Sign In Required</h2>
+                            <p style={styles.emptyText}>Sign In To See Who You Have Blocked.</p>
+                            <Link href="/login" style={{ color: '#0084FF', fontWeight: 600 }}>
+                                Sign In
+                            </Link>
                         </div>
                     ) : blockedUsers.length === 0 ? (
                         <div style={styles.emptyState}>

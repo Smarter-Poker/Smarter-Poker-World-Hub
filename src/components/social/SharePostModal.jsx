@@ -33,7 +33,25 @@ const C = {
 const EXTERNAL_PLATFORMS = [
     {
         id: 'copy', label: 'Copy Link', icon: '🔗', color: '#65676B',
-        action: (url) => navigator.clipboard?.writeText(url)
+        // Throw rather than resolve when there is no Clipboard API: the optional
+        // chain returned undefined, `await undefined` resolved, and the handler
+        // went on to show "Link copied!" and count a share with nothing copied.
+        action: async (url) => {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(url);
+                return;
+            }
+            // Legacy fallback for insecure origins (http:// LAN testing).
+            const ta = document.createElement('textarea');
+            ta.value = url;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:-9999px;opacity:0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (!ok) throw new Error('Clipboard unavailable');
+        }
     },
     {
         id: 'twitter', label: 'X (Twitter)', icon: '𝕏', color: '#000000',
@@ -596,8 +614,10 @@ function GroupsTab({ post, onClose }) {
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ 
                         post_id: post.id,
-                        destination: 'messenger_group',
-                        success_count: successCount
+                        destination: 'messenger_group'
+                        // success_count removed: /api/social/share-count only
+                        // destructures { post_id, destination, platform }, so this
+                        // was silently dropped and implied a metric nobody records.
                     })
                 }).catch(() => {});
             } catch (_) {}

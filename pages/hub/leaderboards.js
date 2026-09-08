@@ -155,9 +155,13 @@ function Podium({ leaders }) {
                     >
                         <Link href={`/hub/user/${leader.user?.username || ''}`} style={{ textDecoration: 'none', textAlign: 'center' }}>
                             <div style={{ position: 'relative', marginBottom: 8 }}>
-                                <div style={{
+                                {/* sp-avatar-ring: display:inline-block sat the avatar on a
+                                    text baseline, so the descender gap made this podium ring
+                                    taller than it is wide - a medal circle drawn as an oval. */}
+                                <div className="sp-avatar-ring" style={{
                                     border: `3px solid ${medal}`,
-                                    borderRadius: '50%', padding: 2, display: 'inline-block',
+                                    borderRadius: '50%',
+                                    padding: 2,
                                     boxShadow: `0 0 15px ${medal}40`
                                 }}>
                                     <Avatar

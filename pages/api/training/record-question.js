@@ -20,6 +20,10 @@ import {
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
+import {
+  TRAINING_ANSWER_BINDING_COLUMNS,
+  trainingAnswerBindingMatches,
+} from '../../../src/lib/training/answerPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -189,6 +193,9 @@ export default async function handler(req, res) {
         street = null,
         spotType = null,
       } = req.body || {};
+      const normalizedSubmissionId = typeof submissionId === 'string'
+        ? submissionId.trim().slice(0, 180) || null
+        : null;
       const canonicalGrade = gradeCanonicalPolicyDecision(
         canonicalRow.canonical_policy,
         String(answerId),
@@ -250,7 +257,7 @@ export default async function handler(req, res) {
       };
       const evidenceRow = {
         ...baseRow,
-        submission_id: typeof submissionId === 'string' ? submissionId.slice(0, 180) : null,
+        submission_id: normalizedSubmissionId,
         solver_verified: verified,
         solver_source: verified ? String(canonicalGrade.solverSource || 'solver').slice(0, 60) : null,
         selected_frequency: verified ? canonicalGrade.selectedFrequency : null,
@@ -270,15 +277,41 @@ export default async function handler(req, res) {
         },
       };
 
-      await runTrainingPersistenceQuery(
-        () => submissionId
-          ? getSupabase().from('training_answers').upsert(evidenceRow, { onConflict: 'user_id,submission_id' })
-          : getSupabase().from('training_answers').insert(evidenceRow),
-        { label: 'RecordQuestion:insert' }
-      );
+      let idempotent = false;
+      try {
+        // Answers are evidence rows, not mutable state. Insert only. A retry
+        // carrying the same submission ID is acknowledged only after reading
+        // back and comparing the complete immutable binding.
+        await runTrainingPersistenceQuery(
+          () => getSupabase().from('training_answers').insert(evidenceRow),
+          { label: 'RecordQuestion:insert' }
+        );
+      } catch (insertError) {
+        const duplicateSubmission = normalizedSubmissionId
+          && insertError?.cause?.code === '23505';
+        if (!duplicateSubmission) throw insertError;
+        const existing = await runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_answers')
+            .select(TRAINING_ANSWER_BINDING_COLUMNS)
+            .eq('user_id', userId)
+            .eq('submission_id', normalizedSubmissionId)
+            .maybeSingle(),
+          { label: 'RecordQuestion:idempotency-read' },
+        );
+        if (!trainingAnswerBindingMatches(existing.data, evidenceRow)) {
+          return res.status(409).json({
+            success: false,
+            error: 'This answer submission ID is already bound to a different decision.',
+            code: 'TRAINING_ANSWER_BINDING_MISMATCH',
+          });
+        }
+        idempotent = true;
+      }
 
       return res.status(200).json({
         success: true,
+        idempotent,
         evidence: {
           solverVerified: verified,
           classification: persistedClassification,

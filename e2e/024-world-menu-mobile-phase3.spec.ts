@@ -92,8 +92,23 @@ async function assertContained(page: Page, drawer: Locator) {
 }
 
 async function assertModalIsolation(page: Page, drawer: Locator) {
-  await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
-  await expect(page.locator('body')).toHaveCSS('position', 'fixed');
+  const scrollLock = await page.locator('body').evaluate(() => ({
+    bodyOverflow: getComputedStyle(document.body).overflow,
+    bodyPosition: getComputedStyle(document.body).position,
+    rootOverflow: getComputedStyle(document.documentElement).overflow,
+  }));
+  // Poker Near Me deliberately translates the body lock to `clip` so WebKit
+  // does not turn the body into a fixed-position containing scroll box. The
+  // modal contract is that scrolling is impossible, not that every World uses
+  // one literal CSS implementation. Keep this aligned with the dedicated
+  // mobile WebKit contract in 023-world-menu-webkit.spec.ts.
+  expect(['hidden', 'clip']).toContain(scrollLock.bodyOverflow);
+  expect(
+    scrollLock.bodyPosition === 'fixed'
+      || ['hidden', 'clip'].includes(scrollLock.rootOverflow),
+    `nothing is holding the page: body position "${scrollLock.bodyPosition}", `
+      + `root overflow "${scrollLock.rootOverflow}"`,
+  ).toBe(true);
 
   const isolation = await drawer.evaluate((element) => {
     const branches = Array.from(document.querySelectorAll('[inert][aria-hidden="true"]'));

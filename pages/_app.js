@@ -84,6 +84,7 @@ import { SWRConfig } from 'swr';
 import { swrLocalStorageProvider, SWR_DEFAULTS } from '../src/lib/swrCacheProvider';
 import { swrCacheMiddleware } from '../src/lib/swrCacheMiddleware';
 import { useEffect, createContext, useState, useContext } from 'react';
+import { releaseMediaStreamOnLeave } from '../src/lib/mediaStreamSingleton';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
@@ -659,11 +660,25 @@ function NavigationGuard({ children }) {
       document.documentElement.classList.remove('reels-lock'); // FIX: clear html lock too
     };
 
+    // Leaving the streaming surfaces releases the camera and mic. Nothing did
+    // this before 2026-09-08: GoLiveModal's teardown pointed at a page-level
+    // handler that did not exist, so the stream survived modal close, every
+    // client-side navigation and logout, until a full page reload.
+    const handleMediaRelease = (url) => {
+      try {
+        releaseMediaStreamOnLeave(router.pathname, url);
+      } catch (_) {
+        /* never let a cleanup helper block navigation */
+      }
+    };
+
     router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeStart', handleMediaRelease);
     router.events.on('routeChangeComplete', handleComplete);
     router.events.on('routeChangeError', handleComplete);
 
     return () => {
+      router.events.off('routeChangeStart', handleMediaRelease);
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleComplete);
       router.events.off('routeChangeError', handleComplete);

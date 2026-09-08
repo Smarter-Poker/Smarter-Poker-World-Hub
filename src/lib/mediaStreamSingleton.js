@@ -188,6 +188,61 @@ export function releaseMediaStream({ force = false } = {}) {
 }
 
 /**
+ * THE ROUTES WHERE A LIVE CAMERA IS LEGITIMATE.
+ *
+ * Everywhere else, holding the camera open is a privacy fault, not an
+ * optimisation. Keep this list next to the cache it governs - a list that lives
+ * in the router file drifts from the module that actually holds the stream.
+ */
+export const STREAMING_SURFACES = [
+  '/hub/social-media',
+  '/hub/social-pages',
+  '/hub/lives',
+  '/hub/live',
+];
+
+/** True when `path` is one of the surfaces above (or a child of one). */
+export function isStreamingSurface(path) {
+  if (!path) return false;
+  const clean = String(path).split('?')[0].split('#')[0];
+  return STREAMING_SURFACES.some((s) => clean === s || clean.startsWith(s + '/'));
+}
+
+/**
+ * Release the camera and mic when navigation LEAVES the streaming surfaces.
+ *
+ * Until 2026-09-08 nothing did this. The teardown in GoLiveModal declined to
+ * stop the stream and pointed at a "page-level layout" handler that did not
+ * exist, and releaseMediaStream({force:true}) had exactly one caller in the
+ * repo - the black-frame watchdog inside the modal itself. So the camera and
+ * mic stayed live through modal close, client-side navigation and logout,
+ * until a full page reload.
+ *
+ * The reason this is NOT simply done on GoLiveModal unmount is at the top of
+ * this file: stopping tracks and re-acquiring them within one page session is
+ * what makes iOS re-engage its permission UI. Navigating away is a different
+ * event from closing the modal, and it is the correct boundary - the user has
+ * left the surface, so a later re-entry is expected to be a fresh acquisition.
+ *
+ * Returns true when it actually released, so callers can be tested.
+ */
+export function releaseMediaStreamOnLeave(fromPath, toPath) {
+  if (!isStreamingSurface(fromPath)) return false;
+  if (isStreamingSurface(toPath)) return false;
+  releaseMediaStream({ force: true });
+  return true;
+}
+
+/**
+ * Release on sign-out, unconditionally. A logged-out browser must never hold
+ * this user's camera, wherever they happened to be standing when they left.
+ */
+export function releaseMediaStreamOnLogout() {
+  releaseMediaStream({ force: true });
+  return true;
+}
+
+/**
  * Synchronous accessor. Returns the cached stream without triggering any
  * permission flow. Returns null if no cached stream is available.
  */

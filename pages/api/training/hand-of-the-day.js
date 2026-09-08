@@ -386,6 +386,9 @@ export default async function handler(req, res) {
             p_metadata: {
               consumer: 'daily-challenge',
               dailyId,
+              ...(eventType === 'answered'
+                ? { selectedAnswer: canonicalSelectedLabel }
+                : {}),
               policyChecksum: cached.policy_checksum,
             },
             p_occurred_at: new Date().toISOString(),

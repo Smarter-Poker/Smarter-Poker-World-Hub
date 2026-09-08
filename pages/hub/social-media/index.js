@@ -44,7 +44,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useFeedPrefetchObserver } from '../../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
@@ -74,7 +73,6 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
-import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
@@ -90,7 +88,6 @@ const ShareStreakLeaderboard = dynamic(
 );
 const ClubPageDashboard = dynamic(() => import("../../../src/components/social/ClubPageDashboard"));
 const PublicGameBoard = dynamic(() => import("../../../src/components/social/PublicGameBoard"));
-const ChatWindow = dynamic(() => import("../../../src/components/social/ChatWindow"));
 const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubPagesView"));
 
 // Shared utilities — single source of truth (extracted from this file)
@@ -381,6 +378,10 @@ const PostCard = React.memo(
     const [shareCount, setShareCount] = useState(post.shareCount || 0);
     const [hasShared, setHasShared] = useState(false); // Can be hydrated from props if needed later
     const [hasMoreComments, setHasMoreComments] = useState(false);
+    // Comment rows actually returned by the server. Paging used `comments.length`,
+    // which also counts optimistic entries, realtime-injected ones and replies,
+    // so "View More Comments" skipped or re-fetched rows once any of those existed.
+    const fetchedCommentCountRef = useRef(0);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const [displayContent, setDisplayContent] = useState(post.content);
     const [editingCommentId, setEditingCommentId] = useState(null);
@@ -714,6 +715,10 @@ const PostCard = React.memo(
           };
         });
         setComments((prev) => (offset === 0 ? newComments : [...prev, ...newComments]));
+        // Rows actually fetched from the server. `comments.length` is NOT this
+        // number - it also counts optimistic entries, realtime-injected ones and
+        // replies - so paging on it skipped or re-fetched rows.
+        fetchedCommentCountRef.current = offset === 0 ? newComments.length : offset + newComments.length;
       } catch (e) {
         console.warn('[Comments] Error loading comments:', e);
       }
@@ -721,7 +726,7 @@ const PostCard = React.memo(
     };
 
     const loadMoreComments = () => {
-      loadComments(comments.length);
+      loadComments(fetchedCommentCountRef.current);
     };
 
     // Phase 3: Double-tap to like handler
@@ -1248,12 +1253,28 @@ const PostCard = React.memo(
                 const needsTruncation = truncated.truncated && !expanded;
                 const visibleText = needsTruncation ? `${truncated.text}...` : displayText;
 
-                // Render with @mention highlighting
-                const rendered = visibleText.split(/(@\w+)/g).map((part, i) =>
+                // Two things have to be true here at once, so this stays a local
+                // split rather than a call to renderMentions(): the non-mention
+                // parts must keep going through PokerCardText, and the mention
+                // parts must actually navigate. They rendered as blue
+                // cursor:pointer text with NO onClick, so @mentions in posts
+                // looked clickable and did nothing - they work in comments only.
+                // The regex is now /(@[\w.]+)/ to match renderMentions; the old
+                // /(@\w+)/ split usernames containing a dot differently in posts
+                // than in comments.
+                const rendered = visibleText.split(/(@[\w.]+)/g).map((part, i) =>
                   part.startsWith('@') ? (
-                    <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>
+                    <a
+                      key={i}
+                      href={`/hub/user/${part.slice(1)}`}
+                      style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(`/hub/user/${part.slice(1)}`);
+                      }}
+                    >
                       {part}
-                    </span>
+                    </a>
                   ) : (
                     <PokerCardText key={i} text={part} />
                   )
@@ -3184,7 +3205,14 @@ const PostCard = React.memo(
       prevProps.post.mediaUrls === nextProps.post.mediaUrls &&
       prevProps.post.metadata === nextProps.post.metadata &&
       prevProps.post.shareCount === nextProps.post.shareCount &&
-      prevProps.currentUserId === nextProps.currentUserId
+      prevProps.currentUserId === nextProps.currentUserId &&
+      // These three change without currentUserId changing: a profile edit
+      // re-sets `user` (name + avatar) and horseProfileIds arrives async. Left
+      // out, the comment composer's avatar and the author name stayed stale and
+      // the horse online dot never appeared.
+      prevProps.currentUserName === nextProps.currentUserName &&
+      prevProps.currentUserAvatar === nextProps.currentUserAvatar &&
+      prevProps.horseProfileIds === nextProps.horseProfileIds
     );
   }
 );
@@ -3698,14 +3726,25 @@ function SocialMediaPage() {
   // Identity context for feed filter
   const { activeIdentity, switchToPersonal, switchToClub, isClubMode, clubPage, hasClubPage, ownedPages } = useActiveIdentity();
   const [showClubPostsOnly, setShowClubPostsOnly] = useState(false);
+  // ?compose=1 from the footer's Create control - focus the inline composer
+  // instead of routing to the /compose redirect stub.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'club-pages') setShowClubPages(true);
-  }, []);
+    if (router.query.compose !== '1' || !user) return;
+    const t = setTimeout(() => window.dispatchEvent(new CustomEvent('sp-focus-composer')), 120);
+    router.replace('/hub/social-media', undefined, { shallow: true });
+    return () => clearTimeout(t);
+  }, [router.query.compose, user]);
+
+  // router.query, not window.location.search with empty deps: the hamburger
+  // links to /hub/social-media?view=club-pages, and from the feed itself that is
+  // a same-route client transition with no remount - the effect never re-ran and
+  // the panel never opened.
+  useEffect(() => {
+    if (router.query.view === 'club-pages') setShowClubPages(true);
+  }, [router.query.view]);
   const [clubPages, setClubPages] = useState([]);
   const [clubPagesLoading, setClubPagesLoading] = useState(false);
   const [clubPagesCategory, setClubPagesCategory] = useState('all');
-  const [viewingClubPage, setViewingClubPage] = useState(null);
   const [clubPagesSearch, setClubPagesSearch] = useState('');
   const [clubPagesFollowing, setClubPagesFollowing] = useState(new Set());
 
@@ -3743,6 +3782,14 @@ function SocialMediaPage() {
   const [watchingStream, setWatchingStream] = useState(null);
   const processedStreamIdRef = useRef(null);
   const processedPostIdRef = useRef(null);
+  // ?ref= had no idempotency guard while ?post= and ?stream= both did, and its
+  // effect depends on the whole `user` object - which is replaced at least once
+  // per session (localStorage cache then DB fetch), so the auto-follow POST
+  // could fire twice before router.replace cleared the param.
+  const processedRefRef = useRef(null);
+  // The post opened from a share link / notification, held so the feed load
+  // that lands after it cannot drop it.
+  const deepLinkPostRef = useRef(null);
   // "N new posts" pill — replaces the destructive full-feed reset on
   // realtime INSERT (2026-08-15 audit).
   const [newPostsCount, setNewPostsCount] = useState(0);
@@ -4025,7 +4072,9 @@ function SocialMediaPage() {
         window.masterBus.subscribe('SOCIAL_POST', () => {
           if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
             console.log('[Social] 🔄 New post detected via masterBus');
-          loadFeed(0, false);
+          // Ref first, like every other long-lived listener in this file - this
+          // one captured loadFeed from whenever user?.id last changed.
+          (loadFeedRef.current || loadFeed)(0, false);
         })
       );
       unsubMasterBus.push(
@@ -4614,8 +4663,9 @@ function SocialMediaPage() {
     }
 
     // Handle ?ref=<referral_code> query param (from QR code scan)
-    if (router.query.ref && user) {
+    if (router.query.ref && user && processedRefRef.current !== router.query.ref) {
       const refCode = router.query.ref;
+      processedRefRef.current = refCode;
       (async () => {
         try {
           // Look up the page by referral code
@@ -4676,6 +4726,9 @@ function SocialMediaPage() {
                 isBookmarked: false,
                 viewCount: p.view_count || 0,
                 createdAt: p.created_at,
+                // Every other post-construction site sets this; without it the
+                // deep-linked post rendered with a blank timestamp.
+                timeAgo: timeAgo(p.created_at),
                 link_url: p.link_url || null,
                 link_title: p.link_title || null,
                 link_description: p.link_description || null,
@@ -4688,6 +4741,11 @@ function SocialMediaPage() {
                   avatar: meta.page_avatar_url || p.author?.avatar_url || null,
                 },
               };
+              // Pin it. The mount effect's loadFeed() resolves later and calls
+              // setPosts(formattedPosts), replacing the whole array - which
+              // silently threw away every post opened from a share link or a
+              // notification. loadFeed re-applies this pin on the way through.
+              deepLinkPostRef.current = formatted;
               setPosts((prev) => [formatted, ...prev.filter((x) => x.id !== formatted.id)]);
               if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
@@ -4722,7 +4780,7 @@ function SocialMediaPage() {
         })();
       }
     }
-  }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
+  }, [user?.id, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
 
   //  REFRESH NOTIFICATIONS when modal opens — always show latest data
   useEffect(() => {
@@ -4906,7 +4964,10 @@ function SocialMediaPage() {
       //    Previously: 3 sequential client→Supabase fetches (~240ms+)
       //    Now: 1 server-side Next.js API call with service role key (~60-80ms)
       // ─────────────────────────────────────────────────────────────────────
-      const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}${authUserId ? `&user_id=${authUserId}` : ''}`;
+      // No user_id param: /api/social/feed ignores it and derives identity from
+      // the JWT (pages/_app.js injects the bearer token globally). All it did was
+      // put a user UUID into every CDN and access log line.
+      const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}`;
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
@@ -4917,7 +4978,7 @@ function SocialMediaPage() {
 
       // Pagination state
       if (!rawPosts || rawPosts.length === 0) {
-        if (feedCycle < MAX_FEED_CYCLES) {
+        if (feedCycleRef.current < MAX_FEED_CYCLES) {
           setFeedCycle((prev) => prev + 1);
           setFeedOffset(0);
         } else {
@@ -4953,7 +5014,7 @@ function SocialMediaPage() {
         ...p,
         timeAgo: timeAgo(p.createdAt),
         isPriority: prioritySet.has(p.authorId),
-        isSuggested: feedCycle > 0,
+        isSuggested: feedCycleRef.current > 0,
         isFriend: friendIds.includes(p.authorId),
         isFollowing: followingIds.includes(p.authorId),
         score: calculatePostScore(p),
@@ -4974,7 +5035,12 @@ function SocialMediaPage() {
       if (append) {
         setPosts((prev) => [...prev, ...formattedPosts]);
       } else {
-        setPosts(formattedPosts);
+        const pinned = deepLinkPostRef.current;
+        setPosts(
+          pinned
+            ? [pinned, ...formattedPosts.filter((x) => x.id !== pinned.id)]
+            : formattedPosts
+        );
         // Persist to IndexedDB (50MB+) and localStorage fallback
         feedCache.setPosts(formattedPosts);
       }
@@ -4989,8 +5055,17 @@ function SocialMediaPage() {
   const feedOffsetRef = useRef(feedOffset);
   const hasMorePostsRef = useRef(hasMorePosts);
   const loadingMoreRef = useRef(loadingMore);
+  // feedCycle needs the same treatment as the three above and was missed:
+  // loadMoreCallbackRef is a useCallback([]), so the loadFeed it reaches is the
+  // one from the first render, where feedCycle is frozen at 0 forever. That made
+  // MAX_FEED_CYCLES unreachable, hasMorePosts never went false, and the
+  // "You're All Caught Up!" state never rendered - the feed just looped.
+  const feedCycleRef = useRef(feedCycle);
 
   // Keep refs in sync with state
+  useEffect(() => {
+    feedCycleRef.current = feedCycle;
+  }, [feedCycle]);
   useEffect(() => {
     feedOffsetRef.current = feedOffset;
   }, [feedOffset]);
@@ -6170,7 +6245,7 @@ function SocialMediaPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {!page.avatar_url && page.name.charAt(0).toUpperCase()}
+                    {!page.avatar_url && (page.name || 'C').charAt(0).toUpperCase()}
                   </div>
                   <div style={{ fontSize: 11, marginTop: 6, color: C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {page.name}
@@ -6279,6 +6354,39 @@ function SocialMediaPage() {
               style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
             />
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
+          </Link>
+          {/* Saved Posts. /hub/saved-posts is a complete, working page that had
+              zero inbound links anywhere in the app - no menu row, no footer
+              slot, no Link - so the only way to reach it was typing the URL. */}
+          <Link
+            href="/hub/saved-posts"
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              padding: '14px 12px',
+              background: '#fff',
+              borderRadius: 8,
+              textDecoration: 'none',
+              border: '1px solid #dadde1',
+            }}
+          >
+            <svg
+              aria-hidden="true"
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#1877f2"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ marginBottom: 8 }}
+            >
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Saved Posts</span>
           </Link>
           {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
           <div
@@ -7467,12 +7575,6 @@ function SocialMediaPage() {
                       onPost={handlePost}
                       isPosting={isPosting}
                       onGoLive={() => setShowGoLiveModal(true)}
-                      onOpenClubPages={() => {
-                        setShowClubPages(true);
-                        router.replace('/hub/social-media?view=club-pages', undefined, {
-                          shallow: true,
-                        });
-                      }}
                     />
                   )}
 
@@ -7560,8 +7662,11 @@ function SocialMediaPage() {
 
 
 
-                  {/* Posts Feed */}
-                  {posts.length === 0 ? (
+                  {/* Posts Feed. Test the FILTERED array: if every loaded post
+                      is from a blocked author, `posts.length` is non-zero but
+                      the feed body renders nothing - an empty region with no
+                      message and no call to action. */}
+                  {posts.filter((p) => !blockedUserIds.has(p.authorId)).length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
                       <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
                       <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>
@@ -7914,7 +8019,7 @@ function SocialMediaPage() {
               setWatchingStream(null);
               // Refresh live streams
               LiveStreamService.getLiveStreams()
-                .then(setLiveStreams)
+                .then((streams) => setLiveStreams(streams || []))
                 .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
             }}
           />

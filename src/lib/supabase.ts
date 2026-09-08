@@ -55,6 +55,16 @@ function getSupabase() {
       }
 
       _supabase = createClient(safeUrl, supabaseAnonKey || '', {
+         global: {
+            fetch: async (input, init) => {
+               const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+               if (url.startsWith(`${safeUrl.replace(/\/+$/, '')}/auth/v1/`)) {
+                  const { fetchAuthWithDeadline } = await import('./authFetchDeadline');
+                  return fetchAuthWithDeadline(input, init);
+               }
+               return fetch(input, init);
+            },
+         },
          auth: {
             autoRefreshToken: true,
             persistSession: true,
