@@ -510,12 +510,48 @@ if [ -d "node_modules" ] && [ -f "node_modules/.package-lock.json" -o -f "node_m
   NODE_MODULES_OK=true
 fi
 
+# --- 1-zero-a. WHAT THIS CLEAN MUST NOT EAT (2026-09-08) ---------------------
+# `-X` removes everything git ignores. Two ignored directories are not phantom
+# state, and until today both were on the list:
+#
+#   .next/        2.4 GB, of which .next/cache is 2.0 GB of webpack/SWC/Terser
+#                 cache. Phase 2.5 runs `npx next build` about two hundred lines
+#                 below. Deleting the cache here and then running the build the
+#                 cache exists to accelerate meant the build gate could never be
+#                 warm -- a cold compile of 947 pages and 639 API routes, every
+#                 push, forever. Verified with `git clean -fdXn`: it printed
+#                 "Would remove .next/".
+#   .agent-trees/ 24 GB, 17 sibling agent worktrees (ignored via
+#                 .git/info/exclude). Nested worktrees carry a .git entry so a
+#                 single -f should skip their contents, but the parent was on
+#                 the list and rule 1a's whole premise is that another agent's
+#                 tree is not ours to touch. Say so explicitly rather than
+#                 relying on that.
+#
+# Phase 2.5 still clears the previous build's OUTPUT before building; it just
+# keeps .next/cache. Clean build, warm cache -- what CI caching does everywhere.
+CLEAN_KEEP=(
+  -e "!.env*"
+  -e "!public/hub/club-arena/assets"
+  -e "!node_modules" -e "!node_modules/**"
+  -e "!.husky"
+  -e "!.next" -e "!.next/**"
+  -e "!.agent-trees" -e "!.agent-trees/**"
+)
+
 echo "🗑️  Running absolute garbage collection (git clean -fdX) to eliminate phantom state..."
+echo "   (keeping .next/cache and .agent-trees/ - see comment above)"
 if [ "$DRY_RUN" = true ]; then
-  git clean -fdXn -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules" -e "!node_modules/**" -e "!.husky" 2>/dev/null || true
+  git clean -fdXn "${CLEAN_KEEP[@]}" 2>/dev/null || true
 else
-  git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules" -e "!node_modules/**" -e "!.husky" 2>/dev/null || true
+  git clean -fdX "${CLEAN_KEEP[@]}" 2>/dev/null || true
 fi
+
+# 1-zero-b. Drop worktree registrations whose directory is long gone. Measured
+# 2026-09-08: 177 entries in .git/worktrees, and `git worktree prune` was being
+# run by nothing. Every git operation in this repo reads that directory.
+# --expire is deliberate: a tree on a temporarily unmounted volume is not dead.
+git worktree prune --expire 3.days.ago 2>/dev/null || true
 
 # INTEGRITY CHECK: If node_modules was present before clean but is now gone, auto-restore.
 if [ "$NODE_MODULES_OK" = true ] && [ ! -d "node_modules" ]; then
@@ -718,6 +754,18 @@ if [ "$BUILD_CHECK" = true ]; then
         sleep 1
     fi
     
+    # --- Clear the LAST build's output, keep the cache ---
+    # Phase 1 no longer deletes .next wholesale (see the comment there). The
+    # thing that actually needed deleting was stale build OUTPUT -- the corrupt
+    # vendor-chunks / "Cannot find module" shape in the CLAUDE.md section 8 bug
+    # table. .next/cache is the opposite: it is what makes this build fast, and
+    # `next build` reconciles it correctly against a changed tree.
+    if [ -d ".next" ]; then
+      CACHE_SIZE=$(du -sh .next/cache 2>/dev/null | cut -f1 || echo "none")
+      echo "   Reusing .next/cache (${CACHE_SIZE}); clearing previous build output..."
+      find .next -mindepth 1 -maxdepth 1 ! -name cache -exec rm -rf {} + 2>/dev/null || true
+    fi
+
     # Capture output to check for node_modules corruption
   # MUST use --webpack: Next.js 16+ defaults to Turbopack which breaks on our
   # custom webpack config and 246+ named-export mismatches (May 2026 incident).
@@ -729,6 +777,15 @@ if [ "$BUILD_CHECK" = true ]; then
     BUILD_END=$(date +%s)
     echo "$BUILD_OUTPUT" | tail -10
     echo "✅ Build passed ($(( BUILD_END - BUILD_START ))s)"
+    # Record it. This script has printed its phase durations since v4.1 and
+    # nothing has ever collected them, which is why the cost of the cold build
+    # gate had to be INFERRED in the 2026-09-08 pipeline audit instead of read.
+    node "${SCRIPT_DIR}/deploy-log.js" \
+      --action build \
+      --sha "$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+      --branch "${BRANCH}" \
+      --duration "$(( BUILD_END - BUILD_START ))" \
+      --msg "next build (Phase 2.5 gate)" 2>/dev/null || true
   else
     # Check if failure was due to broken node_modules
     if echo "$BUILD_OUTPUT" | grep -iqE 'MODULE_NOT_FOUND|Cannot find module|command not found'; then
@@ -895,6 +952,31 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     # ── Phase 4: MANDATORY Post-Deploy Verification ──
     # HARD LAW: Every push MUST verify that Vercel deployed successfully.
     # An agent that pushes and walks away is WORSE than one that writes no code.
+    #
+    # --- BUT ONLY ON main (2026-09-08) ---------------------------------------
+    # verify-deploy.js polls production for the LOCAL HEAD sha. Section 10.7 and
+    # AGENT-PLAYBOOK mandate branch -> PR -> SQUASH-MERGE, and a squash merge
+    # produces a DIFFERENT sha on main. So on the normal path this polled
+    # production for a sha it would never serve: six minutes of dead wait ending
+    # in exit 2 and DEPLOY_VERIFIED:false, which section 1.5 defines as "your
+    # code is NOT deployed". A false negative on every SUCCESS is worse than no
+    # check at all -- it teaches agents to disbelieve the one signal the rules
+    # call authoritative. Off main, the honest answer is "the PR will publish
+    # this", and that is what it now says.
+    if [ "${BRANCH}" != "main" ]; then
+      echo ""
+      echo "---------------------------------------------------"
+      echo "Phase 4: SKIPPED - this is branch '${BRANCH}', not main."
+      echo "   Production is never asked to serve a branch sha: the squash"
+      echo "   merge that lands this work on main creates a different one."
+      echo "   Open/await the pull request; publish is verified there."
+      echo "   (See .agent/audits/2026-09-08-publish-pipeline-improvements.md)"
+      echo "PUSH_OK:true"
+      echo "DEPLOY_VERIFIED:n/a_branch_push"
+      echo "---------------------------------------------------"
+      exit 0
+    fi
+
     echo ""
     echo "═══════════════════════════════════════════════════"
     echo "🔍 Phase 4: MANDATORY Post-Deploy Verification"
@@ -904,8 +986,16 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     echo "   Will poll production until SHA matches ${COMMIT_SHA}"
     echo "═══════════════════════════════════════════════════"
     
-    # Wait 60s for Vercel to pick up the commit, then poll every 15s for up to 5 min
-    if node "${SCRIPT_DIR}/verify-deploy.js" --wait 60 --match-sha "${COMMIT_SHA}" --timeout 300 2>&1; then
+    # Budget: 30s settle + 900s of polling.
+    # It was 60 + 300 = 360s, and startTime is set AFTER the wait, so 360s was
+    # the real ceiling. Measured 2026-09-08 against the Vercel API, four
+    # production deployments of this project: queue 1.2-86.0s, build
+    # 154.7-273.2s, and PR #1586 took 364s from repoPushedAt to ready. A healthy
+    # deploy already lost this race. publish-watchdog.yml allows 20 minutes for
+    # the identical event; the two disagreed by 3.3x and the one on the agent's
+    # critical path had taken the smaller number. Waiting 30s instead of 60s
+    # also gets the first poll in before a fast build (155s) has gone stale.
+    if node "${SCRIPT_DIR}/verify-deploy.js" --wait 30 --match-sha "${COMMIT_SHA}" --timeout 900 2>&1; then
       echo ""
       echo "═══════════════════════════════════════════════════"
       echo "✅ DEPLOYMENT VERIFIED — Production is live!"
@@ -941,12 +1031,23 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       echo "═══════════════════════════════════════════════════"
 
       # ── Phase 4: MANDATORY Post-Deploy Verification (fallback path) ──
+      # Same branch guard and same budget as the primary path above. This copy
+      # existed with the old 60/300 numbers and no guard; two push paths that
+      # verify differently is how one of them quietly stops meaning anything.
+      if [ "${BRANCH}" != "main" ]; then
+        echo ""
+        echo "Phase 4: SKIPPED - this is branch '${BRANCH}', not main."
+        echo "   Publish is verified on the pull request, not here."
+        echo "PUSH_OK:true"
+        echo "DEPLOY_VERIFIED:n/a_branch_push"
+        exit 0
+      fi
       echo ""
       echo "═══════════════════════════════════════════════════"
       echo "🔍 Phase 4: MANDATORY Post-Deploy Verification"
       echo "═══════════════════════════════════════════════════"
       COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
-      if node "${SCRIPT_DIR}/verify-deploy.js" --wait 60 --match-sha "${COMMIT_SHA}" --timeout 300 2>&1; then
+      if node "${SCRIPT_DIR}/verify-deploy.js" --wait 30 --match-sha "${COMMIT_SHA}" --timeout 900 2>&1; then
         echo "✅ DEPLOYMENT VERIFIED — Production is live!"
         exit 0
       else
