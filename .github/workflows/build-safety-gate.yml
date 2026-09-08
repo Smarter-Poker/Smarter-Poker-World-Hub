@@ -816,11 +816,31 @@ jobs:
       # now serves from its own origin. club-arena-is-a-rewrite.test.mjs takes
       # its place here - the same idea (the thing we serve is actually there)
       # against the arrangement that exists.
+      # avatar-art-has-no-punched-holes reads pixels, so it needs sharp, and this
+      # job deliberately does not `npm ci` (see CHECK 20's note). Without this it
+      # would SKIP on every run - green, silent, and exactly the decorative guard
+      # it was written to replace: `scripts/check-avatar-integrity.mjs` claimed to
+      # stop holes coming back, never opened an image, and 86 of the 100 busts
+      # were holed again fifteen days later. Cached on its own key, restored
+      # before the check, and the check itself fails loudly in CI if it is still
+      # missing rather than reporting a skip as a pass.
+      - name: Restore the image codec CHECK 8 needs
+        uses: actions/cache@v4
+        with:
+          path: node_modules/sharp
+          key: sharp-avatar-guard-${{ runner.os }}-v1
+
       - name: "CHECK 8: Auth-critical files exist"
         run: |
           if [ ! -f __tests__/auth-routes-exist.test.mjs ]; then
             echo "::error::__tests__/auth-routes-exist.test.mjs is missing — the guard itself was deleted."
             exit 1
+          fi
+          # sharp 0.34 ships prebuilt @img/sharp-* binaries, so --ignore-scripts
+          # is safe here; it is the same shape as CHECK 20's parser install.
+          if ! node -e "require.resolve('sharp')" 2>/dev/null; then
+            npm install --no-save --no-audit --no-fund --ignore-scripts sharp@0.34 \
+              || echo "::warning::could not install sharp; the avatar guard will say so and fail"
           fi
           node --test \
             __tests__/_test-guards-exist.test.mjs \

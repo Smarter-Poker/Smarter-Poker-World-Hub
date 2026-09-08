@@ -56,6 +56,21 @@ function subjects() {
   return out.sort();
 }
 
+/**
+ * A SKIP IS NOT A PASS. Locally, someone without sharp should not have a red
+ * build over a missing image codec. In CI it is the opposite: this job does not
+ * `npm ci`, so a silent skip is precisely how the guard this replaces became
+ * decorative — it claimed to stop holes coming back and never opened an image.
+ * The workflow installs sharp before running this; if that failed, say so.
+ */
+test('the image codec this guard needs is present in CI', { skip: !process.env.CI }, () => {
+  assert.ok(
+    sharp,
+    'sharp is unavailable, so the hole check below SKIPPED rather than ran. ' +
+      'See the "Restore the image codec CHECK 8 needs" step in build-safety-gate.yml.'
+  );
+});
+
 test('the avatar library is present', () => {
   const files = subjects();
   // 100 busts + 24 free + 76 vip. A rename or a move would otherwise turn every
