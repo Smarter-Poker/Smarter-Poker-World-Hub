@@ -259,6 +259,17 @@ export default function MessageRequests() {
                             </div>
                             <p style={styles.loadingText}>Loading Requests...</p>
                         </div>
+                    ) : !user ? (
+                        // Sign-in prompt BEFORE the zero-state - see blocked.js.
+                        <div style={styles.emptyState}>
+                            <h2 style={styles.emptyTitle}>Sign In Required</h2>
+                            <p style={styles.emptyText}>
+                                Sign In To See Who Has Messaged You.
+                            </p>
+                            <Link href="/login" style={styles.inboxLink}>
+                                Sign In
+                            </Link>
+                        </div>
                     ) : requests.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={{

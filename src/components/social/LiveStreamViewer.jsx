@@ -90,6 +90,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
   const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment from broadcaster
 
   const videoRef = useRef(null);
+  // The LiveKit track currently attached to <video>. attach() registers the
+  // element in the track's attachedElements list; without a matching detach()
+  // LiveKit keeps a reference to a DOM node from an unmounted component and the
+  // element keeps its media source. Nothing in this file ever called detach().
+  const attachedVideoTrackRef = useRef(null);
   const commentsEndRef = useRef(null);
   const commentChannelRef = useRef(null);
   const giftChannelRef = useRef(null);
@@ -532,6 +537,16 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         clearTimeout(topGiftersHideTimerRef.current);
         topGiftersHideTimerRef.current = null;
       }
+      // Release the media source on the element itself. detach() (above) unhooks
+      // the LiveKit track; srcObject is set directly on three other paths and
+      // survived unmount without this.
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause();
+          videoRef.current.srcObject = null;
+        } catch (e) {}
+      }
+      pendingStreamRef.current = null;
     };
   }, [stream?.id, userId]);
 
@@ -547,9 +562,18 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
       if (videoPub?.track) {
         try {
           videoPub.track.attach(videoRef.current);
+          attachedVideoTrackRef.current = { track: videoPub.track, el: videoRef.current };
         } catch (e) {}
       }
     }
+    return () => {
+      const attached = attachedVideoTrackRef.current;
+      if (!attached) return;
+      try {
+        attached.track.detach(attached.el);
+      } catch (e) {}
+      attachedVideoTrackRef.current = null;
+    };
   }, [participants, stream?.broadcaster_id]);
 
   // BUG FIX (LSV-1): Assign srcObject after both the video element AND the stream are ready.
