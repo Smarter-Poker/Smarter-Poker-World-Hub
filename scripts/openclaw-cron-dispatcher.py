@@ -672,7 +672,10 @@ ALL_CRONS = [
     # Phase 3 Training cache truth contract. Runs after daily Training content
     # generation and reports any seal, lineage, source, or counter drift as a
     # failed OpenClaw run. The worker invokes the database-owned atomic audit.
+    # A second idempotent pass closes the one-shot failure mode proved on
+    # 2026-09-08, when transient database contention timed out the 08:10 pass.
     ('/api/cron/training-cache-drift-audit',      dict(hour=8, minute=10)),
+    ('/api/cron/training-cache-drift-audit',      dict(hour=8, minute=25)),
     ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
     ('/api/cron/freeroll-qualification-sync',     dict(hour='*/6', minute=0)),
 
@@ -1135,6 +1138,9 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    # The cache audit has two daily idempotent passes. Page if both fail, so a
+    # full day can never lose its integrity audit without reaching an operator.
+    '/api/cron/training-cache-drift-audit': 2,
     # 2026-09-06: a synthetic client that cannot hold a Club Arena table is the
     # 2026-09-03 outage happening again, and that one ran twenty-two hours
     # because nothing anywhere was watching this. THREE, not two: the probe
@@ -1148,6 +1154,7 @@ CRITICAL_RUNBOOKS = {
     '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
 }
 _critical_state = {}
