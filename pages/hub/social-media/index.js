@@ -115,6 +115,29 @@ function getTypingChannel() {
   return _typingSendChannel;
 }
 
+/*
+ * ITEM 21 (2026-09-08): the feed carried 99 click handlers, 3 roles and ZERO
+ * tabIndex. Primary actions - comment Like, Reply, Edit, Delete and its
+ * confirm, "See More", the sidebar tiles, identity-switch rows, notification
+ * rows, search results, every media thumbnail - were plain divs and spans.
+ * None was reachable by keyboard; none announced itself to a screen reader.
+ *
+ * Activation goes through currentTarget.click() rather than re-invoking the
+ * handler, so each control keeps exactly one behaviour: whatever its onClick
+ * already does. A second copy of the handler is a second thing to keep in step.
+ *
+ * NOT applied to backdrops (the lightbox, sidebar and global-search scrims) or
+ * to the stopPropagation wrapper: those are not controls, and making them
+ * focusable buttons would put a tab stop on a sheet of glass. Dismissing a
+ * dialog from the keyboard is Escape's job and is tracked separately.
+ */
+function spKeyActivate(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  // Space scrolls the page; Enter can submit a surrounding form.
+  e.preventDefault();
+  e.currentTarget.click();
+}
+
 const PostCard = React.memo(
   function PostCard({
     post,
@@ -1075,6 +1098,9 @@ const PostCard = React.memo(
                     {rendered}
                     {needsTruncation && (
                       <span
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate}
                         onClick={() => setExpanded(true)}
                         style={{
                           color: C.textSec,
@@ -1159,7 +1185,8 @@ const PostCard = React.memo(
           post.contentType?.startsWith('live_session')) && (
           <div style={{ padding: (post.mediaUrls?.length ?? 0) > 1 ? '0 2px 2px' : 0 }}>
             {/* Double-tap to like + heart animation overlay */}
-            <div onClick={handleDoubleTap} style={{ position: 'relative', cursor: 'pointer' }}>
+            <div
+              data-sp-skip-a11y="decorative overlay: double-tap to like, not a control" onClick={handleDoubleTap} style={{ position: 'relative', cursor: 'pointer' }}>
               {doubleTapHeart && (
                 <div
                   style={{
@@ -1202,6 +1229,9 @@ const PostCard = React.memo(
                     if (isEnded || !streamId) {
                       return (
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           onClick={handleOpen}
                           style={{
                             position: 'relative',
@@ -1510,6 +1540,9 @@ const PostCard = React.memo(
                   />
                 ) : (
                   <img
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={spKeyActivate}
                     src={post.mediaUrls[0]}
                     loading="lazy"
                     alt=""
@@ -1542,6 +1575,9 @@ const PostCard = React.memo(
                         // IntersectionObserver autoplay <video> doesn't
                         // capture taps meant for the parent.
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           style={{
                             width: '100%',
                             height: '100%',
@@ -1585,6 +1621,9 @@ const PostCard = React.memo(
                         </div>
                       ) : (
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1612,6 +1651,9 @@ const PostCard = React.memo(
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
                   <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
                     <img
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={spKeyActivate}
                       src={post.mediaUrls[0]}
                       loading="lazy"
                       alt=""
@@ -1635,6 +1677,9 @@ const PostCard = React.memo(
                     {post.mediaUrls.slice(1).map((url, i) => (
                       <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1663,6 +1708,9 @@ const PostCard = React.memo(
                   {post.mediaUrls.map((url, i) => (
                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                       <img
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate}
                         src={url}
                         loading="lazy"
                         alt=""
@@ -1698,6 +1746,9 @@ const PostCard = React.memo(
                     {post.mediaUrls.slice(0, 2).map((url, i) => (
                       <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1726,6 +1777,9 @@ const PostCard = React.memo(
                         style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}
                       >
                         <img
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           src={url}
                           loading="lazy"
                           alt=""
@@ -1825,6 +1879,9 @@ const PostCard = React.memo(
           <span style={{ cursor: 'pointer', display: 'flex', gap: 12 }}>
             {commentCount > 0 && (
               <span
+                role="button"
+                tabIndex={0}
+                onKeyDown={spKeyActivate}
                 onClick={handleToggleComments}
               >{`${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             )}
@@ -2237,6 +2294,9 @@ const PostCard = React.memo(
                               }}
                             >
                               <img
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={spKeyActivate}
                                 src={c.mediaUrl}
                                 alt={c.mediaType === 'gif' ? 'GIF' : 'Image'}
                                 style={{
@@ -2292,12 +2352,18 @@ const PostCard = React.memo(
                       >
                         <span>{c.time}</span>
                         <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           style={{ cursor: 'pointer', color: c.isLikedByMe ? C.blue : C.textSec }}
                           onClick={() => handleLikeComment(c.id, c.isLikedByMe)}
                         >
                           Like
                         </span>
                         <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           style={{ cursor: 'pointer', color: C.textSec }}
                           onClick={() =>
                             setReplyingTo({
@@ -2312,6 +2378,9 @@ const PostCard = React.memo(
                         {c.authorId === currentUserId && !isEditingComment && (
                           <>
                             <span
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={spKeyActivate}
                               style={{ cursor: 'pointer', color: C.textSec }}
                               onClick={() => {
                                 setEditingCommentId(c.id);
@@ -2326,6 +2395,9 @@ const PostCard = React.memo(
                               >
                                 <span style={{ fontSize: 11, color: C.textSec }}>Delete?</span>
                                 <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={spKeyActivate}
                                   style={{ cursor: 'pointer', color: '#FA383E', fontWeight: 700 }}
                                   onClick={async () => {
                                     const { error } = await supabase
@@ -2356,6 +2428,9 @@ const PostCard = React.memo(
                                   Yes
                                 </span>
                                 <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={spKeyActivate}
                                   style={{ cursor: 'pointer', color: C.textSec }}
                                   onClick={() => setDeletingCommentId(null)}
                                 >
@@ -2364,6 +2439,9 @@ const PostCard = React.memo(
                               </span>
                             ) : (
                               <span
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={spKeyActivate}
                                 style={{ cursor: 'pointer', color: '#FA383E' }}
                                 onClick={() => setDeletingCommentId(c.id)}
                               >
@@ -2460,6 +2538,9 @@ const PostCard = React.memo(
                   Replying To <strong>{replyingTo.name}</strong>
                 </span>
                 <span
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={spKeyActivate}
                   style={{ cursor: 'pointer', fontWeight: 600 }}
                   onClick={() => setReplyingTo(null)}
                 >
@@ -2802,6 +2883,7 @@ const PostCard = React.memo(
         {/* Image Lightbox Modal */}
         {lightboxUrl && (
           <div
+            data-sp-skip-a11y="backdrop: click to dismiss the lightbox, Escape is the keyboard path"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setLightboxUrl(null);
@@ -3092,6 +3174,9 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
       }}
     >
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={spKeyActivate}
         onClick={onClose}
         style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
       />
@@ -5742,6 +5827,7 @@ function SocialMediaPage() {
       {/* Slide-out Sidebar Overlay */}
       {sidebarOpen && (
         <div
+          data-sp-skip-a11y="backdrop: click to dismiss the sidebar, Escape is the keyboard path"
           onClick={() => setSidebarOpen(false)}
           style={{
             position: 'fixed',
@@ -5823,7 +5909,10 @@ function SocialMediaPage() {
                      <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 600, color: C.textSec, textTransform: 'uppercase' }}>Switch Account</div>
                      
                      {isClubMode && (
-                         <div 
+                         <div
+                           role="button"
+                           tabIndex={0}
+                           onKeyDown={spKeyActivate} 
                            onClick={() => { switchToPersonal(); setSidebarOpen(false); }}
                            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
@@ -5837,7 +5926,10 @@ function SocialMediaPage() {
                      {ownedPages.map(page => {
                          if (isClubMode && clubPage?.id === page.id) return null;
                          return (
-                             <div 
+                             <div
+                               role="button"
+                               tabIndex={0}
+                               onKeyDown={spKeyActivate} 
                                key={page.id}
                                onClick={() => { switchToClub(page); setSidebarOpen(false); }}
                                style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
@@ -6090,6 +6182,9 @@ function SocialMediaPage() {
           </Link>
           {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
           <div
+            role="button"
+            tabIndex={0}
+            onKeyDown={spKeyActivate}
             onClick={() => {
               setShowClubPages(true);
               setSidebarOpen(false);
@@ -6305,6 +6400,9 @@ function SocialMediaPage() {
               <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
             </Link>
             <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={spKeyActivate}
               onClick={() => {
                 setSidebarOpen(false);
                 setShowNotifications(true);
@@ -6335,6 +6433,9 @@ function SocialMediaPage() {
             </div>
             {/* Invite Friends Card */}
             <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={spKeyActivate}
               onClick={() => {
                 if (!user) {
                   toast.error('Please log in to invite friends.');
@@ -6538,6 +6639,7 @@ function SocialMediaPage() {
         {/* Global Search Overlay */}
         {showGlobalSearch && (
           <div
+            data-sp-skip-a11y="backdrop: click to dismiss search, Escape is the keyboard path"
             style={{
               position: 'fixed',
               top: 60,
@@ -6687,6 +6789,9 @@ function SocialMediaPage() {
                     </div>
                     {globalSearchResults.posts.map((p) => (
                       <div
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={spKeyActivate}
                         key={p.id}
                         onClick={() => {
                           setShowGlobalSearch(false);
@@ -6778,6 +6883,7 @@ function SocialMediaPage() {
                         }
                     `}</style>
             <div
+              data-sp-skip-a11y="backdrop: modal scrim, not a control"
               className="notif-modal-backdrop"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setShowNotifications(false);
@@ -6907,6 +7013,9 @@ function SocialMediaPage() {
 
                       return (
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           key={n.id}
                           onClick={() => {
                             setShowNotifications(false);
@@ -7448,6 +7557,9 @@ function SocialMediaPage() {
                           Find Players
                         </Link>
                         <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={spKeyActivate}
                           onClick={() => {
                             const input = document.querySelector(
                               '[placeholder*="What\'s on your mind"]'
@@ -7828,6 +7940,7 @@ function SocialMediaPage() {
           onClick={() => setDeletePostId(null)}
         >
           <div
+            data-sp-skip-a11y="propagation guard, not a control"
             style={{
               background: C.card,
               borderRadius: 12,
