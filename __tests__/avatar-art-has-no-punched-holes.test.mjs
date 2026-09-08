@@ -42,13 +42,6 @@ const AVATARS = join(ROOT, 'public/avatars');
 const matte = await import('../scripts/lib/avatarMatte.mjs');
 const sharp = await matte.getSharp();
 
-/** A hole this small is a speck nobody can resolve at seat size. */
-const MAX_HOLE_PX_AT_340 = 12;
-
-function budget(height) {
-  return Math.max(4, Math.round((MAX_HOLE_PX_AT_340 * height * height) / (340 * 340)));
-}
-
 function subjects() {
   const out = [];
   for (const [dir, match] of [
@@ -89,7 +82,7 @@ test('no avatar has a hole punched through the subject', { skip: !sharp }, async
     if (mine.length) matte.dropKeepers(deep, width, height, mine);
 
     const largest = matte.largestBlob(deep, width, height);
-    if (largest >= budget(height)) broken.push(`${rel} (${largest}px)`);
+    if (largest >= matte.minHoleFor(height)) broken.push(`${rel} (${largest}px)`);
   }
 
   assert.deepEqual(

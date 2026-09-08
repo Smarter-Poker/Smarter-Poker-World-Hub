@@ -42,7 +42,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TABLE = join(ROOT, 'public/avatars/table');
 
 let failures = 0;
-const fail = (m) => { console.error(`  FAIL  ${m}`); failures++; };
+const fail = (m) => {
+  console.error(`  FAIL  ${m}`);
+  failures++;
+};
 
 // ── 1. every table bust has a gallery tile, and vice versa ────────────────
 const busts = readdirSync(TABLE)
@@ -71,7 +74,9 @@ for (const tier of ['free', 'vip']) {
   const dir = join(ROOT, 'public/avatars', tier);
   if (!existsSync(dir)) continue;
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.webp'))) {
-    const h = createHash('sha1').update(readFileSync(join(dir, f))).digest('hex');
+    const h = createHash('sha1')
+      .update(readFileSync(join(dir, f)))
+      .digest('hex');
     const key = `${tier}/${f}`;
     if (seen.has(h)) fail(`${key} is byte-identical to ${seen.get(h)} - two avatars, one picture`);
     else seen.set(h, key);
