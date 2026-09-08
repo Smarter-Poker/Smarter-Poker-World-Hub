@@ -55,6 +55,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resilientFetch } from './lib/resilient-fetch.mjs';
 import { fromCalls, lineIndex } from './lib/from-calls.mjs';
+import { writeColumns } from './lib/phantom-column-write-parser.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ALLOWLIST_PATH = path.join(REPO_ROOT, 'scripts', 'ci', 'supabase-invariants.allowlist.json');
@@ -147,51 +148,6 @@ function filterColumn(arg) {
   const col = m[1];
   if (col.includes('.') || col.includes('->') || col.includes('(')) return null;
   return IDENT.test(col) ? col : null;
-}
-
-/** Literal object keys from insert/update/upsert first argument. */
-function writeColumns(arg) {
-  const t = arg.trim();
-  let objSrc = null;
-  if (t.startsWith('{')) {
-    const [inner] = balancedBrace(t, 0);
-    objSrc = inner;
-  } else if (t.startsWith('[')) {
-    const b = t.indexOf('{');
-    if (b !== -1) { const [inner] = balancedBrace(t, b); objSrc = inner; }
-  }
-  if (objSrc == null) return [];
-  const cols = [];
-  // top-level keys only: track depth
-  let depth = 0;
-  for (const line of objSrc.split(',')) void line; // (split is unreliable; scan instead)
-  let i = 0;
-  let expectKey = true;
-  while (i < objSrc.length) {
-    const c = objSrc[i];
-    if (c === '{' || c === '[' || c === '(') { depth++; i++; continue; }
-    if (c === '}' || c === ']' || c === ')') { depth--; i++; continue; }
-    if (depth === 0 && expectKey) {
-      const rest = objSrc.slice(i);
-      const km = rest.match(/^\s*(?:['"]?([a-zA-Z_][a-zA-Z0-9_]*)['"]?)\s*:/);
-      if (km) { cols.push(km[1]); i += km[0].length; expectKey = false; continue; }
-      const sm = rest.match(/^\s*\.\.\./); // spread — unknown keys, skip it
-      if (sm) { i += sm[0].length; expectKey = false; continue; }
-    }
-    if (depth === 0 && c === ',') { expectKey = true; i++; continue; }
-    i++;
-  }
-  return cols.filter((c) => IDENT.test(c));
-}
-
-function balancedBrace(src, openIdx) {
-  let depth = 0;
-  for (let i = openIdx; i < src.length; i++) {
-    const c = src[i];
-    if (c === '{') depth++;
-    else if (c === '}') { depth--; if (depth === 0) return [src.slice(openIdx + 1, i), i]; }
-  }
-  return [null, -1];
 }
 
 // The `.from(` scanner lives in lib/from-calls.mjs (see the note there: the
