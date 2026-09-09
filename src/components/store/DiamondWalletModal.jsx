@@ -1222,16 +1222,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const recipient = confirmTransfer ? confirmTransfer.recipient : transferRecipient;
     if (!recipient || (!confirmTransfer && !transferAmount)) return;
     const amount = confirmTransfer ? confirmTransfer.amount : parseInt(transferAmount, 10);
-    if (isNaN(amount) || amount < 10) {
-      setTransferError('Minimum transfer is 10 diamonds');
+    if (!Number.isSafeInteger(amount) || amount < 1) {
+      setTransferError('Enter A Positive Whole Diamond Amount');
       return;
     }
     if (!confirmTransfer && !Number.isInteger(Number(transferAmount))) {
       setTransferError('Transfer amount must be a whole number');
-      return;
-    }
-    if (amount > 500) {
-      setTransferError('Maximum transfer is 500 diamonds');
       return;
     }
     if (amount > (balance ?? 0)) {
@@ -1269,8 +1265,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         },
       };
       // Keep the same identity through timeouts, connection loss, and
-      // recovery-pending responses. Only an authoritative success or a
-      // confirmed compensating refund retires it.
+      // uncertain responses. Only an authoritative success or refusal retires it.
       const transferRequestId = getOrCreateCommerceRequestId(transferIntent);
       const res = await boundedCommerceFetch('/api/store/diamond-transfer', {
         method: 'POST',
@@ -1332,17 +1327,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           setDailyLimitInfo({ sent: dailySent, limit: dailyLimit, tier: data.tier });
         }
         setTransferRecipient(null);
-        // Update balance from server's authoritative newBalance (not client arithmetic)
-        const serverBalance = data.newBalance ?? (balance ?? 0) - amount;
-        setBalance(serverBalance);
-        // ── BUS-FIX: Set skip flag BEFORE emitting to prevent self-feedback double-deduction ──
-        skipNextBusRef.current = true;
-        // ── EVENTBUS: Emit diamond-spent through global bus ──
-        busEmit.diamondsSpent(amount, 'diamond-transfer');
-        // Legacy fallback: include newBalance so listeners don't fall back to stale cache
+        refreshBalanceFromServer();
         window.dispatchEvent(
           new CustomEvent('diamond-balance-refresh', {
-            detail: { source: 'diamond-transfer', newBalance: serverBalance },
+            detail: { source: 'diamond-transfer' },
           })
         );
         // #7: Recipient notification event (other components can listen)
@@ -1352,14 +1340,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               recipientId: recipient.id,
               recipientName: data.recipientName || recipient.display_name,
               amount,
-              senderBalance: serverBalance,
             },
           })
         );
         // P2-5: Sparkle animation on success
         showConfettiAnimation();
-        // Refetch transactions
-        if (!fetchInFlightRef.current) fetchTransactions();
         if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
         successTimeoutRef.current = setTimeout(() => setTransferSuccess(''), 4000);
       } else {
@@ -1425,6 +1410,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     fetchTransactions,
     confirmTransfer,
     transferLoading,
+    refreshBalanceFromServer,
   ]);
 
   useEffect(() => {
@@ -1855,24 +1841,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               <span className={styles.srOnly}>Buy Diamonds</span>
             </button>
 
-            {/*
-                TRANSFERS ARE OFF (2026-09-08, docs/DIAMOND-RULINGS.md ruling 4 in the
-                Club Arena repo). Player-to-player diamond transfers are closed: the
-                API answers 410 and the database door refuses. This hitbox used to open
-                the transfer panel; it now says so, rather than letting a player fill in
-                a recipient and an amount and meet an error at the end. The panel below
-                is unreachable while showTransfer stays false and comes out with the
-                friends-transfer code in a follow-up.
-            */}
             <button
               type="button"
               className={styles.artHitbox}
               style={{ right: '10%' }}
               onClick={() => {
-                showStoreToast(
-                  'info',
-                  'Transfers Are Off. Diamonds Cannot Be Sent Directly To Another Player, But You Can Still Send Gifts During A Live Stream.'
-                );
+                setShowTransfer((value) => !value);
+                fetchFriends();
               }}
             >
               <span className={styles.srOnly}>Send Diamonds To A Friend</span>
@@ -1990,11 +1965,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               <div className={styles.sendTitle}>Send Diamonds To A Friend</div>
               {/* Anti-abuse info */}
               <div className={styles.sendRules}>
-                Standard: 10-100 Per Transfer | 500/Day | 200/Day Per Friend | 60S Cooldown
+                Send Available Diamonds To An Accepted Friend. Current Sending Limits Apply.
                 <br />
-                VIP Friends (60+ Days): 10-500 Per Transfer | 2,000/Day
-                <br />
-                5Min Cooldown Between Transfers To Same Friend | 1,000/Day Receive Cap
+                Game Custody And Purchased Refund Collateral Stay Protected.
               </div>
               {/* P2-4: Daily limit progress bar */}
               {dailyLimitInfo && (
@@ -2365,8 +2338,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         <Sparkles size={14} color="#00d4ff" />
                         <input
                           type="number"
-                          min="10"
-                          max="500"
+                          min="1"
+                          max="2147483647"
                           value={transferAmount}
                           onChange={(e) => setTransferAmount(e.target.value)}
                           placeholder="Enter Diamond Amount..."
@@ -2863,7 +2836,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 </div>
                 <div
                   style={{
-                      background: 'rgba(0,212,255,0.08)',
+                    background: 'rgba(0,212,255,0.08)',
                     borderRadius: 8,
                     padding: '6px 8px',
                     textAlign: 'center',
