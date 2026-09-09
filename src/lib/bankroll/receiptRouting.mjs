@@ -91,7 +91,8 @@ export const AUTOFILE_MIN_CONFIDENCE = 0.55;
 export function normaliseScan(raw) {
     const data = raw && typeof raw === 'object' ? raw : {};
     const declared = String(data.document_type || data.documentType || '').toLowerCase().trim();
-    const documentType = DOC_TYPES.includes(declared) ? declared : 'unknown';
+    const labelled = DOC_TYPES.includes(declared) ? declared : 'unknown';
+    const documentType = evidencedDocumentType(labelled, data);
 
     const rawConfidence = toNumber(data.confidence);
     // The model has been asked for 0-100; accept 0-1 too rather than reading a
@@ -124,6 +125,25 @@ export function normaliseScan(raw) {
         taxYear: toNumber(data.tax_year),
         formType: cleanText(data.form_type, 24),
     };
+}
+
+/**
+ * The fields the model filled in are stronger evidence than the label it
+ * chose. A W-2G has gross winnings and a withholding box; a tournament
+ * receipt has a buy-in and an event name; a cash-out ticket has a payout.
+ * When the label disagrees with fields only that document has, the fields
+ * win, and a wrong bankroll entry is avoided rather than filed.
+ *
+ * Only unmistakable combinations override; a lone amount proves nothing.
+ */
+export function evidencedDocumentType(labelled, data) {
+    const has = (k) => data[k] !== null && data[k] !== undefined && data[k] !== '';
+    const form = String(data.form_type || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (form === 'W2G' || (has('gross_winnings') && (has('federal_withheld') || has('state_withheld')))) return 'w2g';
+    if (labelled === 'w2g') return 'w2g';
+    if (has('buy_in') && has('tournament_name')) return 'tournament_buyin';
+    if (has('payout') && !has('buy_in') && (labelled === 'unknown' || labelled === 'expense')) return 'payout';
+    return labelled;
 }
 
 /**

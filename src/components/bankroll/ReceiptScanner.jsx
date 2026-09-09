@@ -26,6 +26,8 @@ import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriang
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
 import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
+import { downscaleForOcr } from '../../lib/docscan/imageSource';
+import { perceptualHash } from '../../lib/bankroll/receiptHash.mjs';
 import {
     normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
 } from '../../lib/bankroll/receiptRouting.mjs';
@@ -64,6 +66,9 @@ export default function ReceiptScanner({
     const [error, setError] = useState(null);
 
     const [uploadedUrl, setUploadedUrl] = useState(null);
+    // Not state: it is read once when the scan is handed over, and a render
+    // for it would be a render for nothing.
+    const imageHashRef = useRef(null);
     const [extractedData, setExtractedData] = useState(null);
     // What the scan was read as, and where it is headed. Held separately from
     // the raw OCR so the user can correct the type without re-scanning.
@@ -170,6 +175,10 @@ export default function ReceiptScanner({
         // storage, and running it first means the extracted details survive an
         // upload that has to retry, instead of being lost with the attempt.
         const ocrPromise = runOcr(scan.blob, accessToken);
+        // What this photograph looks like, so the page can say "you scanned
+        // this one on Tuesday". Never blocks the upload: a browser without
+        // createImageBitmap resolves null and the check simply does not run.
+        const hashPromise = perceptualHash(scan.blob).catch(() => null);
 
         let lastError = null;
         for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
@@ -183,6 +192,7 @@ export default function ReceiptScanner({
                 setUploadedUrl(publicUrl);
                 setVerified(false);
                 setError(null);
+                imageHashRef.current = await hashPromise;
                 await ocrPromise;
                 if (mountedRef.current) setIsUploading(false);
                 return;
@@ -212,11 +222,14 @@ export default function ReceiptScanner({
 
     const runOcr = useCallback(async (blob, accessToken) => {
         try {
+            // The model reads a receipt as well at 1600px as at full size, at
+            // a quarter of the bytes. Storage keeps the full-resolution copy.
+            const forOcr = await downscaleForOcr(blob, 1600, 0.85);
             const base64 = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = () => reject(new Error('read-failed'));
-                reader.readAsDataURL(blob);
+                reader.readAsDataURL(forOcr);
             });
             const res = await fetch('/api/bankroll/scan-receipt', {
                 method: 'POST',
@@ -301,6 +314,7 @@ export default function ReceiptScanner({
         }
         setApprovedScan(null);
         setUploadedUrl(null);
+        imageHashRef.current = null;
         setExtractedData(null);
         setScanKind(null);
         setTypeOverridden(false);
@@ -326,6 +340,7 @@ export default function ReceiptScanner({
                 imageUrl: uploadedUrl,
                 extractedData,
                 tripId,
+                imageHash: imageHashRef.current,
                 // What it was read as and where it belongs, so the page can
                 // open the right destination already filled in.
                 documentType: scanKind ? scanKind.scan.documentType : 'unknown',

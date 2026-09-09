@@ -170,3 +170,38 @@ export function rgbaToDataUrl(buffer, width, height, quality = 0.9) {
     canvas.height = 0;
     return url;
 }
+
+/**
+ * A smaller copy of an exported scan for the OCR call.
+ *
+ * The full-resolution JPEG is what storage keeps. The model reads a receipt
+ * just as well at 1600px on the long side, at roughly a quarter of the bytes,
+ * which is the difference between a two-second and an eight-second upload on
+ * mobile data. Anything that fails here returns the original, so a browser
+ * without createImageBitmap still scans.
+ *
+ * @param {Blob} blob
+ * @param {number} maxSide
+ * @param {number} quality
+ * @returns {Promise<Blob>}
+ */
+export async function downscaleForOcr(blob, maxSide = 1600, quality = 0.85) {
+    if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') return blob;
+    try {
+        const bitmap = await createImageBitmap(blob);
+        const longest = Math.max(bitmap.width, bitmap.height);
+        if (longest <= maxSide) { bitmap.close && bitmap.close(); return blob; }
+        const scale = maxSide / longest;
+        const w = Math.round(bitmap.width * scale);
+        const h = Math.round(bitmap.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0, w, h);
+        bitmap.close && bitmap.close();
+        const out = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+        return out && out.size > 0 && out.size < blob.size ? out : blob;
+    } catch (_e) {
+        return blob;
+    }
+}
