@@ -547,5 +547,3 @@ jobs:
             gh issue comment "$n" --body "Every scraper-written table is inside its freshness budget again. Closing automatically."
             gh issue close "$n" || true
           done
-
-# probe
