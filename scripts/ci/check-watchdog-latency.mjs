@@ -34,27 +34,101 @@
  */
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import process from 'node:process';
 
 const DIR = '.github/workflows';
 
 /**
- * Minutes a cron expression claims, for the shapes this repo uses.
+ * Expand one cron field into the values it fires on, or null when the shape
+ * is one this does not read. Lists, steps and ranges; nothing exotic.
+ */
+export function expandField(field, max) {
+    if (field === '*') return Array.from({ length: max }, (_, i) => i);
+    const out = new Set();
+    for (const piece of String(field).split(',')) {
+        const step = /^\*\/(\d+)$/.exec(piece);
+        if (step) {
+            const by = Number(step[1]);
+            if (!by) return null;
+            for (let i = 0; i < max; i += by) out.add(i);
+            continue;
+        }
+        const range = /^(\d+)-(\d+)(?:\/(\d+))?$/.exec(piece);
+        if (range) {
+            const by = Number(range[3] || 1);
+            if (!by) return null;
+            for (let i = Number(range[1]); i <= Number(range[2]) && i < max; i += by) out.add(i);
+            continue;
+        }
+        if (/^\d+$/.test(piece)) { out.add(Number(piece)); continue; }
+        return null;
+    }
+    return [...out].sort((a, b) => a - b);
+}
+
+/**
+ * Minutes a cron expression claims: the WIDEST hole between two firings.
  *
- * Day-of-week and day-of-month are checked FIRST. Reading `0 9 * * 1` as
- * daily made a weekly scraper look 7x late in the first run of this script,
- * which is exactly the kind of confident wrong number it exists to stop.
+ * The first version of this read only the first token of each field, so
+ * `40 1,7,13,19 * * *` - four times a day, every six hours - was reported as
+ * DAILY, and `25 7,19 * * *` as daily too. Measured against Club Arena on
+ * 2026-09-09: two of its twelve scheduled workflows had a claim off by 4x and
+ * 2x. A table whose entire purpose is honest numbers had dishonest ones in it.
+ *
+ * This expands the comma lists and steps, enumerates every firing instant in
+ * a day, and takes the widest gap INCLUDING the wrap past midnight - which is
+ * the one a naive pass forgets, and the one that matters: `0 1,2 * * *` fires
+ * twice, an hour apart, and then not for twenty-three.
+ *
+ * The approach is Club Arena's, from .github/scripts/schedule-liveness.mjs.
+ * It had this right since 2026-09-01 while this file did not. Carrying it
+ * across is cheaper than being wrong in a second repo.
  */
 export function claimedMinutes(cron) {
-    const [minute, hour, dom, , dow] = String(cron).trim().split(/\s+/);
-    if (dow && dow !== '*') return 10080;          // a named day: weekly
-    if (dom && dom !== '*') return 43200;          // a day of the month
-    if (minute && minute.startsWith('*/')) return Number(minute.slice(2));
-    if (hour === '*') return 60;
-    if (hour && hour.startsWith('*/')) return Number(hour.slice(2)) * 60;
-    return 1440;
+    const parts = String(cron).trim().split(/\s+/);
+    if (parts.length !== 5) return 1440;
+    const [minute, hour, dom, mon, dow] = parts;
+
+    // Day-of-week and day-of-month are checked FIRST. Reading `0 9 * * 1` as
+    // daily made a weekly scraper look 7x late in the first run of this
+    // script, which is exactly the kind of confident wrong number it exists
+    // to stop. A narrowed day is also a schedule the instant walk below
+    // cannot reason about, because a day may simply be skipped.
+    // A narrowed day of the MONTH is not something this can answer honestly.
+    // `0 5 */4 * *` fires every fourth day, except that cron restarts the
+    // count each month, so the gap across a month boundary is longer and
+    // varies by month length. The old code returned a flat 43200 - monthly -
+    // for it, which reported the charity scraper as claiming 43200m while
+    // delivering 5749m: a workflow apparently running seven times MORE often
+    // than promised. A dash is the honest answer.
+    if (dom && dom !== '*') return null;
+    if (mon && mon !== '*') return null;
+    // A named day of the week repeats every 7 days, and a LIST of them does
+    // not: `0 9 * * 1,4` is Monday and Thursday, so 3 days at its widest.
+    if (dow && dow !== '*') {
+        const days = expandField(dow, 7);
+        if (!days?.length) return 10080;
+        if (days.length === 1) return 10080;
+        let widest = 0;
+        for (let i = 1; i < days.length; i++) widest = Math.max(widest, days[i] - days[i - 1]);
+        widest = Math.max(widest, 7 - days[days.length - 1] + days[0]);
+        return widest * 1440;
+    }
+
+    const mins = expandField(minute, 60);
+    const hours = expandField(hour, 24);
+    if (!mins?.length || !hours?.length) return 1440;
+
+    const instants = [];
+    for (const h of hours) for (const m of mins) instants.push(h * 60 + m);
+    instants.sort((a, b) => a - b);
+    let worst = 0;
+    for (let i = 1; i < instants.length; i++) worst = Math.max(worst, instants[i] - instants[i - 1]);
+    // The wrap from the last firing of one day to the first of the next.
+    return Math.max(worst, 1440 - instants[instants.length - 1] + instants[0]);
 }
 
 /** Event triggers that wake a workflow when something actually happens. */
@@ -86,7 +160,12 @@ export function readWorkflows(dir = DIR) {
         const src = readFileSync(join(dir, file), 'utf8');
         const name = (src.match(/^name:\s*(.+)$/m) || [])[1];
         if (!name) continue;
-        const crons = [...src.matchAll(/cron:\s*'([^']+)'/g)].map((m) => m[1]);
+        // ONLY the `on:` block, for the crons too. Scanning the whole file
+        // read a `cron:` written inside a `run:` shell script as a schedule:
+        // build-safety-gate.yml has push and pull_request and no schedule at
+        // all, and was listed here as claiming 1440m. A table of invented
+        // claims is worse than no table.
+        const crons = [...onBlock(src).matchAll(/cron:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
         if (!crons.length) continue;
         // ONLY the `on:` block counts. Slicing to `jobs:` was not enough: it
         // swept in `permissions:`, where `issues: write` reads exactly like an
@@ -97,20 +176,52 @@ export function readWorkflows(dir = DIR) {
         out.push({
             file,
             name: name.replace(/^["']|["']$/g, '').trim(),
-            claimed: Math.min(...crons.map(claimedMinutes)),
+            // null when no cron here can be read honestly (a day-of-month
+            // step, say). Shown as a dash, and never failed on.
+            claimed: (() => {
+                const known = crons.map(claimedMinutes).filter((v) => v !== null);
+                return known.length ? Math.min(...known) : null;
+            })(),
             events,
         });
     }
     return out;
 }
 
-function scheduledRunTimes(name) {
+/**
+ * When this workflow ran, newest first.
+ *
+ * `only` picks the trigger: 'schedule' answers "is the cron honoured", and
+ * everything else answers "how often does this actually run", which are
+ * different questions with very different answers.
+ *
+ * THEY WERE CONFLATED HERE UNTIL 2026-09-09, under a heading that said
+ * "WHAT THE SCHEDULED WORKFLOWS ACTUALLY DELIVER". Measured against Club
+ * Arena's auto-deploy-hetzner that day:
+ *
+ *   schedule runs only : 252m median
+ *   every trigger      :  13m median
+ *
+ * A nineteen-fold overstatement, on a workflow that is behaving perfectly:
+ * its 54 most recent runs were workflow_dispatch, fired by that repo's
+ * schedule-liveness check the moment a cron tick is dropped. Reporting it as
+ * three-and-a-half hours late would have sent somebody to fix what was
+ * already fixed - and this file exists to stop exactly that kind of confident
+ * wrong number.
+ *
+ * So both are measured and both are shown. A wide "cron" column next to a
+ * narrow "real" column is not a fault; it is a dispatcher doing its job.
+ */
+function runTimes(name, only) {
+    const jq = only
+        ? `.[] | select(.event=="${only}") | .createdAt`
+        : '.[] | .createdAt';
     try {
         const raw = execFileSync('gh', [
-            'run', 'list', '--workflow', name, '--limit', '40',
-            '--json', 'createdAt,event', '--jq', '.[] | select(.event=="schedule") | .createdAt',
+            'run', 'list', '--workflow', name, '--limit', '60',
+            '--json', 'createdAt,event', '--jq', jq,
         ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-        return raw.trim().split('\n').filter(Boolean).map((s) => new Date(s).getTime());
+        return raw.trim().split('\n').filter(Boolean).map((t) => new Date(t).getTime());
     } catch (_err) {
         return null;
     }
@@ -122,47 +233,75 @@ function gaps(times) {
     return g.sort((a, b) => a - b);
 }
 
-const workflows = readWorkflows();
-const report = [];
-
-for (const wf of workflows) {
-    const times = scheduledRunTimes(wf.name);
-    const row = { ...wf, median: null, worst: null, samples: times ? times.length : 0 };
-    if (times && times.length >= 4) {
-        const g = gaps(times);
-        row.median = Math.round(g[Math.floor(g.length / 2)]);
-        row.worst = Math.round(g[g.length - 1]);
-    }
-    report.push(row);
+/** median and worst gap, or nulls when there is not enough to say. */
+function cadence(times) {
+    if (!times || times.length < 4) return { median: null, worst: null, samples: times ? times.length : 0 };
+    const g = gaps(times);
+    return {
+        median: Math.round(g[Math.floor(g.length / 2)]),
+        worst: Math.round(g[g.length - 1]),
+        samples: times.length,
+    };
 }
 
-if (process.argv.includes('--json')) {
-    console.log(JSON.stringify(report, null, 2));
-} else {
-    console.log('\n  WHAT THE SCHEDULED WORKFLOWS ACTUALLY DELIVER\n');
-    console.log(`  ${'workflow'.padEnd(38)} ${'claims'.padStart(8)} ${'median'.padStart(8)} ${'worst'.padStart(8)}  wakes on`);
-    for (const r of report.sort((a, b) => a.claimed - b.claimed)) {
-        const claims = `${r.claimed}m`;
-        const median = r.median === null ? '-' : `${r.median}m`;
-        const worst = r.worst === null ? '-' : `${r.worst}m`;
-        const wakes = r.events.length ? r.events.join(',') : 'schedule only';
-        console.log(`  ${r.name.slice(0, 38).padEnd(38)} ${claims.padStart(8)} ${median.padStart(8)} ${worst.padStart(8)}  ${wakes}`);
-    }
-    console.log('');
+export function measure(workflows = readWorkflows()) {
+    return workflows.map((wf) => {
+        const cron = cadence(runTimes(wf.name, 'schedule'));
+        const real = cadence(runTimes(wf.name, null));
+        return { ...wf, cron, real };
+    });
 }
 
 /**
  * The failure. A schedule under an hour is not delivered by GitHub, so a
  * workflow that needs to react quickly must have something real to react to.
  * Drift itself is not failed on: it is not ours to fix.
+ *
+ * This reads the `on:` block only, so it is the same answer on every machine
+ * and needs no network. A workflow woken by ANOTHER workflow dispatching it -
+ * Club Arena's schedule-liveness does this - has no event in its own `on:`
+ * block and would be named here. World Hub has no such dispatcher today; if
+ * one is added, this is the rule to teach about it, and the `real` column
+ * above is the evidence that would show it.
  */
-const blind = report.filter((r) => r.claimed < 60 && r.events.length === 0);
-if (blind.length) {
-    console.error('::error title=A WATCHDOG HAS NOTHING TO WAKE IT::These ask for a sub-hourly schedule and have no event trigger. Measured, GitHub delivers roughly three hours. Give each one the event it is really watching for.');
-    for (const r of blind) {
-        console.error(`  ${r.name} (${r.file}) claims ${r.claimed}m, delivered ${r.median === null ? 'unmeasured' : `${r.median}m median`}`);
-    }
-    process.exit(1);
+export function blindWorkflows(report) {
+    return report.filter((r) => r.claimed !== null && r.claimed < 60 && r.events.length === 0);
 }
 
-console.log('  OK - every sub-hourly workflow has a real event to wake it.\n');
+function main() {
+    const report = measure();
+    if (process.argv.includes('--json')) {
+        console.log(JSON.stringify(report, null, 2));
+    } else {
+        console.log('\n  WHAT THE SCHEDULED WORKFLOWS ACTUALLY DELIVER');
+        console.log('  "cron" counts only scheduled runs; "real" counts every trigger.\n');
+        console.log(`  ${'workflow'.padEnd(38)} ${'claims'.padStart(7)} ${'cron'.padStart(7)} ${'real'.padStart(7)}  wakes on`);
+        for (const r of report.sort((a, b) => (a.claimed ?? Infinity) - (b.claimed ?? Infinity))) {
+            const show = (v) => (v === null ? '-' : `${v}m`);
+            const wakes = r.events.length ? r.events.join(',') : 'schedule only';
+            console.log(
+                `  ${r.name.slice(0, 38).padEnd(38)} ${show(r.claimed).padStart(7)}`
+                + ` ${show(r.cron.median).padStart(7)} ${show(r.real.median).padStart(7)}  ${wakes}`,
+            );
+        }
+        console.log('');
+    }
+
+    const blind = blindWorkflows(report);
+    if (blind.length) {
+        console.error('::error title=A WATCHDOG HAS NOTHING TO WAKE IT::These ask for a sub-hourly schedule and have no event trigger. Measured, GitHub delivers roughly three hours. Give each one the event it is really watching for.');
+        for (const r of blind) {
+            console.error(`  ${r.name} (${r.file}) claims ${r.claimed}m, scheduled runs arrive ${r.cron.median === null ? 'unmeasured' : `${r.cron.median}m apart`}`);
+        }
+        return 1;
+    }
+    console.log('  OK - every sub-hourly workflow has a real event to wake it.\n');
+    return 0;
+}
+
+// Importing this module must not run it. The law test imports claimedMinutes
+// and onBlock; before this guard it also printed the whole table and made a
+// gh call per workflow, every time.
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+    process.exit(main());
+}
