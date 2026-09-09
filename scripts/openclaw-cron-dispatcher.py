@@ -684,6 +684,8 @@ ALL_CRONS = [
     # guarantees inside the handler (unique keys, cursor-based writes, flag
     # columns). Running on a schedule with no variance to reconcile == no-op.
     ('/api/cron/ledger-reconcile',                dict(hour=8, minute=0)),
+    # Diamond Phase 3: bounded replay of durable release obligations.
+    ('/api/cron/diamond-custody-recovery',         dict(minute='*')),
     ('/api/cron/vip-status-check',                dict(minute=0)),          # every hour
     # VIP STIPEND - repointed 2026-09-01. Was '/api/cron/vip-diamond-stipend'
     # monthly at 00:05, routed to the workers copy of a handler that had been
@@ -1011,6 +1013,7 @@ WORKERS_PREFERRED = {
     '/api/cron/freeroll-qualification-sync':   '/cron/freeroll-qualification-sync',
     '/api/cron/hard-stop':                     '/cron/hard-stop',
     '/api/cron/ledger-reconcile':              '/cron/ledger-reconcile',
+    '/api/cron/diamond-custody-recovery':       '/cron/diamond-custody-recovery',
     '/api/cron/memory-matrix-daily-challenge': '/cron/memory-matrix-daily-challenge',
     '/api/cron/news-scraper':                  '/cron/news-scraper',
     '/api/cron/poker-news':                    '/cron/poker-news',
@@ -1131,6 +1134,8 @@ def _workers_dispatch(path: str) -> bool:
 # A 401 counts: for the commander probe that is CRON_SECRET drift between the
 # hub and the commander Vercel project, which is exactly a failure.
 CRITICAL_JOBS = {
+    # Three failed per-minute sweeps page management; recovery closes the alert.
+    '/api/cron/diamond-custody-recovery': 3,
     '/api/internal/login-bridge-probe': 2,   # hourly; 2 = ~2h of broken sign-in, never a single blip
     '/api/internal/pnm-integrity-refresh': 2, # daily; two missed exact queue rebuilds page once
     # 2026-09-04: the video-library scraper exited 1 at 06:00 UTC on five
