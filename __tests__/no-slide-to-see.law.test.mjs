@@ -92,7 +92,13 @@ for (const phase of CONVERTED) {
   });
 }
 
-test('every rollout phase is declared', () => {
-  assert.deepEqual(Object.keys(PHASES).map(Number), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+test('every active rollout phase is declared', () => {
+  assert.deepEqual(Object.keys(PHASES).map(Number), [1, 2, 3, 4, 5, 6, 7, 9, 10]);
   for (const p of CONVERTED) assert.ok(PHASES[p], `phase ${p} exists`);
+});
+
+test('the retired standalone Diamond rollout has no remaining targets', () => {
+  for (const target of ['pages/hub/diamond-arena.js', 'pages/hub/diamond-arena', 'src/styles/worlds/diamond-arena.css']) {
+    assert.equal(walk(target).length, 0, target);
+  }
 });
