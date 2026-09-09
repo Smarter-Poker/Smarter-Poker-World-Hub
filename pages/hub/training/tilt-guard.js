@@ -124,20 +124,20 @@ const MENTAL_TIPS = [
 
 const WARMUP_GAMES = [
   {
-    id: 'easy-preflop',
+    id: 'cash-001',
     name: 'Easy Preflop Warmup',
     desc: 'Low-stress opening decisions',
     iconKind: 'cards',
     icon: '',
   },
   {
-    id: 'easy-math',
+    id: 'adv-006',
     name: 'Pot Odds Refresher',
     desc: 'Simple math to rebuild confidence',
     iconKind: 'abacus',
     icon: '',
   },
-  { id: 'easy-position', name: 'Position Review', desc: 'Fundamental seat awareness', iconKind: 'compass', icon: ''},
+  { id: 'cash-006', name: 'Position Review', desc: 'Fundamental seat awareness', iconKind: 'compass', icon: ''},
 ];
 
 function analyzeTiltRisk(sessions) {
@@ -634,7 +634,7 @@ export default function TiltGuardPage() {
                       key={game.id}
                       whileTap={{ scale: 0.97 }}
                       onClick={() =>
-                        router.push(`/hub/training/arena/spot-trainer?gameId=${game.id}`)
+                        router.push(`/hub/training/arena/${game.id}?level=1&source=tilt-guard`)
                       }
                       style={{
                         width: '100%',

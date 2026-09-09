@@ -63,18 +63,26 @@ check('an empty action list does not throw', () => {
 
 section('get-question uses the guarded selection');
 const gq = fs.readFileSync(path.join(ROOT, 'pages/api/training/get-question.js'), 'utf8');
+const questionContract = fs.readFileSync(
+    path.join(ROOT, 'src/lib/training/questionContract.mjs'),
+    'utf8'
+);
 check('get-question no longer slices readableActions blind', () => {
     // ignore comment lines, which quote the old expression on purpose
     const code = gq.split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
     return !/readableActions\.slice\(0,\s*4\)/.test(code)
         || 'still slicing the solver-ordered list';
 });
-check('get-question serves the guarded option set', () =>
-    /options: servedOptions,/.test(gq)
-    || 'options are not the guarded selection');
+check('get-question serves only the post-contract signed delivery envelope', () =>
+    /question\s*=\s*normalizeCampaignQuestionWithoutFabrication\(question\)/.test(gq)
+    && /prepareTrainingAttemptDelivery\(\{/.test(gq)
+    && /const servedQuestion\s*=\s*delivery\.questions\[0\]/.test(gq)
+    && /question:\s*servedQuestion/.test(gq)
+    || 'question bypasses the canonical contract or signed delivery envelope');
 check('get-question does not hard-code "Villain checks" for every postflop node', () =>
     !/street !== 'preflop' \? 'Villain checks'/.test(gq)
     || 'still claims the villain checked regardless of who acts first');
-check('get-question derives the action line from the postflop order', () =>
-    /heroActsFirstPostflop\(/.test(gq)
-    || 'no reference to the shared postflop action order');
+check('get-question delegates postflop action order to the shared question contract', () =>
+    /enforceTrainingQuestionContract/.test(gq)
+    && /heroActsFirstPostflop\(/.test(questionContract)
+    || 'postflop action order is not enforced by the shared question contract');

@@ -130,30 +130,42 @@ export default function TrainingCalendarPage() {
   const router = useRouter();
   useTrainingBus('training-calendar');
   const [loading, setLoading] = useState(true);
-  const [dayMap, setDayMap] = useState({});
+  // `null` means the authenticated history has not been verified. An empty
+  // object is reserved for a successful response with no completed sessions.
+  const [dayMap, setDayMap] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
+      setSignedOut(true);
+      setDayMap(null);
       setLoading(false);
       return;
     }
+    setSignedOut(false);
     try {
-      setFetchError(null);
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      if (!token) { setLoading(false); return; }
+      if (!token) throw new Error('Authenticated Training history requires a valid access token.');
       const res = await authedFetch('/api/training/get-sessions?limit=500', {
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success && data.sessions) setDayMap(buildHeatmap(data.sessions));
+      if (data?.success !== true || !Array.isArray(data.sessions)) {
+        throw new Error('Verified Training history was not returned.');
+      }
+      setDayMap(buildHeatmap(data.sessions));
     } catch (e) {
       console.warn('[Calendar]', e);
-      setFetchError('Failed to load training calendar. Please try again.');
+      setDayMap(null);
+      setFetchError('Failed To Load Training Calendar. Please Try Again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -177,7 +189,7 @@ export default function TrainingCalendarPage() {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + w * 7 + d);
       const key = date.toISOString().slice(0, 10);
-      const dayData = dayMap[key] || null;
+      const dayData = dayMap ? dayMap[key] || null : null;
       const isToday = date.toDateString() === today.toDateString();
       const isFuture = date > today;
       week.push({ key, date: new Date(date), data: dayData, isToday, isFuture });
@@ -185,12 +197,17 @@ export default function TrainingCalendarPage() {
     weeks.push(week);
   }
 
-  const streak = computeStreak(dayMap);
-  const weeklyStats = computeWeeklyStats(dayMap);
-  const todayHands = dayMap[today.toISOString().slice(0, 10)]?.hands || 0;
-  const totalDays = Object.keys(dayMap || {}).length;
-  const totalHands = Object.values(dayMap || {}).reduce((s, d) => s + d.hands, 0);
-  const selectedData = selectedDay ? dayMap[selectedDay] : null;
+  const authoritativeDataReady = dayMap !== null;
+  const streak = authoritativeDataReady ? computeStreak(dayMap) : null;
+  const weeklyStats = authoritativeDataReady ? computeWeeklyStats(dayMap) : null;
+  const todayHands = authoritativeDataReady
+    ? dayMap[today.toISOString().slice(0, 10)]?.hands || 0
+    : null;
+  const totalDays = authoritativeDataReady ? Object.keys(dayMap).length : null;
+  const totalHands = authoritativeDataReady
+    ? Object.values(dayMap).reduce((s, d) => s + d.hands, 0)
+    : null;
+  const selectedData = authoritativeDataReady && selectedDay ? dayMap[selectedDay] : null;
 
   return (
     <>
@@ -250,7 +267,50 @@ export default function TrainingCalendarPage() {
             </div>
           )}
 
-          {!loading && (
+          {!loading && signedOut && (
+            <div
+              role="status"
+              style={{
+                padding: '18px 16px',
+                borderRadius: 12,
+                border: '1px solid rgba(0,212,255,0.18)',
+                background: 'rgba(0,212,255,0.05)',
+                color: 'var(--sp-fg-muted)',
+                lineHeight: 1.6,
+              }}
+            >
+              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
+                Sign In To View Your Training Calendar
+              </strong>
+              Your Verified Sessions, Activity Heatmap, And Streak Appear After You Sign In.
+              <button
+                type="button"
+                onClick={() => router.push('/auth/login?redirect=/hub/training/training-calendar')}
+                style={{
+                  display: 'block',
+                  marginTop: 12,
+                  padding: '9px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,212,255,0.3)',
+                  background: 'rgba(0,212,255,0.1)',
+                  color: 'var(--sp-accent-cyan)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+
+          {!loading && !signedOut && (fetchError || !authoritativeDataReady) && (
+            <ErrorBanner
+              message={fetchError || 'Verified Training Calendar Data Is Unavailable.'}
+              onRetry={fetchData}
+            />
+          )}
+
+          {!loading && !signedOut && !fetchError && authoritativeDataReady && (
             <>
               {/* Stats Row */}
               <div
@@ -530,7 +590,6 @@ export default function TrainingCalendarPage() {
           )}
         </div>
       </div>
-      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />
     </>
   );

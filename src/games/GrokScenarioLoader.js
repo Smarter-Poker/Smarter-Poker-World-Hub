@@ -1,11 +1,11 @@
 /**
  * 🎯 Deterministic Scenario Loader (Operation Grok-Sweep — 2026-05)
  * ═══════════════════════════════════════════════════════════════════════════
- * Client-side module for fetching Memory-Matrix preflop training scenarios.
- * Despite the legacy filename (kept for backward-compat with imports), this
- * module no longer talks to Grok. The /api/gto/generate-scenario endpoint
- * is now backed by real solver-derived range tables in
- * src/config/solverRanges.js — same shape, same exports, NO LLM hallucinations.
+ * Client-side module for fetching authored Memory-Matrix preflop practice.
+ * Despite the legacy filename (kept for backward-compatible imports), this
+ * module no longer talks to Grok. The endpoint reads the local teaching
+ * reference in src/config/solverRanges.js and is explicitly non-solver,
+ * unranked, and practice-only.
  *
  * Public API kept identical:
  *   • fetchGrokScenario(level, filters) — name kept; pulls deterministic
@@ -24,7 +24,7 @@ const SCENARIO_API = '/api/gto/generate-scenario';
 let scenarioCache = new Map();
 
 /**
- * Fetch a fresh scenario from the deterministic solver-range API.
+ * Fetch a fresh scenario from the authored practice-reference API.
  * @param {number} level - The level (1-10)
  * @param {Object} filters - Optional filters (position, stackDepth, format, scenarioType)
  * @returns {Promise<Object|null>} - The scenario or null on failure
@@ -45,15 +45,26 @@ export async function fetchScenario(level, filters = {}) {
 
         const result = await response.json();
 
-        if (result.success && result.scenario) {
+        const scenario = result?.scenario;
+        const isHonestPracticeReference = Boolean(
+            result?.success
+            && scenario
+            && scenario.authority === 'authored_local_reference'
+            && scenario.authorityStatus === 'practice_only'
+            && scenario.practiceOnly === true
+            && scenario.solverVerified === false
+            && scenario.countsTowardCompletion === false
+        );
+
+        if (isHonestPracticeReference) {
             // Cache the scenario for one-shot retrieval
             const cacheKey = `det-${level}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-            scenarioCache.set(cacheKey, result.scenario);
-            console.debug('[ScenarioLoader] Fetched scenario:', result.scenario.title);
-            return result.scenario;
+            scenarioCache.set(cacheKey, scenario);
+            console.debug('[ScenarioLoader] Fetched authored practice scenario:', scenario.title);
+            return scenario;
         }
 
-        console.warn('[ScenarioLoader] API error:', result.error);
+        console.warn('[ScenarioLoader] API returned no eligible authored practice scenario:', result?.error);
         return null;
     } catch (error) {
         console.warn('[ScenarioLoader] Fetch error:', error);

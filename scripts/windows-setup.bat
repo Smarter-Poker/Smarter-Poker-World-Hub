@@ -1,72 +1,90 @@
 @echo off
-REM ═══════════════════════════════════════════════════════════════════════════
-REM GOD MODE WINDOWS SETUP SCRIPT
-REM Run this on your Windows machine to set up the ingestion environment
-REM ═══════════════════════════════════════════════════════════════════════════
+setlocal EnableExtensions DisableDelayedExpansion
 
-echo ═══════════════════════════════════════════════════════════════════════════
-echo 🔥 GOD MODE WINDOWS SETUP
-echo ═══════════════════════════════════════════════════════════════════════════
-echo.
+REM Signed solver-worker environment validator. This script never provisions,
+REM persists, prints, or tests a database credential or HMAC secret, and it does
+REM not launch PioSOLVER. See scripts\WINDOWS_DEPLOYMENT.txt before proceeding.
 
-REM Step 1: Check Python
-echo 📦 Step 1: Checking Python installation...
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ Python not found!
-    echo    Download from: https://www.python.org/downloads/
-    echo    During install CHECK "Add Python to PATH"
-    pause
-    exit /b 1
-)
-python --version
-echo ✅ Python found!
-echo.
-
-REM Step 2: Install dependencies
-echo 📦 Step 2: Installing Python dependencies...
-pip install supabase-py pandas python-dotenv
-echo ✅ Dependencies installed!
-echo.
-
-REM Step 3: Set environment variables
-echo 🔑 Step 3: Setting environment variables...
-setx SUPABASE_URL "https://kuklfnapbkmacvwxktbh.supabase.co"
-setx SUPABASE_KEY "<SET-FROM-YOUR-PASSWORD-MANAGER>"
-
-REM Set for current session too
-set SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
-set SUPABASE_KEY=<SET-FROM-YOUR-PASSWORD-MANAGER>
-
-echo ✅ Environment variables set!
-echo.
-
-REM Step 4: Test connection
-echo 🔌 Step 4: Testing Supabase connection...
-python -c "from supabase import create_client; import os; client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_KEY')); print('✅ Connection successful!')"
-if %errorlevel% neq 0 (
-    echo ⚠️  Connection test failed - check credentials
+if /I "%~1"=="M1" (
+  set "SP_MACHINE_ID=M1"
+  set "SP_PARTITION_INDEX=0"
+) else if /I "%~1"=="M2" (
+  set "SP_MACHINE_ID=M2"
+  set "SP_PARTITION_INDEX=1"
 ) else (
-    echo ✅ Database connection working!
+  echo Usage: scripts\windows-setup.bat M1 ^| M2
+  exit /b 2
 )
-echo.
 
-REM Step 5: Instructions
-echo ═══════════════════════════════════════════════════════════════════════════
-echo ✅ SETUP COMPLETE
-echo ═══════════════════════════════════════════════════════════════════════════
-echo.
-echo 📋 NEXT STEPS:
-echo.
-echo 1. Create folder structure:
-echo    C:\PokerSolver\Raw\MTT\ICM\40bb\Turn\
-echo    (See GOD_MODE_FOLDER_STRUCTURE.md for details)
-echo.
-echo 2. Export solver data to folders
-echo.
-echo 3. Run ingestion:
-echo    python ingest_god_mode.py C:\PokerSolver\Raw
-echo.
-echo 🔥 System ready for God Mode ingestion!
-echo.
-pause
+python --version >nul 2>&1
+if errorlevel 1 (
+  echo ERROR: Python 3 is required and must be on PATH.
+  exit /b 1
+)
+
+REM A solver box with any legacy database setting is intentionally unsafe.
+if defined SUPABASE_SERVICE_ROLE_KEY goto :legacy_database_setting
+if defined SUPABASE_SERVICE_KEY goto :legacy_database_setting
+if defined SUPABASE_KEY goto :legacy_database_setting
+if defined SUPABASE_URL goto :legacy_database_setting
+if defined SUPABASE_ANON_KEY goto :legacy_database_setting
+if defined NEXT_PUBLIC_SUPABASE_URL goto :legacy_database_setting
+if defined NEXT_PUBLIC_SUPABASE_ANON_KEY goto :legacy_database_setting
+if defined SUPABASE_DB_URL goto :legacy_database_setting
+if defined SUPABASE_CONNECTION_POOL_URL goto :legacy_database_setting
+if defined SUPABASE_DB_HOST goto :legacy_database_setting
+if defined SUPABASE_DB_PORT goto :legacy_database_setting
+if defined SUPABASE_DB_USER goto :legacy_database_setting
+if defined SUPABASE_DB_PASSWORD goto :legacy_database_setting
+if defined SUPABASE_DB_NAME goto :legacy_database_setting
+if defined SUPABASE_DB_SSL goto :legacy_database_setting
+if defined SUPABASE_DB_CA goto :legacy_database_setting
+if defined SUPABASE_JWT_SECRET goto :legacy_database_setting
+if defined SUPABASE_PROJECT_REF goto :legacy_database_setting
+if defined NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY goto :legacy_database_setting
+if defined VITE_SUPABASE_URL goto :legacy_database_setting
+if defined VITE_SUPABASE_ANON_KEY goto :legacy_database_setting
+if defined FALLBACK_SUPABASE_URL goto :legacy_database_setting
+if defined SUPABASE_URL_FALLBACK goto :legacy_database_setting
+if defined SUPABASE_URL_WITH_PASS goto :legacy_database_setting
+if defined DATABASE_URL goto :legacy_database_setting
+if defined DIRECT_URL goto :legacy_database_setting
+if defined POSTGRES_URL goto :legacy_database_setting
+if defined POSTGRES_PRISMA_URL goto :legacy_database_setting
+if defined POSTGRES_URL_NON_POOLING goto :legacy_database_setting
+if defined POSTGRES_PASSWORD goto :legacy_database_setting
+if defined PG_PASSWORD goto :legacy_database_setting
+if defined PGHOST goto :legacy_database_setting
+if defined PGPORT goto :legacy_database_setting
+if defined PGDATABASE goto :legacy_database_setting
+if defined PGUSER goto :legacy_database_setting
+if defined PGPASSWORD goto :legacy_database_setting
+
+if not defined SOLVER_WORKER_API_URL goto :missing_gateway_setting
+REM Do not expand untrusted environment values into this batch parser. The
+REM checksum-pinned launcher validates the exact HTTPS URL before networking.
+if not defined SOLVER_WORKER_HMAC_SECRET goto :missing_gateway_setting
+if not defined PIO_EXE goto :missing_gateway_setting
+if not defined PIO_SOLVER_VERSION goto :missing_gateway_setting
+if not defined APPROVED_PIO_BINARY_CHECKSUM goto :missing_gateway_setting
+if not defined PIPELINE_COMMIT goto :missing_gateway_setting
+if not defined APPROVED_MANIFEST_CHECKSUM goto :missing_gateway_setting
+if not defined RANGE_DIRECTORY goto :missing_gateway_setting
+
+echo Signed worker environment is present for %SP_MACHINE_ID%.
+echo This check did not print secrets, connect to a database, or start a solver.
+echo Complete the operator approval gate before running:
+echo   python scripts\preflop-deep\run_machine.py %SP_MACHINE_ID% 2 %SP_PARTITION_INDEX%
+exit /b 0
+
+:legacy_database_setting
+echo ERROR: A legacy database environment setting is still present.
+echo Remove it from process, user, machine, task, wrapper, and profile scopes.
+echo Rotate historically exposed credentials centrally. Do not start this worker.
+exit /b 1
+
+:missing_gateway_setting
+echo ERROR: Required signed-gateway configuration is absent.
+echo Provision it from the authorized per-host secret and release records.
+echo Never copy the other worker's HMAC value and never store it in this file.
+exit /b 1

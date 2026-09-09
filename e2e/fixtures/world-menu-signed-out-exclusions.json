@@ -1,0 +1,20 @@
+{
+  "$comment": [
+    "Worlds the signed-out footer E2E (022, 023, 024) cannot visit, and the exact facts that make that true.",
+    "This is JSON, not a module, because the Playwright specs and the node law both have to read it and",
+    "Playwright transpiles .ts to CommonJS - importing an .mjs from a spec dies with 'Cannot use import.meta",
+    "outside a module', which Playwright reports as 'No tests found'. A whole suite passing by finding nothing",
+    "is the same disease this file exists to cure, so the two sides share data and never import each other.",
+    "'evidence' is re-checked by __tests__/the-footer-gate-tests-a-world-that-exists.law.test.mjs. When a listed",
+    "literal is gone, the law fails and a person decides whether the world has earned its coverage back."
+  ],
+  "worlds": {
+    "my-clubs": {
+      "why": "/hub/my-clubs has been a 307 into the Social Media world since #1586, and the world's own route /hub/my-venues is staff-only",
+      "evidence": [
+        { "file": "pages/hub/my-clubs.js", "contains": "destination: MY_CLUBS_DESTINATION" },
+        { "file": "pages/hub/my-venues.js", "contains": "router.push('/login?redirect=/hub/my-venues')" }
+      ]
+    }
+  }
+}

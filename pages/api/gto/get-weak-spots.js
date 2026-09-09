@@ -4,7 +4,8 @@
  * Analyzes user's training session history to identify weakness patterns.
  * Returns top 3 areas where user needs improvement.
  * 
- * GET /api/gto/get-weak-spots?userId=xxx
+ * GET /api/gto/get-weak-spots
+ * User identity is derived exclusively from the bearer token.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -13,14 +14,18 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
     }
     return _supabase;
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
+
   try {
     // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
     const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -39,11 +44,15 @@ export default async function handler(req, res) {
 
           // Fetch recent training sessions
           const { data: sessions, error } = await getSupabase()
-              .from('jarvis_training_sessions')
-              .select('answers_data, leaks_detected, accuracy, game_id, level')
+              .from('training_sessions')
+              .select('position_stats, classification_counts, hand_history, game_id, level, attempt_id, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
               .eq('user_id', userId)
+              .eq('training_attempts.user_id', userId)
+              .eq('training_attempts.status', 'completed')
+              .not('attempt_id', 'is', null)
+              .eq('training_attempts.practice_only', false)
               .order('created_at', { ascending: false })
-              .limit(20);
+              .limit(100);
 
           if (error) {
               console.warn('[GetWeakSpots] DB Error:', error);
@@ -69,8 +78,11 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.warn('[GetWeakSpots] Error:', error);
-          return res.status(500).json({
-              success: false, error: 'Failed to analyze weak spots',
+          return res.status(503).json({
+              success: false,
+              unavailable: true,
+              code: 'VERIFIED_WEAK_SPOTS_UNAVAILABLE',
+              error: 'Verified weak-spot history is temporarily unavailable',
           });
       }
 
@@ -81,7 +93,16 @@ export default async function handler(req, res) {
   }
 }
 
-function analyzeWeakSpots(sessions) {
+function fieldOf(entry, key) {
+    if (!entry || typeof entry !== 'object') return undefined;
+    const nested = entry.handData;
+    if (nested && typeof nested === 'object' && nested[key] !== undefined && nested[key] !== null) {
+        return nested[key];
+    }
+    return entry[key];
+}
+
+export function analyzeWeakSpots(sessions) {
     const patterns = {
         positions: {},    // Track errors by position (UTG, CO, BTN, etc.)
         actions: {},      // Track errors by action type (fold, call, raise)
@@ -89,42 +110,47 @@ function analyzeWeakSpots(sessions) {
         stackDepths: {}   // Track errors by stack depth
     };
 
-    let totalMistakes = 0;
-
-    // Process each session's answer data
+    // Use only server-projected aggregates and the sealed hand history. The
+    // retired Jarvis answers/leaks payloads were browser-authored and cannot
+    // support personalized coaching claims.
     sessions.forEach(session => {
-        const answers = session.answers_data || [];
-        const leaks = session.leaks_detected || [];
-
-        // Process leaks if available
-        leaks.forEach(leak => {
-            if (leak.position) {
-                patterns.positions[leak.position] = (patterns.positions[leak.position] || 0) + 1;
+        const positionStats = session?.position_stats && typeof session.position_stats === 'object'
+            ? session.position_stats
+            : {};
+        Object.entries(positionStats).forEach(([position, values]) => {
+            const total = Number(values?.total) || 0;
+            const correct = Number(values?.correct) || 0;
+            const errors = Math.max(0, total - correct);
+            if (errors > 0) {
+                const key = String(position).toUpperCase();
+                if (!key || key === 'UNKNOWN' || key === 'UNK') return;
+                patterns.positions[key] = (patterns.positions[key] || 0) + errors;
             }
-            if (leak.action) {
-                patterns.actions[leak.action] = (patterns.actions[leak.action] || 0) + 1;
-            }
-            if (leak.handType) {
-                patterns.handTypes[leak.handType] = (patterns.handTypes[leak.handType] || 0) + 1;
-            }
-            totalMistakes++;
         });
 
-        // Process raw answers if leaks not populated
-        answers.forEach(answer => {
-            if (!answer.correct) {
-                if (answer.position) {
-                    patterns.positions[answer.position] = (patterns.positions[answer.position] || 0) + 1;
-                }
-                if (answer.userAction && answer.userAction !== answer.correctAction) {
-                    const actionError = `${answer.userAction}_instead_of_${answer.correctAction}`;
-                    patterns.actions[actionError] = (patterns.actions[actionError] || 0) + 1;
-                }
-                if (answer.hand) {
-                    const handType = categorizeHand(answer.hand);
-                    patterns.handTypes[handType] = (patterns.handTypes[handType] || 0) + 1;
-                }
-                totalMistakes++;
+        const history = Array.isArray(session?.hand_history) ? session.hand_history : [];
+        history.forEach(entry => {
+            const classification = String(fieldOf(entry, 'classification') || '').toLowerCase();
+            const explicitCorrect = fieldOf(entry, 'isCorrect') ?? fieldOf(entry, 'is_correct');
+            const isMistake = explicitCorrect === false
+                || ['inaccuracy', 'wrong', 'blunder'].includes(classification);
+            if (!isMistake) return;
+
+            const action = fieldOf(entry, 'action') || fieldOf(entry, 'userAction');
+            const correctAction = fieldOf(entry, 'correctAction')
+                || fieldOf(entry, 'bestAction')
+                || fieldOf(entry, 'recommendedAction');
+            if (action && correctAction && action !== correctAction) {
+                const actionError = `${action}_instead_of_${correctAction}`;
+                patterns.actions[actionError] = (patterns.actions[actionError] || 0) + 1;
+            }
+
+            const hand = fieldOf(entry, 'hand')
+                || fieldOf(entry, 'heroHand')
+                || fieldOf(entry, 'heroCards');
+            if (hand) {
+                const handType = categorizeHand(hand);
+                patterns.handTypes[handType] = (patterns.handTypes[handType] || 0) + 1;
             }
         });
     });
@@ -188,6 +214,16 @@ function getTopN(obj, n) {
 
 function categorizeHand(hand) {
     if (!hand) return 'Unknown';
+
+    let normalized = hand;
+    if (Array.isArray(hand)) {
+        normalized = hand.map(card => {
+            if (typeof card === 'string') return card.charAt(0);
+            return card?.rank || '';
+        }).join('');
+    }
+    if (typeof normalized !== 'string') return 'Unknown';
+    hand = normalized;
 
     // Pocket pairs
     if (hand.length >= 2 && hand[0] === hand[1]) {

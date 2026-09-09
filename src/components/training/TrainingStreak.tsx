@@ -35,12 +35,18 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
             const res = await authedFetch('/api/training/streak', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, milestoneDays: days })
+                body: JSON.stringify({ milestoneDays: days })
             });
             const data = await res.json();
             if (data.success) {
                 fetchStreak();
-                onStreakUpdate?.({ claimed: data.claimed, diamonds: data.diamondsAwarded });
+                onStreakUpdate?.({
+                    claimed: data.claimed,
+                    milestone: data.milestone,
+                    milestoneCompleted: data.milestoneCompleted,
+                    diamonds: data.diamondsAwarded,
+                    diamondsRemaining: data.diamondsRemaining,
+                });
             }
         } catch (error) {
             console.warn('Failed to claim:', error);

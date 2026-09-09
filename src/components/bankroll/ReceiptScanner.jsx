@@ -26,6 +26,12 @@ import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriang
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
 import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
+import { holdScan, heldRecord, shouldHold } from '../../lib/bankroll/receiptHold.mjs';
+import { downscaleForOcr } from '../../lib/docscan/imageSource';
+import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
+import { READ_OUTCOMES } from '../../lib/bankroll/receiptInbox.mjs';
+import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
+import { perceptualHash } from '../../lib/bankroll/receiptHash.mjs';
 import {
     normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
 } from '../../lib/bankroll/receiptRouting.mjs';
@@ -52,6 +58,18 @@ export default function ReceiptScanner({
     displayEUR = false,
     tripId = null,
     onPendingChange,
+    /**
+     * A photograph taken with no signal, coming back to be filed.
+     *
+     * It is handed straight to the ordinary approved-scan path, so a held
+     * scan uploads and is read by EXACTLY the flow a fresh one takes - one
+     * read path, one entitlement check, one set of numbers. The alternative
+     * was a second headless flush that reads receipts its own way, and two
+     * readers eventually disagree about what a receipt said.
+     */
+    resumeScan = null,
+    /** Told when a scan could not be sent and was written to the device. */
+    onHeld,
 }) {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerSeed, setScannerSeed] = useState(null);   // a File, when the user chose one
@@ -64,12 +82,25 @@ export default function ReceiptScanner({
     const [error, setError] = useState(null);
 
     const [uploadedUrl, setUploadedUrl] = useState(null);
+    // Not an error: the scan is safe on the device and will be filed later.
+    const [heldOnDevice, setHeldOnDevice] = useState(false);
+    // Not state: it is read once when the scan is handed over, and a render
+    // for it would be a render for nothing.
+    const imageHashRef = useRef(null);
+    // What the reader did, carried onto the bankroll_receipts row. PostHog
+    // is dark in production, so this table is the one channel that reports
+    // whether the engine works for a real person.
+    const readOutcomeRef = useRef({ outcome: READ_OUTCOMES.NOT_ATTEMPTED, ocrConfidence: null });
     const [extractedData, setExtractedData] = useState(null);
     // What the scan was read as, and where it is headed. Held separately from
     // the raw OCR so the user can correct the type without re-scanning.
     const [scanKind, setScanKind] = useState(null);
     const [typeOverridden, setTypeOverridden] = useState(false);
     const [confidenceScore, setConfidenceScore] = useState(null);
+    // 0-100 while the on-device engine reads. The first scan of a session
+    // also downloads the engine, which is worth showing rather than leaving
+    // the user looking at a still screen.
+    const [ocrProgress, setOcrProgress] = useState(null);
     const [verified, setVerified] = useState(false);
     const [verifying, setVerifying] = useState(false);
 
@@ -85,6 +116,10 @@ export default function ReceiptScanner({
                 URL.revokeObjectURL(previewUrlRef.current);
                 previewUrlRef.current = null;
             }
+            // The OCR worker holds a WebAssembly heap of tens of megabytes.
+            // Leaving it running after the scanner closes is how a phone runs
+            // out of memory three receipts later.
+            releaseOcr();
         };
     }, []);
 
@@ -140,6 +175,43 @@ export default function ReceiptScanner({
     // UPLOAD. Reached only from approval and retry, never from capture.
     // ---------------------------------------------------------------------
 
+    /**
+     * Write this scan to the device instead of losing it.
+     *
+     * The photograph is kept UNREAD. Reading is local, but the parse runs
+     * through /api/bankroll/scan-receipt, which is where the bankroll_pro
+     * entitlement is checked and where the player's saved venues live -
+     * parsing in the browser to fill this in offline would hand the paid
+     * feature away, which that route says in as many words. So the held scan
+     * is read when it is filed, by the same route, with the same gate.
+     */
+    const holdForLater = useCallback(async (scan, reason) => {
+        try {
+            const hash = await perceptualHash(scan.blob).catch(() => null);
+            const { held, dropped } = await holdScan(heldRecord({
+                userId,
+                blob: scan.blob,
+                mime: scan.blob.type || 'image/jpeg',
+                imageHash: hash,
+                capturedAt: Date.now(),
+            }));
+            if (!mountedRef.current) return true;
+            setHeldOnDevice(true);
+            setError(null);
+            setIsUploading(false);
+            if (typeof onHeld === 'function') onHeld({ held, dropped, reason });
+            return true;
+        } catch (err) {
+            console.warn('[ReceiptScanner] could not hold the scan:', (err && err.message) || err);
+            if (mountedRef.current) {
+                // Say the true thing: this one really is at risk.
+                setError('NO SIGNAL AND NO ROOM TO HOLD IT - STAY ON THIS SCREEN');
+                setIsUploading(false);
+            }
+            return false;
+        }
+    }, [userId, onHeld]);
+
     const uploadApprovedScan = useCallback(async (scan) => {
         if (!scan || !scan.blob) return;
         setIsUploading(true);
@@ -152,6 +224,15 @@ export default function ReceiptScanner({
         // guard blocks the SDK session call in components because it can throw
         // AbortError; src/lib/authUtils.ts reads the same session out of
         // storage without that risk.
+        // NO SIGNAL: hold it now rather than making the player watch three
+        // upload attempts time out to learn something the browser already
+        // knows. getFreshAccessToken may itself need the network, so this
+        // comes first - offline, "SIGN IN REQUIRED" would be a lie.
+        const offlineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+        if (offlineNow && shouldHold({ online: false, error: null })) {
+            if (await holdForLater(scan, 'offline')) return;
+        }
+
         const authUser = getAuthUser();
         const uid = userId || (authUser && authUser.id);
         const accessToken = await getFreshAccessToken();
@@ -169,7 +250,14 @@ export default function ReceiptScanner({
         // Read the receipt in parallel with storing it. OCR does not depend on
         // storage, and running it first means the extracted details survive an
         // upload that has to retry, instead of being lost with the attempt.
-        const ocrPromise = runOcr(scan.blob, accessToken);
+        // The reader gets the binarized rendition; storage keeps the one the
+        // user chose to look at. They are different jobs and, measured on a
+        // faint thermal receipt, the difference is every amount on it.
+        const ocrPromise = runOcr(scan.ocrBlob || scan.blob, accessToken);
+        // What this photograph looks like, so the page can say "you scanned
+        // this one on Tuesday". Never blocks the upload: a browser without
+        // createImageBitmap resolves null and the check simply does not run.
+        const hashPromise = perceptualHash(scan.blob).catch(() => null);
 
         let lastError = null;
         for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
@@ -183,6 +271,7 @@ export default function ReceiptScanner({
                 setUploadedUrl(publicUrl);
                 setVerified(false);
                 setError(null);
+                imageHashRef.current = await hashPromise;
                 await ocrPromise;
                 if (mountedRef.current) setIsUploading(false);
                 return;
@@ -194,6 +283,13 @@ export default function ReceiptScanner({
         }
 
         console.warn('[ReceiptScanner] Upload failed:', lastError && (lastError.message || lastError));
+        // The signal went during the upload. A refusal - a policy denial, a
+        // payload too large - is NOT held: it would refuse again in an hour,
+        // and a queue that never drains is a promise the player cannot
+        // collect on. shouldHold draws that line.
+        if (shouldHold({ online: true, error: lastError })) {
+            if (await holdForLater(scan, 'upload-failed')) return;
+        }
         if (mountedRef.current) {
             // The scan itself is still held, so this is a retry prompt and not
             // a dead end. Saying which failure it was matters: a refused policy
@@ -208,30 +304,59 @@ export default function ReceiptScanner({
         }
         // runOcr is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
+    }, [userId, holdForLater]);
 
     const runOcr = useCallback(async (blob, accessToken) => {
         try {
-            const base64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('read-failed'));
-                reader.readAsDataURL(blob);
+            // THE PICTURE DOES NOT LEAVE THE DEVICE.
+            //
+            // Tesseract, compiled to WebAssembly and served from our own
+            // origin, reads the receipt here. What crosses the network is the
+            // TEXT it produced: a few hundred bytes instead of a megabyte of
+            // somebody's tax form, and no model anywhere in the path.
+            //
+            // The engine reads a receipt as well at 1600px as at full size
+            // and is several times faster on a phone. Storage keeps the
+            // full-resolution copy.
+            const forOcr = await downscaleForOcr(blob, 1600, 0.85);
+            if (mountedRef.current) setOcrProgress(0);
+            const read = await readText(forOcr, {
+                onProgress: (pct) => { if (mountedRef.current) setOcrProgress(pct); },
             });
+            if (mountedRef.current) setOcrProgress(null);
+            if (!mountedRef.current) return;
+
+            readOutcomeRef.current = { outcome: READ_OUTCOMES.NO_TEXT, ocrConfidence: read.confidence };
+            if (!read.text.trim()) {
+                // A photograph with no legible text at all. The image still
+                // saves; the sheet asks where it goes. Recorded as no_text,
+                // which points at the photograph rather than the deploy.
+                setConfidenceScore(10);
+                return;
+            }
+
+            // The route still runs, and still matters: it holds the Bankroll
+            // Pro gate and the player's saved venues, which is what lets
+            // "BELLAG10 P0KER ROOM" be recognised as the Bellagio.
             const res = await fetch('/api/bankroll/scan-receipt', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                body: JSON.stringify({ image: base64 }),
+                body: JSON.stringify({ text: read.text, ocrConfidence: read.confidence }),
             });
             if (!res.ok) {
                 const detail = await res.json().catch(() => null);
                 console.warn('[ReceiptScanner] Read failed:', res.status, detail && detail.detail);
+                // The engine worked; the server refused. A 403 is the
+                // entitlement gate, a 429 is the rate limit, and those are
+                // different problems from a bad photograph.
+                readOutcomeRef.current = { outcome: READ_OUTCOMES.ROUTE_REFUSED, ocrConfidence: read.confidence };
                 if (mountedRef.current) setConfidenceScore(10);
                 return;
             }
             const result = await res.json();
             if (!mountedRef.current) return;
             if (result && result.success && result.data) {
+                readOutcomeRef.current = { outcome: READ_OUTCOMES.READ, ocrConfidence: read.confidence };
                 setExtractedData(result.data);
                 setConfidenceScore(computeConfidence(result.data));
                 // Classify and decide where it goes. Both are pure, so the
@@ -242,11 +367,30 @@ export default function ReceiptScanner({
             } else {
                 setConfidenceScore(10);
             }
-        } catch (_err) {
-            // Reading the receipt is optional. The image still saves.
-            if (mountedRef.current) setConfidenceScore(10);
+        } catch (err) {
+            // Reading the receipt is optional. The image still saves, the
+            // scan is still recorded, and the sheet asks where it goes.
+            //
+            // But WHICH failure this was decides who has to fix it. An engine
+            // that cannot start means the deploy is broken, which is exactly
+            // how the reader shipped on 2026-09-09 with every asset 404ing
+            // and nothing anywhere saying so.
+            const engineFailed = err instanceof OcrUnavailableError
+                || /importScripts|worker|wasm|SharedArrayBuffer/i.test(String((err && err.message) || ''));
+            readOutcomeRef.current = {
+                outcome: engineFailed ? READ_OUTCOMES.ENGINE_FAILED : READ_OUTCOMES.NO_TEXT,
+                ocrConfidence: null,
+            };
+            if (engineFailed) {
+                console.warn('[ReceiptScanner] OCR engine unavailable:', (err && err.message) || err);
+                reportReaderFailure(err, READER_SECTIONS.RECEIPT, userId);
+            }
+            if (mountedRef.current) {
+                setOcrProgress(null);
+                setConfidenceScore(10);
+            }
         }
-    }, [computeConfidence]);
+    }, [computeConfidence, userId]);
 
     /** Staff corrected the guess. Re-route from the same extracted values. */
     const overrideType = useCallback((documentType) => {
@@ -270,10 +414,21 @@ export default function ReceiptScanner({
         const previewUrl = URL.createObjectURL(scan.blob);
         previewUrlRef.current = previewUrl;
 
-        const approved = { blob: scan.blob, previewUrl, width: scan.width, height: scan.height };
+        const approved = { blob: scan.blob, ocrBlob: scan.ocrBlob || scan.blob, previewUrl, width: scan.width, height: scan.height };
         setApprovedScan(approved);
         await uploadApprovedScan(approved);
     }, [uploadApprovedScan]);
+
+    // A held scan comes back in through the SAME door a fresh one does.
+    useEffect(() => {
+        if (!resumeScan || !resumeScan.blob || approvedScan || uploadedUrl) return;
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        const previewUrl = URL.createObjectURL(resumeScan.blob);
+        previewUrlRef.current = previewUrl;
+        setHeldOnDevice(false);
+        setApprovedScan({ blob: resumeScan.blob, ocrBlob: resumeScan.blob, previewUrl, width: null, height: null });
+        // The effect below this one is what uploads whatever approvedScan holds.
+    }, [resumeScan, approvedScan, uploadedUrl]);
 
     const retryUpload = useCallback(() => {
         if (approvedScan) uploadApprovedScan(approvedScan);
@@ -301,6 +456,7 @@ export default function ReceiptScanner({
         }
         setApprovedScan(null);
         setUploadedUrl(null);
+        imageHashRef.current = null;
         setExtractedData(null);
         setScanKind(null);
         setTypeOverridden(false);
@@ -326,11 +482,16 @@ export default function ReceiptScanner({
                 imageUrl: uploadedUrl,
                 extractedData,
                 tripId,
+                imageHash: imageHashRef.current,
                 // What it was read as and where it belongs, so the page can
                 // open the right destination already filled in.
                 documentType: scanKind ? scanKind.scan.documentType : 'unknown',
                 route: scanKind ? scanKind.route : null,
                 typeConfirmedByUser: typeOverridden,
+                // Recorded on the row so the failures can be counted without
+                // an analytics key nobody has set.
+                readOutcome: readOutcomeRef.current.outcome,
+                ocrConfidence: readOutcomeRef.current.ocrConfidence,
             });
         }
         resetScanner();
@@ -450,6 +611,20 @@ export default function ReceiptScanner({
                             <button onClick={resetScanner} style={styles.confirmBtn} type="button">CLOSE</button>
                         )}
                     </div>
+                </div>
+            )}
+
+            {ocrProgress !== null && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: 8, padding: '8px 16px', margin: '0 auto 16px',
+                    background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+                    borderRadius: 20, width: 'fit-content',
+                }}>
+                    <Loader2 size={14} style={{ color: '#60a5fa', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 13, fontWeight: 800, color: '#60a5fa', letterSpacing: '0.1em' }}>
+                        READING ON THIS DEVICE - {ocrProgress}%
+                    </span>
                 </div>
             )}
 

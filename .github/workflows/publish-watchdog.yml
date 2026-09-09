@@ -13,13 +13,34 @@
 name: Publish Watchdog
 
 on:
+  # THE PUSH IS THE EVENT. A stalled publisher is exactly "main moved and
+  # production did not", so the commit that moved main is the moment to look.
+  # This runs within a minute of every merge, which is the latency this
+  # workflow has always claimed and has never had.
+  push:
+    branches: [main]
+
   schedule:
-    # Every 15 minutes. A Vercel build is 3-5 minutes and the budget is 20, so
-    # this notices roughly half an hour after a deploy silently stops happening
-    # — against the hours it currently takes for somebody to notice by hand.
-    # Halved from */15 on 2026-08-23 for cost. The real trigger is the
-    # publisher finishing; this schedule only catches a deploy that never
-    # started, and 30 minutes is well inside the window where that matters.
+    # A BACKSTOP, NOT THE MECHANISM, and the cron below is a wish rather than
+    # a promise. Measured on 2026-09-09 over the last 40 scheduled runs of
+    # this workflow:
+    #
+    #   claimed:  every 30 minutes
+    #   actual:   202 minutes median, 368 minutes worst
+    #   39 of 39 gaps were longer than an hour. Not one landed near 30.
+    #
+    # GitHub drops and defers scheduled runs on a busy account, and the more
+    # often a schedule asks, the more it is ignored. The comment that used to
+    # sit here claimed this workflow spotted a stalled publisher within about
+    # half an hour, and contrasted that with the hours a person would take. It
+    # was three and a half hours, median: no better than the person. On
+    # 2026-09-09 it slept through three production deploys that errored on a
+    # vercel.json schema rule, and those were found by curling by hand, which
+    # is the exact thing this file was written to replace.
+    #
+    # It stays, because it is the only thing that catches a deploy that never
+    # STARTED (no push, nothing to trigger on). Its honest value is "some
+    # hours", and the push trigger above is what makes this workflow fast.
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
@@ -30,6 +51,10 @@ permissions:
   # a proposed branch from a stranded one. Without it `gh pr list` is refused,
   # and the sweep reported every branch with a pull request as having none.
   pull-requests: read
+  # actions: read (2026-09-09) is what lets the watchdog measure ITSELF:
+  # check-watchdog-latency.mjs asks the API how often each scheduled workflow
+  # has really run, because the cron is a wish and this one was out by 6.7x.
+  actions: read
 
 concurrency:
   group: publish-watchdog
@@ -41,9 +66,52 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 6
     steps:
+      # FULL HISTORY, BECAUSE BOTH SCRIPTS IN THIS JOB READ IT.
+      #
+      # This checked out at the default depth of 1 until 2026-09-09: exactly
+      # one commit, no ancestry. Both scripts this job runs assume otherwise,
+      # and orphan-work-watchdog.sh says so in as many words - "the workflow
+      # checks main out with full history, so every question here is
+      # answerable by git". In THIS repo it was not. Club Arena's copy of the
+      # same workflow has set fetch-depth: 0 since 2026-09-02, with a comment
+      # naming this exact failure. The fix was never carried across.
+      #
+      # What a depth of 1 actually cost, measured on 2026-09-09:
+      #
+      #  - publish-watchdog.sh recovers a filed alarm when production serves
+      #    an ANCESTOR of main inside the lag budget. It tests that with
+      #    `git cat-file -e` and `git merge-base --is-ancestor`. On a depth-1
+      #    clone the served commit is not a valid object name at all, so that
+      #    branch could never be taken and a filed alarm never closed itself
+      #    on ordinary deploy lag. That auto-close exists because of
+      #    club-arena #2566, where an alarm outlived its anomaly for hours
+      #    and taught everyone the alarm means nothing.
+      #
+      #  - orphan-work-watchdog.sh reads `git log -200 origin/main` to
+      #    recognise content that already shipped. At depth 1 that list holds
+      #    ONE tree instead of 200.
+      #
+      #  - The stranded-branch sweep named 293 branches. With real history it
+      #    names 272. The 21 in between - chore/remove-react-is-v2,
+      #    commander-audit-1, fix/preflop-charts-bugs and 18 more - are FULLY
+      #    MERGED; the compare API puts main behind_by=0 on every one. They
+      #    were reported as "N commits ahead of main with no pull request.
+      #    Nothing will ever merge it." That is issue #1247, updated 47 times.
+      #
+      # The push trigger added earlier today made this worse, not better: a
+      # run fired seconds after a merge lands in the in-flight branch, which
+      # is precisely where the dead ancestry check lives.
+      #
+      # `filter: blob:none` is why this is free. Measured against this repo:
+      # depth-1 clone 23s / 338MB / 1 commit; blobless full history 21s /
+      # 366MB / 15,275 commits; plain fetch-depth: 0 (what Club Arena does)
+      # 103s. Full commit history at shallow-clone speed - the blobs of old
+      # revisions are the expensive part, and nothing here reads them.
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Mint a GitHub App installation token
         id: app-token
@@ -66,6 +134,22 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: bash .github/scripts/publish-watchdog.sh
+
+      # THE WATCHDOG CHECKS ITSELF.
+      #
+      # On 2026-09-09 this workflow claimed a 30-minute response and delivered
+      # 202 minutes median, 368 worst, across 39 consecutive gaps of which not
+      # one was under an hour. It slept through three production deploys that
+      # errored on a vercel.json schema rule; the outage was found by curling
+      # by hand, which is what this file exists to replace.
+      #
+      # The cure was the `push` trigger above, not a tighter cron. This step
+      # keeps the numbers honest and fails if any sub-hourly watchdog is ever
+      # left with nothing but a schedule to wake it.
+      - name: A watchdog has something real to wake it
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/check-watchdog-latency.mjs
 
       # Dan 2026-09-01: "no work ever gets lost, orphaned or not published...
       # EVER." The step above asks whether MERGED work reached production;
@@ -100,6 +184,24 @@ jobs:
       #
       # `always()` so it still runs when the SHA comparison above alarms: a
       # stale deploy and a broken worker are independent failures.
+      # WEEKLY, and it lives here for the reason section 11.4 already gives
+      # about this workflow: it asks GitHub about GitHub, so Open Claw is the
+      # wrong layer, and CLAUDE.md 11.3 forbids a net-new `schedule:` trigger.
+      # The script self-gates to Mondays 09:00-09:29 UTC and exits 0 on the
+      # other 335 ticks, so it costs one date comparison to carry.
+      #
+      # It exists because the 2026-09-08 audit had to excavate every number in
+      # it by hand. Two defects had been costing eleven minutes a push for
+      # months without failing a single check - they were arithmetic nobody
+      # was doing. This does the arithmetic weekly, into one self-updating
+      # issue, so the next argument about pipeline speed is a lookup.
+      - name: Weekly pipeline latency report
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/report-pipeline-p50.mjs
+
       - name: Root service worker precache resolves
         if: always()
         run: node scripts/ci/check-sw-precache.mjs https://smarter.poker

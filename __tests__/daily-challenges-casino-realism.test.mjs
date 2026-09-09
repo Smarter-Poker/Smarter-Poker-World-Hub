@@ -13,7 +13,6 @@ const goalsPage = read('pages/hub/training/daily-goals.js');
 const goalsCss = read('src/styles/training/daily-goals-casino.module.css');
 const triviaPage = read('pages/hub/trivia/[mode].js');
 const memoryPage = read('pages/hub/memory-games.js');
-const memoryCard = read('src/components/memory-games/DailyChallengeCard.jsx');
 const memoryCss = read('src/styles/worlds/memory-games.css');
 const personalQuiz = read('src/components/training/DailyPersonalQuiz.jsx');
 const personalQuizCss = read('src/styles/training/daily-personal-quiz-casino.module.css');
@@ -23,10 +22,15 @@ const universalHeader = read('src/components/ui/UniversalHeader.js');
 
 test('every Daily Challenges surface adopts the casino realism visual system', () => {
   assert.match(trainingPage, /daily-challenge-casino\.module\.css/);
+  assert.match(trainingPage, /styles\.marquee/);
+  assert.match(trainingPage, /styles\.feltTable/);
+  assert.match(trainingPage, /styles\.resultDrawer/);
   assert.match(goalsPage, /daily-goals-casino\.module\.css/);
   assert.match(triviaPage, /trivia-daily-casino/);
-  assert.match(memoryPage, /is-daily-casino/);
-  assert.match(memoryCard, /preflop-daily-card-art/);
+  assert.match(memoryPage, /function DailyLocalPracticeCard/);
+  assert.match(memoryPage, /className="preflop-daily-card/);
+  assert.match(memoryPage, /DAILY LOCAL PRACTICE/);
+  assert.match(memoryCss, /body\.world-preflop-charts \.preflop-daily-card/);
   assert.match(personalQuiz, /daily-personal-quiz-casino\.module\.css/);
 
   for (const css of [trainingCss, goalsCss, personalQuizCss, memoryCss, triviaPage]) {
@@ -38,35 +42,50 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
 
 test('Daily Challenges preserve their real data and action wiring', () => {
   assert.match(trainingPage, /authedFetch\('\/api\/training\/hand-of-the-day'/);
-  assert.match(trainingPage, /onClick=\{\(\) => handleAnswer\(action\)\}/);
-  assert.match(trainingPage, /authedFetch\('\/api\/training\/share'/);
+  assert.match(trainingPage, /onClick=\{\(\) => handleAnswer\(action\.id\)\}/);
+  assert.match(trainingPage, /authedFetch\('\/api\/training\/record-question'/);
+  assert.match(trainingPage, /answerId:\s*actionId/);
+  assert.match(trainingPage, /gradingReceipt:\s*context\.receipt/);
+  assert.match(trainingPage, /authedFetch\('\/api\/training\/save-progress'/);
   assert.match(goalsPage, /authedFetch\(`\/api\/training\/get-sessions\?limit=50`\)/);
   assert.match(goalsPage, /authedFetch\('\/api\/training\/daily-bonus'/);
   assert.match(triviaPage, /serverGrader=\{serverGraded \? \(args\) => serverRun\.answer\(args\) : null\}/);
   assert.match(triviaPage, /onClick=\{startGame\}/);
-  assert.match(memoryPage, /onClick=\{startDailyChallenge\}/);
-  assert.match(memoryPage, /dailyChallengeService\.completeChallenge/);
+  assert.match(memoryPage, /dailyChallengeService\.getTodaysChallenge\(\)/);
+  assert.match(memoryPage, /onPlay=\{startDailyPractice\}/);
+  assert.match(memoryPage, /onClick=\{startDailyPractice\}/);
+  assert.doesNotMatch(memoryPage, /dailyChallengeService\.completeChallenge/);
 });
 
-test('Daily GTO result persistence has a real retry path', () => {
-  assert.match(trainingPage, /serverSaved:\s*false/);
-  assert.match(trainingPage, /parsed\.serverSaved === false/);
-  assert.match(trainingPage, /setPendingSave\(\{ action, isCorrect, today \}\)/);
-  assert.match(trainingPage, /await saveAnswer\(pendingSave\)/);
-  assert.match(trainingPage, /savingAnswer \? 'Saving Result' : 'Retry Save'/);
+test('Daily Challenge persistence uses a sealed answer and an idempotent completion retry', () => {
+  assert.match(trainingPage, /const context = challenge\._gradingContext/);
+  assert.match(trainingPage, /receipt[\s\S]*attemptId[\s\S]*snapshotKey[\s\S]*submissionId/);
+  assert.match(trainingPage, /recorded\?\.evidence\?\.isCorrect/);
+  assert.match(trainingPage, /JSON\.stringify\(\{ attemptId \}\)/);
+  assert.match(trainingPage, /completionPending && !completing/);
+  assert.match(trainingPage, /completeDailyAttempt\([\s\S]*activeAttemptId/);
+  assert.match(trainingPage, /Retry Completion/);
+  assert.match(trainingPage, /Continue To Training Hub/);
+  assert.doesNotMatch(trainingPage, /localStorage|serverSaved|setPendingSave|saveAnswer\(/);
 });
 
-test('Daily GTO grading and rewards are server authoritative and truthful', () => {
+test('Daily Challenge grading, solver evidence, EV, and rewards remain server authoritative', () => {
   assert.doesNotMatch(trainingPage, /score:\s*isCorrect/);
   assert.doesNotMatch(trainingPage, /evLoss:\s*isCorrect/);
-  assert.match(trainingPage, /evLoss=\{resultIsCorrect \? 0 : undefined\}/);
-  assert.match(trainingApi, /dailyId !== expectedDailyId/);
-  assert.match(trainingApi, /Never trust score, correctness, EV loss, or the reward decision from/);
-  assert.match(trainingApi, /const submittedCorrect =/);
-  assert.match(trainingApi, /score: isCorrect \? 100 : 0/);
-  assert.match(trainingApi, /ev_loss: isCorrect \? 0 : null/);
-  assert.match(trainingApi, /if \(isCorrect\) \{/);
-  assert.doesNotMatch(trainingApi, /const \{ dailyId, score, evLoss, selectedAction \} = req\.body/);
+  assert.doesNotMatch(trainingPage, /challenge\.(?:correct_answer|gto_action)/);
+  assert.doesNotMatch(trainingPage, /isCorrect\s*=\s*action/);
+  assert.match(trainingPage, /solverAction=\{feedback\?\.solverVerified === true \? correctAnswerText : undefined\}/);
+  assert.match(trainingPage, /evLoss=\{feedback\?\.evLossMeasured === true/);
+  assert.match(trainingPage, /frequencies && feedback\?\.solverVerified === true/);
+  assert.match(trainingPage, /awardedDiamonds = Number\(completion\?\.diamondsEarned \?\? completion\?\.diamondsAwarded\)/);
+  assert.doesNotMatch(trainingPage, /DAILY_CHALLENGE_DIAMOND_REWARD|Perfect Read\s*·\s*\+|Earn Up To\s+\{/i);
+  assert.doesNotMatch(trainingPage, /\/api\/training\/share|Share Result/);
+
+  assert.match(trainingApi, /if \(req\.method !== 'GET'\)/);
+  assert.match(trainingApi, /prepareTrainingAttemptDelivery/);
+  assert.match(trainingApi, /toPublicTrainingQuestion/);
+  assert.match(trainingApi, /private, no-store/);
+  assert.doesNotMatch(trainingApi, /req\.body|safeAward|req\.method === 'POST'/);
 });
 
 test('Daily layouts are mobile first, accessible, and motion safe', () => {
@@ -92,7 +111,7 @@ test('Daily Trivia popups and rewards share the upgraded physical controls', () 
 });
 
 test('new Daily Challenges presentation copy contains no em dash characters', () => {
-  for (const source of [trainingPage, trainingCss, goalsCss, personalQuiz, personalQuizCss, memoryCard]) {
+  for (const source of [trainingPage, trainingCss, goalsCss, personalQuiz, personalQuizCss]) {
     assert.equal(source.includes('\u2014'), false);
   }
 });

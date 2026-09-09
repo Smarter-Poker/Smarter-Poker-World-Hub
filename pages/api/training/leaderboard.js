@@ -1,4 +1,3 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * TRAINING LEADERBOARD API
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -7,9 +6,14 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, clampPagination, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { getLeaderboardPeriodKey } from '../../../src/lib/training/leaderboardPeriod.mjs';
+import {
+    getTrainingLeaderboardCategory,
+    normalizeTrainingLeaderboardCategory,
+} from '../../../src/lib/training/leaderboardDimensions.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -25,168 +29,93 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Vary', 'Authorization');
       withTiming(res);
-      // CDN cache: fresh for 30s, serve stale up to 120s
-      if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
-      }
 
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          if (!applyRateLimit(req, res, LIMITS.write)) return;
-      }
-
-      const supabase = getSupabase();
-
-      // Require JWT auth for write operations
-      if (req.method !== 'GET') {
-          const _token = req.headers.authorization?.replace('Bearer ', '');
-          if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const _authUser = authData?.user;
-          if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-          if (req.body) req.body.userId = _authUser.id;
-      }
-
-      // POST: Update leaderboard entry after session
-      //
-      // DEAD WRITE PATH -- INTENTIONALLY LEFT, PENDING REMOVAL (2026-08-09).
-      // No client POSTs here: every fetch of /api/training/leaderboard in the
-      // repo is a GET (LeaderboardPanel.jsx, TrainingLeaderboard.tsx,
-      // hub/training/leaderboard.js, community-leaderboard.js -- verified by
-      // grep). The live writer is pages/api/training/save-progress.js, which
-      // now records through the atomic public.fn_training_leaderboard_record
-      // RPC. The per-period SELECT -> compute -> UPDATE/INSERT below is the
-      // racy read-modify-write that RPC replaced; it also rounds accuracy to
-      // whole percents where the RPC keeps two decimals, so reviving it would
-      // fork row shapes. If this branch is ever revived it MUST go through
-      // sb.rpc('fn_training_leaderboard_record', ...) with the same period
-      // keys instead.
       if (req.method === 'POST') {
-          const bodySize = JSON.stringify(req.body || {}).length;
-          if (bodySize > 10240) return res.status(413).json({ success: false, error: 'Request body too large' });
-          const { userId, accuracy, questionsAnswered, questionsCorrect, bestStreak, gameId, gtowScore } = req.body;
-          const isPerfectRound = accuracy === 100;
-
-          // GTOW Score is the new metric for XP. Default to accuracy if not provided by older games
-          const earnedXp = gtowScore !== undefined ? gtowScore : (accuracy || 0);
-
-          if (!userId) {
-              return res.status(400).json({ success: false, error: 'userId required' });
-          }
-
-          try {
-              const now = new Date();
-              const periods = [
-                  { type: 'daily', key: now.toISOString().split('T')[0] },
-                  { type: 'weekly', key: `${now.getFullYear()}-W${Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7).toString().padStart(2, '0')}` },
-                  { type: 'monthly', key: `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}` },
-                  { type: 'alltime', key: 'alltime' }
-              ];
-
-              // Upsert entry for each period
-              for (const period of periods) {
-                  // 2026-07-19 AUDIT FIX (E2E defect D5): training_leaderboard has NO
-                  // total_xp column (XP system removed) — selecting/writing it made
-                  // every read 500 and every upsert fail silently, so the leaderboard
-                  // never loaded AND never updated.
-                  const { data: existing } = await supabase
-                      .from('training_leaderboard')
-                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, perfect_rounds, gtow_score_avg')
-                      .eq('user_id', userId)
-                      .eq('period_type', period.type)
-                      .eq('period_key', period.key)
-                      .maybeSingle();
-
-                  // 2026-07-19 (wave-1 sweep C4): gtow_score_avg was read by the GET
-                  // but never written anywhere — maintain a running session average
-                  const sessionScore = typeof gtowScore === 'number' ? gtowScore : (accuracy || 0);
-
-                  if (existing) {
-                      const newTotal = existing.questions_answered + questionsAnswered;
-                      const newCorrect = existing.questions_correct + questionsCorrect;
-                      const prevSessions = existing.sessions_completed || 0;
-                      const prevAvg = Number(existing.gtow_score_avg) || 0;
-                      const newAvg = Math.round(((prevAvg * prevSessions + sessionScore) / (prevSessions + 1)) * 10) / 10;
-                      const { error: err_training_leaderboard_iyx6f } = await supabase
-                        .from('training_leaderboard')
-                        .update({
-                              sessions_completed: prevSessions + 1,
-                              questions_answered: newTotal,
-                              questions_correct: newCorrect,
-                              accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
-                              best_streak: Math.max(existing.best_streak || 0, bestStreak || 0),
-                              perfect_rounds: (existing.perfect_rounds || 0) + (isPerfectRound ? 1 : 0),
-                              gtow_score_avg: newAvg,
-                              updated_at: new Date().toISOString()
-                          })
-                          .eq('id', existing.id);
-                      if (err_training_leaderboard_iyx6f) console.warn('[Supabase] Silent mutation failed in training_leaderboard:', err_training_leaderboard_iyx6f.message);
-                  } else {
-                      const { error: err_training_leaderboard_sql0n } = await supabase
-                        .from('training_leaderboard')
-                        .insert({
-                              user_id: userId,
-                              period_type: period.type,
-                              period_key: period.key,
-                              sessions_completed: 1,
-                              questions_answered: questionsAnswered,
-                              questions_correct: questionsCorrect,
-                              accuracy: questionsAnswered > 0 ? Math.round((questionsCorrect / questionsAnswered) * 100) : 0,
-                              best_streak: bestStreak || 0,
-                              perfect_rounds: isPerfectRound ? 1 : 0,
-                              gtow_score_avg: sessionScore
-                          });
-                      if (err_training_leaderboard_sql0n) console.warn('[Supabase] Silent mutation failed in training_leaderboard:', err_training_leaderboard_sql0n.message);
-                  }
-              }
-
-              return res.status(200).json({ success: true, message: 'Leaderboard updated' });
-          } catch (error) {
-              console.warn('[Leaderboard] Update error:', error.message);
-              return res.status(500).json({ success: false, error: 'Failed to update leaderboard' });
-          }
+          return res.status(410).json({
+              success: false,
+              error: 'Leaderboard totals are recorded only by verified Training completion.',
+              code: 'TRAINING_LEADERBOARD_VERIFIED_ATTEMPT_REQUIRED',
+          });
       }
 
-      // GET: Fetch leaderboard
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { period: rawPeriod = 'daily', limit: rawLimit = '20', gameId: rawGameId } = req.query;
+      const supabase = getSupabase();
+      const hasAuthorization = typeof req.headers?.authorization === 'string'
+          && req.headers.authorization.trim().length > 0;
+      // An authenticated response contains the caller's private rank/entry and
+      // must never be stored in a shared CDN cache. Anonymous rankings remain
+      // safely cacheable for the public leaderboard surface.
+      res.setHeader(
+          'Cache-Control',
+          hasAuthorization
+              ? 'private, no-store'
+              : 'public, s-maxage=30, stale-while-revalidate=120'
+      );
+
+      const {
+          period: rawPeriod = 'daily',
+          limit: rawLimit = '20',
+          gameId: rawGameId,
+          category: rawCategory,
+      } = req.query;
       const period = ['daily', 'weekly', 'monthly', 'alltime'].includes(rawPeriod) ? rawPeriod : 'daily';
-      const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
+      const gameId = rawGameId ? sanitizeParam(rawGameId, 100)?.toLowerCase() : null;
+      const category = rawCategory
+          ? normalizeTrainingLeaderboardCategory(rawCategory)
+          : null;
+      if (rawCategory && !category) {
+          return res.status(400).json({
+              success: false,
+              code: 'TRAINING_LEADERBOARD_CATEGORY_INVALID',
+              error: 'This Training leaderboard category is not supported.',
+          });
+      }
+      if (gameId && !getTrainingLeaderboardCategory(gameId)) {
+          return res.status(400).json({
+              success: false,
+              code: 'TRAINING_LEADERBOARD_GAME_INVALID',
+              error: 'This Training leaderboard game is not supported.',
+          });
+      }
+      if (gameId && category) {
+          return res.status(400).json({
+              success: false,
+              code: 'TRAINING_LEADERBOARD_FILTER_CONFLICT',
+              error: 'Choose either a game or category leaderboard.',
+          });
+      }
       const { limit: boundedLimit } = clampPagination(rawLimit, 1);
 
-      try {
-          // Calculate period key
-          const now = new Date();
-          let periodKey;
-
-          switch (period) {
-              case 'daily':
-                  periodKey = now.toISOString().split('T')[0]; // 2026-02-02
-                  break;
-              case 'weekly':
-                  const weekNum = Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7);
-                  periodKey = `${now.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
-                  break;
-              case 'monthly':
-                  periodKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-                  break;
-              case 'alltime':
-                  periodKey = 'alltime';
-                  break;
-              default:
-                  periodKey = now.toISOString().split('T')[0];
+      let viewer = null;
+      if (hasAuthorization) {
+          const { user, error: authError } = await getServerUserWithFallback(req, supabase);
+          if (authError || !user?.id) {
+              return res.status(401).json({
+                  success: false,
+                  code: 'TRAINING_LEADERBOARD_AUTH_INVALID',
+                  error: 'Invalid authentication token.',
+              });
           }
+          viewer = user;
+      }
 
-          // Fetch leaderboard - use left join to handle missing profiles
-          // 2026-07-19 AUDIT FIX (E2E defect D5): total_xp column does not exist
-          // (XP system removed) — the old select/order threw 42703 on every
-          // request and the page permanently showed "Unable to load leaderboard".
-          const { data: leaderboard, error } = await supabase
-              .from('training_leaderboard')
+      try {
+          // Use the same ISO-8601 UTC key contract as the completion RPC
+          // (`IYYY-"W"IW`), including week-year rollover at New Year.
+          const periodKey = getLeaderboardPeriodKey(period, new Date());
+          const dimensionType = gameId ? 'game' : category ? 'category' : 'overall';
+          const dimensionKey = gameId || category || 'overall';
+
+          // Only the clean, service-owned aggregate is competition authority.
+          // The legacy training_leaderboard table remains preserved for audit
+          // continuity, but its historical browser-authored rows are excluded.
+          let leaderboardQuery = supabase
+              .from('training_verified_leaderboard')
               .select(`
                   user_id,
                   sessions_completed,
@@ -197,22 +126,70 @@ export default async function handler(req, res) {
                   best_streak
               `)
               .eq('period_type', period)
-              .eq('period_key', periodKey)
+              .eq('period_key', periodKey);
+
+          if (gameId) {
+              leaderboardQuery = leaderboardQuery
+                  .eq('dimension_type', 'game')
+                  .eq('game_id', gameId);
+          } else if (category) {
+              leaderboardQuery = leaderboardQuery
+                  .eq('dimension_type', 'category')
+                  .eq('category', category);
+          } else {
+              leaderboardQuery = leaderboardQuery.eq('dimension_type', 'overall');
+          }
+
+          const { data: leaderboard, error } = await leaderboardQuery
               .order('accuracy', { ascending: false })
               .order('questions_correct', { ascending: false })
+              .order('user_id', { ascending: true })
               .limit(boundedLimit);
 
           if (error) throw error;
 
+          let viewerRank = { myRank: null, myEntry: null };
+          if (viewer) {
+              const { data: rankData, error: rankError } = await supabase.rpc(
+                  'fn_training_verified_leaderboard_rank_v2',
+                  {
+                      p_user_id: viewer.id,
+                      p_period_type: period,
+                      p_period_key: periodKey,
+                      p_dimension_type: dimensionType,
+                      p_dimension_key: dimensionKey,
+                  }
+              );
+              if (rankError) throw rankError;
+              if (rankData && typeof rankData === 'object') {
+                  const parsedRank = rankData.myRank === null || rankData.myRank === ''
+                      ? null
+                      : Number(rankData.myRank);
+                  viewerRank = {
+                      myRank: Number.isInteger(parsedRank) && parsedRank >= 1
+                          ? parsedRank
+                          : null,
+                      myEntry: rankData.myEntry && typeof rankData.myEntry === 'object'
+                          ? rankData.myEntry
+                          : null,
+                  };
+              }
+          }
+
           // Fetch profiles separately for any entries
-          const userIds = (leaderboard || []).map(e => e.user_id);
+          const userIds = [...new Set([
+              ...(leaderboard || []).map(e => e.user_id),
+              ...(viewerRank.myEntry?.userId ? [viewerRank.myEntry.userId] : []),
+          ])];
           let profilesMap = {};
 
           if (userIds.length > 0) {
-              const { data: profiles } = await supabase
+              const { data: profiles, error: profilesError } = await supabase
                   .from('profiles')
                   .select('id, username, avatar_url')
                   .in('id', userIds);
+
+              if (profilesError) throw profilesError;
 
               profilesMap = (profiles || []).reduce((acc, p) => {
                   acc[p.id] = p;
@@ -228,16 +205,28 @@ export default async function handler(req, res) {
               avatarUrl: profilesMap[entry.user_id]?.avatar_url,
               accuracy: entry.accuracy,
               sessionsCompleted: entry.sessions_completed,
+              questionsAnswered: entry.questions_answered,
               questionsCorrect: entry.questions_correct,
               gtowScoreAvg: entry.gtow_score_avg,
               bestStreak: entry.best_streak
           }));
+          const myEntry = viewerRank.myEntry
+              ? {
+                  ...viewerRank.myEntry,
+                  username: profilesMap[viewerRank.myEntry.userId]?.username || 'Anonymous',
+                  avatarUrl: profilesMap[viewerRank.myEntry.userId]?.avatar_url,
+              }
+              : null;
 
           return res.status(200).json({
               success: true,
               period,
               periodKey,
+              dimensionType,
+              dimensionKey,
               leaderboard: rankings,
+              myRank: viewerRank.myRank,
+              myEntry,
               timestamp: new Date().toISOString()
           });
 

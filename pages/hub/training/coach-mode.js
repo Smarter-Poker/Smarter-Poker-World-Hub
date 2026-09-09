@@ -10,7 +10,7 @@
 // TRAIN-CSS-MOBILE-ADOPT-16 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-TOKENS-BATCH5-6 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-6 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -368,14 +368,9 @@ export default function CoachModePage() {
   const [quizIdx, setQuizIdx] = useState(0);
   const [selected, setSelected] = useState(null);
   const [score, setScore] = useState(0);
-  const [completed, setCompleted] = useState(new Set());
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('coach-completed');
-      if (saved) setCompleted(new Set(JSON.parse(saved)));
-    } catch (e) { console.warn('[App] Handled exception:', e); }
-  }, []);
+  // Coach Mode is an explicitly local reference lesson. Only signed Training
+  // Arena attempts may persist mastery, completion, or rewards.
+  const [reviewedThisVisit, setReviewedThisVisit] = useState(new Set());
 
   const startLesson = (lesson) => {
     setActiveLesson(lesson);
@@ -402,13 +397,9 @@ export default function CoachModePage() {
       setQuizIdx(quizIdx + 1);
       setSelected(null);
     } else {
-      // Complete
-      const next = new Set(completed);
+      const next = new Set(reviewedThisVisit);
       next.add(activeLesson.id);
-      setCompleted(next);
-      try {
-        localStorage.setItem('coach-completed', JSON.stringify([...next]));
-      } catch (e) { console.warn('[App] Handled exception:', e); }
+      setReviewedThisVisit(next);
       setStep(activeLesson.concepts.length + 1); // results
     }
   };
@@ -455,16 +446,16 @@ export default function CoachModePage() {
                   ? `Concept ${step + 1} Of ${activeLesson.concepts.length}`
                   : isQuizPhase
                     ? `Decision ${quizIdx + 1} Of ${activeLesson.quiz.length}`
-                    : 'Analysis Complete'}
+                    : 'Local Review Finished'}
               </strong>
             </div>
           </header>
 
           <main className="sp-command-main sp-coach-stage">
-            <div className="sp-coach-progress" aria-label={`${progressPercent}% complete`}>
+            <div className="sp-coach-progress" aria-label={`${progressPercent}% local review complete`}>
               <div className="sp-coach-progress-labels">
-                <span>Strategy Core</span>
-                <span>{progressPercent}% Calibrated</span>
+                <span>Local Reference Review</span>
+                <span>{progressPercent}% Reviewed</span>
               </div>
               <motion.div
                 className="sp-coach-progress-fill"
@@ -594,13 +585,14 @@ export default function CoachModePage() {
                   </div>
                 </div>
                 <div className="sp-coach-results-content">
-                  <div className="sp-coach-kicker"><i /> Calibration Complete</div>
-                  <h1>Lesson Complete</h1>
+                  <div className="sp-coach-kicker"><i /> Local Review Finished</div>
+                  <h1>Practice Review Finished</h1>
                   <p>{activeLesson.name}</p>
                   <div className="sp-coach-score">
                     <strong>{score}<span>/{activeLesson.quiz.length}</span></strong>
                     <small>Questions Correct</small>
                   </div>
+                  <p>This Local Reference Result Is Not Saved And Does Not Unlock Progress Or Issue Rewards. Use The Verified Training Arena For Recorded Mastery.</p>
                   <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => setActiveLesson(null)}>
                     Return To Training Chambers
                     <span aria-hidden>›</span>
@@ -615,7 +607,7 @@ export default function CoachModePage() {
   }
 
   // Lesson list
-  const recommendedLesson = LESSONS.find((lesson) => !completed.has(lesson.id)) || LESSONS[0];
+  const recommendedLesson = LESSONS.find((lesson) => !reviewedThisVisit.has(lesson.id)) || LESSONS[0];
 
   return (
     <>
@@ -632,17 +624,17 @@ export default function CoachModePage() {
               <span>Training Hub</span>
             </button>
             <div className="sp-coach-hero-copy">
-              <div className="sp-coach-kicker"><i /> Private Strategy Chamber / Live</div>
+              <div className="sp-coach-kicker"><i /> Private Strategy Chamber / Local Practice</div>
               <h1 id="coach-mode-title">Train Every Decision Until It Becomes Instinct.</h1>
-              <p>Build Elite Poker Instincts Through Audited Concepts, Table-Realistic Decisions, And Persistent Analysis.</p>
+              <p>Review Audited Concepts With Local Feedback. Recorded Progress, Unlocks, And Rewards Exist Only In The Verified Training Arena.</p>
               <div className="sp-coach-hero-actions">
                 <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => startLesson(recommendedLesson)}>
-                  {completed.size ? 'Continue Recommended Module' : 'Initialize Coach Mode'}
+                  {reviewedThisVisit.size ? 'Continue Local Module' : 'Initialize Local Coach Review'}
                   <span aria-hidden>›</span>
                 </motion.button>
-                <div className="sp-coach-completion" role="status" aria-label={`${completed.size} of ${LESSONS.length} lessons complete`}>
-                  <strong>{String(completed.size).padStart(2, '0')}</strong>
-                  <span>Of {String(LESSONS.length).padStart(2, '0')} Chambers Calibrated</span>
+                <div className="sp-coach-completion" role="status" aria-label={`${reviewedThisVisit.size} of ${LESSONS.length} lessons reviewed this visit`}>
+                  <strong>{String(reviewedThisVisit.size).padStart(2, '0')}</strong>
+                  <span>Of {String(LESSONS.length).padStart(2, '0')} Reviewed This Visit</span>
                 </div>
               </div>
             </div>
@@ -664,7 +656,7 @@ export default function CoachModePage() {
               {LESSONS.map((lesson, i) => (
                 <motion.button
                   key={lesson.id}
-                  className={`sp-coach-module-card ${completed.has(lesson.id) ? 'is-complete' : ''}`}
+                  className={`sp-coach-module-card ${reviewedThisVisit.has(lesson.id) ? 'is-complete' : ''}`}
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.055 }}
@@ -675,7 +667,7 @@ export default function CoachModePage() {
                     <img src={lesson.art} alt="" width="1200" height="751" loading={i < 3 ? 'eager' : 'lazy'} />
                     <span className="sp-coach-module-image-shade" />
                     <span className="sp-coach-module-code">{lesson.code}</span>
-                    {completed.has(lesson.id) && <span className="sp-coach-module-complete"><CheckIcon size={14} /> Calibrated</span>}
+                    {reviewedThisVisit.has(lesson.id) && <span className="sp-coach-module-complete"><CheckIcon size={14} /> Reviewed This Visit</span>}
                   </span>
                   <span className="sp-coach-module-body">
                     <span className="sp-coach-module-name">{lesson.name}</span>

@@ -17,26 +17,44 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ●● Phase 3 Engine: Session tracking with trends + leak identification ●●
-import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 import { normalizeScoreToPercent } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
+
+function nullableNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function sessionAccuracyPercent(session) {
+  const accuracy = nullableNumber(session?.accuracy);
+  if (accuracy !== null) return accuracy;
+  if (Number(session?.score_scale) !== 2) return null;
+  const signed = nullableNumber(session?.gtow_score_signed ?? session?.gtow_score ?? session?.gtowScore);
+  return signed === null ? null : normalizeScoreToPercent(signed, 2);
+}
+
+function measuredSessionEvLoss(session) {
+  if ((Number(session?.measured_ev_decisions) || 0) <= 0) return null;
+  return nullableNumber(session?.total_ev_loss ?? session?.totalEVLoss);
+}
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SVG LINE CHART COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-cyan)', label = '' }) {
-  if (!data || data.length < 2) {
+  const measuredData = (Array.isArray(data) ? data : []).filter((entry) => nullableNumber(entry?.value) !== null);
+  if (measuredData.length < 2) {
     return (
       <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sp-fg-faint)', fontSize: 12 }}>
-        {data?.length === 1 ? 'Need more sessions for chart' : 'No data yet'}
+        {measuredData.length === 1 ? 'Need More Measured Sessions For Chart' : 'No Measured Data Yet'}
       </div>
     );
   }
 
-  const values = data.map((d) => d.value);
+  const values = measuredData.map((d) => Number(d.value));
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
@@ -86,9 +104,9 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
         <g key={i}>
           <circle cx={p.x} cy={p.y} r={3} fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
           {/* Label (only show every few) */}
-          {(i === 0 || i === points.length - 1 || i % Math.ceil(points.length / 6) === 0) && data[i]?.label && (
+          {(i === 0 || i === points.length - 1 || i % Math.ceil(points.length / 6) === 0) && measuredData[i]?.label && (
             <text x={p.x} y={padding.top + chartH + 16} textAnchor="middle" fill="#475569" fontSize={7}>
-              {data[i].label}
+              {measuredData[i].label}
             </text>
           )}
         </g>
@@ -149,19 +167,28 @@ function PerformanceTable({ sessions }) {
     const stats = {};
     sessions.forEach((s) => {
       const game = s.game_id || s.gameId || 'unknown';
-      if (!stats[game]) stats[game] = { sessions: 0, totalAccuracy: 0, totalHands: 0, totalEV: 0 };
+      if (!stats[game]) stats[game] = { sessions: 0, totalAccuracy: 0, accuracyCount: 0, totalHands: 0, totalEV: 0, measuredEVCount: 0 };
       stats[game].sessions++;
-      stats[game].totalAccuracy += Number(s.accuracy) || 0;
+      const accuracy = sessionAccuracyPercent(s);
+      if (accuracy !== null) {
+        stats[game].totalAccuracy += accuracy;
+        stats[game].accuracyCount += 1;
+      }
       stats[game].totalHands += Number(s.hands_played || s.handsPlayed) || 0;
-      stats[game].totalEV += Number(s.total_ev_loss || s.totalEVLoss) || 0;
+      const evLoss = measuredSessionEvLoss(s);
+      if (evLoss !== null) {
+        stats[game].totalEV += evLoss;
+        stats[game].measuredEVCount += Number(s.measured_ev_decisions) || 0;
+      }
     });
     return Object.entries(stats || {})
       .map(([game, s]) => ({
         game: game.replace(/_/g, ' '),
         sessions: s.sessions,
-        avgAccuracy: Math.round(s.totalAccuracy / s.sessions),
+        avgAccuracy: s.accuracyCount > 0 ? Math.round(s.totalAccuracy / s.accuracyCount) : null,
         totalHands: s.totalHands,
-        avgEV: (s.totalEV / s.sessions).toFixed(1),
+        avgEV: s.measuredEVCount > 0 ? s.totalEV / s.measuredEVCount : null,
+        measuredEVCount: s.measuredEVCount,
       }))
       .sort((a, b) => b.sessions - a.sessions);
   }, [sessions]);
@@ -195,7 +222,7 @@ function PerformanceTable({ sessions }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              {['Game', 'Sessions', 'Hands', 'Avg Accuracy', 'Avg EV Loss'].map((h) => (
+              {['Game', 'Sessions', 'Hands', 'Avg Accuracy', 'Avg Measured EV Loss'].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -229,11 +256,11 @@ function PerformanceTable({ sessions }) {
                       color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                     }}
                   >
-                    {g.avgAccuracy}%
+                  {g.avgAccuracy === null ? '-' : `${g.avgAccuracy}%`}
                   </span>
                 </td>
                 <td style={{ padding: '8px 12px', color: 'var(--sp-accent-orange)', fontWeight: 600, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-                  {g.avgEV > 0 ? `-${g.avgEV}` : '0.0'}
+                  {g.avgEV === null ? '-' : `${g.avgEV.toFixed(3)} BB`}
                 </td>
               </tr>
             ))}
@@ -422,23 +449,11 @@ function CoachingCard({ session }) {
     } catch (e) { console.warn('[App] Handled exception:', e); }
 
     setLoadingCoach(true);
-    const acc = Number(session.accuracy || session.gtow_score) || 0;
-    const hands = Number(session.hands_played || session.handsPlayed || session.total_questions) || 0;
-    const correct = Math.round((acc / 100) * hands);
-
     authedFetch('/api/training/coaching-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        gameId: session.game_id || session.gameId || 'training',
-        gameName: session.game_name || session.gameName || session.game_id || 'Training',
-        level: session.level || 1,
-        questionsAnswered: hands,
-        questionsCorrect: correct,
-        accuracy: acc,
-        streak: session.best_streak || 0,
-        timeSpentSeconds: session.time_spent || 0,
-        mistakes: [],
+        sessionId: session.id,
       }),
     })
       .then(r => r.ok ? r.json() : null)
@@ -663,8 +678,8 @@ export default function SessionDashboard() {
       .sort((a, b) => new Date(a.created_at || a.timestamp) - new Date(b.created_at || b.timestamp))
       .slice(-30);
 
-    return sorted.map((s, i) => ({
-      value: Number(s.accuracy || s.gtow_score || s.gtowScore) || 0,
+    return sorted.map((s) => ({
+      value: sessionAccuracyPercent(s),
       label: new Date(s.created_at || s.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     }));
   }, [filteredSessions]);
@@ -675,7 +690,7 @@ export default function SessionDashboard() {
       .slice(-30);
 
     return sorted.map((s) => ({
-      value: Math.abs(Number(s.total_ev_loss || s.totalEVLoss)) || 0,
+      value: measuredSessionEvLoss(s),
       label: new Date(s.created_at || s.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     }));
   }, [filteredSessions]);
@@ -684,40 +699,32 @@ export default function SessionDashboard() {
   const stats = useMemo(() => {
     if (filteredSessions.length === 0) return null;
     const totalHands = filteredSessions.reduce((s, ses) => s + (Number(ses.hands_played || ses.handsPlayed) || 0), 0);
-    // GTOW parity #25: `accuracy` is always 0-100, but the gtow_score fallback
-    // is -100..+100 on any row written with score_scale = 2. Averaging the two
-    // conventions together silently under-reports every recent session, so
-    // normalise the fallback onto the 0-100 scale before it joins the pool.
-    const sessionPercent = (ses) => {
-      const acc = Number(ses.accuracy);
-      if (Number.isFinite(acc) && acc !== 0) return acc;
-      return normalizeScoreToPercent(ses.gtow_score ?? ses.gtowScore, ses.score_scale);
-    };
-    const avgAccuracy = Math.round(
-      filteredSessions.reduce((s, ses) => s + sessionPercent(ses), 0) /
-      filteredSessions.length
+    const measuredAccuracies = filteredSessions
+      .map(sessionAccuracyPercent)
+      .filter((value) => value !== null);
+    const avgAccuracy = measuredAccuracies.length > 0
+      ? Math.round(measuredAccuracies.reduce((sum, value) => sum + value, 0) / measuredAccuracies.length)
+      : null;
+    const measuredEvSessions = filteredSessions
+      .map(measuredSessionEvLoss)
+      .filter((value) => value !== null);
+    const totalEV = measuredEvSessions.length > 0
+      ? measuredEvSessions.reduce((sum, value) => sum + value, 0)
+      : null;
+    const measuredEVDecisions = filteredSessions.reduce(
+      (sum, session) => sum + (measuredSessionEvLoss(session) === null ? 0 : (Number(session.measured_ev_decisions) || 0)),
+      0,
     );
-    const totalEV = filteredSessions.reduce((s, ses) => s + Math.abs(Number(ses.total_ev_loss || ses.totalEVLoss) || 0), 0);
-    const wins = filteredSessions.filter((s) => sessionPercent(s) >= 60).length;
+    const wins = measuredAccuracies.filter((accuracy) => accuracy >= 60).length;
 
-    // Engine enrichment: trend analysis + leak identification
-    let trends = null;
-    let leaks = [];
-    try {
-      trends = calculateTrends(filteredSessions);
-      leaks = identifyLeaks(filteredSessions);
-    } catch (e) {
-      console.warn('[Dashboard] Engine trend calculation failed:', e.message);
-    }
-
-    return { totalHands, avgAccuracy, totalEV, sessions: filteredSessions.length, wins, trends, leaks };
+    return { totalHands, avgAccuracy, totalEV, measuredEVDecisions, sessions: filteredSessions.length, accuracySessions: measuredAccuracies.length, wins };
   }, [filteredSessions]);
 
   return (
     <>
       <Head>
         <title>Session Dashboard | Smarter.Poker Training</title>
-        <meta name="description" content="Track your poker training progress over time. View accuracy trends, EV loss charts, streaks, and per-game performance." />
+        <meta name="description" content="Track sealed poker Training results, verified accuracy, measured solver EV, streaks, and per-game performance." />
       </Head>
 
       <div
@@ -872,9 +879,9 @@ export default function SessionDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
                   <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="●" />
                   <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="◇" />
-                  <StatTile label="Avg Accuracy" value={`${stats.avgAccuracy}%`} color={stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="◆" />
-                  <StatTile label="Total EV Loss" value={stats.totalEV.toFixed(1)} color="#ef4444" icon="▼" subtitle="bb total" />
-                  <StatTile label="Win Rate" value={`${stats.sessions > 0 ? Math.round((stats.wins / stats.sessions) * 100) : 0}%`} color="#a855f7" icon="★" subtitle={`${stats.wins}/${stats.sessions} sessions`} />
+                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '-' : `${stats.avgAccuracy}%`} color={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="◆" />
+                  <StatTile label="Measured EV Loss" value={stats.totalEV === null ? '-' : stats.totalEV.toFixed(3)} color="#ef4444" icon="▼" subtitle={stats.totalEV === null ? 'No Solver-Measured Decisions' : `${stats.measuredEVDecisions} Measured Decisions`} />
+                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '-'} color="#a855f7" icon="★" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
                 </div>
               )}
 
@@ -900,7 +907,7 @@ export default function SessionDashboard() {
                     overflow: 'hidden',
                   }}
                 >
-                  <LineChart data={evLossChartData} width={400} height={180} color="#ef4444" label="EV Loss per Session" />
+                  <LineChart data={evLossChartData} width={400} height={180} color="#ef4444" label="Measured EV Loss Per Session" />
                 </div>
               </div>
 
@@ -946,7 +953,7 @@ export default function SessionDashboard() {
                       .sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp))
                       .slice(0, 20)
                       .map((s, i) => {
-                        const acc = Number(s.accuracy || s.gtow_score || s.gtowScore) || 0;
+                        const acc = sessionAccuracyPercent(s);
                         const game = (s.game_name || s.gameName || s.game_id || s.gameId || 'Training').replace(/_/g, ' ');
                         const d = new Date(s.created_at || s.timestamp);
                         const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
@@ -968,15 +975,15 @@ export default function SessionDashboard() {
                                 width: 6,
                                 height: 6,
                                 borderRadius: '50%',
-                                background: acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
+                                background: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                                 flexShrink: 0,
                               }}
                             />
                             <span style={{ color: 'var(--sp-fg)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {game}
                             </span>
-                            <span style={{ color: acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-                              {acc}%
+                            <span style={{ color: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                              {acc === null ? '-' : `${Math.round(acc)}%`}
                             </span>
                             <span style={{ color: 'var(--sp-fg-faint)', fontSize: 9 }}>{dateStr}</span>
                           </div>

@@ -4,21 +4,12 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Generate IRS-ready session logs with W2-G tracking
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
 
 // W2-G thresholds
 const W2G_THRESHOLDS = {
@@ -50,7 +41,7 @@ export default async function handler(req, res) {
       }
 
       // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
           return res.status(403).json({ error: 'Premium feature access required' });
       }
@@ -85,7 +76,7 @@ export default async function handler(req, res) {
           // Fetch uploaded W-2G forms for the year
           const { data: uploadedW2g } = await getSupabase()
               .from('w2g_forms')
-              .select('*')
+              .select('upload_date, created_at, form_type, source_description, file_name, gross_amount, withholding_amount, federal_withheld, state_withheld, file_url')
               .eq('user_id', user.id)
               .eq('tax_year', parseInt(year))
               .order('upload_date', { ascending: true })
@@ -95,11 +86,21 @@ export default async function handler(req, res) {
           const report = calculateTaxReport(sessions || [], trips || [], year);
 
           // Merge uploaded W-2G forms into report
+          // w2g_forms holds gross_amount and withholding_amount. This read
+          // said `f.amount`, a column that does not exist, so every uploaded
+          // W-2G printed "-" for its amount on the tax report.
           report.uploadedW2gForms = (uploadedW2g || []).map(f => ({
               date: f.upload_date || f.created_at?.split('T')[0],
               type: f.form_type,
               description: f.source_description || f.file_name,
-              amount: f.amount ? parseFloat(f.amount) : null,
+              amount: f.gross_amount !== null && f.gross_amount !== undefined ? parseFloat(f.gross_amount) : null,
+              withheld: f.withholding_amount !== null && f.withholding_amount !== undefined ? parseFloat(f.withholding_amount) : null,
+              // A return wants the two figures APART, which is why migration
+              // 20260908232953 split them and why the reader has been filling
+              // both in since. Reporting only the total gave a player a number
+              // they could not get back to the two the form actually prints.
+              federalWithheld: f.federal_withheld !== null && f.federal_withheld !== undefined ? parseFloat(f.federal_withheld) : null,
+              stateWithheld: f.state_withheld !== null && f.state_withheld !== undefined ? parseFloat(f.state_withheld) : null,
               fileUrl: f.file_url,
           }));
 
@@ -308,12 +309,13 @@ async function generateTaxPDF(report, user) {
 
         autoTable(doc, {
             startY: yPos,
-            head: [['Date', 'Type', 'Description', 'Amount']],
+            head: [['Date', 'Type', 'Description', 'Gross', 'Withheld']],
             body: report.uploadedW2gForms.map(f => [
                 f.date || '-',
                 f.type || '-',
                 (f.description || '-').substring(0, 30),
-                f.amount ? `$${f.amount.toLocaleString()}` : '-'
+                f.amount !== null ? `$${f.amount.toLocaleString()}` : '-',
+                f.withheld !== null ? `$${f.withheld.toLocaleString()}` : '-'
             ]),
             theme: 'grid',
             styles: { fontSize: 9 },

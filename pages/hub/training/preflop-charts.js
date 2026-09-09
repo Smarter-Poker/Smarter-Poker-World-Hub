@@ -1,5 +1,5 @@
 /**
- * PREFLOP CHARTS — GTO Wizard-Style Preflop Range Browser
+ * PREFLOP CHARTS — Authored 6-Max Cash 100BB Reference Browser
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 17: Standalone study tool for browsing preflop ranges by position,
  * stack depth, and action scenario. Compare mode for side-by-side analysis.
@@ -10,7 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-39 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-32 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,9 +19,6 @@ import PreflopChartStats from '../../../src/components/training/PreflopChartStat
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ●● Phase 2 Engine: Difficulty modes for chart simplification ●●●●●●●●●●●
-import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
-import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
@@ -35,36 +32,20 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // CONSTANTS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-const GAME_TYPES = [
-  { value: 'cash_6max', label: 'Cash 6-Max', icon: '●' },
-  { value: 'mtt', label: 'MTT', icon: '★' },
-  { value: 'spins', label: 'Spins', icon: '♠' },
-];
+const SUPPORTED_GAME_TYPE = 'cash_6max';
+const SUPPORTED_STACK_DEPTH = 100;
 
 const SCENARIOS = [
   { value: 'rfi', label: 'RFI (Raise First In)', desc: 'Open-raising range' },
   { value: 'vs3bet', label: 'Vs 3-Bet', desc: 'Facing a 3-bet after opening' },
   { value: 'bb_defense', label: 'BB Defense', desc: 'Defending Big-Blind vs open' },
-  { value: 'push_fold', label: 'Push / Fold', desc: 'Short-stack all-in or fold' },
 ];
 
-const POSITIONS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
-const BB_DEFENSE_POSITIONS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']; // Who opened (BB is always defending)
-
-const STACK_DEPTHS = {
-  cash_6max: [100, 60, 40],
-  mtt: [60, 40, 25, 15, 10],
-  spins: [25, 15, 10, 8],
-};
-
-const ACTION_COLORS = {
-  Raise: 'var(--sp-accent-green)',
-  Fold: 'var(--sp-fg-dim)',
-  Call: 'var(--sp-accent-blue)',
-  '3-Bet': 'var(--sp-accent-red)',
-  '4-Bet': 'var(--sp-accent-orange)',
-  Push: 'var(--sp-accent-red)',
-};
+const POSITIONS_BY_SCENARIO = Object.freeze({
+  rfi: Object.freeze(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']),
+  vs3bet: Object.freeze(['UTG', 'CO', 'BTN']),
+  bb_defense: Object.freeze(['UTG', 'CO', 'BTN', 'SB']),
+});
 
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -78,17 +59,21 @@ export default function PreflopCharts() {
   useTrainingBus('preflop-charts');
   
   // Filters
-  const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('gto-training');
-  const [gameType, setGameType] = useState('cash_6max');
+  const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal } = useVIPGate('gto-training');
   const [scenario, setScenario] = useState('rfi');
   const [position, setPosition] = useState('BTN');
-  const [stackDepth, setStackDepth] = useState(100);
+  const gameType = SUPPORTED_GAME_TYPE;
+  const stackDepth = SUPPORTED_STACK_DEPTH;
 
   // Data
   const [rangeData, setRangeData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [actions, setActions] = useState([]);
+  const [provenance, setProvenance] = useState(null);
+  const [rangeError, setRangeError] = useState('');
+  const primaryRequestId = useRef(0);
+  const compareRequestId = useRef(0);
 
   // Compare mode
   const [compareMode, setCompareMode] = useState(false);
@@ -98,51 +83,66 @@ export default function PreflopCharts() {
   const [compareActions, setCompareActions] = useState([]);
   const [loadingCompare, setLoadingCompare] = useState(false);
 
-  // Available stacks for current game type
-  const availableStacks = useMemo(() => STACK_DEPTHS[gameType] || [100], [gameType]);
-
-  // Reset stack depth when game type changes
-  useEffect(() => {
-    const stacks = STACK_DEPTHS[gameType] || [100];
-    if (!stacks.includes(stackDepth)) {
-      setStackDepth(stacks[0]);
-    }
-  }, [gameType, stackDepth]);
-
   // Displayed positions depend on scenario
-  const displayedPositions = useMemo(() => {
-    if (scenario === 'bb_defense') return BB_DEFENSE_POSITIONS;
-    return POSITIONS;
-  }, [scenario]);
+  const displayedPositions = useMemo(
+    () => POSITIONS_BY_SCENARIO[scenario] || POSITIONS_BY_SCENARIO.rfi,
+    [scenario],
+  );
+
+  const selectScenario = useCallback((nextScenario) => {
+    const supportedPositions = POSITIONS_BY_SCENARIO[nextScenario];
+    if (!supportedPositions) return;
+
+    const nextPosition = supportedPositions.includes(position) ? position : supportedPositions[0];
+    const nextComparePosition = supportedPositions.includes(comparePosition) && comparePosition !== nextPosition
+      ? comparePosition
+      : supportedPositions.find((candidate) => candidate !== nextPosition) || nextPosition;
+
+    setScenario(nextScenario);
+    setPosition(nextPosition);
+    setComparePosition(nextComparePosition);
+  }, [position, comparePosition]);
+
+  const selectPosition = useCallback((nextPosition) => {
+    setPosition(nextPosition);
+    if (compareMode && comparePosition === nextPosition) {
+      const alternative = displayedPositions.find((candidate) => candidate !== nextPosition);
+      if (alternative) setComparePosition(alternative);
+    }
+  }, [compareMode, comparePosition, displayedPositions]);
 
   // Fetch range data
   const fetchRange = useCallback(
     async (pos, isCompare = false) => {
-      if (isCompare) setLoadingCompare(true);
-      else setLoading(true);
+      const requestRef = isCompare ? compareRequestId : primaryRequestId;
+      const requestId = requestRef.current + 1;
+      requestRef.current = requestId;
+
+      if (isCompare) {
+        setLoadingCompare(true);
+        setCompareData(null);
+        setCompareStats(null);
+      } else {
+        setLoading(true);
+        setRangeData(null);
+        setStats(null);
+        setProvenance(null);
+        setRangeError('');
+      }
 
       try {
         const params = new URLSearchParams({
           gameType,
           stackDepth: stackDepth.toString(),
-          position: scenario === 'bb_defense' ? pos : pos,
+          position: pos,
           scenario,
         });
 
         const res = await authedFetch(`/api/training/preflop-ranges?${params}`);
-        // HARDENED: Guard against non-OK responses
-        if (!res.ok) {
-          console.warn('[PreflopCharts] API returned', res.status);
-          return;
-        }
-        let data;
-        try {
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
-          data = await res.json();
-        } catch {
-          setLoading(false);
-          console.warn('[PreflopCharts] Malformed JSON');
-          return;
+        const data = await res.json().catch(() => null);
+        if (requestRef.current !== requestId) return;
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || `Request failed (${res.status})`);
         }
 
         if (data.success && data.range) {
@@ -154,13 +154,19 @@ export default function PreflopCharts() {
             setRangeData(data.range.gridData || null);
             setStats(data.range.stats || null);
             setActions(Array.isArray(data.range.actions) ? data.range.actions : []);
+            setProvenance(data.range.provenance || null);
           }
         }
       } catch (err) {
         console.warn('[PreflopCharts] Fetch error:', err);
+        if (!isCompare && requestRef.current === requestId) {
+          setRangeError(err?.message || 'Reference range unavailable.');
+        }
       } finally {
-        if (isCompare) setLoadingCompare(false);
-        else setLoading(false);
+        if (requestRef.current === requestId) {
+          if (isCompare) setLoadingCompare(false);
+          else setLoading(false);
+        }
       }
     },
     [gameType, stackDepth, scenario]
@@ -189,10 +195,10 @@ export default function PreflopCharts() {
   return (
     <>
       <Head>
-        <title>Preflop Charts | Smarter.Poker GTO Training</title>
+        <title>Preflop Reference Charts | Smarter.Poker Training</title>
         <meta
           name="description"
-          content="Browse GTO preflop ranges by position, stack depth, and scenario. Study optimal open-raising, 3-bet defense, and push/fold ranges."
+          content="Browse the authored Smarter.Poker 6-max cash 100BB preflop reference corpus by position and supported scenario."
         />
       </Head>
 
@@ -209,14 +215,13 @@ export default function PreflopCharts() {
           open={infoOpen}
           onClose={() => setInfoOpen(false)}
           title="How Preflop Charts Work"
-          subtitle="Solver-correct opening + 3-bet ranges"
+          subtitle="Authored 6-max cash 100BB teaching references"
         >
           <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
             <p style={{ marginTop: 0 }}>
-              Each Chart Shows The Solver-Correct Mix For A Given Position,
-              Opening Size, And Stack Depth. Highlighted Cells Are The
-              Hands You Should Open, Raise, 3-Bet, Call, Or Fold - Colored
-              By Frequency For Mixed Strategies.
+              Each Chart Shows An Authored Teaching Mix For One Supported
+              6-Max Cash 100BB Reference Spot. Highlighted Cells Show Raise,
+              Call, Or Fold Frequencies In That Reference.
             </p>
             <p>
               <strong style={{ color: 'var(--sp-accent-cyan)' }}>RFI</strong>
@@ -227,10 +232,10 @@ export default function PreflopCharts() {
               Charts Show 3-Bet Ranges When Facing An Open.
             </p>
             <p>
-              Use The Position Selector To Step Through Every Hot Seat. The
-              Difficulty Controls Simplify The Mix So You Can Drill The
-              High-EV Approximations First Before Learning The Optimal
-              Mixed-Frequencies.
+              These Charts Are Not Provenance-Sealed Solver Exports. No Solver
+              Binary Checksum, Tree Identity, Or Source Artifact Is Attached,
+              So They Must Be Used As Authored Study References Rather Than
+              Solver-Exact GTO Truth.
             </p>
           </div>
         </BottomSheet>
@@ -306,28 +311,18 @@ export default function PreflopCharts() {
 
           {/* ●●● Filters ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
           <div data-pills-row style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-            {GAME_TYPES.map((gt) => (
-              <button
-                key={gt.value}
-                onClick={() => setGameType(gt.value)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: 'none',
-                  transition: 'all 0.2s',
-                  background:
-                    gameType === gt.value
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
-                      : 'rgba(255,255,255,0.06)',
-                  color: gameType === gt.value ? '#fff' : 'var(--sp-fg-muted)',
-                }}
-              >
-                {gt.icon} {gt.label}
-              </button>
-            ))}
+            <span
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
+                color: '#fff',
+              }}
+            >
+              ● Cash 6-Max · 100BB Only
+            </span>
           </div>
 
           {/* Scenario + Stack */}
@@ -352,7 +347,7 @@ export default function PreflopCharts() {
                       showUpgradeModal();
                       return;
                     }
-                    setScenario(s.value);
+                    selectScenario(s.value);
                   }}
                   title={s.desc}
                   style={{
@@ -387,33 +382,63 @@ export default function PreflopCharts() {
               >
                 Stack:
               </span>
-              {availableStacks.map((sd) => (
-                <button
-                  key={sd}
-                  onClick={() => setStackDepth(sd)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s',
-                    background:
-                      stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  {sd}BB
-                </button>
-              ))}
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: 'rgba(0,212,255,0.2)',
+                  color: 'var(--sp-accent-cyan)',
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                }}
+              >
+                100BB
+              </span>
             </div>
           </div>
         </div>
 
         {/* ●●● Main Content ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
         <div style={{ padding: '20px 24px' }}>
+          <div
+            role="note"
+            style={{
+              maxWidth: 700,
+              margin: '0 auto 18px',
+              padding: '12px 15px',
+              border: '1px solid rgba(251,191,36,0.28)',
+              borderRadius: 10,
+              color: 'var(--sp-fg-muted)',
+              background: 'rgba(120,53,15,0.12)',
+              fontSize: 11,
+              lineHeight: 1.55,
+            }}
+          >
+            <strong style={{ color: '#fbd38d' }}>Authored Reference · Not Solver-Exact</strong>
+            <br />
+            {provenance?.disclosure ||
+              'This 6-Max Cash 100BB teaching corpus has no attached solver checksum, tree identity, or audited source artifact.'}
+          </div>
+
+          {rangeError && (
+            <div
+              role="alert"
+              style={{
+                maxWidth: 700,
+                margin: '0 auto 18px',
+                padding: '11px 14px',
+                border: '1px solid rgba(239,68,68,0.3)',
+                borderRadius: 9,
+                color: 'var(--sp-accent-red)',
+                background: 'rgba(127,29,29,0.12)',
+                fontSize: 12,
+              }}
+            >
+              {rangeError}
+            </div>
+          )}
+
           {/* Position Selector + Compare Toggle */}
           <div
             style={{
@@ -450,7 +475,7 @@ export default function PreflopCharts() {
               {displayedPositions.map((pos) => (
                 <button
                   key={pos}
-                  onClick={() => setPosition(pos)}
+                  onClick={() => selectPosition(pos)}
                   style={{
                     padding: '8px 16px',
                     borderRadius: 8,
@@ -746,28 +771,21 @@ export default function PreflopCharts() {
                 <>
                   Open-Raising Range (RFI) Shows Which Hands To Raise With When Folded To You In
                   This Position. Pure Raise (100%) Hands Are Always Opened. Mixed Frequency Hands
-                  Are Sometimes Raised, Sometimes Folded - Use A Randomizer To Stay GTO.
+                  Are Sometimes Raised, Sometimes Folded In This Authored 100BB Reference Mix.
                 </>
               )}
               {scenario === 'vs3bet' && (
                 <>
                   Shows How To React When You Open-Raise And Face A 3-Bet. High-Equity Hands 4-Bet,
                   Medium-Equity Hands Flat Call, And The Rest Fold. Mixed Frequencies Are Common -
-                  Exact GTO Play Requires Randomization.
+                  Use Them As Study References, Not Solver-Exact Prescriptions.
                 </>
               )}
               {scenario === 'bb_defense' && (
                 <>
                   BB Defense Range Against An Open-Raise From The Selected Position. Wider Defense
                   Ranges Apply Against Late Position Opens (BTN, CO) And Tighter Ranges Vs Early
-                  Position (UTG, MP). Includes Both Call And 3-Bet Frequencies.
-                </>
-              )}
-              {scenario === 'push_fold' && (
-                <>
-                  Short-Stack Push/Fold Charts For The Selected Stack Depth. Based On Nash
-                  Equilibrium Calculations. At Very Short Stacks (Under 10BB), Ranges Widen
-                  Significantly As Fold Equity Becomes The Dominant Factor.
+                  Position (UTG). Includes Both Call And 3-Bet Frequencies.
                 </>
               )}
             </p>

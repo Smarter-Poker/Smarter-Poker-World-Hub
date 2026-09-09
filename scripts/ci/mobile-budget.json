@@ -17,9 +17,9 @@
       "converted": true
     },
     "/hub/personal-assistant": {
-      "jsKb": 900,
-      "lcpMs": 3500,
-      "converted": false
+      "jsKb": 850,
+      "lcpMs": 2500,
+      "converted": true
     },
     "/hub/training": {
       "jsKb": 900,

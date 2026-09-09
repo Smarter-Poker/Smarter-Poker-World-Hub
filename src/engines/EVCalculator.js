@@ -1,26 +1,37 @@
 /**
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * EV CALCULATOR — Per-Move Expected Value Computation
+ * LOCAL EV ESTIMATOR — Illustrative Per-Move Comparison
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Calculates the expected value (in BB) of each action at a decision node:
  *   - EV of check/bet/call/raise/fold for a given hand on a given board
- *   - EV loss = GTO optimal EV - Player's action EV
+ *   - Illustrative gap between the local model's best estimate and an action
  *   - Supports preflop and postflop decisions
- *   - Mixed strategy EV (weighted by GTO frequencies)
+ *   - Mixed estimate weighted by illustrative local weights
  *
- * EV is always expressed in big blinds (BB).
+ * Values are expressed in big blinds (BB), but they are estimates rather than
+ * solved-node EVs and must never be used as authoritative Training grades.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { classifyMadeHand, classifyDraws } from './HandStrengthEngine';
-import { getPostflopStrategy, getCbetStrategy, BET_SIZES } from './PostflopStrategyEngine';
+import { getPostflopStrategy } from './PostflopStrategyEngine';
+
+export const LOCAL_EV_ESTIMATE_PROVENANCE = Object.freeze({
+    authority: 'illustrative_local_estimate',
+    authoritative: false,
+    solverVerified: false,
+    exactEVAvailable: false,
+    evLossMeasured: false,
+    practiceOnly: true,
+});
 
 // ●● EV Estimation Models ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Estimate the EV of each possible action at a postflop decision node.
- * Uses a simplified model calibrated to solver output.
+ * Uses a simplified local model. It is not calibrated or verified against the
+ * exact solved node represented by the caller's hand.
  *
  * @param {Object} params
  * @param {string[]} params.holeCards - Hero's 2 cards
@@ -130,8 +141,10 @@ export function calculateActionEVs(params) {
         }
     }
 
-    // Assign GTO frequencies (approximate)
-    const gtoStrategy = getPostflopStrategy({
+    // Attach illustrative local action weights. The compatibility field remains
+    // named `frequency` for older visualizers, but provenance below prevents it
+    // from being presented as a solved frequency.
+    const localStrategy = getPostflopStrategy({
         holeCards, board, position, street,
         isPFR: isPFR ?? true,
         facingBet,
@@ -139,21 +152,23 @@ export function calculateActionEVs(params) {
         potSize,
     });
 
-    if (gtoStrategy && !gtoStrategy.error) {
-        const gtoAction = gtoStrategy.action || (gtoStrategy.shouldBet ? 'bet' : 'check');
-        const gtoFreq = gtoStrategy.frequency || 0.5;
+    if (localStrategy && !localStrategy.error) {
+        const preferredAction = localStrategy.action || (localStrategy.shouldBet ? 'bet' : 'check');
+        const illustrativeWeight = localStrategy.frequency || 0.5;
 
-        // Map GTO action to our action keys
+        // Map the local model's preference to the compatibility action keys.
         for (const key of Object.keys(actions || {})) {
-            if (key === gtoAction || key.startsWith(gtoAction)) {
-                actions[key].frequency = gtoFreq;
-            } else if (key === 'check' && gtoAction === 'check') {
-                actions[key].frequency = 1 - gtoFreq;
+            if (key === preferredAction || key.startsWith(preferredAction)) {
+                actions[key].frequency = illustrativeWeight;
+            } else if (key === 'check' && preferredAction === 'check') {
+                actions[key].frequency = 1 - illustrativeWeight;
             }
         }
     }
 
     return {
+        ...LOCAL_EV_ESTIMATE_PROVENANCE,
+        resultLabel: 'Illustrative Local EV Estimate',
         actions,
         bestAction,
         bestEV: Math.round(bestEV * 100) / 100,
@@ -204,7 +219,8 @@ export function estimateFoldEquity(_madeHand, street, betAmount, potSize) {
 // ●● EV Loss Calculation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
- * Calculate EV loss for a specific player action vs the GTO optimal action.
+ * Calculate an illustrative EV gap for local practice. Authoritative consumers
+ * must reject this result because `evLossMeasured` and `solverVerified` are false.
  *
  * @param {Object} params - Same as calculateActionEVs
  * @param {string} playerAction - The action the player took ('fold', 'call', 'bet_small', etc.)
@@ -224,6 +240,8 @@ export function calculateEVLoss(params, playerAction) {
     // that was in fact the highest-EV action available. Say so instead.
     if (!Object.prototype.hasOwnProperty.call(evs.actions, playerAction)) {
         return {
+            ...LOCAL_EV_ESTIMATE_PROVENANCE,
+            resultLabel: 'Illustrative Local EV Estimate',
             evLoss: 0,
             gtoAction: evs.bestAction,
             gtoEV: Math.round(evs.bestEV * 100) / 100,
@@ -246,6 +264,8 @@ export function calculateEVLoss(params, playerAction) {
     else classification = 'blunder';                       // > 3BB = major error
 
     return {
+        ...LOCAL_EV_ESTIMATE_PROVENANCE,
+        resultLabel: 'Illustrative Local EV Estimate',
         evLoss: Math.round(evLoss * 100) / 100,
         gtoAction: evs.bestAction,
         gtoEV: Math.round(gtoEV * 100) / 100,
@@ -258,7 +278,7 @@ export function calculateEVLoss(params, playerAction) {
 // ●● Mixed Strategy EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
- * Calculate the EV of a mixed strategy (playing multiple actions at GTO frequencies).
+ * Calculate the local model's illustrative mixed estimate.
  *
  * @param {Object} actionEVs - Output from calculateActionEVs
  * @returns {{ mixedEV: number, description: string }}
@@ -278,8 +298,10 @@ export function calculateMixedStrategyEV(actionEVs) {
     const mixedEV = totalFreq > 0 ? totalEV / totalFreq : actionEVs.bestEV;
 
     return {
+        ...LOCAL_EV_ESTIMATE_PROVENANCE,
+        resultLabel: 'Illustrative Local EV Estimate',
         mixedEV: Math.round(mixedEV * 100) / 100,
-        description: `Mixed strategy EV: ${mixedEV.toFixed(2)}BB (pure best: ${actionEVs.bestEV.toFixed(2)}BB)`,
+        description: `Illustrative mixed estimate: ${mixedEV.toFixed(2)}BB (local pure-action estimate: ${actionEVs.bestEV.toFixed(2)}BB)`,
     };
 }
 

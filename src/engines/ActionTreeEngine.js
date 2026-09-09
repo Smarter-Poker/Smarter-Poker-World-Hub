@@ -8,10 +8,11 @@
  *   - Build valid actions (fold/check/call/bet/raise)
  *   - Bet sizing options (1/4, 1/3, 1/2, 2/3, 3/4, pot, 1.5x, all-in)
  *   - Map user action to closest solver sizing
- *   - Navigate the GTO strategy tree
+ *   - Navigate an externally supplied verified strategy tree
  *
  * Works with HandStateMachine for state tracking and
- * PostflopStrategyEngine for GTO strategy at each node.
+ * PostflopStrategyEngine can provide illustrative local practice only; its
+ * provenance is rejected by scoreAction and cannot become a verified grade.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
@@ -184,7 +185,7 @@ export class ActionNode {
     }
 
     /**
-     * Get the GTO strategy recommendation at this node.
+     * Get the illustrative local strategy reference at this node.
      * @param {string} posContext - 'IP' or 'OOP'
      * @param {string} [prevAction] - Previous street action
      * @returns {Object} Strategy from PostflopStrategyEngine
@@ -261,76 +262,22 @@ export function mapToSolverAction(userAction, solverActions) {
 }
 
 /**
- * Score a player's action against the GTO strategy.
+ * Retired browser-side scoring boundary.
  *
- * @param {Object} playerAction - { action: string, amount?: number }
- * @param {Object} gtoStrategy - Strategy from PostflopStrategyEngine
- * @param {number} potSize - Current pot
- * @returns {{ score: number, classification: string, evLoss: number, feedback: string }}
+ * Action-tree navigation remains useful for rendering legal controls, but a
+ * browser helper cannot prove that a strategy object is the sealed row which
+ * the server delivered for this exact attempt and decision. Authoritative
+ * grading now happens only in the signed record-question transaction; this
+ * compatibility export therefore always fails closed.
  */
-export function scoreAction(playerAction, gtoStrategy, potSize) {
-    if (!gtoStrategy) {
-        return { score: 50, classification: 'unknown', evLoss: 0, feedback: 'No GTO data available' };
-    }
-
-    const gtoAction = gtoStrategy.action || (gtoStrategy.shouldBet ? 'bet' : 'check');
-    const playerAct = playerAction.action;
-
-    // Check if action type matches
-    const actionMatches =
-        (playerAct === gtoAction) ||
-        (playerAct === 'check' && gtoAction === 'check') ||
-        (playerAct === 'bet' && gtoAction === 'bet') ||
-        (playerAct === 'call' && gtoAction === 'call') ||
-        (playerAct === 'fold' && gtoAction === 'fold') ||
-        (playerAct === 'raise' && gtoAction === 'raise');
-
-    if (actionMatches) {
-        // Right action — check sizing
-        if (playerAction.amount && gtoStrategy.sizing) {
-            const gtoAmount = potSize * gtoStrategy.sizing.fraction;
-            const sizingDiff = Math.abs(playerAction.amount - gtoAmount) / potSize;
-
-            if (sizingDiff < 0.10) {
-                return { score: 100, classification: 'correct', evLoss: 0, feedback: `Perfect! ${gtoStrategy.reason}` };
-            } else if (sizingDiff < 0.25) {
-                return { score: 80, classification: 'inaccuracy', evLoss: sizingDiff * 0.5, feedback: `Right action, sizing slightly off. ${gtoStrategy.reason}` };
-            } else {
-                return { score: 60, classification: 'inaccuracy', evLoss: sizingDiff * 1.0, feedback: `Right action, but sizing deviates. ${gtoStrategy.reason}` };
-            }
-        }
-        return { score: 100, classification: 'correct', evLoss: 0, feedback: `Correct! ${gtoStrategy.reason}` };
-    }
-
-    // Wrong action
-    const freq = gtoStrategy.frequency || 0;
-
-    // If the GTO action is very mixed (close to 50/50), it's a small mistake
-    if (freq > 0.30 && freq < 0.70) {
-        return {
-            score: 40,
-            classification: 'inaccuracy',
-            evLoss: 0.5,
-            feedback: `Mixed spot - GTO prefers ${gtoAction} at ${Math.round(freq * 100)}% frequency. ${gtoStrategy.reason}`,
-        };
-    }
-
-    // Clear GTO preference
-    if (freq >= 0.70) {
-        return {
-            score: 10,
-            classification: 'mistake',
-            evLoss: 2.0,
-            feedback: `Mistake. GTO strongly prefers ${gtoAction} here (${Math.round(freq * 100)}%). ${gtoStrategy.reason}`,
-        };
-    }
-
-    // GTO slightly prefers different action
+export function scoreAction() {
     return {
-        score: 25,
-        classification: 'inaccuracy',
-        evLoss: 1.0,
-        feedback: `Suboptimal. GTO slightly prefers ${gtoAction} (${Math.round(freq * 100)}%). ${gtoStrategy.reason}`,
+        score: null,
+        classification: 'practice_only',
+        evLoss: null,
+        solverVerified: false,
+        evLossMeasured: false,
+        feedback: 'Server-Persisted Training Feedback Is Required Before This Action Can Be Scored.',
     };
 }
 

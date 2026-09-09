@@ -12,7 +12,8 @@
  * (migration 20260806). This test pins the fixed generator so the bug class
  * cannot ship again:
  *
- *   • push-node charts grade from the push frequency;
+ *   • push-node charts read the source push frequency but expose the canonical
+ *     `all_in` action id while retaining player-facing Push/Fold copy;
  *   • call-node charts grade from the call frequency, render literal Yes/No
  *     options for "Should you call?", and never say "Push";
  *   • villain_action codes render as human text, never raw ('sb_push');
@@ -31,6 +32,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+    alignQuestionToCanonicalPolicy,
+    gradeCanonicalPolicyDecision,
+} from '../src/lib/training/cacheTruthContract.mjs';
+import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ENGINE = path.join(ROOT, 'src/engines/DeterministicGTOEngine.js');
@@ -58,11 +65,13 @@ function loadChartBuilder() {
 }
 
 const PUSH_CHART = {
-    chart_id: 'c1', hero_position: 'UTG', stack_depth: 10, villain_action: 'fold_to_hero',
+    chart_id: 'c1', game_type: 'Cash', created_at: '2026-09-07T00:00:00.000Z',
+    hero_position: 'UTG', stack_depth: 10, villain_action: 'fold_to_hero',
     hand_matrix: { AA: { push: 1.0, fold: 0.0 }, '72o': { push: 0.0, fold: 1.0 } },
 };
 const CALL_CHART = {
-    chart_id: 'c2', hero_position: 'BB', stack_depth: 10, villain_action: 'sb_push',
+    chart_id: 'c2', game_type: 'Cash', created_at: '2026-09-07T00:00:00.000Z',
+    hero_position: 'BB', stack_depth: 10, villain_action: 'sb_push',
     hand_matrix: { AA: { call: 1.0, fold: 0.0 }, '83o': { call: 0.0, fold: 1.0 } },
 };
 
@@ -74,12 +83,29 @@ function build(buildChartQuestion, chart, hand) {
     try { return buildChartQuestion(chart, 1); } finally { Math.random = orig; }
 }
 
+function alignWithChartPolicy(question, chart) {
+    const solverPolicy = new SolverPolicyService().answerFromChart(chart, {
+        holding: question.heroCards,
+    });
+    return alignQuestionToCanonicalPolicy({ ...question, solverPolicy });
+}
+
 test('push-node charts grade from the push frequency', () => {
     const b = loadChartBuilder();
     const aa = build(b, PUSH_CHART, 'AA');
-    assert.equal(aa.correctAnswer, 'push', 'AA must be a push in an open-shove chart');
+    assert.equal(aa.correctAnswer, 'all_in', 'AA must be an all-in in an open-shove chart');
+    assert.equal(aa.correctAnswerText, 'Push All-In');
     assert.match(aa.question, /Push or Fold\?$/);
     assert.match(aa.question, /Action folds to you/);
+    assert.deepEqual(aa.options.map(o => o.id), ['all_in', 'fold']);
+    assert.deepEqual(aa.options.map(o => o.text), ['Push All-In', 'Fold']);
+    assert.equal(aa.gtoFrequencies.all_in, 100);
+    assert.equal(aa.frequencies.all_in, 1);
+    assert.match(aa.explanation, /100%/);
+    assert.match(aa.explanation, /Push All-In is the chart's primary action/);
+    assert.match(aa.explanation, /No per-action EV or payout model is included/);
+    assert.doesNotMatch(aa.explanation, /\bICM:/, 'a cash chart must not invent an ICM model');
+    assert.doesNotMatch(aa.explanation, /only a 100% push/i, 'an all-in answer must not render fold coaching');
     assert.equal(build(b, PUSH_CHART, '72o').correctAnswer, 'fold');
 });
 
@@ -113,10 +139,57 @@ test('mixed-frequency hands stay answerable and self-consistent', () => {
         hand_matrix: { A5s: { push: 0.62, fold: 0.38 }, KTo: { push: 0.31, fold: 0.69 } },
     };
     const a5 = build(b, chart, 'A5s');
-    assert.equal(a5.correctAnswer, 'push');
-    assert.equal(a5.gtoFrequencies.push, 62);
-    assert.equal(a5.options.find(o => o.id === 'push').frequency, 62);
+    assert.equal(a5.correctAnswer, 'all_in');
+    assert.equal(a5.gtoFrequencies.all_in, 62);
+    assert.equal(a5.options.find(o => o.id === 'all_in').frequency, 62);
+    assert.equal(a5.options.find(o => o.id === 'all_in').text, 'Push All-In');
     assert.equal(a5.scenario.isMixedStrategy, true);
     const kt = build(b, chart, 'KTo');
     assert.equal(kt.correctAnswer, 'fold');
+});
+
+test('an exact 50/50 Push/Fold chart mix remains tied through builder, alignment, explanation, and grading', () => {
+    const b = loadChartBuilder();
+    const chart = {
+        ...PUSH_CHART,
+        hand_matrix: { A5s: { push: 0.5, fold: 0.5 } },
+    };
+    const built = build(b, chart, 'A5s');
+    const aligned = alignWithChartPolicy(built, chart);
+
+    assert.equal(built.correctAnswer, aligned.correctAnswer);
+    assert.match(aligned.explanation, /Push All-In and Fold[^.]*equally represented/i);
+    assert.doesNotMatch(aligned.explanation, /primary action/i);
+    assert.equal(aligned.correctAnswerText, aligned.correctAnswer === 'all_in' ? 'Push All-In' : 'Fold');
+
+    for (const action of ['all_in', 'fold']) {
+        const grade = gradeCanonicalPolicyDecision(aligned.solverPolicy, action);
+        assert.equal(grade.valid, true);
+        assert.equal(grade.classification, 'best');
+        assert.equal(grade.isCorrect, true);
+        assert.equal(grade.selectedFrequency, 50);
+    }
+});
+
+test('an exact 50/50 Call/Fold chart mix remains tied through builder, alignment, explanation, and grading', () => {
+    const b = loadChartBuilder();
+    const chart = {
+        ...CALL_CHART,
+        hand_matrix: { AKo: { call: 0.5, fold: 0.5 } },
+    };
+    const built = build(b, chart, 'AKo');
+    const aligned = alignWithChartPolicy(built, chart);
+
+    assert.equal(built.correctAnswer, aligned.correctAnswer);
+    assert.match(aligned.explanation, /Call and Fold[^.]*equally represented/i);
+    assert.doesNotMatch(aligned.explanation, /primary action/i);
+    assert.equal(aligned.correctAnswerText, aligned.correctAnswer === 'call' ? 'Yes' : 'No');
+
+    for (const action of ['call', 'fold']) {
+        const grade = gradeCanonicalPolicyDecision(aligned.solverPolicy, action);
+        assert.equal(grade.valid, true);
+        assert.equal(grade.classification, 'best');
+        assert.equal(grade.isCorrect, true);
+        assert.equal(grade.selectedFrequency, 50);
+    }
 });

@@ -9,7 +9,7 @@
  */
 
 import { useRouter } from 'next/router';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
@@ -18,6 +18,10 @@ import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
 import ErrorBanner from '../../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../../src/components/training/ConnectionToast';
 import { clearBodyScrollLockIfUnheld } from '../../../../src/lib/scrollLock';
+import {
+    customTrainingConfigFromQuery,
+    isCanonicalTrainingGameId,
+} from '../../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
     ssr: false,
@@ -117,6 +121,18 @@ export default function TrainingArenaPage() {
     const [fetchError, setFetchError] = useState(null);
     const [resolvedSessionId, setResolvedSessionId] = useState(null);
 
+    const customLaunch = useMemo(() => {
+        if (!router.isReady) return { config: null, error: null };
+        try {
+            return { config: customTrainingConfigFromQuery(router.query), error: null };
+        } catch (error) {
+            return {
+                config: null,
+                error: error?.message || 'This Focused Training Configuration Is Invalid.',
+            };
+        }
+    }, [router.isReady, router.asPath]);
+
     useEffect(() => {
         if (!router.isReady || !gameId) return;
         setResolvedSessionId(
@@ -158,7 +174,9 @@ export default function TrainingArenaPage() {
     useEffect(() => () => { clearBodyScrollLockIfUnheld(); }, []);
 
     // Resolve game name from TRAINING_LIBRARY
-    const game = gameId ? getGameById(gameId) : null;
+    const game = typeof gameId === 'string' && isCanonicalTrainingGameId(gameId)
+        ? getGameById(gameId)
+        : null;
     const gameName = game?.name || 'Training Game';
     const level = parseInt(queryLevel, 10) || 1;
 
@@ -172,6 +190,44 @@ export default function TrainingArenaPage() {
         // GodModeArena handles its own review screen
         // User will use the exit button from within the review
     }, []);
+
+    if (router.isReady && gameId && (!game || customLaunch.error)) {
+        return (
+            <main style={{
+                minHeight: '100vh',
+                background: 'linear-gradient(180deg, #07111b 0%, #020609 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#cbd5e1', fontFamily: "'Inter', sans-serif", padding: 24,
+            }}>
+                <div role="alert" style={{
+                    width: 'min(100%, 520px)',
+                    border: '1px solid rgba(248,113,113,0.35)',
+                    borderRadius: 12,
+                    background: 'rgba(127,29,29,0.16)',
+                    padding: 22,
+                    textAlign: 'center',
+                }}>
+                    <h1 style={{ color: '#fca5a5', fontSize: 20, margin: '0 0 10px' }}>
+                        Training Launch Unavailable
+                    </h1>
+                    <p style={{ margin: '0 0 18px', lineHeight: 1.6 }}>
+                        {customLaunch.error || 'This Training Game Does Not Exist In The Canonical Library.'}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => router.replace('/hub/training')}
+                        style={{
+                            border: '1px solid rgba(103,232,249,0.55)', borderRadius: 8,
+                            background: 'linear-gradient(180deg, #67e8f9, #0891b2)',
+                            color: '#021018', padding: '10px 18px', fontWeight: 800, cursor: 'pointer',
+                        }}
+                    >
+                        Return To Training
+                    </button>
+                </div>
+            </main>
+        );
+    }
 
     // Wait for router + user resolution
     if (!router.isReady || !gameId || !ready || !resolvedSessionId) {
@@ -200,11 +256,12 @@ export default function TrainingArenaPage() {
             </Head>
             <ArenaErrorBoundary>
                 <GodModeArena
-                    userId={userId || `anon-${Date.now()}`}
+                    userId={userId}
                     gameId={gameId}
                     gameName={gameName}
                     level={level}
                     sessionId={resolvedSessionId}
+                    initialConfig={customLaunch.config}
                     onComplete={handleComplete}
                     onExit={handleExit}
                 />

@@ -28,20 +28,22 @@ test('all canonical subpages share the responsive command shell', () => {
   assert.doesNotMatch(CSS, /@media \(min-width: 720px\)/);
 });
 
-test('leaderboard uses a valid real-data query and never invents rankings', () => {
-  assert.match(LEADERBOARD, /\.from\('memory_leaderboards'\)/);
-  assert.match(LEADERBOARD, /\.limit\(50\)/);
-  assert.doesNotMatch(LEADERBOARD, /\.limit\(100\) \/\/ leaderboard/);
-  assert.doesNotMatch(LEADERBOARD, /getPlaceholderData|GTOWizard|RangeKing/);
-  assert.match(LEADERBOARD, /accuracyToPercent\(entry\.accuracy, entry\.score\)/);
+test('leaderboard fails closed instead of displaying browser-authored rankings', () => {
+  assert.match(LEADERBOARD, /Ranked Standings Paused/);
+  assert.match(LEADERBOARD, /No Unverified Scores Displayed/);
+  assert.match(LEADERBOARD, /Legacy Rankings Are Archived/);
+  assert.match(LEADERBOARD, /Play In Club Arena/);
+  assert.doesNotMatch(LEADERBOARD, /\.from\(|supabase|memory_leaderboards/);
+  assert.doesNotMatch(LEADERBOARD, /getPlaceholderData|GTOWizard|RangeKing|accuracyToPercent/);
 });
 
-test('advertised deep-link modes and safe accuracy persistence remain wired', () => {
+test('advertised deep-link modes remain wired and local results cannot self-persist', () => {
   for (const mode of ['speed-drill', 'pressure-cooker', 'pattern', 'mixed', 'spot-trainer', 'tournament']) {
     assert.match(MAIN, new RegExp(`['\"]${mode}['\"]`));
   }
-  assert.match(SESSION_SERVICE, /accuracy:\s*accuracy/);
-  assert.doesNotMatch(SESSION_SERVICE, /accuracy:\s*accuracyToFraction/);
+  assert.match(SESSION_SERVICE, /server_authoritative_training_attempt_required/);
+  assert.match(SESSION_SERVICE, /async recordSession\(\)[\s\S]*success:\s*false/);
+  assert.doesNotMatch(SESSION_SERVICE, /\.from\(|insert\(|upsert\(|fetch\(/);
 });
 
 test('all public shorthand and canonical game-mode query aliases resolve', () => {
@@ -61,14 +63,15 @@ test('all public shorthand and canonical game-mode query aliases resolve', () =>
   }
 });
 
-test('stats reads the completed boolean contract and normalizes mixed accuracy units', () => {
+test('stats labels completed legacy rows as a local archive with no rank or reward', () => {
   assert.match(STATS, /\.eq\('completed', true\)/);
   assert.doesNotMatch(STATS, /\.eq\('status', 'completed'\)/);
   assert.match(STATS, /accuracyToPercent\(session\.accuracy, session\.score\)/);
   assert.doesNotMatch(STATS, /getPlaceholderStats|getPlaceholderLevelAccuracy/);
-  for (const preservedSignal of ['Total score', 'Diamonds earned', 'Highest level', 'Recent trend', 'Focus Stations']) {
+  for (const preservedSignal of ['Local Practice History', 'LEGACY LOCAL ARCHIVE', 'No Verified Rank Or Reward', 'Local Score Total', 'Highest Local Level', 'Recent trend', 'Focus Stations', 'not a ranked score']) {
     assert.match(STATS, new RegExp(preservedSignal));
   }
+  assert.doesNotMatch(STATS, /Diamonds earned|label="(?:Verified|Global) Rank"|label="Reward Earned"/);
 });
 
 test('achievements uses the shared client and tutorial describes range training', () => {

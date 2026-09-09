@@ -7,12 +7,14 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { safeAward } from '../../../src/lib/rewards/awardGuard';
+import {
+    isTrainingPersistenceUnavailable,
+    runTrainingPersistenceQuery,
+    trainingPersistenceUnavailableBody,
+} from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -57,13 +59,55 @@ export default async function handler(req, res) {
       // GET: Fetch user streak
       if (req.method === 'GET') {
           res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+          res.setHeader('Vary', 'Authorization');
 
           try {
-              const { data: streak } = await supabase
-                  .from('training_streaks')
-                  .select('current_streak, longest_streak, last_training_date, streak_start_date, milestones_claimed')
-                  .eq('user_id', userId)
-                  .maybeSingle();
+              const [streakResult, claimsResult, trainingDaysResult] = await Promise.all([
+                  runTrainingPersistenceQuery(
+                      () => supabase
+                          .from('training_streaks')
+                          .select('authority_current_streak, authority_longest_streak, authority_last_training_date, authority_streak_start_date, authority_milestones_claimed')
+                          .eq('user_id', userId)
+                          .maybeSingle(),
+                      { label: 'Streak:get-authority' },
+                  ),
+                  runTrainingPersistenceQuery(
+                      () => supabase
+                          .from('training_streak_milestone_claims')
+                          .select('milestone_days, diamonds_awarded, entitlement_diamonds, reward_multiplier, claim_count, completed_at, updated_at')
+                          .eq('user_id', userId),
+                      { label: 'Streak:get-claims' },
+                  ),
+                  runTrainingPersistenceQuery(
+                      () => supabase
+                          .from('training_level_history')
+                          .select('completed_at')
+                          .eq('user_id', userId)
+                          .not('attempt_id', 'is', null)
+                          .eq('practice_only', false)
+                          .order('completed_at', { ascending: false })
+                          .limit(90),
+                      { label: 'Streak:get-training-days' },
+                  ),
+              ]);
+
+              if (streakResult.error || claimsResult.error || trainingDaysResult.error) {
+                  console.warn('[Streak] Authority read failed:',
+                      streakResult.error?.message
+                      || claimsResult.error?.message
+                      || trainingDaysResult.error?.message);
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+              const streak = streakResult.data;
+              const claimRows = Array.isArray(claimsResult.data) ? claimsResult.data : [];
+              const trainingDays = [...new Set(
+                  (Array.isArray(trainingDaysResult.data) ? trainingDaysResult.data : [])
+                      .map((row) => typeof row?.completed_at === 'string'
+                          ? row.completed_at.slice(0, 10)
+                          : null)
+                      .filter(Boolean),
+              )];
+              const claimsByDay = new Map(claimRows.map((claim) => [Number(claim.milestone_days), claim]));
 
               if (!streak) {
                   return res.status(200).json({
@@ -72,271 +116,227 @@ export default async function handler(req, res) {
                           currentStreak: 0,
                           longestStreak: 0,
                           lastTrainingDate: null,
-                          nextMilestone: STREAK_MILESTONES[0]
-                      }
+                          nextMilestone: STREAK_MILESTONES[0],
+                          claimableMilestones: [],
+                          allMilestones: STREAK_MILESTONES.map((milestone) => ({
+                              ...milestone,
+                              achieved: false,
+                              claimed: false,
+                              settlementStatus: 'locked',
+                              diamondsAwardedTotal: 0,
+                              entitlementDiamonds: null,
+                              diamondsRemaining: null,
+                              rewardMultiplier: null,
+                              retryable: false,
+                              retryWindow: null,
+                          })),
+                      },
+                      trainingDays,
                   });
               }
 
               // Find next milestone
-              const claimedDays = streak.milestones_claimed || [];
+              const claimedDays = Array.isArray(streak.authority_milestones_claimed)
+                  ? streak.authority_milestones_claimed
+                  : [];
+              const achievedStreak = Math.max(
+                  Number(streak.authority_current_streak) || 0,
+                  Number(streak.authority_longest_streak) || 0,
+              );
               const nextMilestone = STREAK_MILESTONES.find(m =>
-                  !claimedDays.includes(m.days) && m.days > streak.current_streak
+                  m.days > achievedStreak
               );
 
-              // Find claimable milestones
-              const claimable = STREAK_MILESTONES.filter(m =>
-                  !claimedDays.includes(m.days) && m.days <= streak.current_streak
+              const allMilestones = STREAK_MILESTONES.map((milestone) => {
+                  const claim = claimsByDay.get(milestone.days);
+                  const paid = Math.max(0, Number(claim?.diamonds_awarded) || 0);
+                  const entitlement = Number.isInteger(Number(claim?.entitlement_diamonds))
+                      && Number(claim?.entitlement_diamonds) > 0
+                      ? Number(claim.entitlement_diamonds)
+                      : null;
+                  const completed = claimedDays.includes(milestone.days)
+                      || Boolean(claim?.completed_at)
+                      || (entitlement !== null && paid >= entitlement);
+                  const achieved = milestone.days <= achievedStreak;
+                  const remaining = entitlement === null ? null : Math.max(entitlement - paid, 0);
+                  const settlementStarted = entitlement !== null && !completed;
+                  const historicalCreditPending = paid > 0 && entitlement === null && !completed;
+                  const settlementStatus = completed
+                      ? 'completed'
+                      : historicalCreditPending
+                          ? 'historical_credit_pending_verification'
+                          : settlementStarted
+                              ? 'partial'
+                              : achieved
+                                  ? 'claimable'
+                                  : 'locked';
+                  return {
+                      ...milestone,
+                      achieved,
+                      claimed: completed,
+                      settlementStatus,
+                      diamondsAwardedTotal: paid,
+                      entitlementDiamonds: entitlement,
+                      diamondsRemaining: remaining,
+                      rewardMultiplier: entitlement === null
+                          ? null
+                          : Number(claim?.reward_multiplier) || 1,
+                      retryable: achieved && !completed,
+                      retryWindow: settlementStatus === 'partial' ? 'next_month' : null,
+                  };
+              });
+              const claimable = allMilestones.filter((milestone) =>
+                  milestone.achieved && !milestone.claimed
               );
 
               return res.status(200).json({
                   success: true,
                   streak: {
-                      currentStreak: streak.current_streak,
-                      longestStreak: streak.longest_streak,
-                      lastTrainingDate: streak.last_training_date,
-                      streakStartDate: streak.streak_start_date,
+                      currentStreak: streak.authority_current_streak,
+                      longestStreak: streak.authority_longest_streak,
+                      lastTrainingDate: streak.authority_last_training_date,
+                      streakStartDate: streak.authority_streak_start_date,
                       nextMilestone,
                       claimableMilestones: claimable,
-                      allMilestones: STREAK_MILESTONES.map(m => ({
-                          ...m,
-                          claimed: claimedDays.includes(m.days),
-                          achieved: m.days <= streak.current_streak
-                      }))
-                  }
+                      allMilestones,
+                  },
+                  trainingDays,
               });
 
           } catch (error) {
+              if (isTrainingPersistenceUnavailable(error)) {
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
               console.warn('[Streak] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to fetch streak' });
           }
       }
 
-      // POST: Record training activity (call after session)
+      // Streak movement is part of fn_complete_training_attempt_v2's atomic
+      // completion transaction. An authenticated browser must not be able to
+      // manufacture a Training day by calling this legacy route directly.
       if (req.method === 'POST') {
-          const bodySize = JSON.stringify(req.body || {}).length;
-          if (bodySize > 5120) return res.status(413).json({ success: false, error: 'Request body too large' });
-          const { action } = req.body;
-          // userId from JWT (set at top of handler)
-
-          try {
-              // Phase 76 — anchor streak day to America/Chicago, not UTC.
-              // Without CST anchor: train at 5:59pm CST then 6:01pm CST →
-              // two UTC days but ONE CST day → streak bumps twice for one
-              // real day. Also fixes the inverse where Mon 11pm CST + Wed
-              // 1am CST resolves daysDiff=1 in UTC math instead of 2.
-              const today = getTodayCST();
-
-              // Get current streak
-              const { data: existing } = await supabase
-                  .from('training_streaks')
-                  .select('current_streak, longest_streak, last_training_date, streak_start_date, milestones_claimed')
-                  .eq('user_id', userId)
-                  .maybeSingle();
-
-              if (!existing) {
-                  // Create new streak
-                  await withRetry(
-                      () => supabase
-                          .from('training_streaks')
-                          .insert({
-                              user_id: userId,
-                              current_streak: 1,
-                              longest_streak: 1,
-                              last_training_date: today,
-                              streak_start_date: today,
-                              milestones_claimed: []
-                          }),
-                      { label: 'Streak:insert' }
-                  );
-
-                  return res.status(200).json({
-                      success: true,
-                      currentStreak: 1,
-                      streakUpdated: true,
-                      message: 'Streak started'
-                  });
-              }
-
-              // Check if already trained today
-              if (existing.last_training_date === today) {
-                  return res.status(200).json({
-                      success: true,
-                      currentStreak: existing.current_streak,
-                      streakUpdated: false,
-                      message: 'Already trained today'
-                  });
-              }
-
-              // Check if streak continues or breaks
-              const lastDate = new Date(existing.last_training_date);
-              const todayDate = new Date(today);
-              const daysDiff = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
-
-              let newStreak, message;
-              if (daysDiff === 1) {
-                  // Streak continues
-                  newStreak = existing.current_streak + 1;
-                  message = `${newStreak} day streak`;
-              } else {
-                  // Streak broken
-                  newStreak = 1;
-                  message = 'New streak started';
-              }
-
-              const newLongest = Math.max(existing.longest_streak, newStreak);
-
-              await withRetry(
-                  () => supabase
-                      .from('training_streaks')
-                      .update({
-                          current_streak: newStreak,
-                          longest_streak: newLongest,
-                          last_training_date: today,
-                          streak_start_date: daysDiff === 1 ? existing.streak_start_date : today,
-                          updated_at: new Date().toISOString()
-                      })
-                      .eq('user_id', userId),
-                  { label: 'Streak:update' }
-              );
-
-              // Check for newly achieved milestones
-              const newMilestones = STREAK_MILESTONES.filter(m =>
-                  m.days <= newStreak && !(existing.milestones_claimed || []).includes(m.days)
-              );
-
-              return res.status(200).json({
-                  success: true,
-                  currentStreak: newStreak,
-                  longestStreak: newLongest,
-                  streakUpdated: true,
-                  message,
-                  newMilestones
-              });
-
-          } catch (error) {
-              console.warn('[Streak] Update error:', error.message);
-              return res.status(500).json({ success: false, error: 'Failed to update streak' });
-          }
+          return res.status(410).json({
+              success: false,
+              code: 'TRAINING_STREAK_COMPLETION_REQUIRED',
+              error: 'Training streaks update only after a verified attempt completes.',
+          });
       }
 
-      // PUT: Claim milestone reward
+      // PUT: Claim a milestone through one row-locking database transaction.
+      // The browser supplies only the milestone identity; eligibility, the
+      // claim marker, idempotency reference, and actual award are server-owned.
       if (req.method === 'PUT') {
-          const { milestoneDays } = req.body;
-          // userId from JWT (set at top of handler)
-
-          if (!milestoneDays) {
-              return res.status(400).json({ success: false, error: 'milestoneDays required' });
+          const body = req.body;
+          const bodyKeys = body && typeof body === 'object' && !Array.isArray(body)
+              ? Object.keys(body)
+              : [];
+          const milestoneDays = Number(body?.milestoneDays);
+          if (
+              bodyKeys.length !== 1
+              || bodyKeys[0] !== 'milestoneDays'
+              || !Number.isInteger(milestoneDays)
+              || !STREAK_MILESTONES.some((milestone) => milestone.days === milestoneDays)
+          ) {
+              return res.status(400).json({ success: false, error: 'A valid milestoneDays value is required.' });
           }
 
+          let claimResult;
           try {
-              const milestone = STREAK_MILESTONES.find(m => m.days === milestoneDays);
-              if (!milestone) {
-                  return res.status(400).json({ success: false, error: 'Invalid milestone' });
-              }
-
-              const { data: streak } = await supabase
-                  .from('training_streaks')
-                  .select('current_streak, longest_streak, milestones_claimed')
-                  .eq('user_id', userId)
-                  .maybeSingle();
-
-              if (!streak || streak.current_streak < milestoneDays) {
-                  return res.status(400).json({ success: false, error: 'Milestone not achieved' });
-              }
-
-              if ((streak.milestones_claimed || []).includes(milestoneDays)) {
-                  return res.status(400).json({ success: false, error: 'Already claimed' });
-              }
-
-              // BUG #257 FIX: Atomic claim via optimistic lock.
-              // Two concurrent requests could both read milestones_claimed without this
-              // milestone, both append it, and both award diamonds.
-              const newClaimed = [...(streak.milestones_claimed || []), milestoneDays];
-
-              // Use the reference_id as an idempotency key for the diamond award.
-              // Also do an optimistic lock on the array length to prevent concurrent claims.
-              const expectedLength = (streak.milestones_claimed || []).length;
-
-              const { data: updatedRows, error: updErr } = await withRetry(
-                  () => supabase
-                      .from('training_streaks')
-                      .update({ milestones_claimed: newClaimed })
-                      .eq('user_id', userId)
-                      .select('id'),
-                  { label: 'Streak:claimUpdate' }
+              claimResult = await runTrainingPersistenceQuery(
+                  () => supabase.rpc('fn_claim_training_streak_milestone_v2', {
+                      p_user_id: userId,
+                      p_milestone_days: milestoneDays,
+                  }),
+                  { label: 'Streak:claim-milestone' },
               );
-
-              if (updErr || !updatedRows?.length) {
-                  return res.status(409).json({ success: false, error: 'Claim failed' });
-              }
-
-              // Double-check: re-read to verify our milestone was added exactly once
-              const { data: verify } = await supabase
-                  .from('training_streaks')
-                  .select('milestones_claimed')
-                  .eq('user_id', userId)
-                  .maybeSingle();
-
-              const claimCount = (verify?.milestones_claimed || []).filter(d => d === milestoneDays).length;
-              if (claimCount > 1) {
-                  // Concurrent write detected — fix the array and skip diamond award
-                  const deduped = [...new Set(verify.milestones_claimed)];
-                  const { error: err_training_streaks_02xr5 } = await supabase.from('training_streaks').update({ milestones_claimed: deduped })
-                      .eq('user_id', userId);
-                  if (err_training_streaks_02xr5) console.warn('[Supabase] Silent mutation failed in training_streaks:', err_training_streaks_02xr5.message);
-                  return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
-              }
-
-              // Award via award_diamonds_v2 (streak_reward catalog key).
-              // Variable amount is passed in metadata.streak_diamonds so the SQL
-              // function can apply the per-family 1,000 ◆/month ceiling and the
-              // 2.5M platform circuit breaker — neither of which the old
-              // add_diamonds_to_balance call respected.
-              // Idempotency key: streak_<userId>_<milestoneDays> matches the
-              // catalog's once_per_target = true guard.
-              const { ok: rpcOk, error: rpcErr } = await safeAward(supabase, {
-                  p_user_id: userId,
-                  p_action_key: 'streak_reward',
-                  p_reference_id: `streak_${userId}_${milestoneDays}`,
-                  p_target_id: `streak_${userId}_${milestoneDays}`,
-                  p_metadata: {
-                      streak_diamonds: milestone.diamonds,
-                      milestone_name: milestone.name,
-                      milestone_days: milestoneDays,
-                      _source: 'api/training/streak',
-                  },
-              });
-
-              if (!rpcOk) {
-                  // Roll back the milestone claim by removing milestoneDays from the array.
-                  // Without this, the optimistic-lock check above would forever say
-                  // "already claimed" and the user would never get their diamonds.
-                  try {
-                      const rolledBack = (newClaimed || []).filter(d => d !== milestoneDays);
-                      const { error: err_training_streaks_scek3 } = await supabase
-                        .from('training_streaks')
-                        .update({ milestones_claimed: rolledBack })
-                          .eq('user_id', userId);
-                      if (err_training_streaks_scek3) console.warn('[Supabase] Silent mutation failed in training_streaks:', err_training_streaks_scek3.message);
-                  } catch (rbErr) {
-                      console.warn('[Streak] Rollback of milestone claim failed:', rbErr?.message || rbErr);
-                  }
-                  console.warn('[Streak] award_diamonds_v2 failed (rolled back so user can retry):', rpcErr);
-                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
-              }
-
-              return res.status(200).json({
-                  success: true,
-                  claimed: milestone,
-                  diamondsAwarded: milestone.diamonds
-              });
-
           } catch (error) {
-              console.warn('[Streak] Claim error:', error.message);
-              return res.status(500).json({ success: false, error: 'Failed to claim milestone' });
+              if (isTrainingPersistenceUnavailable(error)) {
+                  return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+              throw error;
           }
+
+          if (claimResult.error) {
+              console.warn('[Streak] Claim RPC failed:', claimResult.error.message);
+              return res.status(503).json(trainingPersistenceUnavailableBody());
+          }
+          const result = claimResult.data;
+          if (!result || typeof result !== 'object' || Array.isArray(result)) {
+              return res.status(502).json({
+                  success: false,
+                  code: 'TRAINING_STREAK_CLAIM_INVALID_RESPONSE',
+                  error: 'The streak claim could not be verified.',
+              });
+          }
+          if (result.success !== true) {
+              const status = Number(result.status);
+              const responseStatus = result.code === 'TRAINING_STREAK_AWARD_INVALID_RESPONSE'
+                  ? 502
+                  : Number.isInteger(status) && status >= 400 && status <= 499
+                      ? status
+                      : 409;
+              return res.status(responseStatus)
+                  .json({
+                      ...result,
+                      success: false,
+                      ...(responseStatus >= 500 ? { retryable: true } : {}),
+                      ...(result.code === 'TRAINING_STREAK_AWARD_NOT_APPLIED'
+                          ? { retryable: true, retryWindow: 'next_month' }
+                          : {}),
+                  });
+          }
+
+          const milestone = STREAK_MILESTONES.find((item) => item.days === milestoneDays);
+          const diamondsAwarded = Number(result.diamondsAwarded);
+          const diamondsAwardedTotal = Number(result.diamondsAwardedTotal);
+          const diamondsRemaining = Number(result.diamondsRemaining);
+          const entitlementDiamonds = Number(result.entitlementDiamonds);
+          const rewardMultiplier = Number(result.rewardMultiplier);
+          const milestoneCompleted = result.milestoneCompleted === true;
+          const awardApplied = result.awardApplied === true;
+          if (
+              Number(result.milestoneDays) !== milestoneDays
+              || !Number.isInteger(diamondsAwarded)
+              || diamondsAwarded < 0
+              || diamondsAwarded > milestone.diamonds * 10
+              || !Number.isInteger(diamondsAwardedTotal)
+              || diamondsAwardedTotal < 0
+              || !Number.isInteger(diamondsRemaining)
+              || diamondsRemaining < 0
+              || !Number.isInteger(entitlementDiamonds)
+              || entitlementDiamonds < milestone.diamonds
+              || entitlementDiamonds > milestone.diamonds * 10
+              || !Number.isFinite(rewardMultiplier)
+              || rewardMultiplier <= 0
+              || rewardMultiplier > 10
+              || entitlementDiamonds !== Math.round(milestone.diamonds * rewardMultiplier)
+              || diamondsAwardedTotal > entitlementDiamonds
+              || diamondsAwardedTotal + diamondsRemaining !== entitlementDiamonds
+              || milestoneCompleted !== (diamondsRemaining === 0)
+          ) {
+              return res.status(502).json({
+                  success: false,
+                  code: 'TRAINING_STREAK_CLAIM_INVALID_RESPONSE',
+                  error: 'The streak claim could not be verified.',
+              });
+          }
+          return res.status(200).json({
+              success: true,
+              claimed: milestoneCompleted ? milestone : null,
+              milestone,
+              milestoneCompleted,
+              awardApplied,
+              diamondsAwarded,
+              diamondsAwardedTotal,
+              diamondsRemaining,
+              entitlementDiamonds,
+              rewardMultiplier,
+              idempotentReplay: !awardApplied && result.newClaim === false,
+          });
       }
 
+      res.setHeader('Allow', 'GET, PUT');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
