@@ -51,11 +51,6 @@ const ADDITIONAL_CONFIG = {
     'hub/commander/waitlist/[venueId].js': { title: 'Waitlist', noindex: true },
 
     // Diamond Arena sub-pages
-    'hub/diamond-arena/history.js': { title: 'Diamond Arena — Game History', noindex: true },
-    'hub/diamond-arena/leaderboard.js': { title: 'Diamond Arena Leaderboard', canonical: '/hub/diamond-arena/leaderboard' },
-    'hub/diamond-arena/schedule.js': { title: 'Diamond Arena Schedule', canonical: '/hub/diamond-arena/schedule' },
-    'hub/diamond-arena/stats.js': { title: 'Diamond Arena Stats', noindex: true },
-    'hub/diamond-arena/table-settings.js': { title: 'Diamond Arena Table Settings', noindex: true },
 
     // Training dynamic routes
     'hub/training/arena/[gameId].js': { title: 'Training Arena — Play Game', noindex: true },

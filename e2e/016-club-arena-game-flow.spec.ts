@@ -20,7 +20,7 @@ test.describe('Club Arena — Public Game Flow Pages', () => {
   const publicGamePages = [
     { path: '/hub/clubs', name: 'Clubs Lobby' },
     { path: '/hub/poker', name: 'Poker Hub' },
-    { path: '/hub/diamond-arena', name: 'Diamond Arena' },
+    { path: '/hub/club-arena', name: 'Poker Arena' },
     { path: '/hub/live-poker', name: 'Live Poker' },
   ];
 
