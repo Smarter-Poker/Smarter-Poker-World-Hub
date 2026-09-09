@@ -112,9 +112,12 @@ function fail(message) {
 function pruneOldVersions() {
     if (!fs.existsSync(TESSERACT_ROOT)) return [];
     const removed = [];
+    // The rule is simple on purpose: this directory holds exactly the version
+    // we ship and nothing else. Anything else is either a version we no longer
+    // serve or a leftover from a checkout that predates the versioned paths,
+    // and both would be deployed and counted against the public budget.
     for (const entry of fs.readdirSync(TESSERACT_ROOT, { withFileTypes: true })) {
-        if (!entry.isDirectory() || entry.name === VERSION) continue;
-        if (!/^\d+\.\d+\.\d+$/.test(entry.name)) continue;
+        if (entry.name === VERSION) continue;
         fs.rmSync(path.join(TESSERACT_ROOT, entry.name), { recursive: true, force: true });
         removed.push(entry.name);
     }
