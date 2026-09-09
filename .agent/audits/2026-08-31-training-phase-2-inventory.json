@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 75,
     "realtimeFiles": 6,
-    "tests": 130,
+    "tests": 129,
     "markerCandidates": 330,
     "possibleUnwiredFunctions": 353,
     "routeStateCells": 752,
@@ -60762,7 +60762,6 @@
     "e2e/021-personal-assistant.spec.ts",
     "e2e/03-training-gto.spec.ts",
     "e2e/09-games.spec.ts",
-    "e2e/fixtures/world-menu-cases.ts",
     "e2e/global-footer-visual.spec.ts"
   ],
   "persistenceFiles": [
