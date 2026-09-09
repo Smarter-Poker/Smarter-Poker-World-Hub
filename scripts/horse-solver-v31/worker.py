@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import threading
@@ -16,7 +17,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from contract import ApprovedManifest, ContractError, load_manifest, sha256_file
-from gateway import GatewayClient, GatewayError, canonical_json
+from gateway import MAX_BODY_BYTES, GatewayClient, GatewayError, canonical_json
 from pio_upi import (
     PioError,
     PioProcess,
@@ -49,9 +50,40 @@ def atomic_json(path: Path, payload: dict[str, Any]) -> None:
 def load_checkpoint(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
+
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ContractError(f"artifact checkpoint repeats JSON key: {key}")
+            result[key] = value
+        return result
+
+    def reject_non_json_constant(value: str) -> None:
+        raise ContractError(f"artifact checkpoint contains non-JSON number: {value}")
+
+    def parse_finite_float(value: str) -> float:
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ContractError(
+                f"artifact checkpoint contains non-finite JSON number: {value}"
+            )
+        return parsed
+
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        if path.stat().st_size > MAX_BODY_BYTES:
+            raise ContractError(
+                f"artifact checkpoint exceeds the {MAX_BODY_BYTES}-byte gateway limit: {path}"
+            )
+        value = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=reject_duplicate_keys,
+            parse_constant=reject_non_json_constant,
+            parse_float=parse_finite_float,
+        )
+    except ContractError:
+        raise
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, RecursionError, ValueError) as error:
         raise ContractError(f"artifact checkpoint is unreadable: {path}") from error
     if not isinstance(value, dict):
         raise ContractError(f"artifact checkpoint is not an object: {path}")
@@ -166,6 +198,7 @@ def artifact_matches(
     expected_id = artifact_id(manifest, machine, target["target_id"])
     matrix = artifact.get("strategy_matrix_v2")
     nodes = matrix.get("nodes") if isinstance(matrix, dict) else None
+    node = nodes[0] if isinstance(nodes, list) and len(nodes) == 1 else None
     return (
         set(artifact) == {
             "id",
@@ -183,10 +216,20 @@ def artifact_matches(
         and artifact.get("stack_depth") == scenario["depth_bucket"]
         and artifact.get("street") == {6: "flop", 8: "turn", 10: "river"}.get(len(target["board"]))
         and isinstance(artifact.get("solved_at"), str)
+        and isinstance(matrix, dict)
+        and set(matrix) == {"schema", "combo_order", "nodes"}
+        and matrix.get("schema") == "smarter-poker.pio-artifact.v31.1"
+        and matrix.get("combo_order")
+        == "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
         and isinstance(nodes, list)
         and len(nodes) == 1
-        and nodes[0].get("node") == target["node"]
-        and nodes[0].get("line_proof", {}).get("manifest_checksum") == manifest.checksum
+        and isinstance(node, dict)
+        and node.get("node") == target["node"]
+        and isinstance(node.get("line_proof"), dict)
+        and node["line_proof"].get("manifest_checksum") == manifest.checksum
+        and node.get("source_combo_order_checksum")
+        == manifest.raw["source_combo_order_checksum"]
+        and node.get("range_bundle_checksum") == manifest.raw["range_bundle_checksum"]
     )
 
 

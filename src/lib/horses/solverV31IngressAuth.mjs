@@ -132,6 +132,107 @@ export function verifyV31IngressRequest({
   return safeHexEqual(signature, expected);
 }
 
+/**
+ * Parse an authenticated ingress envelope without JSON's duplicate-key
+ * ambiguity. JSON.parse silently keeps the last value, so bytes containing
+ * both `"operation":"worker_heartbeat"` and `"operation":"ingest_artifact"`
+ * would have one signed wire meaning but only the latter application meaning.
+ * The scanner decodes every object key (including escaped spellings) before
+ * JSON.parse and rejects duplicates at any nesting level. Recursion is capped
+ * well above the real envelope depth to make pathological signed input bounded.
+ */
+export function parseV31IngressJson(source) {
+  if (typeof source !== 'string' || source.length === 0) {
+    throw new SyntaxError('V31 ingress JSON must be a nonempty string');
+  }
+  let index = 0;
+  const numberToken = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
+  const fail = (message) => {
+    throw new SyntaxError(`${message} at offset ${index}`);
+  };
+  const whitespace = () => {
+    while (index < source.length && /[\u0009\u000a\u000d\u0020]/u.test(source[index])) index++;
+  };
+  const stringToken = () => {
+    if (source[index] !== '"') fail('expected JSON string');
+    const start = index++;
+    let escaped = false;
+    while (index < source.length) {
+      const character = source[index++];
+      if (escaped) {
+        escaped = false;
+      } else if (character === '\\') {
+        escaped = true;
+      } else if (character === '"') {
+        return JSON.parse(source.slice(start, index));
+      }
+    }
+    fail('unterminated JSON string');
+  };
+  const value = (depth) => {
+    if (depth > 128) fail('JSON nesting exceeds the ingress limit');
+    whitespace();
+    const character = source[index];
+    if (character === '{') {
+      index++;
+      whitespace();
+      const keys = new Set();
+      if (source[index] === '}') {
+        index++;
+        return;
+      }
+      for (;;) {
+        whitespace();
+        const key = stringToken();
+        if (keys.has(key)) fail(`duplicate JSON key ${JSON.stringify(key)}`);
+        keys.add(key);
+        whitespace();
+        if (source[index++] !== ':') fail('expected object colon');
+        value(depth + 1);
+        whitespace();
+        const separator = source[index++];
+        if (separator === '}') return;
+        if (separator !== ',') fail('expected object separator');
+      }
+    }
+    if (character === '[') {
+      index++;
+      whitespace();
+      if (source[index] === ']') {
+        index++;
+        return;
+      }
+      for (;;) {
+        value(depth + 1);
+        whitespace();
+        const separator = source[index++];
+        if (separator === ']') return;
+        if (separator !== ',') fail('expected array separator');
+      }
+    }
+    if (character === '"') {
+      stringToken();
+      return;
+    }
+    for (const literal of ['true', 'false', 'null']) {
+      if (source.startsWith(literal, index)) {
+        index += literal.length;
+        return;
+      }
+    }
+    numberToken.lastIndex = index;
+    const number = numberToken.exec(source)?.[0];
+    if (!number) fail('expected JSON value');
+    if (!Number.isFinite(Number(number))) fail('JSON number exceeds the finite ingress range');
+    index = numberToken.lastIndex;
+  };
+
+  value(0);
+  whitespace();
+  if (index !== source.length) fail('unexpected trailing JSON bytes');
+  return JSON.parse(source);
+}
+
 export function v31IngressEnvelopeIsValid(envelope, principal) {
   if (!exactKeys(envelope, ['contract', 'principal', 'operation', 'provenance', 'payload'])) {
     return false;

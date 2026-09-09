@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   decodeV31IngressSecret,
+  parseV31IngressJson,
   signV31IngressRequest,
   V31_INGRESS_PROTOCOL,
   v31IngressBodySha256,
@@ -77,6 +78,25 @@ test('provenance identity text is canonical before it reaches the database', () 
   assert.equal(v31IngressEnvelopeIsValid(newlineManifest, 'M1'), false);
 });
 
+test('strict ingress JSON rejects duplicate keys at every depth, including escaped aliases', () => {
+  assert.deepEqual(parseV31IngressJson('{"a":1,"nested":{"b":2},"array":[{"c":3}]}'), {
+    a: 1,
+    nested: { b: 2 },
+    array: [{ c: 3 }],
+  });
+  assert.throws(() => parseV31IngressJson('{"operation":"one","operation":"two"}'), /duplicate JSON key/);
+  assert.throws(() => parseV31IngressJson('{"payload":{"dataset_id":1,"dataset_id":2}}'), /duplicate JSON key/);
+  assert.throws(() => parseV31IngressJson('{"payload":{"a":1,"\\u0061":2}}'), /duplicate JSON key/);
+});
+
+test('strict ingress JSON stays linear on numeric arrays and bounds recursive nesting', () => {
+  const numbers = Array.from({ length: 20_000 }, (_, index) => index % 1_000);
+  assert.deepEqual(parseV31IngressJson(JSON.stringify(numbers)), numbers);
+  assert.throws(() => parseV31IngressJson('{"value":1e400}'), /finite ingress range/);
+  const tooDeep = `${'['.repeat(130)}0${']'.repeat(130)}`;
+  assert.throws(() => parseV31IngressJson(tooDeep), /nesting exceeds/);
+});
+
 test('a shared principal secret fails closed', () => {
   const environment = {
     HORSE_SOLVER_V31_M1_HMAC_SECRET: HEX('a'),
@@ -97,6 +117,7 @@ test('the route claims a durable nonce before its narrow RPC dispatch', () => {
   assert.ok(ROUTE.includes("'fn_gto_v31_build_cell',\n      { p_dataset_id: payload.dataset_id, p_context: payload.context },\n      LONG_DB_TIMEOUT_MS"));
   assert.ok(ROUTE.includes("'fn_gto_v31_seal_build',\n      { p_dataset_id: payload.dataset_id },\n      LONG_DB_TIMEOUT_MS"));
   assert.ok(ROUTE.includes('Raw JSON request body required'));
+  assert.ok(ROUTE.includes('parseV31IngressJson(new TextDecoder'));
   for (const rpc of [
     'fn_gto_v31_worker_contract',
     'fn_solver_worker_heartbeat',
