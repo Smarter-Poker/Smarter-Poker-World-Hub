@@ -26,7 +26,34 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'public', 'tesseract');
+const TESSERACT_ROOT = path.join(ROOT, 'public', 'tesseract');
+
+/**
+ * The engine version, from the dependency itself, in the URL.
+ *
+ * Not decoration: it is what makes `immutable` caching safe and therefore
+ * what makes the scanner work with no signal. Without a version in the path,
+ * /tesseract/worker.min.js means a different file after every upgrade, so it
+ * can only be cached with revalidation - and a browser in a poker room cannot
+ * revalidate. Measured before this change: a warmed cache, taken offline,
+ * failed in 5 ms on importScripts.
+ *
+ * src/lib/docscan/ocr.mjs carries the same number as a constant, and a law
+ * test fails the build if the two ever drift.
+ */
+function engineVersion() {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const raw = (pkg.dependencies && pkg.dependencies['tesseract.js']) || '';
+    const version = String(raw).replace(/^[^0-9]*/, '').trim();
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+        console.error(`[copy-tesseract-assets] cannot read a tesseract.js version from package.json (got ${JSON.stringify(raw)})`);
+        process.exit(1);
+    }
+    return version;
+}
+
+export const VERSION = engineVersion();
+const OUT = path.join(TESSERACT_ROOT, VERSION);
 
 /** from -> to, relative to node_modules and public/tesseract. */
 export const ASSETS = [
@@ -43,7 +70,7 @@ export const ASSETS = [
 ];
 
 /** Where these land, relative to the repo root. */
-export const OUT_DIR = 'public/tesseract';
+export const OUT_DIR = `public/tesseract/${VERSION}`;
 
 /**
  * What this will add to public/, measured from node_modules.
@@ -54,6 +81,8 @@ export const OUT_DIR = 'public/tesseract';
  * arrives unnoticed. Returns null when node_modules cannot answer.
  */
 export function generatedBytes() {
+    // Measured from node_modules, so it is the same answer whether or not the
+    // copy has run and whichever version directory it would write into.
     const modules = path.join(ROOT, 'node_modules');
     if (!fs.existsSync(modules)) return null;
     let bytes = 0;
@@ -72,10 +101,31 @@ function fail(message) {
     process.exit(1);
 }
 
+/**
+ * Remove engine directories for versions we no longer ship.
+ *
+ * Every one of them would otherwise be deployed and cached forever, and the
+ * public/ budget counts them. A browser still holding a cached URL from an old
+ * version keeps working from its own cache until the page asks for the new
+ * one, so nothing breaks by clearing them here.
+ */
+function pruneOldVersions() {
+    if (!fs.existsSync(TESSERACT_ROOT)) return [];
+    const removed = [];
+    for (const entry of fs.readdirSync(TESSERACT_ROOT, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name === VERSION) continue;
+        if (!/^\d+\.\d+\.\d+$/.test(entry.name)) continue;
+        fs.rmSync(path.join(TESSERACT_ROOT, entry.name), { recursive: true, force: true });
+        removed.push(entry.name);
+    }
+    return removed;
+}
+
 function run() {
     const modules = path.join(ROOT, 'node_modules');
     if (!fs.existsSync(modules)) fail('node_modules is missing; run npm install first');
 
+    const dropped = pruneOldVersions();
     fs.mkdirSync(path.join(OUT, 'lang'), { recursive: true });
 
     let copied = 0;
@@ -99,6 +149,7 @@ function run() {
 
     const mb = (bytes / (1024 * 1024)).toFixed(1);
     console.log(`[copy-tesseract-assets] ${ASSETS.length} assets in ${OUT_DIR} (${mb} MB on disk, ${copied} newly copied).`);
+    if (dropped.length) console.log(`[copy-tesseract-assets] removed stale engine versions: ${dropped.join(', ')}`);
 }
 
 // Importing this for its manifest must not copy anything.

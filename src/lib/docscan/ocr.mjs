@@ -25,8 +25,28 @@
  * one costs about a second and players scan receipts in batches.
  */
 
+/**
+ * The engine version, IN THE URL, and why that matters more than it looks.
+ *
+ * Without it every upgrade would mean a different file behind the same
+ * /tesseract/worker.min.js, so the assets could only be cached with
+ * revalidation. A browser in a poker room cannot revalidate. Measured on
+ * 2026-09-09 against production, with a warmed cache taken offline: the read
+ * failed in 5 ms on importScripts, and "works offline" was a claim in a
+ * commit message rather than a fact.
+ *
+ * With the version in the path a URL's bytes never change, so vercel.json
+ * serves it `immutable` and a warmed cache is usable with no network at all.
+ *
+ * scripts/copy-tesseract-assets.mjs reads the SAME number out of
+ * package.json, and __tests__/the-engine-works-with-no-signal.law.test.mjs
+ * fails the build if the two ever drift. A mismatch is not cosmetic: it is a
+ * 404 for every asset, which is how the reader shipped broken once already.
+ */
+export const TESSERACT_VERSION = '7.0.0';
+
 /** Where the copy script puts the engine. Same origin, always. */
-export const TESSERACT_BASE = '/tesseract';
+export const TESSERACT_BASE = `/tesseract/${TESSERACT_VERSION}`;
 
 export const TESSERACT_ASSETS = {
     workerPath: `${TESSERACT_BASE}/worker.min.js`,

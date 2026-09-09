@@ -116,7 +116,10 @@ test('the OCR engine is served from our own origin, never a CDN', () => {
     assert.match(ocr, /workerPath: `\$\{TESSERACT_BASE\}\/worker\.min\.js`/);
     assert.match(ocr, /corePath: `\$\{TESSERACT_BASE\}\/`/);
     assert.match(ocr, /langPath: `\$\{TESSERACT_BASE\}\/lang`/);
-    assert.match(ocr, /export const TESSERACT_BASE = '\/tesseract'/, 'same origin, always');
+    // The base carries the engine version now, which is what lets vercel.json
+    // serve it `immutable` and therefore what lets a warmed cache work with no
+    // signal. the-engine-works-with-no-signal holds the version itself.
+    assert.match(ocr, /export const TESSERACT_BASE = `\/tesseract\/\$\{TESSERACT_VERSION\}`/, 'same origin, always');
     assert.doesNotMatch(ocr, /jsdelivr|unpkg|cdn\./i, 'no CDN may appear here');
     // And the assets have to actually be put there, or the scanner spins
     // forever on a phone in a poker room.
