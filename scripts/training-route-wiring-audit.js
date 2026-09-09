@@ -40,11 +40,12 @@ const apiRoutes = new Set(allPages.filter((file) => file.includes('/pages/api/')
 const missingPages = [];
 const missingApis = [];
 const missingDefault = [];
+const defaultExportPattern = /(?:export\s+default|export\s*\{\s*default(?:\s+as\s+default)?\s*\}\s*from)/;
 
 for (const file of trainingPages) {
   const source = fs.readFileSync(file, 'utf8');
   const relative = path.relative(ROOT, file);
-  if (!/export\s+default/.test(source)) missingDefault.push(relative);
+  if (!defaultExportPattern.test(source)) missingDefault.push(relative);
 
   const links = [
     ...source.matchAll(/(?:href=|router\.(?:push|replace)\s*\()\s*[{'"`]([^'"`?}{]+)/g),

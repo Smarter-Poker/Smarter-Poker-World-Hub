@@ -4,9 +4,18 @@
  *
  * The page keeps the existing data, routes, access gates, and recovery flows,
  * while using the same machined black/chrome/cyan system as the Club Shop.
+ *
+ * MOBILE PHASE 4 (docs/mobile-standard/ROLLOUT-PLAN.md). Everything is always
+ * displayed: the five section anchors are a wrapping grid rather than a snap
+ * carousel, the Decision Loop keeps its label and each session keeps its date.
+ * The page carries the phase 0a foundation: HubPageShell (100dvh, no second
+ * bottom pad), useLoadFailsafe so a stalled hook cannot pin "Calibrating"
+ * forever, useOnlineStatus + OfflineBar on the one network action, useHaptics
+ * on every navigation tap, PullToRefresh over the content, and useModalHistory
+ * so Back closes the menu instead of leaving the route.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
@@ -33,6 +42,13 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import HubPageShell from '../../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../../src/components/ui/PullToRefresh';
+import toast from '../../../src/stores/toastStore';
+import { useLoadFailsafe } from '../../../src/hooks/useLoadFailsafe';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStatus';
+import { useHaptics } from '../../../src/hooks/useHaptics';
+import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
@@ -43,11 +59,11 @@ import { resolveDailyHeroHand } from '../../../src/lib/personal-assistant/dailyH
 const SYSTEMS = [
   {
     id: 'sandbox',
-    eyebrow: 'Explore Poker Theoretical Hands',
-    title: 'Virtual Sandbox',
-    description: 'Build any spot, pressure-test every line, and compare your decisions with solver-verified strategy.',
-    features: ['Run Any Poker Scenario', 'Test Lines Versus Villain Types', 'Review Solver-Verified Results'],
-    action: 'Enter Sandbox',
+    eyebrow: 'Verified Evidence Boundary',
+    title: 'Scenario Analysis Archive',
+    description: 'Review why approximate scenario grading is retired, then continue in evidence-backed Training.',
+    features: ['No Approximate Grades', 'No Substituted Spots', 'Open Verified Training'],
+    action: 'Review Evidence Gate',
     image: '/images/personal-assistant-v2/sandbox-system.webp',
     route: '/hub/personal-assistant/sandbox',
   },
@@ -99,6 +115,21 @@ export default function PersonalAssistantPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
+  const haptic = useHaptics();
+  const online = useOnlineStatus();
+
+  // Offline: the network action explains instead of firing. OfflineBar in
+  // pages/_app.js is the global banner; this is the per-action guard.
+  const requireOnline = useCallback(() => {
+    if (online) return true;
+    toast.error(OFFLINE_TOAST);
+    return false;
+  }, [online]);
+
+  // Back closes the menu instead of leaving the route (mobile phase 0a).
+  const closeMenu = useCallback(() => setShowMenu(false), []);
+  useModalHistory(showMenu, closeMenu);
+
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
   const {
@@ -114,6 +145,21 @@ export default function PersonalAssistantPage() {
     error: statsError,
     refetch: refetchStats,
   } = useAssistantStats({ userId: user?.id, ready: !authInitializing });
+
+  /* LOAD FAILSAFE (mobile phase 0a). `useRecentSessions` / `useAssistantStats`
+     own their own `isLoading`, and a request that never settles used to pin
+     the Priority Queue on "Calibrating - Reading Your Latest Poker Data" with
+     no way out. This mirrors both flags into one the page owns, caps it at
+     eight seconds, and every "is it still loading" read below goes through the
+     capped pair. The underlying hooks are untouched, so a late answer still
+     lands. */
+  const [dataLoading, setDataLoading] = useState(true);
+  useEffect(() => {
+    if (!statsLoading && !sessionsLoading) setDataLoading(false);
+  }, [statsLoading, sessionsLoading]);
+  useLoadFailsafe(dataLoading, setDataLoading);
+  const statsBusy = statsLoading && dataLoading;
+  const sessionsBusy = sessionsLoading && dataLoading;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -190,41 +236,24 @@ export default function PersonalAssistantPage() {
   };
 
   const openGuardedRoute = (route) => {
+    haptic('light');
     if (guardAction()) router.push(route);
   };
 
-  const loadHandInSandbox = (hand) => {
+  const openDailyTraining = () => {
+    haptic('light');
     if (!guardAction()) return;
-    const params = new URLSearchParams();
-    const hero = normalizeHeroHand(hand.heroHand);
-    if (hero) params.set('h', hero);
-    if (hand.position) params.set('p', hand.position);
-    const board = normalizeBoardCards(hand.board);
-    if (board) params.set('b', board.join(','));
-    const pot = Number(hand.pot);
-    if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
-    const query = params.toString();
-    router.push(`/hub/personal-assistant/sandbox${query ? `?${query}` : ''}`);
+    router.push('/hub/training?source=personal-assistant-hand-of-day');
   };
 
   const openSession = (session) => {
+    haptic('light');
     if (!guardAction()) return;
     if (session.type !== 'sandbox') {
       router.push('/hub/personal-assistant/leaks');
       return;
     }
-    const params = new URLSearchParams();
-    const hero = normalizeHeroHand(session.hero_hand);
-    if (hero) params.set('h', hero);
-    if (session.hero_position) params.set('p', session.hero_position);
-    const board = normalizeBoardCards(`${session.board_flop || ''}${session.board_turn || ''}${session.board_river || ''}`);
-    if (board) params.set('b', board.join(','));
-    const pot = Number(session.pot_size_bb);
-    if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
-    const stack = Number(session.hero_stack);
-    if (Number.isFinite(stack) && stack > 0) params.set('s', String(stack));
-    const query = params.toString();
-    router.push(`/hub/personal-assistant/sandbox${query ? `?${query}` : ''}`);
+    router.push('/hub/personal-assistant/sandbox?source=archived-session');
   };
 
   const formatSessionDate = (value) => {
@@ -246,13 +275,15 @@ export default function PersonalAssistantPage() {
   ) || null;
 
   const activeLeakCount = Number(stats?.leaksFound) || 0;
-  const sandboxSessionCount = Number(stats?.sandboxSessions) || 0;
   const handsAnalyzedCount = Number(stats?.handsAnalyzed) || 0;
   const dataSyncError = statsError || sessionsError;
 
-  const retryAssistantData = async () => {
+  const retryAssistantData = useCallback(async () => {
     if (isRetrying) return;
+    if (!requireOnline()) return;
+    haptic('light');
     setIsRetrying(true);
+    setDataLoading(true);
     try {
       await Promise.allSettled([
         Promise.resolve(refetchStats?.()),
@@ -260,11 +291,12 @@ export default function PersonalAssistantPage() {
       ]);
     } finally {
       setIsRetrying(false);
+      setDataLoading(false);
     }
-  };
+  }, [isRetrying, requireOnline, haptic, refetchStats, refetchSessions]);
 
   const nextMission = (() => {
-    if (statsLoading || sessionsLoading) {
+    if (statsBusy || sessionsBusy) {
       return {
         mode: 'loading',
         badge: 'Calibrating',
@@ -300,10 +332,10 @@ export default function PersonalAssistantPage() {
     if (lastRealSession) {
       return {
         mode: 'resume',
-        badge: 'Continue Analysis',
+        badge: 'Historical Record',
         title: lastRealSession.title,
-        description: 'Return To Your Latest Sandbox Spot With The Hand, Position, Board, Pot, And Stack Restored.',
-        action: 'Resume Session',
+        description: 'Review The Evidence Boundary For Historical Sandbox Records. Approximate Sessions Cannot Resume As Scored Analysis.',
+        action: 'Review Archive',
         signal: formatSessionDate(lastRealSession.date) || 'Most Recent Session',
       };
     }
@@ -313,8 +345,8 @@ export default function PersonalAssistantPage() {
         mode: 'daily',
         badge: 'Daily Decision',
         title: dailyHand.title || 'Solve Today’s Featured Spot',
-        description: 'Load Today’s Hand Into The Sandbox And Compare Your Decision With The Recommended Line.',
-        action: 'Run Daily Hand',
+        description: 'Continue In The Signed Training Pipeline For Server-Delivered Questions And Grading.',
+        action: 'Open Verified Training',
         signal: dailyHand.position || 'Daily Scenario',
       };
     }
@@ -322,10 +354,10 @@ export default function PersonalAssistantPage() {
     return {
       mode: 'start',
       badge: 'Recommended Start',
-      title: 'Build Your First Decision Spot',
-      description: 'Choose A Hand, Position, Board, And Opponent Type To Start Your Personal Strategy Record.',
-      action: 'Start In Sandbox',
-      signal: 'No Session Required',
+      title: 'Start Evidence-Backed Training',
+      description: 'Open The Signed Training Pipeline For Verified Question Delivery, Grading, And Feedback.',
+      action: 'Open Verified Training',
+      signal: 'Signed Attempt Required',
     };
   })();
 
@@ -344,19 +376,19 @@ export default function PersonalAssistantPage() {
       return;
     }
     if (nextMission.mode === 'daily') {
-      loadHandInSandbox(dailyHand);
+      openDailyTraining();
       return;
     }
-    openGuardedRoute('/hub/personal-assistant/sandbox');
+    openGuardedRoute('/hub/training?source=personal-assistant-priority');
   };
 
   const decisionLoop = [
     {
       step: '01',
-      title: 'Analyze',
-      detail: `${sandboxSessionCount.toLocaleString()} Sandbox Session${sandboxSessionCount === 1 ? '' : 's'}`,
+      title: 'Train',
+      detail: 'Signed Question And Grading Pipeline',
       Icon: FlaskConical,
-      route: '/hub/personal-assistant/sandbox',
+      route: '/hub/training?source=personal-assistant-loop',
     },
     {
       step: '02',
@@ -375,37 +407,37 @@ export default function PersonalAssistantPage() {
   ];
 
   const statCards = [
-    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Total Reviewed', Icon: History, route: '/hub/personal-assistant/sandbox' },
-    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'GTO Checked', Icon: Layers, route: '/hub/personal-assistant/leaks' },
+    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Historical Records', Icon: History, route: '/hub/personal-assistant/sandbox' },
+    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'Recorded Reviews', Icon: Layers, route: '/hub/personal-assistant/leaks' },
     { title: 'Active Leaks', value: stats?.leaksFound || 0, label: `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`, Icon: Droplet, route: '/hub/personal-assistant/leaks' },
-    { title: 'Sandbox Sessions', value: stats?.sandboxSessions || 0, label: 'Scenarios Explored', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
+    { title: 'Archived Sessions', value: stats?.sandboxSessions || 0, label: 'Historical Sandbox Records', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
   ];
 
   const activityCards = [
     {
       title: 'Recent Sessions',
-      label: sessionsLoading
+      label: sessionsBusy
         ? 'Loading Session History…'
         : (recentSessions || []).length > 0
           ? `${(recentSessions || []).length} Session${recentSessions.length === 1 ? '' : 's'} Available`
           : 'No Sessions Yet',
       detail: (recentSessions || [])[0]
         ? `${recentSessions[0].title}${recentSessions[0].isDemo ? ' (Sample)' : ''} · ${formatEv(recentSessions[0].evLoss)}`
-        : 'Start A Sandbox Session',
+        : 'Open Verified Training',
       Icon: Clock3,
-      onClick: () => openGuardedRoute('/hub/personal-assistant/sandbox'),
+      onClick: () => openGuardedRoute('/hub/training?source=personal-assistant-activity'),
     },
     {
       title: 'New Leaks',
-      label: statsLoading ? 'Loading Leak Data…' : `${(stats?.leaksFound || 0).toLocaleString()} Active`,
-      detail: statsLoading ? 'Checking Progress' : `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`,
+      label: statsBusy ? 'Loading Leak Data…' : `${(stats?.leaksFound || 0).toLocaleString()} Active`,
+      detail: statsBusy ? 'Checking Progress' : `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`,
       Icon: ScanSearch,
       onClick: () => openGuardedRoute('/hub/personal-assistant/leaks'),
     },
     {
       title: 'Last Session',
-      label: sessionsLoading ? 'Loading Last Session…' : (lastRealSession?.title || 'Nothing To Restore Yet'),
-      detail: lastRealSession ? formatSessionDate(lastRealSession.date) : 'Open The Sandbox To Begin',
+      label: sessionsBusy ? 'Loading Last Session…' : (lastRealSession?.title || 'Nothing To Restore Yet'),
+      detail: lastRealSession ? formatSessionDate(lastRealSession.date) : 'No Historical Record Yet',
       Icon: Activity,
       onClick: () => (lastRealSession ? openSession(lastRealSession) : openGuardedRoute('/hub/personal-assistant/sandbox')),
     },
@@ -428,13 +460,25 @@ export default function PersonalAssistantPage() {
   const heroCards = (normalizeHeroHand(dailyHand?.heroHand)?.match(/.{2}/g) || []).map(formatCard);
   const boardCards = (normalizeBoardCards(dailyHand?.board) || []).map(formatCard);
 
-  if (!mounted) {
-    return (
-      <div className={styles.loadingWrap}>
-        <div className={styles.loadingText}>Initializing Jarvis…</div>
+  /* The first paint used to be a black page with one centred 12px line until
+     `mounted` flipped, so the largest contentful paint was that string and
+     nothing about the page was on screen. The shell, header and the five
+     section anchors now paint on the server; only the data blocks below are
+     placeholders, and they carry the same heights as the real content so
+     nothing jumps when it arrives. */
+  const skeleton = (
+    <div className={styles.skel} aria-hidden="true">
+      <div className={`${styles.skelBlock} ${styles.skelHero}`} />
+      <div className={`${styles.skelBlock} ${styles.skelBar}`} />
+      <div className={`${styles.skelBlock} ${styles.skelCard}`} />
+      <div className={styles.skelRow}>
+        <div className={`${styles.skelBlock} ${styles.skelCard}`} />
+        <div className={`${styles.skelBlock} ${styles.skelCard}`} />
+        <div className={`${styles.skelBlock} ${styles.skelCard}`} />
+        <div className={`${styles.skelBlock} ${styles.skelCard}`} />
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <PageTransition>
@@ -453,43 +497,54 @@ export default function PersonalAssistantPage() {
       </Head>
 
       <PersonalAssistantCopyPolicy />
+      <HubPageShell
+        className="pa"
+        maxWidth={1240}
+        header={<UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />}
+      >
       <div className={styles.page}>
-        <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
         <HamburgerMenu
           isOpen={showMenu}
-          onClose={() => setShowMenu(false)}
+          onClose={closeMenu}
           direction="left"
           theme="dark"
           menuItems={menuConfig.menuItems}
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        <nav className={styles.tabs} aria-label="Personal Assistant Sections">
-          <a className={styles.activeTab} href="#overview" aria-current="page">Overview</a>
-          <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}>Virtual Sandbox</button>
+        {/* Five anchors, every one on screen at 375. This was a hidden-scrollbar
+            snap carousel of 126px cards below 640 (the "slide to see" ban). */}
+        <nav className={styles.tabs} aria-label="Personal Assistant Sections" data-tutorial="nav">
+          <a className={styles.activeTab} href="#overview" aria-current="page" onClick={() => haptic('light')}>Overview</a>
+          <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}>Scenario Archive</button>
           <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/leaks')}>Leak Finder</button>
           <button type="button" onClick={() => openGuardedRoute('/hub/training')}>Training Center</button>
-          <a href="#activity">Activity</a>
+          <a href="#activity" onClick={() => haptic('light')}>Activity</a>
         </nav>
 
+        {/* Pull down at the top to re-read sessions and stats. Off while the
+            menu is open so a drag inside it cannot fire a reload underneath. */}
+        <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
         <main className={styles.main} id="overview">
+          {!mounted ? skeleton : (
+          <>
           <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title">
             <div className={styles.heroInner}>
               <div className={styles.heroCopy}>
                 <span className={styles.eyebrow}>Personal Poker Assistant</span>
                 <h1 id="assistant-title">Meet Jarvis.<br />Your Edge At The Table.</h1>
-                <p>Explore Theoretical Hands, Find Leaks, And Turn Solver Data Into Better Decisions From One Command Center.</p>
+                <p>Open Verified Training, Find Leaks, And Turn Evidence-Backed Reviews Into Better Decisions From One Command Center.</p>
                 <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
                   <span className={styles.statusDot} aria-hidden="true" />
-                  {dataSyncError ? 'Jarvis Online · Data Sync Needs Attention' : 'Jarvis Online · Solver Connected'}
+                  {dataSyncError ? 'Jarvis Online · Data Sync Needs Attention' : 'Jarvis Online · Training Pipeline Connected'}
                 </div>
                 <div className={styles.heroActions}>
                   <button
                     type="button"
                     className={styles.primaryButton}
-                    onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}
+                    onClick={() => openGuardedRoute('/hub/training?source=personal-assistant-hero')}
                   >
-                    <Play size={15} fill="currentColor" aria-hidden="true" />Start New Scenario
+                    <Play size={15} fill="currentColor" aria-hidden="true" />Open Verified Training
                   </button>
                   {lastRealSession && (
                     <button
@@ -518,7 +573,7 @@ export default function PersonalAssistantPage() {
             </div>
           )}
 
-          <section className={`${styles.section} ${styles.missionSection}`} aria-labelledby="mission-title">
+          <section className={`${styles.section} ${styles.missionSection}`} aria-labelledby="mission-title" data-tutorial="mission">
             <SectionBar
               id="mission-title"
               title="Jarvis Priority Queue"
@@ -542,7 +597,9 @@ export default function PersonalAssistantPage() {
                   {nextMission.action}<ChevronRight size={16} aria-hidden="true" />
                 </button>
               </div>
-              <div className={styles.decisionLoop} aria-label="Jarvis improvement path">
+              {/* The label used to be `display: none` below 960, leaving three
+                  numbered steps with nothing saying what the row is. */}
+              <div className={styles.decisionLoop} aria-label="Jarvis improvement path" data-tutorial="loop">
                 <span className={styles.loopLabel}><Route size={15} aria-hidden="true" />Decision Loop</span>
                 {decisionLoop.map(({ step, title, detail, Icon, route }) => (
                   <button
@@ -554,7 +611,7 @@ export default function PersonalAssistantPage() {
                   >
                     <span className={styles.loopNumber}>{step}</span>
                     <Icon size={17} aria-hidden="true" />
-                    <span><strong>{title}</strong><small>{statsLoading ? 'Syncing Live Data' : detail}</small></span>
+                    <span><strong>{title}</strong><small>{statsBusy ? 'Syncing Live Data' : detail}</small></span>
                     <ChevronRight size={14} aria-hidden="true" />
                   </button>
                 ))}
@@ -562,7 +619,7 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
-          <section className={styles.section} aria-labelledby="systems-title">
+          <section className={styles.section} aria-labelledby="systems-title" data-tutorial="systems">
             <SectionBar id="systems-title" title="Choose Your Tool" meta="2 Systems Available" />
             <div className={styles.systemGrid}>
               {SYSTEMS.map((system) => (
@@ -602,12 +659,12 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
-          <section className={styles.section} aria-labelledby="dashboard-title">
+          <section className={styles.section} aria-labelledby="dashboard-title" data-tutorial="stats">
             <SectionBar id="dashboard-title" title="Dashboard Overview" meta="Live Performance" />
             {(statsDemo || stats?.isDemo) && (
               <p className={styles.demoNote}>Sample View · Sign In To See Your Own Sessions, Hands, And Leaks.</p>
             )}
-            <div className={styles.statGrid} aria-busy={statsLoading} aria-live="polite">
+            <div className={styles.statGrid} aria-busy={statsBusy} aria-live="polite">
               {statCards.map(({ title, value, label, Icon, route }) => (
                 <button
                   type="button"
@@ -618,8 +675,8 @@ export default function PersonalAssistantPage() {
                 >
                   <span className={styles.statCardInner}>
                     <span className={styles.statTopline}><Icon size={17} aria-hidden="true" />{title}</span>
-                    <strong>{statsLoading ? 'Not Available' : Number(value).toLocaleString()}</strong>
-                    <span className={styles.statLabel}>{statsLoading ? 'Loading Live Data…' : label}</span>
+                    <strong>{statsBusy ? 'Not Available' : Number(value).toLocaleString()}</strong>
+                    <span className={styles.statLabel}>{statsBusy ? 'Loading Live Data…' : label}</span>
                     <span className={styles.statAction}>View Details<ChevronRight size={13} aria-hidden="true" /></span>
                   </span>
                 </button>
@@ -627,7 +684,7 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
-          <section className={styles.section} id="activity" aria-labelledby="activity-title">
+          <section className={styles.section} id="activity" aria-labelledby="activity-title" data-tutorial="activity">
             <SectionBar id="activity-title" title="Your Activity" meta="Recent Data" />
             <div className={styles.activityGrid}>
               {activityCards.map(({ title, label, detail, Icon, onClick }) => (
@@ -644,8 +701,8 @@ export default function PersonalAssistantPage() {
                 </button>
               ))}
             </div>
-            {!sessionsLoading && (recentSessions || []).length > 0 && (
-              <div className={styles.sessionRail} aria-label="Recent session history">
+            {!sessionsBusy && (recentSessions || []).length > 0 && (
+              <div className={styles.sessionRail} aria-label="Recent session history" data-tutorial="sessions">
                 <div className={styles.sessionRailHeader}>
                   <span>Continue A Session</span>
                   <small>Most Recent First</small>
@@ -678,7 +735,7 @@ export default function PersonalAssistantPage() {
             )}
           </section>
 
-          <section className={styles.section} aria-labelledby="daily-title">
+          <section className={styles.section} aria-labelledby="daily-title" data-tutorial="daily">
             <SectionBar id="daily-title" title="Hand Of The Day" meta="Daily Decision Drill" />
             <div className={styles.dailyFrame}>
               {dailyHand ? (
@@ -704,10 +761,10 @@ export default function PersonalAssistantPage() {
                         ))}
                       </div>
                     )}
-                    <span className={styles.dailyPrompt}><Sparkles size={14} aria-hidden="true" />Load The Spot And Compare Your Decision</span>
+                    <span className={styles.dailyPrompt}><Sparkles size={14} aria-hidden="true" />Continue In The Signed Training Pipeline</span>
                   </div>
-                  <button type="button" className={styles.primaryButton} onClick={() => loadHandInSandbox(dailyHand)}>
-                    <Play size={15} fill="currentColor" aria-hidden="true" />Load In Sandbox
+                  <button type="button" className={styles.primaryButton} onClick={openDailyTraining}>
+                    <Play size={15} fill="currentColor" aria-hidden="true" />Open Verified Training
                   </button>
                 </div>
               ) : (
@@ -721,7 +778,7 @@ export default function PersonalAssistantPage() {
                   </span>
                   <div className={styles.dailyStateCopy}>
                     <span className={styles.dailyEyebrow}>
-                      {dailyHandStatus === 'loading' ? 'Syncing Solver Scenario' : 'Training Feed Interrupted'}
+                      {dailyHandStatus === 'loading' ? 'Syncing Training Question' : 'Training Feed Interrupted'}
                     </span>
                     <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
                     <p>
@@ -731,7 +788,15 @@ export default function PersonalAssistantPage() {
                     </p>
                   </div>
                   {dailyHandStatus === 'error' && (
-                    <button type="button" className={styles.secondaryButton} onClick={() => setDailyHandReloadKey((key) => key + 1)}>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        if (!requireOnline()) return;
+                        haptic('light');
+                        setDailyHandReloadKey((key) => key + 1);
+                      }}
+                    >
                       <RotateCw size={15} aria-hidden="true" />Retry Daily Hand
                     </button>
                   )}
@@ -739,8 +804,12 @@ export default function PersonalAssistantPage() {
               )}
             </div>
           </section>
+          </>
+          )}
         </main>
+        </PullToRefresh>
       </div>
+      </HubPageShell>
 
       {UpgradePopup}
     </PageTransition>

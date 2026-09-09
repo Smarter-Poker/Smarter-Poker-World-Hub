@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/sessionEvidence.mjs';
 // TRAIN-WIRE-EMPTY-2b — adoption: shared empty-state primitive
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -84,8 +85,10 @@ function generateFeedItems(userSessions) {
         isYou: true,
         game:
           s.game_id?.replace(/-/g, ' ')?.replace(/\b\w/g, (l) => l.toUpperCase()) || 'GTO Training',
-        accuracy:
-          s.accuracy || Math.round((s.correct_count / Math.max(s.hands_played, 1)) * 100) || 0,
+        accuracy: deriveTrainingSessionAccuracy({
+          ...s,
+          hands_played: s.hands_played ?? s.total_questions,
+        }),
         handsPlayed: s.hands_played || s.total_questions || 0,
         timestamp: new Date(s.created_at).getTime(),
         avatarColor: 'var(--sp-accent-cyan)',
@@ -132,12 +135,14 @@ function FeedItem({ item }) {
               style={{
                 fontWeight: 800,
                 color:
-                  item.accuracy >= 80 ? 'var(--sp-accent-green)' : item.accuracy >= 65 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
+                  Number.isFinite(item.accuracy)
+                    ? (item.accuracy >= 80 ? 'var(--sp-accent-green)' : item.accuracy >= 65 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)')
+                    : 'var(--sp-fg-muted)',
               }}
             >
-              {item.accuracy}%
+              {Number.isFinite(item.accuracy) ? `${item.accuracy}%` : 'Accuracy Not Available'}
             </span>
-            {' accuracy'}
+            {Number.isFinite(item.accuracy) ? ' accuracy' : ''}
           </>
         );
       case 'streak':
@@ -274,38 +279,14 @@ export default function TrainingFeedPage() {
     fetchFeed();
   }, [fetchFeed]);
 
-  // Bus listener — refresh feed when a training session completes or inject payload directly
+  // A browser event is only an invalidation hint. It is never evidence that a
+  // verified session completed, because practice tools and any same-origin
+  // script can emit the same EventBus event.
   useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
-      const { source, payload } = event;
-      if (payload && typeof payload === 'object') {
-        // If a payload is provided directly on the bus, inject it immediately
-        const liveItem = {
-          id: `live-${Date.now()}`,
-          type: 'session',
-          user: 'You',
-          isYou: true,
-          game:
-            typeof source === 'string'
-              ? source.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-              : 'GTO Training',
-          accuracy:
-            payload.accuracy ||
-            (payload.questionsAnswered > 0
-              ? Math.round((payload.questionsCorrect / payload.questionsAnswered) * 100)
-              : 0),
-          handsPlayed: payload.questionsAnswered || payload.total_questions || 0,
-          timestamp: Date.now(),
-          avatarColor: 'var(--sp-accent-cyan)',
-          isLiveInjection: true,
-        };
-
-        setFeedItems((prev) => [liveItem, ...prev]);
-      } else {
-        // Fallback to full fetch if no payload
-        fetchFeed();
-      }
-    });
+    const unsub = eventBus.on(
+      EventType?.SESSION_END || 'session:end',
+      () => fetchFeed(),
+    );
     return unsub;
   }, [fetchFeed]);
 

@@ -12,8 +12,7 @@
  *   ICMIZER    (mtt-001, mtt-016)  -> generateFromCharts, driven
  *              with synthetic memory_charts_gold rows (the REAL chart code,
  *              lift-and-evaluate; live rows are DB) -- counted CHART-SYNTH
- *   PioSOLVER  level >= 8                    -> PostflopScenarioGenerator
- *   PioSOLVER  level 1-7                     -> DB pool, NOT runnable offline
+ *   PioSOLVER  all levels                    -> verified DB pool, NOT runnable offline
  *              -> counted SKIPPED-DB, with config-routing coherence asserted
  *
  * Per generated question, asserts:
@@ -375,7 +374,6 @@ async function main() {
             if (isScenario) mode = 'SCENARIO';
             else if (isPreflopLocal) mode = 'PREFLOP';
             else if (isChart) mode = 'CHART-SYNTH';
-            else if (level >= 8) mode = 'POSTFLOP';
             else mode = 'SKIPPED-DB';
 
             if (mode === 'SKIPPED-DB') {

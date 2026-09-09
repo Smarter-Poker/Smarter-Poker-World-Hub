@@ -1,370 +1,257 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * API: Preflop Ranges — Browse GTO Preflop Charts
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * GET /api/training/preflop-ranges
+ * API: Preflop reference charts.
  *
- * Query params:
- *   gameType: 'cash_6max' | 'mtt' | 'spins' (default: cash_6max)
- *   stackDepth: number (default: 100)
- *   position: 'UTG' | 'MP' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB'
- *   scenario: 'rfi' | 'vs3bet' | 'bb_defense' | 'push_fold' | '4bet' | 'squeeze' | 'cold_call'
- *   vsPosition: optional villain position for 3bet/bb_defense/cold_call/squeeze spots
- *
- * Returns:
- *   { success, range: { actions, gridData, stats, ... } }
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * This endpoint intentionally exposes only the exact static corpus that exists
+ * in src/config/solverRanges.js: 6-max cash at 100BB. The source file is an
+ * authored teaching reference, not a provenance-sealed solver export.
+ * Unsupported formats, depths, positions, and nodes fail closed rather than
+ * being substituted with a nearby chart.
  */
-
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
+import { getAllHands, getCombos, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { SolverPolicyService } from '../../../src/services/SolverPolicyService';
+import { RFI, BB_DEFENSE, FOUR_BET, getHandFrequencies } from '../../../src/config/solverRanges';
 
-// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+export const PREFLOP_REFERENCE_CONTRACT = Object.freeze({
+  gameType: 'cash_6max',
+  stackDepth: 100,
+  positionsByScenario: Object.freeze({
+    rfi: Object.freeze(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']),
+    vs3bet: Object.freeze(['UTG', 'CO', 'BTN']),
+    bb_defense: Object.freeze(['UTG', 'CO', 'BTN', 'SB']),
+  }),
+});
+
+const REFERENCE_PROVENANCE = Object.freeze({
+  authority: 'authored_reference',
+  solverExact: false,
+  corpus: 'static_6max_cash_100bb',
+  disclosure:
+    'Authored 6-max cash 100BB teaching reference. No checksummed solver artifact or solve-tree provenance is attached.',
+});
+
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) {
-        _supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-    }
-    return _supabase;
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+    );
+  }
+  return _supabase;
 }
-let _solverPolicyService = null;
-function getSolverPolicyService() {
-    if (!_solverPolicyService) {
-        _solverPolicyService = new SolverPolicyService({ db: getSupabase() });
-    }
-    return _solverPolicyService;
+
+function singleQueryValue(value, fallback = '') {
+  if (Array.isArray(value)) return null;
+  return value == null || value === '' ? fallback : String(value);
 }
-import { RFI, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, getHandFrequencies, getRFIByDepth } from '../../../src/config/solverRanges';
 
-
-/**
- * Compute stats from a frequency map
- */
 function computeRangeStats(freqMap) {
-    const allHands = getAllHands();
-    let totalCombos = 0;
-    let pairCombos = 0;
-    let suitedCombos = 0;
-    let offsuitCombos = 0;
-    let mixedHands = 0;
-    let pureHands = 0;
+  const allHands = getAllHands();
+  let totalCombos = 0;
+  let pairCombos = 0;
+  let suitedCombos = 0;
+  let offsuitCombos = 0;
+  let mixedHands = 0;
+  let pureHands = 0;
 
-    // Combos per hand type: pair=6, suited=4, offsuit=12
-    allHands.forEach(hand => {
-        const freq = freqMap[hand] || 0;
-        if (freq <= 0) return;
+  allHands.forEach((hand) => {
+    const freq = freqMap[hand] || 0;
+    if (freq <= 0) return;
 
-        const combos = getCombos(hand);
-        const weightedCombos = combos * freq;
+    const combos = getCombos(hand);
+    const weightedCombos = combos * freq;
+    totalCombos += weightedCombos;
 
-        const isPair = hand.length === 2;
-        const isSuited = hand.endsWith('s');
+    if (hand.length === 2) pairCombos += weightedCombos;
+    else if (hand.endsWith('s')) suitedCombos += weightedCombos;
+    else offsuitCombos += weightedCombos;
 
-        totalCombos += weightedCombos;
-        if (isPair) pairCombos += weightedCombos;
-        else if (isSuited) suitedCombos += weightedCombos;
-        else offsuitCombos += weightedCombos;
+    if (freq >= 0.95) pureHands += 1;
+    else if (freq > 0.05) mixedHands += 1;
+  });
 
-        if (freq >= 0.95) pureHands++;
-        else if (freq > 0.05) mixedHands++;
-    });
+  return {
+    totalCombos: Math.round(totalCombos),
+    maxCombos: 1326,
+    rfiPct: Number(((totalCombos / 1326) * 100).toFixed(1)),
+    pairCombos: Math.round(pairCombos),
+    suitedCombos: Math.round(suitedCombos),
+    offsuitCombos: Math.round(offsuitCombos),
+    pureHands,
+    mixedHands,
+  };
+}
 
-    const rfiPct = (totalCombos / 1326 * 100).toFixed(1);
-
+function resolveExactSpot(scenario, position) {
+  if (scenario === 'rfi') {
     return {
-        totalCombos: Math.round(totalCombos),
-        maxCombos: 1326,
-        rfiPct: parseFloat(rfiPct),
-        pairCombos: Math.round(pairCombos),
-        suitedCombos: Math.round(suitedCombos),
-        offsuitCombos: Math.round(offsuitCombos),
-        pureHands,
-        mixedHands,
+      spotData: RFI[position],
+      actions: ['Raise', 'Fold'],
+      actionLabels: [
+        { label: 'Raise', key: 'raise' },
+        { label: 'Fold', key: 'fold' },
+      ],
+      spotLabel: `${position} First-In RFI`,
     };
+  }
+
+  if (scenario === 'vs3bet') {
+    return {
+      spotData: FOUR_BET[`${position}_vs_3bet`],
+      actions: ['4-Bet', 'Call', 'Fold'],
+      actionLabels: [
+        { label: '4-Bet', key: 'raise' },
+        { label: 'Call', key: 'call' },
+        { label: 'Fold', key: 'fold' },
+      ],
+      spotLabel: `${position} Response To 3-Bet`,
+    };
+  }
+
+  return {
+    spotData: BB_DEFENSE[`vs_${position}`],
+    actions: ['3-Bet', 'Call', 'Fold'],
+    actionLabels: [
+      { label: '3-Bet', key: 'raise' },
+      { label: 'Call', key: 'call' },
+      { label: 'Fold', key: 'fold' },
+    ],
+    spotLabel: `BB Defense Vs ${position} Open`,
+  };
+}
+
+function buildGrid(spotData, actionLabels) {
+  const gridData = {};
+  const nonFoldFrequency = {};
+
+  getAllHands().forEach((hand) => {
+    const frequencies = getHandFrequencies(spotData, hand);
+    const activeFrequency = Math.max(0, 1 - frequencies.fold);
+    nonFoldFrequency[hand] = activeFrequency;
+
+    if (activeFrequency <= 0.005) {
+      gridData[hand] = null;
+      return;
+    }
+
+    gridData[hand] = Object.fromEntries(
+      actionLabels.map(({ label, key }) => [
+        label,
+        Math.round((Number(frequencies[key]) || 0) * 1000) / 10,
+      ]),
+    );
+  });
+
+  return { gridData, nonFoldFrequency };
 }
 
 export default async function handler(req, res) {
   try {
-      withTiming(res);
-      if (!applyRateLimit(req, res, LIMITS.read)) return;
+    withTiming(res);
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-      if (req.method !== 'GET') {
-          return res.status(405).json({ success: false, error: 'GET only' });
-      }
+    if (req.method !== 'GET') {
+      return res.status(405).json({ success: false, error: 'GET only' });
+    }
 
-      try {
-          // Auth check
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const user = authData?.user;
-          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const {
-              gameType = 'cash_6max',
-              stackDepth = '100',
-              position = 'BTN',
-              scenario = 'rfi',
-              vsPosition = '',
-          } = req.query;
+    const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
+    if (authError || !user) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
 
-          // Input validation
-          if (!VALID_SCENARIOS.includes(scenario)) {
-              return res.status(400).json({ success: false, error: 'Invalid scenario type' });
-          }
+    const gameType = singleQueryValue(req.query.gameType, PREFLOP_REFERENCE_CONTRACT.gameType);
+    const rawStackDepth = singleQueryValue(
+      req.query.stackDepth,
+      String(PREFLOP_REFERENCE_CONTRACT.stackDepth),
+    );
+    const scenario = singleQueryValue(req.query.scenario, 'rfi')?.toLowerCase();
+    const position = singleQueryValue(req.query.position, 'BTN')?.toUpperCase();
+    const vsPosition = singleQueryValue(req.query.vsPosition, '');
+    const stackDepth = Number(rawStackDepth);
 
-          const pos = VALID_POSITIONS.includes(position.toUpperCase()) ? position.toUpperCase() : 'BTN';
-          const vsPos = vsPosition ? vsPosition.toUpperCase() : '';
-          const allHands = getAllHands();
-          let rangeData = {};
-          let actions = [];
-          let source = 'solver_ranges';
-          let spotLabel = '';
-          let solverPolicy = null;
+    if (gameType !== PREFLOP_REFERENCE_CONTRACT.gameType) {
+      return res.status(422).json({
+        success: false,
+        error: 'Only The 6-Max Cash Reference Corpus Is Available.',
+        supportedContract: PREFLOP_REFERENCE_CONTRACT,
+      });
+    }
+    if (!Number.isInteger(stackDepth) || stackDepth !== PREFLOP_REFERENCE_CONTRACT.stackDepth) {
+      return res.status(422).json({
+        success: false,
+        error: 'Only The 100BB Reference Corpus Is Available.',
+        supportedContract: PREFLOP_REFERENCE_CONTRACT,
+      });
+    }
+    if (vsPosition) {
+      return res.status(422).json({
+        success: false,
+        error: 'This Reference Contract Uses Position As The Exact Acting Or Opening Seat; VsPosition Is Unsupported.',
+      });
+    }
 
-          /**
-           * Helper: convert solver spot data → API grid format
-           * Maps { raise: 0.85, call: 0.10 } → { 'Raise': 85.0, 'Call': 10.0, 'Fold': 5.0 }
-           * percentages are rounded to 1 decimal.
-           */
-          function buildGridFromSpot(spotData, actionLabels) {
-              allHands.forEach(hand => {
-                  const freq = getHandFrequencies(spotData, hand);
-                  const hasAction = (freq.raise > 0.005) || (freq.call > 0.005);
-                  if (hasAction) {
-                      const entry = {};
-                      actionLabels.forEach(({ key, solverKey }) => {
-                          entry[key] = Math.round(freq[solverKey] * 1000) / 10;
-                      });
-                      rangeData[hand] = entry;
-                  } else {
-                      rangeData[hand] = null;
-                  }
-              });
-          }
+    const supportedPositions = PREFLOP_REFERENCE_CONTRACT.positionsByScenario[scenario];
+    if (!supportedPositions) {
+      return res.status(422).json({
+        success: false,
+        error: 'Unsupported Reference Scenario.',
+        supportedScenarios: Object.keys(PREFLOP_REFERENCE_CONTRACT.positionsByScenario),
+      });
+    }
+    if (!supportedPositions.includes(position)) {
+      return res.status(422).json({
+        success: false,
+        error: `No Exact ${scenario} Reference Exists For ${position || 'That Position'}.`,
+        supportedPositions,
+      });
+    }
 
-          // ●●● RFI Ranges ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          if (scenario === 'rfi') {
-              const sd = parseInt(stackDepth, 10) || 100;
-              const spotData = getRFIByDepth(sd, pos);
-              if (!spotData) {
-                  return res.status(400).json({ success: false, error: `No RFI data for position ${pos}` });
-              }
-              actions = ['Raise', 'Fold'];
-              spotLabel = `${pos} RFI (${sd}BB)`;
-              allHands.forEach(hand => {
-                  const freq = getHandFrequencies(spotData, hand);
-                  rangeData[hand] = freq.raise > 0.005
-                      ? { 'Raise': Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 }
-                      : null;
-              });
-          }
+    const exactSpot = resolveExactSpot(scenario, position);
+    if (!exactSpot.spotData) {
+      return res.status(404).json({
+        success: false,
+        error: 'The Requested Exact Reference Spot Is Not Available.',
+      });
+    }
 
-          // ●●● Vs 3-Bet (4-Bet / Call / Fold facing a 3bet) ●●●●●●●●●●●●●
-          else if (scenario === 'vs3bet' || scenario === '4bet') {
-              // Look up FOUR_BET spot: e.g. UTG_vs_3bet, CO_vs_3bet, BTN_vs_3bet
-              const spotKey = `${pos}_vs_3bet`;
-              const spotData = FOUR_BET[spotKey];
-              if (!spotData) {
-                  // Fallback: try closest available spot
-                  const fallbackKey = Object.keys(FOUR_BET || {}).find(k => k.startsWith(pos)) || 'BTN_vs_3bet';
-                  const fbData = FOUR_BET[fallbackKey] || {};
-                  actions = ['4-Bet', 'Call', 'Fold'];
-                  spotLabel = `${pos} vs 3-Bet (${fallbackKey})`;
-                  buildGridFromSpot(fbData, [
-                      { key: '4-Bet', solverKey: 'raise' },
-                      { key: 'Call', solverKey: 'call' },
-                      { key: 'Fold', solverKey: 'fold' },
-                  ]);
-              } else {
-                  actions = ['4-Bet', 'Call', 'Fold'];
-                  spotLabel = `${pos} vs 3-Bet`;
-                  buildGridFromSpot(spotData, [
-                      { key: '4-Bet', solverKey: 'raise' },
-                      { key: 'Call', solverKey: 'call' },
-                      { key: 'Fold', solverKey: 'fold' },
-                  ]);
-              }
-          }
+    const { gridData, nonFoldFrequency } = buildGrid(
+      exactSpot.spotData,
+      exactSpot.actionLabels,
+    );
 
-          // ●●● BB Defense ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          else if (scenario === 'bb_defense') {
-              // BB defense vs opener — uses vsPosition or falls back to vs_BTN
-              const defKey = vsPos ? `vs_${vsPos}` : (pos === 'BB' ? 'vs_BTN' : `vs_${pos}`);
-              const spotData = BB_DEFENSE[defKey] || BB_DEFENSE['vs_BTN'];
-              actions = ['3-Bet', 'Call', 'Fold'];
-              spotLabel = `BB Defense ${defKey.replace('_', ' ')}`;
-              buildGridFromSpot(spotData, [
-                  { key: '3-Bet', solverKey: 'raise' },
-                  { key: 'Call', solverKey: 'call' },
-                  { key: 'Fold', solverKey: 'fold' },
-              ]);
-          }
-
-          // ●●● 3-Bet Ranges (IP/OOP 3-bet vs opener) ●●●●●●●●●●●●●●●●●●●●
-          // Note: separate from vs3bet (which is the opener's response TO a 3bet)
-          // This uses THREE_BET data: BTN_vs_UTG, SB_vs_CO, BB_vs_BTN, etc.
-          // Accessed when frontend queries scenario=vs3bet with a specific vsPosition
-          // or via the new expanded spot picker
-
-          // ●●● Cold Call ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          else if (scenario === 'cold_call') {
-              // Cold call spots: CO_vs_UTG, BTN_vs_UTG, BTN_vs_CO, SB_vs_BTN
-              const ccKey = vsPos ? `${pos}_vs_${vsPos}` : Object.keys(COLD_CALL || {}).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
-              const spotData = COLD_CALL[ccKey];
-              if (!spotData) {
-                  return res.status(400).json({ success: false, error: `No cold-call data for ${ccKey}` });
-              }
-              actions = ['Call', 'Fold'];
-              spotLabel = `${ccKey.replace(/_/g, ' ')} Cold Call`;
-              allHands.forEach(hand => {
-                  const freq = getHandFrequencies(spotData, hand);
-                  rangeData[hand] = freq.call > 0.005
-                      ? { 'Call': Math.round(freq.call * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 }
-                      : null;
-              });
-          }
-
-          // ●●● Squeeze ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          else if (scenario === 'squeeze') {
-              // Find matching squeeze spot
-              const sqzKey = Object.keys(SQUEEZE || {}).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE || {})[0];
-              const spotData = SQUEEZE[sqzKey];
-              if (!spotData) {
-                  return res.status(400).json({ success: false, error: `No squeeze data for ${pos}` });
-              }
-              actions = ['Squeeze', 'Fold'];
-              spotLabel = sqzKey.replace(/_/g, ' ');
-              allHands.forEach(hand => {
-                  const freq = getHandFrequencies(spotData, hand);
-                  rangeData[hand] = freq.raise > 0.005
-                      ? { 'Squeeze': Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 }
-                      : null;
-              });
-          }
-
-          // ●●● Push/Fold (Short Stack) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          // 2026-07-19 AUDIT PHASE 2: memory_charts_gold now holds COMPUTED
-          // Nash jam/fold equilibria (fictitious play over a Monte-Carlo
-          // 169x169 equity matrix; 6-max chipEV, single-overcall model) for
-          // UTG/MP/CO/BTN/SB first-in shoves at depths 2-25bb, plus the BB
-          // call-vs-SB-jam ranges (villain_action='sb_push'). The old
-          // RFI-threshold heuristic remains only as a last-resort fallback.
-          else if (scenario === 'push_fold') {
-              const sd = parseInt(stackDepth, 10) || 15;
-              const isBB = pos === 'BB';
-              // Charts exist for UTG/MP/CO/BTN/SB (+BB call); map uncovered seats
-              const chartPos = isBB ? 'BB'
-                  : ['UTG', 'MP', 'CO', 'BTN', 'SB'].includes(pos) ? pos
-                  : pos === 'HJ' || pos === 'MP+1' ? 'MP'
-                  : pos === 'UTG+1' ? 'UTG'
-                  : 'BTN';
-              actions = isBB ? ['Call', 'Fold'] : ['Push', 'Fold'];
-
-              // Fetch and interpret the nearest chart through the same
-              // canonical policy gateway used by every server consumer.
-              let chartRows = [];
-              try {
-                  chartRows = await getSolverPolicyService().readChartRows({
-                      gameType: 'Tournament',
-                      heroPosition: chartPos,
-                      villainAction: isBB ? 'sb_push' : 'fold_to_hero',
-                      minStackDepth: Math.max(2, sd - 5),
-                      maxStackDepth: sd + 5,
-                      limit: 20,
-                  });
-              } catch (chartError) {
-                  console.warn('[PreflopRanges] Canonical chart lookup failed:', chartError?.message || chartError);
-              }
-              let chart = null;
-              chartRows.sort((left, right) =>
-                  Math.abs(Number(left.stack_depth) - sd) - Math.abs(Number(right.stack_depth) - sd)
-                  || String(left.chart_id || '').localeCompare(String(right.chart_id || ''))
-              );
-              chart = chartRows[0] || null;
-
-              if (chart?.hand_matrix) {
-                  const answer = getSolverPolicyService().answerFromChart(chart, {}, {
-                      mode: 'aggregate',
-                      approximatedDimensions: Number(chart.stack_depth) === sd ? [] : ['stackDepth'],
-                      fallbackReason: Number(chart.stack_depth) === sd ? null : 'nearest_chart_stack_depth',
-                  });
-                  solverPolicy = getSolverPolicyService().consumerEnvelope(answer, 'preflop-ranges');
-                  const key = isBB ? 'call' : 'all_in';
-                  const actionLabel = isBB ? 'Call' : 'Push';
-                  allHands.forEach(hand => {
-                      const freq = solverPolicy.rangeDistribution?.[hand]?.[key] ?? 0;
-                      rangeData[hand] = freq > 0
-                          ? { [actionLabel]: Math.round(freq * 1000) / 10, 'Fold': Math.round((1 - freq) * 1000) / 10 }
-                          : null;
-                  });
-                  source = 'nash_computed';
-                  spotLabel = isBB
-                      ? `BB Call vs SB Jam ${chart.stack_depth}BB (Nash)`
-                      : `${pos} Push/Fold ${chart.stack_depth}BB (Nash)`;
-              } else {
-                  // Fallback: use RFI data at the appropriate stack depth.
-                  // Keys must match `actions` (BB uses Call/Fold labels).
-                  const fbAction = isBB ? 'Call' : 'Push';
-                  const rfiRange = getRFIByDepth(sd, isBB ? 'BB' : pos) || {};
-                  const pushThreshold = sd <= 8 ? 0.4 : sd <= 12 ? 0.3 : sd <= 15 ? 0.25 : 0.2;
-                  allHands.forEach(hand => {
-                      const freq = getHandFrequencies(rfiRange, hand);
-                      if (freq.raise >= pushThreshold) {
-                          rangeData[hand] = { [fbAction]: Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 };
-                      } else {
-                          rangeData[hand] = null;
-                      }
-                  });
-                  source = 'derived_from_rfi';
-                  spotLabel = `${pos} Push/Fold ${sd}BB (derived)`;
-              }
-          }
-
-          // ●●● Compute stats ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          const freqMap = {};
-          allHands.forEach(hand => {
-              if (rangeData[hand]) {
-                  const foldKey = Object.keys(rangeData[hand]).find(k => k === 'Fold');
-                  const foldPct = foldKey ? rangeData[hand][foldKey] : 0;
-                  freqMap[hand] = (100 - foldPct) / 100;
-              }
-          });
-
-          const stats = computeRangeStats(freqMap);
-
-          res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=7200');
-          return res.status(200).json({
-              success: true,
-              range: {
-                  actions,
-                  gridData: rangeData,
-                  stats,
-                  position: pos,
-                  scenario,
-                  gameType,
-                  stackDepth: parseInt(stackDepth, 10),
-                  source,
-                  spotLabel,
-                  solverPolicy,
-              },
-          });
-
-      } catch (err) {
-          console.warn('[PreflopRanges] Error:', err);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
-      }
-
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.setHeader('Vary', 'Authorization');
+    return res.status(200).json({
+      success: true,
+      range: {
+        actions: exactSpot.actions,
+        gridData,
+        stats: computeRangeStats(nonFoldFrequency),
+        position,
+        scenario,
+        gameType,
+        stackDepth,
+        source: 'authored_reference_6max_cash_100bb',
+        spotLabel: exactSpot.spotLabel,
+        provenance: REFERENCE_PROVENANCE,
+      },
+    });
+  } catch (error) {
+    try {
+      reportApiError(error, req);
+    } catch (sentryError) {
+      const reportingMessage = sentryError?.message || String(sentryError);
+      console.warn('[App] Handled exception:', reportingMessage);
+    }
+    console.warn('[PreflopRanges] Error:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   }
 }

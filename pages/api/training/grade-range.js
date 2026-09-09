@@ -1,42 +1,46 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * API: Grade Range — Compare user-constructed range to GTO solution
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * API: Compare A Constructed Range With One Authored Practice Reference
+ *
+ * This endpoint intentionally exposes only the exact static corpus identity
+ * that the Range Builder can prove it has: 6-max cash RFI at 100BB. The
+ * bundled frequencies are an authored study reference, not a verified solver
+ * artifact and not an exact-EV source.
+ *
  * POST /api/training/grade-range
- *
- * Body:
- *   {
- *     gameType: 'cash_6max',
- *     stackDepth: 100,
- *     position: 'BTN',
- *     scenario: 'rfi' | 'vs3bet' | '4bet' | 'bb_defense' | 'cold_call' | 'squeeze' | 'push_fold',
- *     vsPosition: 'UTG' (optional, for 3bet/bb_defense/cold_call),
- *     selectedHands: ['AA', 'AKs', 'AKo', ...]  // Hands the user selected
- *   }
- *
- * Returns:
- *   {
- *     success: true,
- *     grade: { letter: 'B+', score: 82, accuracy: 82.5 },
- *     diff: {
- *       correct: ['AA', 'KK', ...],       // User included, GTO also includes
- *       missed: ['A5s', ...],              // GTO includes but user didn't
- *       wrong: ['T7o', ...],               // User included but GTO doesn't
- *       mixed: { hand: { userIncluded, gtoFreq } }
- *     },
- *     stats: { totalGTOCombos, userCombos, overlapCombos }
- *   }
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * {
+ *   gameType: 'cash_6max',
+ *   scenario: 'rfi',
+ *   position: 'UTG' | 'MP' | 'HJ' | 'CO' | 'BTN' | 'SB',
+ *   stackDepth: 100,
+ *   selectedHands: ['AA', 'AKs', ...]
+ * }
  */
 
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
-// ●● Phase 4 Engine: Range Grading with category breakdowns + heatmap ●●●●
-import { gradeRange, generateHeatmapGrid, generateGradingSummary, HAND_CATEGORIES } from '../../../src/engines/RangeGradingEngine';
+import { getAllHands, getCombos, withTiming } from '../../../src/utils/trainingApiUtils';
+import { RFI, getHandFrequencies } from '../../../src/config/solverRanges';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+export const RANGE_BUILDER_REFERENCE_PROVENANCE = Object.freeze({
+    source: 'static_authored_preflop_reference',
+    authority: 'authored_reference',
+    authoritative: false,
+    solverVerified: false,
+    exactEVAvailable: false,
+    practiceOnly: true,
+    version: 'range-builder-rfi-100bb-v1',
+});
+
+export const RANGE_BUILDER_SUPPORTED_SPOT = Object.freeze({
+    gameType: 'cash_6max',
+    tableSize: 6,
+    scenario: 'rfi',
+    stackDepth: 100,
+    positions: Object.freeze(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']),
+});
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -47,74 +51,50 @@ function getSupabase() {
     }
     return _supabase;
 }
-import {
-    RFI, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, THREE_BET,
-    getHandFrequencies, ALL_HANDS as SOLVER_ALL_HANDS, getRFIByDepth,
-} from '../../../src/config/solverRanges';
 
 /**
- * Resolve the solver spot data for a given scenario + position + vsPosition.
- * Returns { spotData, flat } where flat = { hand: totalActionFreq }.
+ * Resolve only an exact corpus identity. There is deliberately no closest
+ * position, depth, scenario, or Button fallback.
  */
-function resolveSpotForGrading(scenario, pos, vsPosition, stackDepth) {
-    let spotData = null;
-    const vsPos = vsPosition ? vsPosition.toUpperCase() : '';
+export function resolveAuthoredRangeReference({
+    gameType,
+    scenario,
+    position,
+    stackDepth,
+    vsPosition,
+} = {}) {
+    const normalizedPosition = typeof position === 'string' ? position.toUpperCase() : '';
+    const noOpponentDimension = vsPosition === undefined || vsPosition === null || vsPosition === '';
+    const supported = gameType === RANGE_BUILDER_SUPPORTED_SPOT.gameType
+        && scenario === RANGE_BUILDER_SUPPORTED_SPOT.scenario
+        && Number(stackDepth) === RANGE_BUILDER_SUPPORTED_SPOT.stackDepth
+        && noOpponentDimension
+        && RANGE_BUILDER_SUPPORTED_SPOT.positions.includes(normalizedPosition)
+        && Object.prototype.hasOwnProperty.call(RFI, normalizedPosition);
 
-    switch (scenario) {
-        case 'rfi': {
-            const sd = parseInt(stackDepth, 10) || 100;
-            spotData = getRFIByDepth(sd, pos);
-            break;
-        }
-        case 'vs3bet':
-        case '4bet': {
-            const key = `${pos}_vs_3bet`;
-            spotData = FOUR_BET[key] || Object.values(FOUR_BET || {}).find((_, i) =>
-                Object.keys(FOUR_BET || {})[i].startsWith(pos)) || FOUR_BET['BTN_vs_3bet'];
-            break;
-        }
-        case 'bb_defense': {
-            const defKey = vsPos ? `vs_${vsPos}` : (pos === 'BB' ? 'vs_BTN' : `vs_${pos}`);
-            spotData = BB_DEFENSE[defKey] || BB_DEFENSE['vs_BTN'];
-            break;
-        }
-        case 'cold_call': {
-            const ccKey = vsPos ? `${pos}_vs_${vsPos}` :
-                Object.keys(COLD_CALL || {}).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
-            spotData = COLD_CALL[ccKey];
-            break;
-        }
-        case 'squeeze': {
-            const sqzKey = Object.keys(SQUEEZE || {}).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE || {})[0];
-            spotData = SQUEEZE[sqzKey];
-            break;
-        }
-        case 'push_fold': {
-            const sd = parseInt(stackDepth, 10) || 15;
-            spotData = getRFIByDepth(sd, pos);
-            break;
-        }
-        default:
-            spotData = RFI[pos] || RFI['BTN'];
-    }
+    if (!supported) return null;
 
-    if (!spotData) spotData = RFI[pos] || RFI['BTN'];
+    const referenceId = [
+        RANGE_BUILDER_SUPPORTED_SPOT.gameType,
+        RANGE_BUILDER_SUPPORTED_SPOT.scenario,
+        normalizedPosition,
+        `${RANGE_BUILDER_SUPPORTED_SPOT.stackDepth}bb`,
+    ].join(':');
 
-    // Build flat freq map: hand → totalActionFreq (raise + call)
-    const flat = {};
-    for (const hand of SOLVER_ALL_HANDS) {
-        const f = getHandFrequencies(spotData, hand);
-        if (f.raise > 0 || f.call > 0) {
-            flat[hand] = f.raise + f.call;
-        }
-    }
-    return { spotData, flat };
+    return {
+        spotData: RFI[normalizedPosition],
+        reference: {
+            id: referenceId,
+            label: `${normalizedPosition} 6-Max Cash RFI At 100BB`,
+            gameType: RANGE_BUILDER_SUPPORTED_SPOT.gameType,
+            tableSize: RANGE_BUILDER_SUPPORTED_SPOT.tableSize,
+            scenario: RANGE_BUILDER_SUPPORTED_SPOT.scenario,
+            position: normalizedPosition,
+            stackDepth: RANGE_BUILDER_SUPPORTED_SPOT.stackDepth,
+        },
+    };
 }
 
-
-/**
- * Calculate letter grade from numeric score
- */
 function getLetterGrade(score) {
     if (score >= 97) return 'A+';
     if (score >= 93) return 'A';
@@ -131,179 +111,181 @@ function getLetterGrade(score) {
     return 'F';
 }
 
+function buildReferenceFrequencies(spotData, allHands) {
+    const frequencies = {};
+    allHands.forEach((hand) => {
+        const authored = getHandFrequencies(spotData, hand);
+        const combined = (Number(authored?.raise) || 0) + (Number(authored?.call) || 0);
+        frequencies[hand] = Math.max(0, Math.min(1, combined));
+    });
+    return frequencies;
+}
+
 export default async function handler(req, res) {
-  try {
-      withTiming(res);
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    try {
+        withTiming(res);
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'POST only' });
-      }
+        if (req.method !== 'POST') {
+            res.setHeader('Allow', 'POST');
+            return res.status(405).json({ success: false, code: 'METHOD_NOT_ALLOWED', error: 'POST only' });
+        }
 
-      // Body size guard — selectedHands array is bounded to 169 hands max
-      const bodySize = JSON.stringify(req.body || {}).length;
-      if (bodySize > 10240) {
-          return res.status(413).json({ success: false, error: 'Request body too large' });
-      }
+        const bodySize = JSON.stringify(req.body || {}).length;
+        if (bodySize > 10240) {
+            return res.status(413).json({ success: false, code: 'REQUEST_TOO_LARGE', error: 'Request body too large' });
+        }
 
-      try {
-          // Auth check
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const user = authData?.user;
-          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, code: 'AUTH_REQUIRED', error: 'Auth required' });
 
-          const { position = 'BTN', scenario = 'rfi', selectedHands = [], vsPosition = '', stackDepth = 100 } = req.body;
+        const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
+        if (authError || !user) {
+            return res.status(401).json({ success: false, code: 'INVALID_AUTH', error: 'Invalid token' });
+        }
 
-          if (!Array.isArray(selectedHands)) {
-              return res.status(400).json({ success: false, error: 'selectedHands must be an array' });
-          }
+        const {
+            gameType,
+            scenario,
+            position,
+            stackDepth,
+            vsPosition,
+            selectedHands,
+        } = req.body || {};
 
-          // Input validation
-          if (!VALID_SCENARIOS.includes(scenario)) {
-              return res.status(400).json({ success: false, error: 'Invalid scenario type' });
-          }
+        if (!Array.isArray(selectedHands)) {
+            return res.status(400).json({
+                success: false,
+                code: 'INVALID_SELECTED_HANDS',
+                error: 'selectedHands must be an array',
+            });
+        }
 
-          const pos = VALID_POSITIONS.includes(position.toUpperCase()) ? position.toUpperCase() : 'BTN';
-          const { flat: gtoRange } = resolveSpotForGrading(scenario, pos, vsPosition, stackDepth);
-          const allHands = getAllHands();
-          const userSet = new Set(selectedHands.map(h => h.toUpperCase ? h : h));
+        const allHands = getAllHands();
+        const validHands = new Set(allHands);
+        const hasInvalidHand = selectedHands.some((hand) => typeof hand !== 'string' || !validHands.has(hand));
+        const hasDuplicateHand = new Set(selectedHands).size !== selectedHands.length;
+        if (selectedHands.length > allHands.length || hasInvalidHand || hasDuplicateHand) {
+            return res.status(400).json({
+                success: false,
+                code: 'INVALID_SELECTED_HANDS',
+                error: 'selectedHands must contain unique canonical hand notations',
+            });
+        }
 
-          // ●●● Classify each hand ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-          const correct = [];    // User included, GTO freq >= 0.5
-          const missed = [];     // GTO freq >= 0.5, user didn't include
-          const wrong = [];      // User included, GTO freq < 0.1 (definitely not in range)
-          const mixed = {};      // User included but GTO has partial frequency
+        const resolved = resolveAuthoredRangeReference({
+            gameType,
+            scenario,
+            position,
+            stackDepth,
+            vsPosition,
+        });
+        if (!resolved) {
+            return res.status(422).json({
+                success: false,
+                code: 'UNSUPPORTED_AUTHORED_REFERENCE',
+                error: 'No exact authored practice reference exists for the requested spot',
+                supported: RANGE_BUILDER_SUPPORTED_SPOT,
+            });
+        }
 
-          let totalGTOCombos = 0;
-          let userCombos = 0;
-          let overlapCombos = 0;
-          let weightedScore = 0;
-          let totalWeight = 0;
+        const referenceFrequencies = buildReferenceFrequencies(resolved.spotData, allHands);
+        const selected = new Set(selectedHands);
+        const matched = [];
+        const omitted = [];
+        const extra = [];
+        const mixed = {};
+        const gridDiff = {};
 
-          allHands.forEach(hand => {
-              const gtoFreq = gtoRange[hand] || 0;
-              const userIncluded = userSet.has(hand);
-              const combos = getCombos(hand);
+        let totalReferenceCombos = 0;
+        let userCombos = 0;
+        let overlapCombos = 0;
+        let weightedAgreement = 0;
+        let totalWeight = 0;
 
-              if (gtoFreq >= 0.5) totalGTOCombos += combos;
-              if (userIncluded) userCombos += combos;
+        allHands.forEach((hand) => {
+            const referenceFrequency = referenceFrequencies[hand] || 0;
+            const userIncluded = selected.has(hand);
+            const combos = getCombos(hand);
+            totalWeight += combos;
 
-              // Weight by combos — offsuit hands (12 combos) matter more
-              const weight = combos;
-              totalWeight += weight;
+            if (referenceFrequency >= 0.5) totalReferenceCombos += combos;
+            if (userIncluded) userCombos += combos;
 
-              if (userIncluded && gtoFreq >= 0.5) {
-                  // Correct: user included a hand that GTO includes
-                  correct.push(hand);
-                  overlapCombos += combos;
-                  weightedScore += weight * 1.0;
-              } else if (!userIncluded && gtoFreq < 0.1) {
-                  // Correct: user correctly excluded a hand GTO doesn't play
-                  weightedScore += weight * 1.0;
-              } else if (userIncluded && gtoFreq < 0.1) {
-                  // Wrong: user included a hand that's clearly not in GTO range
-                  wrong.push(hand);
-                  weightedScore += weight * 0;
-              } else if (!userIncluded && gtoFreq >= 0.5) {
-                  // Missed: user forgot a hand that's in GTO range
-                  missed.push(hand);
-                  weightedScore += weight * 0;
-              } else if (userIncluded && gtoFreq >= 0.1 && gtoFreq < 0.5) {
-                  // Partially correct: user included a mixed hand (GTO plays it sometimes)
-                  mixed[hand] = { userIncluded: true, gtoFreq };
-                  weightedScore += weight * gtoFreq; // Partial credit
-              } else if (!userIncluded && gtoFreq >= 0.1 && gtoFreq < 0.5) {
-                  // Partially correct: user excluded a mixed hand (acceptable)
-                  mixed[hand] = { userIncluded: false, gtoFreq };
-                  weightedScore += weight * (1 - gtoFreq); // Partial credit for not including
-              }
-          });
+            if (userIncluded && referenceFrequency >= 0.5) {
+                matched.push(hand);
+                overlapCombos += combos;
+                weightedAgreement += combos;
+                gridDiff[hand] = 'match';
+            } else if (!userIncluded && referenceFrequency < 0.1) {
+                weightedAgreement += combos;
+                gridDiff[hand] = 'neutral';
+            } else if (userIncluded && referenceFrequency < 0.1) {
+                extra.push(hand);
+                gridDiff[hand] = 'extra';
+            } else if (!userIncluded && referenceFrequency >= 0.5) {
+                omitted.push(hand);
+                gridDiff[hand] = 'omitted';
+            } else if (userIncluded) {
+                mixed[hand] = { selected: true, referenceFrequency };
+                weightedAgreement += combos * referenceFrequency;
+                gridDiff[hand] = 'partial';
+            } else {
+                mixed[hand] = { selected: false, referenceFrequency };
+                weightedAgreement += combos * (1 - referenceFrequency);
+                gridDiff[hand] = 'neutral';
+            }
+        });
 
-          const score = totalWeight > 0 ? Math.round(weightedScore / totalWeight * 100) : 0;
-          const accuracy = totalGTOCombos > 0 ? Math.round(overlapCombos / totalGTOCombos * 1000) / 10 : 0;
+        const score = totalWeight > 0 ? Math.round(weightedAgreement / totalWeight * 100) : 0;
+        const coverage = totalReferenceCombos > 0
+            ? Math.round(overlapCombos / totalReferenceCombos * 1000) / 10
+            : 0;
 
-          // Build grid diff for visual display
-          const gridDiff = {};
-          allHands.forEach(hand => {
-              const gtoFreq = gtoRange[hand] || 0;
-              const userIncluded = userSet.has(hand);
-
-              if (userIncluded && gtoFreq >= 0.5) {
-                  gridDiff[hand] = 'correct';     // Green
-              } else if (userIncluded && gtoFreq < 0.1) {
-                  gridDiff[hand] = 'wrong';        // Red
-              } else if (!userIncluded && gtoFreq >= 0.5) {
-                  gridDiff[hand] = 'missed';       // Yellow
-              } else if (userIncluded && gtoFreq >= 0.1) {
-                  gridDiff[hand] = 'partial';      // Orange (mixed)
-              } else {
-                  gridDiff[hand] = 'neutral';      // Gray (correctly excluded)
-              }
-          });
-
-          // ●● Engine enrichment: category breakdowns + heatmap ●●●●●●●●
-          let engineData = {};
-          try {
-              // Build player range object for engine (hand → action)
-              const playerRange = {};
-              allHands.forEach(h => { playerRange[h] = userSet.has(h) ? 'raise' : 'fold'; });
-              // Build solver range object (hand → action based on freq)
-              const solverRange = {};
-              allHands.forEach(h => {
-                  const freq = gtoRange[h] || 0;
-                  solverRange[h] = freq >= 0.5 ? 'raise' : freq >= 0.1 ? 'mixed' : 'fold';
-              });
-              const engineResult = gradeRange(playerRange, solverRange, gtoRange, { mode: 'binary' });
-              const heatmap = generateHeatmapGrid(playerRange, solverRange, gtoRange);
-              const summary = generateGradingSummary(engineResult);
-              engineData = {
-                  categoryScores: engineResult?.categoryScores || {},
-                  heatmap: heatmap || [],
-                  summary: summary || {},
-                  deviations: (engineResult?.deviations || []).slice(0, 20), // Top 20 deviations
-              };
-          } catch (e) {
-              console.warn('[GradeRange] Engine enrichment failed:', e.message);
-          }
-
-          return res.status(200).json({
-              success: true,
-              grade: {
-                  letter: getLetterGrade(score),
-                  score,
-                  accuracy,
-              },
-              diff: {
-                  correct,
-                  missed,
-                  wrong,
-                  mixed,
-                  gridDiff,
-              },
-              stats: {
-                  totalGTOCombos,
-                  userCombos,
-                  overlapCombos,
-                  totalHands: allHands.length,
-                  correctCount: correct.length,
-                  missedCount: missed.length,
-                  wrongCount: wrong.length,
-                  mixedCount: Object.keys(mixed || {}).length,
-              },
-              ...engineData,
-          });
-
-      } catch (err) {
-          console.warn('[GradeRange] Error:', err);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
-      }
-
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+        return res.status(200).json({
+            success: true,
+            comparison: {
+                letter: getLetterGrade(score),
+                score,
+                coverage,
+            },
+            reference: resolved.reference,
+            provenance: {
+                ...RANGE_BUILDER_REFERENCE_PROVENANCE,
+                referenceId: resolved.reference.id,
+            },
+            diff: {
+                matched,
+                omitted,
+                extra,
+                mixed,
+                gridDiff,
+            },
+            stats: {
+                totalReferenceCombos,
+                userCombos,
+                overlapCombos,
+                totalHands: allHands.length,
+                matchedCount: matched.length,
+                omittedCount: omitted.length,
+                extraCount: extra.length,
+                mixedCount: Object.keys(mixed).length,
+            },
+        });
+    } catch (err) {
+        try {
+            reportApiError(err, req);
+        } catch (reportingError) {
+            const reportingMessage = reportingError?.message || 'Unknown reporting failure';
+            console.warn('[GradeRange] Error reporting failed:', reportingMessage);
+        }
+        console.warn('[GradeRange] Request failed:', err?.message || err);
+        if (!res.headersSent) {
+            return res.status(500).json({
+                success: false,
+                code: 'REFERENCE_COMPARISON_FAILED',
+                error: 'Unable to compare this range right now',
+            });
+        }
+    }
 }

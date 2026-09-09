@@ -125,16 +125,16 @@ const styles = {
     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
   },
   detailLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   detailValue: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
     fontFamily: 'monospace',
   },
   disclaimer: {
-    fontSize: 10,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.4)',
     fontStyle: 'italic',
     marginTop: 8,

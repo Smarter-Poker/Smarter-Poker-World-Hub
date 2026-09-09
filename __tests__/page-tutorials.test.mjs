@@ -43,6 +43,16 @@ const LANDED = [
     tutorial: 'src/tutorials/poker-near-me.js',
     also: ['src/components/poker-near-me/MoreTabPanel.jsx'],
   },
+  {
+    phase: 4,
+    route: '/hub/personal-assistant',
+    page: 'pages/hub/personal-assistant/index.js',
+    tutorial: 'src/tutorials/personal-assistant.js',
+    also: [
+      'pages/hub/personal-assistant/leaks.js',
+      'pages/hub/personal-assistant/sandbox.js',
+    ],
+  },
 ];
 
 test('the tutorial system is built and mounted once', () => {

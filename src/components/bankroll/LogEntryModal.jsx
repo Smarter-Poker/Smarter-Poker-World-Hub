@@ -54,8 +54,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   useModalHistory(true, onClose);
   // Tap outside closes; a drag-select that ends on the scrim does not.
   const scrim = useScrimDismiss(onClose);
-  const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
-  const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
+  // A default category the ledger does not know (the scanner once passed
+  // 'session') would render the generic form and then be refused by the
+  // category CHECK on save. Unknown means: let the user choose.
+  const knownDefault = CATEGORIES.some((c) => c.id === defaultCategory) ? defaultCategory : null;
+  const [step, setStep] = useState(isEditMode || knownDefault ? 'details' : 'category');
+  const [category, setCategory] = useState(isEditMode ? editEntry.category : knownDefault);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
   const [savedStakes, setSavedStakes] = useState([]);
@@ -515,16 +519,20 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         entry.gross_out = 0;
       }
 
+      // The saved row comes back so the caller knows the ledger id. A scanned
+      // receipt that opened this modal is marked assigned to that id, which
+      // is what takes it out of Receipts Waiting.
+      let saved = null;
       if (isEditMode) {
-        await updateLedgerEntry(userId, editEntry.id, entry);
+        saved = await updateLedgerEntry(userId, editEntry.id, entry);
       } else {
-        await createLedgerEntry(userId, entry);
+        saved = await createLedgerEntry(userId, entry);
       }
 
       // Dispatch global event for real-time dashboard sync
       window.dispatchEvent(new CustomEvent('bankroll-updated'));
 
-      onSubmit(entry);
+      onSubmit(entry, saved && saved.id ? saved : (isEditMode ? { ...entry, id: editEntry.id } : null));
     } catch (error) {
       console.warn('Error logging entry:', error);
       toast.error('Failed to log entry. Please try again.');

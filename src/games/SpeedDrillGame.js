@@ -14,11 +14,9 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness, recordHandResult } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
-import gameSessionService from '../services/GameSessionService';
 // confetti loaded lazily
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch (e) { console.warn('[App] Handled exception:', e); } }
-import achievementService from '../services/AchievementService';
 
 export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready');
@@ -161,23 +159,10 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         if (grade === 'S' || grade === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
         recordSessionWeakness('speed-drill', mistakesRef.current, handsPlayed);
         const diamondReward = Math.floor(score / 100);
-        if (diamondReward > 0 && DiamondEngine) {
+        if (!userId && diamondReward > 0 && DiamondEngine) {
             void DiamondEngine.award(diamondReward).then(newBalance => {
                 if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
             });
-        }
-        if (userId) {
-            gameSessionService.recordSession(userId, {
-                gameMode: 'speed_drill', level,
-                scenarioId: currentHand?.scenario?.title,
-                score, accuracy, timeTaken: 0,
-                diamondsSpent: 0, diamondsEarned: 0, completed: true
-            }).catch(e => console.warn('[SpeedDrill] Session failed:', e));
-            achievementService.checkAndUnlock(userId, {
-                gamesPlayed: 1, accuracy, level,
-                gameMode: 'speed_drill', currentStreak: maxStreak,
-                modesPlayed: ['speed_drill']
-            }).catch(e => console.warn('[SpeedDrill] Achievement check failed:', e));
         }
     }, [gameState, lives, nextHand, handsPlayed, score, DiamondEngine, onScoreUpdate, userId, level, currentHand, maxStreak]);
 
@@ -387,14 +372,14 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         })()}
 
                         {/* Diamond Reward */}
-                        {diamondReward > 0 && (
+                        {!userId && diamondReward > 0 && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
                                 border: '1px solid rgba(0,255,136,0.3)',
                                 borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
                             }}>
                                 <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
-                                    +{diamondReward} Diamonds Earned!
+                                    +{diamondReward} Local Practice Diamonds
                                 </div>
                             </div>
                         )}

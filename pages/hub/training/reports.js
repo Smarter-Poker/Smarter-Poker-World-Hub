@@ -1,14 +1,4 @@
-/**
- * GTO REPORTS — GTO Wizard-Style Performance Report
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Aggregate view of user's training performance vs GTO baselines.
- * Color-coded deviation matrix, classification breakdown, and trends.
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- */
-
-// TRAIN-CSS-TOKENS-BATCH4-9 — hex sweep batch 4: literals routed to --sp-* tokens
-// TRAIN-CSS-GRADIENT-ADOPT-39 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
@@ -16,1099 +6,290 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ●● Phase 3+5 Engines: Session trends + leak detection for reports ●●●●●●
-import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
-import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 
-// TRAIN-CSS-MOTION-ADOPT-24 — durations routed through MOTION tokens matched to
-// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
-const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
-// TRAIN-WIRE-EMPTY-1b — adoption: shared empty-state primitive
+const PERIOD_OPTIONS = [
+  { value: 'week', label: 'Last 7 Days' },
+  { value: 'month', label: 'Last 30 Days' },
+  { value: 'all', label: 'All Time' },
+];
+const POSITION_ORDER = ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB', 'unknown'];
+const CLASSIFICATIONS = [
+  ['best', 'Best', '#45e6ff'],
+  ['correct', 'Correct', '#3ce78b'],
+  ['inaccuracy', 'Inaccuracy', '#ffca5c'],
+  ['wrong', 'Wrong', '#ff8d45'],
+  ['blunder', 'Blunder', '#ff4d5e'],
+];
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// CLASSIFICATION CONFIG
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-const CLASS_CONFIG = {
-  best: { label: 'Best', color: 'var(--sp-accent-green)', bg: 'rgba(34, 197, 94, 0.15)' },
-  correct: { label: 'Correct', color: 'var(--sp-accent-blue)', bg: 'rgba(59, 130, 246, 0.15)' },
-  inaccuracy: { label: 'Inaccuracy', color: 'var(--sp-accent-amber)', bg: 'rgba(251, 191, 36, 0.15)' },
-  wrong: { label: 'Wrong', color: 'var(--sp-accent-orange)', bg: 'rgba(249, 115, 22, 0.15)' },
-  blunder: { label: 'Blunder', color: 'var(--sp-accent-red)', bg: 'rgba(239, 68, 68, 0.15)' },
-};
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// DEVIATION CELL
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-function DeviationCell({ value, deviation }) {
-  // Color: green = close to GTO, yellow = moderate, red = far
-  const getColor = (dev) => {
-    if (dev === null || dev === undefined) return 'var(--sp-fg-faint)';
-    if (dev <= 5) return 'var(--sp-accent-green)';
-    if (dev <= 10) return 'var(--sp-accent-green)';
-    if (dev <= 15) return 'var(--sp-accent-amber)';
-    if (dev <= 25) return 'var(--sp-accent-orange)';
-    return 'var(--sp-accent-red)';
-  };
-
-  const getBg = (dev) => {
-    if (dev === null || dev === undefined) return 'rgba(255,255,255,0.03)';
-    if (dev <= 5) return 'rgba(34, 197, 94, 0.1)';
-    if (dev <= 10) return 'rgba(34, 197, 94, 0.05)';
-    if (dev <= 15) return 'rgba(251, 191, 36, 0.1)';
-    if (dev <= 25) return 'rgba(249, 115, 22, 0.1)';
-    return 'rgba(239, 68, 68, 0.1)';
-  };
-
+// TRAIN-REPORTS-A11Y-1: the verified replacement keeps labeled navigation and
+// uses a currentColor SVG instead of a font-dependent arrow glyph.
+function BackArrowIcon() {
   return (
-    <div
-      style={{
-        textAlign: 'center',
-        padding: '6px 8px',
-        background: getBg(deviation),
-        borderRadius: 6,
-        border: `1px solid ${getColor(deviation)}20`,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 800,
-          color: getColor(deviation),
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-        }}
-      >
-        {value}%
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </svg>
+  );
+}
+
+function isFiniteNumber(value) {
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+}
+
+function formatMetric(value, suffix = '') {
+  return isFiniteNumber(value) ? `${Number(value).toLocaleString()}${suffix}` : '-';
+}
+
+function formatEv(value) {
+  return isFiniteNumber(value) ? `${Number(value).toFixed(3)} BB` : '-';
+}
+
+function panelStyle(accent = 'rgba(69,230,255,.28)') {
+  return {
+    position: 'relative',
+    overflow: 'hidden',
+    border: `1px solid ${accent}`,
+    borderRadius: 0,
+    background: 'linear-gradient(145deg, rgba(24,38,51,.96), rgba(5,10,16,.98) 55%, rgba(16,27,38,.98))',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.16), inset 0 -12px 28px rgba(0,0,0,.38), 0 14px 34px rgba(0,0,0,.34)',
+  };
+}
+
+function MetricCard({ label, value, detail, accent = '#45e6ff' }) {
+  return (
+    <div style={{ ...panelStyle(`${accent}55`), padding: '16px 14px', minWidth: 0 }}>
+      <div style={{ color: accent, fontSize: 22, fontWeight: 900, fontFamily: "var(--font-orbitron), 'Orbitron', monospace", overflowWrap: 'anywhere' }}>
+        {value}
       </div>
-      {deviation !== null && (
-        <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
-          {deviation <= 5 ? '≈ GTO' : `±${deviation}%`}
-        </div>
+      <div style={{ color: 'var(--sp-fg)', fontSize: 10, fontWeight: 800, letterSpacing: 1.1, textTransform: 'uppercase', marginTop: 5 }}>
+        {label}
+      </div>
+      {detail && <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, marginTop: 4 }}>{detail}</div>}
+    </div>
+  );
+}
+
+function AccuracyBar({ value, color = '#45e6ff' }) {
+  const numeric = isFiniteNumber(value) ? Math.max(0, Math.min(100, Number(value))) : null;
+  return (
+    <div style={{ height: 7, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.06)', overflow: 'hidden' }}>
+      {numeric !== null && (
+        <div style={{ width: `${numeric}%`, height: '100%', background: `linear-gradient(90deg, ${color}77, ${color})`, boxShadow: `0 0 12px ${color}88` }} />
       )}
     </div>
   );
 }
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// CLASSIFICATION BAR
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-function ClassificationBar({ classifications, total }) {
-  if (!classifications || total === 0) return null;
-
-  const ordered = ['best', 'correct', 'inaccuracy', 'wrong', 'blunder'];
-
+function ClassificationStrip({ classifications = {} }) {
+  const total = CLASSIFICATIONS.reduce((sum, [key]) => sum + (Number(classifications[key]) || 0), 0);
   return (
-    <div>
-      {/* Stacked bar */}
-      <div
-        style={{
-          display: 'flex',
-          height: 24,
-          borderRadius: 6,
-          overflow: 'hidden',
-          background: 'rgba(255,255,255,0.05)',
-        }}
-      >
-        {ordered.map((cls) => {
-          const count = classifications[cls] || 0;
-          const pct = total > 0 ? (count / total) * 100 : 0;
-          if (pct <= 0) return null;
-          return (
-            <motion.div
-              key={cls}
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ duration: MOTION.slow, ease: 'easeOut' }}
-              style={{
-                height: '100%',
-                background: CLASS_CONFIG[cls]?.color || 'var(--sp-fg-faint)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 9,
-                fontWeight: 700,
-                color: '#fff',
-                minWidth: pct > 5 ? 30 : 0,
-              }}
-            >
-              {pct > 8 ? `${Math.round(pct)}%` : ''}
-            </motion.div>
-          );
+    <section style={{ ...panelStyle(), padding: 16 }} aria-labelledby="verified-classifications-title">
+      <h2 id="verified-classifications-title" style={{ margin: '0 0 13px', color: 'var(--sp-fg)', fontSize: 13, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+        Verified Decision Classifications
+      </h2>
+      <div style={{ display: 'flex', minHeight: 12, background: 'rgba(255,255,255,.05)', marginBottom: 12 }}>
+        {CLASSIFICATIONS.map(([key, label, color]) => {
+          const count = Number(classifications[key]) || 0;
+          if (!count || total === 0) return null;
+          return <div key={key} aria-label={`${label}: ${count}`} style={{ width: `${(count / total) * 100}%`, background: color, boxShadow: `0 0 12px ${color}55` }} />;
         })}
       </div>
-
-      {/* Legend */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 10,
-          marginTop: 8,
-          justifyContent: 'center',
-        }}
-      >
-        {ordered.map((cls) => {
-          const count = classifications[cls] || 0;
-          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-          return (
-            <div key={cls} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <div
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  background: CLASS_CONFIG[cls]?.color,
-                }}
-              />
-              <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
-                {CLASS_CONFIG[cls]?.label}: {count} ({pct}%)
-              </span>
-            </div>
-          );
-        })}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(92px, 1fr))', gap: 8 }}>
+        {CLASSIFICATIONS.map(([key, label, color]) => (
+          <div key={key} style={{ borderLeft: `2px solid ${color}`, paddingLeft: 8 }}>
+            <div style={{ color: 'var(--sp-fg)', fontWeight: 800, fontSize: 13 }}>{Number(classifications[key]) || 0}</div>
+            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9 }}>{label}</div>
+          </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// MAIN PAGE
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-// BUG FIX (TRAIN-REPORTS-A11Y-1): SVG back arrow + button hardening for
-// the GTO reports surface. The rendered UI is already emoji-free
-// (all emojis present are inside source comments). Same surface-specific
-// a11y pattern as PR #320/#322/#324/#327-#342.
-const _RPT_ICON_PROPS = {
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-};
-function ReportsBackArrowIcon({ size=14 }) {
-  return (
-    <svg {..._RPT_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
-    </svg>
-  );
-}
-
-
-export default function GTOReports() {
+export default function VerifiedTrainingReports() {
   const router = useRouter();
-  useTrainingBus('gto-reports');
+  useTrainingBus('verified-training-reports');
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');
-  // GTOW parity #39 — the report is filterable by format as well as by date.
-  // Persisted on its own key rather than folded into the period key so that
-  // changing one filter cannot silently reset the other on reload.
-  // '' means every format, which is what the API does when gameId is absent.
-  const [gameId, setGameId] = usePersistedState('sp-filters-training-reports-format', '');
-  const [userId, setUserId] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');
+  const [gameId, setGameId] = usePersistedState('sp-filters-training-reports-format', '');
 
-  // Get user ID from auth on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const authUser = getAuthUser();
-      if (authUser?.id) {
-        setUserId(authUser.id);
-      } else {
-        setLoading(false);
-      }
-    } catch (e) {
-      console.warn('[Reports] Auth error:', e);
-      setLoading(false);
-    }
+    const user = getAuthUser();
+    setIsAuthenticated(Boolean(user?.id));
+    if (!user?.id) setLoading(false);
   }, []);
 
-  // Fetch report data
   const fetchReport = useCallback(async () => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     setFetchError(null);
     try {
-      const analyticsDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
-      const [res, analyticsRes] = await Promise.all([
-        authedFetch(
-          `/api/training/gto-reports?userId=${userId}&period=${period}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`
-        ),
-        authedFetch(
-          `/api/training/analytics?type=mistakes&days=${analyticsDays}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`
-        ),
-      ]);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      const analytics = analyticsRes.ok ? await analyticsRes.json() : null;
-      if (data.success) {
-        // Engine enrichment: add trends + leak detection to report
-        let enrichedReport = data.report;
-        try {
-          if (data.report?.sessions && Array.isArray(data.report.sessions)) {
-            const trends = calculateTrends(data.report.sessions);
-            const leaks = identifyLeaks(data.report.sessions);
-            const engineLeaks = detectLeaks(data.report);
-            const drills = generateDrillRecommendations(engineLeaks || []);
-            enrichedReport = {
-              ...data.report,
-              _engineTrends: trends,
-              _engineLeaks: leaks,
-              _detectedLeaks: engineLeaks,
-              _drillRecommendations: drills,
-            };
-          }
-        } catch (e) {
-          console.warn('[Reports] Engine enrichment failed:', e.message);
-        }
-        enrichedReport = {
-          ...enrichedReport,
-          questionConfusion: Array.isArray(analytics?.questionConfusion)
-            ? analytics.questionConfusion
-            : [],
-        };
-        setReport(enrichedReport);
+      const query = new URLSearchParams({ period });
+      if (gameId) query.set('gameId', gameId);
+      const response = await authedFetch(`/api/training/gto-reports?${query.toString()}`);
+      const body = await response.json().catch(() => null);
+      if (!response.ok || body?.success !== true || !body?.report) {
+        throw new Error(body?.error || `Request Failed (${response.status})`);
       }
-    } catch (err) {
-      console.warn('[Reports] Fetch error:', err);
-      setFetchError('Unable to load GTO reports. Please try again.');
+      setReport(body.report);
+    } catch (error) {
+      console.warn('[VerifiedTrainingReports] Fetch Error:', error);
+      setFetchError('Verified Training Reports Are Temporarily Unavailable. Please Try Again.');
+      setReport(null);
     } finally {
       setLoading(false);
     }
-  }, [userId, period, gameId]);
+  }, [gameId, isAuthenticated, period]);
 
   useEffect(() => {
-    if (userId) fetchReport();
-  }, [fetchReport, userId]);
+    if (isAuthenticated) fetchReport();
+  }, [fetchReport, isAuthenticated]);
 
-  // Bus listener: auto-refresh when Play Mode (or any trainer) completes a session
   useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
-      if (userId) fetchReport();
-    });
-    return unsub;
-  }, [userId, fetchReport]);
+    const unsubscribe = eventBus.on(EventType?.SESSION_END || 'session:end', fetchReport);
+    return unsubscribe;
+  }, [fetchReport]);
 
-  const positionOrder = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+  const orderedPositions = useMemo(() => Object.entries(report?.positionReport || {})
+    .sort(([left], [right]) => {
+      const leftIndex = POSITION_ORDER.indexOf(left);
+      const rightIndex = POSITION_ORDER.indexOf(right);
+      return (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex);
+    }), [report]);
+
+  const formatRows = Array.isArray(report?.byFormat) ? report.byFormat : [];
+  const dailyRows = Array.isArray(report?.byDate) ? report.byDate.slice(-14) : [];
 
   return (
     <>
       <Head>
-        <title>GTO Reports | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Compare your poker training stats against optimal GTO frequencies. Find your biggest leaks."
-        />
+        <title>Verified Training Reports | Smarter.Poker</title>
+        <meta name="description" content="Review sealed Training results and measured solver evidence without inferred or simulated player statistics." />
       </Head>
-
-      <div
-        className="sp-training-intelligence sp-training-intelligence--reports"
-        style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-intelligence-header"
-          style={{
-            padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {/* TRAIN-REPORTS-A11Y-1: SVG back arrow + visible label */}
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <ReportsBackArrowIcon size={14} />
-                Training
-              </span>
+      <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', paddingBottom: 76, background: 'radial-gradient(circle at 50% -10%, rgba(0,155,255,.18), transparent 34%), linear-gradient(180deg, #071018, #03070b 64%, #071019)', color: 'var(--sp-fg)' }}>
+        <header className="sp-intelligence-header" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid rgba(91,221,255,.32)', background: 'linear-gradient(180deg, rgba(28,44,58,.96), rgba(4,10,15,.96))', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button type="button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
+              <BackArrowIcon />
+              <span>Training</span>
             </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              GTO Reports
-            </h1>
+            <div>
+              <div style={{ color: '#75e9ff', fontSize: 9, letterSpacing: 2.1, textTransform: 'uppercase', fontWeight: 800 }}>Sealed Attempt Intelligence</div>
+              <h1 style={{ margin: '3px 0 0', fontSize: 'clamp(21px, 4vw, 34px)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: '#f4fbff', textShadow: '0 2px 0 #000, 0 0 20px rgba(69,230,255,.35)' }}>
+                Verified Training Reports
+              </h1>
+            </div>
           </div>
+        </header>
 
-          {/* Period Selector */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
-            {[
-              { value: 'week', label: 'Last 7 Days' },
-              { value: 'month', label: 'Last 30 Days' },
-              { value: 'all', label: 'All Time' },
-            ].map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                aria-pressed={period === p.value}
-                aria-label={`Show ${p.label}`}
-                onClick={() => setPeriod(p.value)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: 'none',
-                  transition: 'all 0.2s',
-                  background:
-                    period === p.value
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))'
-                      : 'rgba(255,255,255,0.06)',
-                  color: period === p.value ? '#fff' : 'var(--sp-fg-muted)',
-                }}
-              >
-                {p.label}
+        <main className="sp-intelligence-main" style={{ width: 'min(1100px, calc(100% - 28px))', margin: '0 auto', paddingTop: 20 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+            {PERIOD_OPTIONS.map((option) => (
+              <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} style={{ ...panelStyle(period === option.value ? 'rgba(69,230,255,.75)' : 'rgba(255,255,255,.13)'), color: period === option.value ? '#eaffff' : 'var(--sp-fg-muted)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }}>
+                {option.label}
               </button>
             ))}
+            <label style={{ marginLeft: 'auto', color: 'var(--sp-fg-muted)', fontSize: 10, fontWeight: 800 }}>
+              Training Game{' '}
+              <select value={gameId} onChange={(event) => setGameId(event.target.value)} style={{ marginLeft: 6, color: '#f4fbff', background: '#071018', border: '1px solid rgba(69,230,255,.35)', borderRadius: 0, padding: '8px 10px' }}>
+                <option value="">All Games</option>
+                {(report?.availableFormats || []).map((format) => (
+                  <option key={format.gameId} value={format.gameId}>{format.gameName} ({format.sessions})</option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          {/* Format Selector (GTOW parity #39).
-              Only rendered once the report has come back with more than one
-              format in it — with a single format the control would be a
-              one-option chooser that can only ever say what the page already
-              says, and on a brand-new account it would be an empty row. */}
-          {Array.isArray(report?.availableFormats) && report.availableFormats.length > 1 && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-              {[{ gameId: '', gameName: 'All Formats' }, ...report.availableFormats].map((f) => (
-                <button
-                  key={f.gameId || 'all'}
-                  type="button"
-                  aria-pressed={gameId === f.gameId}
-                  aria-label={`Show ${f.gameName}`}
-                  onClick={() => setGameId(f.gameId)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 20,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.2s',
-                    background:
-                      gameId === f.gameId
-                        ? 'rgba(var(--sp-accent-cyan-rgb), 0.85)'
-                        : 'rgba(255,255,255,0.06)',
-                    color: gameId === f.gameId ? '#04121a' : 'var(--sp-fg-muted)',
-                  }}
-                >
-                  {f.gameName}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          <ErrorBanner message={fetchError} onRetry={fetchReport} />
 
-        {/* Content */}
-        <div className="sp-intelligence-main" style={{ padding: '20px 24px', maxWidth: 800, margin: '0 auto' }}>
-          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchReport(); }} />
-          {loading ? (
-            <div style={{ textAlign: 'center', paddingTop: 80 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  border: '3px solid rgba(0,212,255,0.2)',
-                  borderTop: '3px solid #00d4ff',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  margin: '0 auto',
-                }}
-              />
-              <p style={{ color: 'var(--sp-fg-dim)', fontSize: 13, marginTop: 12 }}>
-                Loading Your GTO Report...
-              </p>
-              <style>{`
-                @keyframes spin {
-                  to {
-                    transform: rotate(360deg);
-                  }
-                }
-              `}</style>
-            </div>
+          {!isAuthenticated ? (
+            <TrainerEmptyState variant="locked" title="Sign In To View Verified Reports" message="Training History Is Private And Requires An Authenticated Account." cta={{ label: 'Sign In', onClick: () => router.push('/auth/login?next=/hub/training/reports') }} />
+          ) : loading ? (
+            <div style={{ ...panelStyle(), padding: 48, textAlign: 'center', color: 'var(--sp-fg-muted)' }}>Loading Verified Training Evidence...</div>
           ) : !report || report.totalSessions === 0 ? (
-            <div style={{ paddingTop: 60 }}>
-              <TrainerEmptyState
-                variant="no-data"
-                title="No training data"
-                message="Complete some training sessions to see your GTO report."
-              />
-            </div>
+            <TrainerEmptyState variant="no-data" title="No Verified Training Data Yet" message="Complete A Non-Practice Training Session To Build This Report. No Sample Or Estimated Player Statistics Are Displayed." cta={{ label: 'Start Training', onClick: () => router.push('/hub/training') }} />
           ) : (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              {/* Top Stats */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(5, 1fr)',
-                  gap: 10,
-                  marginBottom: 20,
-                }}
-              >
-                {[
-                  { label: 'Sessions', value: report.totalSessions, color: 'var(--sp-accent-purple)' },
-                  { label: 'Questions', value: report.totalQuestions, color: 'var(--sp-accent-blue)' },
-                  {
-                    label: 'Accuracy',
-                    value: `${report.overallAccuracy}%`,
-                    color:
-                      report.overallAccuracy >= 70
-                        ? 'var(--sp-accent-green)'
-                        : report.overallAccuracy >= 50
-                          ? 'var(--sp-accent-amber)'
-                          : 'var(--sp-accent-red)',
-                  },
-                  { label: 'Best Rate', value: `${report.bestRate}%`, color: 'var(--sp-accent-purple)' },
-                  {
-                    label: 'GTO Proximity',
-                    value:
-                      report.gtoProximityScore !== undefined
-                        ? `${report.gtoProximityScore}%`
-                        : 'N/A',
-                    color:
-                      (report.gtoProximityScore || 0) >= 85
-                        ? 'var(--sp-accent-cyan)'
-                        : (report.gtoProximityScore || 0) >= 70
-                          ? 'var(--sp-accent-green)'
-                          : 'var(--sp-accent-amber)',
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    style={{
-                      padding: '14px 12px',
-                      borderRadius: 10,
-                      textAlign: 'center',
-                      background: 'rgba(0,0,0,0.2)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 24,
-                        fontWeight: 800,
-                        color: stat.color,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      {stat.value}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 9,
-                        color: 'var(--sp-fg-dim)',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                        marginTop: 4,
-                      }}
-                    >
-                      {stat.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <section aria-label="Verified Summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
+                <MetricCard label="Sessions" value={formatMetric(report.totalSessions)} />
+                <MetricCard label="Hands" value={formatMetric(report.totalQuestions)} accent="#78a8ff" />
+                <MetricCard label="Accuracy" value={formatMetric(report.overallAccuracy, '%')} accent="#3ce78b" />
+                <MetricCard label="Verified Signed Score" value={formatMetric(report.verifiedScoreAverage)} detail="Scale: -100 To +100" accent="#c593ff" />
+                <MetricCard label="Measured EV Loss" value={formatEv(report.totalMeasuredEvLoss)} detail={`${report.measuredEvDecisions || 0} Solver-Measured Decisions`} accent="#ffca5c" />
+              </section>
 
-              {/* Classification Breakdown */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 20,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: 'var(--sp-fg-muted)',
-                    letterSpacing: 1.2,
-                    textTransform: 'uppercase',
-                    marginBottom: 12,
-                  }}
-                >
-                  Move Classification Distribution
-                </div>
-                <ClassificationBar
-                  classifications={report.classifications}
-                  total={report.totalQuestions}
-                />
-              </div>
+              <aside style={{ ...panelStyle('rgba(255,202,92,.38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 11, lineHeight: 1.55 }}>
+                <strong style={{ color: '#ffdb83' }}>Evidence Boundary:</strong>{' '}
+                Accuracy And Classifications Come From Completed, Non-Practice Server Attempts. EV Appears Only For Solver-Verified Decisions With Measured Loss. Frequency-Based VPIP, PFR, Three-Bet, And “GTO Proximity” Scores Are Not Inferred From Quiz Accuracy.
+              </aside>
 
-              {Array.isArray(report.questionConfusion) && report.questionConfusion.length > 0 && (
-                <section
-                  aria-labelledby="question-confusion-title"
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(27,48,62,.96), rgba(3,12,20,.98) 52%, rgba(8,28,40,.98))',
-                    border: '1px solid rgba(139,234,255,.42)',
-                    boxShadow: '0 18px 38px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.8)',
-                    padding: 16,
-                    marginBottom: 20,
-                  }}
-                >
-                  <div id="question-confusion-title" style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)', letterSpacing: 1 }}>
-                    Questions Creating The Most Confusion
-                  </div>
-                  <p style={{ margin: '5px 0 12px', color: 'var(--sp-fg-dim)', fontSize: 11 }}>
-                    Ranked By Repeated Incorrect Choices, Confusion Rate, And EV Surrendered.
-                  </p>
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    {report.questionConfusion.slice(0, 8).map((item) => (
-                      <div
-                        key={`${item.gameId}:${item.questionId}`}
-                        className="sp-question-confusion-row"
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'minmax(0,1fr) repeat(3, auto)',
-                          gap: 12,
-                          alignItems: 'center',
-                          padding: '10px 12px',
-                          background: 'rgba(0,0,0,.28)',
-                          border: '1px solid rgba(255,255,255,.08)',
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <strong style={{ display: 'block', color: 'var(--sp-fg)', fontSize: 12 }}>
-                            {item.gameId} · Level {item.lastLevel || 1}
-                          </strong>
-                          <span
-                            title={item.questionId}
-                            style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--sp-fg-faint)', fontSize: 9 }}
-                          >
-                            {item.questionId}
-                          </span>
-                          {item.mostCommonWrongAnswer && (
-                            <span style={{ color: '#fca5a5', fontSize: 10 }}>
-                              Common Miss: {item.mostCommonWrongAnswer.answerId}
-                              {item.optimalAction ? ` · Solver: ${item.optimalAction}` : ''}
-                            </span>
-                          )}
+              <ClassificationStrip classifications={report.classifications} />
+
+              <section style={{ ...panelStyle(), padding: 16, marginTop: 14 }} aria-labelledby="position-performance-title">
+                <h2 id="position-performance-title" style={{ margin: '0 0 13px', fontSize: 13, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>Performance By Position</h2>
+                {orderedPositions.length === 0 ? (
+                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 11 }}>No Position-Tagged Decisions Are Available.</div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 9 }}>
+                    {orderedPositions.map(([position, data]) => (
+                      <article key={position} style={{ padding: 12, border: '1px solid rgba(255,255,255,.1)', background: 'linear-gradient(160deg, rgba(22,38,51,.78), rgba(1,5,9,.9))' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                          <strong style={{ color: '#75e9ff' }}>{position === 'unknown' ? 'Unknown Position' : position}</strong>
+                          <span style={{ color: 'var(--sp-fg)', fontWeight: 900 }}>{formatMetric(data.accuracy, '%')}</span>
                         </div>
-                        <div style={{ color: '#fca5a5', fontSize: 11, fontWeight: 800 }}>{item.confusionRate}% Confused</div>
-                        <div style={{ color: 'var(--sp-fg-muted)', fontSize: 11 }}>{item.attempts} Attempts</div>
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/hub/training/arena/${item.gameId}?level=${item.lastLevel || 1}`)}
-                          style={{
-                            padding: '7px 10px',
-                            border: '1px solid rgba(95,219,255,.4)',
-                            background: 'linear-gradient(180deg, rgba(66,169,204,.36), rgba(5,45,66,.8))',
-                            color: '#e8fbff',
-                            fontSize: 10,
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Practice
-                        </button>
+                        <AccuracyBar value={data.accuracy} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8, color: 'var(--sp-fg-dim)', fontSize: 9 }}>
+                          <span>{data.correct}/{data.total} Correct</span>
+                          <span>{data.measuredEvDecisions > 0 ? `${formatEv(data.avgMeasuredEvLoss)} Avg` : 'EV Unmeasured'}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {formatRows.length > 0 && (
+                <section style={{ ...panelStyle(), padding: 16, marginTop: 14 }} aria-labelledby="format-performance-title">
+                  <h2 id="format-performance-title" style={{ margin: '0 0 13px', fontSize: 13, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>Performance By Training Game</h2>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {formatRows.map((format) => (
+                      <div key={format.gameId} style={{ display: 'grid', gridTemplateColumns: 'minmax(130px, 1.5fr) repeat(4, minmax(64px, .7fr))', gap: 9, alignItems: 'center', padding: '10px 11px', border: '1px solid rgba(255,255,255,.08)', overflowX: 'auto' }}>
+                        <strong style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{format.gameName}</strong>
+                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 10 }}>{format.sessions} Sessions</span>
+                        <span style={{ color: '#3ce78b', fontWeight: 800 }}>{formatMetric(format.accuracy, '%')}</span>
+                        <span style={{ color: '#c593ff', fontWeight: 800 }}>{formatMetric(format.verifiedScoreAverage)}</span>
+                        <span style={{ color: '#ffca5c', fontSize: 10 }}>{format.measuredEvDecisions > 0 ? formatEv(format.avgMeasuredEvLoss) : 'EV Unmeasured'}</span>
                       </div>
                     ))}
                   </div>
                 </section>
               )}
 
-              {/* Position Deviation Matrix */}
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(34,197,94,0.03))',
-                  border: '1px solid rgba(0,212,255,0.15)',
-                  borderRadius: 12,
-                  padding: 16,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: 'var(--sp-accent-cyan)',
-                    letterSpacing: 1.2,
-                    textTransform: 'uppercase',
-                    marginBottom: 14,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  Position Accuracy Vs GTO Baseline
-                </div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 8,
-                  }}
-                >
-                  {positionOrder.map((pos) => {
-                    const data = report.positionReport?.[pos];
-                    if (!data || data.total === 0) {
-                      return (
-                        <div
-                          key={pos}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: 8,
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.04)',
-                            textAlign: 'center',
-                            opacity: 0.4,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 800,
-                              color: 'var(--sp-fg-dim)',
-                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                              marginBottom: 4,
-                            }}
-                          >
-                            {pos}
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>No Data</div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div
-                        key={pos}
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          background: 'rgba(0,0,0,0.2)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 800,
-                            color: 'var(--sp-accent-cyan)',
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                            marginBottom: 6,
-                            textAlign: 'center',
-                          }}
-                        >
-                          {pos}
-                        </div>
-                        <DeviationCell value={data.accuracy} deviation={data.deviation} />
-                        <div
-                          style={{
-                            marginTop: 4,
-                            fontSize: 9,
-                            color: 'var(--sp-fg-dim)',
-                            textAlign: 'center',
-                          }}
-                        >
-                          {data.total} Hands • EV: -{data.avgEvLoss}BB
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Legend */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: 12,
-                    marginTop: 12,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {[
-                    { label: '≈ GTO (±5%)', color: 'var(--sp-accent-green)' },
-                    { label: 'Close (±10%)', color: 'var(--sp-accent-green)' },
-                    { label: 'Moderate (±15%)', color: 'var(--sp-accent-amber)' },
-                    { label: 'Significant (±25%)', color: 'var(--sp-accent-orange)' },
-                    { label: 'Major Leak (25%+)', color: 'var(--sp-accent-red)' },
-                  ].map((l) => (
-                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 2,
-                          background: l.color,
-                        }}
-                      />
-                      <span style={{ fontSize: 9, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
-                        {l.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Performance by Format (GTOW parity #39).
-                    Suppressed when there is only one format, where a
-                    single-row "breakdown" repeats the headline numbers. */}
-                {Array.isArray(report.byFormat) && report.byFormat.length > 1 && (
-                  <div
-                    style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: 12,
-                      padding: 16,
-                      marginTop: 24,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: 'var(--sp-fg-muted)',
-                        letterSpacing: 1.2,
-                        textTransform: 'uppercase',
-                        marginBottom: 12,
-                      }}
-                    >
-                      Performance By Format
-                    </div>
-                    {/* Rows rather than a table: at 375px a four-column table
-                        either overflows or shrinks the numbers past reading
-                        size. Labels are carried per-value so the layout can
-                        wrap without the values losing their meaning. */}
-                    {report.byFormat.map((f) => (
-                      <div
-                        key={f.gameId}
-                        style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'baseline',
-                          gap: 10,
-                          padding: '8px 0',
-                          borderTop: '1px solid rgba(255,255,255,0.05)',
-                        }}
-                      >
-                        <div style={{ flex: '1 1 120px', minWidth: 0, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                          {f.gameName}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                          {f.hands} Hands
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                          Score <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgScore}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                          Acc <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.accuracy}%</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                          EV Loss <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgEvLoss}</span>BB
-                        </div>
+              {dailyRows.length > 0 && (
+                <section style={{ ...panelStyle(), padding: 16, marginTop: 14 }} aria-labelledby="daily-performance-title">
+                  <h2 id="daily-performance-title" style={{ margin: '0 0 13px', fontSize: 13, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>Recent Daily Evidence</h2>
+                  <div style={{ display: 'grid', gap: 7 }}>
+                    {dailyRows.map((day) => (
+                      <div key={day.date} style={{ display: 'grid', gridTemplateColumns: '96px 1fr auto auto', gap: 10, alignItems: 'center', color: 'var(--sp-fg-muted)', fontSize: 10 }}>
+                        <span>{day.date}</span>
+                        <AccuracyBar value={day.accuracy} color="#3ce78b" />
+                        <strong style={{ color: 'var(--sp-fg)' }}>{formatMetric(day.accuracy, '%')}</strong>
+                        <span>{day.measuredEvDecisions > 0 ? formatEv(day.avgMeasuredEvLoss) : 'EV -'}</span>
                       </div>
                     ))}
                   </div>
-                )}
-
-                {/* Daily Trend (GTOW parity #39).
-                    Needs at least two days to be a trend rather than a dot. */}
-                {Array.isArray(report.byDate) && report.byDate.length > 1 && (() => {
-                  const days = report.byDate.slice(-30);
-                  const maxHands = Math.max(...days.map((d) => d.hands), 1);
-                  return (
-                    <div
-                      style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: 12,
-                        padding: 16,
-                        marginTop: 24,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: 'var(--sp-fg-muted)',
-                          letterSpacing: 1.2,
-                          textTransform: 'uppercase',
-                          marginBottom: 12,
-                        }}
-                      >
-                        Daily Trend
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 90 }}>
-                        {days.map((d) => (
-                          <div
-                            key={d.date}
-                            title={`${d.date} - score ${d.avgScore}, ${d.hands} hands, ${d.accuracy}% accuracy`}
-                            style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}
-                          >
-                            {/* Bar height encodes the score, opacity encodes
-                                volume: a 90-score day off two hands should not
-                                look as solid as a 90-score day off two hundred. */}
-                            <div
-                              style={{
-                                height: `${Math.max(3, d.avgScore)}%`,
-                                borderRadius: '3px 3px 0 0',
-                                background: d.avgScore >= 70
-                                  ? 'rgba(74,222,128,0.9)'
-                                  : d.avgScore >= 50
-                                    ? 'rgba(251,191,36,0.9)'
-                                    : 'rgba(248,113,113,0.9)',
-                                opacity: 0.35 + 0.65 * (d.hands / maxHands),
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-                        <span>{days[0].date}</span>
-                        <span>{days[days.length - 1].date}</span>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* ♠ GTO Scorecard: VPIP / PFR / 3Bet deviations */}
-                {report.scorecardStats && report.scorecardStats.totalAnalyzed > 0 && (
-                  <div
-                    style={{
-                      marginTop: 24,
-                      paddingTop: 16,
-                      borderTop: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: 'var(--sp-fg)',
-                        letterSpacing: 1,
-                        textTransform: 'uppercase',
-                        marginBottom: 12,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      GTO Deviation Scorecard
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
-                      Based On {report.scorecardStats.totalAnalyzed} Preflop Hands Played Across
-                      Your Tracked Sessions.
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <GTODeviationHeatmap
-                        label="VPIP (Voluntarily Put In Pot)"
-                        description="Measures how often you enter the pot. High VPIP means you play too many hands."
-                        actualPct={report.scorecardStats.vpip}
-                        gtoPct={report.gtoBaselines?.scorecard?.vpip || 22.5}
-                      />
-                      <GTODeviationHeatmap
-                        label="PFR (Preflop Raise)"
-                        description="Measures aggression preflop. Should closely mirror your VPIP."
-                        actualPct={report.scorecardStats.pfr}
-                        gtoPct={report.gtoBaselines?.scorecard?.pfr || 18.0}
-                      />
-                      <GTODeviationHeatmap
-                        label="3-Bet %"
-                        description="Frequency of re-raising an open. Key indicator of aggression."
-                        actualPct={report.scorecardStats.threeBet}
-                        gtoPct={report.gtoBaselines?.scorecard?.threeBet || 8.5}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* ▲ Weakest Spots Heatmap */}
-                {report.positionReport &&
-                  (() => {
-                    const sorted = positionOrder
-                      .filter((p) => report.positionReport[p]?.total > 0)
-                      .map((p) => ({ pos: p, ...report.positionReport[p] }))
-                      .sort((a, b) => a.accuracy - b.accuracy);
-                    const weakest = sorted.slice(0, 3);
-
-                    if (weakest.length === 0) return null;
-
-                    return (
-                      <div
-                        style={{
-                          marginTop: 24,
-                          padding: 16,
-                          background: 'rgba(239,68,68,0.05)',
-                          borderRadius: 12,
-                          border: '1px solid rgba(239,68,68,0.15)',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: 'var(--sp-accent-red)',
-                            textTransform: 'uppercase',
-                            letterSpacing: 1,
-                            marginBottom: 12,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          <span style={{ fontSize: 16, fontWeight: 'bold' }}>●</span>
-                          Weakest Spots - Fix These First
-                        </div>
-
-                        {weakest.map((w, idx) => (
-                          <div
-                            key={w.pos}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              padding: '8px 0',
-                              borderBottom:
-                                idx < weakest.length - 1
-                                  ? '1px solid rgba(255,255,255,0.04)'
-                                  : 'none',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 4,
-                                background:
-                                  w.accuracy < 40
-                                    ? 'var(--sp-accent-red)'
-                                    : w.accuracy < 60
-                                      ? 'var(--sp-accent-orange)'
-                                      : 'var(--sp-accent-amber)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 10,
-                                fontWeight: 800,
-                                color: '#000',
-                              }}
-                            >
-                              {idx + 1}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 800,
-                                color: 'var(--sp-fg)',
-                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                                width: 36,
-                              }}
-                            >
-                              {w.pos}
-                            </div>
-                            <div
-                              style={{
-                                flex: 1,
-                                height: 6,
-                                background: 'rgba(255,255,255,0.05)',
-                                borderRadius: 3,
-                                overflow: 'hidden',
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: `${w.accuracy}%`,
-                                  height: '100%',
-                                  borderRadius: 3,
-                                  background:
-                                    w.accuracy < 40
-                                      ? 'var(--sp-accent-red)'
-                                      : w.accuracy < 60
-                                        ? 'var(--sp-accent-orange)'
-                                        : 'var(--sp-accent-amber)',
-                                }}
-                              />
-                            </div>
-                            <span
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 700,
-                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                                color:
-                                  w.accuracy < 40
-                                    ? 'var(--sp-accent-red)'
-                                    : w.accuracy < 60
-                                      ? 'var(--sp-accent-orange)'
-                                      : 'var(--sp-accent-amber)',
-                                width: 36,
-                                textAlign: 'right',
-                              }}
-                            >
-                              {w.accuracy}%
-                            </span>
-                            <button
-                              onClick={() =>
-                                router.push(`/hub/training/solutions?position=${w.pos}`)
-                              }
-                              style={{
-                                background: 'rgba(249,115,22,0.15)',
-                                border: '1px solid rgba(249,115,22,0.3)',
-                                borderRadius: 6,
-                                padding: '4px 10px',
-                                color: 'var(--sp-accent-orange)',
-                                fontSize: 10,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              Fix Leak →
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-              </div>
+                </section>
+              )}
             </motion.div>
           )}
-        </div>
+        </main>
       </div>
-      <style jsx global>{`
-        @media (max-width: 640px) {
-          .sp-question-confusion-row {
-            grid-template-columns: minmax(0, 1fr) auto !important;
-          }
-          .sp-question-confusion-row > div:first-child {
-            grid-column: 1 / -1;
-          }
-        }
-      `}</style>
       <ConnectionToast />
     </>
   );

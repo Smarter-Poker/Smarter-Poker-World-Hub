@@ -219,12 +219,19 @@ test('the scanner classifies, shows the type, and lets a person correct it', () 
 });
 
 test('the page files a buy-in as a session and an expense as an expense', () => {
-    const page = read('pages/hub/bankroll-manager.js');
-    assert.match(
-        page,
-        /setDefaultReceiptCategory\(kind === 'session' \? 'session' : 'expense'\)/,
-        'the destination decides the entry kind',
-    );
+    // 2026-09-08: the sheet's choices now come from receiptInbox.receiptActions,
+    // so the destination picks the ACTION and the action picks the entry kind.
+    // A session route can only ever reach LogEntryModal as a session.
+    const page = code('pages/hub/bankroll-manager.js');
+    const session = page.slice(page.indexOf('actionId === RECEIPT_ACTIONS.LOG_SESSION'), page.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
+    assert.match(session, /openEntryForReceipt\(ledgerCategoryFor\(scannerRoute\)\)/, 'a buy-in or cash out opens a REAL ledger category');
+    // The CATEGORY, not the word: 'session' appears legitimately as an
+    // analytics property in the same block, and a test that greps the word
+    // fails for a reason that has nothing to do with the rule.
+    assert.doesNotMatch(session, /openEntryForReceipt\('session'\)/, "'session' is not a bankroll_ledger category; the insert refused it with 23514");
+    assert.doesNotMatch(session, /setDefaultReceiptCategory\('session'\)/);
+    assert.doesNotMatch(session, /openEntryForReceipt\('expense'\)/, 'and never an expense');
+    assert.match(page, /actionId === RECEIPT_ACTIONS\.NEW_EXPENSE\) \{ openEntryForReceipt\('expense'\)/, 'an expense is an expense');
     assert.match(page, /\.\.\.\(scannerRoute \? scannerRoute\.prefill : \{\}\)/, 'and the routed fields are applied');
 });
 
@@ -237,17 +244,20 @@ test('the entry form applies the routed session fields last, so they win', () =>
     assert.ok(spreadIdx > grossIdx, 'the routed values must override the generic amount mapping');
 });
 
-test('the OCR route asks for a document type and uses a model that exists', () => {
-    const route = read('pages/api/bankroll/scan-receipt.js');
-    assert.match(route, /"document_type"/, 'the prompt must ask what kind of paper this is');
-    assert.match(route, /tournament_buyin/, 'and name the poker-specific kinds');
-    assert.match(route, /A buy-in receipt is NOT an expense/, 'and say which way that call goes');
-    // Two model ids were tried and both were rejected by the API. The route
-    // now goes through the shared client, which is where a model name is
-    // resolved for every route at once.
-    assert.match(route, /getGrokClient\(\)/, 'must use the shared client, not a raw fetch');
-    assert.doesNotMatch(code('pages/api/bankroll/scan-receipt.js'), /api\.x\.ai/, 'no hand-rolled endpoint');
-    for (const dead of ['grok-2-vision-latest', 'grok-2-vision-1212']) {
-        assert.ok(!code('pages/api/bankroll/scan-receipt.js').includes(dead), `${dead} was rejected by the API`);
-    }
+test('the OCR route reads text with our own parser and names no model at all', () => {
+    // This route used to send a photograph of a player's W-2G to a vision
+    // model and trust the JSON it answered with. Two model ids were tried and
+    // both were rejected by the API, taking the whole feature down twice in a
+    // week. There is no model in the path now: the engine runs on the device
+    // and this route runs a pure parser over the text it produced.
+    const route = code('pages/api/bankroll/scan-receipt.js');
+    assert.match(route, /parseReceiptText\(text, \{ knownVenues \}\)/, 'the shared pure parser does the reading');
+    assert.doesNotMatch(route, /getGrokClient|api\.x\.ai|grok-/i, 'no model, no AI endpoint');
+    assert.doesNotMatch(route, /document_type.*one of the above/s, 'no prompt survives');
+    // The gate is the reason the route still exists. Losing it would hand a
+    // paid feature away to everybody.
+    assert.match(route, /checkServerFeatureAccess\(getSupabase\(\), user\.id, 'bankroll_pro'\)/);
+    // And the venues are the reason the reading happens here rather than
+    // entirely in the browser.
+    assert.match(route, /from\('bankroll_locations'\)/, "the player's own venues are what the reader knows");
 });

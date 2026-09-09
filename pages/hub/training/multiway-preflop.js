@@ -1,27 +1,26 @@
 /**
- * MULTIWAY PREFLOP — 3+ Player Preflop Range Viewer
+ * MULTIWAY PREFLOP — Authored 3+ Player Reference Viewer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * View preflop ranges for common multiway scenarios (3-way, 4-way).
- * BTN open / SB 3-bet / BB cold-call decision trees.
+ * These hand sets are authored teaching references. They are not sealed solver
+ * exports and must not be used for scored grading, GTO claims, or EV claims.
+ * TRAIN-WIRE-FEEDBACK-HOOK-2 and TRAIN-WIRE-QUIZ-ANSWER-5 are intentionally
+ * superseded on this ungraded reference surface; signed Arena questions own
+ * answer submission and persistent feedback instead of browser-authored truth.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-14 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-TOKENS-BATCH5-33 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-26 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
-import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// MULTIWAY RANGES DATA — Pre-computed for common spots
+// MULTIWAY RANGES DATA — Authored examples for common spots
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -65,16 +64,16 @@ const MULTIWAY_SCENARIOS = {
     },
   },
   limp_iso_bb: {
-    name: 'SB Limp → BB Iso-Raise → 3-Way',
-    positions: ['SB', 'BB', 'Caller'],
-    desc: 'SB limps, BB iso-raises, one caller. Common 3-way limped pot scenario.',
-    tip: 'BB should iso-raise wide for value - SB limp/call range is typically weak.',
+    name: 'UTG Limp → SB Complete → BB Iso-Raise',
+    positions: ['UTG', 'SB', 'BB'],
+    desc: 'Under The Gun Limps. Action Folds To The Small Blind, Who Completes. The Big Blind Then Raises Over Both Limpers.',
+    tip: 'This Authored Example Uses A Value-Heavy Big-Blind Isolation Range Against Two Limpers.',
     ranges: {
+      UTG: { call: 'JJ-55, AQs-ATs, KQs-KJs, QJs, JTs, T9s, AQo-AJo' },
       SB: {
         limp: 'AA-22, AKs-A2s, KQs-K6s, QJs-Q8s, JTs-J8s, T9s-T8s, 98s-97s, 87s-86s, 76s, 65s, 54s, AKo-A8o, KQo-KTo, QJo-QTo, JTo',
       },
       BB: { isoRaise: 'AA-77, AKs-A9s, KQs-KTs, QJs, JTs, AKo-AJo, KQo' },
-      Caller: { call: 'JJ-55, AQs-ATs, KQs-KJs, QJs, JTs, T9s, AQo-AJo' },
     },
   },
   ep_open_btn_sb_bb_4way: {
@@ -92,11 +91,12 @@ const MULTIWAY_SCENARIOS = {
     },
   },
   btn_3bet_sb_4bet_bb_cold_5bet: {
-    name: 'BTN 3-Bet → SB 4-Bet → BB 5-Bet',
-    positions: ['BTN', 'SB', 'BB'],
-    desc: 'High-stakes 3-way battle with escalating aggression. Extremely tight ranges.',
-    tip: '5-bet ranges are near-linear with premiums. Very few bluffs at these stack depths.',
+    name: 'CO Open → BTN 3-Bet → SB 4-Bet → BB Decision',
+    positions: ['CO', 'BTN', 'SB', 'BB'],
+    desc: 'The Cutoff Raises, The Button 3-Bets, And The Small Blind Cold 4-Bets. The Big Blind Then Chooses Whether To Enter The Pot.',
+    tip: 'This Authored Example Keeps The Big Blind Range Extremely Narrow After A Raise, 3-Bet, And Cold 4-Bet.',
     ranges: {
+      CO: { open: 'AA-77, AKs-A9s, KQs-KTs, QJs, JTs, AKo-AJo, KQo' },
       BTN: { threeBet: 'AA-TT, AKs-AJs, KQs, AKo-AQo, A5s-A4s' },
       SB: { fourBet: 'AA-QQ, AKs, AKo' },
       BB: { fiveBet: 'AA-KK, AKs' },
@@ -113,19 +113,6 @@ const MULTIWAY_SCENARIOS = {
       },
       MP: { limp: 'TT-22, AQs-A7s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s, 98s, 87s, AJo-A9o, KQo-KJo' },
       CO: { isoRaise: 'AA-77, AKs-A9s, KQs-KTs, QJs, JTs, AKo-AJo, KQo' },
-    },
-  },
-  sb_open_bb_3bet_btn_overcall: {
-    name: 'SB Open → BB 3-Bet → BTN Over-Call',
-    positions: ['SB', 'BB', 'BTN'],
-    desc: 'Action Folds To The Small Blind, Who Raises. The Big Blind 3-Bets, Then The Button Makes An Unusual Cold-Call To Create A Three-Way Pot.',
-    tip: 'BTN over-call range should be hands that play well multiway - suited broadways and pairs.',
-    ranges: {
-      SB: {
-        open: 'AA-22, AKs-A2s, KQs-K5s, QJs-Q8s, JTs-J8s, T9s-T8s, 98s-97s, 87s, 76s, 65s, AKo-A7o, KQo-K9o, QJo-QTo, JTo',
-      },
-      BB: { threeBet: 'AA-TT, AKs-AJs, KQs, AKo-AQo, A5s-A3s' },
-      BTN: { overCall: 'JJ-66, AQs-ATs, KQs-KJs, QJs, JTs, T9s, 98s, AQo-AJo' },
     },
   },
 };
@@ -267,75 +254,13 @@ function RangeGrid({ rangeStr, color, label }) {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function MultiwayPreflopPage() {
-  // TRAIN-WIRE-FEEDBACK-HOOK-2 — wire useTrainingFeedback
-  const fb = useTrainingFeedback();
   // TRAIN-WIRE-BOTTOMSHEET-8 — info sheet state
   const [infoOpen, setInfoOpen] = useState(false);
 
   const router = useRouter();
   useTrainingBus('multiway-preflop');
 
-  // Listen for session events from other training pages
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
-      const source = event?.source;
-      if (source === 'MultiwayQuiz') return; // Ignore our own emits
-    });
-    return unsub;
-  }, []);
-
   const [selectedScenario, setSelectedScenario] = useState('btn_open_sb_3bet_bb_cold');
-  const [quizHand, setQuizHand] = useState(null);
-  const [quizAnswer, setQuizAnswer] = useState(null);
-  const [quizScore, setQuizScore] = useState({ total: 0, correct: 0 });
-  const quizSavedRef = React.useRef(false);
-
-  // Auto-save quiz session to Supabase when reaching 10+ questions
-  useEffect(() => {
-    if (quizScore.total > 0 && quizScore.total % 10 === 0 && !quizSavedRef.current) {
-      quizSavedRef.current = true;
-      const saveQuiz = async () => {
-        try {
-          const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-          if (!token) return;
-          const accuracy = Math.round((quizScore.correct / quizScore.total) * 100);
-          await authedFetch('/api/training/save-session', {
-            method: 'POST',
-            body: JSON.stringify({
-              gameId: 'multiway-quiz',
-              gameName: `Multiway Quiz (${quizScore.total} hands)`,
-              gtowScore: accuracy,
-              totalEVLoss: 0,
-              handsPlayed: quizScore.total,
-              mistakeCount: quizScore.total - quizScore.correct,
-              accuracy,
-              correctCount: quizScore.correct,
-              bestStreak: 0,
-              levelPassed: accuracy >= 60,
-              level: 1,
-              handHistory: [],
-            }),
-          });
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            {
-              gameId: 'multiway-quiz',
-              handsPlayed: quizScore.total,
-              accuracy,
-            },
-            'MultiwayQuiz'
-          );
-        } catch (err) {
-          console.warn('[MultiwayQuiz] Save error:', err.message);
-        }
-      };
-      saveQuiz();
-      // Allow re-save on next milestone
-      setTimeout(() => {
-        quizSavedRef.current = false;
-      }, 1000);
-    }
-  }, [quizScore.correct, quizScore.total]);
 
   const scenario = MULTIWAY_SCENARIOS[selectedScenario];
   const posColors = {
@@ -348,50 +273,13 @@ export default function MultiwayPreflopPage() {
     Caller: 'var(--sp-fg-muted)',
   };
 
-  // Generate a random quiz hand
-  function generateQuizHand() {
-    const scenarioKeys = Object.keys(MULTIWAY_SCENARIOS || {});
-    const randomKey = scenarioKeys[Math.floor(Math.random() * scenarioKeys.length)];
-    const sc = MULTIWAY_SCENARIOS[randomKey];
-    const pos = sc.positions[Math.floor(Math.random() * sc.positions.length)];
-    const rangeData = sc.ranges[pos];
-    const action = Object.keys(rangeData || {})[0];
-    const rangeStr = Object.values(rangeData || {})[0];
-
-    // Generate random hand — MUST be canonical (higher rank first)
-    const i1 = Math.floor(Math.random() * 13);
-    const i2 = Math.floor(Math.random() * 13);
-    const highIdx = Math.min(i1, i2); // Lower index = higher rank in RANKS array
-    const lowIdx = Math.max(i1, i2);
-    const r1 = RANKS[highIdx];
-    const r2 = RANKS[lowIdx];
-    const isPair = highIdx === lowIdx;
-    const suited = !isPair && Math.random() > 0.5;
-    const hand = isPair ? `${r1}${r2}` : suited ? `${r1}${r2}s` : `${r1}${r2}o`;
-    const rangeSet = parseRangeToSet(rangeStr);
-    const correct =
-      rangeSet.has(hand) ||
-      rangeSet.has(hand.replace(/[so]/, '')) ||
-      rangeSet.has(hand.substring(0, 2));
-
-    setQuizHand({
-      hand,
-      position: pos,
-      scenario: sc.name,
-      scenarioKey: randomKey,
-      action,
-      correct,
-    });
-    setQuizAnswer(null);
-  }
-
   return (
     <>
       <Head>
-        <title>Multiway Preflop Ranges | Smarter.Poker Training</title>
+        <title>Multiway Preflop Reference | Smarter.Poker Training</title>
         <meta
           name="description"
-          content="Explore 3+ player preflop range interactions. See how ranges change in multiway pots."
+          content="Explore authored examples of 3+ player preflop range interactions without solver or scoring claims."
         />
       </Head>
 
@@ -408,7 +296,7 @@ export default function MultiwayPreflopPage() {
           open={infoOpen}
           onClose={() => setInfoOpen(false)}
           title="How Multiway Preflop Works"
-          subtitle="3+ player preflop range training"
+          subtitle="Authored 3+ player preflop examples"
         >
           <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
             <p style={{ marginTop: 0 }}>
@@ -418,9 +306,10 @@ export default function MultiwayPreflopPage() {
               Speculative Hands Lose Value And Premium Pairs/Big Aces Gain It.
             </p>
             <p>
-              Each Quiz Spot Shows A Multiway Scenario And Asks Whether A Given
-              Hand Belongs IN Or OUT Of The GTO Opening Range. Hit 80&#37;+ To
-              Confidently Apply This In Live Play.
+              These Examples Are Authored Teaching References, Not
+              Provenance-Sealed Solver Exports. They Are Provided For Pattern
+              Study Only And Do Not Produce A Grade, EV Result, Progress, Or
+              Reward.
             </p>
           </div>
         </BottomSheet>
@@ -478,11 +367,28 @@ export default function MultiwayPreflopPage() {
               fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
-            Multiway Preflop
+            Multiway Preflop Reference
           </h1>
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 800, margin: '0 auto' }}>
+          <div
+            role="note"
+            data-training-authority="authored-reference-ungraded"
+            style={{
+              marginBottom: 18,
+              padding: '12px 15px',
+              border: '1px solid rgba(251,191,36,0.35)',
+              background: 'rgba(251,191,36,0.07)',
+              color: 'var(--sp-fg-muted)',
+              fontSize: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong style={{ color: 'var(--sp-accent-amber)' }}>Authored Reference · Ungraded.</strong>{' '}
+            These Hand Sets Have No Solver Artifact, Tree Identity, Or Payout Model. Use Them To
+            Explore A Teaching Example; They Never Affect Accuracy, Streaks, Progress, Or Rewards.
+          </div>
           {/* Scenario Selector */}
           <div
             style={{
@@ -604,7 +510,7 @@ export default function MultiwayPreflopPage() {
             </div>
           </div>
 
-          {/* Coaching Tip */}
+          {/* Authored teaching note */}
           {scenario.tip && (
             <div
               style={{
@@ -617,12 +523,12 @@ export default function MultiwayPreflopPage() {
                 color: 'var(--sp-fg-muted)',
               }}
             >
-              <span style={{ fontWeight: 700, color: 'var(--sp-accent-cyan)', marginRight: 6 }}>TIP:</span>
+              <span style={{ fontWeight: 700, color: 'var(--sp-accent-cyan)', marginRight: 6 }}>AUTHORED NOTE:</span>
               {scenario.tip}
             </div>
           )}
 
-          {/* Quiz Mode */}
+          {/* Authority boundary */}
           <div
             style={{
               marginTop: 20,
@@ -632,163 +538,15 @@ export default function MultiwayPreflopPage() {
               border: '1px solid rgba(255,255,255,0.06)',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>Quiz Mode</div>
-              {quizScore.total > 0 && (
-                <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>
-                  Score: {quizScore.correct}/{quizScore.total} (
-                  {Math.round((quizScore.correct / quizScore.total) * 100)}%)
-                </span>
-              )}
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 8 }}>
+              Why This Page Is Ungraded
             </div>
-            {!quizHand ? (
-              <motion.button
-                onClick={generateQuizHand}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: 10,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                  color: '#fff',
-                }}
-              >
-                START QUIZ
-              </motion.button>
-            ) : (
-              <div>
-                <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
-                    {quizHand.scenario}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-fg-muted)', marginBottom: 8 }}>
-                    You Are in{' '}
-                    <span
-                      style={{ color: posColors[quizHand.position] || '#fff', fontWeight: 800 }}
-                    >
-                      {quizHand.position}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'inline-block',
-                      padding: '14px 28px',
-                      borderRadius: 12,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      fontSize: 28,
-                      fontWeight: 900,
-                      color: 'var(--sp-fg)',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      letterSpacing: 3,
-                    }}
-                  >
-                    {quizHand.hand}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 8 }}>
-                    Should you{' '}
-                    <span style={{ fontWeight: 700, color: 'var(--sp-accent-purple)' }}>
-                      {quizHand.action.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>{' '}
-                    This Hand?
-                  </div>
-                </div>
-
-                {quizAnswer === null ? (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {/* TRAIN-WIRE-QUIZ-ANSWER-5 — YES/NO via shared QuizAnswer */}
-                    <QuizAnswer
-                      label="YES"
-                      shortcut={1}
-                      selected={false}
-                      correct={false}
-                      show={false}
-                      fullWidth
-                      onClick={() => {
-                        setQuizAnswer(true);
-                        if (quizHand.correct) fb.correct(); else fb.incorrect();
-                        setQuizScore((p) => ({
-                          total: p.total + 1,
-                          correct: p.correct + (quizHand.correct ? 1 : 0),
-                        }));
-                      }}
-                    />
-                    <QuizAnswer
-                      label="NO"
-                      shortcut={2}
-                      selected={false}
-                      correct={false}
-                      show={false}
-                      fullWidth
-                      onClick={() => {
-                        setQuizAnswer(false);
-                        if (!quizHand.correct) fb.correct(); else fb.incorrect();
-                        setQuizScore((p) => ({
-                          total: p.total + 1,
-                          correct: p.correct + (!quizHand.correct ? 1 : 0),
-                        }));
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center' }}>
-                    <div
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: 8,
-                        marginBottom: 10,
-                        display: 'inline-block',
-                        background:
-                          quizAnswer === quizHand.correct
-                            ? 'rgba(34,197,94,0.15)'
-                            : 'rgba(239,68,68,0.15)',
-                        border: `1px solid ${quizAnswer === quizHand.correct ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                        fontSize: 14,
-                        fontWeight: 800,
-                        color: quizAnswer === quizHand.correct ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                      }}
-                    >
-                      {quizAnswer === quizHand.correct ? 'CORRECT!' : 'WRONG!'}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginBottom: 12 }}>
-                      {quizHand.hand} Is {quizHand.correct ? 'IN' : 'NOT IN'} the{' '}
-                      {quizHand.position} {quizHand.action.replace(/([A-Z])/g, ' $1').trim()} Range
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={generateQuizHand}
-                      style={{
-                        padding: '10px 24px',
-                        borderRadius: 10,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        background: 'rgba(168,85,247,0.15)',
-                        color: 'var(--sp-accent-purple)',
-                        border: '1px solid rgba(168,85,247,0.3)',
-                      }}
-                    >
-                      NEXT HAND
-                    </motion.button>
-                  </div>
-                )}
-              </div>
-            )}
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.65 }}>
+              A Multiway Decision Depends On Exact Stacks, Raise Sizes, Antes, Payouts, Players,
+              And Prior Action. Those Inputs Are Not Proven For These Authored Examples, So A
+              Correct/Incorrect Quiz Would Create False Authority. Open A Verified Training Game
+              From The Hub When You Want Scored Practice.
+            </div>
           </div>
         </div>
       </div>

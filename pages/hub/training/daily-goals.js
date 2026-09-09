@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import casinoStyles from '../../../src/styles/training/daily-goals-casino.module.css';
 
 
@@ -59,9 +60,13 @@ function GoalIcon({ kind, size=20 }) {
 }
 
 function generateGoals(sessionsParams) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayCST();
   const sessions = sessionsParams || [];
-  const todaySessions = sessions.filter((s) => s.created_at && s.created_at.startsWith(today));
+  const todaySessions = sessions.filter((session) => {
+    if (!session.created_at) return false;
+    const createdAt = new Date(session.created_at);
+    return !Number.isNaN(createdAt.getTime()) && getTodayCST(createdAt) === today;
+  });
 
   let todayHands = 0;
   let todayCorrect = 0;
@@ -146,91 +151,61 @@ export default function DailyGoalsPage() {
   const router = useRouter();
   useTrainingBus('daily-goals');
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ goals: [], completeCount: 0, totalGoals: 5 });
-  const [streakDays, setStreakDays] = useState(0);
-  const [prevComplete, setPrevComplete] = useState(0);
+  // `null` means the authenticated goal history has not been verified. A
+  // generated zero-progress goal set is valid only after a successful empty
+  // session response.
+  const [data, setData] = useState(null);
   const [dailyBonus, setDailyBonus] = useState(null); // { available, totalBonus, streakBonus, alreadyClaimed }
   const [fetchError, setFetchError] = useState(null);
-
-  // Load streak
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('daily-goals-streak') || '{}');
-      const today = new Date().toISOString().slice(0, 10);
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      if (saved.lastDate === today) setStreakDays(saved.streak || 0);
-      else if (saved.lastDate === yesterday) setStreakDays(saved.streak || 0);
-      else setStreakDays(0);
-    } catch (e) { console.warn('[App] Handled exception:', e); }
-  }, []);
-
-  // Fetch daily bonus status
-  useEffect(() => {
-    async function checkBonus() {
-      try {
-        const res = await authedFetch('/api/training/daily-bonus');
-        if (res.ok) {
-          const d = await res.json();
-          if (d.success) setDailyBonus(d);
-        }
-      } catch (e) { console.warn('[App] Handled exception:', e); }
-    }
-    checkBonus();
-  }, []);
+  const [signedOut, setSignedOut] = useState(false);
+  // This zero is displayed only inside the success-gated branch below; a null
+  // bonus response never reaches that branch.
+  const streakDays = Number(dailyBonus?.streakDays) || 0;
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
     setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
+      setSignedOut(true);
+      setData(null);
+      setDailyBonus(null);
       setLoading(false);
       return;
     }
+    setSignedOut(false);
     try {
-      const res = await authedFetch(`/api/training/get-sessions?limit=50`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const d = await res.json();
-      if (d.success && d.sessions) {
-        const result = generateGoals(d.sessions);
-        setData(result);
-        // Check if all goals completed - update streak
-        if (result.completeCount === result.totalGoals && prevComplete < result.totalGoals) {
-          const today = new Date().toISOString().slice(0, 10);
-          const newStreak = streakDays + 1;
-          setStreakDays(newStreak);
-          try {
-            localStorage.setItem(
-              'daily-goals-streak',
-              JSON.stringify({ streak: newStreak, lastDate: today })
-            );
-          } catch (e) { console.warn('[App] Handled exception:', e); }
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            { gameId: 'daily-goals', allComplete: true, streak: newStreak },
-            'DailyGoals'
-          );
-          // Auto-claim daily bonus when all goals complete
-          try {
-            const bonusRes = await authedFetch('/api/training/daily-bonus', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ claimNow: true }),
-            });
-            if (bonusRes.ok) {
-              const bonusData = await bonusRes.json();
-              if (bonusData.claimed) {
-                setDailyBonus((prev) => ({ ...prev, available: false, alreadyClaimed: true, diamondsAwarded: bonusData.totalAwarded }));
-              }
-            }
-          } catch (e) { console.warn('[App] Handled exception:', e); }
-        }
-        setPrevComplete(result.completeCount);
+      const [sessionsResponse, bonusResponse] = await Promise.all([
+        authedFetch(`/api/training/get-sessions?limit=50`),
+        authedFetch('/api/training/daily-bonus'),
+      ]);
+      if (!sessionsResponse.ok) {
+        throw new Error(`Training history request failed (${sessionsResponse.status})`);
       }
+      if (!bonusResponse.ok) {
+        throw new Error(`Training streak request failed (${bonusResponse.status})`);
+      }
+      const [sessionsPayload, bonusPayload] = await Promise.all([
+        sessionsResponse.json(),
+        bonusResponse.json(),
+      ]);
+      if (sessionsPayload?.success !== true || !Array.isArray(sessionsPayload.sessions)) {
+        throw new Error('Verified Training history was not returned.');
+      }
+      if (bonusPayload?.success !== true || !Number.isFinite(Number(bonusPayload.streakDays))) {
+        throw new Error('Verified Training streak was not returned.');
+      }
+      setData(generateGoals(sessionsPayload.sessions));
+      setDailyBonus(bonusPayload);
     } catch (e) {
       console.warn('[DailyGoals]', e);
-      setFetchError('Unable to load daily goals. Please try again.');
+      setData(null);
+      setDailyBonus(null);
+      setFetchError('Unable To Verify Daily Goals And Streak Data. Please Try Again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [prevComplete, streakDays]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -303,12 +278,37 @@ export default function DailyGoalsPage() {
             </div>
           )}
 
-          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
+          {!loading && signedOut && (
+            <div className={casinoStyles.panel} role="status" style={{ padding: '18px 16px', marginBottom: 16 }}>
+              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
+                Sign In To View Daily Goals
+              </strong>
+              <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
+                Goal Progress And Streaks Come From Your Verified Training Sessions.
+              </span>
+              <button
+                type="button"
+                className={casinoStyles.returnButton}
+                onClick={() => router.push('/auth/login?redirect=/hub/training/daily-goals')}
+                style={{ marginTop: 12, padding: '9px 14px' }}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
 
-          {!loading && (
+          {!loading && !signedOut && (fetchError || !data || !dailyBonus) && (
+            <ErrorBanner
+              message={fetchError || 'Verified Daily Goal Data Is Unavailable.'}
+              onRetry={fetchData}
+            />
+          )}
+
+          {!loading && !signedOut && !fetchError && data && dailyBonus && (
             <>
-              {/* Daily Bonus Banner */}
-              {dailyBonus && dailyBonus.available && (
+              {/* Daily Bonus Status — currency copy is shown only for a
+                  persisted historical settlement receipt. */}
+              {dailyBonus?.settlementStatus === 'verified_completion_required' && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -326,17 +326,11 @@ export default function DailyGoalsPage() {
                 >
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      Daily Bonus Available
+                      Daily Bonus Settlement Paused
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      Complete All Goals To Claim +{dailyBonus.totalBonus} Diamonds
-                      {dailyBonus.streakBonus > 0 && (
-                        <span style={{ color: 'var(--sp-accent-amber)' }}> (Includes {dailyBonus.streakBonus} Streak Bonus)</span>
-                      )}
+                      Goal Progress Is Live. No Daily-Goal Currency Is Promised Until Settlement Is Bound To A Verified Completion.
                     </div>
-                  </div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
-                    +{dailyBonus.totalBonus}
                   </div>
                 </motion.div>
               )}
@@ -456,7 +450,7 @@ export default function DailyGoalsPage() {
                   }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
-                    All Goals Complete! +25 Diamonds Earned
+                    All Goals Complete For Today
                   </div>
                 </motion.div>
               )}

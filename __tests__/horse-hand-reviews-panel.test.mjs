@@ -228,3 +228,35 @@ test('the ledger can be filtered by kind and exported', () => {
   assert.ok(SRC.includes('filePrefix="horse-data-ledger"'), 'CSV export of the ledger');
   assert.ok(SRC.includes('const LEDGER_COLUMNS = ['), 'export columns declared');
 });
+
+// ── 2026-09-08 (Phase 4): certified corpus and exact receipts ─────────────
+test('the panel distinguishes no active certified corpus from a failed status read', () => {
+  assert.ok(SRC.includes("supabase.rpc(\n      'ca_gto_v31_certification_status'"));
+  assert.ok(SRC.includes('The Certification Read FAILED'));
+  assert.ok(SRC.includes('No Active Certified Dataset.'));
+  assert.ok(SRC.includes('The Horse Runtime Must Fall Back.'));
+  assert.ok(SRC.includes('No Existing Training Or Legacy Row Is Being Described As Solver Exact.'));
+  assert.ok(SRC.includes('aria-controls="v31-certification-panel"'));
+  assert.ok(SRC.includes('id="v31-certification-panel"'));
+});
+
+test('M1, M2 and the compactor expose progress, seals and stale thresholds', () => {
+  assert.ok(SRC.includes("['M1', 'M2'].map((machineId)"));
+  assert.ok(SRC.includes('age > 900'));
+  assert.ok(SRC.includes('worker?.rows_per_hour'));
+  assert.ok(SRC.includes('worker?.last_artifact_checksum'));
+  assert.ok(SRC.includes('Certified Compactor'));
+  assert.ok(SRC.includes('age > 1200'));
+  assert.ok(SRC.includes('Number(compactor.compact_lag_seconds) > 21600'));
+});
+
+test('solver agreement exposes reconciled decision state and source seals', () => {
+  assert.ok(SRC.includes("'ca_horse_solver_agreement_decisions'"));
+  assert.ok(SRC.includes('p_reference: \'gto_charts\''));
+  assert.ok(SRC.includes('Latest Reconciled Decisions'));
+  assert.ok(SRC.includes('decision.decision_state'));
+  assert.ok(SRC.includes('decision.reference_distribution'));
+  assert.ok(SRC.includes('decision.source_seal?.policy_checksum'));
+  assert.ok(SRC.includes('Null Regret Means The Reference Has No Per-Action EV'));
+  assert.ok(SRC.includes('filePrefix="horse-solver-agreement-decisions"'));
+});

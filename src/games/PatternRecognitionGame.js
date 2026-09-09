@@ -13,10 +13,8 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
-import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch (e) { console.warn('[App] Handled exception:', e); } }
-import achievementService from '../services/AchievementService';
 
 export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready');
@@ -70,15 +68,10 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
             { const acc = Math.round((correctAnswers / maxRounds) * 100); const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 65 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pattern-recognition', score, g); SoundEngine.play(acc >= 65 ? 'levelUp' : 'gameOver'); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
             recordSessionWeakness('pattern-recognition', mistakesRef.current, maxRounds);
             const diamondReward = correctAnswers * 2 + Math.floor(score / 100);
-            if (DiamondEngine && diamondReward > 0) {
+            if (!userId && DiamondEngine && diamondReward > 0) {
                 void DiamondEngine.award(diamondReward).then(newBalance => {
                     if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
                 });
-            }
-            if (userId) {
-                const accuracy = Math.round((correctAnswers / maxRounds) * 100);
-                gameSessionService.recordSession(userId, { gameMode: 'pattern_recognition', level, scenarioId: currentPattern?.scenario?.title, score, accuracy, timeTaken: 0, diamondsSpent: 0, diamondsEarned: 0, completed: true }).catch(e => console.warn('[PatternRecognition] Session failed:', e));
-                achievementService.checkAndUnlock(userId, { gamesPlayed: 1, accuracy, level, gameMode: 'pattern_recognition', currentStreak: streak, modesPlayed: ['pattern_recognition'] }).catch(e => console.warn('[PatternRecognition] Achievement check failed:', e));
             }
             return;
         }
@@ -270,14 +263,14 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         })()}
 
                         {/* Diamond Reward */}
-                        {diamondReward > 0 && (
+                        {!userId && diamondReward > 0 && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
                                 border: '1px solid rgba(0,255,136,0.3)',
                                 borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
                             }}>
                                 <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
-                                    +{diamondReward} Diamonds Earned!
+                                    +{diamondReward} Local Practice Diamonds
                                 </div>
                             </div>
                         )}

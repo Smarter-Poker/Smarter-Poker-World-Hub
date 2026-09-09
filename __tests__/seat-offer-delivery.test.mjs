@@ -44,6 +44,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 const DISPATCH = read('pages/api/cron/push-dispatch.js');
+const SEND_PUSH = read('src/lib/push/send-push.js');
 const WEBPUSH = read('src/lib/push/web-push.js');
 const SW = read('public/push/sw.js');
 const SUBSCRIBE = read('pages/api/push/subscribe.js');
@@ -86,6 +87,10 @@ test('a seat offer is sent with a TTL near its own three-minute life', () => {
     // And it is actually PASSED to the sender. A constant nobody forwards is
     // the quiet version of this bug.
     assert.match(DISPATCH, /sendPush\(sub, payload, typeof ttl === 'number' \? \{ ttl \} : undefined\)/);
+    assert.match(
+        SEND_PUSH,
+        /transport === 'webpush'[\s\S]*sendWebPush\(subscription, payload, opts\)/
+    );
 });
 
 test('web-push honours a caller ttl rather than always defaulting to a day', () => {

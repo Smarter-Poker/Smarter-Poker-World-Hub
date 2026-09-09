@@ -14,7 +14,6 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { motion } from 'framer-motion';
-import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -23,7 +22,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { toast } from '../../../src/stores/toastStore';
 
 // TRAIN-CSS-MOTION-ADOPT-26 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -170,7 +168,8 @@ export default function StreaksPage() {
   useTrainingBus('streaks');
   const [user, setUser] = useState(null);
   const [claiming, setClaiming] = useState(null);
-  const [sharing, setSharing] = useState(false);
+  const [claimError, setClaimError] = useState(null);
+  const [claimReceipt, setClaimReceipt] = useState(null);
 
   useEffect(() => {
     const _c = new AbortController();
@@ -178,62 +177,29 @@ export default function StreaksPage() {
     if (u) setUser(u);
     return () => _c.abort();
   }, []);
-  const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
+  const swrKey = user ? '/api/training/streak' : null;
   const {
     data: swrData,
     isLoading: loading,
     error: swrError,
     mutate: refreshStreak,
   } = useSWR(swrKey, async (url) => {
-    const [streakRes, { data: sessions }] = await Promise.all([
-      authedFetch(url).then((r) => r.json()),
-      supabase
-        .from('jarvis_training_sessions')
-        .select('created_at')
-        .eq('user_id', user.id)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-    ]);
-    const uniqueDays = [
-      ...new Set((sessions || []).map((s) => new Date(s.created_at).toISOString().split('T')[0])),
-    ];
+    const streakRes = await authedFetch(url).then(async (response) => {
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.success !== true || !payload?.streak) {
+        throw new Error(payload?.error || `Streak request failed (${response.status})`);
+      }
+      return payload;
+    });
     return {
-      streak:
-        streakRes.success && streakRes.streak
-          ? streakRes.streak
-          : {
-              currentStreak: 0,
-              longestStreak: 0,
-              lastTrainingDate: null,
-              streakStartDate: null,
-              allMilestones: [],
-              claimableMilestones: [],
-            },
-      trainingDays: uniqueDays,
+      streak: streakRes.streak,
+      trainingDays: Array.isArray(streakRes.trainingDays) ? streakRes.trainingDays : [],
     };
+  }, {
+    refreshInterval: 30_000,
+    refreshWhenHidden: false,
+    revalidateOnFocus: true,
   });
-
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`train-streaks:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'jarvis_training_sessions',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          refreshStreak();
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(_ch);
-    };
-  }, [refreshStreak, user?.id]);
 
   const streak = swrData?.streak || {
     currentStreak: 0,
@@ -256,33 +222,45 @@ export default function StreaksPage() {
   const claimMilestone = async (milestoneDays) => {
     if (!user) return;
     setClaiming(milestoneDays);
+    setClaimError(null);
+    setClaimReceipt(null);
 
     try {
       const res = await authedFetch('/api/training/streak', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           milestoneDays,
         }),
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.success !== true) {
+        throw new Error(data?.error || `Claim request failed (${res.status})`);
+      }
       if (data.success) {
+        setClaimReceipt({
+          milestoneDays,
+          diamondsAwarded: Number(data.diamondsAwarded) || 0,
+          diamondsAwardedTotal: Number(data.diamondsAwardedTotal) || 0,
+          entitlementDiamonds: Number(data.entitlementDiamonds) || 0,
+          diamondsRemaining: Number(data.diamondsRemaining) || 0,
+          milestoneCompleted: data.milestoneCompleted === true,
+        });
         // Refresh data
-        loadStreakData();
+        await loadStreakData();
         // Emit EventBus for header diamond counter + celebration
         const milestone = STREAK_MILESTONES.find((m) => m.days === milestoneDays);
-        if (milestone) {
-          busEmit.diamondsEarned(milestone.diamonds, `Streak Milestone: ${milestone.name}`);
+        if (milestone && Number(data.diamondsAwarded) > 0) {
+          busEmit.diamondsEarned(Number(data.diamondsAwarded), `Streak Milestone: ${milestone.name}`);
 
           busEmit.sessionEnd('streaks');
-          busEmit.celebration('confetti');
+          if (data.milestoneCompleted) busEmit.celebration('confetti');
         }
       }
     } catch (error) {
       console.warn('Claim error:', error);
+      setClaimError(error?.message || 'The milestone claim could not be verified.');
     } finally {
       setClaiming(null);
     }
@@ -333,6 +311,27 @@ export default function StreaksPage() {
             cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[streaks] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
           />
         </div>
+      </PageTransition>
+    );
+  }
+
+  if (swrError) {
+    return (
+      <PageTransition>
+        <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
+        <div style={styles.container}>
+          <UniversalHeader pageDepth={2} />
+          <div style={styles.content}>
+            <ErrorBanner message="Unable to verify your training streak." onRetry={() => refreshStreak()} />
+            <TrainerEmptyState
+              variant="retry"
+              title="Training Streak Is Unavailable"
+              message="We could not verify sealed training sessions. No zero-streak fallback has been shown."
+              cta={{ label: 'Try Again', onClick: () => refreshStreak() }}
+            />
+          </div>
+        </div>
+        <ConnectionToast />
       </PageTransition>
     );
   }
@@ -429,71 +428,20 @@ export default function StreaksPage() {
               <div style={styles.longestStreak}>Best: {streak.longestStreak} Days</div>
             )}
 
-            {/* Diamond Multiplier Badge */}
-            {streak.currentStreak >= 3 && (() => {
-              const mult = streak.currentStreak >= 30 ? '5x' : streak.currentStreak >= 14 ? '3x' : streak.currentStreak >= 7 ? '2x' : '1.5x';
-              const multColor = streak.currentStreak >= 30 ? 'var(--sp-accent-amber)' : streak.currentStreak >= 14 ? 'var(--sp-accent-purple)' : streak.currentStreak >= 7 ? 'var(--sp-accent-blue)' : 'var(--sp-accent-green)';
-              return (
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 16px',
-                  borderRadius: 20,
-                  background: `${multColor}10`,
-                  border: `1px solid ${multColor}30`,
-                  marginTop: 12,
-                }}>
-                  {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces fontSize:14 */}
-                  <span style={{ display: 'inline-flex', color: multColor }} aria-hidden>
-                    <DiamondIcon size={14} />
-                  </span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: multColor }}>{mult}</span>
-                  <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>Diamond Multiplier</span>
-                </div>
-              );
-            })()}
-
             {streak.currentStreak >= 3 && (
               /* TRAIN-STREAKS-A11Y-1: type+aria-label on share-streak button */
               <button
                 type="button"
-                aria-label={`Share your ${streak.currentStreak}-day streak to your feed`}
-                disabled={sharing}
-                onClick={async () => {
-                  if (sharing) return;
-                  setSharing(true);
-                  try {
-                    const res = await authedFetch('/api/training/share', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        userId: user.id,
-                        shareType: 'streak',
-                        data: {
-                          days: streak.currentStreak,
-                        },
-                      }),
-                    });
-                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                    const data = await res.json();
-                    if (data.success) {
-                      toast.success('Streak Shared To Your Feed!');
-                    }
-                  } catch (e) {
-                    console.warn('Share error:', e);
-                    toast.error('Failed To Share Streak. Please Try Again.');
-                  } finally {
-                    setSharing(false);
-                  }
-                }}
+                aria-label={`Feed sharing is unavailable for your ${streak.currentStreak}-day streak`}
+                disabled
+                title="Feed Sharing Reopens After Verified Streak Settlement Is Certified"
                 style={{
                   ...styles.shareStreakBtn,
-                  opacity: sharing ? 0.6 : 1,
-                  cursor: sharing ? 'not-allowed' : 'pointer',
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
                 }}
               >
-                {sharing ? 'Sharing...' : 'Share Streak'}
+                Feed Sharing Unavailable
               </button>
             )}
 
@@ -634,6 +582,17 @@ export default function StreaksPage() {
                 Milestones
               </span>
             </h2>
+            <ErrorBanner
+              message={claimError}
+              onRetry={claiming ? null : () => setClaimError(null)}
+            />
+            {claimReceipt && (
+              <div style={styles.claimReceipt} role="status">
+                {claimReceipt.milestoneCompleted
+                  ? `${claimReceipt.entitlementDiamonds} Diamonds Verified And Paid.`
+                  : `${claimReceipt.diamondsAwardedTotal} Of ${claimReceipt.entitlementDiamonds} Diamonds Paid. ${claimReceipt.diamondsRemaining} Remain For The Next Monthly Award Window.`}
+              </div>
+            )}
             <div style={styles.milestonesGrid}>
               {(
                 streak.allMilestones ||
@@ -650,6 +609,11 @@ export default function StreaksPage() {
                   ...milestone,
                 };
                 const kind = baseData.iconKind || (STREAK_MILESTONES.find((m) => m.days === milestone.days) || {}).iconKind || 'flame';
+                const entitlement = Number.isInteger(Number(milestone.entitlementDiamonds))
+                  ? Number(milestone.entitlementDiamonds)
+                  : baseData.diamonds;
+                const partialSettlement = milestone.settlementStatus === 'partial';
+                const pendingVerification = milestone.settlementStatus === 'historical_credit_pending_verification';
 
                 return (
                   <motion.div
@@ -672,9 +636,19 @@ export default function StreaksPage() {
                     <div style={styles.milestoneReward}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <span aria-hidden style={{ display: 'inline-flex', color: '#00E0FF' }}><DiamondIcon size={14} /></span>
-                        {baseData.diamonds}
+                        {entitlement}
                       </span>
                     </div>
+                    {partialSettlement && (
+                      <div style={styles.settlementStatus} role="status">
+                        {milestone.diamondsAwardedTotal} Paid · {milestone.diamondsRemaining} Remaining · Retry Next Month
+                      </div>
+                    )}
+                    {pendingVerification && (
+                      <div style={styles.settlementStatus} role="status">
+                        Historical Credit Is Pending Verification
+                      </div>
+                    )}
                     {milestone.claimed ? (
                       <div style={styles.claimedBadge}>
                         {/* TRAIN-STREAKS-A11Y-1: SVG check replaces ✓ */}
@@ -683,6 +657,14 @@ export default function StreaksPage() {
                           Claimed
                         </span>
                       </div>
+                    ) : partialSettlement || pendingVerification ? (
+                      <button
+                        type="button"
+                        disabled
+                        style={{ ...styles.claimButton, opacity: 0.65, cursor: 'not-allowed' }}
+                      >
+                        {partialSettlement ? 'Retry Next Month' : 'Verification Pending'}
+                      </button>
                     ) : isClaimable ? (
                       /* TRAIN-STREAKS-A11Y-1: type+aria-label on milestone claim */
                       <button
@@ -721,6 +703,22 @@ const styles = {
     maxWidth: '600px',
     margin: '0 auto',
     padding: '80px 24px 40px',
+  },
+  claimReceipt: {
+    marginBottom: 12,
+    padding: '10px 12px',
+    border: '1px solid rgba(0, 224, 255, 0.28)',
+    borderRadius: 8,
+    background: 'rgba(0, 224, 255, 0.08)',
+    color: 'var(--sp-fg)',
+    fontSize: 12,
+    lineHeight: 1.5,
+  },
+  settlementStatus: {
+    marginTop: 6,
+    color: 'var(--sp-accent-amber)',
+    fontSize: 10,
+    lineHeight: 1.4,
   },
   heroSection: {
     textAlign: 'center',

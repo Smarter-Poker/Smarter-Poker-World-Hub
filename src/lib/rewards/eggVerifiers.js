@@ -223,8 +223,15 @@ export function createEggContext(supabase, userId) {
         trainingSessions: () => once('trainingSessions', async () => {
             const { data } = await supabase
                 .from('training_sessions')
-                .select('id, level, level_passed, accuracy, mistake_count, created_at, game_id')
+                .select('id, attempt_id, level, level_passed, accuracy, mistake_count, created_at, game_id, training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)')
                 .eq('user_id', userId)
+                .eq('training_attempts.user_id', userId)
+                .eq('training_attempts.status', 'completed')
+                .eq('training_attempts.practice_only', false)
+                // Only a sealed server-owned attempt can support a real-money
+                // Easter-egg claim. Legacy sessions were browser writable and
+                // remain historical display data, never reward evidence.
+                .not('attempt_id', 'is', null)
                 .order('created_at', { ascending: false })
                 .limit(ROW_LIMIT);
             return Array.isArray(data) ? data : [];

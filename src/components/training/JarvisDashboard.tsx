@@ -49,6 +49,18 @@ export function JarvisDashboard({ userId, compact = false }) {
     }
 
     const { overview, weeklyProgress, topLeaks, gamePerformance, personalizedInsights, jarvisAdvice } = insights;
+    const rawAccuracy = overview?.overallAccuracy;
+    const overallAccuracy = rawAccuracy === null || rawAccuracy === undefined ? null : Number(rawAccuracy);
+    const accuracyLabel = overallAccuracy !== null && Number.isFinite(overallAccuracy)
+        ? `${overallAccuracy}%`
+        : 'Not Available';
+    const rawWeeklySeconds = weeklyProgress?.timeSpentSeconds ?? weeklyProgress?.timeSpent;
+    const weeklySeconds = rawWeeklySeconds === null || rawWeeklySeconds === undefined
+        ? null
+        : Number(rawWeeklySeconds);
+    const weeklyTimeLabel = weeklySeconds !== null && Number.isFinite(weeklySeconds)
+        ? `${Math.round(weeklySeconds / 60)}m`
+        : 'Not Available';
 
     return (
         <div style={styles.container}>
@@ -64,7 +76,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                     <div style={styles.statLabel}>Sessions</div>
                 </div>
                 <div style={styles.statBox}>
-                    <div style={styles.statValue}>{overview.overallAccuracy}%</div>
+                    <div style={styles.statValue}>{accuracyLabel}</div>
                     <div style={styles.statLabel}>Accuracy</div>
                 </div>
                 <div style={styles.statBox}>
@@ -156,7 +168,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                             <span style={styles.weeklyLabel}>Correct</span>
                         </div>
                         <div style={styles.weeklyItem}>
-                            <span style={styles.weeklyValue}>{Math.round(weeklyProgress.timeSpent / 60)}m</span>
+                            <span style={styles.weeklyValue}>{weeklyTimeLabel}</span>
                             <span style={styles.weeklyLabel}>Time</span>
                         </div>
                     </div>

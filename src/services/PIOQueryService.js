@@ -1,244 +1,29 @@
 /**
  * PIO Query Service
  * ═══════════════════════════════════════════════════════════════════════════
- * Service for querying PIO solver data from Supabase
- * Integrates with the Antigravity Training Engine
+ * Pure Training game-to-solver contract registry.
+ *
+ * Direct browser-side solver queries were retired. Canonical questions are
+ * selected on the server, identity checked, persisted, and delivered in a
+ * sealed attempt envelope. This service remains only because several runtime
+ * generators share its per-game family and stack declarations.
  */
 
-
-
-import { supabase } from '../lib/supabase';
-import { SolverPolicyService, normalizeSolvedPolicyRecord } from './SolverPolicyService.js';
-
 export class PIOQueryService {
-    constructor(db = supabase) {
-        this.policy = new SolverPolicyService({ db });
-    }
     /**
-     * Query PIO database for training scenarios
-     * @param {string} gameId - Game identifier (e.g., 'cash-018')
-     * @param {number} level - Current level (1-10)
-     * @param {string} userId - User ID for tracking
-     * @returns {Promise<Array|null>} PIO scenarios or null if not available
+     * Compatibility boundary for callers from before server-authoritative
+     * question delivery. It intentionally performs no query and returns no
+     * unsigned solver material.
      */
-    async queryScenarios(gameId, level, userId) {
-        const gameConfig = this.getGameConfig(gameId);
-
-        if (!gameConfig) {
-            console.debug(`[PIO] No config found for game: ${gameId}`);
-            return null;
-        }
-
-        // Determine which database to query based on source of truth
-        if (gameConfig.sourceOfTruth === 'PioSOLVER') {
-            return await this.querySolvedSpots(gameConfig, level, userId);
-        } else if (gameConfig.sourceOfTruth === 'ICMIZER') {
-            return await this.queryMemoryCharts(gameConfig, level, userId);
-        } else {
-            // Grok-only game, no PIO data
-            console.debug(`[PIO] Game ${gameId} uses ${gameConfig.sourceOfTruth}, skipping PIO query`);
-            return null;
-        }
+    async queryScenarios() {
+        console.warn(
+            '[PIOQueryService] Direct solver queries are retired; use a sealed Training attempt.',
+        );
+        return null;
     }
 
     /**
-     * Query solved_spots_gold table for postflop scenarios
-     */
-    async querySolvedSpots(gameConfig, level, userId) {
-        try {
-            const street = this.getStreetForLevel(level);
-
-            console.debug(`[PIO] Querying solved_spots_gold:`, {
-                game_type: gameConfig.pioGameType,
-                stack_depth: gameConfig.pioStackDepth,
-                street: street
-            });
-
-            const { records } = await this.policy.listSolvedRecords({
-                gameType: gameConfig.pioGameType,
-                stackDepth: gameConfig.pioStackDepth,
-                street,
-                limit: 25,
-            });
-
-            if (!records || records.length === 0) {
-                console.debug('[PIO] No scenarios found for criteria');
-                return null;
-            }
-
-            console.debug(`[PIO] Found ${records.length} scenarios`);
-            return records.map((record) => this.transformPolicyRecord(record));
-
-        } catch (error) {
-            console.warn('[PIO] Exception in querySolvedSpots:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Query memory_charts_gold table for preflop/push-fold charts
-     */
-    async queryMemoryCharts(gameConfig, level, userId) {
-        try {
-            console.debug(`[PIO] Querying memory_charts_gold for ${gameConfig.id}`);
-
-            const data = await this.policy.readChartRows({
-                gameType: 'Tournament',
-                stackDepth: gameConfig.pioStackDepth,
-                limit: 20,
-            });
-
-            if (!data || data.length === 0) {
-                console.debug('[PIO] No charts found');
-                return null;
-            }
-
-            console.debug(`[PIO] Found ${data.length} charts`);
-            return this.transformChartData(data);
-
-        } catch (error) {
-            console.warn('[PIO] Exception in queryMemoryCharts:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Transform raw PIO data into usable format
-     * Now includes hand_evs for real EV loss computation
-     */
-    transformPIOData(rawData) {
-        return rawData
-            .map(normalizeSolvedPolicyRecord)
-            .filter((record) => record.valid)
-            .map((record) => this.transformPolicyRecord(record));
-    }
-
-    transformPolicyRecord(record) {
-        const scenario = record.metadata;
-        const answer = this.policy.answerFromRecord(record, record.defaultKey, { mode: 'aggregate' });
-        return {
-            id: scenario.id,
-            scenarioHash: scenario.scenario_hash,
-            board: this.parseBoardCards(scenario.scenario_hash),
-            street: scenario.street,
-            stackDepth: scenario.stack_depth,
-            gameType: scenario.game_type,
-            strategies: record.matrix,
-            handEVs: record.matrix.hand_evs || {},
-            policy: this.policy.consumerEnvelope(answer, 'get-question'),
-        };
-    }
-
-    /**
-     * Get GTO frequencies for a specific hand across all actions
-     * @param {Object} strategyMatrix - The strategy_matrix from solved_spots_gold
-     * @param {string} hand - Hand notation (e.g., 'AKs', 'AA')
-     * @returns {Object} { actionId: frequencyPercent } (0-100 scale)
-     */
-    getFrequenciesForHand(strategyMatrix, hand) {
-        const record = normalizeSolvedPolicyRecord({ strategy_matrix: strategyMatrix });
-        if (!record.valid) return {};
-        const answer = this.policy.answerFromRecord(record, null, { holdingClass: hand });
-        return Object.fromEntries(answer.actions.map((action) => [action.sourceCode, Math.round(action.frequency * 100)]));
-    }
-
-    /**
-     * Get EV for a specific hand
-     * @param {Object} strategyMatrix - The strategy_matrix from solved_spots_gold
-     * @param {string} hand - Hand notation (e.g., 'AKs', 'AA')
-     * @returns {number} EV in normalized units (0.0-1.0 scale from solver)
-     */
-    getEVForHand(strategyMatrix, hand) {
-        const record = normalizeSolvedPolicyRecord({ strategy_matrix: strategyMatrix });
-        if (!record.valid) return 0;
-        const answer = this.policy.answerFromRecord(record, null, { holdingClass: hand });
-        return answer.chipEv.policy || 0;
-    }
-
-    /**
-     * Transform chart data into usable format.
-     *
-     * Phase 36 (2026-05-06): rewritten to match the actual
-     * memory_charts_gold schema (chart_id, game_type, stack_depth,
-     * hero_position, villain_action, hand_matrix) — the previous
-     * implementation queried chart_name / chart_grid / category /
-     * topology / position columns that don't exist on this table,
-     * silently returning all-undefined objects to ICMIZER-source
-     * callers. After Phase 34's normalization, every hand_matrix entry
-     * is in canonical {push: x, fold: y} object form.
-     */
-    transformChartData(rawData) {
-        return rawData.map(chart => {
-            const answer = this.policy.answerFromChart(chart, {}, { mode: 'aggregate' });
-            const policy = this.policy.consumerEnvelope(answer, 'get-question');
-            const sourceAction = chart.villain_action === 'sb_push' ? 'call' : 'push';
-            const canonicalAction = sourceAction === 'call' ? 'call' : 'all_in';
-            const handMatrix = Object.fromEntries(
-                Object.entries(policy.rangeDistribution || {}).map(([hand, mix]) => [hand, {
-                    [sourceAction]: mix[canonicalAction] || 0,
-                    fold: mix.fold || 0,
-                }])
-            );
-            return {
-                id: chart.chart_id,
-                chartName: `${chart.game_type} ${chart.hero_position} ${chart.stack_depth}bb`,
-                gameType: chart.game_type,
-                stackDepth: chart.stack_depth,
-                heroPosition: chart.hero_position,
-                villainAction: chart.villain_action,
-                handMatrix,
-                policy,
-            };
-        });
-    }
-
-    /**
-     * Parse board cards from scenario hash
-     * ACTUAL Format: "hu_cash_BTN_100bb_3h7c7s" → ["3h", "7c", "7s"]
-     * Board is at the END of the scenario_hash after the last underscore
-     */
-    parseBoardCards(scenarioHash) {
-        if (!scenarioHash) return [];
-
-        // Extract board string from end (e.g., "3h7c7s" from "hu_cash_BTN_100bb_3h7c7s")
-        const parts = scenarioHash.split('_');
-        const boardString = parts[parts.length - 1]; // Get last part after underscore
-
-        if (!boardString || boardString.length < 4) return [];
-
-        const cards = [];
-
-        // Parse into individual cards (2 characters each: rank + suit)
-        // Board string format: "3h7c7s" = 3h, 7c, 7s (flop)
-        // Or "3h7c7s9d" = 3h, 7c, 7s, 9d (turn)
-        for (let i = 0; i < boardString.length; i += 2) {
-            if (i + 1 < boardString.length) {
-                const card = boardString.substr(i, 2);
-                // Validate it looks like a card (rank + suit)
-                if (/^[2-9TJQKA][shdc]$/i.test(card)) {
-                    cards.push(card);
-                }
-            }
-        }
-
-        return cards;
-    }
-
-    /**
-     * Determine which street to query based on level
-     * Levels 1-3: Flop
-     * Levels 4-7: Turn
-     * Levels 8-10: River
-     * NOTE: Database uses lowercase street names
-     */
-    getStreetForLevel(level) {
-        if (level <= 3) return 'flop';
-        if (level <= 7) return 'turn';
-        return 'river';
-    }
-
-    /**
-     * Get game configuration for PIO queries
+     * Get the declared solver family and stack contract for one Training game.
      * ACTUAL DATABASE VALUES (Feb 2026):
      * - hu_cash: HU flop spots (stack_depth: 20, 40, 60, 80, 100, 200)
      * - postflop_complete: Turn/River (stack_depth: 100)

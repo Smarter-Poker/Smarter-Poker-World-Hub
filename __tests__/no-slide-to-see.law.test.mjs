@@ -48,7 +48,14 @@ const PHASES = {
     'styles/poker-near-me.css',
     'src/components/poker-near-me',
   ],
-  4: ['pages/hub/personal-assistant', 'src/styles/worlds/PersonalAssistantHub.module.css', 'src/styles/worlds/PersonalAssistantTools.module.css'],
+  4: [
+    'pages/hub/personal-assistant',
+    'src/styles/worlds/PersonalAssistantHub.module.css',
+    'src/styles/worlds/PersonalAssistantTools.module.css',
+    // The Coaching workspace is part of this surface (leaks.js mounts it) and
+    // carried its own six-column overflow-x rail until phase 4.
+    'src/components/personal-assistant',
+  ],
   5: ['pages/hub/training.js', 'pages/hub/training', 'src/styles/worlds/training.css', 'src/components/training'],
   6: ['pages/hub/news.js', 'src/components/news'],
   7: ['pages/hub/trivia', 'src/components/trivia'],
@@ -58,7 +65,7 @@ const PHASES = {
 };
 
 // Phases already merged. Append the phase number in that phase's PR.
-const CONVERTED = [1, 2, 3];
+const CONVERTED = [1, 2, 3, 4];
 
 function walk(target) {
   const full = path.join(ROOT, target);

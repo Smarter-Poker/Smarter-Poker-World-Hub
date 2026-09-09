@@ -1,7 +1,8 @@
 /**
  * TRAINING CHALLENGES PAGE
  * ═══════════════════════════════════════════════════════════════════════════
- * Weekly and Monthly Goals with diamond rewards
+ * Historical weekly and monthly challenge definitions. Live settlement is
+ * paused until challenges are derived from verified attempts.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -17,11 +18,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
-import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { toast } from '../../../src/stores/toastStore';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
 
 // TRAIN-CSS-MOTION-ADOPT-10 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -75,27 +75,9 @@ function CalendarMonthIcon({ size = 14 }) {
     </svg>
   );
 }
-function DiamondIcon({ size = 16 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <path d="M6 3h12l4 6-10 12L2 9z" />
-      <path d="M11 3 8 9l4 12 4-12-3-6" />
-      <path d="M2 9h20" />
-    </svg>
-  );
-}
-function CheckIcon({ size = 16 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
 export default function ChallengesPage() {
   useTrainingBus('challenges');
   const [user, setUser] = useState(null);
-  const [claiming, setClaiming] = useState(null);
 
   // Load auth user once
   useEffect(() => {
@@ -110,58 +92,27 @@ export default function ChallengesPage() {
   const {
     data: swrData,
     isLoading: loading,
-    mutate: refreshChallenges,
+    error: swrError,
+    mutate: retryChallenges,
   } = useSWR(swrKey, (url) =>
     authedFetch(url)
-      .then((r) => r.json())
-      .then((d) => (d.challenges || []).map((challenge) => ({
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok || body?.success !== true || !Array.isArray(body.challenges)) {
+          throw new Error(body?.error || 'Unable to load challenges');
+        }
+        return body.challenges.map((challenge) => ({
         ...challenge,
         title: challenge.title || challenge.name || 'Training Challenge',
-        description: challenge.description || 'Complete the training target to unlock the reward.',
+        description: challenge.description || 'Historical training challenge definition.',
         period: challenge.period || challenge.challenge_type || 'weekly',
         goal: Math.max(1, Number(challenge.goal ?? challenge.target_value ?? 1)),
         progress: Math.max(0, Number(challenge.progress ?? 0)),
-        diamonds: Math.max(0, Number(challenge.diamonds ?? challenge.diamond_reward ?? 0)),
         periodKey: challenge.periodKey || challenge.period_key || '',
-      })))
+      }));
+      })
   );
   const challenges = swrData || [];
-
-  const claimReward = async (challenge) => {
-    if (!user || claiming) return;
-    setClaiming(challenge.id);
-
-    try {
-      const res = await authedFetch('/api/training/challenges', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeId: challenge.id,
-          periodKey: challenge.periodKey,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
-        // Update local state
-        refreshChallenges((prev) =>
-          prev.map((c) => (c.id === challenge.id ? { ...c, claimed: true } : c))
-        );
-        const diamondsAwarded = data.claimed?.diamondsAwarded ?? 0;
-        busEmit.diamondsEarned(diamondsAwarded, `Challenge: ${challenge.title}`);
-        busEmit.celebration('confetti');
-        toast.success(`+${diamondsAwarded} Diamonds Claimed!`);
-      } else {
-        toast.error(data.error || 'Challenge Reward Could Not Be Claimed.');
-      }
-    } catch (error) {
-      console.warn('Claim error:', error);
-      toast.error('Challenge Reward Could Not Be Claimed. Please Try Again.');
-    } finally {
-      setClaiming(null);
-    }
-  };
 
   const getProgressPercent = (challenge) => {
     return Math.min(100, Math.max(0, (challenge.progress / Math.max(1, challenge.goal)) * 100));
@@ -172,7 +123,7 @@ export default function ChallengesPage() {
       <PageTransition>
         <SEOHead
           title="Daily Training Challenges"
-          description="Complete Daily GTO Training Challenges To Sharpen Your Poker Skills And Earn Rewards."
+          description="Review Smarter.Poker Training Challenge Availability."
           canonical="/hub/training/challenges"
         />
         <div style={styles.container}>
@@ -184,7 +135,7 @@ export default function ChallengesPage() {
                 <TargetIcon size={48} />
               </span>
               <h2>Sign In To Track Goals</h2>
-              <p>Complete Weekly And Monthly Goals To Earn Diamonds!</p>
+              <p>Sign In To Review Challenge Availability And Historical Snapshots.</p>
               <Link href="/auth/signup" style={styles.signInBtn}>
                 Sign In
               </Link>
@@ -215,8 +166,13 @@ export default function ChallengesPage() {
                 Your Goals
               </span>
             </h1>
-            <p style={styles.subtitle}>Complete Challenges To Earn Diamond Rewards</p>
+            <p style={styles.subtitle}>Live Challenge Tracking And Rewards Are Paused Pending Verified Settlement</p>
           </div>
+
+          <ErrorBanner
+            message={swrError ? 'Unable To Load Challenge Definitions.' : null}
+            onRetry={() => retryChallenges()}
+          />
 
           {/* Loading */}
           {loading ? (
@@ -233,8 +189,6 @@ export default function ChallengesPage() {
             <div className="sp-command-grid sp-command-grid--challenges" style={styles.challengeList}>
               {challenges.map((challenge, i) => {
                 const progress = getProgressPercent(challenge);
-                const isComplete = progress >= 100;
-                const canClaim = isComplete && !challenge.claimed;
                 const isWeekly = challenge.period === 'weekly';
 
                 return (
@@ -243,8 +197,6 @@ export default function ChallengesPage() {
                     className="sp-command-card"
                     style={{
                       ...styles.challengeCard,
-                      ...(challenge.claimed ? styles.claimedCard : {}),
-                      ...(isComplete && !challenge.claimed ? styles.completeCard : {}),
                     }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -277,9 +229,7 @@ export default function ChallengesPage() {
                         <motion.div
                           style={{
                             ...styles.progressFill,
-                            background: isComplete
-                              ? 'linear-gradient(90deg, #31A24C, #4ADE80)'
-                              : 'linear-gradient(90deg, #00E0FF, #0099FF)',
+                            background: 'linear-gradient(90deg, #00E0FF, #0099FF)',
                           }}
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
@@ -291,37 +241,16 @@ export default function ChallengesPage() {
                       </div>
                     </div>
 
-                    {/* Reward + Action */}
+                    {/* Authority status — no reward or completion is inferred
+                        from retained browser-authored history. */}
                     <div style={styles.rewardRow}>
-                      <div style={styles.reward}>
-                        {/* TRAIN-CHALLENGES-A11Y-1: SVG diamond replaces */}
-                        <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
-                          <DiamondIcon size={16} />
+                      <span style={{ ...styles.inProgress, color: 'var(--sp-accent-amber)' }}>
+                        Tracking Paused
+                      </span>
+                      {Number(challenge.historicalProgress) > 0 && (
+                        <span style={styles.inProgress}>
+                          Historical Snapshot: {challenge.historicalProgress} / {challenge.goal}
                         </span>
-                        <span style={styles.rewardAmount} aria-label={`${challenge.diamonds} diamonds`}>{challenge.diamonds}</span>
-                      </div>
-
-                      {challenge.claimed ? (
-                        <span style={styles.claimedBadge}>
-                          {/* TRAIN-CHALLENGES-A11Y-1: SVG check replaces ✓ */}
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <CheckIcon size={14} />
-                            Claimed
-                          </span>
-                        </span>
-                      ) : canClaim ? (
-                        /* TRAIN-CHALLENGES-A11Y-1: type+aria on claim button */
-                        <button
-                          type="button"
-                          onClick={() => claimReward(challenge)}
-                          disabled={claiming === challenge.id}
-                          style={styles.claimBtn}
-                          aria-label={`Claim ${challenge.diamonds} diamonds for ${challenge.title}`}
-                        >
-                          {claiming === challenge.id ? 'Claiming...' : 'Claim Reward'}
-                        </button>
-                      ) : (
-                        <span style={styles.inProgress}>In Progress</span>
                       )}
                     </div>
                   </motion.div>

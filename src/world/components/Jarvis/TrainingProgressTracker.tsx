@@ -17,6 +17,8 @@ export function TrainingProgressTracker({ userId, onAskJarvis, onClose }: Traini
     // Use real data from training_sessions table
     const { stats, isLoading: loading } = useTrainingStats() as { stats: any; isLoading: boolean; error: any };
     const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'leaks'>('overview');
+    const hasOverallAccuracy = Number.isFinite(stats?.totalAccuracy);
+    const overallAccuracyLabel = hasOverallAccuracy ? `${stats.totalAccuracy}%` : 'Not Available';
 
 
     const askForLeakAnalysis = () => {
@@ -24,13 +26,13 @@ export function TrainingProgressTracker({ userId, onAskJarvis, onClose }: Traini
 
         const question = `Analyze my poker training leaks:
 
-**Overall Accuracy:** ${stats.totalAccuracy}%
+**Overall Accuracy:** ${overallAccuracyLabel}
 **Games Played:** ${stats.gamesPlayed}
 **Weakest Area:** ${stats.weakestCategory}
 **Strongest Area:** ${stats.strongestCategory}
 
 **Category Breakdown:**
-${stats.categoryProgress.map(c => `- ${c.category}: ${c.accuracy}% (${c.gamesPlayed} games)`).join('\n')}
+${stats.categoryProgress.map(c => `- ${c.category}: ${Number.isFinite(c.accuracy) ? `${c.accuracy}%` : 'Not Available'} (${c.gamesPlayed} games)`).join('\n')}
 
 What are my biggest leaks and how should I focus my training?`;
 
@@ -42,7 +44,7 @@ What are my biggest leaks and how should I focus my training?`;
 
         const question = `Based on my training stats:
 - Weakest: ${stats.weakestCategory} 
-- Overall accuracy: ${stats.totalAccuracy}%
+- Overall accuracy: ${overallAccuracyLabel}
 
 What specific training games should I play next to improve fastest?`;
 
@@ -156,9 +158,11 @@ What specific training games should I play next to improve fastest?`;
                             <div style={{
                                 fontSize: '20px',
                                 fontWeight: 700,
-                                color: stats.totalAccuracy >= 70 ? '#4CAF50' : '#FF9800'
+                                color: hasOverallAccuracy
+                                    ? (stats.totalAccuracy >= 70 ? '#4CAF50' : '#FF9800')
+                                    : 'rgba(255, 255, 255, 0.55)'
                             }}>
-                                {stats.totalAccuracy}%
+                                {hasOverallAccuracy ? `${stats.totalAccuracy}%` : '-'}
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>
                                 Accuracy
@@ -222,7 +226,9 @@ What specific training games should I play next to improve fastest?`;
             {/* History Tab */}
             {activeTab === 'history' && (
                 <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {stats.recentSessions.map((session, i) => (
+                    {stats.recentSessions.map((session, i) => {
+                        const hasAccuracy = Number.isFinite(session.accuracy);
+                        return (
                         <div key={i} style={{
                             padding: '8px',
                             background: 'rgba(0, 0, 0, 0.2)',
@@ -240,9 +246,11 @@ What specific training games should I play next to improve fastest?`;
                                 <span style={{
                                     fontSize: '11px',
                                     fontWeight: 700,
-                                    color: session.accuracy >= 70 ? '#4CAF50' : '#FF9800'
+                                    color: hasAccuracy
+                                        ? (session.accuracy >= 70 ? '#4CAF50' : '#FF9800')
+                                        : 'rgba(255, 255, 255, 0.55)'
                                 }}>
-                                    {session.accuracy}%
+                                    {hasAccuracy ? `${session.accuracy}%` : 'Not Available'}
                                 </span>
                             </div>
                             <div style={{
@@ -252,10 +260,11 @@ What specific training games should I play next to improve fastest?`;
                                 color: 'rgba(255, 255, 255, 0.5)'
                             }}>
                                 <span>{session.date}</span>
-                                <span>{session.duration} Min</span>
+                                <span>{Number.isFinite(session.duration) ? `${session.duration} Min` : 'Duration Not Recorded'}</span>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

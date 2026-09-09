@@ -71,7 +71,7 @@ def emit(board, oop_range_file, ip_range_file):
         "set_board %s" % board,
         "set_range OOP <contents of %s>" % oop_range_file,
         "set_range IP <contents of %s>" % ip_range_file,
-        "set_rake 0 0 0 0",
+        "set_rake 0 0",
         "set_isomorphism 1 0",
         "clear_lines",
     ]

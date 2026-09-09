@@ -1,8 +1,8 @@
 # Training Phase 6 Of 16: Deep Re-Certification
 
-Date: 2026-09-06
-Status: Protected implementation and E2E remediation merged; production re-certification in progress
-Protected Main Baseline: `cfa00625ea196aaddf3cfc2113e409ee5e9e3808`
+Date: 2026-09-06 (updated 2026-09-08)
+Status: Authority and solver candidate verified locally; protected publication and production re-certification in progress
+Protected Main Baseline: `4314b7e8d6036490d4326a0002a4a4859774fd4d`
 
 ## Release Decision
 
@@ -190,3 +190,183 @@ seat, table, header, footer, collision, overflow, and image guards. Both
 After the production gate passes, Phase 7 audits every setup, campaign, level
 selection, lobby, resume, review, and other secondary page reachable from all
 107 game cards on desktop and mobile.
+
+## 2026-09-07 Authority And Wiring Sweep Candidate
+
+Phase 6 remained open for a second adversarial pass before Phase 7. This
+candidate removes browser-authored grading, completion, rank, reward, and
+solver-evidence paths that the earlier geometry-focused certification did not
+fully cover. It is not a completion receipt until protected publication and the
+exact production runtime pass are recorded below.
+
+- Training questions are delivered with a dedicated HMAC-sealed grading
+  receipt, immutable snapshot identity, server-owned RNG rolls, exact attempt
+  and hand ordinals, and recursively stripped answer hints. The answer route
+  verifies the snapshot and receipt before deriving correctness,
+  classification, position, street, spot type, and measured EV.
+- Session completion, first-decision locking, question continuation, streak
+  settlement, challenge state, leaderboard rows, bookmarks, weekly statistics,
+  coaching summaries, recommendations, and dashboard projections now fail
+  closed or use server-owned evidence. Compatibility zeroes are never promoted
+  to measured solver EV or account accuracy.
+- Legacy local Memory, preflop, Jarvis, analysis, opponent, report, solver-tree,
+  and ranking mutations are either routed to the verified Training contract or
+  explicitly retired. Reachable local-practice surfaces disclose that they do
+  not create progress, rank, challenge, streak, reward, or solver evidence.
+- Private Training reads are non-cacheable and vary on authorization. Database
+  policies block direct authenticated access to answer keys, verified
+  leaderboards, memory-score writes, and maintenance-only functions.
+- Diamond settlement is serialized across reward families, idempotent across
+  duplicate requests, bounded by server caps, and rolls back profile, ledger,
+  platform-budget, and shadow-balance writes together.
+- The follow-up session evidence projection records the explicit
+  `evLossMeasured` marker, backfills only canonical server-bound answer rows,
+  computes weighted count-derived accuracy, and reports actual settled reward
+  totals instead of estimates.
+- Runtime and CI supervisors own bounded retry, timeout, checkpoint, exact-build,
+  and complete-ledger contracts. The route audit now recognizes both direct
+  default exports and standards-compliant default re-exports.
+
+Historical local candidate evidence before integration with current protected
+main (superseded by the 2026-09-08 integrated evidence below):
+
+- Phase 6 authority suite: 578/578 passed.
+- Every `training-*.test.mjs` suite: 614/614 passed.
+- Repository guard reachability suite: 1,152/1,152 passed.
+- Cross-domain prebuild suite: 608/608 passed.
+- Leak Finder and Personal Assistant integration suite: 164/164 passed.
+- Disposable PostgreSQL reward, authority, and cross-RPC concurrency verifiers:
+  all passed, including rollback, cap, idempotency, access-control, and
+  evidence-projection assertions.
+- Full lint: 4,053/4,053 source and test files passed.
+- Strict TypeScript, inventory check, whitespace check, and the 94-page
+  Training route/link/API audit passed with zero unresolved or unwired gaps.
+- Optimized production build passed with 401 generated pages and all declared
+  Personal Assistant route/function performance budgets below their caps.
+- `src/components/ui/UniversalHeader.js` and `pages/_app.js` remain byte-identical
+  to the candidate baseline; the approved global header has no Phase 6 diff.
+
+Publication, production migration state, exact deployment revision, and the
+final 107-game desktop/mobile runtime receipts remain pending for this
+candidate. Phase 7 has not started.
+
+## 2026-09-08 Current-Main Integration And Release Gate
+
+Protected `main` at `4314b7e8d6036490d4326a0002a4a4859774fd4d` was merged
+locally into the unpublished authority candidate, which was then recertified as
+one release candidate. The integration found and closed three test defects instead of
+loosening their assertions:
+
+- The daily-authority PostgreSQL fixture could create an expiry before its
+  product-date start when run shortly after midnight. Its seed now preserves
+  the intended two-hour validity relative to both database time and the
+  product-date boundary.
+- The seat-offer regression guard still expected a direct `sendWebPush` call
+  after protected main moved delivery through the unified `sendPush` adapter.
+  The guard now proves the caller supplies the required TTL and the adapter
+  forwards it to `sendWebPush`.
+- The repository guard coupled repeated-query validation in a Horse Analytics
+  route test to a live upstream response that could return 503. The test now
+  validates first-selected repeated values deterministically without network
+  state masking the API contract.
+- The protected pre-push gate found em-dash glyphs and non-Title-Cased copy in
+  the new Training, local-practice, and Jarvis authority surfaces. The
+  repository policy tools replaced the banned punctuation, normalized the copy,
+  and the affected authority assertions now pin the compliant presentation.
+
+The merge retained protected main's new acceptance and one-device/one-banner
+prebuild guards while preserving the candidate's stricter full-attempt
+`batch-preload` canonical delivery contract. Solver ingestion executable mode
+was restored, and the Training inventory was regenerated after main changed its
+marker classification.
+
+Current integrated local evidence:
+
+- Phase 6 authority suite: 721/721 passed, plus 23/23 production-attestation
+  preflight and Windows-retirement tests.
+- Every `training-*.test.mjs` suite: 774/774 passed.
+- Repository guard and reachability suite: 1,370/1,370 passed.
+- Cross-domain prebuild suite: 687/687 passed.
+- Leak Finder and Personal Assistant integration suite: 181/181 passed.
+- Focused solver ingestion and policy suite: 84/84 passed.
+- Full lint: 4,196/4,196 source and test files passed.
+- Strict TypeScript, whitespace, inventory generation/verification, and the
+  94-page Training route/link/API audit passed. The generated inventory records
+  107 canonical games, 214 play/arena expansions, 54 API templates, and zero
+  unassigned route-state or CTA wiring gaps.
+- The complete 2,794-file UI punctuation scan and the forward-facing Title Case
+  gate pass with no violations.
+- The complete disposable PostgreSQL Phase 6 gate passed reward concurrency,
+  server authority, cross-RPC concurrency, cache replay, and solver-catalog
+  admission. Its authority evidence includes 14 reward invariants, 18 canonical
+  attempts, 13 completions, and 54 immutable first decisions with the expected
+  access-control, write-protection, rollback, cap, idempotency, and key-binding
+  assertions. A sixth PostgreSQL 17 verifier proves the corrective ACL
+  contract with 288 exact privilege checks, 13/13 behavioral isolation/read
+  checks, 27/27 RLS-enabled tables, six exact browser read policies, zero
+  extra browser policies, zero protected column or PUBLIC ACL entries, two
+  idempotent applications, and two deliberately rejected adversarial schemas.
+  The required protected PR safety context now installs or resolves exact
+  PostgreSQL 17 binaries and executes the seven-family behavioral gate,
+  including the final cache/grading/level-stat truth verifier;
+  every verifier rejects PostgreSQL 16 instead of silently weakening the
+  production privilege model.
+- The optimized production build passed and generated 395/395 pages. Every
+  declared Personal Assistant route, client, and server performance budget
+  remained below its cap.
+- `src/components/ui/UniversalHeader.js`, `pages/_app.js`, the header-rendered
+  hamburger labels, and the command-menu navigation registry match the
+  protected-main baseline. The approved global header remains untouched.
+
+The solver admission manifest covers all 107 games and 25 required
+family/stack contracts, but remains deliberately `CLOSED` and unapproved for
+M1/M2 activation. No solver host was restarted or retargeted. The separate
+`strategy_matrix_v2` backfill remains blocked by its production disk-headroom
+gate and was not run.
+
+The final adversarial migration review also found and closed three defects
+before publication:
+
+- Supabase production's broad default ACLs had left table maintenance and
+  browser-access drift on previously applied authority objects. The additive
+  ACL closeout now reasserts exact table, column, function, RLS-policy, and
+  owned-sequence contracts. It also replaces any same-named widened owner-read
+  policy and rejects a second permissive browser read policy.
+- The delivery-authority migration used `CREATE TABLE IF NOT EXISTS` without
+  proving that a pre-existing same-named object had the expected shape. It now
+  checks every column, type, nullability, default, primary key, foreign key,
+  check constraint, and the exact continuation index before proceeding. The
+  disposable verifier corrupts each shape independently and proves a
+  fail-closed rollback.
+- The signed worker's board-page bound used DEL as an ASCII suffix ceiling.
+  Production's `en_US.UTF-8` collation can sort canonical printable board
+  suffixes after DEL, silently producing an empty page. The worker now uses
+  `Z`, a strict ceiling above the canonical `2-9/T/J/Q/K/A` card alphabet, and
+  both the production collation proof and PostgreSQL verifier require a real
+  canonical board to be returned through the indexed RPC.
+
+The immutable-deployment public attestation is a permanent fail-closed gate.
+It requires an exact Hub Vanguard deployment hostname, exact 40-character
+build, one origin-scoped authenticated state, and an explicit production-write
+acknowledgement. Its contract rejects malformed receipt signatures, embedded
+attempt/hand/decision JTI mismatches, response/replay binding changes, and
+cross-origin auth transfer. A real run answers the entire 20-hand manifest
+through both the original and reissued receipts so every emitted signature is
+server-verified, stays below a 28-request rolling-minute write ceiling, proves
+response-loss recovery and exact replay, rejects changed-answer and changed-
+submission replays, then proves a real next-street child and the child's exact
+answer replay. Its CLI exits nonzero and it still reports
+`releaseGateReady: false`
+until independent administrator correlation, negative probes, predecessor
+compatibility, and production error-stream review pass.
+
+Delivery authority uses a two-protected-PR expand/contract release. The strict
+enforcement migration and its verifier are excluded from PR A. PR B may not be
+opened until PR A merges normally, the exact dual-write build serves
+production, real attempt-scoped delivery evidence and private attestation are
+verified, predecessor rollback compatibility passes, and the full production
+browser receipts are healthy. After PR B merges normally, production must serve
+its exact merge or a reviewed descendant; fresh delivery, reissue, response-loss
+replay, next-street, and strict positive/negative probes must pass before the
+complete 107-game desktop/mobile production receipt can close the phase. Phase 6
+therefore remains open and Phase 7 has not started.
