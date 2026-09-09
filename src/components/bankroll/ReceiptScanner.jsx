@@ -26,6 +26,7 @@ import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriang
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
 import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
+import { holdScan, heldRecord, shouldHold } from '../../lib/bankroll/receiptHold.mjs';
 import { downscaleForOcr } from '../../lib/docscan/imageSource';
 import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
 import { READ_OUTCOMES } from '../../lib/bankroll/receiptInbox.mjs';
@@ -57,6 +58,18 @@ export default function ReceiptScanner({
     displayEUR = false,
     tripId = null,
     onPendingChange,
+    /**
+     * A photograph taken with no signal, coming back to be filed.
+     *
+     * It is handed straight to the ordinary approved-scan path, so a held
+     * scan uploads and is read by EXACTLY the flow a fresh one takes - one
+     * read path, one entitlement check, one set of numbers. The alternative
+     * was a second headless flush that reads receipts its own way, and two
+     * readers eventually disagree about what a receipt said.
+     */
+    resumeScan = null,
+    /** Told when a scan could not be sent and was written to the device. */
+    onHeld,
 }) {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerSeed, setScannerSeed] = useState(null);   // a File, when the user chose one
@@ -69,6 +82,8 @@ export default function ReceiptScanner({
     const [error, setError] = useState(null);
 
     const [uploadedUrl, setUploadedUrl] = useState(null);
+    // Not an error: the scan is safe on the device and will be filed later.
+    const [heldOnDevice, setHeldOnDevice] = useState(false);
     // Not state: it is read once when the scan is handed over, and a render
     // for it would be a render for nothing.
     const imageHashRef = useRef(null);
@@ -160,6 +175,43 @@ export default function ReceiptScanner({
     // UPLOAD. Reached only from approval and retry, never from capture.
     // ---------------------------------------------------------------------
 
+    /**
+     * Write this scan to the device instead of losing it.
+     *
+     * The photograph is kept UNREAD. Reading is local, but the parse runs
+     * through /api/bankroll/scan-receipt, which is where the bankroll_pro
+     * entitlement is checked and where the player's saved venues live -
+     * parsing in the browser to fill this in offline would hand the paid
+     * feature away, which that route says in as many words. So the held scan
+     * is read when it is filed, by the same route, with the same gate.
+     */
+    const holdForLater = useCallback(async (scan, reason) => {
+        try {
+            const hash = await perceptualHash(scan.blob).catch(() => null);
+            const { held, dropped } = await holdScan(heldRecord({
+                userId,
+                blob: scan.blob,
+                mime: scan.blob.type || 'image/jpeg',
+                imageHash: hash,
+                capturedAt: Date.now(),
+            }));
+            if (!mountedRef.current) return true;
+            setHeldOnDevice(true);
+            setError(null);
+            setIsUploading(false);
+            if (typeof onHeld === 'function') onHeld({ held, dropped, reason });
+            return true;
+        } catch (err) {
+            console.warn('[ReceiptScanner] could not hold the scan:', (err && err.message) || err);
+            if (mountedRef.current) {
+                // Say the true thing: this one really is at risk.
+                setError('NO SIGNAL AND NO ROOM TO HOLD IT - STAY ON THIS SCREEN');
+                setIsUploading(false);
+            }
+            return false;
+        }
+    }, [userId, onHeld]);
+
     const uploadApprovedScan = useCallback(async (scan) => {
         if (!scan || !scan.blob) return;
         setIsUploading(true);
@@ -172,6 +224,15 @@ export default function ReceiptScanner({
         // guard blocks the SDK session call in components because it can throw
         // AbortError; src/lib/authUtils.ts reads the same session out of
         // storage without that risk.
+        // NO SIGNAL: hold it now rather than making the player watch three
+        // upload attempts time out to learn something the browser already
+        // knows. getFreshAccessToken may itself need the network, so this
+        // comes first - offline, "SIGN IN REQUIRED" would be a lie.
+        const offlineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+        if (offlineNow && shouldHold({ online: false, error: null })) {
+            if (await holdForLater(scan, 'offline')) return;
+        }
+
         const authUser = getAuthUser();
         const uid = userId || (authUser && authUser.id);
         const accessToken = await getFreshAccessToken();
@@ -222,6 +283,13 @@ export default function ReceiptScanner({
         }
 
         console.warn('[ReceiptScanner] Upload failed:', lastError && (lastError.message || lastError));
+        // The signal went during the upload. A refusal - a policy denial, a
+        // payload too large - is NOT held: it would refuse again in an hour,
+        // and a queue that never drains is a promise the player cannot
+        // collect on. shouldHold draws that line.
+        if (shouldHold({ online: true, error: lastError })) {
+            if (await holdForLater(scan, 'upload-failed')) return;
+        }
         if (mountedRef.current) {
             // The scan itself is still held, so this is a retry prompt and not
             // a dead end. Saying which failure it was matters: a refused policy
@@ -236,7 +304,7 @@ export default function ReceiptScanner({
         }
         // runOcr is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
+    }, [userId, holdForLater]);
 
     const runOcr = useCallback(async (blob, accessToken) => {
         try {
@@ -350,6 +418,17 @@ export default function ReceiptScanner({
         setApprovedScan(approved);
         await uploadApprovedScan(approved);
     }, [uploadApprovedScan]);
+
+    // A held scan comes back in through the SAME door a fresh one does.
+    useEffect(() => {
+        if (!resumeScan || !resumeScan.blob || approvedScan || uploadedUrl) return;
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        const previewUrl = URL.createObjectURL(resumeScan.blob);
+        previewUrlRef.current = previewUrl;
+        setHeldOnDevice(false);
+        setApprovedScan({ blob: resumeScan.blob, ocrBlob: resumeScan.blob, previewUrl, width: null, height: null });
+        // The effect below this one is what uploads whatever approvedScan holds.
+    }, [resumeScan, approvedScan, uploadedUrl]);
 
     const retryUpload = useCallback(() => {
         if (approvedScan) uploadApprovedScan(approvedScan);
