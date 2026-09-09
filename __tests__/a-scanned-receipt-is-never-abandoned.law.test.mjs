@@ -199,7 +199,15 @@ test('a scanned session opens a category the ledger CHECK accepts', () => {
 
 test('rule 4: the row is written before a choice can be taken, and closing keeps it', () => {
     const src = code(PAGE);
-    const onComplete = src.slice(src.indexOf('onScanComplete={async'), src.indexOf('onScanComplete={async') + 1200);
+    // The handler, to where it ends, NOT a fixed number of characters. A
+    // count-based window silently stops covering the code it was written to
+    // pin the moment somebody adds a line inside the handler, which is the
+    // failure mode the playbook keeps warning about.
+    const from = src.indexOf('onScanComplete={async');
+    assert.ok(from > 0, 'the scanner hand-off must exist');
+    const end = src.indexOf('/>', from);
+    assert.ok(end > from, 'the hand-off must be a closed element');
+    const onComplete = src.slice(from, end);
     assert.ok(
         onComplete.indexOf('setReceiptSaving(true)') < onComplete.indexOf("setScannerStep('post-capture')"),
         'the sheet opens in the saving state',
