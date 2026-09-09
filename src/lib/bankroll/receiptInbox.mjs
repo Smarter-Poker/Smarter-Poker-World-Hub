@@ -360,7 +360,42 @@ export function ledgerEntryFromReceipt(route, context = {}) {
 }
 
 /** The `bankroll_receipts` row written the moment a scan completes (rule 4). */
-export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType, imageHash }) {
+/**
+ * What the on-device reader did, as bankroll_receipts records it.
+ *
+ * These are not decoration. `engine_failed` means the DEPLOY is broken, which
+ * is exactly how the reader shipped on 2026-09-09 with every asset 404ing and
+ * nothing anywhere saying so. `no_text` means the photograph or its
+ * preprocessing is the problem instead. Counting them apart is the difference
+ * between fixing a build and fixing a filter.
+ */
+export const READ_OUTCOMES = {
+    READ: 'read',
+    NO_TEXT: 'no_text',
+    ENGINE_FAILED: 'engine_failed',
+    ROUTE_REFUSED: 'route_refused',
+    NOT_ATTEMPTED: 'not_attempted',
+};
+
+const READ_OUTCOME_VALUES = new Set(Object.values(READ_OUTCOMES));
+
+/**
+ * 0-100, or null. The column is a smallint with a CHECK; never send it junk.
+ *
+ * `null`, `undefined` and `''` are NOT zero. Number() turns all three into 0,
+ * and a stored 0 reads as "the engine was certain it saw nothing legible",
+ * which is a different and much more alarming claim than "no confidence was
+ * reported". Absence stays absent.
+ */
+function toOcrConfidence(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value !== 'number' && typeof value !== 'string') return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType, imageHash, readOutcome, ocrConfidence }) {
     return {
         user_id: userId,
         image_url: imageUrl,
@@ -374,6 +409,10 @@ export function receiptRowFromScan(userId, { imageUrl, extracted, route, documen
         image_hash: imageHash || null,
         confidence: extracted && Number.isFinite(Number(extracted.confidence)) ? Number(extracted.confidence) : null,
         auto_file: Boolean(route && route.autoFile),
+        // An outcome the CHECK does not allow would fail the whole insert and
+        // lose the scan, which is the one thing this table exists to prevent.
+        read_outcome: READ_OUTCOME_VALUES.has(readOutcome) ? readOutcome : null,
+        ocr_confidence: toOcrConfidence(ocrConfidence),
         status: 'unassigned',
     };
 }

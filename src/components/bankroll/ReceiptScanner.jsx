@@ -27,7 +27,9 @@ import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
 import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
 import { downscaleForOcr } from '../../lib/docscan/imageSource';
-import { readText, releaseOcr } from '../../lib/docscan/ocr.mjs';
+import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
+import { READ_OUTCOMES } from '../../lib/bankroll/receiptInbox.mjs';
+import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
 import { perceptualHash } from '../../lib/bankroll/receiptHash.mjs';
 import {
     normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
@@ -70,6 +72,10 @@ export default function ReceiptScanner({
     // Not state: it is read once when the scan is handed over, and a render
     // for it would be a render for nothing.
     const imageHashRef = useRef(null);
+    // What the reader did, carried onto the bankroll_receipts row. PostHog
+    // is dark in production, so this table is the one channel that reports
+    // whether the engine works for a real person.
+    const readOutcomeRef = useRef({ outcome: READ_OUTCOMES.NOT_ATTEMPTED, ocrConfidence: null });
     const [extractedData, setExtractedData] = useState(null);
     // What the scan was read as, and where it is headed. Held separately from
     // the raw OCR so the user can correct the type without re-scanning.
@@ -249,9 +255,11 @@ export default function ReceiptScanner({
             if (mountedRef.current) setOcrProgress(null);
             if (!mountedRef.current) return;
 
+            readOutcomeRef.current = { outcome: READ_OUTCOMES.NO_TEXT, ocrConfidence: read.confidence };
             if (!read.text.trim()) {
                 // A photograph with no legible text at all. The image still
-                // saves; the sheet asks where it goes.
+                // saves; the sheet asks where it goes. Recorded as no_text,
+                // which points at the photograph rather than the deploy.
                 setConfidenceScore(10);
                 return;
             }
@@ -267,12 +275,17 @@ export default function ReceiptScanner({
             if (!res.ok) {
                 const detail = await res.json().catch(() => null);
                 console.warn('[ReceiptScanner] Read failed:', res.status, detail && detail.detail);
+                // The engine worked; the server refused. A 403 is the
+                // entitlement gate, a 429 is the rate limit, and those are
+                // different problems from a bad photograph.
+                readOutcomeRef.current = { outcome: READ_OUTCOMES.ROUTE_REFUSED, ocrConfidence: read.confidence };
                 if (mountedRef.current) setConfidenceScore(10);
                 return;
             }
             const result = await res.json();
             if (!mountedRef.current) return;
             if (result && result.success && result.data) {
+                readOutcomeRef.current = { outcome: READ_OUTCOMES.READ, ocrConfidence: read.confidence };
                 setExtractedData(result.data);
                 setConfidenceScore(computeConfidence(result.data));
                 // Classify and decide where it goes. Both are pure, so the
@@ -283,15 +296,30 @@ export default function ReceiptScanner({
             } else {
                 setConfidenceScore(10);
             }
-        } catch (_err) {
+        } catch (err) {
             // Reading the receipt is optional. The image still saves, the
             // scan is still recorded, and the sheet asks where it goes.
+            //
+            // But WHICH failure this was decides who has to fix it. An engine
+            // that cannot start means the deploy is broken, which is exactly
+            // how the reader shipped on 2026-09-09 with every asset 404ing
+            // and nothing anywhere saying so.
+            const engineFailed = err instanceof OcrUnavailableError
+                || /importScripts|worker|wasm|SharedArrayBuffer/i.test(String((err && err.message) || ''));
+            readOutcomeRef.current = {
+                outcome: engineFailed ? READ_OUTCOMES.ENGINE_FAILED : READ_OUTCOMES.NO_TEXT,
+                ocrConfidence: null,
+            };
+            if (engineFailed) {
+                console.warn('[ReceiptScanner] OCR engine unavailable:', (err && err.message) || err);
+                reportReaderFailure(err, READER_SECTIONS.RECEIPT, userId);
+            }
             if (mountedRef.current) {
                 setOcrProgress(null);
                 setConfidenceScore(10);
             }
         }
-    }, [computeConfidence]);
+    }, [computeConfidence, userId]);
 
     /** Staff corrected the guess. Re-route from the same extracted values. */
     const overrideType = useCallback((documentType) => {
@@ -378,6 +406,10 @@ export default function ReceiptScanner({
                 documentType: scanKind ? scanKind.scan.documentType : 'unknown',
                 route: scanKind ? scanKind.route : null,
                 typeConfirmedByUser: typeOverridden,
+                // Recorded on the row so the failures can be counted without
+                // an analytics key nobody has set.
+                readOutcome: readOutcomeRef.current.outcome,
+                ocrConfidence: readOutcomeRef.current.ocrConfidence,
             });
         }
         resetScanner();
