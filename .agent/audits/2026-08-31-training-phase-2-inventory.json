@@ -11,14 +11,14 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 330,
+    "dependencyFiles": 331,
     "componentFiles": 49,
     "hookFiles": 14,
     "ctas": 342,
     "dialogs": 12,
     "persistenceFiles": 75,
     "realtimeFiles": 6,
-    "tests": 130,
+    "tests": 129,
     "markerCandidates": 330,
     "possibleUnwiredFunctions": 353,
     "routeStateCells": 752,
@@ -4645,6 +4645,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -4741,7 +4742,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -4801,7 +4803,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -5865,6 +5868,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -5937,7 +5941,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
@@ -5986,7 +5991,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
@@ -6241,6 +6247,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -6320,7 +6327,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs"
@@ -6371,7 +6379,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs"
@@ -6467,6 +6476,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -6564,7 +6574,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -6624,7 +6635,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -6742,6 +6754,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -6808,7 +6821,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -6853,7 +6867,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -8138,6 +8153,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -8206,7 +8222,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -8251,7 +8268,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -9358,6 +9376,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -9432,7 +9451,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "e2e/020-hamburger.spec.ts"
@@ -9483,7 +9503,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "e2e/020-hamburger.spec.ts"
@@ -9853,6 +9874,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -9933,7 +9955,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-legacy-consumer-authority.test.mjs"
@@ -9983,7 +10006,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-legacy-consumer-authority.test.mjs"
@@ -10081,6 +10105,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -10181,7 +10206,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -10244,7 +10270,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -10357,6 +10384,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -10423,7 +10451,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -10468,7 +10497,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -11666,6 +11696,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -11760,7 +11791,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
@@ -11821,7 +11853,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
@@ -12417,6 +12450,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -12540,7 +12574,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-arena-review-gateway-authority.test.mjs",
@@ -12618,7 +12653,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-arena-review-gateway-authority.test.mjs",
@@ -12764,6 +12800,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -12836,7 +12873,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs"
@@ -12885,7 +12923,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs"
@@ -15351,6 +15390,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -15439,7 +15479,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-projection-authority-package-c.test.mjs",
@@ -15493,7 +15534,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-projection-authority-package-c.test.mjs",
@@ -15596,6 +15638,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -15682,7 +15725,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -15736,7 +15780,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -16097,6 +16142,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -16163,7 +16209,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -16208,7 +16255,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": []
         },
@@ -16478,6 +16526,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -16554,7 +16603,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -16605,7 +16655,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -16708,6 +16759,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -16784,7 +16836,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs"
@@ -16833,7 +16886,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs"
@@ -16928,6 +16982,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -17019,7 +17074,8 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/lib/training/boundedTrainingFetch.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/poker-near-me-phase-6.test.mjs",
@@ -17077,7 +17133,8 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js"
+            "src/tutorials/index.js",
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/poker-near-me-phase-6.test.mjs",
@@ -55627,6 +55684,7 @@
       "file": "src/tutorials/index.js",
       "imports": [
         "src/tutorials/bankroll-manager.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js"
       ],
@@ -55666,7 +55724,7 @@
       "functions": [
         {
           "name": "normalisePath",
-          "line": 51,
+          "line": 57,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55674,7 +55732,7 @@
         },
         {
           "name": "getTutorialForPath",
-          "line": 58,
+          "line": 64,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55682,7 +55740,7 @@
         },
         {
           "name": "read",
-          "line": 70,
+          "line": 76,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -55690,7 +55748,7 @@
         },
         {
           "name": "write",
-          "line": 79,
+          "line": 85,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -55698,7 +55756,7 @@
         },
         {
           "name": "hasSeenTutorial",
-          "line": 88,
+          "line": 94,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55706,7 +55764,7 @@
         },
         {
           "name": "markTutorialSeen",
-          "line": 92,
+          "line": 98,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55714,7 +55772,7 @@
         },
         {
           "name": "promptKey",
-          "line": 96,
+          "line": 102,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -55722,7 +55780,7 @@
         },
         {
           "name": "hasSeenPrompt",
-          "line": 100,
+          "line": 106,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55730,7 +55788,7 @@
         },
         {
           "name": "markPromptSeen",
-          "line": 104,
+          "line": 110,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55738,7 +55796,7 @@
         },
         {
           "name": "requestPageTutorial",
-          "line": 112,
+          "line": 118,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55752,6 +55810,46 @@
         "markPromptSeen",
         "requestPageTutorial"
       ],
+      "markers": []
+    },
+    {
+      "file": "src/tutorials/personal-assistant.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": true,
+        "offline": false,
+        "stale": true,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -60457,6 +60555,10 @@
     },
     {
       "from": "src/tutorials/index.js",
+      "to": "src/tutorials/personal-assistant.js"
+    },
+    {
+      "from": "src/tutorials/index.js",
       "to": "src/tutorials/poker-near-me.js"
     },
     {
@@ -60660,7 +60762,6 @@
     "e2e/021-personal-assistant.spec.ts",
     "e2e/03-training-gto.spec.ts",
     "e2e/09-games.spec.ts",
-    "e2e/fixtures/world-menu-cases.ts",
     "e2e/global-footer-visual.spec.ts"
   ],
   "persistenceFiles": [
@@ -68580,6 +68681,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -69402,6 +69504,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -69732,6 +69835,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -70046,6 +70150,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -70347,6 +70452,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -71013,6 +71119,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -71604,6 +71711,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -72015,6 +72123,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -72319,6 +72428,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -72631,6 +72741,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -73382,6 +73493,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -73914,6 +74026,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -74219,6 +74332,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -75485,6 +75599,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -75835,6 +75950,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -76189,6 +76305,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -76545,6 +76662,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -76846,6 +76964,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -77149,6 +77268,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -79015,6 +79135,7 @@
         "src/stores/pageOverlayStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js"
       ],
@@ -79277,6 +79398,7 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/world/components/Geeves/index.ts"
@@ -82321,6 +82443,7 @@
       "reachableFiles": [
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js"
       ],
@@ -82345,6 +82468,16 @@
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
       ]
+    },
+    {
+      "file": "src/tutorials/personal-assistant.js",
+      "reachableFiles": [
+        "src/tutorials/personal-assistant.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
     },
     {
       "file": "src/tutorials/poker-near-me.js",
@@ -90597,7 +90730,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 88,
+        "line": 94,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90612,7 +90745,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 92,
+        "line": 98,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90627,7 +90760,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 100,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90642,7 +90775,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 104,
+        "line": 110,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90657,7 +90790,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 112,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99124,7 +99257,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 88,
+        "line": 94,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99139,7 +99272,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 92,
+        "line": 98,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99154,7 +99287,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 100,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99169,7 +99302,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 104,
+        "line": 110,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99184,7 +99317,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 112,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,

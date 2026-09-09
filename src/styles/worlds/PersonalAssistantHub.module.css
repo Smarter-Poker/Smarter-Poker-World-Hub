@@ -1,8 +1,23 @@
+/*
+ * Personal Assistant hub · always-displayed mobile standard, phase 4.
+ * docs/mobile-standard/ALWAYS-DISPLAYED-MOBILE-STANDARD.md
+ *
+ * Three breakpoints only: 900 (side rail goes), 768 (phone), 600 (sheets and
+ * the smallest phones). The file used to carry 960 / 640 / 380.
+ *
+ * No font below 12px. The mono micro-labels that gave this page its console
+ * look were 7px to 11px in 30 places; they are re-laid at 12px, with the
+ * letter-spacing and line-height adjusted so the rows still fit.
+ *
+ * No bottom padding here. pages/_app.js renders BottomNavSpacer and all three
+ * /hub/personal-assistant routes are in src/config/bottom-nav-routes.json, so
+ * the old `padding-bottom: calc(88px + safe-area)` was a SECOND clearance
+ * stacked under the first.
+ */
 .page {
   --pa-cyan: #63e7ff;
   --pa-line: #718b9e;
-  min-height: 100vh;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  min-height: 100dvh;
   overflow-x: clip;
   background:
     linear-gradient(rgba(30, 79, 105, 0.07) 1px, transparent 1px),
@@ -15,7 +30,7 @@
 }
 
 .loadingWrap {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   background: #000;
@@ -28,6 +43,41 @@
   text-transform: uppercase;
 }
 
+/* First-paint skeleton. The page used to swap the whole document for a
+   centred "Initializing Jarvis" line until `mounted` flipped, so the largest
+   contentful paint was a 12px string. The shell, header and nav now paint
+   immediately and only the data blocks are placeholders. */
+.skel {
+  display: grid;
+  gap: 15px;
+}
+
+.skelBlock {
+  border: 1px solid #294d63;
+  background: linear-gradient(90deg, #061019 0%, #0d2231 46%, #061019 92%);
+  background-size: 280% 100%;
+  animation: pa-skel 1.35s ease-in-out infinite;
+}
+
+.skelHero { height: 430px; }
+.skelBar { height: 58px; }
+.skelCard { height: 150px; }
+
+.skelRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+@keyframes pa-skel {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+/* The section anchors. Everything is always visible: a five-up grid on
+   desktop, wrapping to two or three per row on a phone. It was an
+   `overflow-x: auto` snap carousel with 126px flex cards below 640, which is
+   exactly the "slide to see" Dan banned. */
 .tabs {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -124,8 +174,8 @@
 .systemEyebrow,
 .dailyEyebrow {
   color: #b8c8d2;
-  font: 500 10px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.22em;
+  font: 500 12px / 1.35 'IBM Plex Mono', monospace;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -159,8 +209,8 @@
   background: linear-gradient(#172938, #07111b);
   box-shadow: inset 0 1px 0 #dff8ff66, inset 0 -3px 4px #000, 0 6px 12px #000;
   color: #d8faff;
-  font: 700 10px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.06em;
+  font: 700 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -222,7 +272,7 @@
 
 .syncAlertCopy small {
   color: #bca98d;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -262,8 +312,8 @@
 
 .sectionBar span {
   color: #a9b9c4;
-  font: 500 10px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.12em;
+  font: 500 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -316,8 +366,8 @@
 
 .missionBadge {
   color: #59d7ff;
-  font: 700 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.12em;
+  font: 700 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
@@ -331,7 +381,7 @@
   max-width: 650px;
   margin: 0;
   color: #9fb2bd;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -341,8 +391,8 @@
   gap: 6px;
   margin-top: 13px;
   color: #8bdcbf;
-  font: 700 8px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.07em;
+  font: 700 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -371,8 +421,8 @@
   gap: 8px;
   padding: 0 18px;
   color: #7f98a6;
-  font: 700 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.08em;
+  font: 700 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -397,7 +447,7 @@
 
 .loopNumber {
   color: #4f7182;
-  font: 700 8px 'IBM Plex Mono', monospace;
+  font: 700 12px 'IBM Plex Mono', monospace;
 }
 
 .loopStep > span:nth-of-type(2) {
@@ -413,12 +463,10 @@
 }
 
 .loopStep small {
-  overflow: hidden;
   color: #6f8794;
-  font: 600 7px 'IBM Plex Mono', monospace;
-  text-overflow: ellipsis;
+  font: 600 12px / 1.35 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .systemGrid {
@@ -497,7 +545,7 @@
   max-width: 440px;
   margin: 0;
   color: #9fb0bb;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
@@ -514,7 +562,8 @@
   align-items: center;
   gap: 7px;
   color: #b7c4cc;
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .systemCopy li svg { color: #39caff; flex: 0 0 auto; }
@@ -530,8 +579,8 @@
   border: 1px solid #d8f6ff;
   border-radius: 0;
   box-shadow: inset 0 1px 0 #fff, inset 0 -3px 5px #000, 0 4px 8px #000, 0 0 9px #009dff55;
-  font: 800 10px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.04em;
+  font: 800 12px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
@@ -566,8 +615,8 @@
   border: 1px solid rgba(255, 214, 102, 0.32);
   background: rgba(255, 214, 102, 0.08);
   color: rgba(255, 226, 151, 0.92);
-  font: 600 10px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.03em;
+  font: 600 12px / 1.4 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -602,8 +651,8 @@
   align-items: center;
   gap: 8px;
   color: #a8bac5;
-  font: 600 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.04em;
+  font: 600 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -615,7 +664,7 @@
   font: 700 42px / 1 Rajdhani, 'Arial Narrow', sans-serif;
 }
 
-.statLabel { color: #71848f; font-size: 10px; }
+.statLabel { color: #71848f; font-size: 12px; line-height: 1.4; }
 
 .statAction {
   display: flex;
@@ -625,8 +674,8 @@
   padding-top: 14px;
   border-top: 1px solid rgba(93, 132, 154, 0.28);
   color: #49d1ff;
-  font: 700 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.04em;
+  font: 700 12px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -661,18 +710,17 @@
 }
 
 .activityContent > span {
-  overflow: hidden;
   color: #9aaab4;
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .activityContent small {
   margin-top: 8px;
   color: #4dd4ff;
-  font: 700 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.03em;
+  font: 700 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -703,8 +751,8 @@
 
 .sessionRailHeader small {
   color: #77909f;
-  font: 600 8px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.08em;
+  font: 600 12px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.05em;
 }
 
 .sessionList {
@@ -759,14 +807,14 @@
 .sessionIdentity small,
 .sessionDate {
   color: #718690;
-  font: 600 8px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.03em;
+  font: 600 12px / 1.3 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .sessionEv {
   color: #55e5ae;
-  font: 700 10px 'IBM Plex Mono', monospace;
+  font: 700 12px 'IBM Plex Mono', monospace;
   text-align: right;
   text-transform: uppercase;
 }
@@ -824,7 +872,7 @@
 .dailyStateCopy p {
   margin: 0;
   color: #93a8b4;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -846,7 +894,7 @@
 }
 
 .playingCard { width: 44px; height: 60px; }
-.boardCard { width: 30px; height: 40px; font-size: 11px; }
+.boardCard { width: 34px; height: 46px; font-size: 12px; }
 .playingCard i,
 .boardCard i { margin-top: -8px; font-size: 0.82em; font-style: normal; }
 .redCard { color: #cf2741; }
@@ -865,62 +913,56 @@
   gap: 6px;
   margin-top: 13px;
   color: #93a8b4;
-  font: 600 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.04em;
+  font: 600 12px / 1.35 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .dailyPrompt svg { color: #4de0a5; }
 
-@media (max-width: 960px) {
+@media (max-width: 900px) {
   .tabs,
   .main { width: min(100% - 32px, 1240px); }
   .heroInner { min-height: 520px; }
   .heroCopy { padding: 82px 50px; }
   .missionPrimary { grid-template-columns: auto minmax(0, 1fr); }
   .missionPrimary .primaryButton { grid-column: 1 / -1; width: 100%; }
+  /* The Decision Loop keeps its own label. It used to be `display: none` here,
+     which left three numbered steps with nothing naming what they are. */
   .decisionLoop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .loopLabel { display: none; }
+  .loopLabel { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid #294d63; min-height: 46px; }
   .systemCopy { grid-template-columns: 1fr; }
   .systemCopy :is(.primaryButton, .secondaryButton) { width: 100%; }
   .statGrid,
   .activityGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .skelRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 640px) {
-  .page { padding-bottom: calc(72px + env(safe-area-inset-bottom)); background-size: 24px 24px; }
+@media (max-width: 768px) {
+  .page { background-size: 24px 24px; }
 
+  /* Was an overflow-x snap carousel with 126px cards. Now a wrapping grid:
+     every section anchor is on screen at 375 with no sideways scroll. */
   .tabs {
-    display: flex;
-    width: 100%;
-    margin: 8px 0 23px;
-    padding: 0 10px 8px;
-    overflow-x: auto;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    scroll-padding-inline: 10px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    width: calc(100% - 20px);
+    margin: 8px auto 23px;
+    padding: 0;
+    border: 1px solid var(--pa-line);
+    background: linear-gradient(180deg, #2b3944 0, #060b10 18%, #020407 76%, #19242c 100%);
+    box-shadow: inset 0 1px 0 #fff8, inset 0 -3px 5px #000, 0 8px 20px #000;
   }
-
-  .tabs::-webkit-scrollbar { display: none; }
 
   .tabs :is(a, button) {
-    flex: 0 0 126px;
     min-height: 48px;
-    padding: 0 13px;
-    border-top: 1px solid var(--pa-line);
+    padding: 6px 8px;
     border-right: 1px solid #293c49;
-    border-bottom: 1px solid var(--pa-line);
-    background: linear-gradient(180deg, #263641, #060b10 23%, #020407 76%, #18232b);
-    box-shadow: inset 0 1px 0 #ffffff50;
-    font-size: 11px;
-    scroll-snap-align: center;
+    border-bottom: 1px solid #293c49;
+    font-size: 13px;
+    line-height: 1.2;
   }
 
-  .tabs :is(a, button):first-child { border-left: 1px solid var(--pa-line); }
   .tabs .activeTab { box-shadow: inset 0 2px 0 #d8fbff, inset 0 -3px 0 #078ed6, 0 0 14px #008cff55; }
 
   .main { width: calc(100% - 20px); }
@@ -943,18 +985,15 @@
 
   .heroCopy { width: 100%; padding: 164px 18px 14px; }
   .heroCopy h1 { margin: 8px 0 10px; font-size: clamp(28px, 8.5vw, 36px); line-height: 1; }
-  .heroCopy p { font-size: 11px; line-height: 1.42; }
-  .eyebrow { font-size: 8px; }
-  .statusBadge { width: 100%; justify-content: center; margin-top: 10px; padding: 8px; font-size: 8px; }
-  .heroActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+  .heroCopy p { font-size: 14px; line-height: 1.5; }
+  .statusBadge { width: 100%; justify-content: center; margin-top: 10px; padding: 10px 8px; }
+  .heroActions { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; }
   .heroActions :is(.primaryButton, .secondaryButton) {
     width: 100%;
     min-width: 0;
-    padding-inline: 6px;
-    font-size: 9px;
-    letter-spacing: 0.01em;
+    padding-inline: 10px;
+    white-space: normal;
   }
-  .heroActions :is(.primaryButton, .secondaryButton):only-child { grid-column: 1 / -1; }
 
   .syncAlert {
     grid-template-columns: auto minmax(0, 1fr);
@@ -962,13 +1001,11 @@
     padding: 12px;
   }
   .syncAlert .secondaryButton { grid-column: 1 / -1; width: 100%; }
-  .syncAlertCopy strong { font-size: 10px; }
-  .syncAlertCopy small { font-size: 9px; }
 
   .section { margin-top: 30px; }
-  .sectionBar { min-height: 58px; margin-bottom: 13px; padding: 12px 15px; }
+  .sectionBar { min-height: 58px; margin-bottom: 13px; padding: 12px 15px; gap: 12px; }
   .sectionBar h2 { font-size: 19px; }
-  .sectionBar span { max-width: 120px; font-size: 7px; line-height: 1.4; text-align: right; }
+  .sectionBar span { max-width: 44%; line-height: 1.35; text-align: right; }
 
   .missionFrame { padding: 4px; }
   .missionPrimary {
@@ -985,9 +1022,9 @@
   .missionTarget::before { inset: 7px; }
   .missionTarget::after { inset: 14px; }
   .missionCopy h3 { margin-top: 6px; font-size: 26px; }
-  .missionCopy p { font-size: 10px; line-height: 1.55; }
   .missionPrimary .primaryButton { grid-column: auto; min-width: 0; }
   .decisionLoop { grid-template-columns: 1fr; border-top: 0; }
+  .page .loopLabel { grid-column: auto; min-height: 46px; border-bottom: 1px solid #294d63; }
   .page .loopStep { min-height: 62px; border-right: 0; border-bottom: 1px solid #294d63; }
   .loopStep:last-child { border-bottom: 0; }
   .loopStep strong { font-size: 15px; }
@@ -997,57 +1034,55 @@
   .systemArt { height: 248px; }
   .systemCopy { min-height: 0; padding: 18px; }
   .systemCopy h3 { font-size: 28px; }
-  .systemCopy p { font-size: 11px; }
-  .systemCopy li { font-size: 10px; }
 
   .statGrid,
   .activityGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .statCard,
   .activityCard { padding: 4px; }
-  .statCardInner { min-height: 145px; padding: 12px; }
-  .statTopline { align-items: flex-start; font-size: 7px; line-height: 1.35; }
-  .statTopline svg { width: 14px; height: 14px; flex: 0 0 auto; }
-  .statCard strong { margin: 14px 0 4px; font-size: 34px; }
-  .statAction { font-size: 7px; }
+  .statCardInner { min-height: 168px; padding: 12px; }
+  .statTopline { align-items: flex-start; line-height: 1.3; }
+  .statTopline svg { width: 15px; height: 15px; flex: 0 0 auto; }
+  .statCard strong { margin: 12px 0 4px; font-size: 34px; }
 
-  .activityCardInner { display: flex; flex-direction: column; min-height: 165px; padding: 12px; }
+  .activityCardInner { display: flex; flex-direction: column; min-height: 176px; padding: 12px; }
   .activityIcon { width: 38px; height: 38px; }
   .activityContent strong { margin: 0 0 7px; font-size: 18px; }
-  .activityContent > span { white-space: normal; line-height: 1.35; }
   .activityChevron { position: absolute; right: 10px; bottom: 10px; }
 
   .sessionRail { padding: 4px; }
   .sessionRailHeader { padding-inline: 10px; }
+  /* Two rows per session card so the date stays on screen. It used to be
+     `display: none`, hiding the one field that says which session this is. */
   .sessionRow {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 9px;
     min-height: 68px;
     padding: 9px;
   }
-  .sessionMarker { width: 34px; height: 34px; }
+  .sessionMarker { width: 34px; height: 34px; grid-row: 1 / span 2; }
   .sessionIdentity strong { font-size: 15px; }
-  .sessionDate { display: none; }
-  .sessionEv { grid-column: 2; text-align: left; }
-  .sessionRow > svg { grid-column: 3; grid-row: 1 / span 2; }
+  .sessionDate { grid-column: 2; grid-row: 2; text-align: left; }
+  .sessionEv { grid-column: 3; grid-row: 2; text-align: right; }
+  .sessionRow > svg { grid-column: 3; grid-row: 1; justify-self: end; }
 
   .dailyInner { grid-template-columns: auto minmax(0, 1fr); gap: 12px; min-height: 0; padding: 16px; }
   .dailyState { grid-template-columns: auto minmax(0, 1fr); gap: 12px; min-height: 0; padding: 16px; }
   .dailyStateIcon { width: 42px; height: 42px; }
   .dailyStateCopy h3 { font-size: 18px; }
-  .dailyStateCopy p { font-size: 9px; }
   .dailyState .secondaryButton { grid-column: 1 / -1; width: 100%; }
-  .playingCard { width: 34px; height: 48px; font-size: 13px; }
+  .playingCard { width: 38px; height: 52px; font-size: 14px; }
   .dailyCopy h3 { font-size: 18px; }
-  .dailyEyebrow { font-size: 7px; }
-  .dailyPrompt { font-size: 7px; line-height: 1.35; }
   .dailyInner .primaryButton { grid-column: 1 / -1; width: 100%; }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 600px) {
   .heroInner { min-height: 420px; }
   .heroInner::before { height: 142px; }
   .heroCopy { padding-top: 156px; }
   .heroCopy h1 { font-size: 28px; }
+  .skelRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Five anchors, three then two, all on a 375px screen. */
+  .tabs { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

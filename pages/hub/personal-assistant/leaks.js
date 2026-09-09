@@ -41,6 +41,9 @@ import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
   safeStorage, usePrefersReducedMotion, useAbortableFetch, isAbortError,
 } from '../../../src/components/sandbox/paKit';
+import { useHaptics } from '../../../src/hooks/useHaptics';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStatus';
+import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY';
@@ -1435,6 +1438,18 @@ export default function LeakFinderPage() {
   const { user, initializing: authInitializing } = useAvatar();
   const userId = user?.id || null;
 
+  // Mobile phase 4 foundation (docs/mobile-standard/ROLLOUT-PLAN.md).
+  const haptic = useHaptics();
+  const online = useOnlineStatus();
+  // Leak detection reads hand history and writes user_leaks. Offline it would
+  // spin for the whole timeout and then report a generic failure, so the
+  // button explains instead of firing. OfflineBar in _app.js is the banner.
+  const requireOnline = useCallback(() => {
+    if (online) return true;
+    toast.error(OFFLINE_TOAST);
+    return false;
+  }, [online]);
+
   useEffect(() => { setMounted(true); }, []);
 
   // ═══ ACTION GATE: exploring leaks is free, practice/training is gated ═══
@@ -1443,6 +1458,12 @@ export default function LeakFinderPage() {
   const [tab, setTab] = useState('leaks');
   const [showMenu, setShowMenu] = useState(false);
   const [selectedLeakId, setSelectedLeakId] = useState(null);
+
+  // Back closes the menu, then the leak sheet, before it leaves the route.
+  const closeMenu = useCallback(() => setShowMenu(false), []);
+  const closeLeakSheet = useCallback(() => setSelectedLeakId(null), []);
+  useModalHistory(showMenu, closeMenu);
+  useModalHistory(Boolean(selectedLeakId), closeLeakSheet);
   const [resolvingLeakId, setResolvingLeakId] = useState(null);
   const [detectionSummary, setDetectionSummary] = useState(null);
   const [detectStep, setDetectStep] = useState(0);
@@ -1616,6 +1637,8 @@ export default function LeakFinderPage() {
   }, [detectionSummary]);
 
   const handleRunDetection = useCallback(async () => {
+    if (!requireOnline()) return;
+    haptic('medium');
     setDetectionSummary(null);
     let result;
     try {
@@ -1645,7 +1668,7 @@ export default function LeakFinderPage() {
     } else {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
     }
-  }, [runDetection]);
+  }, [runDetection, requireOnline, haptic]);
 
   const announcedAuditRef = useRef(null);
   useEffect(() => {
@@ -2124,7 +2147,7 @@ export default function LeakFinderPage() {
 
         <HamburgerMenu
           isOpen={showMenu}
-          onClose={() => setShowMenu(false)}
+          onClose={closeMenu}
           direction="left"
           theme="pa"
           user={null}
@@ -2242,7 +2265,7 @@ export default function LeakFinderPage() {
           </div>
 
           {/* ── Tabs ── */}
-          <div style={{ marginTop: S.md, marginBottom: S.md }}>
+          <div style={{ marginTop: S.md, marginBottom: S.md }} data-tutorial="leak-views">
             <Segmented
               idPrefix="leaks-tab"
               label="View"
@@ -2258,7 +2281,7 @@ export default function LeakFinderPage() {
           </div>
 
           {tab === 'leaks' ? (
-            <section id="leak-list" aria-label="Your leaks">
+            <section id="leak-list" aria-label="Your leaks" data-tutorial="leak-list">
               {/* Due for review · the spaced-repetition entry point */}
               <LeakErrorBoundary label="The review queue">
                 <ReviewQueueCard
@@ -2310,7 +2333,7 @@ export default function LeakFinderPage() {
               )}
 
               {/* Detection */}
-              <div className={toolStyles.scanDeck}>
+              <div className={toolStyles.scanDeck} data-tutorial="detect">
                 <div className={toolStyles.scanDeckInner}>
                   <div className={toolStyles.scanDeckCopy}>
                     <span className={toolStyles.scanDisc} aria-hidden="true"><Activity size={25} strokeWidth={1.8} /></span>
@@ -2697,7 +2720,7 @@ export default function LeakFinderPage() {
         {/* ── Detail sheet ── */}
         <BottomSheet
           open={!!selectedLeak}
-          onClose={() => setSelectedLeakId(null)}
+          onClose={closeLeakSheet}
           title={selectedLeak?.title || 'Leak'}
           subtitle={selectedLeak?.situationClass || undefined}
           closeLabel="Close leak details"
@@ -2861,7 +2884,11 @@ const styles = {
     minHeight: '100dvh',
     width: '100%',
     maxWidth: '100vw',
-    overflowX: 'hidden',
+    // `clip`, never `hidden`: a bare `overflow-x: hidden` makes this element a
+    // scroll container on WebKit and re-parents every `position: fixed`
+    // descendant to it, which is what unsticks the footer and the bottom nav.
+    // `clip` gives the same horizontal containment with no scroll container.
+    overflowX: 'clip',
     boxSizing: 'border-box',
     background: T.bg,
     fontFamily: FONT,
@@ -3547,25 +3574,27 @@ const styles = {
     fontSize: F.caption,
     color: T.textMuted,
   },
-  // Deliberate horizontal snap carousel. One auto-column per point with no
-  // minimum squeezed 7 runs to ~36px and 12 runs to ~21px on a 375px viewport,
-  // which broke the 44x44 tap target and clipped the % / date labels.
+  /* MOBILE PHASE 4. This was a deliberate horizontal snap carousel, and the
+     reasoning behind it was sound: one auto-column per point with no minimum
+     squeezed 7 runs to ~36px and 12 runs to ~21px at 375, breaking the 44x44
+     tap target and clipping the % / date labels. But a carousel solves that by
+     hiding points off the right edge, which is the "slide to see" Dan banned
+     outright, and the trend is only readable when you can see the whole run.
+     A WRAPPING row keeps the 44px targets AND shows every point: five per row
+     at 375, as many as fit above it. */
   trendPointRow: {
     display: 'flex',
-    overflowX: 'auto',
-    scrollSnapType: 'x mandatory',
-    WebkitOverflowScrolling: 'touch',
+    flexWrap: 'wrap',
     gap: S.sm,
     marginTop: S.md,
     paddingBottom: S.xs,
   },
   trendPointBtn: {
     display: 'flex',
-    flex: '0 0 auto',
+    flex: '1 0 auto',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    scrollSnapAlign: 'start',
     gap: 2,
     minHeight: 44,
     minWidth: 60,
