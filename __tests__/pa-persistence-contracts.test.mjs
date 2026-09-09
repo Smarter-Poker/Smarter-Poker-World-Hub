@@ -128,6 +128,10 @@ test('retired Sandbox has a responsive evidence boundary and no analysis workspa
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.match(sandbox, /data-training-authority="verified-evidence-required"/);
   assert.match(sandbox, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(sandbox, /@media \(max-width: 640px\)[\s\S]*grid-template-columns: 1fr/);
+  // PIN MOVED, NOT LOOSENED (mobile phase 4, 2026-09-09). What this guards is
+  // that the evidence panel and the destination bar collapse to one column on
+  // a phone. That still happens; the breakpoint that does it moved from 640 to
+  // the sanctioned 768 (docs/mobile-standard: 900 / 768 / 600 and no fourth).
+  assert.match(sandbox, /@media \(max-width: 768px\)[\s\S]*grid-template-columns: 1fr/);
   assert.doesNotMatch(sandbox, /sandbox-table|run-analysis|useSandboxAnalysis/);
 });
