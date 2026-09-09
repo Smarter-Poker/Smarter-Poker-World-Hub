@@ -1,7 +1,7 @@
 # Phase 4 final closure audit - World Hub solver ingress
 
-Date: 2026-09-08 America/Chicago  
-Branch: `agent/codex-horse-phase4-final/fix/horse-phase4-final-closure`  
+Date: 2026-09-08 America/Chicago
+Branch: `agent/codex-horse-phase4-final/fix/horse-phase4-final-closure`
 Scope: signed V31 ingress parsing and licensed solver-worker checkpoint reuse.
 
 ## A. Repository truth
@@ -25,15 +25,17 @@ Scope: signed V31 ingress parsing and licensed solver-worker checkpoint reuse.
 - Checkpoint reuse proves exact top-level and matrix key sets, schema, combo-order declaration, one object node, target node identity, manifest checksum, source combo-order checksum, and range-bundle checksum before skipping a solve.
 - Invalid checkpoint evidence increments the invalid counter and terminates the worker rather than being silently regenerated or accepted.
 
-## D. Verification completed before main reconciliation
+## D. Verification completed on the current-main candidate
 
 - Python pipeline: 16 tests passed.
-- Node ingress and pipeline contract: 7 tests passed.
+- Node ingress and pipeline contract: 13 tests passed.
 - Python byte compilation passed.
-- `git diff --check`, conflict-marker scans, and Phase 4 TODO/stub scans were clean.
+- The complete Next.js production build passed: prebuild policy and bankroll gates passed, 394 static pages were generated, and the postbuild Personal Assistant performance budget passed.
+- Complete ESLint passed all 4,268 source and test files.
+- `git diff --check`, conflict-marker scans, and Phase 4 TODO/stub scans were clean after the audit hard-break whitespace was removed.
 
 ## E. Release boundary
 
-Current-main reconciliation, the complete production build, protected PR merge, and live gateway fail-closed probes are required before this correction may be called published. Those receipts will be appended after the protected release finishes.
+Current-main reconciliation and the complete production build are complete on this candidate. Protected PR merge and live gateway fail-closed probes are still required before this correction may be called published. Final protected-release receipts are recorded in the external Phase 4 build plan so this reviewed repository audit remains an immutable pre-release record.
 
 Phase 4 remains externally blocked on human approval of a licensed immutable input bundle, three securely provisioned unique HMAC keys, and two independent licensed Pio solve hosts plus the compactor. No software test can fabricate those prerequisites.
