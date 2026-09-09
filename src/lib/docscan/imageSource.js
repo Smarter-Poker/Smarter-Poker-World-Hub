@@ -147,7 +147,7 @@ export function canvasFromRGBA(buffer, width, height) {
  * Quality is deliberately high: receipt totals are small dark text on light
  * paper, which is exactly what aggressive JPEG chroma subsampling destroys.
  */
-export function rgbaToBlob(buffer, width, height, quality = 0.92) {
+export function rgbaToBlob(buffer, width, height, quality = 0.92, type = 'image/jpeg') {
     const canvas = canvasFromRGBA(buffer, width, height);
     return new Promise((resolve, reject) => {
         canvas.toBlob(
@@ -157,7 +157,7 @@ export function rgbaToBlob(buffer, width, height, quality = 0.92) {
                 if (blob) resolve(blob);
                 else reject(new Error('encode-failed'));
             },
-            'image/jpeg',
+            type,
             quality,
         );
     });
@@ -190,6 +190,10 @@ export async function downscaleForOcr(blob, maxSide = 1600, quality = 0.85) {
     try {
         const bitmap = await createImageBitmap(blob);
         const longest = Math.max(bitmap.width, bitmap.height);
+        // Already small enough: hand back the original untouched. This matters
+        // more than it looks. A binarized page arrives here as a PNG, and
+        // re-encoding it as JPEG would ring every sharp black-on-white edge,
+        // which is precisely the detail the engine reads.
         if (longest <= maxSide) { bitmap.close && bitmap.close(); return blob; }
         const scale = maxSide / longest;
         const w = Math.round(bitmap.width * scale);

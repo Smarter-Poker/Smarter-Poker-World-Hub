@@ -189,7 +189,10 @@ export default function ReceiptScanner({
         // Read the receipt in parallel with storing it. OCR does not depend on
         // storage, and running it first means the extracted details survive an
         // upload that has to retry, instead of being lost with the attempt.
-        const ocrPromise = runOcr(scan.blob, accessToken);
+        // The reader gets the binarized rendition; storage keeps the one the
+        // user chose to look at. They are different jobs and, measured on a
+        // faint thermal receipt, the difference is every amount on it.
+        const ocrPromise = runOcr(scan.ocrBlob || scan.blob, accessToken);
         // What this photograph looks like, so the page can say "you scanned
         // this one on Tuesday". Never blocks the upload: a browser without
         // createImageBitmap resolves null and the check simply does not run.
@@ -343,7 +346,7 @@ export default function ReceiptScanner({
         const previewUrl = URL.createObjectURL(scan.blob);
         previewUrlRef.current = previewUrl;
 
-        const approved = { blob: scan.blob, previewUrl, width: scan.width, height: scan.height };
+        const approved = { blob: scan.blob, ocrBlob: scan.ocrBlob || scan.blob, previewUrl, width: scan.width, height: scan.height };
         setApprovedScan(approved);
         await uploadApprovedScan(approved);
     }, [uploadApprovedScan]);
