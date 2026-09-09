@@ -20,25 +20,37 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 from contract import (  # noqa: E402
+    ACTION,
     ICM_MODEL_CONTRACT,
     INPUT_BUNDLE_CONTRACT,
     MANIFEST_CONTRACT,
+    NODE,
     RANGE_BUNDLE_CONTRACT,
     REQUIRED_PIPELINE_FILES,
     ApprovedManifest,
     ContractError,
+    _finite_number,
+    _json_bytes,
     canonical_hand_order_tokens,
     input_bundle_checksum,
     input_bundle_id,
     load_manifest,
+    load_range_vector,
     pipeline_bundle_checksum,
 )
-from gateway import canonical_json, sign_request  # noqa: E402
+from gateway import (  # noqa: E402
+    GatewayError,
+    canonical_json,
+    decode_error_response,
+    decode_success_response,
+    sign_request,
+)
 from pio_upi import (  # noqa: E402
     PioError,
     PioProcess,
     analyze_node,
     harvest_node,
+    parse_children,
     run_self_test,
     solve_scenario,
     setup_commands,
@@ -53,6 +65,7 @@ from worker import (  # noqa: E402
     owned_targets,
     scenario_hash,
     source_receipt_is_valid,
+    worker_heartbeat_receipt_is_valid,
 )
 import compactor  # noqa: E402
 import prepare_bundle  # noqa: E402
@@ -388,6 +401,96 @@ class PioTransportTests(unittest.TestCase):
 
 
 class ManifestAndGatewayTests(unittest.TestCase):
+    def test_gateway_response_parser_is_strict_and_operation_bound(self):
+        payload = canonical_json(
+            {"success": True, "operation": "dataset_contract", "result": {"state": "building"}}
+        )
+        self.assertEqual(
+            decode_success_response(payload, "dataset_contract"), {"state": "building"}
+        )
+        for invalid in (
+            b'{"success":true,"success":false,"operation":"dataset_contract","result":{}}',
+            b'{"success":true,"operation":"dataset_contract","result":{"value":NaN}}',
+            b'{"success":true,"operation":"dataset_contract","result":{},"extra":1}',
+            b'{"success":true,"operation":"other","result":{}}',
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(GatewayError):
+                decode_success_response(invalid, "dataset_contract")
+        self.assertEqual(
+            decode_error_response(b'{"success":false,"error":"denied"}', 409), "denied"
+        )
+        self.assertEqual(
+            decode_error_response(b'{"success":false,"error":"one","error":"two"}', 409),
+            "HTTP 409",
+        )
+
+    def test_strict_json_and_numeric_conversion_fail_as_contract_errors(self):
+        with self.assertRaisesRegex(ContractError, "non-finite JSON number"):
+            _json_bytes(b'{"value":NaN}', "test payload")
+        with self.assertRaisesRegex(ContractError, "finite ingress range"):
+            _json_bytes(b'{"value":1e400}', "test payload")
+        with self.assertRaisesRegex(ContractError, "exact ingress range"):
+            _json_bytes(b'{"value":9007199254740993}', "test payload")
+        with self.assertRaisesRegex(ContractError, "exact ingress range"):
+            _json_bytes(b'{"value":9007199254740993.0}', "test payload")
+        with self.assertRaisesRegex(ContractError, "exact ingress range"):
+            _json_bytes(b'{"value":9007199254740991.1}', "test payload")
+        with self.assertRaisesRegex(ContractError, "exact ingress range"):
+            _json_bytes(b'{"value":1e-400}', "test payload")
+        self.assertEqual(
+            _json_bytes(b'{"value":9007199254740991}', "test payload")["value"],
+            (1 << 53) - 1,
+        )
+        self.assertEqual(
+            _json_bytes(
+                b'{"decimal_integer":1.0,"exponent_integer":1e2}', "test payload"
+            ),
+            {"decimal_integer": 1.0, "exponent_integer": 100.0},
+        )
+        with self.assertRaisesRegex(ContractError, "Unicode surrogate"):
+            _json_bytes(b'{"value":"\\ud800"}', "test payload")
+        self.assertEqual(
+            _json_bytes('{"value":"😀"}'.encode("utf-8"), "test payload")["value"],
+            "😀",
+        )
+        with self.assertRaisesRegex(ContractError, "nesting exceeds"):
+            _json_bytes(("[" * 2000 + "0" + "]" * 2000).encode(), "test payload")
+        with self.assertRaisesRegex(ContractError, "outside its allowed range"):
+            _finite_number(10**10000, "oversized integer")
+        self.assertIsNotNone(ACTION.fullmatch("b" + "1" * 79))
+        self.assertIsNone(ACTION.fullmatch("b" + "1" * 80))
+        self.assertIsNotNone(NODE.fullmatch("r:0:b75:c:2h"))
+        oversized_action = "b" + "9" * 80
+        self.assertIsNone(ACTION.fullmatch(oversized_action))
+        self.assertIsNone(NODE.fullmatch(f"r:0:{oversized_action}"))
+        with self.assertRaisesRegex(PioError, "at least two unique"):
+            parse_children(f"r:0:c r:0:{oversized_action}", "r:0")
+        self.assertIsNone(NODE.fullmatch("r:1"))
+
+    def test_range_vectors_share_the_strict_numeric_ingress_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "range.txt"
+            valid = [1] + [0] * 1325
+            path.write_text(json.dumps(valid), encoding="utf-8")
+            self.assertEqual(load_range_vector(path), [float(value) for value in valid])
+
+            underflow = ["1", "1e-400"] + ["0"] * 1324
+            path.write_text("[" + ",".join(underflow) + "]", encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "exact ingress range"):
+                load_range_vector(path)
+
+            path.write_text(" ".join(underflow), encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "exact ingress range"):
+                load_range_vector(path)
+
+            path.write_text(json.dumps(["1"] + [0] * 1325), encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "must be numeric"):
+                load_range_vector(path)
+
+            path.write_bytes(b"\xff")
+            with self.assertRaisesRegex(ContractError, "readable strict UTF-8"):
+                load_range_vector(path)
+
     def test_worker_local_preflight_never_loads_a_gateway_secret(self):
         scenario = base_scenario()
         manifest = ApprovedManifest(
@@ -636,27 +739,165 @@ class ManifestAndGatewayTests(unittest.TestCase):
         )
 
     def test_source_receipt_requires_the_exact_id_and_nonzero_lowercase_sha256(self):
-        artifact = {"id": "11111111-1111-4111-8111-111111111111"}
-        self.assertTrue(source_receipt_is_valid(artifact["id"], "a" * 64, artifact))
-        self.assertFalse(source_receipt_is_valid(str(uuid.uuid4()), "a" * 64, artifact))
-        self.assertFalse(source_receipt_is_valid(artifact["id"], "0" * 64, artifact))
-        self.assertFalse(source_receipt_is_valid(artifact["id"], "A" * 64, artifact))
-        self.assertFalse(source_receipt_is_valid(artifact["id"], "g" * 64, artifact))
+        artifact = {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "strategy_matrix_v2": {"nodes": [{"node": "r:0"}]},
+        }
+        receipt = {
+            "source_row_id": artifact["id"],
+            "source_artifact_checksum": "a" * 64,
+            "node_count": 1,
+            "idempotent": False,
+        }
+        self.assertTrue(source_receipt_is_valid(receipt, artifact))
+        for field, invalid in (
+            ("source_row_id", str(uuid.uuid4())),
+            ("source_artifact_checksum", "0" * 64),
+            ("source_artifact_checksum", "A" * 64),
+            ("source_artifact_checksum", "g" * 64),
+            ("node_count", 2),
+            ("node_count", True),
+            ("idempotent", 0),
+        ):
+            malformed = dict(receipt)
+            malformed[field] = invalid
+            with self.subTest(field=field, invalid=invalid):
+                self.assertFalse(source_receipt_is_valid(malformed, artifact))
+        extra = dict(receipt, ignored=True)
+        self.assertFalse(source_receipt_is_valid(extra, artifact))
+
+    def test_compactor_control_receipts_are_exact_and_typed(self):
+        registration = {
+            "dataset_id": "11111111-1111-4111-8111-111111111111",
+            "state": "building",
+            "idempotent": False,
+        }
+        cell = {"cell_key_checksum": "a" * 64}
+        seal = {"dataset_checksum": "b" * 64, "idempotent": True}
+        self.assertTrue(compactor.registration_receipt_is_valid(registration))
+        self.assertTrue(compactor.build_cell_receipt_is_valid(cell))
+        self.assertTrue(compactor.seal_receipt_is_valid(seal))
+        self.assertFalse(
+            compactor.registration_receipt_is_valid(dict(registration, ignored=True))
+        )
+        self.assertFalse(
+            compactor.registration_receipt_is_valid({**registration, "idempotent": 0})
+        )
+        self.assertFalse(compactor.build_cell_receipt_is_valid({**cell, "ignored": True}))
+        self.assertFalse(compactor.build_cell_receipt_is_valid({"cell_key_checksum": "0" * 64}))
+        self.assertFalse(compactor.seal_receipt_is_valid({**seal, "idempotent": 1}))
+
+    def test_compactor_rejects_an_unsealed_or_incomplete_terminal_dataset(self):
+        dataset_id = "11111111-1111-4111-8111-111111111111"
+        complete = {
+            "dataset_id": dataset_id,
+            "state": "active",
+            "ingested_source_artifacts": 2,
+            "source_receipt_rows": 2,
+            "runtime_cells": 3,
+            "source_max_at": "2026-09-09T00:00:00Z",
+            "dataset_checksum": "a" * 64,
+        }
+        self.assertEqual(
+            compactor.dataset_item({"datasets": [complete]}, dataset_id, 3), complete
+        )
+        for changed in (
+            {**complete, "dataset_checksum": None},
+            {**complete, "runtime_cells": 0},
+            {**complete, "runtime_cells": 2},
+        ):
+            with self.subTest(changed=changed), self.assertRaisesRegex(
+                GatewayError, "unsealed|declared coverage"
+            ):
+                compactor.dataset_item({"datasets": [changed]}, dataset_id, 3)
+
+    def test_heartbeat_receipts_are_exact_and_reject_boolean_sequences(self):
+        run_id = "11111111-1111-4111-8111-111111111111"
+        worker_receipt = {
+            "accepted": True,
+            "idempotent": False,
+            "machine_id": "M1",
+            "run_id": run_id,
+            "sequence": 1,
+            "rows_per_hour": 12.5,
+            "eta_at": None,
+        }
+        compact_receipt = {
+            "accepted": True,
+            "idempotent": False,
+            "run_id": run_id,
+            "sequence": 1,
+            "compact_lag_seconds": 0,
+        }
+        self.assertTrue(worker_heartbeat_receipt_is_valid(worker_receipt, "M1", run_id, 1))
+        self.assertTrue(compactor.compact_heartbeat_receipt_is_valid(compact_receipt, run_id, 1))
+        self.assertTrue(
+            worker_heartbeat_receipt_is_valid(
+                {
+                    "accepted": True,
+                    "idempotent": True,
+                    "machine_id": "M1",
+                    "run_id": run_id,
+                    "sequence": 1,
+                },
+                "M1",
+                run_id,
+                1,
+            )
+        )
+        self.assertTrue(
+            compactor.compact_heartbeat_receipt_is_valid(
+                {
+                    "accepted": True,
+                    "idempotent": True,
+                    "run_id": run_id,
+                    "sequence": 1,
+                },
+                run_id,
+                1,
+            )
+        )
+        self.assertFalse(
+            worker_heartbeat_receipt_is_valid(
+                {**worker_receipt, "sequence": True}, "M1", run_id, 1
+            )
+        )
+        self.assertFalse(
+            worker_heartbeat_receipt_is_valid(
+                {**worker_receipt, "rows_per_hour": float("nan")}, "M1", run_id, 1
+            )
+        )
+        self.assertFalse(
+            compactor.compact_heartbeat_receipt_is_valid(
+                {**compact_receipt, "sequence": True}, run_id, 1
+            )
+        )
+        self.assertFalse(
+            compactor.compact_heartbeat_receipt_is_valid(
+                {**compact_receipt, "ignored": True}, run_id, 1
+            )
+        )
 
     def test_checkpoint_parser_rejects_duplicate_keys_and_malformed_nodes_cleanly(self):
         with tempfile.TemporaryDirectory() as directory:
             checkpoint = Path(directory) / "artifact.json"
             checkpoint.write_text('{"id":"one","id":"two"}', encoding="utf-8")
-            with self.assertRaisesRegex(ContractError, "repeats JSON key"):
+            with self.assertRaisesRegex(ContractError, "duplicate JSON key"):
                 load_checkpoint(checkpoint)
             checkpoint.write_text('{"value":NaN}', encoding="utf-8")
-            with self.assertRaisesRegex(ContractError, "non-JSON number"):
-                load_checkpoint(checkpoint)
-            checkpoint.write_text('{"value":1e400}', encoding="utf-8")
             with self.assertRaisesRegex(ContractError, "non-finite JSON number"):
                 load_checkpoint(checkpoint)
+            checkpoint.write_text('{"value":1e400}', encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "finite ingress range"):
+                load_checkpoint(checkpoint)
+            checkpoint.write_text('{"value":9007199254740993}', encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "exact ingress range"):
+                load_checkpoint(checkpoint)
+            checkpoint.write_text("[" * 130 + "0" + "]" * 130, encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "nesting exceeds"):
+                load_checkpoint(checkpoint)
             checkpoint.write_bytes(b"\xff")
-            with self.assertRaisesRegex(ContractError, "unreadable"):
+            with self.assertRaisesRegex(ContractError, "strict UTF-8 JSON"):
                 load_checkpoint(checkpoint)
 
         scenario = base_scenario()
@@ -801,6 +1042,20 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(loaded.provenance["manifest_checksum"], digest(manifest_bytes))
             self.assertEqual(loaded.source_combo_order, canonical_hand_order_tokens())
             self.assertEqual(loaded.icm_models["satellite.1000"]["ip_stack_chips"], 1400)
+            invalid_combo = b"\xff"
+            (input_root / "combo.txt").write_bytes(invalid_combo)
+            invalid_combo_manifest = json.loads(json.dumps(manifest))
+            invalid_combo_manifest["source_combo_order_checksum"] = digest(invalid_combo)
+            invalid_combo_bytes = canonical_json(invalid_combo_manifest)
+            manifest_path.write_bytes(invalid_combo_bytes)
+            with self.assertRaisesRegex(ContractError, "strict UTF-8"):
+                load_manifest(
+                    manifest_path,
+                    expected_checksum=digest(invalid_combo_bytes),
+                    input_root=input_root,
+                    pipeline_root=pipeline_root,
+                )
+            (input_root / "combo.txt").write_bytes(combo_bytes)
             incomplete_manifest = json.loads(json.dumps(manifest))
             incomplete_manifest["pipeline_files"] = incomplete_manifest["pipeline_files"][:-1]
             incomplete_bytes = canonical_json(incomplete_manifest)
@@ -837,6 +1092,19 @@ class ManifestAndGatewayTests(unittest.TestCase):
                 load_manifest(
                     manifest_path,
                     expected_checksum=digest(non_string_bytes),
+                    input_root=input_root,
+                    pipeline_root=pipeline_root,
+                    verify_inputs=False,
+                    verify_pipeline=False,
+                )
+            uppercase_bundle_id = json.loads(json.dumps(manifest))
+            uppercase_bundle_id["input_bundle_id"] = input_bundle_id("a" * 64).upper()
+            uppercase_bundle_bytes = canonical_json(uppercase_bundle_id)
+            manifest_path.write_bytes(uppercase_bundle_bytes)
+            with self.assertRaisesRegex(ContractError, "input_bundle_id is invalid"):
+                load_manifest(
+                    manifest_path,
+                    expected_checksum=digest(uppercase_bundle_bytes),
                     input_root=input_root,
                     pipeline_root=pipeline_root,
                     verify_inputs=False,

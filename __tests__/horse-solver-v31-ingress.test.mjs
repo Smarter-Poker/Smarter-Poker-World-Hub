@@ -11,6 +11,7 @@ import {
   V31_INGRESS_PROTOCOL,
   v31IngressBodySha256,
   v31IngressEnvelopeIsValid,
+  v31IngressDatabaseFailureStatus,
   verifyV31IngressRequest,
 } from '../src/lib/horses/solverV31IngressAuth.mjs';
 
@@ -87,12 +88,46 @@ test('strict ingress JSON rejects duplicate keys at every depth, including escap
   assert.throws(() => parseV31IngressJson('{"operation":"one","operation":"two"}'), /duplicate JSON key/);
   assert.throws(() => parseV31IngressJson('{"payload":{"dataset_id":1,"dataset_id":2}}'), /duplicate JSON key/);
   assert.throws(() => parseV31IngressJson('{"payload":{"a":1,"\\u0061":2}}'), /duplicate JSON key/);
+  assert.throws(() => parseV31IngressJson('{"payload":"\\ud800"}'), /Unicode surrogate/);
+  assert.deepEqual(parseV31IngressJson('{"payload":"😀"}'), { payload: '😀' });
+  const bomBytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('{"a":1}')]);
+  const bomVisible = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bomBytes);
+  assert.throws(() => parseV31IngressJson(bomVisible), /expected JSON value/);
+});
+
+test('database outages remain retryable while deterministic conflicts stay 409', () => {
+  assert.equal(v31IngressDatabaseFailureStatus({ code: '57014' }, 400), 504);
+  assert.equal(v31IngressDatabaseFailureStatus({ code: 'PGRST003' }, 504), 504);
+  assert.equal(v31IngressDatabaseFailureStatus({ code: 'PGRST202' }, 404), 503);
+  assert.equal(v31IngressDatabaseFailureStatus({ code: '08006' }, 400), 503);
+  assert.equal(v31IngressDatabaseFailureStatus({ code: 'P0001' }, 400), 409);
+  assert.equal(v31IngressDatabaseFailureStatus({ code: '23505' }, 409), 409);
 });
 
 test('strict ingress JSON stays linear on numeric arrays and bounds recursive nesting', () => {
   const numbers = Array.from({ length: 20_000 }, (_, index) => index % 1_000);
   assert.deepEqual(parseV31IngressJson(JSON.stringify(numbers)), numbers);
   assert.throws(() => parseV31IngressJson('{"value":1e400}'), /finite ingress range/);
+  assert.deepEqual(parseV31IngressJson('{"value":9007199254740991}'), {
+    value: Number.MAX_SAFE_INTEGER,
+  });
+  assert.throws(
+    () => parseV31IngressJson('{"value":9007199254740993}'),
+    /exact ingress range/,
+  );
+  assert.throws(
+    () => parseV31IngressJson('{"value":9007199254740993.0}'),
+    /exact ingress range/,
+  );
+  assert.throws(
+    () => parseV31IngressJson('{"value":9007199254740991.1}'),
+    /exact ingress range/,
+  );
+  assert.throws(() => parseV31IngressJson('{"value":1e-400}'), /exact ingress range/);
+  assert.deepEqual(parseV31IngressJson('{"decimalInteger":1.0,"exponentInteger":1e2}'), {
+    decimalInteger: 1,
+    exponentInteger: 100,
+  });
   const tooDeep = `${'['.repeat(130)}0${']'.repeat(130)}`;
   assert.throws(() => parseV31IngressJson(tooDeep), /nesting exceeds/);
 });
@@ -117,7 +152,14 @@ test('the route claims a durable nonce before its narrow RPC dispatch', () => {
   assert.ok(ROUTE.includes("'fn_gto_v31_build_cell',\n      { p_dataset_id: payload.dataset_id, p_context: payload.context },\n      LONG_DB_TIMEOUT_MS"));
   assert.ok(ROUTE.includes("'fn_gto_v31_seal_build',\n      { p_dataset_id: payload.dataset_id },\n      LONG_DB_TIMEOUT_MS"));
   assert.ok(ROUTE.includes('Raw JSON request body required'));
-  assert.ok(ROUTE.includes('parseV31IngressJson(new TextDecoder'));
+  assert.ok(ROUTE.includes('parseV31IngressJson('));
+  assert.ok(ROUTE.includes("new TextDecoder('utf-8'"));
+  assert.ok(ROUTE.includes('ignoreBOM: true'));
+  assert.ok(ROUTE.includes('v31IngressDatabaseFailureStatus(error, status)'));
+  assert.ok(ROUTE.includes("typeof contract[field] === 'string'"));
+  assert.ok(ROUTE.includes('contract[field] === provenance[field]'));
+  assert.ok(!ROUTE.includes('String(contract[field])'));
+  assert.ok(!ROUTE.includes('UUID.test(value.toLowerCase())'));
   for (const rpc of [
     'fn_gto_v31_worker_contract',
     'fn_solver_worker_heartbeat',
